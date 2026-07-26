@@ -1,4 +1,4 @@
-import { CodeBlock, Column, Text } from '@platform-blocks/ui';
+import { Block, CodeBlock, Text } from '@platform-blocks/ui';
 
 const sampleCode = `function hackTheMatrix() {
   const matrix = generateMatrix();
@@ -18,39 +18,39 @@ Server running on port 3000`;
 
 export default function Demo() {
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <Text weight="semibold">Visual variants</Text>
       <Text size="sm" colorVariant="secondary">
         Switch between default, terminal, and hacker themes using the variant prop.
       </Text>
-      <Column gap="lg">
-        <Column gap="xs">
+      <Block>
+        <Block>
           <Text size="sm" weight="semibold">
             Default code block
           </Text>
           <CodeBlock language="javascript" title="matrix.js">
             {sampleCode}
           </CodeBlock>
-        </Column>
+        </Block>
 
-        <Column gap="xs">
+        <Block>
           <Text size="sm" weight="semibold">
             Terminal variant
           </Text>
           <CodeBlock variant="terminal" title="Terminal">
             {terminalCode}
           </CodeBlock>
-        </Column>
+        </Block>
 
-        <Column gap="xs">
+        <Block>
           <Text size="sm" weight="semibold">
             Hacker variant
           </Text>
           <CodeBlock variant="hacker" language="javascript" title="hack.exe">
             {sampleCode}
           </CodeBlock>
-        </Column>
-      </Column>
-    </Column>
+        </Block>
+      </Block>
+    </Block>
   );
 }

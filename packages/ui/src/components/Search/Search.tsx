@@ -9,6 +9,8 @@ import { spotlight } from '../Spotlight';
 import type { SearchProps, InternalState } from './types';
 import { Space } from '../Space';
 import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
+import { getBorderRadius, getComponentDefaultRadius } from '../../core/theme/radius';
+import { useSurfaceStyles } from '../Surface/useSurfaceStyles';
 
 export const Search = factory<{ props: SearchProps; ref: TextInput }>((props, ref) => {
   const { spacingProps, otherProps } = extractSpacingProps(props);
@@ -19,7 +21,9 @@ export const Search = factory<{ props: SearchProps; ref: TextInput }>((props, re
     onSubmit,
     placeholder = 'Search...',
     size = 'sm',
-    radius = 'md',
+    // Undefined by design — the `input` radius token supplies the default, both
+    // for the Input below and for the button-mode trigger.
+    radius,
     autoFocus,
     debounce = 0,
     clearButton = true,
@@ -33,6 +37,7 @@ export const Search = factory<{ props: SearchProps; ref: TextInput }>((props, re
   } = otherProps;
 
   const theme = useTheme();
+  const triggerSurface = useSurfaceStyles({ raised: true, withBorder: true, shadow: 'none' });
   const spacingStyles = getSpacingStyles(spacingProps);
   const inputRef = useRef<TextInput | null>(null);
   const [internal, setInternal] = useState<InternalState>(() => ({
@@ -128,10 +133,12 @@ export const Search = factory<{ props: SearchProps; ref: TextInput }>((props, re
               gap: theme.spacing.xl,
               paddingHorizontal: theme.spacing.sm,
               paddingVertical: theme.spacing.xs,
-              backgroundColor: theme.colors.surface[1],
-              borderRadius: radius === 'md' ? 8 : radius === 'sm' ? 6 : 4,
+              // A control sitting on its container, so it rises one step from
+              // whatever surface it's placed on rather than assuming the page.
+              backgroundColor: triggerSurface.token.background,
+              borderRadius: getBorderRadius(radius ?? getComponentDefaultRadius('input')),
               borderWidth: 1,
-              borderColor: theme.colors.gray[3],
+              borderColor: triggerSurface.token.border,
               minHeight: size === 'xs' ? 28 : size === 'sm' ? 32 : size === 'md' ? 36 : 40,
             },
             style

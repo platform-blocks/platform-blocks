@@ -116,17 +116,29 @@ export const NavigationSection: React.FC<NavigationSectionProps> = ({
       )}
       
       <Flex direction="column" gap="xs">
-        {section.items.map(item => (
-          <Button
-            key={item.route}
-            size="sm"
-            variant="ghost"
-            startIcon={<Icon name={item.icon} size={16} color={theme.colors.primary[6]} />}
-            title={item.label}
-            onPress={() => handleItemPress(item.route)}
-            style={{ justifyContent: 'flex-start' }}
-          />
-        ))}
+        {section.items.map(item => {
+          const isActive = isRouteActive(item.route);
+
+          // No leading icon here: the mobile drawer is a plain list of labels,
+          // where a column of icons is noise rather than a scanning aid. The
+          // current page is marked the same way the desktop sidebar marks it —
+          // a tinted row — plus a heavier label, since there's no icon left to
+          // carry the accent color.
+          return (
+            <Button
+              key={item.route}
+              size="sm"
+              variant="ghost"
+              title={item.label}
+              onPress={() => handleItemPress(item.route)}
+              labelProps={isActive ? { weight: 'semibold', color: theme.colors.primary[6] } : undefined}
+              style={{
+                justifyContent: 'flex-start',
+                backgroundColor: isActive ? theme.colors.primary[1] : 'transparent',
+              }}
+            />
+          );
+        })}
       </Flex>
     </Flex>
   );

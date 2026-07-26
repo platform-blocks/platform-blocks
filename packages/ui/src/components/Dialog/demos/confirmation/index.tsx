@@ -1,6 +1,6 @@
 import { Alert } from 'react-native';
 
-import { Button, Column, Row, Text, useDialog } from '@platform-blocks/ui';
+import { Block, Button, Row, Text, useDialog } from '@platform-blocks/ui';
 
 export default function Demo() {
   const { openDialog, closeDialog } = useDialog();
@@ -10,19 +10,19 @@ export default function Demo() {
       variant: 'modal',
       title: 'Confirm Action',
       content: (
-        <Column gap="md" p="md">
+        <Block p="md">
           <Text>Are you sure you want to delete this item?</Text>
           <Text size="sm" colorVariant="secondary">
             This action cannot be undone.
           </Text>
 
           <Row gap="sm" mt="sm">
-            <Column grow={1}>
-              <Button fullWidth variant="outline" onPress={() => closeDialog(dialogId)}>
+            <Block grow={1}>
+              <Button fullWidth variant="subtle" onPress={() => closeDialog(dialogId)}>
                 Cancel
               </Button>
-            </Column>
-            <Column grow={1}>
+            </Block>
+            <Block grow={1}>
               <Button
                 fullWidth
                 variant="filled"
@@ -34,9 +34,9 @@ export default function Demo() {
               >
                 Delete
               </Button>
-            </Column>
+            </Block>
           </Row>
-        </Column>
+        </Block>
       )
     });
   };

@@ -16,8 +16,6 @@ export interface FunnelStep {
   meta?: any;
   /** Optional override for where the label should render */
   labelPosition?: 'inside' | 'outside-left' | 'outside-right';
-  /** Optional mini trend sparkline values for the stage */
-  trend?: number[];
   /** Human readable label for the trend delta */
   trendLabel?: string;
   /** Numeric delta used to drive up/down styling */
@@ -95,14 +93,10 @@ export interface FunnelConnectorConfig {
   strokeWidth?: number;
   /** Optional radius for rounded connector corners */
   radius?: number;
-  /** Marker size multiplier for arrow heads */
-  markerSize?: number;
   /** Format the label displayed around the connector */
   labelFormatter?: FunnelConversionLabelFormatter;
   /** Offset applied to the connector label */
   labelOffset?: number;
-  /** Control where the connector label renders */
-  labelPosition?: 'inside' | 'outside';
 }
 
 export interface FunnelLayoutConfig {
@@ -116,13 +110,9 @@ export interface FunnelLayoutConfig {
   align?: 'center' | 'left' | 'right';
   /** Show conversion percentage between steps */
   showConversion?: boolean;
-  /** Show cumulative values alongside steps */
-  showCumulative?: boolean;
   /** How to render multiple series */
   seriesMode?: 'single' | 'grouped' | 'stacked';
-  /** Toggle responsive orientation */
-  orientation?: 'vertical' | 'horizontal' | 'auto';
-  /** Pixel breakpoint used when orientation is auto */
+  /** Pixel breakpoint used to switch to left-aligned layout */
   responsiveBreakpoint?: number;
   /** Extra spacing between grouped segments */
   groupGap?: number;
@@ -188,8 +178,6 @@ export interface FunnelChartProps
   multiTooltip?: boolean;
   /** Keep tooltip following the pointer */
   liveTooltip?: boolean;
-  /** Additional decorations or notes to render */
-  annotations?: any[];
   /** Render hidden accessibility table */
   accessibilityTable?: FunnelAccessibilityTableOptions;
   /** Callback invoked with data table payload */

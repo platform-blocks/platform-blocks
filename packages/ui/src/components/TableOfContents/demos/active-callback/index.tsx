@@ -1,10 +1,9 @@
 import { useRef, useState } from 'react';
-import { Block, Chip, Column, Row, TableOfContents, Text, Title, TitleRegistryProvider } from '@platform-blocks/ui';
+import { Block, Chip, Row, TableOfContents, Text, Title, TitleRegistryProvider } from '@platform-blocks/ui';
 
 const SECTIONS = [
   { id: 'overview', title: 'Overview', summary: 'Explain when the progress indicator should appear.' },
-  { id: 'loading', title: 'Loading States', summary: 'Describe how to expose feedback while content is fetching.' },
-  { id: 'completion', title: 'Completion', summary: 'Document the triggers that finalize navigation progress.' },
+  { id: 'loading', title: 'Loading States', summary: 'Describe feedback while content is fetching.' },
   { id: 'error', title: 'Error Recovery', summary: 'Clarify what happens if the data fails to load.' },
 ];
 
@@ -14,7 +13,11 @@ export default function Demo() {
 
   return (
     <TitleRegistryProvider>
-      <Column gap="sm">
+      <Block>
+        <Chip variant="light" color={activeId ? 'primary' : 'gray'} size="sm">
+          Active section: {activeId ?? 'None'}
+        </Chip>
+
         <Row gap="xl" align="flex-start">
           <TableOfContents
             container={contentRef.current ?? undefined}
@@ -22,27 +25,18 @@ export default function Demo() {
             size="xs"
             p="sm"
             style={{ width: 240 }}
-            onActiveChange={(id) => setActiveId(id)}
+            onActiveChange={setActiveId}
           />
           <Block ref={contentRef} component="div" grow={1} style={{ maxWidth: 560 }}>
-            <Column gap="lg">
-              {SECTIONS.map((section, index) => (
-                <Column key={section.id} gap="sm">
-                  <Title order={index === 0 ? 1 : 2}>
-                    {section.title}
-                  </Title>
-                  <Text colorVariant="secondary">
-                    {section.summary}
-                  </Text>
-                </Column>
-              ))}
-            </Column>
+            {SECTIONS.map((section, index) => (
+              <Block key={section.id}>
+                <Title order={index === 0 ? 1 : 2}>{section.title}</Title>
+                <Text colorVariant="secondary">{section.summary}</Text>
+              </Block>
+            ))}
           </Block>
         </Row>
-        <Chip variant="light" color={activeId ? 'primary' : 'gray'} size="sm">
-          Active section: {activeId ?? 'None'}
-        </Chip>
-      </Column>
+      </Block>
     </TitleRegistryProvider>
   );
 }

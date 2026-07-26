@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Calendar, Column, Text } from '@platform-blocks/ui';
+import { Block, Calendar, Text } from '@platform-blocks/ui';
 
 const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
 const dateFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
@@ -15,7 +15,7 @@ export default function Demo() {
   }, []);
 
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <Calendar
         value={selectedDate}
         onChange={(date) => setSelectedDate(date as Date | null)}
@@ -29,6 +29,6 @@ export default function Demo() {
       <Text size="xs" colorVariant="secondary">
         Only dates in {monthLabel} are enabled.
       </Text>
-    </Column>
+    </Block>
   );
 }

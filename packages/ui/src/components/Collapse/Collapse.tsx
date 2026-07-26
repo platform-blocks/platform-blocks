@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing } from 'react-native';
+import { Animated, Easing, View } from 'react-native';
 import type { CollapseProps } from './types';
 
-const Collapse: React.FC<CollapseProps> = ({
+const Collapse = React.forwardRef<View, CollapseProps>(({
   isCollapsed,
   children,
-  duration = 300,
+  duration: durationProp = 300,
+  transitionDuration,
   timing = 'ease-out',
   easing,
   style,
@@ -15,7 +16,10 @@ const Collapse: React.FC<CollapseProps> = ({
   animateOnMount = false,
   collapsedHeight = 0,
   fadeContent = true,
-}) => {
+}, ref) => {
+  // `transitionDuration` is the cross-component spelling; `duration` remains
+  // supported. `0` means "no transition" and is applied without animating.
+  const duration = Math.max(transitionDuration ?? durationProp, 0);
   const heightAnimation = useRef(new Animated.Value(collapsedHeight)).current;
   const opacityAnimation = useRef(new Animated.Value(isCollapsed ? 0 : 1)).current;
   const [contentHeight, setContentHeight] = useState<number>(0);
@@ -43,18 +47,33 @@ const Collapse: React.FC<CollapseProps> = ({
   useEffect(() => {
     if (contentHeight === 0) return; // Wait for content to be measured
 
-    // On the first pass after measuring, jump straight to the correct
-    // position without animating (unless animateOnMount is requested).
+    const targetHeight = isCollapsed ? collapsedHeight : contentHeight;
+    const targetOpacity = isCollapsed ? 0 : 1;
+
+    // On the first pass after measuring, jump straight to the correct position
+    // without animating (unless animateOnMount is requested). Re-apply the
+    // target rather than trusting what `handleContentLayout` snapshotted: a
+    // parent may resolve `isCollapsed` (e.g. after its own measurement) in the
+    // same commit as the layout event, making that snapshot stale.
     if (!didInitRef.current) {
       didInitRef.current = true;
-      if (!animateOnMount) return;
+      if (!animateOnMount) {
+        heightAnimation.setValue(targetHeight);
+        if (fadeContent) opacityAnimation.setValue(targetOpacity);
+        return;
+      }
+    }
+
+    if (duration === 0) {
+      heightAnimation.setValue(targetHeight);
+      if (fadeContent) opacityAnimation.setValue(targetOpacity);
+      onAnimationStart?.();
+      onAnimationEnd?.();
+      return;
     }
 
     setIsAnimating(true);
     onAnimationStart?.();
-
-    const targetHeight = isCollapsed ? collapsedHeight : contentHeight;
-    const targetOpacity = isCollapsed ? 0 : 1;
 
     const baseTimingConfig = {
       duration,
@@ -111,6 +130,7 @@ const Collapse: React.FC<CollapseProps> = ({
 
   return (
     <Animated.View
+      ref={ref}
       style={[
         {
           overflow: 'hidden',
@@ -132,6 +152,8 @@ const Collapse: React.FC<CollapseProps> = ({
       </Animated.View>
     </Animated.View>
   );
-};
+});
+
+Collapse.displayName = 'Collapse';
 
 export default Collapse;

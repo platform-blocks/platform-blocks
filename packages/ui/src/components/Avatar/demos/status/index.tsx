@@ -1,54 +1,53 @@
-import { Avatar, Column, Row, Text } from '@platform-blocks/ui';
+import { Avatar, Block } from '@platform-blocks/ui';
+import type { AvatarProps } from '@platform-blocks/ui';
 
-const STATUS_AVATARS = [
+type StatusAvatar = Pick<AvatarProps, 'size' | 'src' | 'online' | 'indicatorColor'> & {
+  key: string;
+  label: string;
+  description: string;
+};
+
+const STATUS_AVATARS: StatusAvatar[] = [
   {
     key: 'online',
     label: 'Josh',
     description: 'Online',
-    size: 'sm' as const,
-    src: 'https://randomuser.me/api/portraits/men/1.jpg'
+    src: require('../../../../assets/avatars/avatar-1.png')
   },
   {
     key: 'available',
     label: 'Alice',
     description: 'Available',
-    size: 'md' as const,
-    src: 'https://randomuser.me/api/portraits/women/1.jpg'
+    src: require('../../../../assets/avatars/avatar-2.png')
   },
   {
     key: 'focus',
     label: 'Mike',
     description: 'Focus time',
-    size: 'lg' as const,
-    src: 'https://randomuser.me/api/portraits/men/2.jpg',
+    src: require('../../../../assets/avatars/avatar-3.png'),
+    indicatorColor: '#f59e0b'
   },
   {
     key: 'offline',
     label: 'Tori',
     description: 'Last active 5m ago',
-    size: 'xl' as const,
-    src: 'https://randomuser.me/api/portraits/women/2.jpg',
+    src: require('../../../../assets/avatars/avatar-4.png'),
     online: false
   }
 ];
 
 export default function Demo() {
   return (
-    <Column gap="md">
-      <Row gap="lg" wrap="wrap">
-        {STATUS_AVATARS.map(({ key, indicatorColor, online = true, ...avatar }) => (
-          <Avatar
-              key={key}
-              {...avatar}
-              fallback={avatar.label.slice(0, 2).toUpperCase()}
-              online={online}
-              indicatorColor={indicatorColor}
-            />
-        ))}
-      </Row>
-      <Text variant="small" colorVariant="muted" align="center">
-        Set `online` to control the presence indicator and adjust `indicatorColor` for custom states.
-      </Text>
-    </Column>
+    <Block direction="row" justify="space-evenly" fullWidth>
+      {STATUS_AVATARS.map(({ key, indicatorColor, online = true, ...avatar }) => (
+        <Avatar
+          key={key}
+          {...avatar}
+          fallback={avatar.label.slice(0, 2).toUpperCase()}
+          online={online}
+          indicatorColor={indicatorColor}
+        />
+      ))}
+    </Block>
   );
 }

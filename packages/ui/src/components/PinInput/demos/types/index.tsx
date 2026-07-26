@@ -1,16 +1,16 @@
 import { useState } from 'react';
 
-import { Column, PinInput, Text } from '@platform-blocks/ui';
+import { Block, PinInput, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [numericValue, setNumericValue] = useState('');
   const [alphanumericValue, setAlphanumericValue] = useState('');
 
   return (
-    <Column gap="lg">
+    <Block>
       <Text weight="semibold">PIN input types</Text>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" weight="semibold">
           Numeric (default)
         </Text>
@@ -23,9 +23,9 @@ export default function Demo() {
           type="numeric"
           label="Numeric PIN"
         />
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" weight="semibold">
           Alphanumeric
         </Text>
@@ -39,8 +39,8 @@ export default function Demo() {
           label="Alphanumeric code"
           length={6}
         />
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }
 

@@ -1,4 +1,4 @@
-import { Button, Column, Popover, Text } from '@platform-blocks/ui';
+import { Block, Button, Popover, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
@@ -9,7 +9,7 @@ export default function Demo() {
         </Button>
       </Popover.Target>
       <Popover.Dropdown>
-        <Column gap="xs" p="sm" style={{ maxWidth: 240 }}>
+        <Block p="sm" style={{ maxWidth: 240 }}>
           <Text weight="semibold">Quick actions</Text>
           <Text variant="small" colorVariant="secondary">
             Popovers expose more content than tooltips without leaving the page.
@@ -20,7 +20,7 @@ export default function Demo() {
           <Button size="xs" variant="ghost">
             View documentation
           </Button>
-        </Column>
+        </Block>
       </Popover.Dropdown>
     </Popover>
   );

@@ -3,6 +3,7 @@ import { View, Pressable } from 'react-native';
 import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme';
 import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
+import { useSurfaceStyles } from '../Surface/useSurfaceStyles';
 import { Text } from '../Text';
 import type { EmojiPickerProps } from './types';
 
@@ -43,6 +44,7 @@ export const EmojiPicker = factory<{ props: EmojiPickerProps; ref: View }>((prop
   } = props;
 
   const theme = useTheme();
+  const quickSurface = useSurfaceStyles({ raised: true, withBorder: true, shadow: 'none' });
 
   const containerStyles = getSpacingStyles(extractSpacingProps(spacing).spacingProps);
 
@@ -57,10 +59,13 @@ export const EmojiPicker = factory<{ props: EmojiPickerProps; ref: View }>((prop
         style={[
           {
             flexDirection: 'row',
+            // `raised` rather than a fixed level: this bar sits inline in
+            // whatever it's dropped into, so it has to stay one step above its
+            // container instead of assuming the page.
             ...(showBackground && {
-              backgroundColor: theme.colors.surface[2],
+              backgroundColor: quickSurface.token.background,
               borderWidth: 1,
-              borderColor: theme.colors.gray[3],
+              borderColor: quickSurface.token.border,
               borderRadius: 8,
               padding: 4
             })

@@ -6,7 +6,7 @@ const copy = 'You can switch the highlight color while keeping the default marke
 
 export default function HighlightStyledDemo() {
   return (
-    <Block gap="sm">
+    <Block>
       <Text variant="h5">Highlight color</Text>
       <Highlight highlight="highlight" highlightColor="highlight">{copy}</Highlight>
       <Highlight highlight="color" highlightColor="teal">{copy}</Highlight>

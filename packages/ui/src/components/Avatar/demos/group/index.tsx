@@ -1,4 +1,4 @@
-import { Avatar, AvatarGroup, Column, Text } from '@platform-blocks/ui';
+import { Avatar, AvatarGroup, Block, Text } from '@platform-blocks/ui';
 
 const TEAM = [
   { id: 1, initials: 'SJ', color: '#FF6B6B' },
@@ -12,7 +12,7 @@ const TEAM = [
 
 export default function Demo() {
   return (
-    <Column gap="xs">
+    <Block>
       <Text weight="medium">Simple group</Text>
       <AvatarGroup>
         {TEAM.map(({ id, initials, color }) => (
@@ -22,6 +22,6 @@ export default function Demo() {
       <Text variant="small" colorVariant="muted">
         Groups overlap avatars automatically to conserve space.
       </Text>
-    </Column>
+    </Block>
   );
 }

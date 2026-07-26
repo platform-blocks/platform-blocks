@@ -19,6 +19,7 @@ props:
   labelPosition: 'left' | 'right' | 'top' | 'bottom'
   labelProps: Override props applied to the label `<Text>` (style, weight, ff, etc.)
   descriptionProps: Override props applied to the description `<Text>`
+  transitionDuration: Length of the check/uncheck animation in ms; `0` applies the state instantly
 examples:
   - Basic checkbox usage
   - Indeterminate state

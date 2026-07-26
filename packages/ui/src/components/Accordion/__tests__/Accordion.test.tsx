@@ -56,7 +56,7 @@ jest.mock('../../Collapse', () => {
   const { View } = require('react-native');
   return {
     Collapse: ({ isCollapsed, children, contentStyle }: any) => (
-      isCollapsed ? React.createElement(View, { style: contentStyle }, children) : null
+      isCollapsed ? null : React.createElement(View, { style: contentStyle }, children)
     ),
   };
 });

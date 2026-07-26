@@ -1,1 +1,1 @@
-Basic controlled usage of the TimePicker with 24-hour format.
+Basic controlled usage of the inline TimePicker panel with 24-hour format.

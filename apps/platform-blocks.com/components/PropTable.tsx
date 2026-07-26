@@ -5,7 +5,6 @@ import {
   DataTable,
   Row,
   Tooltip,
-  CopyButton,
   useTheme,
   Block,
   Flex
@@ -21,7 +20,6 @@ const TextAny: any = Text;
 const DataTableAny: any = DataTable;
 const RowAny: any = Row;
 const TooltipAny: any = Tooltip;
-const CopyButtonAny: any = CopyButton;
 
 export interface PropMetadata {
   name: string;
@@ -59,15 +57,6 @@ export function PropTable({ props }: PropTableProps) {
     return (
       <RowAny gap={4} align="center">
         <Flex direction="row" align="center">
-          <CopyButtonAny
-            value={value}
-            mode="icon"
-            size="xs"
-            tooltip="Copy prop name"
-            tooltipPosition="top"
-            disableToast
-            style={{ marginLeft: 4 }}
-          />
           <Block>
             <TextAny variant="p" weight="semibold" style={{ fontFamily: 'monospace' }}>
               {value}
@@ -146,7 +135,7 @@ export function PropTable({ props }: PropTableProps) {
   ].filter(Boolean) as DataTableColumn<PropMetadata>[];
 
   return (
-    <DataTableAny
+    <DataTable
       data={filtered}
       columns={columns}
       sortBy={sortBy}
@@ -154,7 +143,8 @@ export function PropTable({ props }: PropTableProps) {
       searchable
       searchPlaceholder="Search props by name, type, or description..."
       emptyMessage="No props found"
-      variant="default"
+      variant="bordered"
+      columnBorderWidth={1}
       density="normal"
       enableColumnResizing
       fullWidth={true}

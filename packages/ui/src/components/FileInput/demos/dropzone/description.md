@@ -10,5 +10,3 @@ hidden: false
 ---
 
 Drag-and-drop dropzone variant with native fallback instructions and selected file list.
-
-```

@@ -168,7 +168,7 @@ const revertVersions = (backups: { path: string; content: string }[]) => {
 
 const publishPackage = (pkg: PackageTarget, options: Options) => {
   if (!options.skipBuild) {
-    runCommand(`npm run build --workspace=${pkg.workspace}`, ROOT, options.dryRun);
+    runCommand(`npm --prefix ${pkg.workspace} run build`, ROOT, options.dryRun);
   } else {
     console.log(`Skipping build for ${pkg.name}`);
   }
@@ -201,7 +201,7 @@ const main = () => {
   // Generate SEO files (sitemap.xml and llms.txt) before publishing
   console.log('Generating SEO files...');
   try {
-    runCommand('npm run generate-seo --workspace=apps/platform-blocks.com', ROOT, options.dryRun);
+    runCommand('npm --prefix apps/platform-blocks.com run generate-seo', ROOT, options.dryRun);
     console.log('SEO files generated successfully.');
   } catch (error) {
     console.warn('Warning: Failed to generate SEO files. Continuing with publish...');

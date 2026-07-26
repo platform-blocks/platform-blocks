@@ -16,6 +16,7 @@ export type SurfaceLayersProps = {
   ringBackgroundColor?: string;
   ringBaseStroke: string;
   ringPath: string;
+  ringSegmentPaths: { key: string; path: string; color: string; thickness: number }[];
   ringThickness: number;
   ringCap: 'butt' | 'round';
   ringShadowStyle: ViewStyle | null;
@@ -50,6 +51,7 @@ export const SurfaceLayers: React.FC<SurfaceLayersProps> = ({
   ringBackgroundColor,
   ringBaseStroke,
   ringPath,
+  ringSegmentPaths,
   ringThickness,
   ringCap,
   ringShadowStyle,
@@ -72,6 +74,25 @@ export const SurfaceLayers: React.FC<SurfaceLayersProps> = ({
 
   return (
     <>
+      {/* Background disk first: it spans the whole knob, so painting it after the fill hid
+          the body entirely and made `appearance.fill` a no-op. */}
+      <View
+        pointerEvents="none"
+        style={[
+          styles.ringBase,
+          {
+            left: layoutState.cx - ringSvgCenter,
+            top: layoutState.cy - ringSvgCenter,
+            width: ringBaseDiameter,
+            height: ringBaseDiameter,
+            borderRadius: ringBaseDiameter / 2,
+            backgroundColor: ringBackgroundColor,
+          },
+          ringShadowStyle ?? undefined,
+          trackStyle,
+        ]}
+      />
+
       {shouldRenderFill && fillConfig ? (
         <Svg
           pointerEvents="none"
@@ -96,23 +117,6 @@ export const SurfaceLayers: React.FC<SurfaceLayersProps> = ({
         </Svg>
       ) : null}
 
-      <View
-        pointerEvents="none"
-        style={[
-          styles.ringBase,
-          {
-            left: layoutState.cx - ringSvgCenter,
-            top: layoutState.cy - ringSvgCenter,
-            width: ringBaseDiameter,
-            height: ringBaseDiameter,
-            borderRadius: ringBaseDiameter / 2,
-            backgroundColor: ringBackgroundColor,
-          },
-          ringShadowStyle ?? undefined,
-          trackStyle,
-        ]}
-      />
-
       <Svg
         pointerEvents="none"
         width={ringBaseDiameter}
@@ -132,6 +136,16 @@ export const SurfaceLayers: React.FC<SurfaceLayersProps> = ({
           strokeLinecap={ringCap}
           fill="none"
         />
+        {ringSegmentPaths.map((segment) => (
+          <Path
+            key={segment.key}
+            d={segment.path}
+            stroke={segment.color}
+            strokeWidth={segment.thickness}
+            strokeLinecap="butt"
+            fill="none"
+          />
+        ))}
         {showContiguousProgress && progressPath ? (
           <Path
             d={progressPath}

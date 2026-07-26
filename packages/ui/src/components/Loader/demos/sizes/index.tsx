@@ -1,25 +1,16 @@
-import type { LoaderProps } from '@platform-blocks/ui';
-import { Block, Column, Loader, Row, Text } from '@platform-blocks/ui';
+import { Block, Loader, Row, Text } from '@platform-blocks/ui';
 
-const LOADER_SIZES: Required<LoaderProps>['size'][] = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
 
 export default function Demo() {
   return (
-    <Column gap="md">
-      {LOADER_SIZES.map((size) => (
-        <Row key={size} gap="md" align="center">
-          <Block minW={72}>
-            <Text variant="small" colorVariant="muted">
-              {String(size).toUpperCase()}
-            </Text>
-          </Block>
-          <Loader variant="oval" size={size} />
-          <Loader variant="bars" size={size} />
-          <Loader variant="dots" size={size} />
-        </Row>
+    <Row align="center" gap="lg" wrap="wrap">
+      {SIZES.map((size) => (
+        <Block key={size} align="center">
+          <Loader size={size} />
+          <Text variant="small">{size}</Text>
+        </Block>
       ))}
-    </Column>
+    </Row>
   );
 }
-
-

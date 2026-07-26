@@ -2,6 +2,7 @@ import React from 'react';
 import { SpacingProps } from '../../core/utils';
 import type { TextProps } from '../Text';
 import type { PaginationProps } from '../Pagination';
+import type { TooltipPropValue } from '../Tooltip';
 
 // Core type aliases
 export type SortDirection = 'asc' | 'desc' | null;
@@ -110,6 +111,14 @@ export interface DataTableProps<T = any> extends SpacingProps {
   filters?: DataTableFilter[];
   /** Filter change callback */
   onFilterChange?: (filters: DataTableFilter[]) => void;
+  /**
+   * Render an always-visible filter row directly beneath the column headers.
+   * Each `filterable` column gets an inline control — a text input for
+   * text/number/date columns and a dropdown for `select`/`boolean` columns
+   * (options auto-derived from the data when `filterOptions` is omitted). This
+   * is separate from the per-header filter popover and can be used alongside it.
+   */
+  showColumnFilters?: boolean;
   /** Pagination state */
   pagination?: DataTablePagination;
   /** Pagination change handler */
@@ -184,8 +193,6 @@ export interface DataTableProps<T = any> extends SpacingProps {
   initialHiddenColumns?: string[];
   /** Hidden column change callback */
   onColumnVisibilityChange?: (hidden: string[]) => void;
-  /** Column settings action callback */
-  onColumnSettings?: (columnKey: string) => void;
   /** Show built-in column visibility manager button */
   showColumnVisibilityManager?: boolean;
   /** Pagination size choices */
@@ -206,8 +213,8 @@ export interface DataTableProps<T = any> extends SpacingProps {
     disabled?: boolean;
     /** Whether to hide this action */
     hidden?: boolean;
-    /** Optional tooltip text shown on hover/long-press over the action button. */
-    tooltip?: string;
+    /** Tooltip shown on hover/long-press: text, or a full Tooltip config. */
+    tooltip?: TooltipPropValue;
   }>;
   /** Width of the actions column */
   actionsColumnWidth?: number;
@@ -227,7 +234,11 @@ export interface DataTableProps<T = any> extends SpacingProps {
   hoverColor?: string;
   /** Enable enhanced selection styling */
   enhancedSelection?: boolean;
-  /** Show row dividers */
+  /**
+   * Horizontal hairlines between rows. Defaults to on for `variant="bordered"`
+   * and off otherwise; set explicitly to override either way. `rowBorderWidth`
+   * takes precedence when provided.
+   */
   showRowDividers?: boolean;
   /** Custom border color for enhanced styling */
   borderColor?: string;
@@ -237,19 +248,23 @@ export interface DataTableProps<T = any> extends SpacingProps {
   fullWidth?: boolean;
   
   // Border styling options
-  /** Custom row border width */
+  /** Row border width. Overrides `showRowDividers` / the variant default, including at 0. */
   rowBorderWidth?: number;
   /** Custom row border color */
   rowBorderColor?: string;
   /** Row border style */
   rowBorderStyle?: 'solid' | 'dashed' | 'dotted';
-  /** Custom column border width */
+  /**
+   * Vertical rules between columns, off unless set — `variant="bordered"` only
+   * draws row dividers and the outer border. The rule spans the header, filter
+   * row, body, and group/footer rows.
+   */
   columnBorderWidth?: number;
   /** Custom column border color */
   columnBorderColor?: string;
   /** Column border style */
   columnBorderStyle?: 'solid' | 'dashed' | 'dotted';
-  /** Whether to show outer border around entire table */
+  /** Whether to show outer border around entire table. Defaults to `true`. */
   showOuterBorder?: boolean;
   /** Outer border width */
   outerBorderWidth?: number;

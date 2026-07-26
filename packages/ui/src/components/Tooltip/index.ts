@@ -1,2 +1,3 @@
 export { Tooltip } from './Tooltip';
-export type { TooltipProps, TooltipPositionType } from './types';
+export { resolveTooltipProps, getTooltipText } from './resolveTooltipProps';
+export type { TooltipProps, TooltipPositionType, TooltipConfig, TooltipPropValue } from './types';

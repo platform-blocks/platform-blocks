@@ -1,46 +1,16 @@
-import { Column, Text, TextArea } from '@platform-blocks/ui';
+import { Block, Text, TextArea } from '@platform-blocks/ui';
 
-type SizeToken = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-
-const sizeExamples: Array<{
-  id: SizeToken;
-  label: string;
-  helper: string;
-  rows?: number;
-}> = [
-  {
-    id: 'xs',
-    label: 'Extra small (xs)',
-    helper: 'Ideal for dense layouts and compact support widgets.',
-    rows: 3,
-  },
-  {
-    id: 'xl',
-    label: 'Extra large (xl)',
-    helper: 'Use for long-form content or message drafting.',
-    rows: 6,
-  },
-];
+const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
 
 export default function Demo() {
   return (
-    <Column gap="lg" fullWidth>
-      <Text weight="semibold">Text area sizes</Text>
-
-      <Column gap="md">
-        {sizeExamples.map((example) => (
-          <Column gap="sm" key={example.id}>
-           
-            <TextArea
-              label={example.label}
-              placeholder={`Placeholder for ${example.label.toLowerCase()}`}
-              size={example.id}
-              rows={example.rows}
-              fullWidth
-            />
-          </Column>
-        ))}
-      </Column>
-    </Column>
+    <Block fullWidth>
+      {SIZES.map((size) => (
+        <Block key={size} fullWidth>
+          <Text variant="small" colorVariant="secondary">{size}</Text>
+          <TextArea size={size} rows={3} placeholder="Write a message" fullWidth />
+        </Block>
+      ))}
+    </Block>
   );
 }

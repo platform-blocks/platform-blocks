@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Column, RadioGroup, Text } from '@platform-blocks/ui';
+import { Block, RadioGroup, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [favoriteSport, setFavoriteSport] = useState<string>('soccer');
   const [skillLevel, setSkillLevel] = useState<string>('intermediate');
 
   return (
-    <Column gap="lg">
-      <Column gap="sm">
+    <Block>
+      <Block>
         <Text variant="small" colorVariant="muted">
           Horizontal layout
         </Text>
@@ -22,9 +22,9 @@ export default function Demo() {
             { label: 'Volleyball', value: 'volleyball' }
           ]}
         />
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text variant="small" colorVariant="muted">
           Vertical layout
         </Text>
@@ -39,8 +39,8 @@ export default function Demo() {
             { label: 'Expert', value: 'expert' }
           ]}
         />
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }
 

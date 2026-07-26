@@ -1,4 +1,4 @@
-import { Column, KeyCap, Row, Search, Text, useToast } from '@platform-blocks/ui';
+import { Block, KeyCap, Row, Search, Text, useToast } from '@platform-blocks/ui';
 
 export default function Demo() {
   const toast = useToast();
@@ -8,8 +8,8 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="lg" maxW={420} w="100%">
-      <Column gap="sm">
+    <Block maxW={420} w="100%">
+      <Block>
         <Text size="xs" colorVariant="muted">
           Default Spotlight launcher
         </Text>
@@ -23,9 +23,9 @@ export default function Demo() {
             </Row>
           )}
         />
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text size="xs" colorVariant="muted">
           Custom handler with shortcut hint
         </Text>
@@ -44,7 +44,7 @@ export default function Demo() {
             </Row>
           )}
         />
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

@@ -12,44 +12,26 @@ export default function Root({ children }: PropsWithChildren) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        
-        {/* Primary Meta Tags */}
-        <meta name="title" content="Platform Blocks - Documentation" />
-        <meta name="description" content="A modern React Native component library with theme support and consistent design tokens. Learn how to build beautiful, accessible interfaces for iOS, Android, and Web." />
+
+        {/*
+          Per-route SEO tags (title, description, canonical, Open Graph, Twitter)
+          are emitted by <RouteSeo> via expo-router/head so each prerendered page
+          gets unique metadata. Only site-level, route-invariant tags live here.
+        */}
         <meta name="keywords" content="React Native, UI Library, Components, Design System, TypeScript, Mobile, Web, Cross-platform" />
-        <meta name="author" content="Platform Blocks Team" />
-        
-        {/* Open Graph / Facebook */}
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://platform-blocks.com/" />
-        <meta property="og:title" content="Platform Blocks - Documentation" />
-        <meta property="og:description" content="A modern React Native component library with theme support and consistent design tokens." />
-        <meta property="og:image" content="https://platform-blocks.com/og-image.jpg" />
-        <meta property="og:site_name" content="Platform Blocks" />
-        
-        {/* Twitter */}
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:url" content="https://platform-blocks.com/" />
-        <meta property="twitter:title" content="Platform Blocks - Documentation" />
-        <meta property="twitter:description" content="A modern React Native component library with theme support and consistent design tokens." />
-        <meta property="twitter:image" content="https://platform-blocks.com/og-image.jpg" />
-        
-        {/* Favicon */}
+        <meta name="author" content="Platform Blocks" />
+
+        {/* Favicon & PWA */}
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        
-        {/* Fonts - preconnect for performance */}
+        <link rel="manifest" href="/manifest.json" />
+
+        {/* Fonts */}
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        
+
         {/* Theme color */}
         <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-        
-        {/* Canonical URL */}
-        <link rel="canonical" href="https://platform-blocks.com/" />
-        
-        {/* Prevents zooming issues on iOS */}
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
 
         {/* Ensures proper encoding */}
         <ScrollViewStyleReset />
@@ -57,7 +39,12 @@ export default function Root({ children }: PropsWithChildren) {
         {/* Using raw CSS styles to improve the initial loading page */}
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
         
-        {/* Prevent flash of unstyled content by setting initial theme */}
+        {/*
+          Paints the correct page backdrop before first paint. This only covers
+          the backdrop — the prerendered markup itself carries light-theme colors
+          in inline styles, so dark-theme readers still see the content repaint
+          on hydration. Fixing that needs class-based theming in the UI package.
+        */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>{children}</body>
@@ -75,10 +62,26 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Covers "auto" mode, where the provider deliberately leaves both theme classes
+   off the <html> element. */
 @media (prefers-color-scheme: dark) {
   body {
     background-color: #000;
   }
+}
+
+/* An explicit light/dark choice has to beat the OS preference above, so these
+   are qualified with html.CLASS to outrank the bare body rule. The classes are
+   stamped by the pre-hydration script below and re-applied by
+   ThemeModeProvider afterwards. */
+html.platform-blocks-light,
+html.platform-blocks-light body {
+  background-color: #fff;
+}
+
+html.platform-blocks-dark,
+html.platform-blocks-dark body {
+  background-color: #000;
 }
 
 #root {
@@ -87,34 +90,70 @@ body {
   height: 100vh;
   width: 100vw;
 }
+
+/* Demo headings on component pages are permalinks (see components/DemoHeading).
+   The link is the heading itself, so it carries no decoration of its own — the
+   "#" marker fades in on hover/keyboard focus to advertise that it is one. */
+.demo-anchor {
+  display: inline-block;
+  max-width: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.demo-anchor .demo-anchor-hash {
+  font-size: 20px;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity 120ms ease-in-out;
+}
+
+.demo-anchor:hover .demo-anchor-hash,
+.demo-anchor:focus-visible .demo-anchor-hash {
+  opacity: 0.6;
+}
+
+/* Breathing room above a heading scrolled to from a #fragment. */
+.demo-anchor h1, .demo-anchor h2, .demo-anchor h3,
+.demo-anchor h4, .demo-anchor h5, .demo-anchor h6 {
+  scroll-margin-top: 24px;
+}
 `;
 
+/**
+ * Resolves the reader's colour scheme and stamps it on <html> before first paint.
+ *
+ * Runs inside <head>, so `document.body` does not exist yet — an earlier version
+ * wrote to it, threw, and landed in a catch that reset `colorScheme` to light,
+ * defeating the whole script for dark-theme readers. Everything here touches
+ * `documentElement` only; the body background is handled by the class-qualified
+ * CSS rules above.
+ *
+ * The class names are the contract with `ThemeModeConfig.domConfig` in
+ * components/layout/Providers.tsx, so the provider picks up where this leaves
+ * off instead of fighting it. In `auto` mode the provider removes both classes
+ * and the prefers-color-scheme media query takes over.
+ */
 const themeScript = `
 (function() {
+  var root = document.documentElement;
+  var scheme = 'light';
   try {
-    const saved = localStorage.getItem('platform-blocks-theme-mode');
-    let scheme = 'light';
-    
-    if (saved === 'dark') {
-      scheme = 'dark';
-    } else if (saved === 'light') {
-      scheme = 'light';
+    var saved = null;
+    try { saved = localStorage.getItem('platform-blocks-theme-mode'); } catch (storageError) {}
+
+    if (saved === 'dark' || saved === 'light') {
+      scheme = saved;
     } else {
       scheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-    
-    document.documentElement.style.colorScheme = scheme;
-    document.documentElement.setAttribute('data-theme', scheme);
-    
-    if (scheme === 'dark') {
-      document.documentElement.style.backgroundColor = '#000000';
-      document.body.style.backgroundColor = '#000000';
-    } else {
-      document.documentElement.style.backgroundColor = '#ffffff';
-      document.body.style.backgroundColor = '#ffffff';
-    }
+
+    root.classList.remove('platform-blocks-light', 'platform-blocks-dark');
+    root.classList.add('platform-blocks-' + scheme);
+    root.style.colorScheme = scheme;
+    root.style.backgroundColor = scheme === 'dark' ? '#000000' : '#ffffff';
   } catch (e) {
-    document.documentElement.style.colorScheme = 'light';
+    // Leave whatever resolved above in place; never downgrade to light here.
   }
 })();
 `;

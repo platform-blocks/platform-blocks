@@ -3,8 +3,15 @@ import { View } from 'react-native';
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 
 import { Text } from '../../Text';
-import type { KnobMark, KnobProps, KnobValueLabelConfig, KnobValueLabelPosition } from '../types';
+import type {
+  KnobBehavior,
+  KnobMark,
+  KnobProps,
+  KnobValueLabelConfig,
+  KnobValueLabelPosition,
+} from '../types';
 import { knobStyles as styles } from '../styles';
+import { getKnobValueLabelFontSize, getKnobSecondaryLabelFontSize } from '../sizes';
 
 const defaultKnobLabelFormatter = (val: number) => `${Math.round(val)}°`;
 
@@ -32,7 +39,9 @@ const getOppositePosition = (position: KnobValueLabelPosition): KnobValueLabelPo
 export type ValueLabelSlots = Record<KnobValueLabelPosition, React.ReactNode | null>;
 
 type UseKnobValueLabelsOptions = {
-  resolvedVariant: KnobProps['variant'] | 'level' | 'status' | 'dual' | 'endless';
+  resolvedBehavior: KnobBehavior;
+  /** Knob diameter in pixels; the readout scales with it. */
+  size: number;
   withLabel: boolean;
   valueLabelProp: KnobProps['valueLabel'];
   formatLabel?: KnobProps['formatLabel'];
@@ -46,7 +55,8 @@ type UseKnobValueLabelsOptions = {
 };
 
 export const useKnobValueLabels = ({
-  resolvedVariant,
+  resolvedBehavior,
+  size,
   withLabel,
   valueLabelProp,
   formatLabel,
@@ -63,8 +73,14 @@ export const useKnobValueLabels = ({
     [formatLabel, panningValueFormatter]
   );
 
-  const variantValueLabelDefaults = useMemo<Partial<KnobValueLabelConfig>>(() => {
-    switch (resolvedVariant) {
+  // Derived from the diameter rather than fixed tokens, so the readout stays proportional
+  // across the whole `size` scale. `valueLabel.textStyle` still wins — Text applies the
+  // caller's style after the size-derived one.
+  const primaryFontSize = getKnobValueLabelFontSize(size);
+  const secondaryFontSize = getKnobSecondaryLabelFontSize(size);
+
+  const behaviorValueLabelDefaults = useMemo<Partial<KnobValueLabelConfig>>(() => {
+    switch (resolvedBehavior) {
       case 'status':
         return { position: 'bottom' };
       case 'dual':
@@ -72,21 +88,21 @@ export const useKnobValueLabels = ({
       default:
         return { position: 'center' };
     }
-  }, [resolvedVariant]);
+  }, [resolvedBehavior]);
 
   const resolvedValueLabelConfig = useMemo<KnobValueLabelConfig | null>(() => {
     if (!withLabel || valueLabelProp === false) return null;
     const customConfig =
       valueLabelProp && typeof valueLabelProp === 'object' ? valueLabelProp : undefined;
     const mergedSecondary =
-      customConfig?.secondary || variantValueLabelDefaults.secondary
+      customConfig?.secondary || behaviorValueLabelDefaults.secondary
         ? {
-            ...(variantValueLabelDefaults.secondary ?? {}),
+            ...(behaviorValueLabelDefaults.secondary ?? {}),
             ...(customConfig?.secondary ?? {}),
           }
         : undefined;
     const config: KnobValueLabelConfig = {
-      ...variantValueLabelDefaults,
+      ...behaviorValueLabelDefaults,
       ...(customConfig ?? {}),
       secondary: mergedSecondary,
     };
@@ -97,7 +113,7 @@ export const useKnobValueLabels = ({
         config.secondary.position ?? getOppositePosition(config.position);
       config.secondary.formatter =
         config.secondary.formatter ??
-        (resolvedVariant === 'dual'
+        (resolvedBehavior === 'dual'
           ? (nextValue: number) =>
               `${Math.round(getPercentFromValue(nextValue, min, max))}%`
           : defaultLabelFormatterMemo);
@@ -106,9 +122,9 @@ export const useKnobValueLabels = ({
   }, [
     withLabel,
     valueLabelProp,
-    variantValueLabelDefaults,
+    behaviorValueLabelDefaults,
     defaultLabelFormatterMemo,
-    resolvedVariant,
+    resolvedBehavior,
     min,
     max,
   ]);
@@ -144,7 +160,7 @@ export const useKnobValueLabels = ({
       if (typeof content === 'string' || typeof content === 'number') {
         return (
           <Text
-            size="xs"
+            size={secondaryFontSize}
             weight="500"
             selectable={false}
             style={[
@@ -170,7 +186,7 @@ export const useKnobValueLabels = ({
       if (typeof content === 'string' || typeof content === 'number') {
         return (
           <Text
-            size={variantType === 'primary' ? 'sm' : 'xs'}
+            size={variantType === 'primary' ? primaryFontSize : secondaryFontSize}
             weight={variantType === 'primary' ? '600' : '500'}
             selectable={false}
             style={[
@@ -218,7 +234,7 @@ export const useKnobValueLabels = ({
     };
 
     const statusIconNode =
-      resolvedVariant === 'status' && activeMark?.icon ? (
+      resolvedBehavior === 'status' && activeMark?.icon ? (
         <View pointerEvents="none" style={styles.statusIconContainer}>
           {activeMark.icon}
         </View>
@@ -288,12 +304,14 @@ export const useKnobValueLabels = ({
       right: wrapSlotChildren('right'),
     } as ValueLabelSlots;
   }, [
-    resolvedVariant,
+    resolvedBehavior,
     activeMark,
     resolvedValueLabelConfig,
     displayValue,
     theme.text.secondary,
     labelColor,
+    primaryFontSize,
+    secondaryFontSize,
   ]);
 
   return { valueLabelSlots: slots };

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { View, Pressable } from 'react-native';
+import { useControllableState } from '../../hooks/useControllableState';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -17,8 +18,10 @@ import { SwitchProps } from './types';
 import { useSwitchStyles } from './styles';
 import { Row, Column } from '../Layout';
 import { DESIGN_TOKENS } from '../../core/design-tokens';
+import { useTransitionDuration } from '../../core/motion/useTransitionDuration';
 import { resolveComponentSize, type ComponentSize } from '../../core/theme/componentSize';
 import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
+import { getAccessibilityValueProps } from '../../core/accessibility/utils';
 
 export const Switch = factory<{
   props: SwitchProps;
@@ -34,6 +37,7 @@ export const Switch = factory<{
     size = 'md',
     variant = 'filled',
     color = 'primary',
+    transitionDuration,
     label,
     disabled = false,
     required = false,
@@ -56,15 +60,12 @@ export const Switch = factory<{
 
   const theme = useTheme();
   const renderDisclaimer = useDisclaimer(disclaimerData.disclaimer, disclaimerData.disclaimerProps);
-  // Controlled / uncontrolled logic
-  const isControlled = typeof checked === 'boolean';
-  const [internalChecked, setInternalChecked] = useState<boolean>(defaultChecked);
-  const prevIsControlled = useRef(isControlled);
-  useEffect(() => {
-    // If moving from controlled to uncontrolled or vice versa, we keep current visual state
-    prevIsControlled.current = isControlled;
-  }, [isControlled]);
-  const effectiveChecked = isControlled ? !!checked : internalChecked;
+  const [effectiveChecked, setChecked] = useControllableState<boolean>({
+    value: checked,
+    defaultValue: defaultChecked,
+    finalValue: false,
+    onChange,
+  });
 
   const styles = useSwitchStyles({
     checked: effectiveChecked,
@@ -82,14 +83,27 @@ export const Switch = factory<{
 
   // Animation setup
   const animationProgress = useSharedValue(effectiveChecked ? 1 : 0);
+  // Springs ignore duration, so an explicit `transitionDuration` switches the
+  // toggle to a timing curve — and 0 (or reduced motion) snaps with no animation.
+  const resolvedDuration = useTransitionDuration(transitionDuration, DESIGN_TOKENS.motion.duration.normal);
+  const useSpringToggle = transitionDuration == null && resolvedDuration > 0;
 
   useEffect(() => {
-    animationProgress.value = withSpring(effectiveChecked ? 1 : 0, {
-      damping: DESIGN_TOKENS.motion.duration.normal / 10, // Convert duration to damping ratio
-      stiffness: DESIGN_TOKENS.motion.duration.fast, // Use fast duration for stiffness
-      mass: 0.5,
-    });
-  }, [effectiveChecked, animationProgress]);
+    const target = effectiveChecked ? 1 : 0;
+    if (resolvedDuration === 0) {
+      animationProgress.value = target;
+      return;
+    }
+    if (useSpringToggle) {
+      animationProgress.value = withSpring(target, {
+        damping: DESIGN_TOKENS.motion.duration.normal / 10, // Convert duration to damping ratio
+        stiffness: DESIGN_TOKENS.motion.duration.fast, // Use fast duration for stiffness
+        mass: 0.5,
+      });
+      return;
+    }
+    animationProgress.value = withTiming(target, { duration: resolvedDuration });
+  }, [effectiveChecked, animationProgress, resolvedDuration, useSpringToggle]);
 
   // Get size dimensions for animation
   const sizeMap: Partial<Record<ComponentSize, { width: number; height: number; thumb: number }>> = {
@@ -254,10 +268,8 @@ export const Switch = factory<{
 
   const handlePress = useCallback(() => {
     if (disabled) return;
-    const next = !effectiveChecked;
-    if (!isControlled) setInternalChecked(next);
-    onChange?.(next);
-  }, [disabled, onChange, effectiveChecked, isControlled]);
+    setChecked((previous) => !previous);
+  }, [disabled, setChecked]);
 
   const labelContent = children || label;
 
@@ -277,7 +289,7 @@ export const Switch = factory<{
           }}
           accessibilityLabel={accessibilityLabelProp || (typeof labelContent === 'string' ? labelContent : undefined)}
           accessibilityHint={accessibilityHint}
-          accessibilityValue={{ text: effectiveChecked ? onLabel : offLabel }}
+          {...getAccessibilityValueProps({ text: effectiveChecked ? onLabel : offLabel })}
           {...(controls && { 'aria-controls': controls })}
         >
           <Animated.View style={[styles.switchThumb, thumbAnimatedStyle]}>

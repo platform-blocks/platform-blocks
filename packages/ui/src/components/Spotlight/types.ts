@@ -39,6 +39,12 @@ export interface SpotlightSearchProps {
   onClose?: () => void;
   autoFocus?: boolean;
   inputRef?: React.RefObject<TextInput | null>;
+  /**
+   * Show a close button in the search row. Defaults to true on the mobile
+   * experience, where the fullscreen presentation offers no backdrop or
+   * Escape key to dismiss with.
+   */
+  withCloseButton?: boolean;
 }
 
 export interface SpotlightActionsListProps {

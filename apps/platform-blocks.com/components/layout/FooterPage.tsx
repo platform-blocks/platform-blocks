@@ -17,20 +17,26 @@ export function FooterContent() {
     }
   };
 
+  /**
+   * Props for an internal footer link.
+   *
+   * The footer is the one navigation surface that survives static prerendering —
+   * the sidebar and header nav are client-only — so these anchors are how a
+   * crawler gets from any page to the rest of the site. `href` has to be a real
+   * URL for that; `Link` calls `onPress` after `preventDefault()`, so left-clicks
+   * still route client-side.
+   */
+  const routeLink = (href: string) => ({
+    href,
+    onPress: () => handleLinkPress(href, true),
+  });
+
   return (
     <Block mt={64}>
-      {/* <Divider
-        colorVariant='primary'
-        size={3}
-        mb={48}
-      /> */}
       <Flex direction="column" gap="2xl" px={responsive.isMobile ? 12 : 28}>
-        {/* Top grid */}
-
         <Grid columns={12} gap={responsive.isMobile ? 'xs' : 'xl'} style={{ width: '100%', rowGap: responsive.isMobile ? 32 : 48 }}>
           <GridItem span={responsive.isMobile ? 12 : 6}>
             <Title
-              // mb={8}
               startIcon={(
                 <Image
                   source={require('../../assets/favicon.png')}
@@ -40,8 +46,6 @@ export function FooterContent() {
                   resizeMode="contain"
                 />
               )}
-              // underline
-              afterline
               size={36} weight="bold">{t('footer.app.title')}</Title>
             <Flex direction="column" gap="xs">
 
@@ -50,6 +54,7 @@ export function FooterContent() {
                 <BrandButton title={t('actions.starOnGithub')} brand="github" variant="ghost" iconPosition="left" size="sm" onPress={() => handleLinkPress(GITHUB_REPO)} />
                 {/* <BrandButton title={t('actions.followOnX')} brand="x" variant="ghost" iconPosition="left" size="xs" onPress={() => handleLinkPress(TWITTER_PROFILE)} /> */}
                 <BrandButton title={t('actions.joinDiscord')} brand="discord" variant="ghost" iconPosition="left" size="xs" onPress={() => handleLinkPress(DISCORD_INVITE)} />
+                <BrandButton title={t('actions.npm')} brand="npm" variant="ghost" iconPosition="left" size="xs" onPress={() => handleLinkPress(NPM_PACKAGE)} />
               </Flex>
             </Flex>
           </GridItem>
@@ -59,10 +64,11 @@ export function FooterContent() {
             <Flex direction="column" gap="sm">
               <Text size="xs" weight="semibold" colorVariant="info" tracking={1} uppercase>Quick Links</Text>
               <Flex direction="column" gap="xs">
-                <Link href={undefined} onPress={() => handleLinkPress('/components', true)} variant="hover-underline" size="sm" color="gray">Components</Link>
-                <Link href={undefined} onPress={() => handleLinkPress('/components?category=Charts', true)} variant="hover-underline" size="sm" color="gray">Charts</Link>
-                <Link href={undefined} onPress={() => handleLinkPress('/hooks', true)} variant="hover-underline" size="sm" color="gray">Hooks</Link>
-                {/* <Link href={undefined} onPress={() => handleLinkPress('/icons', true)} variant="hover-underline" size="sm" color="gray">Icons</Link> */}
+                <Link {...routeLink('/components')} variant="hover-underline" size="sm" color="gray">Components</Link>
+                {/* Points at the dedicated /charts page, not a filtered /components view —
+                    the charts index is its own indexable route with 25 detail pages under it. */}
+                <Link {...routeLink('/charts')} variant="hover-underline" size="sm" color="gray">Charts</Link>
+                <Link {...routeLink('/hooks')} variant="hover-underline" size="sm" color="gray">Hooks</Link>
               </Flex>
             </Flex>
           </GridItem>
@@ -72,11 +78,8 @@ export function FooterContent() {
             <Flex direction="column" gap="sm">
               <Text size="xs" weight="semibold" colorVariant="info" tracking={1} uppercase>Documentation</Text>
               <Flex direction="column" gap="xs">
-                <Link href={undefined} onPress={() => handleLinkPress('/getting-started', true)} variant="hover-underline" size="sm" color="gray">Getting Started</Link>
-                <Link href={undefined} onPress={() => handleLinkPress('/installation', true)} variant="hover-underline" size="sm" color="gray">Installation</Link>
-                {/* <Link href={undefined} onPress={() => handleLinkPress('/platforms', true)} variant='hover-underline' size='sm' color='gray'>Platforms</Link> */}
-                <Link href={undefined} onPress={() => handleLinkPress('/theming', true)} variant="hover-underline" size="sm" color="gray">Theming</Link>
-                <Link href={undefined} onPress={() => handleLinkPress('/localization', true)} variant="hover-underline" size="sm" color="gray">Localization</Link>
+                <Link {...routeLink('/getting-started')} variant="hover-underline" size="sm" color="gray">Getting Started</Link>
+                <Link {...routeLink('/localization')} variant="hover-underline" size="sm" color="gray">Localization</Link>
                 <Link href="/llms.txt" target="_blank" variant="hover-underline" size="sm" color="gray">llms.txt</Link>
               </Flex>
             </Flex>
@@ -87,35 +90,16 @@ export function FooterContent() {
             <Flex direction="column" gap="sm">
               <Text size="xs" weight="semibold" colorVariant="info" tracking={1} uppercase>Resources</Text>
               <Flex direction="column" gap="xs">
-                <Link href={undefined} onPress={() => handleLinkPress('/faq', true)} variant="hover-underline" size="sm" color="gray">FAQ</Link>
-                <Link href={undefined} onPress={() => handleLinkPress('/support', true)} variant="hover-underline" size="sm" color="gray">Support</Link>
-                <Link href={undefined} onPress={() => handleLinkPress(GITHUB_REPO + '/releases', true)} variant="hover-underline" size="sm" color="gray">Changelog</Link>
-                <Link href={undefined} onPress={() => handleLinkPress('/accessibility', true)} variant="hover-underline" size="sm" color="gray">Accessibility</Link>
-                <Link href={undefined} onPress={() => handleLinkPress('/sitemap.xml', true)} variant="hover-underline" size="sm" color="gray">Sitemap</Link>
+                <Link {...routeLink('/faq')} variant="hover-underline" size="sm" color="gray">FAQ</Link>
+                {/* Changelog and Sitemap leave the router: one is off-site, the other is a
+                    static XML file. Both were previously handed to `router.push`, which
+                    treated them as in-app routes and landed on the not-found screen. */}
+                <Link href={`${GITHUB_REPO}/releases`} target="_blank" variant="hover-underline" size="sm" color="gray">Changelog</Link>
+                <Link {...routeLink('/accessibility')} variant="hover-underline" size="sm" color="gray">Accessibility</Link>
+                <Link href="/sitemap.xml" target="_blank" variant="hover-underline" size="sm" color="gray">Sitemap</Link>
               </Flex>
             </Flex>
           </GridItem>
-
-          {/* Community */}
-          {/* <GridItem span={responsive.isMobile ? 4 : 2}>
-            <Flex direction='column' gap='sm'>
-              <Text size='xs' weight='semibold' colorVariant='info' tracking={1}>COMMUNITY</Text>
-              <Flex direction='column' gap='xs'>
-                <Flex direction='row' align='center' gap='xs'>
-                  <BrandIcon brand='github' size={12} />
-                  <Link href={GITHUB_REPO} target='_blank' variant='hover-underline' size='sm' color='gray'>GitHub</Link>
-                </Flex>
-                <Flex direction='row' align='center' gap='xs'>
-                  <BrandIcon brand='npm' size={12} />
-                  <Link href={NPM_PACKAGE} target='_blank' variant='hover-underline' size='sm' color='gray'>NPM</Link>
-                </Flex>
-                <Flex direction='row' align='center' gap='xs'>
-                  <BrandIcon brand='discord' size={12} />
-                  <Link href={DISCORD_INVITE} target='_blank' variant='hover-underline' size='sm' color='gray'>Discord</Link>
-                </Flex>
-              </Flex>
-            </Flex>
-          </GridItem> */}
         </Grid>
       </Flex>
     </Block>

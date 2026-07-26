@@ -12,7 +12,7 @@ import { describe, it, expect } from '@jest/globals';
 
 import { DEFAULT_THEME } from '../defaultTheme';
 import { DARK_THEME } from '../darkTheme';
-import { contrastRatio, composite } from '../colorUtils';
+import { contrastRatio, composite, relativeLuminance } from '../colorUtils';
 import { resolveVariantRoles, type VariantRole } from '../variantRoles';
 import type { PlatformBlocksTheme } from '../types';
 
@@ -29,7 +29,7 @@ const CORE_COLORS: string[] = [
 const CUSTOM_COLORS = ['#7C3AED', '#FFE066', '#0A0A0A', '#00E5FF'];
 
 const TINTED_VARIANTS: VariantRole[] = ['light', 'subtle'];
-const ALL_VARIANTS: VariantRole[] = ['filled', 'outline', 'light', 'subtle'];
+const ALL_VARIANTS: VariantRole[] = ['filled', 'outline', 'light', 'subtle', 'surface'];
 
 // Tint alphas must mirror resolveVariantRoles so we reconstruct the same bg.
 const tintAlpha = (variant: string, isDark: boolean): number => {
@@ -75,6 +75,33 @@ describe('Chip variant contrast is theme-independent', () => {
         });
       }
     }
+  }
+});
+
+/**
+ * The `surface` variant is the neutral one: it must stay visible against the
+ * surface it sits on (the failure mode is a chip whose fill *is* the surface, so
+ * it vanishes) and must not shift with `color`.
+ */
+describe('surface variant is neutral and visible', () => {
+  for (const [schemeName, theme] of THEMES) {
+    const surface = theme.backgrounds.surface;
+
+    it(`${schemeName} · fill is a perceptible step darker than the surface`, () => {
+      const { fill } = resolveVariantRoles(theme, { variant: 'surface' });
+      // Darker in both schemes — a chip inside an input reads as a recessed token,
+      // never as a raised one. The dark-scheme regression this guards: reaching for
+      // `elevated`, which is lighter than the input it sits in.
+      expect(relativeLuminance(fill)).toBeLessThan(relativeLuminance(surface));
+      expect(contrastRatio(fill, surface)).toBeGreaterThanOrEqual(1.1);
+    });
+
+    it(`${schemeName} · ignores the color prop`, () => {
+      const base = resolveVariantRoles(theme, { variant: 'surface', color: 'primary' });
+      for (const color of [...CORE_COLORS, ...CUSTOM_COLORS]) {
+        expect(resolveVariantRoles(theme, { variant: 'surface', color })).toEqual(base);
+      }
+    });
   }
 });
 

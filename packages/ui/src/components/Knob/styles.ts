@@ -72,6 +72,9 @@ export const knobStyles = StyleSheet.create({
   tickDot: {
     position: 'absolute',
   },
+  tickLineSvg: {
+    position: 'absolute',
+  },
   tickIcon: {
     position: 'absolute',
   },

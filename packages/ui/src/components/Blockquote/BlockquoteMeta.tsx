@@ -10,7 +10,7 @@ export function BlockquoteMeta({
   rating,
   verified,
   verifiedTooltip,
-  alignment = 'left',
+  alignment = 'right',
 }: BlockquoteMetaProps) {
   const theme = useTheme();
 
@@ -43,9 +43,9 @@ export function BlockquoteMeta({
       align="center"
       gap="sm"
       wrap="wrap"
-      style={{ 
+      justify={alignment === 'center' ? 'center' : alignment === 'right' ? 'flex-end' : 'flex-start'}
+      style={{
         alignSelf: alignment === 'center' ? 'center' : alignment === 'right' ? 'flex-end' : 'flex-start',
-        marginTop: parseInt(theme.spacing.xs),
       }}
     >
       {/* Rating */}
@@ -76,8 +76,8 @@ export function BlockquoteMeta({
         </Flex>
       )}
 
-      {/* Date */}
-      {date && (
+      {/* Date — `!!` so an empty string renders nothing instead of a bare text node */}
+      {!!date && (
         <Text size="xs" colorVariant="muted">
           {formatDate(date)}
         </Text>

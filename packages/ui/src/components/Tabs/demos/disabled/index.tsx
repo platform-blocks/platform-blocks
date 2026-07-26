@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Column, Tabs, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Tabs, Text, useTheme } from '@platform-blocks/ui';
 
 const PANELS = [
   {
@@ -31,7 +31,7 @@ export default function Demo() {
   const [lastAttempt, setLastAttempt] = useState<string | null>(null);
 
   return (
-    <Column gap="sm">
+    <Block>
       <Tabs
         activeTab={activeTab}
         onTabChange={(tab) => {
@@ -57,6 +57,6 @@ export default function Demo() {
         Disable sensitive tabs while keeping the `onDisabledTabPress` callback to track attempted access.
         {lastAttempt ? ` ${lastAttempt}` : ''}
       </Text>
-    </Column>
+    </Block>
   );
 }

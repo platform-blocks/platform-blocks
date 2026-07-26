@@ -1,8 +1,8 @@
 import { MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { SharedValue } from 'react-native-reanimated';
 
-import type { KnobMark, KnobVariant } from '../types';
+import type { KnobMark, KnobBehavior } from '../types';
 import { clamp } from '../utils/math';
+import { useControllableState } from '../../../hooks/useControllableState';
 import { normalizeMarks, pickClosestMark } from '../utils/marks';
 
 type UseKnobValueOptions = {
@@ -13,12 +13,10 @@ type UseKnobValueOptions = {
   step: number;
   marks?: KnobMark[];
   restrictToMarksProp?: boolean;
-  resolvedVariant: KnobVariant;
+  resolvedBehavior: KnobBehavior;
   isEndless: boolean;
   onChange?: (value: number) => void;
   onChangeEnd?: (value: number) => void;
-  angle: SharedValue<number>;
-  valueToAngle: (value: number) => number;
 };
 
 export type UseKnobValueResult = {
@@ -41,21 +39,19 @@ export const useKnobValue = ({
   step,
   marks,
   restrictToMarksProp,
-  resolvedVariant,
+  resolvedBehavior,
   isEndless,
   onChange,
   onChangeEnd,
-  angle,
-  valueToAngle,
 }: UseKnobValueOptions): UseKnobValueResult => {
   const marksNormalized = useMemo(() => normalizeMarks(marks, min, max), [marks, min, max]);
 
   const restrictToMarks = useMemo(
     () =>
       Boolean(
-        restrictToMarksProp ?? (resolvedVariant === 'stepped' && marksNormalized.length > 0)
+        restrictToMarksProp ?? (resolvedBehavior === 'stepped' && marksNormalized.length > 0)
       ),
-    [restrictToMarksProp, resolvedVariant, marksNormalized]
+    [restrictToMarksProp, resolvedBehavior, marksNormalized]
   );
 
   const clampValue = useCallback(
@@ -71,16 +67,14 @@ export const useKnobValue = ({
     [isEndless, clampValue, min]
   );
 
-  const isControlled = value !== undefined;
-  const [internalValue, setInternalValue] = useState(() => normalizeValue(value ?? defaultValue ?? min));
-  const resolvedValue = isControlled ? normalizeValue(value) : internalValue;
+  const [rawValue, setValue, isControlled] = useControllableState<number>({
+    value,
+    defaultValue: () => normalizeValue(defaultValue ?? min),
+    finalValue: min,
+    onChange,
+  });
+  const resolvedValue = normalizeValue(rawValue);
   const [displayValue, setDisplayValue] = useState(resolvedValue);
-
-  useEffect(() => {
-    if (isControlled) {
-      setInternalValue(normalizeValue(value));
-    }
-  }, [value, isControlled, normalizeValue]);
 
   useEffect(() => {
     const next = isEndless ? resolvedValue : clampValue(resolvedValue);
@@ -116,23 +110,16 @@ export const useKnobValue = ({
   const handleValueUpdate = useCallback(
     (nextValue: number, final: boolean) => {
       const constrained = applyConstraints(nextValue);
-      const constrainedAngle = valueToAngle(constrained);
       if (constrained !== valueRef.current) {
-        angle.value = constrainedAngle;
         setDisplayValue(constrained);
         valueRef.current = constrained;
-        if (!isControlled) {
-          setInternalValue(constrained);
-        }
-        onChange?.(constrained);
-      } else {
-        angle.value = constrainedAngle;
+        setValue(constrained);
       }
       if (final) {
         onChangeEnd?.(constrained);
       }
     },
-    [angle, applyConstraints, isControlled, onChange, onChangeEnd, valueRef, valueToAngle]
+    [applyConstraints, setValue, onChangeEnd, valueRef]
   );
 
   useEffect(() => {

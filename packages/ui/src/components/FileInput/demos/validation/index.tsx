@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Column, FileInput, Text } from '@platform-blocks/ui';
+import { Block, FileInput, Text } from '@platform-blocks/ui';
 import type { FileInputFile } from '@platform-blocks/ui';
 
 export default function Demo() {
@@ -8,8 +8,8 @@ export default function Demo() {
   const [limitedFiles, setLimitedFiles] = useState<FileInputFile[]>([]);
 
   return (
-    <Column gap="md" fullWidth>
-      <Column gap="xs" fullWidth>
+    <Block fullWidth>
+      <Block fullWidth>
         <Text size="sm" weight="semibold">
           Size validation (max 2MB)
         </Text>
@@ -26,9 +26,9 @@ export default function Demo() {
             Selected: {validatedFiles.length}
           </Text>
         )}
-      </Column>
+      </Block>
 
-      <Column gap="xs" fullWidth>
+      <Block fullWidth>
         <Text size="sm" weight="semibold">
           Single file only
         </Text>
@@ -44,9 +44,9 @@ export default function Demo() {
             Selected: {singleFile[0].name}
           </Text>
         )}
-      </Column>
+      </Block>
 
-      <Column gap="xs" fullWidth>
+      <Block fullWidth>
         <Text size="sm" weight="semibold">
           Limited file count
         </Text>
@@ -63,9 +63,9 @@ export default function Demo() {
             Selected: {limitedFiles.length}
           </Text>
         )}
-      </Column>
+      </Block>
 
-      <Column gap="xs" fullWidth>
+      <Block fullWidth>
         <Text size="sm" weight="semibold">
           With error state
         </Text>
@@ -77,9 +77,9 @@ export default function Demo() {
           required
           fullWidth
         />
-      </Column>
+      </Block>
 
-      <Column gap="xs" fullWidth>
+      <Block fullWidth>
         <Text size="sm" weight="semibold">
           Disabled state
         </Text>
@@ -90,7 +90,7 @@ export default function Demo() {
           disabled
           fullWidth
         />
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

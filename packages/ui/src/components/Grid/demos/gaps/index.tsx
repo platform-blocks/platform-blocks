@@ -1,4 +1,4 @@
-import { Grid, GridItem, Card, Column, Text } from '@platform-blocks/ui';
+import { Block, Card, Grid, GridItem, Text } from '@platform-blocks/ui';
 
 const sections = [
   {
@@ -17,9 +17,9 @@ const sections = [
 
 export default function GapsGridDemo() {
   return (
-    <Column gap="md" fullWidth>
+    <Block fullWidth>
       {sections.map(({ label, columns, items, props }) => (
-        <Column key={label} gap="xs" fullWidth>
+        <Block key={label} fullWidth>
           <Text size="sm" weight="semibold">
             {label}
           </Text>
@@ -32,8 +32,8 @@ export default function GapsGridDemo() {
               </GridItem>
             ))}
           </Grid>
-        </Column>
+        </Block>
       ))}
-    </Column>
+    </Block>
   );
 }

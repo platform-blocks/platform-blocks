@@ -5,3 +5,5 @@ export {
   type MaskDefinition,
   type MaskResult
 } from './mask';
+
+export { resolveImageSource } from './imageSource';

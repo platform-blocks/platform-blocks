@@ -1,24 +1,17 @@
 import { useState } from 'react'
 
-import { AutoComplete, Column, Text } from '@platform-blocks/ui'
-import type { AutoCompleteOption } from '../../types'
-
-const fruitSuggestions: AutoCompleteOption[] = [
-  { label: 'Apple', value: 'apple' },
-  { label: 'Banana', value: 'banana' },
-  { label: 'Orange', value: 'orange' },
-  { label: 'Grape', value: 'grape' },
-]
+import { AutoComplete, Block, Text } from '@platform-blocks/ui'
+import { fruits } from '../data'
 
 export default function Demo() {
   const [value, setValue] = useState('')
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block w={400}>
       <AutoComplete
         label="Favorite fruit"
         placeholder="Type anything..."
-        data={fruitSuggestions}
+        data={fruits}
         value={value}
         onChangeText={setValue}
         onSelect={(item) => setValue(item.label)}
@@ -29,6 +22,6 @@ export default function Demo() {
       <Text size="xs" colorVariant="secondary">
         Current value: {value || '(empty)'}
       </Text>
-    </Column>
+    </Block>
   )
 }

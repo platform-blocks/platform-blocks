@@ -1,27 +1,19 @@
-import { Column, Text, DataList } from '@platform-blocks/ui';
+import { Block, DataList, Text } from '@platform-blocks/ui';
 
-const SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
+const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
 
 export default function Demo() {
   return (
-    <Column gap="lg">
+    <Block>
       {SIZES.map((size) => (
-        <Column key={size} gap="xs">
-          <Text size="xs" colorVariant="secondary" uppercase>
-            {size}
-          </Text>
+        <Block key={size}>
+          <Text variant="small" colorVariant="secondary">{size}</Text>
           <DataList size={size} labelWidth={90}>
-            <DataList.Item>
-              <DataList.ItemLabel>Status</DataList.ItemLabel>
-              <DataList.ItemValue>Active</DataList.ItemValue>
-            </DataList.Item>
-            <DataList.Item>
-              <DataList.ItemLabel>Region</DataList.ItemLabel>
-              <DataList.ItemValue>us-east-1</DataList.ItemValue>
-            </DataList.Item>
+            <DataList.Item label="Status" value="Active" />
+            <DataList.Item label="Region" value="us-east-1" />
           </DataList>
-        </Column>
+        </Block>
       ))}
-    </Column>
+    </Block>
   );
 }

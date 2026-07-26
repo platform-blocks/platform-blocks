@@ -19,6 +19,17 @@ export interface OverlayConfig {
    * trigger handles its own toggle). Optional — omit for cursor-anchored overlays.
    */
   anchorNode?: any;
+  /**
+   * Viewport edge to pin the overlay to on its main axis, with the distance from
+   * that edge. Supplied by the positioning layer for vertical placements.
+   *
+   * Pinning by the trigger-adjacent edge keeps the rendered position independent
+   * of the overlay's own height, so content that grows or shrinks (a filtering
+   * suggestion list) expands away from the trigger instead of dragging the whole
+   * overlay with it. When absent the renderer falls back to `anchor.y`.
+   */
+  pinEdge?: 'top' | 'bottom';
+  pinOffset?: number;
   width?: number | string;
   maxWidth?: number | string;
   maxHeight?: number | string;
@@ -98,7 +109,7 @@ export function OverlayProvider({ children }: { children: ReactNode }) {
             a.x === b!.x && a.y === b!.y && a.width === b!.width && a.height === b!.height
           ))
         );
-        const sameMeta = overlay.width === merged.width && overlay.maxWidth === merged.maxWidth && overlay.maxHeight === merged.maxHeight && overlay.zIndex === merged.zIndex && overlay.strategy === merged.strategy;
+        const sameMeta = overlay.width === merged.width && overlay.maxWidth === merged.maxWidth && overlay.maxHeight === merged.maxHeight && overlay.zIndex === merged.zIndex && overlay.strategy === merged.strategy && overlay.pinEdge === merged.pinEdge && overlay.pinOffset === merged.pinOffset;
         const sameContent = overlay.content === merged.content;
         if (sameAnchor && sameMeta && sameContent) {
           return overlay;

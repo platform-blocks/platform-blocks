@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Column, RadioGroup, Text } from '@platform-blocks/ui';
+import { Block, Button, RadioGroup, Text } from '@platform-blocks/ui';
 
 const PLANS = [
   {
@@ -42,7 +42,7 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="lg">
+    <Block>
       <RadioGroup
         label="Select a membership"
         options={PLANS}
@@ -70,7 +70,7 @@ export default function Demo() {
           {confirmation}
         </Text>
       )}
-    </Column>
+    </Block>
   );
 }
 

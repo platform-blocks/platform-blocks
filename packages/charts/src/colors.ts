@@ -3,11 +3,50 @@
 import { colorSchemes } from './utils';
 
 /**
- * Default color palette for charts
+ * Default categorical palette — validated for both color schemes.
+ *
+ * The same eight hues stepped for each surface (not an automatic flip): the slot
+ * ORDER is the CVD-safety mechanism, chosen so every adjacent pair clears the
+ * hard gates (worst adjacent CVD ΔE ≈ 9.1 light / 8.4 dark, OKLab ×100; normal-
+ * vision ΔE ≈ 19.6 light / 19.3 dark) on the light `#FFFFFF` and dark `#1C1C1F`
+ * chart surfaces. Do not reorder or re-step without re-running the palette
+ * validator against both surfaces. Slots past #3 cannot clear the all-pairs
+ * floors (scatter/bubble) — fold extras to "Other" or facet rather than cycling.
  */
-export const paletteDefault = [
-  '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#f97316', '#06b6d4', '#ec4899'
+export const paletteDefaultLight = [
+  '#2a78d6', // blue
+  '#eb6834', // orange
+  '#1baf7a', // aqua
+  '#eda100', // yellow
+  '#e87ba4', // magenta
+  '#008300', // green
+  '#4a3aa7', // violet
+  '#e34948', // red
 ];
+
+export const paletteDefaultDark = [
+  '#3987e5', // blue
+  '#d95926', // orange
+  '#199e70', // aqua
+  '#c98500', // yellow
+  '#d55181', // magenta
+  '#008300', // green
+  '#9085e9', // violet
+  '#e66767', // red
+];
+
+/**
+ * Back-compat alias — light is the historical default. Prefer selecting
+ * {@link paletteDefaultLight} / {@link paletteDefaultDark} by the active scheme.
+ */
+export const paletteDefault = paletteDefaultLight;
+
+/**
+ * Pick the validated categorical palette for a color scheme.
+ */
+export function getDefaultPalette(scheme: 'light' | 'dark' = 'light'): string[] {
+  return scheme === 'dark' ? paletteDefaultDark : paletteDefaultLight;
+}
 
 /**
  * Okabe–Ito colorblind safe palette (8 colors)

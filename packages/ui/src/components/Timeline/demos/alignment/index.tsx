@@ -1,4 +1,4 @@
-import { Column, Text, Timeline } from '@platform-blocks/ui';
+import { Block, Text, Timeline } from '@platform-blocks/ui';
 
 const phases = [
   { title: 'Kickoff', description: 'Establish scope, goals, and responsible stakeholders.' },
@@ -14,12 +14,12 @@ const signals = [
 
 export default function Demo() {
   return (
-    <Column gap="lg">
+    <Block>
       <Text size="sm" colorVariant="secondary">
         Adjust alignment with the `align` prop or enable `centerMode` for timelines that alternate between sides.
       </Text>
 
-      <Column gap="sm">
+      <Block>
         <Text weight="semibold">Left aligned (default)</Text>
         <Timeline>
           {phases.map((phase) => (
@@ -28,9 +28,9 @@ export default function Demo() {
             </Timeline.Item>
           ))}
         </Timeline>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text weight="semibold">Right aligned</Text>
         <Timeline align="right" active={1}>
           {phases.map((phase) => (
@@ -39,9 +39,9 @@ export default function Demo() {
             </Timeline.Item>
           ))}
         </Timeline>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text weight="semibold">Centered spine with per-item alignment</Text>
         <Timeline centerMode active={1}>
           {signals.map((signal) => (
@@ -55,8 +55,8 @@ export default function Demo() {
             </Timeline.Item>
           ))}
         </Timeline>
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }
 

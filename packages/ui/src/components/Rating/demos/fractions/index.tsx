@@ -1,18 +1,18 @@
 import { useState } from 'react';
-import { Column, Rating, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Rating, Text, useTheme } from '@platform-blocks/ui';
 
 const FRACTION_SETTINGS = [
   {
     key: 'match',
     label: 'Match excitement',
     precision: 0.1,
-    helper: 'Set scores in 0.1 increments to capture precise fan sentiment.'
+    // helper: 'Set scores in 0.1 increments to capture precise fan sentiment.'
   },
   {
     key: 'broadcast',
     label: 'Broadcast quality',
     precision: 0.5,
-    helper: 'Use half-star increments when quick feedback is enough.'
+    // helper: 'Use half-star increments when quick feedback is enough.'
   }
 ] as const;
 
@@ -26,9 +26,9 @@ export default function Demo() {
   });
 
   return (
-    <Column gap="lg">
+    <Block>
       {FRACTION_SETTINGS.map(({ key, label, precision, helper }) => (
-        <Column key={key} gap="xs">
+        <Block key={key}>
           <Text variant="small" colorVariant="muted">
             {label}
           </Text>
@@ -41,13 +41,14 @@ export default function Demo() {
             color={theme.colors.highlight[5]}
             emptyColor={theme.colors.highlight[1]}
             hoverColor={theme.colors.highlight[6]}
+            showTooltip
           />
           <Text variant="small" colorVariant="muted">
             {helper}
           </Text>
-        </Column>
+        </Block>
       ))}
-    </Column>
+    </Block>
   );
 }
 

@@ -7,6 +7,7 @@ import { factory } from '../../core/factory/factory';
 import { useTextAreaStyles } from './styles';
 import { FieldHeader } from '../_internal/FieldHeader';
 import { useDisclaimer, extractDisclaimerProps } from '../_internal/Disclaimer';
+import { useControllableState } from '../../hooks/useControllableState';
 import { TextAreaProps, TextAreaStyleProps } from './types';
 import { Icon } from '../Icon';
 import { DESIGN_TOKENS } from '../../core/design-tokens';
@@ -53,7 +54,8 @@ export const TextArea = factory<{
     helperText,
     description,
     size = 'md',
-    radius = 'md',
+    // Undefined by design — the `input` radius token supplies the default.
+    radius,
     rows = 3,
     minRows = 1,
     maxRows,
@@ -79,7 +81,6 @@ export const TextArea = factory<{
   const { getTextAreaStyles } = useTextAreaStyles({ theme } as any);
   const [focused, setFocused] = useState(false);
   const [currentRows, setCurrentRows] = useState(rows);
-  const [internalValue, setInternalValue] = useState(defaultValue);
   const textInputRef = useRef<TextInput>(null);
   const assignRef = useCallback((node: TextInput | null) => {
     textInputRef.current = node;
@@ -91,9 +92,12 @@ export const TextArea = factory<{
     }
   }, [ref]);
 
-  // Determine if this is a controlled component
-  const isControlled = value !== undefined;
-  const currentValue = isControlled ? value : internalValue;
+  const [currentValue, setCurrentValue] = useControllableState<string>({
+    value,
+    defaultValue,
+    finalValue: '',
+    onChange: onChangeText,
+  });
 
   // Calculate dynamic rows for autoResize
   useEffect(() => {
@@ -119,15 +123,8 @@ export const TextArea = factory<{
     if (maxLength && text.length > maxLength) {
       return;
     }
-    
-    // Update internal state for uncontrolled mode
-    if (!isControlled) {
-      setInternalValue(text);
-    }
-    
-    // Call the onChange callback if provided
-    onChangeText?.(text);
-  }, [onChangeText, maxLength, isControlled]);
+    setCurrentValue(text);
+  }, [maxLength, setCurrentValue]);
 
   const styleProps: TextAreaStyleProps = {
     size,
@@ -140,7 +137,7 @@ export const TextArea = factory<{
   const styles = getTextAreaStyles(styleProps);
   const spacingStyles = getSpacingStyles(spacingProps);
   const layoutStyles = getLayoutStyles(layoutProps);
-  const radiusStyles = createRadiusStyles(radius);
+  const radiusStyles = createRadiusStyles(radius, undefined, 'input');
 
   const containerStyles = [
     styles.container,
@@ -176,16 +173,13 @@ export const TextArea = factory<{
   const handleClear = useCallback(() => {
     if (disabled) return;
 
-    if (!isControlled) {
-      setInternalValue('');
-    }
+    setCurrentValue('');
 
     textInputRef.current?.clear?.();
     requestAnimationFrame(() => textInputRef.current?.focus?.());
 
-    onChangeText?.('');
     onClear?.();
-  }, [disabled, isControlled, onChangeText, onClear]);
+  }, [disabled, setCurrentValue, onClear]);
 
   const clearLabel = clearButtonLabel || 'Clear input';
 

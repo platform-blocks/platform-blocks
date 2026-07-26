@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { Column, PhoneInput, Text } from '@platform-blocks/ui';
+import { Block, PhoneInput, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [usRaw, setUsRaw] = useState('');
@@ -15,14 +15,14 @@ export default function Demo() {
   );
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <Text weight="semibold">Validation states</Text>
       <Text size="sm" colorVariant="secondary">
         Surface validation messages based on raw digit counts for domestic and international numbers.
       </Text>
 
-      <Column gap="sm">
-        <Column gap="xs">
+      <Block>
+        <Block>
           <PhoneInput
             label="US phone (10 digits required)"
             value={usRaw}
@@ -41,9 +41,9 @@ export default function Demo() {
                 ? `✓ ${usFormatted}`
                 : `${usRaw.length}/10 digits entered`}
           </Text>
-        </Column>
+        </Block>
 
-        <Column gap="xs">
+        <Block>
           <PhoneInput
             label="International phone (7-15 digits)"
             value={internationalRaw}
@@ -51,6 +51,7 @@ export default function Demo() {
               setInternationalRaw(raw);
               setInternationalFormatted(formatted);
             }}
+            defaultCountry="INTL"
             autoDetect
             showCountryCode
             error={
@@ -69,8 +70,8 @@ export default function Demo() {
                 ? `✓ ${internationalFormatted}`
                 : 'Adjust to 7-15 digits'}
           </Text>
-        </Column>
-      </Column>
-    </Column>
+        </Block>
+      </Block>
+    </Block>
   );
 }

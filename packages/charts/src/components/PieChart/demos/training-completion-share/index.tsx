@@ -1,15 +1,6 @@
 import { PieChart, type PieChartDataPoint } from '../../';
 
-const TRAINING_COMPLETIONS = [
-  { id: 'engineering', label: 'Engineering', value: 320, color: '#5C7CFA' },
-  { id: 'product', label: 'Product', value: 180, color: '#845EF7' },
-  { id: 'success', label: 'Customer Success', value: 150, color: '#20C997' },
-  { id: 'sales', label: 'Sales', value: 210, color: '#FF922B' },
-  { id: 'operations', label: 'Operations', value: 140, color: '#51CF66' },
-  { id: 'people', label: 'People', value: 90, color: '#FCC419' },
-];
-
-const TOTAL_COMPLETIONS = TRAINING_COMPLETIONS.reduce((sum, slice) => sum + slice.value, 0);
+import { TOTAL_COMPLETIONS, TRAINING_COMPLETIONS } from './data';
 
 const toPercent = (value: number) => Math.round((value / TOTAL_COMPLETIONS) * 100);
 
@@ -25,8 +16,8 @@ export default function Demo() {
     <PieChart
       title="Training completion share"
       subtitle="Annual compliance program"
-      width={420}
-      height={340}
+      width={520}
+      height={440}
       data={TRAINING_COMPLETIONS}
       innerRadius={100}
       outerRadius={160}

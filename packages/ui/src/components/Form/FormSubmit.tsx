@@ -1,13 +1,16 @@
 import React from 'react';
+import type { View } from 'react-native';
 import { Button } from '../Button';
 import { useFormContext, useOptionalFormContext } from './FormContext';
 import { FormSubmitProps } from './types';
 
-export const FormSubmit: React.FC<FormSubmitProps> = ({ 
+// See FormInput: the index signature on the props type defeats forwardRef's
+// own inference, so the public type is declared rather than derived.
+const FormSubmitBase = ({ 
   children, 
   disabled, 
   ...buttonProps 
-}) => {
+}: FormSubmitProps, ref: React.Ref<View>) => {
   const formContext = useOptionalFormContext();
   
   const handlePress = () => {
@@ -22,6 +25,7 @@ export const FormSubmit: React.FC<FormSubmitProps> = ({
 
   return (
     <Button
+      ref={ref}
       {...buttonProps}
       title={typeof children === 'string' ? children : 'Submit'}
       disabled={isDisabled}
@@ -29,5 +33,9 @@ export const FormSubmit: React.FC<FormSubmitProps> = ({
     />
   );
 };
+
+export const FormSubmit = React.forwardRef(FormSubmitBase as any) as React.ForwardRefExoticComponent<
+  FormSubmitProps & React.RefAttributes<View>
+>;
 
 FormSubmit.displayName = 'FormSubmit';

@@ -1,40 +1,6 @@
 import { LineChart } from '@platform-blocks/charts';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-const BUILDINGS = {
-  'New York HQ': {
-    color: '#0EA5E9',
-    smooth: true,
-    values: [412, 405, 398, 384, 372, 367, 362, 358, 361, 369, 378, 389],
-  },
-  'Amsterdam Campus': {
-    color: '#10B981',
-    smooth: true,
-    values: [308, 302, 296, 288, 281, 277, 274, 272, 275, 279, 284, 290],
-  },
-  'Singapore Hub': {
-    color: '#F97316',
-    smooth: false,
-    values: [352, 348, 345, 341, 338, 336, 334, 331, 333, 336, 340, 343],
-  },
-} as const;
-
-const SERIES = Object.entries(BUILDINGS).map(([name, meta]) => ({
-  id: name,
-  name,
-  color: meta.color,
-  smooth: meta.smooth,
-  lineThickness: meta.smooth ? 3 : 2,
-  data: meta.values.map((value, index) => ({
-    x: index,
-    y: value,
-    data: { building: name, month: MONTHS[index], value },
-  })),
-}));
-
-const COOLING_SEASON = { start: 5.5, end: 8.5 };
-const PORTFOLIO_TARGET = 360;
+import { COOLING_SEASON, MONTHS, PORTFOLIO_TARGET, SERIES } from './data';
 
 export default function Demo() {
   return (
@@ -45,7 +11,7 @@ export default function Demo() {
       height={440}
       series={SERIES}
       smooth={false}
-      grid={{ show: true, style: 'dashed', color: '#E5E7EB' }}
+      grid={{ show: true, style: 'dashed' }}
       legend={{ show: true, position: 'bottom', align: 'center' }}
       tooltip={{
         show: true,

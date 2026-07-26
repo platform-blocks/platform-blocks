@@ -55,7 +55,6 @@ export function Indicator({
     justifyContent: 'center',
     borderWidth,
     borderColor: ringColor,
-    boxShadow: theme.shadows.xs,
   };
 
   // Corner placement

@@ -6,6 +6,7 @@ import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme';
 import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
 import { FieldHeader } from '../_internal/FieldHeader';
+import { useControllableState } from '../../hooks/useControllableState';
 
 export const PinInput = factory<{
   props: PinInputProps;
@@ -13,7 +14,8 @@ export const PinInput = factory<{
 }>((props, ref) => {
   const {
     length = 4,
-    value = '',
+    value: controlledValue,
+    defaultValue = '',
     onChange,
     mask = false,
     maskChar = '•',
@@ -57,6 +59,14 @@ export const PinInput = factory<{
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const keyboardManager = useKeyboardManagerOptional();
 
+  // Support both controlled (`value`) and uncontrolled (`defaultValue`) usage.
+  const [value, commitValue] = useControllableState<string>({
+    value: controlledValue,
+    defaultValue,
+    finalValue: '',
+    onChange,
+  });
+
   const fallbackFocusIdRef = useRef(`pin-${Math.random().toString(36).slice(2, 10)}`);
   const focusTargetId = useMemo(() => {
     if (typeof keyboardFocusId === 'string' && keyboardFocusId.trim().length > 0) {
@@ -92,22 +102,30 @@ export const PinInput = factory<{
     }
   }, [value, length, onComplete]);
 
+  const filterChars = useCallback((input: string) => (
+    type === 'numeric'
+      ? input.replace(/[^0-9]/g, '')
+      : input.replace(/[^a-zA-Z0-9]/g, '')
+  ), [type]);
+
   const handleChangeText = useCallback((text: string, index: number) => {
     if (disabled) return;
 
-    // Handle paste
-    if (text.length > 1 && allowPaste) {
-      // Filter the pasted text based on type
-      let filteredPaste = text;
-      if (type === 'numeric') {
-        filteredPaste = text.replace(/[^0-9]/g, '');
-      } else {
-        filteredPaste = text.replace(/[^a-zA-Z0-9]/g, '');
-      }
-      
-      const pastedDigits = filteredPaste.slice(0, length);
-      onChange?.(pastedDigits);
-      
+    // Some platforms append the newly typed character to a cell that already
+    // holds a digit (instead of replacing the selection), yielding a 2-char
+    // string. Treat that as a single keystroke — not a paste — so we don't wipe
+    // the value or skip focus ahead.
+    const prevDigit = digits[index] || '';
+    let incoming = text;
+    if (prevDigit && text.length === prevDigit.length + 1 && text.startsWith(prevDigit)) {
+      incoming = text.slice(prevDigit.length);
+    }
+
+    // Handle genuine multi-character paste
+    if (incoming.length > 1 && allowPaste) {
+      const pastedDigits = filterChars(incoming).slice(0, length);
+      commitValue(pastedDigits);
+
       // Focus the next empty input or the last input
       const nextEmptyIndex = Math.min(pastedDigits.length, length - 1);
       if (manageFocus && inputRefs.current[nextEmptyIndex]) {
@@ -125,39 +143,29 @@ export const PinInput = factory<{
       return;
     }
 
-    // Filter input based on type
-    let filteredText = text;
-    if (type === 'numeric') {
-      filteredText = text.replace(/[^0-9]/g, '');
-    } else {
-      filteredText = text.replace(/[^a-zA-Z0-9]/g, '');
-    }
+    // Single character entry — only keep the last valid character
+    const newDigit = filterChars(incoming).slice(-1);
 
-    // Only take the last character for single input
-    const newDigit = filteredText.slice(-1);
-    
     // Update the value
     const newDigits = [...digits];
     newDigits[index] = newDigit;
     const newValue = newDigits.join('');
-    
-    onChange?.(newValue);
+    commitValue(newValue);
 
-    if (newValue.length === length) {
-      // Completed entry: blur all inputs
+    if (manageFocus && newDigit && index < length - 1) {
+      // Always advance to the immediate next cell — even if it already has a
+      // value (e.g. when editing an earlier digit of a filled PIN).
+      setTimeout(() => {
+        inputRefs.current[index + 1]?.focus();
+      }, 0);
+    } else if (index === length - 1 && newValue.length === length) {
+      // Completed on the final cell: blur all inputs
       setTimeout(() => {
         inputRefs.current.forEach(r => r?.blur());
         setFocusedIndex(-1);
       }, 0);
-    } else {
-      // Auto-focus next input if not complete
-      if (manageFocus && newDigit && index < length - 1) {
-        setTimeout(() => {
-          inputRefs.current[index + 1]?.focus();
-        }, 0);
-      }
     }
-  }, [digits, disabled, allowPaste, length, onChange, manageFocus, type]);
+  }, [digits, disabled, allowPaste, length, commitValue, manageFocus, filterChars]);
 
   const handleKeyPress = useCallback((key: string, index: number) => {
     if (disabled) return;
@@ -169,8 +177,23 @@ export const PinInput = factory<{
           inputRefs.current[index - 1]?.focus();
         }, 0);
       }
+      return;
     }
-  }, [digits, disabled, manageFocus]);
+
+    // When the pressed character matches the digit already in this cell, the
+    // native input value doesn't change, so `onChangeText` never fires and the
+    // usual auto-advance is skipped. Advance focus here to cover that case.
+    if (manageFocus && index < length - 1 && key === digits[index]) {
+      const isValidChar = type === 'numeric'
+        ? /^[0-9]$/.test(key)
+        : /^[a-zA-Z0-9]$/.test(key);
+      if (isValidChar) {
+        setTimeout(() => {
+          inputRefs.current[index + 1]?.focus();
+        }, 0);
+      }
+    }
+  }, [digits, disabled, manageFocus, length, type]);
 
   const handleFocus = useCallback((index: number) => {
     // Determine first empty index
@@ -303,7 +326,7 @@ export const PinInput = factory<{
             autoComplete={oneTimeCode ? 'one-time-code' : 'off'}
             selectTextOnFocus={selectTextOnFocusProp ?? true}
             editable={!disabled}
-            placeholder={placeholder}
+            placeholder={focusedIndex === index ? '' : placeholder}
             placeholderTextColor={theme.text.muted}
             autoCapitalize={autoCapitalize}
             autoCorrect={autoCorrect}

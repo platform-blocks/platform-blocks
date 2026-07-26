@@ -7,19 +7,41 @@ import type { ShadowValue } from '../../core/theme/shadow';
 import { getSpacingStyles, extractSpacingProps, extractShadowProps, getShadowStyles, getLayoutStyles, extractLayoutProps } from '../../core/utils';
 import { getSpacing, type SizeValue } from '../../core/theme/sizes';
 import { resolveBg } from '../../core/theme/resolveColors';
+import { resolveGradientStops } from '../../core/theme/variantRoles';
 import type { CardProps, PlatformBlocksTheme } from './types';
 import { DESIGN_TOKENS } from '../../core/unified-styles';
 import { resolveLinearGradient } from '../../utils/optionalDependencies';
 import { CardContext } from './CardContext';
 import { CardSection } from './CardSection';
+import { SurfaceContext } from '../Surface/SurfaceContext';
+import { useSurfaceStyles } from '../Surface/useSurfaceStyles';
+import type { SurfaceLevel } from '../../core/theme/types';
 
 const { LinearGradient: OptionalLinearGradient } = resolveLinearGradient();
 
 type CardVariant = NonNullable<CardProps['variant']>;
 
+/**
+ * How each variant sits on the shared elevation ladder.
+ *
+ * `level` picks the background + border color from `theme.surfaces`; `bg`
+ * overrides it for the variants that deliberately step off the ladder
+ * (transparent ones, and `subtle`, which uses the page's alternate tone).
+ * `shadow` is stated per-variant rather than inherited from the level so this
+ * refactor preserves Card's existing depth exactly.
+ */
 interface CardVariantConfig {
-  style: Record<string, any>;
-  defaultShadow: ShadowValue;
+  level: SurfaceLevel;
+  bg?: string;
+  withBorder: boolean | 'auto';
+  borderColorKey?: 'default' | 'subtle';
+  extraStyle?: Record<string, any>;
+  /**
+   * Omit to inherit `COMPONENT_SHADOW_DEFAULTS.card`, the single place the
+   * resting Card elevation is tuned. Variants that intentionally differ
+   * (`elevated`, `outline`, `ghost`) set it explicitly.
+   */
+  defaultShadow?: ShadowValue;
   pressedStyle: Record<string, any>;
   gradient?: {
     colors: string[];
@@ -42,51 +64,41 @@ const resolvePadding = (padding: SizeValue | undefined): number => {
   return getSpacing(padding);
 };
 
-const resolveGradientColors = (theme: PlatformBlocksTheme): string[] => {
-  const palette = theme.colors?.primary ?? [];
-  const fallback = theme.primaryColor;
-  const start = palette[4] ?? palette[5] ?? fallback;
-  const end = palette[6] ?? palette[7] ?? fallback;
-  return [start, end];
-};
+const resolveGradientColors = (theme: PlatformBlocksTheme): string[] =>
+  // Shared helper keeps Card's gradient identical to Button/Badge/Chip.
+  resolveGradientStops(theme as any, 'primary');
 
 const getVariantConfig = (theme: PlatformBlocksTheme, variant: CardVariant): CardVariantConfig => {
-  const subtleBorder = theme.semantic?.borderSubtle ?? theme.backgrounds.border;
-
   switch (variant) {
     case 'outline':
       return {
-        style: {
-          backgroundColor: 'transparent',
-          borderWidth: 1,
-          borderColor: theme.backgrounds.border,
-        },
+        level: 1,
+        bg: 'transparent',
+        withBorder: true,
         defaultShadow: 'none',
         pressedStyle: { opacity: 0.9 },
       };
     case 'elevated':
       return {
-        style: {
-          backgroundColor: theme.backgrounds.elevated ?? theme.backgrounds.surface,
-        },
+        level: 2,
+        withBorder: 'auto',
         defaultShadow: 'lg',
         pressedStyle: { opacity: 0.94 },
       };
     case 'subtle':
       return {
-        style: {
-          backgroundColor: theme.backgrounds.subtle,
-          borderWidth: 1,
-          borderColor: subtleBorder,
-        },
+        level: 1,
+        bg: theme.backgrounds.subtle,
+        withBorder: true,
+        borderColorKey: 'subtle',
         defaultShadow: 'xs',
         pressedStyle: { opacity: 0.92 },
       };
     case 'ghost':
       return {
-        style: {
-          backgroundColor: 'transparent',
-        },
+        level: 1,
+        bg: 'transparent',
+        withBorder: false,
         defaultShadow: 'none',
         pressedStyle: {
           backgroundColor: theme.backgrounds.subtle,
@@ -96,10 +108,10 @@ const getVariantConfig = (theme: PlatformBlocksTheme, variant: CardVariant): Car
     case 'gradient': {
       const colors = resolveGradientColors(theme);
       return {
-        style: {
-          backgroundColor: colors[0],
-          overflow: 'hidden',
-        },
+        level: 1,
+        bg: colors[0],
+        withBorder: false,
+        extraStyle: { overflow: 'hidden' },
         defaultShadow: 'md',
         pressedStyle: { opacity: 0.9 },
         gradient: {
@@ -111,19 +123,20 @@ const getVariantConfig = (theme: PlatformBlocksTheme, variant: CardVariant): Car
     }
     case 'filled':
     default:
+      // No `defaultShadow` — falls through to `COMPONENT_SHADOW_DEFAULTS.card`.
       return {
-        style: {
-          backgroundColor: theme.backgrounds.surface,
-        },
-        defaultShadow: 'sm',
+        level: 1,
+        withBorder: 'auto',
         pressedStyle: { opacity: 0.95 },
       };
   }
 };
 
-type CardComponent = React.FC<CardProps> & { Section: typeof CardSection };
+type CardComponent = React.ForwardRefExoticComponent<
+  CardProps & React.RefAttributes<View>
+> & { Section: typeof CardSection };
 
-export const Card: CardComponent = ((allProps: CardProps) => {
+export const Card: CardComponent = React.forwardRef<View, CardProps>((allProps, ref) => {
   const { spacingProps, otherProps: propsAfterSpacing } = extractSpacingProps(allProps);
   const { shadowProps, otherProps: propsAfterShadow } = extractShadowProps(propsAfterSpacing);
   const { layoutProps, otherProps } = extractLayoutProps(propsAfterShadow);
@@ -139,6 +152,7 @@ export const Card: CardComponent = ((allProps: CardProps) => {
     borderColor,
     borderWidth,
     bg,
+    clip,
     ...rest
   } = otherProps;
 
@@ -150,43 +164,50 @@ export const Card: CardComponent = ((allProps: CardProps) => {
     [theme, resolvedVariant]
   );
 
-  // Handle radius prop with 'md' as default for cards
-  const radiusStyles = createRadiusStyles(radius || 'md');
-
-  const baseStyles = {
-    padding: resolvePadding(padding),
-    position: 'relative' as const,
-    ...(radiusStyles || {}),
-  };
-
-  const defaultShadow = shadowProps.shadow ?? variantConfig.defaultShadow;
-  const shadowStyles = getShadowStyles({ shadow: defaultShadow }, theme, 'card');
-
-  const spacingStyles = getSpacingStyles(spacingProps);
-  const layoutStyles = getLayoutStyles(layoutProps);
-
   // Compose `withBorder` / `borderColor` / `borderWidth` on top of the variant.
   // Setting any of these activates a 1px theme border by default, which the
   // user can override per-prop. This composes with `outline`/`subtle` variants
   // (which already set a border) — the override wins.
   const wantsBorder = withBorder || borderColor !== undefined || borderWidth !== undefined;
-  const borderOverride = wantsBorder
-    ? {
-        borderWidth: borderWidth ?? 1,
-        borderColor: borderColor ?? theme.backgrounds.border,
-        // Solid border style keeps RN consistent with web; avoids dotted-by-default oddities.
-        borderStyle: 'solid' as const,
-      }
-    : null;
 
-  const bgOverride = bg ? { backgroundColor: resolveBackgroundColor(theme, bg) } : null;
+  // Card is a Surface with padding and Section semantics — the background,
+  // border color and elevation all come from the shared ladder rather than
+  // from Card picking theme colors itself.
+  const surface = useSurfaceStyles({
+    level: variantConfig.level,
+    bg: bg ?? variantConfig.bg,
+    withBorder: wantsBorder ? true : variantConfig.withBorder,
+    borderColor:
+      borderColor ??
+      (variantConfig.borderColorKey === 'subtle'
+        ? theme.semantic?.borderSubtle ?? theme.backgrounds.border
+        : undefined),
+    borderWidth,
+    shadow: shadowProps.shadow ?? variantConfig.defaultShadow,
+    // `filled` deliberately declares no variant shadow, so it lands on Card's
+    // own component default rather than level 1's lighter one.
+    componentShadowType: 'card',
+    radius: radius || 'md',
+  });
+
+  const baseStyles = {
+    padding: resolvePadding(padding),
+    position: 'relative' as const,
+    ...(clip && { overflow: 'hidden' as const }),
+  };
+
+  // The gradient overlay is absolutely positioned, so it needs the radius on
+  // its own rather than inheriting the container's.
+  const radiusStyles = createRadiusStyles(radius || 'md');
+
+  const spacingStyles = getSpacingStyles(spacingProps);
+  const layoutStyles = getLayoutStyles(layoutProps);
 
   const combinedStyles = [
     baseStyles,
-    variantConfig.style,
-    shadowStyles,
-    borderOverride,
-    bgOverride,
+    surface.style,
+    variantConfig.extraStyle,
+    surface.shadowStyle,
     spacingStyles,
     layoutStyles,
     style,
@@ -221,8 +242,10 @@ export const Card: CardComponent = ((allProps: CardProps) => {
   const cardContextValue = {
     paddingPx: baseStyles.padding,
     withBorder: !!wantsBorder || resolvedVariant === 'outline' || resolvedVariant === 'subtle',
-    borderColor: borderColor ?? theme.backgrounds.border ?? 'rgba(0,0,0,0.08)',
+    borderColor: borderColor ?? surface.token.border ?? 'rgba(0,0,0,0.08)',
   };
+
+  const surfaceContextValue = { level: surface.level };
 
   const gradientOverlay = variantConfig.gradient && OptionalLinearGradient
     ? (
@@ -239,33 +262,40 @@ export const Card: CardComponent = ((allProps: CardProps) => {
   // If onPress is provided, wrap in Pressable
   if (onPress) {
     return (
-      <CardContext.Provider value={cardContextValue}>
-        <Pressable
-          {...rest}
-          onPress={disabled ? undefined : onPress}
-          disabled={disabled}
-          style={({ pressed }) => [
-            ...combinedStyles,
-            disabled && { opacity: 0.5 },
-            pressed && !disabled ? variantConfig.pressedStyle : null,
-          ]}
-        >
-          {gradientOverlay}
-          {enhancedChildren}
-        </Pressable>
-      </CardContext.Provider>
+      <SurfaceContext.Provider value={surfaceContextValue}>
+        <CardContext.Provider value={cardContextValue}>
+          <Pressable
+            ref={ref}
+            {...rest}
+            onPress={disabled ? undefined : onPress}
+            disabled={disabled}
+            style={({ pressed }) => [
+              ...combinedStyles,
+              disabled && { opacity: 0.5 },
+              pressed && !disabled ? variantConfig.pressedStyle : null,
+            ]}
+          >
+            {gradientOverlay}
+            {enhancedChildren}
+          </Pressable>
+        </CardContext.Provider>
+      </SurfaceContext.Provider>
     );
   }
 
   return (
-    <CardContext.Provider value={cardContextValue}>
-      <View {...rest} style={combinedStyles}>
-        {gradientOverlay}
-        {enhancedChildren}
-      </View>
-    </CardContext.Provider>
+    <SurfaceContext.Provider value={surfaceContextValue}>
+      <CardContext.Provider value={cardContextValue}>
+        <View ref={ref} {...rest} style={combinedStyles}>
+          {gradientOverlay}
+          {enhancedChildren}
+        </View>
+      </CardContext.Provider>
+    </SurfaceContext.Provider>
   );
 }) as CardComponent;
+
+Card.displayName = 'Card';
 
 // Attach Section as a static property so consumers can write `<Card.Section>`
 // (matches Mantine's API). The component is also exported on its own from the

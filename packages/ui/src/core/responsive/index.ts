@@ -28,7 +28,11 @@ const BreakpointContext = createContext<Breakpoint | null>(null);
 function computeBreakpoint(): Breakpoint {
   let width: number;
   if (Platform.OS === 'web') {
-    width = window.innerWidth;
+    // During web static rendering (SSR) there is no `window`; accessing it would
+    // throw and blank the prerendered tree. Default to a desktop width so the
+    // static HTML reflects the full desktop layout; the client recomputes on
+    // mount via the resize listener in BreakpointProvider.
+    width = typeof window !== 'undefined' ? window.innerWidth : BREAKPOINTS.xl;
   } else {
     width = Dimensions.get('window').width;
   }

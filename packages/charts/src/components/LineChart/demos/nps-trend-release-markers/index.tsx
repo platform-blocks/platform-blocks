@@ -1,28 +1,6 @@
 import { LineChart } from '@platform-blocks/charts';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
-const NPS_VALUES = [43, 45, 47, 52, 54, 58, 61, 64];
-
-const SERIES = [
-  {
-    id: 'nps-score',
-    name: 'NPS',
-    color: '#6366F1',
-    areaFill: true,
-    fillOpacity: 0.25,
-    data: NPS_VALUES.map((value, index) => ({
-      x: index,
-      y: value,
-      data: { month: MONTHS[index], value },
-    })),
-  },
-];
-
-const RELEASE_MARKERS = [
-  { id: 'apr-release', x: 3, label: 'Onboarding revamp' },
-  { id: 'jun-release', x: 5, label: 'Mobile UI refresh' },
-  { id: 'jul-release', x: 6.5, label: 'Insights launch' },
-];
+import { MONTHS, RELEASE_MARKERS, SERIES } from './data';
 
 export default function Demo() {
   return (
@@ -34,7 +12,7 @@ export default function Demo() {
       series={SERIES}
       smooth
       fill
-      grid={{ show: true, style: 'dashed', color: '#E0E7FF' }}
+      grid={{ show: true, style: 'dashed' }}
       legend={{ show: false }}
       tooltip={{
         show: true,

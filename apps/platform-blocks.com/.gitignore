@@ -40,3 +40,6 @@ yarn-error.*
 
 # compiled demo files
 generated/
+
+# generated markdown mirror served at /llms/components/*.md
+public/llms/

@@ -3,6 +3,8 @@ import { View, TouchableOpacity, ViewStyle, TextStyle } from 'react-native';
 import { Text } from '../Text';
 import { StepperProps, StepperStepProps, StepperCompletedProps, StepperContextValue, type StepperMetrics } from './types';
 import { useTheme } from '../../core/theme/ThemeProvider';
+import { readableTextOn } from '../../core/theme/colorUtils';
+import { resolveSurface } from '../../core/theme/surfaces';
 import { Loader } from '../Loader';
 import { resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
 import { getComponentSize } from '../../core/theme/unified-sizing';
@@ -27,7 +29,11 @@ const MIN_STEPPER_METRICS = {
   fontSize: 12,
   descriptionFontSize: 10,
   spacing: 8,
+  lineWidth: 2,
 } as const;
+
+/** Thickness of the connector, scaled off the indicator so large steppers keep their proportions. */
+const lineWidthForIcon = (iconSize: number) => Math.max(MIN_STEPPER_METRICS.lineWidth, Math.round(iconSize / 16));
 
 const STEPPER_SIZE_SCALE: Partial<Record<ComponentSize, StepperMetrics>> = STEPPER_ALLOWED_SIZES_ARRAY.reduce(
   (acc, token) => {
@@ -49,11 +55,14 @@ function createMetricsForToken(size: ComponentSize): StepperMetrics {
     Math.min(fontSize - 1, Math.round(config.fontSize * 0.9))
   );
 
+  const iconSize = Math.max(MIN_STEPPER_METRICS.iconSize, Math.round(config.height * 0.8));
+
   return {
-    iconSize: Math.max(MIN_STEPPER_METRICS.iconSize, Math.round(config.height * 0.8)),
+    iconSize,
     fontSize,
     descriptionFontSize,
     spacing: Math.max(MIN_STEPPER_METRICS.spacing, Math.round(config.padding * 1.25) + 1),
+    lineWidth: lineWidthForIcon(iconSize),
   };
 }
 
@@ -80,11 +89,14 @@ function calculateNumericMetrics(height: number): StepperMetrics {
     Math.min(fontSize - 1, Math.round(BASE_STEPPER_METRICS.descriptionFontSize * scale))
   );
 
+  const iconSize = Math.max(MIN_STEPPER_METRICS.iconSize, Math.round(normalizedHeight * 0.8));
+
   return {
-    iconSize: Math.max(MIN_STEPPER_METRICS.iconSize, Math.round(normalizedHeight * 0.8)),
+    iconSize,
     fontSize,
     descriptionFontSize,
     spacing: Math.max(MIN_STEPPER_METRICS.spacing, Math.round(BASE_STEPPER_METRICS.spacing * scale)),
+    lineWidth: lineWidthForIcon(iconSize),
   };
 }
 
@@ -102,6 +114,8 @@ const StepperStep = forwardRef<View, StepperStepProps>((
     'aria-label': ariaLabel,
     title,
     stepIndex = 0,
+    isFirst = false,
+    isLast = false,
     labelProps,
     descriptionProps,
     ...props
@@ -123,9 +137,24 @@ const StepperStep = forwardRef<View, StepperStepProps>((
 
   const finalIconSize = contextIconSize || metrics.iconSize;
   const stepColor = color || contextColor || theme.colors.primary[5];
+  const isVertical = orientation === 'vertical';
   const isCompleted = stepIndex < active;
   const isActive = stepIndex === active;
   const isClickable = allowStepSelect && (allowNextStepsSelect || stepIndex <= active) && onStepClick;
+
+  const mutedColor = theme.backgrounds?.border ?? resolveSurface(theme, 1).border;
+  // Content sitting inside a filled indicator has to read against the fill, not the page.
+  const indicatorContentColor = isCompleted || isActive ? readableTextOn(stepColor) : theme.text.muted;
+  // Gap between the indicator and the connector so the line never collides with the ring.
+  // Vertical runs use a tighter gap because its connector is short by comparison.
+  const railGap = isVertical
+    ? Math.max(3, Math.round(metrics.spacing * 0.35))
+    : Math.max(4, Math.round(metrics.spacing * 0.5));
+  const bodyGap = Math.max(6, Math.round(metrics.spacing * 0.75));
+  // Horizontal steps sit under their indicator; vertical ones hug the rail they belong to.
+  const bodyTextAlign: TextStyle['textAlign'] = !isVertical
+    ? 'center'
+    : iconPosition === 'right' ? 'right' : 'left';
 
   const getStepIconStyles = (): ViewStyle => ({
     width: finalIconSize,
@@ -134,38 +163,53 @@ const StepperStep = forwardRef<View, StepperStepProps>((
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: isCompleted || isActive ? stepColor : theme.colors.gray[3],
-    backgroundColor: isCompleted || isActive ? stepColor : '#FFFFFF',
+    // Pending steps read off the theme rather than a hardcoded white circle,
+    // which inverted into a bright dot on dark backgrounds.
+    borderColor: isCompleted || isActive ? stepColor : mutedColor,
+    backgroundColor: isCompleted || isActive ? stepColor : theme.backgrounds?.surface ?? resolveSurface(theme, 1).background,
   });
 
   const getStepNumberStyles = (): TextStyle => ({
-    fontSize: metrics.fontSize,
+    fontSize: Math.round(metrics.fontSize * 0.85),
     fontWeight: '600',
-    color: isCompleted || isActive ? '#FFFFFF' : theme.colors.gray[6],
+    color: indicatorContentColor,
+    lineHeight: Math.round(metrics.fontSize * 1.1),
   });
 
   const getStepLabelStyles = (): TextStyle => ({
     fontSize: metrics.fontSize,
-    color: isActive ? stepColor : theme.text.primary,
-    marginBottom: description ? 4 : 0,
+    // Upcoming steps recede so the active/completed trail carries the eye.
+    color: isActive ? stepColor : isCompleted ? theme.text.primary : theme.text.secondary,
+    marginBottom: description ? 2 : 0,
+    textAlign: bodyTextAlign,
   });
 
   const getStepDescriptionStyles = (): TextStyle => ({
     fontSize: metrics.descriptionFontSize,
     color: theme.text.secondary,
+    textAlign: bodyTextAlign,
   });
+
+  // Icons handed in by consumers default to body text color, which disappears on a
+  // filled indicator — tint them unless the caller picked a color themselves.
+  const tintIndicatorContent = (node: React.ReactNode): React.ReactNode => {
+    if (!React.isValidElement(node) || typeof node.type === 'string') return node;
+    const nodeProps = node.props as { color?: string };
+    if (nodeProps.color != null) return node;
+    return React.cloneElement(node as React.ReactElement<{ color?: string }>, { color: indicatorContentColor });
+  };
 
   const renderStepIcon = () => {
     if (loading) {
-      return <Loader size={finalIconSize * 0.6} color={stepColor} />;
+      return <Loader size={Math.max(12, Math.round(finalIconSize * 0.55))} color={indicatorContentColor} />;
     }
 
     if (isCompleted && (completedIcon || contextCompletedIcon)) {
-      return completedIcon || contextCompletedIcon;
+      return tintIndicatorContent(completedIcon || contextCompletedIcon);
     }
 
     if (icon) {
-      return icon;
+      return tintIndicatorContent(icon);
     }
 
     return (
@@ -175,16 +219,32 @@ const StepperStep = forwardRef<View, StepperStepProps>((
     );
   };
 
-  const renderStepBody = () => {
-    if (!label && !description) return null;
+  /** Half-connector rendered on either side of the indicator. */
+  const renderRailSegment = (side: 'leading' | 'trailing') => {
+    const hidden = side === 'leading' ? isFirst : isLast;
+    // The leading half belongs to the segment that ends at this step, so it lights up
+    // once the previous step is done; the trailing half lights up once this step is done.
+    const filled = side === 'leading' ? isCompleted || isActive : isCompleted;
 
     return (
       <View
         style={{
-          marginLeft: iconPosition === 'left' ? metrics.spacing : 0,
-          marginRight: iconPosition === 'right' ? metrics.spacing : 0,
+          flex: 1,
+          height: metrics.lineWidth,
+          borderRadius: metrics.lineWidth / 2,
+          marginLeft: side === 'trailing' ? railGap : 0,
+          marginRight: side === 'leading' ? railGap : 0,
+          backgroundColor: hidden ? 'transparent' : filled ? stepColor : mutedColor,
         }}
-      >
+      />
+    );
+  };
+
+  const renderStepBody = () => {
+    if (!label && !description) return null;
+
+    const body = (
+      <>
         {label && (
           <Text
             {...mergeSlotProps(
@@ -200,23 +260,32 @@ const StepperStep = forwardRef<View, StepperStepProps>((
             {description}
           </Text>
         )}
-      </View>
+      </>
     );
-  };
 
-  const getStepWrapperStyles = (): ViewStyle => {
-    if (orientation === 'vertical') {
-      return {
-        flexDirection: iconPosition === 'right' ? 'row-reverse' : 'row',
-        alignItems: 'flex-start',
-      };
+    if (isVertical) {
+      return (
+        <View
+          style={{
+            flex: 1,
+            marginLeft: iconPosition === 'right' ? 0 : metrics.spacing,
+            marginRight: iconPosition === 'right' ? metrics.spacing : 0,
+            // Bottom padding is what gives the connector its length, so it lives
+            // inside the row rather than as a gap between rows.
+            paddingBottom: isLast ? 0 : Math.round(metrics.spacing * 1.25),
+            paddingTop: Math.max(0, Math.round((finalIconSize - metrics.fontSize * 1.4) / 2)),
+          }}
+        >
+          {body}
+        </View>
+      );
     }
 
-    return {
-      flexDirection: 'column',
-      alignItems: 'center',
-      flex: 1,
-    };
+    return (
+      <View style={{ alignSelf: 'stretch', alignItems: 'center', marginTop: bodyGap }}>
+        {body}
+      </View>
+    );
   };
 
   const handlePress = () => {
@@ -224,6 +293,44 @@ const StepperStep = forwardRef<View, StepperStepProps>((
       onStepClick!(stepIndex);
     }
   };
+
+  const renderVertical = () => (
+    <View style={{ flexDirection: iconPosition === 'right' ? 'row-reverse' : 'row', alignItems: 'stretch' }}>
+      <View style={{ width: finalIconSize, alignItems: 'center' }}>
+        <View style={getStepIconStyles()}>
+          {renderStepIcon()}
+        </View>
+        {!isLast && (
+          <View
+            style={{
+              flex: 1,
+              width: metrics.lineWidth,
+              borderRadius: metrics.lineWidth / 2,
+              marginVertical: railGap,
+              minHeight: metrics.spacing,
+              backgroundColor: isCompleted ? stepColor : mutedColor,
+            }}
+          />
+        )}
+      </View>
+      {renderStepBody()}
+    </View>
+  );
+
+  const renderHorizontal = () => (
+    <View style={{ alignItems: 'center' }}>
+      {/* Indicator sits centered in an equal-width column, with the connector halves
+          filling the space out to the neighbouring steps at the exact same axis. */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' }}>
+        {renderRailSegment('leading')}
+        <View style={getStepIconStyles()}>
+          {renderStepIcon()}
+        </View>
+        {renderRailSegment('trailing')}
+      </View>
+      {renderStepBody()}
+    </View>
+  );
 
   return (
     <TouchableOpacity
@@ -233,14 +340,15 @@ const StepperStep = forwardRef<View, StepperStepProps>((
       accessibilityLabel={ariaLabel || label || `Step ${stepIndex + 1}`}
       accessibilityRole="button"
       accessibilityState={{ selected: isActive, disabled: !isClickable }}
-      {...props}
+      {...(props as Record<string, unknown>)}
+      // `title` renders a native tooltip on web; harmless elsewhere.
+      {...(title ? ({ title } as Record<string, unknown>) : {})}
+      style={[
+        isVertical ? { alignSelf: 'stretch' } : { flex: 1, minWidth: 0 },
+        (props as { style?: ViewStyle }).style,
+      ]}
     >
-      <View style={getStepWrapperStyles()}>
-        <View style={getStepIconStyles()}>
-          {renderStepIcon()}
-        </View>
-        {renderStepBody()}
-      </View>
+      {isVertical ? renderVertical() : renderHorizontal()}
     </TouchableOpacity>
   );
 });
@@ -289,73 +397,57 @@ const Stepper = forwardRef<View, StepperProps>((
     allowNextStepsSelect,
   };
 
+  const isVertical = orientation === 'vertical';
+
   const getStepperStyles = (): ViewStyle => ({
-    flexDirection: orientation === 'vertical' ? 'column' : 'row',
-    alignItems: orientation === 'vertical' ? 'flex-start' : 'center',
+    flexDirection: isVertical ? 'column' : 'row',
+    alignItems: isVertical ? 'stretch' : 'flex-start',
   });
 
   const getContentStyles = (): ViewStyle => ({
-    marginTop: orientation === 'horizontal' ? metrics.spacing * 2 : 0,
-    marginLeft: orientation === 'vertical' ? metrics.spacing * 2 : 0,
+    marginTop: metrics.spacing,
+    // Line the content up with the step bodies instead of the indicator rail.
+    marginLeft: isVertical ? resolvedIconSize + metrics.spacing : 0,
   });
 
-  // Process children to add step indices and separate content
-  const steps: React.ReactElement[] = [];
+  // Collect the steps first so indices track step order, not raw child order
+  // (conditional children and `Stepper.Completed` would otherwise skew them).
+  const stepChildren: React.ReactElement<StepperStepProps>[] = [];
   let completedContent: React.ReactElement | null = null;
-  let currentStepContent: React.ReactNode = null;
 
-  React.Children.forEach(children, (child, index) => {
-    if (React.isValidElement(child)) {
-      if (child.type === StepperCompleted) {
-        completedContent = child;
-      } else if (child.type === StepperStep) {
-        const stepProps = child.props as StepperStepProps;
-        steps.push(React.cloneElement(child, { stepIndex: index } as any));
-        if (index === active && stepProps.children) {
-          currentStepContent = stepProps.children;
-        }
-      }
+  React.Children.forEach(children, (child) => {
+    if (!React.isValidElement(child)) return;
+    if (child.type === StepperCompleted) {
+      completedContent = child as React.ReactElement;
+    } else if (child.type === StepperStep) {
+      stepChildren.push(child as React.ReactElement<StepperStepProps>);
     }
   });
 
-  const renderSteps = () => {
-    return steps.map((step, index) => {
-      const isLastStep = index === steps.length - 1;
-      
-      return (
-        <View key={index} style={{ 
-          flexDirection: orientation === 'vertical' ? 'column' : 'row',
-          alignItems: orientation === 'vertical' ? 'flex-start' : 'center',
-          flex: orientation === 'horizontal' && !isLastStep ? 1 : undefined,
-        }}>
-          {step}
-          {!isLastStep && (
-            <View style={{
-              flex: orientation === 'horizontal' ? 1 : undefined,
-              height: orientation === 'vertical' ? metrics.spacing * 2 : 2,
-              width: orientation === 'horizontal' ? undefined : 2,
-              backgroundColor: index < active ? resolvedColor : theme.colors.gray[3],
-              marginHorizontal: orientation === 'horizontal' ? metrics.spacing : 0,
-              marginVertical: orientation === 'vertical' ? 8 : 0,
-              marginLeft: orientation === 'vertical' ? resolvedIconSize / 2 - 1 : 0,
-            }} />
-          )}
-        </View>
-      );
-    });
-  };
+  const currentStepContent = stepChildren[active]?.props.children ?? null;
+
+  const renderSteps = () =>
+    stepChildren.map((step, index) =>
+      React.cloneElement(step, {
+        key: step.key ?? `step-${index}`,
+        stepIndex: index,
+        isFirst: index === 0,
+        isLast: index === stepChildren.length - 1,
+      })
+    );
 
   const renderContent = () => {
-    if (active >= steps.length && completedContent) {
-      return completedContent;
-    }
-    if (currentStepContent) {
-      const content = typeof currentStepContent === 'string' || typeof currentStepContent === 'number'
-        ? <Text>{currentStepContent}</Text>
-        : currentStepContent;
-      return <View style={getContentStyles()}>{content}</View>;
-    }
-    return null;
+    const content = active >= stepChildren.length && completedContent
+      ? completedContent
+      : currentStepContent;
+
+    if (!content) return null;
+
+    const node = typeof content === 'string' || typeof content === 'number'
+      ? <Text>{content}</Text>
+      : content;
+
+    return <View style={getContentStyles()}>{node}</View>;
   };
 
   return (

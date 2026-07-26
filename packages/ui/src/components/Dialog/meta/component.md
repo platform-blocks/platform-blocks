@@ -16,6 +16,8 @@ props:
   onClose: Called when the dialog requests close
   showHeader: Show the styled header bar
   titleProps: Override props applied to the title `<Text>` (style, weight, ff, size, colorVariant)
+  autoFocus: Move focus into the dialog once it opens — `true` for the first focusable field (web only), or a ref to focus that element on any platform
+  trapFocus: Keep Tab focus inside the dialog and restore it on close (web only, default true)
 examples:
   - basic
   - confirmation

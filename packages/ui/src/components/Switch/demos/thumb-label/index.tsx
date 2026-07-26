@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Column, Icon, Switch, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Icon, Switch, Text, useTheme } from '@platform-blocks/ui';
 
 export default function Demo() {
   const theme = useTheme();
@@ -7,8 +7,8 @@ export default function Demo() {
   const [available, setAvailable] = useState<boolean>(true);
 
   return (
-    <Column gap="lg">
-      <Column gap="xs">
+    <Block>
+      <Block>
         <Text variant="small" colorVariant="muted">
           Icon on the thumb — swaps with the on/off state
         </Text>
@@ -20,9 +20,9 @@ export default function Demo() {
           onIcon={<Icon name="check" size={18} color={theme.colors.primary[3]} stroke={3} />}
           offIcon={<Icon name="close" size={18} color={theme.colors.gray[5]} stroke={3} />}
         />
-      </Column>
+      </Block>
 
-      <Column gap="xs">
+      <Block>
         <Text variant="small" colorVariant="muted">
           Text label on the thumb
         </Text>
@@ -43,7 +43,7 @@ export default function Demo() {
             </Text>
           }
         />
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

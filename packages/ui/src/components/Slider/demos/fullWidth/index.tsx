@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { View } from 'react-native';
 import { Slider, RangeSlider, Text, Block, Card } from '@platform-blocks/ui';
 
 export default function Demo() {
@@ -7,25 +6,27 @@ export default function Demo() {
   const [rangeValue, setRangeValue] = useState<[number, number]>([20, 80]);
 
   return (
-    <Block fullWidth gap={16}>
-      <Block gap={24}>
+    <Block fullWidth>
+      <Block>
         
-        {/* Regular width vs full width comparison */}
-        <Block gap={12}>
-          <Text size="md" weight="medium">Regular Slider (default width)</Text>
+        {/* Fixed width vs full width comparison. `fullWidth` defaults to true,
+            so the fixed-width side has to opt out explicitly. */}
+        <Block>
+          <Text size="md" weight="medium">Fixed-width Slider (fullWidth={'{false}'})</Text>
           <Slider
             value={value}
             onChange={setValue}
             min={0}
             max={100}
             step={1}
+            fullWidth={false}
           />
           <Text size="sm" style={{ color: '#666' }}>
-            Value: {value}
+            Value: {value} (fixed 300px track)
           </Text>
         </Block>
 
-        <Block gap={12}>
+        <Block>
           <Text size="md" weight="medium">Full Width Slider</Text>
           <Slider
             value={value}
@@ -41,7 +42,7 @@ export default function Demo() {
         </Block>
 
         {/* Range slider example */}
-        <Block gap={12}>
+        <Block>
           <Text size="md" weight="medium">Full Width Range Slider</Text>
           <RangeSlider
             value={rangeValue}
@@ -57,14 +58,10 @@ export default function Demo() {
         </Block>
 
         {/* In a constrained container */}
-        <Block gap={12}>
+        <Block>
           <Text size="md" weight="medium">Full Width in Constrained Container</Text>
-          <View style={{ 
-            width: '60%', 
-            padding: 16, 
-            borderRadius: 8 
-          }}>
-            <Block gap={8}>
+          <Card variant="outline" padding="md" style={{ width: '60%' }}>
+            <Block>
               <Text size="sm">60% width container</Text>
               <Slider
                 value={value}
@@ -75,14 +72,14 @@ export default function Demo() {
                 fullWidth
               />
             </Block>
-          </View>
+          </Card>
         </Block>
 
         {/* Different sizes */}
-        <Block gap={12}>
+        <Block>
           <Text size="md" weight="medium">Full Width with Different Sizes</Text>
-          <Block gap={16}>
-            <Block gap={4}>
+          <Block>
+            <Block>
               <Text size="sm">Small (sm)</Text>
               <Slider
                 value={value}
@@ -94,7 +91,7 @@ export default function Demo() {
                 fullWidth
               />
             </Block>
-            <Block gap={4}>
+            <Block>
               <Text size="sm">Medium (md) - default</Text>
               <Slider
                 value={value}
@@ -106,7 +103,7 @@ export default function Demo() {
                 fullWidth
               />
             </Block>
-            <Block gap={4}>
+            <Block>
               <Text size="sm">Large (lg)</Text>
               <Slider
                 value={value}
@@ -114,7 +111,7 @@ export default function Demo() {
                 min={0}
                 max={100}
                 step={1}
-                size="3xl"
+                size="lg"
                 fullWidth
               />
             </Block>

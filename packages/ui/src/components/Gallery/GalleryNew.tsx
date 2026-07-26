@@ -15,6 +15,7 @@ import { GalleryControls } from './GalleryControls';
 import { GalleryThumbnails } from './GalleryThumbnails';
 import { GalleryMetadata } from './GalleryMetadata';
 import type { GalleryModalProps } from './types';
+import { resolveImageSource } from '../../utils/imageSource';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -196,7 +197,7 @@ export const Gallery: React.FC<GalleryModalProps> = ({
           <View style={styles.imageContainer} {...panResponder.panHandlers}>
             <Pressable style={styles.imageWrapper} onPress={handlePress}>
               <Image
-                source={{ uri: currentImage.uri }}
+                source={resolveImageSource(currentImage.uri)}
                 style={styles.image}
                 resizeMode="contain"
                 onLoad={() => setImageLoaded(true)}

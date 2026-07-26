@@ -1,7 +1,12 @@
 import { MutableRefObject, useCallback, useMemo, useRef } from 'react';
 import { Platform, type View } from 'react-native';
 
-import { getArcAngleFromRatio, getArcRatioFromAngle, type NormalizedArcConfig } from '../arc';
+import {
+  getArcAngleFromRatio,
+  getArcRatioFromAngle,
+  isAngleInArcDeadZone,
+  type NormalizedArcConfig,
+} from '../arc';
 import type { NormalizedInteractionConfig } from '../interactionConfig';
 import type { LayoutState } from './useKnobGeometry';
 import { useKnobInteraction } from './useKnobInteraction';
@@ -69,6 +74,32 @@ export const useKnobGestures = ({
     lastDragAngleRef.current = null;
   }, []);
 
+  // A press that never became a drag. Endless knobs are excluded: with no fixed mapping
+  // from angle to value, there is nothing absolute to jump to.
+  const tapToSetEnabled = interactionConfig.tapToSet && !isEndless && max > min;
+
+  // Shared by the two ways a press can set a value outright: a press that starts scrubbing
+  // on mouse-down, and a tap released without dragging on knobs that cannot spin at all.
+  // Both should refuse the same bad targets.
+  const isTapTargetActionable = useCallback(
+    (x: number, y: number) => {
+      if (!tapToSetEnabled) return false;
+      const dx = x - layoutState.cx;
+      const dy = layoutState.cy - y;
+
+      // Near the centre a couple of pixels swing the angle wildly, so a press there is far
+      // more likely to be a mis-hit than a deliberate request for some specific value.
+      const deadRadius = layoutState.radius * interactionConfig.tapDeadRadiusRatio;
+      if (Math.sqrt(dx * dx + dy * dy) < deadRadius) return false;
+
+      // Pressing the gap between the two ends of a partial arc has no sensible answer;
+      // snapping to whichever end is nearer would be a large, unrequested jump.
+      const rawAngle = (Math.atan2(dx, dy) * 180) / Math.PI;
+      return !isAngleInArcDeadZone(arcConfig, (rawAngle + 360) % 360);
+    },
+    [tapToSetEnabled, layoutState, interactionConfig.tapDeadRadiusRatio, arcConfig]
+  );
+
   const updateFromPoint = useCallback(
     (x: number, y: number, final = false, fromGrant = false) => {
       const dx = x - layoutState.cx;
@@ -132,6 +163,11 @@ export const useKnobGestures = ({
         return;
       }
 
+      // Spin-only platforms lock on press, so this is where a press lands its value. Hold
+      // it to the same standard as a tap; mid-drag updates stay unguarded so the knob keeps
+      // tracking the pointer even if it passes over the centre or the dead zone.
+      if (fromGrant && !isTapTargetActionable(x, y)) return;
+
       const ratio = getArcRatioFromAngle(arcConfig, normalizedAngle);
       const nextValue = min + ratio * (max - min);
       handleValueUpdate(nextValue, final);
@@ -148,7 +184,20 @@ export const useKnobGestures = ({
       valueToAngle,
       spinDeadZoneDegrees,
       gestureDegreeSpan,
+      isTapTargetActionable,
     ]
+  );
+
+  const handleTap = useCallback(
+    (x: number, y: number) => {
+      if (!isTapTargetActionable(x, y)) return;
+      const dx = x - layoutState.cx;
+      const dy = layoutState.cy - y;
+      const rawAngle = (Math.atan2(dx, dy) * 180) / Math.PI;
+      const ratio = getArcRatioFromAngle(arcConfig, (rawAngle + 360) % 360, { clamp: true });
+      handleValueUpdate(min + ratio * (max - min), true);
+    },
+    [isTapTargetActionable, layoutState, arcConfig, handleValueUpdate, min, max]
   );
 
   const { panHandlers } = useKnobInteraction({
@@ -171,6 +220,8 @@ export const useKnobGestures = ({
     handleValueUpdate,
     degreesToValueDelta,
     isRTL,
+    handleTap,
+    isPressActionable: isTapTargetActionable,
   });
 
   return { panHandlers };

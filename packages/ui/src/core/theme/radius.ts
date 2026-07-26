@@ -16,9 +16,9 @@ export const RADIUS_SCALE = {
   sm: 4,
   md: 6,
   lg: 8,
-  xl: 30,
+  xl: 12,
   '2xl': 16,
-  '3xl': 20,
+  '3xl': 24,
   full: 9999, // Large enough to be fully rounded for any component
   chip: 9999  // Alias for full
 } as const;
@@ -69,7 +69,7 @@ export const COMPONENT_RADIUS_DEFAULTS = {
   button: 'md' as RadiusValue,
   card: 'lg' as RadiusValue,
   chip: 'chip' as RadiusValue,
-  input: 'md' as RadiusValue,
+  input: 'lg' as RadiusValue,
   modal: 'lg' as RadiusValue,
   tooltip: 'sm' as RadiusValue,
   alert: 'md' as RadiusValue,

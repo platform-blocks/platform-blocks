@@ -94,13 +94,16 @@ export function useMaskedInput(options: UseMaskedInputOptions): UseMaskedInputRe
   }, [state.value, state.unmaskedValue, state.isComplete, state.cursorPosition, onValueChange, onUnmaskedValueChange]);
 
   const handleChangeText = useCallback((text: string) => {
+    // `state.value` — not `state.previousValue` — is what the field is currently
+    // showing, and it is what `processInput` has to diff against to tell an
+    // edited separator from an edited payload character.
     const result = mask.processInput(
       text,
-      state.previousValue,
+      state.value,
       selectionRef.current.start
     );
     updateState(result);
-  }, [mask, state.previousValue, updateState]);
+  }, [mask, state.value, updateState]);
 
   const handleSelectionChange = useCallback((selection: { start: number; end: number }) => {
     selectionRef.current = selection;

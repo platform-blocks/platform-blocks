@@ -1,4 +1,4 @@
-import { Form, Input, Column } from '@platform-blocks/ui';
+import { Block, Form, Input } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
@@ -6,7 +6,7 @@ export default function Demo() {
       initialValues={{ name: '', email: '' }}
       onSubmit={(values) => console.log('submit', values)}
     >
-      <Column gap="md" style={{ width: '100%', maxWidth: 400 }}>
+      <Block style={{ width: '100%', maxWidth: 400 }}>
         <Form.Field name="name">
           <Input label="Full name" placeholder="Ada Lovelace" />
         </Form.Field>
@@ -14,7 +14,7 @@ export default function Demo() {
           <Input label="Email" placeholder="ada@example.com" />
         </Form.Field>
         <Form.Submit>Create account</Form.Submit>
-      </Column>
+      </Block>
     </Form>
   );
 }

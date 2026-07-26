@@ -1,7 +1,7 @@
 ---
 title: Variants
 category: basics
-order: 15
+order: 20
 tags: [variants, filled, outline, unstyled]
 highlightLines: []
 status: stable

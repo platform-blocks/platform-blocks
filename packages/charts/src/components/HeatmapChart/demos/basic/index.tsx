@@ -1,12 +1,6 @@
 import { HeatmapChart } from '../../';
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-const SESSIONS = ['Morning', 'Afternoon', 'Evening'];
-const UTILIZATION = [
-  [12, 18, 25, 22, 28],
-  [8, 14, 19, 24, 20],
-  [6, 9, 12, 15, 11],
-];
+import { DAYS, SESSIONS, UTILIZATION } from './data';
 
 export default function Demo() {
   return (

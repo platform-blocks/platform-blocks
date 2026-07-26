@@ -1,4 +1,4 @@
-import { Avatar, AvatarGroup, Column, Text } from '@platform-blocks/ui';
+import { Avatar, AvatarGroup } from '@platform-blocks/ui';
 
 const TEAM = [
   { id: 1, name: 'Sarah Johnson', initials: 'SJ', color: '#FF6B6B' },
@@ -16,16 +16,10 @@ export default function Demo() {
   const hidden = TEAM.slice(LIMIT).map((member) => member.name);
 
   return (
-    <Column gap="xs">
-      <Text weight="medium">Overflow handling</Text>
-      <AvatarGroup limit={LIMIT} size="md" surplusTooltip={hidden.join(', ')}>
-        {TEAM.map(({ id, initials, color }) => (
-          <Avatar key={id} fallback={initials} backgroundColor={color} />
-        ))}
-      </AvatarGroup>
-      <Text variant="small" colorVariant="muted">
-        Set `limit` to cap visible avatars and show the remaining count. Pass `surplusTooltip` to reveal who's hidden on hover.
-      </Text>
-    </Column>
+    <AvatarGroup limit={LIMIT} size="md" surplusTooltip={hidden.join(', ')}>
+      {TEAM.map(({ id, initials, color }) => (
+        <Avatar key={id} fallback={initials} backgroundColor={color} />
+      ))}
+    </AvatarGroup>
   );
 }

@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Pass `renderLabel` to inject custom rows with icons and badges while keeping the tree interactions intact.
+Pass `renderLabel` to build custom rows with icons and badges while keeping the tree interactions intact.

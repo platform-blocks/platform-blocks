@@ -9,7 +9,7 @@ const OPTIONS = [
 
 export default function Demo() {
   return (
-    <Block gap="sm" direction="row">
+    <Block direction="row">
       {OPTIONS.map(({ label, position, description }) => (
         <Popover key={position} position={position} withArrow>
           <Popover.Target>
@@ -18,7 +18,7 @@ export default function Demo() {
             </Button>
           </Popover.Target>
           <Popover.Dropdown>
-            <Block gap="xs" p="sm" style={{ maxWidth: 220 }}>
+            <Block p="sm" style={{ maxWidth: 220 }}>
               <Text weight="semibold">{label} placement</Text>
               <Text variant="small" colorVariant="secondary">
                 {description}

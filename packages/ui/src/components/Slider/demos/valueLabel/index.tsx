@@ -8,15 +8,15 @@ export default function Demo() {
   const [d, setD] = useState<[number, number]>([20, 80]);
 
   return (
-    <Block gap="lg">
+    <Block>
       <Text weight="semibold">Value label position & styling</Text>
 
-      <Block gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">Default — tooltip above the thumb</Text>
         <Slider value={a} onChange={setA} valueLabelAlwaysOn />
       </Block>
 
-      <Block gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">valueLabelPosition="bottom"</Text>
         <Slider
           value={b}
@@ -27,7 +27,7 @@ export default function Demo() {
         />
       </Block>
 
-      <Block gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">
           Custom Text styling — `ff`, `weight`, `size`, `colorVariant`
         </Text>
@@ -45,7 +45,7 @@ export default function Demo() {
         />
       </Block>
 
-      <Block gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">
           Flat tooltip (no Card) with custom wrapper style
         </Text>
@@ -64,7 +64,7 @@ export default function Demo() {
         />
       </Block>
 
-      <Block gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">
           RangeSlider — both thumbs share placement + styling
         </Text>
@@ -78,7 +78,7 @@ export default function Demo() {
         />
       </Block>
 
-      <Block gap="sm" align="center" direction="row">
+      <Block align="center" direction="row">
 
         <Block style={{ height: 200 }}>
             <Slider

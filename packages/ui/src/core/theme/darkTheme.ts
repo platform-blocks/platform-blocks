@@ -1,33 +1,33 @@
 import { PlatformBlocksTheme } from './types';
 
 export const DARK_THEME: PlatformBlocksTheme = {
-  primaryColor: '#0A84FF',
+  primaryColor: '#3B82F6',
   colorScheme: 'dark',
 
   colors: {
     primary: [
-      '#001A33',
-      '#003366',
-      '#004D99',
-      '#0066CC',
-      '#0080FF',
-      '#0A84FF', // Base color (brighter for dark mode)
-      '#3399FF',
-      '#66B7FF',
-      '#99CFFF',
-      '#CCE7FF'
+      '#172554',
+      '#1E3A8A',
+      '#1E40AF',
+      '#1D4ED8',
+      '#2563EB',
+      '#3B82F6', // Base color — unified brand blue
+      '#60A5FA',
+      '#93C5FD',
+      '#BFDBFE',
+      '#DBEAFE'
     ],
     secondary: [
-      '#1C1C1E',
-      '#2C2C2E',
-      '#3A3A3C',
-      '#48484A',
-      '#636366',
-      '#8E8E93',
-      '#AEAEB2',
-      '#C7C7CC',
-      '#D1D1D6',
-      '#E5E5EA'
+      '#0F172A',
+      '#1E293B',
+      '#334155',
+      '#475569',
+      '#64748B',
+      '#94A3B8', // neutral slate — a true secondary, not lavender
+      '#CBD5E1',
+      '#E2E8F0',
+      '#F1F5F9',
+      '#F8FAFC'
     ],
     tertiary: [
       '#0B1A26',
@@ -54,43 +54,43 @@ export const DARK_THEME: PlatformBlocksTheme = {
       '#E5E5EA'
     ],
     success: [
-      '#0D2818',
-      '#1A4F30',
-      '#267648',
-      '#329D60',
-      '#3EC478',
-      '#30D158', // Apple's green for dark mode
-      '#5DD87A',
-      '#8ADF9C',
-      '#B7E6BE',
-      '#E4F3E0'
+      '#052E16',
+      '#14532D',
+      '#166534',
+      '#15803D',
+      '#16A34A',
+      '#22C55E', // unified green
+      '#4ADE80',
+      '#86EFAC',
+      '#BBF7D0',
+      '#DCFCE7'
     ],
     warning: [
-      '#332500',
-      '#664A00',
-      '#996E00',
-      '#CC9300',
-      '#FFB800',
-      '#FF9F0A', // Apple's orange for dark mode
-      '#FFB340',
-      '#FFC266',
-      '#FFD199',
-      '#FFE0CC'
+      '#451A03',
+      '#78350F',
+      '#92400E',
+      '#B45309',
+      '#D97706',
+      '#F59E0B', // unified amber
+      '#FBBF24',
+      '#FCD34D',
+      '#FDE68A',
+      '#FEF3C7'
     ],
     error: [
-      '#330B0A',
-      '#661713',
-      '#99231D',
-      '#CC2F26',
-      '#FF3333',
-      '#FF453A', // Apple's red for dark mode
-      '#FF6B60',
-      '#FF9186',
-      '#FFB7AC',
-      '#FFDDD2'
+      '#450A0A',
+      '#7F1D1D',
+      '#991B1B',
+      '#B91C1C',
+      '#DC2626',
+      '#EF4444', // unified red
+      '#F87171',
+      '#FCA5A5',
+      '#FECACA',
+      '#FEE2E2'
     ],
     gray: [
-      '#000000',
+      '#0E0E11',
       '#1C1C1E',
       '#2C2C2E',
       '#3A3A3C',
@@ -157,19 +157,28 @@ export const DARK_THEME: PlatformBlocksTheme = {
     secondary: '#AEAEB2',
     muted: '#8E8E93',
     disabled: '#636366',
-    link: '#0A84FF'
+    link: '#3B82F6'
   },
 
   backgrounds: {
-    base: '#000000',
-    subtle: '#121214',
-    surface: '#1C1C1E',
-    elevated: '#2C2C2E',
-    border: '#2C2C2E'
+    base: '#0E0E11',
+    subtle: '#161619',
+    surface: '#1C1C1F',
+    elevated: '#26262A',
+    border: '#2A2A2E'
+  },
+
+  // Dark mode reads elevation through the fill getting lighter (shadows barely
+  // register on a near-black page), with a hairline border doing the rest.
+  surfaces: {
+    0: { background: '#0E0E11', border: '#1F1F23', shadow: 'none' },
+    1: { background: '#1C1C1F', border: '#2A2A2E', shadow: 'xs' },
+    2: { background: '#26262A', border: '#313136', shadow: 'md' },
+    3: { background: '#2F2F34', border: '#3A3A40', shadow: 'xl' },
   },
 
   states: {
-    focusRing: 'rgba(10,132,255,0.55)',
+    focusRing: 'rgba(59,130,246,0.55)',
     textSelection: 'rgba(10, 132, 255, 0.25)', // Primary blue for selection
     highlightText: '#60A5FA', // primary[4] - bright blue for good contrast on dark
     highlightBackground: 'rgba(59, 130, 246, 0.35)' // primary[5] with transparency
@@ -240,12 +249,12 @@ export const DARK_THEME: PlatformBlocksTheme = {
   },
 
   semantic: {
-    accent: '#0A84FF', // primary[5] adjusted for dark mode
-    borderDefault: '#3A3A3C', // surface[2]
-    borderSubtle: '#2C2C2E', // surface[1] 
-    surfaceElevated: '#2C2C2E', // surface[1]
-    surfaceCard: '#1C1C1E', // surface[0]
-    focusRing: '#0A84FF' // primary[5]
+    accent: '#3B82F6', // primary[5] — unified brand blue
+    borderDefault: '#3A3A3E', // subtle elevated border
+    borderSubtle: '#2A2A2E',
+    surfaceElevated: '#26262A',
+    surfaceCard: '#1C1C1F',
+    focusRing: '#3B82F6' // unified brand blue
   },
 
   components: {},

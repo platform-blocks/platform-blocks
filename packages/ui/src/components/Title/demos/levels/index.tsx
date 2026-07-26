@@ -1,18 +1,16 @@
-import { Card, Column, Title } from '@platform-blocks/ui';
+import { Block, Card, Title } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="lg">
-      <Card p="md">
-        <Column gap="xs">
-          <Title order={1}>Page heading (order=1)</Title>
-          <Title order={2}>Section heading (order=2)</Title>
-          <Title order={3}>Subsection heading (order=3)</Title>
-          <Title order={4}>Fourth-level heading (order=4)</Title>
-          <Title order={5}>Fifth-level heading (order=5)</Title>
-          <Title order={6}>Sixth-level heading (order=6)</Title>
-        </Column>
-      </Card>
-    </Column>
+    <Card p="md">
+      <Block>
+        <Title order={1}>Page heading (order=1)</Title>
+        <Title order={2}>Section heading (order=2)</Title>
+        <Title order={3}>Subsection heading (order=3)</Title>
+        <Title order={4}>Fourth-level heading (order=4)</Title>
+        <Title order={5}>Fifth-level heading (order=5)</Title>
+        <Title order={6}>Sixth-level heading (order=6)</Title>
+      </Block>
+    </Card>
   );
 }

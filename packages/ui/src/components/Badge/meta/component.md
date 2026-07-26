@@ -21,6 +21,5 @@ examples:
   - sizes
   - shadow
   - aliases
-  - label-customization
 ---
 The Badge component displays compact elements that represent an input, attribute, or action. Supports different colors, sizes, and interactive features like removal. Inner label accepts the full Text-prop API via `labelProps`.

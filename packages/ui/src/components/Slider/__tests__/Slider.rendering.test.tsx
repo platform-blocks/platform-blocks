@@ -19,6 +19,9 @@ const mockTheme = {
     border: '#d0d0d0',
   },
   shadows: {
+    // `xs` is Card's component default shadow — without it the value-label
+    // Card renders shadowless and the snapshot stops covering the real path.
+    xs: '0px 1px 2px rgba(0,0,0,0.1)',
     sm: '0px 1px 2px rgba(0,0,0,0.15)',
     md: '0px 2px 4px rgba(0,0,0,0.2)',
     lg: '0px 4px 10px rgba(0,0,0,0.25)',

@@ -1,3 +1,35 @@
+// Imported from the token module rather than the `core` barrel so this
+// widely-used util file doesn't pull the whole core graph in with it.
+import { SPACING_TOKENS } from '../../core/design-tokens';
+import type { SizeValue } from '../../core/theme/types';
+
+const DAY_SIZES: Record<string, number> = {
+  xs: 24,
+  sm: 28,
+  md: 32,
+  lg: 36,
+  xl: 40,
+  '2xl': 44,
+  '3xl': 48,
+};
+
+export const DAYS_PER_WEEK = 7;
+
+/** Edge length of a single day cell. Shared by Day, Month and Calendar so the
+ *  grid, its weekday header and the calendar frame all agree on one number.
+ *  A numeric `size` is a font size, not a cell size, so it falls back to `md`. */
+export const getDaySize = (size: SizeValue = 'md'): number => {
+  if (typeof size === 'number') return DAY_SIZES.md;
+  return DAY_SIZES[size] ?? DAY_SIZES.md;
+};
+
+/** Intrinsic width of a month grid: seven day cells plus the gaps between them.
+ *  Calendars size to this instead of stretching to fill their container. */
+export const getMonthGridWidth = (size: SizeValue = 'md', withCellSpacing = true): number => {
+  const gap = withCellSpacing ? SPACING_TOKENS.xs : 0;
+  return getDaySize(size) * DAYS_PER_WEEK + gap * (DAYS_PER_WEEK - 1);
+};
+
 // Date utility functions for Calendar system
 export const dateUtils = {
   // Get start of day

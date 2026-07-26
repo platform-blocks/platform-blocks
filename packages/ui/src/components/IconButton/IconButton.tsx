@@ -7,16 +7,17 @@ import type { PlatformBlocksTheme } from '../../core/theme/types';
 import { getSpacingStyles, extractSpacingProps, extractShadowProps, getShadowStyles, getLayoutStyles, extractLayoutProps } from '../../core/utils';
 import { Loader } from '../Loader';
 import { Icon } from '../Icon';
-import { Tooltip } from '../Tooltip';
+import { Tooltip, resolveTooltipProps } from '../Tooltip';
 import { IconButtonProps } from './types';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useTransitionDuration } from '../../core/motion/useTransitionDuration';
 import { resolveLinearGradient } from '../../utils/optionalDependencies';
 
 const { LinearGradient: OptionalLinearGradient, hasLinearGradient } = resolveLinearGradient();
 
 const getIconButtonStyles = (
   theme: PlatformBlocksTheme,
-  variant: IconButtonProps['variant'] = 'filled',
+  variant: IconButtonProps['variant'] = 'default',
   size: SizeValue = 'md',
   disabled: boolean = false,
   loading: boolean = false,
@@ -72,7 +73,16 @@ const getIconButtonStyles = (
   }
 
   // Default theme-based styles
+  const isDark = theme.colorScheme === 'dark';
   switch (variant) {
+    case 'default':
+      // Matches Button's `default`: card surface plus a neutral hairline. Stays
+      // neutral even when a `color` is supplied, which is the point of the variant.
+      return {
+        ...baseStyles,
+        backgroundColor: theme.backgrounds?.surface ?? theme.colors.surface[0],
+        borderColor: isDark ? theme.colors.gray[3] : theme.colors.gray[2],
+      };
     case 'filled':
       return {
         ...baseStyles,
@@ -121,7 +131,7 @@ const getIconButtonStyles = (
 
 const getIconColor = (
   theme: PlatformBlocksTheme,
-  variant: IconButtonProps['variant'] = 'filled',
+  variant: IconButtonProps['variant'] = 'default',
   customColor?: string,
   iconColor?: string
 ): string => {
@@ -149,6 +159,8 @@ const getIconColor = (
 
   // Default theme-based icon colors
   switch (variant) {
+    case 'default':
+      return theme.text.primary; // Neutral chrome, like Button's `default`
     case 'filled':
       return theme.colors.surface[0]; // White/light on primary background
     case 'secondary':
@@ -197,7 +209,7 @@ const getDefaultIconSize = (buttonSize: SizeValue): SizeValue => {
   return sizeMap[buttonSize] || 'md';
 };
 
-export const IconButton: React.FC<IconButtonProps> = (allProps) => {
+export const IconButton = React.forwardRef<View, IconButtonProps>((allProps, ref) => {
   const { spacingProps, otherProps: withoutSpacing } = extractSpacingProps(allProps);
   const { shadowProps, otherProps: withoutShadow } = extractShadowProps(withoutSpacing);
   const { layoutProps, otherProps } = extractLayoutProps(withoutShadow);
@@ -206,7 +218,7 @@ export const IconButton: React.FC<IconButtonProps> = (allProps) => {
     icon,
     onPress,
     onLayout,
-    variant = 'filled',
+    variant = 'default',
     size = 'md',
     disabled = false,
     loading = false,
@@ -217,6 +229,7 @@ export const IconButton: React.FC<IconButtonProps> = (allProps) => {
     tooltip,
     tooltipPosition = 'top',
     accessibilityLabel,
+    transitionDuration,
     style,
     testID,
     radius = 'md', // Default to medium radius (square-ish), 'xl' will be circular
@@ -230,6 +243,8 @@ export const IconButton: React.FC<IconButtonProps> = (allProps) => {
 
   // Animation values
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const pressInDuration = useTransitionDuration(transitionDuration, 100);
+  const pressOutDuration = useTransitionDuration(transitionDuration, 150);
   const [isPressed, setIsPressed] = useState(false);
 
   // Calculate button height based on size
@@ -256,28 +271,33 @@ export const IconButton: React.FC<IconButtonProps> = (allProps) => {
   // Get icon size
   const resolvedIconSize = iconSize || getDefaultIconSize(size);
 
+  // `transitionDuration={0}` (and reduced motion) snap to the end state —
+  // a 0ms timing would still cost a frame.
+  const animateScale = (toValue: number, duration: number) => {
+    if (duration === 0) {
+      scaleAnim.setValue(toValue);
+      return;
+    }
+    Animated.timing(scaleAnim, {
+      toValue,
+      duration,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  };
+
   const handlePressIn = () => {
     if (!disabled && !loading) {
       setIsPressed(true);
       impactPressIn();
-      Animated.timing(scaleAnim, {
-        toValue: 0.95,
-        duration: 100,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
+      animateScale(0.95, pressInDuration);
     }
   };
 
   const handlePressOut = () => {
     setIsPressed(false);
     impactPressOut();
-    Animated.timing(scaleAnim, {
-      toValue: 1,
-      duration: 150,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
+    animateScale(1, pressOutDuration);
   };
 
   const handlePress = () => {
@@ -296,9 +316,10 @@ export const IconButton: React.FC<IconButtonProps> = (allProps) => {
       );
     }
 
+    const iconProps = typeof icon === 'string' ? { name: icon } : { icon };
     return (
       <Icon
-        name={icon}
+        {...iconProps}
         size={resolvedIconSize}
         color={resolvedIconColor}
         variant={iconVariant}
@@ -323,6 +344,7 @@ export const IconButton: React.FC<IconButtonProps> = (allProps) => {
           style={[buttonStyles, { borderWidth: 0 }]}
         >
           <Pressable
+            ref={ref}
             onPress={handlePress}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
@@ -348,6 +370,7 @@ export const IconButton: React.FC<IconButtonProps> = (allProps) => {
         </OptionalLinearGradient>
       ) : (
         <Pressable
+          ref={ref}
           onPress={handlePress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
@@ -378,16 +401,17 @@ export const IconButton: React.FC<IconButtonProps> = (allProps) => {
     </Animated.View>
   );
 
-  // Wrap with tooltip if provided
-  if (tooltip) {
+  // Wrap with tooltip if provided — string shorthand or full Tooltip config.
+  const tooltipProps = resolveTooltipProps(tooltip, { position: tooltipPosition });
+  if (tooltipProps) {
     return (
-      <Tooltip label={tooltip} position={tooltipPosition}>
+      <Tooltip {...tooltipProps}>
         {buttonElement}
       </Tooltip>
     );
   }
 
   return buttonElement;
-};
+});
 
 IconButton.displayName = 'IconButton';

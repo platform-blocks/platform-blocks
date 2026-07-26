@@ -24,4 +24,4 @@ props:
   startSectionProps: View props applied to the input's selection-area wrapper (chip area + text input)
   endSectionProps: View props applied to the wrapper around the clear button
 ---
-The AutoComplete component provides search functionality with suggestions, supporting single/multi-select, async data loading, and rich content display. Supports the same `labelProps` / `descriptionProps` / `placeholderTextColor` / `startSectionProps` / `endSectionProps` slot-prop API as `<Input>`.
+The AutoComplete component provides search functionality with suggestions, supporting single/multi-select, async data loading, and rich content display

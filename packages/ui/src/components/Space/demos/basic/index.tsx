@@ -1,4 +1,4 @@
-import { Block, Column, Space, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Space, Text, useTheme } from '@platform-blocks/ui';
 
 const EXAMPLES = [
   {
@@ -22,22 +22,22 @@ export default function Demo() {
   const theme = useTheme();
 
   return (
-    <Column gap="xl">
+    <Block>
       {EXAMPLES.map(({ label, gap, helper }) => (
-        <Column key={label} gap="xs">
+        <Block key={label}>
           <Text weight="medium">{label}</Text>
           <Block bg={theme.backgrounds.subtle} radius="lg" p="md">
-            <Column>
+            <Block>
               <Text>First line</Text>
               <Space h={gap} />
               <Text>Second line</Text>
-            </Column>
+            </Block>
           </Block>
           <Text variant="small" colorVariant="muted">
             {helper}
           </Text>
-        </Column>
+        </Block>
       ))}
-    </Column>
+    </Block>
   );
 }

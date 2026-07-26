@@ -5,8 +5,6 @@ import {
   Breadcrumbs,
   Button,
   Card,
-  Chip,
-  CodeBlock,
   Flex,
   Loader,
   Markdown,
@@ -16,6 +14,9 @@ import {
 } from '@platform-blocks/ui';
 import { PageLayout } from '../components/PageLayout';
 import { DemoRenderer } from '../components/DemoRenderer';
+import { DemoHeading } from '../components/DemoHeading';
+import { buildDemoAnchors } from '../utils/demoAnchors';
+import { normalizeDescriptionHeadings } from '../config/routeSeo';
 import {
   attachHookDemoCode,
   getHookDemos,
@@ -26,6 +27,7 @@ import {
   type HookDemo
 } from '../utils/hooksLoader';
 import { useBrowserTitle, formatPageTitle } from '../hooks/useBrowserTitle';
+import { useFragmentScroll } from '../hooks/useFragmentScroll';
 
 interface HookDetailScreenProps {
   hook?: string;
@@ -36,9 +38,11 @@ interface HookDemoSectionProps {
   preview: React.ReactNode;
   description?: string;
   hookName: string;
+  /** Fragment id that deep-links to this demo. */
+  anchorId: string;
 }
 
-const HookDemoSection: React.FC<HookDemoSectionProps> = ({ demo, preview, description, hookName }) => {
+const HookDemoSection: React.FC<HookDemoSectionProps> = ({ demo, preview, description, hookName, anchorId }) => {
   const baseCode = typeof demo.code === 'string' ? demo.code : undefined;
   const fallbackEntry = baseCode ? null : getHookDemoCodeEntry(hookName, demo.id);
   const resolvedCode = baseCode ?? fallbackEntry?.code ?? '';
@@ -47,20 +51,10 @@ const HookDemoSection: React.FC<HookDemoSectionProps> = ({ demo, preview, descri
   return (
     <View style={styles.demoSection}>
       <Flex direction="row" align="center" justify="space-between" style={styles.demoHeader}>
-        <Title order={3} size={20} weight="semibold">
+        <DemoHeading id={anchorId} order={2} size={20} weight="semibold">
           {demo.title}
-        </Title>
+        </DemoHeading>
       </Flex>
-
-      {demo.tags && demo.tags.length > 0 && (
-        <Flex direction="row" align="center" gap={4} wrap="wrap" style={styles.demoTags}>
-          {demo.tags.map(tag => (
-            <Chip key={tag} size="xs" variant="outline">
-              {tag}
-            </Chip>
-          ))}
-        </Flex>
-      )}
 
       {description ? (
         <View style={styles.demoDescription}>
@@ -68,26 +62,10 @@ const HookDemoSection: React.FC<HookDemoSectionProps> = ({ demo, preview, descri
         </View>
       ) : null}
 
-      <DemoRenderer demo={demo as any} preview={preview} mode="preview" />
-
-      {codeAvailable && (
-        <View style={styles.codeBlockWrapper}>
-          <CodeBlock
-            showCopyButton={demo.codeCopy !== false}
-            showLineNumbers={demo.codeLineNumbers === true}
-            highlightLines={demo.highlightLines as any}
-            spoiler={demo.codeSpoiler}
-            spoilerMaxHeight={demo.codeSpoilerMaxHeight}
-            language="tsx"
-            githubUrl={(demo as any).githubUrl}
-            fileName={(demo as any).fileName}
-            fileIcon={(demo as any).fileIcon}
-            fullWidth
-          >
-            {resolvedCode}
-          </CodeBlock>
-        </View>
-      )}
+      <DemoRenderer
+        demo={{ ...(demo as any), code: codeAvailable ? resolvedCode : undefined }}
+        preview={preview}
+      />
     </View>
   );
 };
@@ -97,27 +75,28 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
   const { locale } = useI18n();
   const artifactsReady = hasHookDemosArtifacts();
   const meta = useMemo(() => (hook && artifactsReady ? getHookMeta(hook) : null), [artifactsReady, hook]);
-  const [demos, setDemos] = useState<HookDemo[]>([]);
+  // Derived during render rather than loaded in an effect: demo titles,
+  // descriptions, and source are synchronous, and effects don't run during
+  // static rendering — so hook pages were prerendering with none of their
+  // example content. See ComponentDetailScreen for the same reasoning.
+  const demos = useMemo<HookDemo[]>(
+    () => (hook && artifactsReady ? attachHookDemoCode(hook, getHookDemos(hook)) : []),
+    [artifactsReady, hook]
+  );
   const [loadedExports, setLoadedExports] = useState<Record<string, any>>({});
+  // Fragment id per demo, so every example heading is its own permalink.
+  const demoAnchors = useMemo(() => buildDemoAnchors(demos), [demos]);
 
   useBrowserTitle(formatPageTitle(meta?.title || hook || 'Hooks'));
 
-  // Genuine demo-loading effect: clears prior demos then asynchronously loads
-  // the ones for the current hook.
+  // Deep links: /hooks/useDebounce#leading-edge.
+  useFragmentScroll(hook, loadedExports);
+
+  // Only the runnable demo export is async, so that is all that stays here.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- demo-loading orchestration
-    setDemos([]);
-    setLoadedExports({});
-
-    if (!hook || !artifactsReady) {
-      return;
-    }
-
-    const nextDemos = attachHookDemoCode(hook, getHookDemos(hook));
-    setDemos(nextDemos);
-
+    if (!hook) return;
     let cancelled = false;
-    nextDemos.forEach(demo => {
+    demos.forEach(demo => {
       loadHookDemoComponent(hook, demo.id)
         .then(component => {
           if (!component || cancelled) return;
@@ -131,7 +110,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
     return () => {
       cancelled = true;
     };
-  }, [artifactsReady, hook]);
+  }, [demos, hook]);
 
   const getLocalizedDescription = useCallback((demo: HookDemo) => {
     if (demo.localizedDescriptions && demo.localizedDescriptions[locale]) {
@@ -184,7 +163,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
     return (
       <PageLayout contentContainerStyle={styles.container}>
         <Card variant="outline" style={styles.infoCard}>
-          <Text variant="h4" style={styles.infoTitle}>Hook not specified</Text>
+          <Text variant="h1" style={styles.infoTitle}>Hook not specified</Text>
           <Text variant="p" colorVariant="secondary" style={styles.infoMessage}>
             Provide a hook name to view detailed documentation.
           </Text>
@@ -198,7 +177,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
     return (
       <PageLayout contentContainerStyle={styles.container}>
         <Card variant="outline" style={styles.infoCard}>
-          <Text variant="h4" style={styles.infoTitle}>Documentation artifacts missing</Text>
+          <Text variant="h1" style={styles.infoTitle}>Documentation artifacts missing</Text>
           <Text variant="p" colorVariant="secondary" style={styles.infoMessage}>
             Run <Text variant="p" weight="semibold">npm run demos:generate</Text> to regenerate hook metadata and example bundles before viewing this page.
           </Text>
@@ -212,7 +191,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
     return (
       <PageLayout contentContainerStyle={styles.container}>
         <Card variant="outline" style={styles.infoCard}>
-          <Text variant="h4" style={styles.infoTitle}>Hook not found</Text>
+          <Text variant="h1" style={styles.infoTitle}>Hook not found</Text>
           <Text variant="p" colorVariant="secondary" style={styles.infoMessage}>
             The hook "{hook}" is not documented yet.
           </Text>
@@ -228,8 +207,6 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
     { label: meta.title || hook }
   ];
 
-  const tags: string[] = Array.isArray(meta.tags) ? meta.tags : [];
-
   return (
     <PageLayout contentContainerStyle={styles.container}>
       <View style={styles.content}>
@@ -241,43 +218,9 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
 
         {meta.description ? (
           <View style={styles.overview}>
-            <Markdown>{meta.description}</Markdown>
+            <Markdown>{normalizeDescriptionHeadings(meta.description)}</Markdown>
           </View>
         ) : null}
-
-        <View style={styles.metadataRow}>
-          {meta.category && (
-            <Chip size="sm" variant="light" style={styles.metadataChip}>
-              Category: {meta.category}
-            </Chip>
-          )}
-          {meta.status && (
-            <Chip size="sm" variant="light" style={styles.metadataChip}>
-              Status: {meta.status}
-            </Chip>
-          )}
-          {meta.since && (
-            <Chip size="sm" variant="light" style={styles.metadataChip}>
-              Since {meta.since}
-            </Chip>
-          )}
-        </View>
-
-        {tags.length > 0 && (
-          <View style={styles.tagsRow}>
-            {tags.map(tag => (
-              <Chip key={tag} size="xs" variant="outline" style={styles.tagChip}>
-                {tag}
-              </Chip>
-            ))}
-          </View>
-        )}
-
-        <View style={styles.sectionHeader}>
-          <Title order={2} size={24} weight="semibold">
-            Examples
-          </Title>
-        </View>
 
         {demos.length === 0 ? (
           <Card variant="outline" style={styles.emptyState}>
@@ -294,6 +237,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
                 preview={buildPreview(demo)}
                 description={getLocalizedDescription(demo)}
                 hookName={hook!}
+                anchorId={demoAnchors[demo.id]}
               />
             ))}
           </View>
@@ -322,27 +266,6 @@ const styles = StyleSheet.create({
   overview: {
     marginBottom: 12,
   },
-  metadataRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 12,
-  },
-  metadataChip: {
-    marginRight: 12,
-    marginBottom: 8,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 24,
-  },
-  tagChip: {
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  sectionHeader: {
-    marginBottom: 8,
-  },
   demoList: {
     gap: 24,
   },
@@ -352,14 +275,8 @@ const styles = StyleSheet.create({
   demoHeader: {
     marginBottom: 8,
   },
-  demoTags: {
-    marginBottom: 8,
-  },
   demoDescription: {
     opacity: 0.75,
-  },
-  codeBlockWrapper: {
-    marginTop: 12,
   },
   emptyState: {
     padding: 28,

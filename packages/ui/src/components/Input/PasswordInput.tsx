@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Pressable } from 'react-native';
+import { View, Pressable, type TextInput } from 'react-native';
 import { Input } from './Input';
 import { PasswordInputProps } from './types';
 import { calculatePasswordStrength } from './validation';
@@ -81,7 +81,7 @@ const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps> = ({
   );
 };
 
-export const PasswordInput: React.FC<PasswordInputProps> = (props) => {
+export const PasswordInput = React.forwardRef<TextInput, PasswordInputProps>((props, ref) => {
   const {
     showStrengthIndicator = false,
     showVisibilityToggle = true,
@@ -148,6 +148,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = (props) => {
       ) : null}
 
       <Input
+        ref={ref}
         {...restInputProps}
         fullWidth={fullWidth}
         type="password"
@@ -161,7 +162,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = (props) => {
 
     </View>
   );
-};
+});
 
 // Set display name for debugging
 PasswordInput.displayName = 'PasswordInput';

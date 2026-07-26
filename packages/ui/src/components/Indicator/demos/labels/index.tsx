@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { Avatar, Column, Indicator, Row, Text } from '@platform-blocks/ui';
+import { Avatar, Block, Indicator, Row, Text } from '@platform-blocks/ui';
 
 const Anchor = ({ children }: { children?: React.ReactNode }) => (
   <View
@@ -19,8 +19,8 @@ const Anchor = ({ children }: { children?: React.ReactNode }) => (
 
 export default function Demo() {
   return (
-    <Column gap="lg">
-      <Column gap="sm">
+    <Block>
+      <Block>
         <Text size="sm" colorVariant="muted">Numeric counts</Text>
         <Row gap="lg">
           <Anchor>
@@ -33,9 +33,9 @@ export default function Demo() {
             <Indicator size={20} color="#ef4444" label="99+" />
           </Anchor>
         </Row>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">
           Monospace badge with custom label styling
         </Text>
@@ -58,9 +58,9 @@ export default function Demo() {
             />
           </Anchor>
         </Row>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">Custom child content (children, not label)</Text>
         <Row gap="lg">
           <Anchor>
@@ -70,7 +70,7 @@ export default function Demo() {
             </Indicator>
           </Anchor>
         </Row>
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

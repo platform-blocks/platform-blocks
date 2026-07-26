@@ -1,58 +1,29 @@
-import { Column, QRCode, Row, Text, useTheme } from '@platform-blocks/ui';
+import { Block, QRCode, Row, Text, useTheme } from '@platform-blocks/ui';
+import { createGradientExamples } from './data';
 
 export default function Demo() {
   const theme = useTheme();
-
-  const gradients = [
-    {
-      label: 'Linear blend',
-      value: 'https://platform-blocks.com/linear',
-      gradient: {
-        from: theme.colors.primary[6],
-        to: theme.colors.highlight[5],
-        type: 'linear' as const,
-        rotation: 45
-      },
-      moduleShape: 'rounded' as const,
-      cornerRadius: 0.4
-    },
-    {
-      label: 'Radial bloom',
-      value: 'https://platform-blocks.com/radial',
-      gradient: {
-        from: theme.colors.success[5],
-        to: theme.colors.primary[4],
-        type: 'radial' as const
-      },
-      moduleShape: 'diamond' as const,
-      cornerRadius: undefined
-    }
-  ] as const;
+  const gradients = createGradientExamples(theme);
 
   return (
-    <Column gap="lg">
+    <Block>
       <Text variant="small" colorVariant="muted">
         Gradient fills
       </Text>
       <Row gap="lg" wrap="wrap" justify="center">
         {gradients.map(({ label, value, gradient, moduleShape, cornerRadius }) => (
-          <Column key={label} gap="xs" align="center">
-            <QRCode
-              value={value}
-              size={160}
-              gradient={gradient}
-              moduleShape={moduleShape}
-              cornerRadius={cornerRadius}
-              quietZone={2}
-            />
-            <Text variant="small" colorVariant="muted">
-              {label}
-            </Text>
-          </Column>
+          <QRCode
+            key={label}
+            value={value}
+            size={160}
+            gradient={gradient}
+            moduleShape={moduleShape}
+            cornerRadius={cornerRadius}
+            quietZone={2}
+            label={label}
+          />
         ))}
       </Row>
-    </Column>
+    </Block>
   );
 }
-
-

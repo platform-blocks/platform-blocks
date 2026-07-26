@@ -62,6 +62,10 @@ export interface TextProps extends SpacingProps {
   numberOfLines?: RNTextProps['numberOfLines'];
   /** Ellipsis strategy when text exceeds available space */
   ellipsizeMode?: RNTextProps['ellipsizeMode'];
+  /** Element id. On web this is the DOM `id` — headings need one to be a link target. */
+  id?: string;
+  /** React Native alias for `id`; used when the two platforms need different values. */
+  nativeID?: string;
 }
 
 const getTextStyles = (
@@ -344,7 +348,7 @@ const containsBlockElement = (node: React.ReactNode): boolean => {
   });
 };
 
-export const Text: React.FC<TextProps> = (allProps) => {
+export const Text = React.forwardRef<RNText, TextProps>((allProps, ref) => {
   const { spacingProps, otherProps } = extractSpacingProps(allProps);
   const {
     children,
@@ -369,8 +373,12 @@ export const Text: React.FC<TextProps> = (allProps) => {
     onLayout,
     value,
     numberOfLines,
-    ellipsizeMode
+    ellipsizeMode,
+    id,
+    nativeID
   } = otherProps as any;
+
+  const elementId = id ?? nativeID;
 
   const theme = useTheme();
   const { t } = useI18n();
@@ -462,11 +470,24 @@ export const Text: React.FC<TextProps> = (allProps) => {
       if (ellipsizeMode === 'tail' || ellipsizeMode === undefined) {
         webExtraStyles.textOverflow = 'ellipsis';
       }
+    } else if (typeof numberOfLines === 'number' && numberOfLines > 1) {
+      // Multi-line clamp: RNText's `numberOfLines` truncates after N lines on
+      // native, but the web path renders a plain HTML element that would
+      // otherwise wrap unbounded. Reproduce the clamp with the -webkit-box
+      // line-clamp idiom (widely supported) so web matches native.
+      webExtraStyles.display = '-webkit-box';
+      webExtraStyles.WebkitBoxOrient = 'vertical';
+      webExtraStyles.WebkitLineClamp = String(numberOfLines);
+      webExtraStyles.overflow = 'hidden';
     }
 
     return React.createElement(
       htmlTag as string,
       {
+        // Only attach when a consumer actually forwarded one — an explicit
+        // `ref: null` would otherwise show up as a prop on the host element.
+        ...(ref ? { ref } : {}),
+        ...(elementId ? { id: elementId } : {}),
         style: { ...webStyles, ...webExtraStyles },
         className: 'platform-blocks-text', // Optional: for CSS targeting
         onClick: onPress, // Handle onPress for web
@@ -478,7 +499,9 @@ export const Text: React.FC<TextProps> = (allProps) => {
 
   // Fallback to React Native Text for mobile or non-HTML variants
   return (
-    <RNText 
+    <RNText
+      ref={ref}
+      nativeID={elementId}
       style={[textStyles, spacingStyles, style]}
       selectable={selectable}
       onPress={onPress}
@@ -489,8 +512,9 @@ export const Text: React.FC<TextProps> = (allProps) => {
   {content}
     </RNText>
   );
-};
+});
 
+Text.displayName = 'Text';
 (Text as any).__PLATFORM_BLOCKS_TEXT__ = true;
 
 // Helper function to check if variant is a valid HTML tag

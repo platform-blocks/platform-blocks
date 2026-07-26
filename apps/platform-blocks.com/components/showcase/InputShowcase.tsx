@@ -1,5 +1,5 @@
 import { View, ScrollView } from 'react-native';
-import { Card, Text, DatePickerInput, TimePicker, Input, PasswordInput, NumberInput, PinInput, Checkbox, RadioGroup, Switch, Slider, RangeSlider, Select, AutoComplete, FileInput, PhoneInput, Divider, Icon, ColorInput, Block } from '@platform-blocks/ui';
+import { Card, Text, DatePickerInput, TimePickerInput, Input, PasswordInput, NumberInput, PinInput, Checkbox, RadioGroup, Switch, Slider, RangeSlider, Select, AutoComplete, FileInput, PhoneInput, Divider, Icon, ColorInput, Block } from '@platform-blocks/ui';
 import React from 'react';
 
 interface FormState {
@@ -380,7 +380,7 @@ export function InputShowcase() {
               clearable
             />
 
-            <TimePicker
+            <TimePickerInput
               label="Select Time"
               value={state.timeValue}
               onChange={(time) => updateState('timeValue', time)}

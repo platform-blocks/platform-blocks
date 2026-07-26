@@ -1,4 +1,4 @@
-import { Button, Card, Column, Menu, MenuDropdown, MenuItem, Row, Text } from '@platform-blocks/ui';
+import { Button, Card, Menu, MenuDropdown, MenuItem, Row, Text } from '@platform-blocks/ui';
 
 const POSITIONS = [
   { label: 'Bottom start', position: 'bottom-start' },
@@ -11,20 +11,18 @@ const POSITIONS = [
 
 export default function Demo() {
   return (
-    <Column gap="sm">
-      <Row gap="md" justify="center" wrap="wrap">
-        {POSITIONS.map(({ label, position }) => (
-          <Menu key={position} position={position}>
-            <Button size="sm" variant="outline">
-              {label}
-            </Button>
-            <MenuDropdown>
-              <MenuItem>Duplicate</MenuItem>
-              <MenuItem>Archive</MenuItem>
-            </MenuDropdown>
-          </Menu>
-        ))}
-      </Row>
-    </Column>
+    <Row gap="md" justify="center" wrap="wrap">
+      {POSITIONS.map(({ label, position }) => (
+        <Menu key={position} position={position}>
+          <Button size="sm" variant="outline">
+            {label}
+          </Button>
+          <MenuDropdown>
+            <MenuItem>Duplicate</MenuItem>
+            <MenuItem>Archive</MenuItem>
+          </MenuDropdown>
+        </Menu>
+      ))}
+    </Row>
   );
 }

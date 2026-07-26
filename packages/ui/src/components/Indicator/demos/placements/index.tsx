@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Block, Column, Indicator, Row, Text } from '@platform-blocks/ui';
+import { Block, Indicator, Row, Text } from '@platform-blocks/ui';
 
 const cornerPlacements = [
   { label: 'Top left', placement: 'top-left', color: '#F59E0B' },
@@ -29,8 +29,8 @@ const Tile = ({ children }: { children: ReactNode }) => (
 
 export default function Demo() {
   return (
-    <Column gap="lg">
-      <Column gap="xs">
+    <Block>
+      <Block>
         <Text size="sm" weight="medium">
           Corner placements
         </Text>
@@ -45,9 +45,9 @@ export default function Demo() {
             </Tile>
           ))}
         </Row>
-      </Column>
+      </Block>
 
-      <Column gap="xs">
+      <Block>
         <Text size="sm" weight="medium">
           Offset and content
         </Text>
@@ -71,7 +71,7 @@ export default function Demo() {
             </Tile>
           ))}
         </Row>
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

@@ -4,6 +4,7 @@ import { useDialog } from '../DialogContext';
 import { Text } from '../../Text';
 import { Button } from '../../Button';
 import { Flex } from '../../Flex';
+import type { DialogAutoFocus } from '../types';
 
 export interface UseSimpleDialogOptions {
   title?: string;
@@ -12,6 +13,10 @@ export interface UseSimpleDialogOptions {
   backdropClosable?: boolean;
   width?: number;
   height?: number;
+  /** Moves focus into the dialog once it has finished opening. See {@link DialogAutoFocus}. */
+  autoFocus?: DialogAutoFocus;
+  /** Trap Tab focus inside the dialog and restore it on close (web only, default true). */
+  trapFocus?: boolean;
 }
 
 /**

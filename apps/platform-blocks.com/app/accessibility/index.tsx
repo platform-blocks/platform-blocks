@@ -89,7 +89,7 @@ const AccessibilityPage = () => {
 
           <Column gap="xl">
             <Column gap="md">
-              <Text variant="h3">Keyboard & Focus Management</Text>
+              <Text variant="h2">Keyboard & Focus Management</Text>
               <Text variant="p" colorVariant="secondary">
                 Platform Blocks is fully operable without a mouse. Focus order mirrors visual layout and shortcuts are discoverable and customizable.
               </Text>
@@ -97,7 +97,7 @@ const AccessibilityPage = () => {
             </Column>
 
             <Column gap="md">
-              <Text variant="h3">Assistive Technology Semantics</Text>
+              <Text variant="h2">Assistive Technology Semantics</Text>
               <Text variant="p" colorVariant="secondary">
                 Components expose reliable roles, names, and states so VoiceOver, TalkBack, NVDA, and other assistive tools can correctly interpret the UI.
               </Text>
@@ -105,7 +105,7 @@ const AccessibilityPage = () => {
             </Column>
 
             <Column gap="md">
-              <Text variant="h3">Visual Accessibility</Text>
+              <Text variant="h2">Visual Accessibility</Text>
               <Text variant="p" colorVariant="secondary">
                 Color, typography, and spacing tokens are engineered for clarity, even under high contrast, zoom, or theme overrides.
               </Text>
@@ -113,7 +113,7 @@ const AccessibilityPage = () => {
             </Column>
 
             <Column gap="md">
-              <Text variant="h3">Motion, Audio, & Sensory Preferences</Text>
+              <Text variant="h2">Motion, Audio, & Sensory Preferences</Text>
               <Text variant="p" colorVariant="secondary">
                 Micro-interactions respect user comfort and can be tuned or disabled globally.
               </Text>
@@ -121,7 +121,7 @@ const AccessibilityPage = () => {
             </Column>
 
             <Column gap="md">
-              <Text variant="h3">Design & QA Workflow</Text>
+              <Text variant="h2">Design & QA Workflow</Text>
               <Text variant="p" colorVariant="secondary">
                 Accessibility is woven into the release checklist with dedicated reviews and automated tooling.
               </Text>
@@ -130,7 +130,7 @@ const AccessibilityPage = () => {
           </Column>
 
           <Column gap="md">
-            <Text variant="h3">Applying Accessible APIs</Text>
+            <Text variant="h2">Applying Accessible APIs</Text>
             <Text variant="p" colorVariant="secondary">
               Components forward platform accessibility props, letting you layer contextual hints or ARIA attributes without losing built-in behaviour.
             </Text>
@@ -142,7 +142,7 @@ const AccessibilityPage = () => {
           <Divider />
 
           <Column gap="lg">
-            <Text variant="h3">Interactive Checks</Text>
+            <Text variant="h2">Interactive Checks</Text>
             <Text variant="p" colorVariant="secondary">
               Explore the sensory feedback controls and focus-management demo below to see these principles in action.
             </Text>
@@ -151,7 +151,7 @@ const AccessibilityPage = () => {
           </Column>
 
           <Text variant="p" colorVariant="muted">
-            Have an accessibility request or need help auditing a flow? Visit the Support page or open an issue so we can collaborate on an inclusive solution.
+            Have an accessibility request or need help auditing a flow? Open an issue on GitHub or ask in Discord so we can collaborate on an inclusive solution.
           </Text>
         </Column>
       </View>

@@ -1,4 +1,4 @@
-import { Column, TableOfContents } from '@platform-blocks/ui';
+import { Block, TableOfContents } from '@platform-blocks/ui';
 
 const INITIAL_ITEMS = [
   { id: 'intro', value: 'Introduction', depth: 1 },
@@ -10,7 +10,7 @@ const INITIAL_ITEMS = [
 
 export default function Demo() {
   return (
-    <Column gap="sm" align="flex-start">
+    <Block align="flex-start">
       <TableOfContents
         initialData={INITIAL_ITEMS}
         variant="outline"
@@ -20,6 +20,6 @@ export default function Demo() {
         p="sm"
         style={{ width: 240 }}
       />
-    </Column>
+    </Block>
   );
 }

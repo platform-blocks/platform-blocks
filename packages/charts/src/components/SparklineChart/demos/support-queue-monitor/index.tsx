@@ -1,7 +1,7 @@
 import { View, Text } from 'react-native';
 import { SparklineChart } from '../../';
 
-const QUEUE_DEPTH = [6, 7, 8, 9, 11, 13, 15, 14, 12, 10, 9, 8, 7];
+import { QUEUE_DEPTH } from './data';
 
 export default function Demo() {
   const current = QUEUE_DEPTH[QUEUE_DEPTH.length - 1];
@@ -18,7 +18,6 @@ export default function Demo() {
         width={228}
         height={82}
         data={QUEUE_DEPTH}
-        color="#6366F1"
         fill
         fillOpacity={0.14}
         smooth

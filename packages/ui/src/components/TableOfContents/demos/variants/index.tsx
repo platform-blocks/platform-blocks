@@ -1,26 +1,24 @@
-import { TableOfContents, Flex, Text } from '@platform-blocks/ui';
+import { Row, TableOfContents } from '@platform-blocks/ui';
+
+const ITEMS = [
+  { id: 'overview', value: 'Overview', depth: 1 },
+  { id: 'tokens', value: 'Color tokens', depth: 2 },
+  { id: 'accessibility', value: 'Accessibility', depth: 1 },
+];
 
 export default function Demo() {
   return (
-    <Flex direction="column" gap={16}>
-  <Flex gap={12} style={{ flexWrap: 'wrap' }}>
-        <Flex direction="column" gap={4}>
-          <Text size="sm" weight="semibold">None</Text>
-          <TableOfContents variant="none" size="xs" style={{ maxWidth: 240 }} />
-        </Flex>
-        <Flex direction="column" gap={4}>
-          <Text size="sm" weight="semibold">Outline</Text>
-          <TableOfContents variant="outline" size="xs" style={{ maxWidth: 240 }} />
-        </Flex>
-        <Flex direction="column" gap={4}>
-          <Text size="sm" weight="semibold">Ghost</Text>
-          <TableOfContents variant="ghost" size="xs" style={{ maxWidth: 240 }} />
-        </Flex>
-        <Flex direction="column" gap={4}>
-          <Text size="sm" weight="semibold">Filled</Text>
-          <TableOfContents variant="filled" color="#3b82f6" size="xs" autoContrast style={{ maxWidth: 240 }} />
-        </Flex>
-      </Flex>
-    </Flex>
+    <Row gap="md" align="flex-start" wrap="wrap">
+      <TableOfContents initialData={ITEMS} variant="outline" size="xs" style={{ width: 200 }} />
+      <TableOfContents initialData={ITEMS} variant="ghost" size="xs" style={{ width: 200 }} />
+      <TableOfContents
+        initialData={ITEMS}
+        variant="filled"
+        color="primary.6"
+        autoContrast
+        size="xs"
+        style={{ width: 200 }}
+      />
+    </Row>
   );
 }

@@ -25,7 +25,7 @@ export default function Demo() {
   };
 
   return (
-    <Block gap="lg" align="flex-start" fullWidth>
+    <Block align="flex-start" fullWidth>
       <ShimmerText
         spread={spread}
         repeat={repeat}
@@ -39,7 +39,7 @@ export default function Demo() {
         Interactive shimmer headline
       </ShimmerText>
 
-      <Block gap="md" w="100%">
+      <Block w="100%">
         <Text variant="small" weight="medium">
           Spread: {spread.toFixed(1)}
         </Text>
@@ -52,7 +52,7 @@ export default function Demo() {
         />
       </Block>
 
-      <Block gap="sm" w="100%">
+      <Block w="100%">
         <Row align="center" justify="space-between">
           <Text variant="small">Repeat animation</Text>
           <Switch checked={repeat} onChange={handleRepeatChange} />

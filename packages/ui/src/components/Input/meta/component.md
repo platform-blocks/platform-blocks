@@ -37,13 +37,11 @@ related:
   - Form
 examples:
   - Basic text input with label and placeholder
-  - Input with validation and error states
-  - Different input types (email, password, number)
   - Visual variants (default, filled, outline, unstyled)
-  - Label customization (labelProps / descriptionProps)
-  - Slot styling (placeholderTextColor, startSectionProps, endSectionProps)
+  - Different input types (email, password, number, tel)
+  - Validation, required, and disabled states
   - Multiline text input
-  - Input with helper text and character count
+  - Sections and slot styling (startSection, endSection, clearable)
 ---
 
 A versatile text input component that provides a consistent interface for text entry across different platforms. The Input component supports various types, validation states, and accessibility features.

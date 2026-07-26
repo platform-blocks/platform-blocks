@@ -23,9 +23,12 @@ import { Text } from '../Text/Text';
 import { Button } from '../Button/Button';
 import { Icon } from '../Icon';
 import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveSurface } from '../../core/theme/surfaces';
 import { useDirection } from '../../core/providers/DirectionProvider';
 import { DialogProps } from './types';
 import { useEscapeKey } from '../../hooks/useHotkeys';
+import { useTransitionDuration } from '../../core/motion/useTransitionDuration';
+import { FOCUSABLE_SELECTOR, resolveDomNode, useFocusTrap } from '../../core/accessibility/advancedHooks';
 
 // Safe wrapper for useSafeAreaInsets that handles cases where SafeAreaProvider is not available
 const useSafeSafeAreaInsets = () => {
@@ -36,6 +39,9 @@ const useSafeSafeAreaInsets = () => {
     return { top: 0, bottom: 0, left: 0, right: 0 };
   }
 };
+
+/** Baseline the built-in Dialog timings are authored against. */
+const DIALOG_BASE_DURATION = 300;
 
 export function Dialog({
   visible,
@@ -53,7 +59,10 @@ export function Dialog({
   style,
   showHeader = true,
   bottomSheetSwipeZone = 'container',
+  transitionDuration,
   titleProps,
+  autoFocus = false,
+  trapFocus = true,
 }: DialogProps) {
   const theme = useTheme();
   const { isRTL } = useDirection();
@@ -78,6 +87,42 @@ export function Dialog({
     onClose?.();
   }, [onClose]);
   
+  // Enter/exit transition length. `0` (and reduced motion) show and dismiss the
+  // dialog instantly; other explicit values scale the built-in timings, which
+  // are authored against a 300ms baseline.
+  const motionDuration = useTransitionDuration(transitionDuration, DIALOG_BASE_DURATION);
+  const instantMotion = motionDuration === 0;
+  const ms = useCallback(
+    (base: number) => Math.round(base * (motionDuration / DIALOG_BASE_DURATION)),
+    [motionDuration]
+  );
+
+  // Web-only focus containment: Tab cycles inside the dialog while it is open,
+  // and focus returns to whatever was focused before it opened.
+  const { containerRef: focusTrapRef } = useFocusTrap(visible && trapFocus);
+  // Scoped to the dialog body so `autoFocus` lands on the first field rather
+  // than the header's close button.
+  const contentRef = useRef<any>(null);
+
+  // Move focus into the dialog once its enter transition has settled — before
+  // that the element is still animating in, and on native the modal may not be
+  // presented yet.
+  useEffect(() => {
+    if (!visible || !autoFocus) return;
+
+    const timer = setTimeout(() => {
+      if (typeof autoFocus === 'object') {
+        autoFocus.current?.focus?.();
+        return;
+      }
+      const container = resolveDomNode(contentRef.current);
+      const first = container?.querySelectorAll(FOCUSABLE_SELECTOR)?.[0];
+      first?.focus?.();
+    }, motionDuration);
+
+    return () => clearTimeout(timer);
+  }, [visible, autoFocus, motionDuration]);
+
   // Reanimated shared values
   const backdropOpacity = useSharedValue(0);
   const slideAnim = useSharedValue(variant === 'bottomsheet' ? screenHeight : 0);
@@ -209,17 +254,26 @@ export function Dialog({
 
   const handleClose = () => {
     if (!closable) return;
-    
+
+    if (instantMotion) {
+      // No exit transition — land on the closed state and report it immediately.
+      backdropOpacity.value = 0;
+      if (variant === 'modal') scaleAnim.value = 0.85;
+      if (variant === 'bottomsheet') slideAnim.value = screenHeight;
+      invokeOnClose();
+      return;
+    }
+
     // Enhanced exit animations
     backdropOpacity.value = withTiming(0, {
-      duration: 250,
+      duration: ms(250),
       easing: Easing.in(Easing.quad),
     });
 
     if (variant === 'modal') {
       // Modal scale out with slight acceleration
       scaleAnim.value = withTiming(0.85, {
-        duration: 220,
+        duration: ms(220),
         easing: Easing.in(Easing.back(0.7)),
       }, (finished) => {
         'worklet';
@@ -241,7 +295,7 @@ export function Dialog({
       });
     } else {
       // For fullscreen, just call onClose after backdrop animation
-      setTimeout(invokeOnClose, 250);
+      setTimeout(invokeOnClose, ms(250));
     }
   };
 
@@ -269,9 +323,16 @@ export function Dialog({
   // Animate in
   useEffect(() => {
     if (visible) {
+      if (instantMotion) {
+        // No enter transition — present the dialog already in place.
+        backdropOpacity.value = 1;
+        scaleAnim.value = 1;
+        slideAnim.value = 0;
+        return;
+      }
       // Backdrop fade in with subtle easing
       backdropOpacity.value = withTiming(1, {
-        duration: 300,
+        duration: ms(300),
         easing: Easing.out(Easing.quad),
       });
 
@@ -301,7 +362,7 @@ export function Dialog({
         slideAnim.value = screenHeight;
       }
     }
-  }, [visible, variant, screenHeight, backdropOpacity, scaleAnim, slideAnim]);
+  }, [visible, variant, screenHeight, backdropOpacity, scaleAnim, slideAnim, instantMotion, ms]);
 
   // Handle shouldClose prop
   useEffect(() => {
@@ -311,10 +372,16 @@ export function Dialog({
   }, [shouldClose]);
 
   const isDark = theme.colorScheme === 'dark';
-  const surfaceColor = isDark ? theme.backgrounds.surface : '#FFFFFF';
-  const borderColor = isDark ? theme.colors.gray[6] : '#E1E3E6';
+  // Level 3 — takes over the screen. Previously this hard-coded `#FFFFFF` and
+  // `#E1E3E6` in light mode, so a themed app got an unthemed dialog.
+  const dialogSurface = resolveSurface(theme, 3);
+  const surfaceColor = dialogSurface.background;
+  const borderColor = dialogSurface.border;
   const headerBg = surfaceColor;
   const contentBg = surfaceColor;
+  // Mirrors the render condition below — the header only exists when there is a
+  // title to show and the dialog is closable.
+  const hasHeader = Boolean(title) && closable;
 
   const dynamicStyles = useMemo(() => StyleSheet.create({
     backdrop: {
@@ -388,7 +455,7 @@ export function Dialog({
       flexDirection: isRTL ? 'row-reverse' : 'row',
       justifyContent: 'space-between',
       padding: 20,
-      paddingBottom: title ? 0 : 20,
+      paddingBottom: 0,
     },
     content: {
       // Only fullscreen content should stretch
@@ -396,6 +463,9 @@ export function Dialog({
       alignSelf: 'stretch',
       backgroundColor: contentBg,
       padding: variant === 'fullscreen' ? 0 : 20,
+      // The header already sits 20 above the title and the close button adds a
+      // few px below it, so a second full 20 here reads as a gap.
+      ...(variant !== 'fullscreen' && hasHeader ? { paddingTop: 8 } : {}),
       width: '100%',
     },
     closeButton: {
@@ -406,17 +476,18 @@ export function Dialog({
       backgroundColor: isDark ? theme.colors.gray[5] : theme.colors.gray[4],
       borderRadius: 2,
       height: 4,
-      marginBottom: 16,
-      marginTop: 12,
       opacity: 0.8,
       width: 40,
     },
     dragHandleContainer: {
-      paddingVertical: 12,
+      // Spacing lives here only — the handle itself has no margins, and the
+      // content below supplies its own padding. hitSlop (not minHeight) gives
+      // the larger touch target so it costs no vertical space.
+      paddingTop: 12,
+      paddingBottom: 4,
       paddingHorizontal: 20,
       alignItems: 'center',
       justifyContent: 'center',
-      minHeight: 44, // Larger touch target
       // Web-specific drag prevention and cursor
       ...(Platform.OS === 'web' && {
         cursor: 'grab' as any,
@@ -428,7 +499,7 @@ export function Dialog({
     } as any,
   }), [variant, contentBg, resolvedRadius, resolvedMaxHeight, bottomSheetMaxWidth, defaultModalMaxWidth,
     modalEffectiveWidth, screenWidth, horizontalMargin, insets.top, insets.bottom,
-    headerBg, borderColor, isRTL, isDark, theme.colors.gray, title]);
+    headerBg, borderColor, isRTL, isDark, theme.colors.gray, hasHeader]);
 
   // Animated styles using reanimated
   const backdropAnimatedStyle = useAnimatedStyle(() => {
@@ -478,12 +549,14 @@ export function Dialog({
 
     return (
       <Animated.View
+        ref={focusTrapRef}
         style={[dynamicStyles.modalContainer, animatedStyle]}
         {...(variant === 'bottomsheet' && bottomSheetSwipeZone === 'container' && panHandlers ? panHandlers : {})}
       >
         {variant === 'bottomsheet' && (
           <View
             style={dynamicStyles.dragHandleContainer}
+            hitSlop={{ top: 8, bottom: 16, left: 0, right: 0 }}
             {...(bottomSheetSwipeZone === 'handle' && panHandlers ? panHandlers : {})}
           >
             <View style={dynamicStyles.dragHandle} />
@@ -491,10 +564,7 @@ export function Dialog({
         )}
 
      
-        {(
-          title !== null &&
-          title && closable
-        ) && (
+        {hasHeader && (
           <View style={dynamicStyles.header}>
             <Text variant="h3" color="text" {...titleProps}>
               {title || ''}
@@ -511,7 +581,7 @@ export function Dialog({
           </View>
         )}
         
-        <View style={[dynamicStyles.content,style]}>
+        <View ref={contentRef} style={[dynamicStyles.content,style]}>
           {children}
         </View>
       </Animated.View>
@@ -524,6 +594,9 @@ export function Dialog({
       transparent
       animationType="none"
       statusBarTranslucent={variant === 'fullscreen'}
+      // Android hardware back / gesture dismissal. Modal swallows the event
+      // unless it is handled here, so the BackHandler above is not enough.
+      onRequestClose={closable ? handleClose : undefined}
     >
       <Animated.View
         style={[

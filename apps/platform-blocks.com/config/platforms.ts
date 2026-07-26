@@ -2,10 +2,10 @@ import type { BrandName } from '@platform-blocks/ui';
 
 // Available brand icons (must match BrandName keys from the registry)
 export const AVAILABLE_BRANDS: BrandName[] = [
-  'google', 'googlePlay', 'facebook', 'discord', 'android', 'apple', 'app-store', 'chrome',
+  'google', 'google-play', 'facebook', 'discord', 'android', 'apple', 'app-store', 'chrome',
   'spotify', 'github', 'x', 'microsoft', 'linkedin', 'slack', 'youtube',
-  'youtubeMusic', 'openai', 'reddit', 'amazon', 'twitch', 'mastercard', 'visa', 'tiktok',
-  'paypal', 'appleMusic', 'whatsapp', 'telegram', 'signal', 'meta',
+  'youtube-music', 'openai', 'reddit', 'amazon', 'twitch', 'mastercard', 'visa', 'tiktok',
+  'paypal', 'apple-music', 'whatsapp', 'telegram', 'signal', 'meta',
   'discover', 'amex', 'zoom',
 ];
 
@@ -20,7 +20,9 @@ export const TAG_CONFIG = {
 
 export type TagType = keyof typeof TAG_CONFIG;
 
-// Platform information with navigation
+// Platform support matrix, rendered as cards on Getting Started. These used to
+// carry a `route` to a per-platform page; those pages are gone, so the entries
+// are display-only now.
 export const PLATFORMS = [
   {
     key: 'ios',
@@ -28,7 +30,6 @@ export const PLATFORMS = [
     brand: 'apple' as const,
     note: 'iOS 26+',
     description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
-    route: '/platforms/ios',
     tags: ['Supported'] as TagType[]
   },
   {
@@ -37,7 +38,6 @@ export const PLATFORMS = [
     brand: 'android' as const,
     note: 'API 36+',
     description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
-    route: '/platforms/android',
     tags: ['Supported'] as TagType[]
   },
   {
@@ -46,7 +46,6 @@ export const PLATFORMS = [
     brand: 'chrome' as const,
     note: 'Modern browsers',
     description: 'Progressive web apps with responsive design',
-    route: '/platforms/web',
     tags: ['Supported'] as TagType[]
   },
 ];

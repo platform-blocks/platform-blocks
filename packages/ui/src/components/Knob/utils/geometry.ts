@@ -11,6 +11,12 @@ export const polarToCartesian = (cx: number, cy: number, radius: number, angleDe
   };
 };
 
+/** Shortest distance between two angles in degrees, always in `[0, 180]`. */
+export const angularDistance = (a: number, b: number) => {
+  const diff = Math.abs((((a - b) % 360) + 360) % 360);
+  return diff > 180 ? 360 - diff : diff;
+};
+
 export const getPositionRadius = (
   ringRadius: number,
   ringThickness: number,

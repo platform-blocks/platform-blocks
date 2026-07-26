@@ -4,12 +4,12 @@ import { DESIGN_TOKENS } from '../../core';
 import { useTheme } from '../../core/theme';
 import type { FormLayoutProps } from './types';
 
-export const FormLayout: React.FC<FormLayoutProps> = ({
+export const FormLayout = React.forwardRef<View, FormLayoutProps>(({
   children,
   maxWidth = 600,
   spacing = 'lg',
   variant = 'default',
-}) => {
+}, ref) => {
   const theme = useTheme();
 
   const getSpacing = () => {
@@ -53,6 +53,7 @@ export const FormLayout: React.FC<FormLayoutProps> = ({
 
   return (
     <View
+      ref={ref}
       style={{
         maxWidth,
         width: '100%',
@@ -64,4 +65,6 @@ export const FormLayout: React.FC<FormLayoutProps> = ({
       {children}
     </View>
   );
-};
+});
+
+FormLayout.displayName = 'FormLayout';

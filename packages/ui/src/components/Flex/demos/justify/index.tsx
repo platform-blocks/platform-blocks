@@ -1,8 +1,10 @@
-import { Flex, Card, Text, Column } from '@platform-blocks/ui';
+import { Block, Card, Flex, Text, useTheme } from '@platform-blocks/ui';
 
 export default function JustifyFlexDemo() {
+  const theme = useTheme();
+
   return (
-    <Column gap={16} align="stretch">
+    <Block align="stretch">
       {[
         { label: 'Start', value: 'flex-start' },
         { label: 'Center', value: 'center' },
@@ -10,10 +12,10 @@ export default function JustifyFlexDemo() {
         { label: 'Between', value: 'space-between' },
         { label: 'Around', value: 'space-around' },
         { label: 'Evenly', value: 'space-evenly' }
-      ].map(({ label, value }) => (
-        <Column key={value} gap={4} align="stretch">
+      ].map(({ value }) => (
+        <Block key={value} align="stretch">
           <Text variant="span" size="sm" colorVariant="muted">justify="{value}"</Text>
-          <Card variant="outline" padding={0} style={{ alignSelf: 'stretch', width: '100%' }}>
+          <Card variant="ghost" padding={0} style={{ alignSelf: 'stretch', width: '100%' }}>
             <Flex
               direction="row"
               justify={value as any}
@@ -22,10 +24,11 @@ export default function JustifyFlexDemo() {
                 // Give the row a large track to clearly expose free space
                 width: 600,
                 maxWidth: '100%',
-                backgroundColor: '#f6f7f9',
                 borderWidth: 1,
-                borderStyle: 'dashed',
-                borderColor: '#e1e5ee',
+                borderStyle: 'dashed' as const,
+                // Without an explicit color the dashed track falls back to black
+                // in both themes.
+                borderColor: theme.backgrounds.border,
                 borderRadius: 4
               }}
             >
@@ -40,12 +43,9 @@ export default function JustifyFlexDemo() {
                 <Text variant="small">C</Text>
               </Card>
             </Flex>
-            <Text variant="small" colorVariant="muted" style={{ marginTop: 6 }}>
-              Notice where the extra space sits (left, right, between, around, evenly).
-            </Text>
           </Card>
-        </Column>
+        </Block>
       ))}
-    </Column>
+    </Block>
   );
 }

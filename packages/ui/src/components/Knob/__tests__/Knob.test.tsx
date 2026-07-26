@@ -9,6 +9,7 @@ import type {
   KnobProps,
   KnobFillPartProps,
   KnobRingPartProps,
+  KnobRingSegmentPartProps,
   KnobProgressPartProps,
   KnobTickLayerPartProps,
   KnobPointerPartProps,
@@ -19,11 +20,25 @@ import type {
 import type { KnobPartEntry } from '../Knob';
 
 describe('Knob - Prop Contracts', () => {
-  it('accepts the variant prop', () => {
+  it('accepts the behavior prop', () => {
     const props: KnobProps = {
-      variant: 'stepped',
+      behavior: 'stepped',
       marks: [{ value: 0 }],
     };
+    expect(<Knob {...props} />).toBeDefined();
+  });
+
+  it('accepts the visual variant prop', () => {
+    const props: KnobProps = {
+      variant: 'retro',
+    };
+    expect(<Knob {...props} />).toBeDefined();
+  });
+
+  it('still accepts a behavior value on the deprecated variant alias', () => {
+    // Deliberately not typed as `KnobProps`: `variant` now only types the visual presets,
+    // so this is the JS-consumer path the runtime shim exists for.
+    const props = { variant: 'stepped', marks: [{ value: 0 }] } as unknown as KnobProps;
     expect(<Knob {...props} />).toBeDefined();
   });
 
@@ -201,5 +216,34 @@ describe('Knob compound parts', () => {
     expect(ticks[1]).toMatchObject({ values: [25] });
     expect(ticks[2]).toMatchObject({ values: [75] });
     expect(valueLabel).toBe(false);
+  });
+
+  it('collects ring segments in child order, like Progress.Section', () => {
+    const appearance = buildAppearanceFromParts(undefined, [
+      createPart('ringSegment', { value: 35, color: '#22c55e' } as KnobRingSegmentPartProps, 0),
+      createPart('ringSegment', { value: 25, color: '#f59e0b' } as KnobRingSegmentPartProps, 1),
+      createPart('ringSegment', { value: 40, color: '#ef4444' } as KnobRingSegmentPartProps, 2),
+    ]);
+
+    expect(appearance?.ring?.segments).toEqual([
+      { value: 35, color: '#22c55e' },
+      { value: 25, color: '#f59e0b' },
+      { value: 40, color: '#ef4444' },
+    ]);
+  });
+
+  it('skips segments marked invisible and keeps sibling ring props', () => {
+    const appearance = buildAppearanceFromParts({ ring: { thickness: 20 } }, [
+      createPart('ringSegment', { value: 50, color: '#22c55e' } as KnobRingSegmentPartProps, 0),
+      createPart(
+        'ringSegment',
+        { value: 50, color: '#ef4444', visible: false } as KnobRingSegmentPartProps,
+        1
+      ),
+      createPart('ring', { color: '#1e293b' } as KnobRingPartProps, 2),
+    ]);
+
+    expect(appearance?.ring).toMatchObject({ thickness: 20, color: '#1e293b' });
+    expect(appearance?.ring?.segments).toEqual([{ value: 50, color: '#22c55e' }]);
   });
 });

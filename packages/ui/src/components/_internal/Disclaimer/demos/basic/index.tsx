@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  Input,
+import {
+  Block,
   Button,
-  Switch,
-  Select,
-  Column,
   Card,
+  Input,
+  Select,
+  Switch,
   Text,
-  ToggleGroup,
   ToggleButton,
+  ToggleGroup,
 } from '@platform-blocks/ui';
 import { 
   Disclaimer,
@@ -21,16 +21,16 @@ import {
 
 // Example 1: Standalone Disclaimer component
 const StandaloneDisclaimerExample = () => (
-  <Column gap="md">
+  <Block>
     <Text variant="h6">Standalone Disclaimer</Text>
     <Input label="Project name" placeholder="Enter project name" />
     <Disclaimer>This field is required for project creation</Disclaimer>
-  </Column>
+  </Block>
 );
 
 // Example 2: Using ComponentWithDisclaimer wrapper
 const WrapperDisclaimerExample = () => (
-  <Column gap="md">
+  <Block>
     <Text variant="h6">With Disclaimer Wrapper</Text>
     <ComponentWithDisclaimer 
       disclaimer="Selected view determines the layout style"
@@ -42,7 +42,7 @@ const WrapperDisclaimerExample = () => (
         <ToggleButton value="block">Block View</ToggleButton>
       </ToggleGroup>
     </ComponentWithDisclaimer>
-  </Column>
+  </Block>
 );
 
 // Example 3: Using withDisclaimer utility function
@@ -62,10 +62,10 @@ const UtilityDisclaimerExample = () => {
   );
 
   return (
-    <Column gap="md">
+    <Block>
       <Text variant="h6">With Utility Function</Text>
       {inputWithDisclaimer}
-    </Column>
+    </Block>
   );
 };
 
@@ -79,7 +79,7 @@ const HookDisclaimerExample = () => {
   );
 
   return (
-    <Column gap="md">
+    <Block>
       <Text variant="h6">With useDisclaimer Hook</Text>
       <Switch 
         label="Enable notifications"
@@ -87,14 +87,14 @@ const HookDisclaimerExample = () => {
         onChange={setEnabled}
       />
       {renderDisclaimer()}
-    </Column>
+    </Block>
   );
 };
 
 // Main demo component
 export default function DisclaimerDemo() {
   return (
-    <Column gap="xl" p="lg">
+    <Block p="lg">
       <Text variant="h4">Disclaimer Component Demo</Text>
       <Text colorVariant="muted">
         The Disclaimer component provides a consistent way to add contextual help text below any component.
@@ -115,6 +115,6 @@ export default function DisclaimerDemo() {
       <Card p="lg" variant="outline">
         <HookDisclaimerExample />
       </Card>
-    </Column>
+    </Block>
   );
 }

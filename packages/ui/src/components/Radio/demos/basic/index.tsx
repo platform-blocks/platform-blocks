@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Column, Radio, RadioGroup, Text } from '@platform-blocks/ui';
+import { Block, Radio, RadioGroup, Text } from '@platform-blocks/ui';
 
 const TEAMS = ['Falcons', 'Tigers', 'Sharks'] as const;
 
@@ -8,12 +8,12 @@ export default function Demo() {
   const [ticketType, setTicketType] = useState<string>('reserved');
 
   return (
-    <Column gap="lg">
-      <Column gap="sm">
+    <Block>
+      <Block>
         <Text variant="small" colorVariant="muted">
           Standalone radios
         </Text>
-        <Column gap="xs">
+        <Block>
           {TEAMS.map((team) => (
             <Radio
               key={team}
@@ -23,10 +23,10 @@ export default function Demo() {
               label={team}
             />
           ))}
-        </Column>
-      </Column>
+        </Block>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text variant="small" colorVariant="muted">
           Grouped selection
         </Text>
@@ -39,8 +39,8 @@ export default function Demo() {
             { label: 'VIP hospitality', value: 'vip' }
           ]}
         />
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }
 

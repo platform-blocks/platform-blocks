@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { Button, CodeBlock, Column, Text } from '@platform-blocks/ui';
+import { Block, Button, CodeBlock, Text } from '@platform-blocks/ui';
 
 const sampleCode = `const greeting = "Hello, World!";
 console.log(greeting);
@@ -38,7 +38,7 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <Text weight="semibold">Interactive copy</Text>
       <Text size="sm" colorVariant="secondary">
         Attach an onCopy handler to trigger custom feedback and reuse it outside the CodeBlock controls.
@@ -52,6 +52,6 @@ export default function Demo() {
         {sampleCode}
       </CodeBlock>
       <Button title="Copy code manually" variant="outline" onPress={() => handleCopy(sampleCode)} />
-    </Column>
+    </Block>
   );
 }

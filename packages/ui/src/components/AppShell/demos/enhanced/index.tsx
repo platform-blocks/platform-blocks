@@ -1,7 +1,7 @@
-import { Text, AppShell, Column } from '@platform-blocks/ui';
+import { AppShell, Block, Text } from '@platform-blocks/ui';
 
 const sampleTOC = (
-  <Column gap="sm">
+  <Block>
     <Text variant="h6" mb="sm">Contents</Text>
     <Text size="sm" style={{ paddingLeft: 0 }}>Introduction</Text>
     <Text size="sm" style={{ paddingLeft: 12 }}>Getting Started</Text>
@@ -13,7 +13,7 @@ const sampleTOC = (
     <Text size="sm" style={{ paddingLeft: 12 }}>AppShell</Text>
     <Text size="sm" style={{ paddingLeft: 12 }}>Layout System</Text>
     <Text size="sm" style={{ paddingLeft: 0 }}>Examples</Text>
-  </Column>
+  </Block>
 );
 
 export default function AppShellDemo() {
@@ -32,13 +32,13 @@ export default function AppShellDemo() {
         </Text>
       )}
       navbarContent={() => (
-        <Column gap="md" p="md">
+        <Block p="md">
           <Text variant="h6">Navigation</Text>
           <Text size="sm">Getting Started</Text>
           <Text size="sm">Components</Text>
           <Text size="sm">Examples</Text>
           <Text size="sm">API Reference</Text>
-        </Column>
+        </Block>
       )}
       maxContentWidth={960}
       tableOfContents={sampleTOC}
@@ -46,7 +46,7 @@ export default function AppShellDemo() {
       hideTableOfContentsOnMobile
       centerContent
     >
-      <Column gap="lg" p="lg">
+      <Block p="lg">
         <Text variant="h1">Main Content with TOC</Text>
         <Text>
           This demonstrates the enhanced AppShell with max width constraints 
@@ -71,7 +71,7 @@ export default function AppShellDemo() {
         <Text>
           • Seamless integration with existing AppShell layout system
         </Text>
-      </Column>
+      </Block>
     </AppShell>
   );
 }

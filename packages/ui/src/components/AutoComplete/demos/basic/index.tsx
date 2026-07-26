@@ -1,21 +1,7 @@
 import { useMemo, useState } from 'react';
-import { AutoComplete } from '@platform-blocks/ui';
+import { AutoComplete, Block } from '@platform-blocks/ui';
 import type { AutoCompleteOption } from '../../types';
-
-const sports: AutoCompleteOption[] = [
-  { label: 'Football', value: 'football' },
-  { label: 'Basketball', value: 'basketball' },
-  { label: 'Soccer', value: 'soccer' },
-  { label: 'Baseball', value: 'baseball' },
-  { label: 'Tennis', value: 'tennis' },
-  { label: 'Golf', value: 'golf' },
-  { label: 'Swimming', value: 'swimming' },
-  { label: 'Volleyball', value: 'volleyball' },
-  { label: 'Cricket', value: 'cricket' },
-  { label: 'Rugby', value: 'rugby' },
-  { label: 'Softball', value: 'softball' },
-  { label: 'Hockey', value: 'hockey' },
-];
+import { sports } from '../data';
 
 export default function Demo() {
   const [inputValue, setInputValue] = useState('');
@@ -24,22 +10,23 @@ export default function Demo() {
   const displayValue = useMemo(() => selectedSport?.label ?? inputValue, [selectedSport, inputValue]);
 
   return (
-    <AutoComplete
-      label="Choose a sport"
-      placeholder="Search for a sport..."
-      data={sports}
-      value={displayValue}
-      onChangeText={(value) => {
-        setInputValue(value);
-        if (!value) setSelectedSport(null);
-      }}
-      onSelect={(item) => {
-        setSelectedSport(item);
-        setInputValue(item.label);
-      }}
-      displayProperty="label"
-      minSearchLength={1}
-      fullWidth
-    />
+    <Block w={400}>
+      <AutoComplete
+        label="Choose a sport"
+        placeholder="Search for a sport..."
+        data={sports}
+        value={displayValue}
+        onChangeText={(value) => {
+          setInputValue(value);
+          if (!value) setSelectedSport(null);
+        }}
+        onSelect={(item) => {
+          setSelectedSport(item);
+          setInputValue(item.label);
+        }}
+        displayProperty="label"
+        minSearchLength={1}
+      />
+    </Block>
   );
 }

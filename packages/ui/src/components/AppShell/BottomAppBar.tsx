@@ -3,16 +3,19 @@ import { View, Platform, Pressable } from 'react-native';
 import { Text } from '../Text';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveSurface } from '../../core/theme/surfaces';
 import type { AppShellBottomNavProps, BottomAppBarItem } from './types';
 import { Search } from '../Search';
 
 const getVariantStyles = (variant: AppShellBottomNavProps['variant'], theme: any, elevation: number | undefined) => {
   switch (variant) {
     case 'surface':
-      return { backgroundColor: theme.backgrounds.surface };
+      // App chrome resting on the page — level 1.
+      return { backgroundColor: resolveSurface(theme, 1).background };
     case 'elevated':
+      // Lifted above content, so it takes the floating step.
       return {
-        backgroundColor: theme.backgrounds.surface,
+        backgroundColor: resolveSurface(theme, 2).background,
         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.15)',
         elevation: elevation ?? 4,
       };
@@ -29,7 +32,8 @@ const getVariantStyles = (variant: AppShellBottomNavProps['variant'], theme: any
       });
     case 'solid':
     default:
-      return { backgroundColor: theme.backgrounds.base };
+      // Continuous with the page — level 0.
+      return { backgroundColor: resolveSurface(theme, 0).background };
   }
 };
 
@@ -103,7 +107,7 @@ const NavItem: React.FC<{
   );
 };
 
-export const BottomAppBar: React.FC<AppShellBottomNavProps> = ({
+export const BottomAppBar = React.forwardRef<View, AppShellBottomNavProps>(({
   children,
   items,
   activeKey,
@@ -115,7 +119,7 @@ export const BottomAppBar: React.FC<AppShellBottomNavProps> = ({
   withBorder = true,
   zIndex,
   style
-}) => {
+}, ref) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const safeItems = React.useMemo(() => items || [], [items]);
@@ -126,6 +130,7 @@ export const BottomAppBar: React.FC<AppShellBottomNavProps> = ({
 
   return (
     <SafeAreaView
+      ref={ref}
       edges={['bottom']}
       style={[
         {
@@ -174,4 +179,6 @@ export const BottomAppBar: React.FC<AppShellBottomNavProps> = ({
 
     </SafeAreaView>
   );
-};
+});
+
+BottomAppBar.displayName = 'BottomAppBar';

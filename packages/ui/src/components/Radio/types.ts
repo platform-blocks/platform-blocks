@@ -70,6 +70,14 @@ export interface RadioProps extends BaseComponentProps {
 
   /** Override props applied to the description `<Text>` */
   descriptionProps?: Omit<TextProps, 'children'>;
+
+  /**
+   * Length of the select/deselect animation in ms; the center dot grows in and
+   * shrinks out against it. `0` applies the state instantly. Always 0 under
+   * reduced motion.
+   * @default 160
+   */
+  transitionDuration?: number;
 }
 
 export interface RadioGroupProps extends BaseComponentProps {
@@ -123,6 +131,14 @@ export interface RadioGroupProps extends BaseComponentProps {
 
   /** Label position relative to each radio */
   labelPosition?: 'left' | 'right';
+
+  /**
+   * Length of each radio's select/deselect animation in ms. `0` applies the
+   * state instantly. Only the `default` variant animates. Always 0 under
+   * reduced motion.
+   * @default 160
+   */
+  transitionDuration?: number;
 }
 
 export interface RadioStyleProps {

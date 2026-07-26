@@ -1,4 +1,4 @@
-import { Block, Column, Row, Skeleton, useTheme } from '@platform-blocks/ui';
+import { Block, Row, Skeleton, useTheme } from '@platform-blocks/ui';
 
 export default function Demo() {
   const theme = useTheme();
@@ -11,25 +11,25 @@ export default function Demo() {
       borderColor={theme.backgrounds.border}
       bg={theme.backgrounds.surface}
     >
-      <Column gap="lg">
+      <Block>
         <Row gap="md" align="center">
           <Skeleton shape="avatar" size="lg" />
-          <Column gap="xs" grow={1}>
+          <Block grow={1}>
             <Skeleton shape="text" w="32%" />
             <Skeleton shape="text" w="48%" />
-          </Column>
+          </Block>
         </Row>
         <Skeleton shape="rectangle" h={120} />
-        <Column gap="xs">
+        <Block>
           <Skeleton shape="text" w="100%" />
           <Skeleton shape="text" w="78%" />
-        </Column>
+        </Block>
         <Row gap="sm" wrap="wrap">
           <Skeleton shape="chip" />
           <Skeleton shape="chip" />
           <Skeleton shape="chip" />
         </Row>
-      </Column>
+      </Block>
     </Block>
   );
 }

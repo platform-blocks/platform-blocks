@@ -4,6 +4,7 @@ import React, { useMemo, useCallback } from 'react';
 import { ScrollView, View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PageLayout } from '../../components/PageLayout';
+import { RouteLink } from '../../components/RouteLink';
 import { Text, Flex, Card, Tabs, Icon, Button, Chip } from '@platform-blocks/ui';
 import type { TabItem } from '@platform-blocks/ui';
 import { CHART_CATEGORIES, CHART_CATEGORY_ORDER, getAllChartDocs, getChartsByCategory, type ChartDocEntry, type ChartCategoryKey } from '../../config/charts';
@@ -73,15 +74,21 @@ const styles = StyleSheet.create({
 const ChartCard = ({ chart, demoCount, demosReady, onExplore }: ChartCardProps) => (
   <Card p={20} style={styles.card}>
     <Flex direction="column" gap={16} style={{ flex: 1 }}>
-      <Flex direction="row" align="center" gap={12}>
-        <View style={styles.iconBadge}>
-          <Icon name={chart.icon as any} size={28} />
-        </View>
-        <Flex direction="column" gap={4} style={{ flex: 1 }}>
-          <Text size="md" weight="semibold">{chart.title}</Text>
-          <Text size="sm" color="muted">{chart.summary}</Text>
+      {/* The anchor wraps the heading block rather than the whole card: `Button`
+          renders a real <button> on web, and a button nested inside a link is
+          invalid HTML that browsers repair by splitting the anchor. Keeping the
+          link over inert content leaves one valid, crawlable href per card. */}
+      <RouteLink href={`/charts/${chart.slug}`} accessibilityLabel={chart.title}>
+        <Flex direction="row" align="center" gap={12}>
+          <View style={styles.iconBadge}>
+            <Icon name={chart.icon as any} size={28} />
+          </View>
+          <Flex direction="column" gap={4} style={{ flex: 1 }}>
+            <Text size="md" weight="semibold">{chart.title}</Text>
+            <Text size="sm" color="muted">{chart.summary}</Text>
+          </Flex>
         </Flex>
-      </Flex>
+      </RouteLink>
       {chart.tags.length > 0 && (
         <View style={styles.tagsRow}>
           {chart.tags.slice(0, 4).map((tag: string) => (

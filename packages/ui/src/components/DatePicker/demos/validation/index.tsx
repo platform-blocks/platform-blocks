@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Column, DatePicker, Text } from '@platform-blocks/ui';
+import { Block, DatePicker, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [value, setValue] = useState<Date | null>(null);
@@ -18,7 +18,7 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <DatePicker
         value={value}
         onChange={handleChange}
@@ -27,6 +27,6 @@ export default function Demo() {
       <Text size="sm" colorVariant={inlineError ? 'error' : 'secondary'}>
         {inlineError || 'Only dates today or later are enabled'}
       </Text>
-    </Column>
+    </Block>
   );
 }

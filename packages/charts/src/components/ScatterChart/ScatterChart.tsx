@@ -3,7 +3,7 @@ import { View, Text } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, Easing } from 'react-native-reanimated';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ScatterChartProps, ChartInteractionEvent, ChartDataPoint } from '../../types';
-import { ChartContainer, ChartTitle, ChartLegend } from '../../ChartBase';
+import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
 import { useOptionalChartInteraction, useChartInteractionVolatile } from '../../interaction/ChartInteractionContext';
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { touchDistance } from '../../interaction/useOptionalPinch';
@@ -51,23 +51,23 @@ const AnimatedScatterPoint: React.FC<{
   pointSize: number;
   pointOpacity: number;
   isSelected: boolean;
-  isDragged: boolean;
   index: number;
   disabled: boolean;
   theme: ReturnType<typeof useChartTheme>;
   colorScheme: string[];
   fallbackColor?: string;
-}> = React.memo(({ 
-  point, 
-  pointSize, 
-  pointOpacity, 
-  isSelected, 
-  isDragged, 
-  index, 
-  disabled, 
-  theme, 
+  duration?: number;
+}> = React.memo(({
+  point,
+  pointSize,
+  pointOpacity,
+  isSelected,
+  index,
+  disabled,
+  theme,
   colorScheme,
   fallbackColor,
+  duration = 400,
 }) => {
   const scale = useSharedValue(disabled ? 1 : 0);
   const opacity = useSharedValue(disabled ? 1 : 0);
@@ -82,17 +82,17 @@ const AnimatedScatterPoint: React.FC<{
     // Staggered appearance animation
     const delay = index * 50;
     scale.value = withDelay(delay, withTiming(1, {
-      duration: 400,
+      duration,
       easing: Easing.out(Easing.back(1.2)),
     }));
     opacity.value = withDelay(delay, withTiming(1, {
-      duration: 300,
+      duration: Math.min(300, duration),
       easing: Easing.out(Easing.cubic),
     }));
-  }, [disabled, index, scale, opacity]);
+  }, [disabled, index, duration, scale, opacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value * ((isSelected || isDragged) ? 1.5 : 1) }],
+    transform: [{ scale: scale.value * (isSelected ? 1.5 : 1) }],
     opacity: opacity.value * pointOpacity,
   }));
 
@@ -136,7 +136,7 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
     pointColor,
     pointOpacity = 1,
     allowAddPoints = false,
-    allowDragPoints = false,
+    animation,
     showTrendline = false,
     trendlineColor,
     title,
@@ -155,6 +155,7 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
   } = props;
 
   const theme = useChartTheme();
+  const pointDuration = animation?.duration ?? 400;
   const interaction = useOptionalChartInteraction();
   // Volatile subscription: ScatterChart draws crosshair guides from the active target +
   // pointer, so it re-renders each frame during hover.
@@ -188,7 +189,6 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
   // (Removed per-point animated values to avoid hook-in-loop invalid usage)
 
   const [selectedPoint, setSelectedPoint] = useState<ChartDataPoint | null>(null);
-  const [draggedPoint, setDraggedPoint] = useState<ChartDataPoint | null>(null);
 
   // Calculate data bounds with some padding
   const computedXDomain = React.useMemo(() => getDataDomain(normalizedSeries.flatMap(s => s.data), d => d.x), [normalizedSeries]);
@@ -216,19 +216,24 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
   const paddedXDomain: [number, number] = [xDomain[0] - xPadding, xDomain[1] + xPadding];
   const paddedYDomain: [number, number] = [yDomain[0] - yPadding, yDomain[1] + yPadding];
 
-  // Chart dimensions - adjust padding based on legend position to prevent overlap
+  // Chart dimensions — grown so the plot clears the title and legend overlays.
   const basePadding = { top: 40, right: 20, bottom: 60, left: yAxis?.title ? 104 : 80 };
-  const padding = React.useMemo(() => {
-    if (!legend?.show) return basePadding;
-    const position = legend.position || 'bottom';
-    return {
-      ...basePadding,
-      top: position === 'top' ? basePadding.top + 40 : basePadding.top,
-      bottom: position === 'bottom' ? basePadding.bottom + 40 : basePadding.bottom,
-      left: position === 'left' ? basePadding.left + 120 : basePadding.left,
-      right: position === 'right' ? basePadding.right + 120 : basePadding.right,
-    };
-  }, [legend?.show, legend?.position]);
+  const legendLabels = React.useMemo(
+    () => normalizedSeries.map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
+    [normalizedSeries]
+  );
+  const padding = React.useMemo(
+    () =>
+      withChartBandPadding(basePadding, {
+        title,
+        subtitle,
+        legendItems: legend?.show ? legendLabels : undefined,
+        legendPosition: legend?.position,
+        legendFontSize: legend?.fontSize,
+        containerWidth: width,
+      }),
+    [basePadding.left, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels, width]
+  );
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
 
@@ -920,8 +925,7 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
           {/* Data points */}
           {chartSeries.map(s => s.visible !== false ? s.chartPoints.map((point, index) => {
             const isSelected = selectedPoint?.id === point.id;
-            const isDragged = draggedPoint?.id === point.id;
-            const seriesPointSize = typeof s.pointSize === 'number' && Number.isFinite(s.pointSize) ? s.pointSize : pointSize;
+            const seriesPointSize =typeof s.pointSize === 'number' && Number.isFinite(s.pointSize) ? s.pointSize : pointSize;
             const rawPointSize = typeof point.size === 'number' && Number.isFinite(point.size) ? point.size : seriesPointSize;
             const resolvedPointSize = Math.max(2, rawPointSize);
 
@@ -932,12 +936,12 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
                 pointSize={resolvedPointSize}
                 pointOpacity={pointOpacity}
                 isSelected={isSelected}
-                isDragged={isDragged}
                 index={index}
                 disabled={disabled}
                 theme={theme}
                 colorScheme={theme.colors.accentPalette}
                 fallbackColor={s.pointColor || pointColor}
+                duration={pointDuration}
               />
             );
           }) : null)}
@@ -1020,7 +1024,7 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
       )}
 
       {/* Instructions for interactive features */}
-      {(allowAddPoints || allowDragPoints) && (
+      {allowAddPoints && (
         <View
           style={{
             position: 'absolute',
@@ -1038,9 +1042,7 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
               textAlign: 'center',
             }}
           >
-            {allowAddPoints && 'Tap to add points'}
-            {allowAddPoints && allowDragPoints && ' • '}
-            {allowDragPoints && 'Drag to move points'}
+            Tap to add points
           </Text>
         </View>
       )}

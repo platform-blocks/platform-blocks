@@ -4,14 +4,12 @@ import { HeaderThemeToggle } from './ToggleTheme';
 import { ToggleDirection } from './ToggleDirection';
 import { NavIconButton } from './NavIconButton';
 import { useBreadcrumbs } from '../../hooks/useBreadcrumbs';
-import { useRouter } from 'expo-router';
-import { Pressable } from 'react-native';
+import { RouteLink } from '../RouteLink';
 
 export const AppHeader: React.FC = () => {
   const { headerHeight, isMobile } = useAppShell();
   const breadcrumbs = useBreadcrumbs();
   const [navSidebarOpen, setNavSidebarOpen] = useState(false);
-  const router = useRouter();
 
   // CMD+K shortcut component
   const shortcutComponent = (
@@ -32,8 +30,11 @@ export const AppHeader: React.FC = () => {
               accessibilityLabel="Toggle navigation menu"
             />
           )}
-          <Pressable onPress={() => router.push('/')}>
-            <Flex direction="row" align="center" gap="sm" style={{ cursor: 'pointer' }}>
+          {/* The wordmark is the site-wide link home, so it has to be a real anchor:
+              the header is prerendered on every route, making this the one link to
+              the homepage a crawler sees from a deep page. */}
+          <RouteLink href="/" accessibilityLabel="Platform Blocks home">
+            <Flex direction="row" align="center" gap="sm">
               <Image
                 source={require('../../assets/favicon.png')}
                 src="app-shell-logo"
@@ -45,7 +46,7 @@ export const AppHeader: React.FC = () => {
                 Platform Blocks
               </Text>
             </Flex>
-          </Pressable>
+          </RouteLink>
          <Breadcrumbs
             items={breadcrumbs}
             size="xs"

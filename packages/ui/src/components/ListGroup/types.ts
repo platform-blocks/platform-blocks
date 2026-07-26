@@ -20,7 +20,23 @@ export interface ListGroupProps {
 }
 
 export interface ListGroupItemProps {
-  children: React.ReactNode;
+  /**
+   * Single-line row content. Rendered inside the item's own `<Text>`, so it
+   * takes strings and inline text — not a layout block. For a two-line row use
+   * `label` + `description` instead.
+   */
+  children?: React.ReactNode;
+
+  /**
+   * Primary line of a two-line row. Takes precedence over `children`, which is
+   * ignored when this is set.
+   */
+  label?: React.ReactNode;
+  /** Muted secondary line beneath `label`. */
+  description?: React.ReactNode;
+  /** Muted trailing text, rendered before `endSection`. */
+  value?: React.ReactNode;
+
   onPress?: () => void;
   disabled?: boolean;
   active?: boolean;
@@ -28,7 +44,12 @@ export interface ListGroupItemProps {
   startSection?: React.ReactNode;
   endSection?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Applied to the single-line `children` text and to `label`. */
   textStyle?: StyleProp<TextStyle>;
+  /** Applied to the `description` text. */
+  descriptionStyle?: StyleProp<TextStyle>;
+  /** Truncate `label`/`description` to this many lines instead of wrapping. */
+  numberOfLines?: number;
 }
 
 export interface ListGroupContextValue {

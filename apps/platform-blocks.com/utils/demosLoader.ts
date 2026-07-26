@@ -22,6 +22,12 @@ export interface ComponentMeta {
   tags?: string[];
   playground?: PlaygroundMeta;
   resources?: Array<{ label?: string; href: string }>;
+  /** Repo-relative source directory, e.g. `packages/ui/src/components/Button` */
+  sourcePath?: string;
+  /** Repo-relative path of the page's authored markdown */
+  docsPath?: string;
+  /** npm package the component ships in */
+  packageName?: string;
   [key: string]: any;
 }
 
@@ -44,6 +50,14 @@ try { ({ DEMO_MODULES, DEMO_STATIC } = require('../data/generated/demo-manifest'
 // Cache of loaded code maps per component
 const codeCache: Record<string, Record<string, any>> = {};
 
+/** One source file of a demo, as emitted by scripts/generate-demos.ts. */
+export interface DemoFile {
+  name: string;
+  code: string;
+  /** Source of this file on GitHub — the CodeBlock edit button follows the active tab. */
+  githubUrl?: string;
+}
+
 export interface NewDemo {
   id: string;              // short id e.g. "basic"
   fullId: string;          // full id e.g. "Accordion.basic"
@@ -59,15 +73,17 @@ export interface NewDemo {
   hidden?: boolean;
   highlightLines?: string[];
   code?: string;
+  /** Every source file of a multi-file demo (index.tsx first). Absent for single-file demos. */
+  files?: DemoFile[];
   importPath?: string;
-  renderStyle?: 'auto' | 'center' | 'code_flex';
+  /** Source of the demo's `index.tsx` on GitHub. Fallback for single-file demos. */
+  githubUrl?: string;
+  renderStyle?: 'auto' | 'center';
   codeCopy?: boolean;
   codeLineNumbers?: boolean;
   codeSpoiler?: boolean;
   codeSpoilerMaxHeight?: number;
-  showCodeToggle?: boolean; // controls visibility of show/hide code switch
   previewCenter?: boolean; // center preview area even if layout not 'center'
-  codeFirst?: boolean; // reverse order: code before preview
 }
 
 export function hasNewDemosArtifacts(): boolean {
@@ -94,9 +110,21 @@ export function getComponentMarkdown(name: string): string | null {
   return componentMarkdown[name] || null;
 }
 
+/**
+ * Internal/dev demos (migration scratchpads, sizing tests, debug harnesses) must
+ * never surface in the public docs even if their frontmatter forgets `hidden`.
+ * Matches slugs like `unified-styling-migration`, `clearable-size-test`, `debug`
+ * while leaving legitimate names such as `testimonial` untouched.
+ */
+const INTERNAL_DEMO_SLUG = /(^|[-_])(test|migration|debug|scratch|wip|sandbox|internal)([-_]|$)/i;
+
+function isPublicDemo(d: any): boolean {
+  return !d.hidden && !INTERNAL_DEMO_SLUG.test(String(d.demo || d.id || ''));
+}
+
 export function getNewDemos(component: string): NewDemo[] {
   if (!demosIndex) return [];
-  const list = (demosIndex.demos || []).filter((d: any) => d.component === component && !d.hidden);
+  const list = (demosIndex.demos || []).filter((d: any) => d.component === component && isPublicDemo(d));
   return list.map((d: any) => ({
     id: d.demo,
     fullId: d.id,
@@ -117,112 +145,29 @@ export function getNewDemos(component: string): NewDemo[] {
     codeLineNumbers: d.codeLineNumbers,
     codeSpoiler: d.codeSpoiler,
     codeSpoilerMaxHeight: d.codeSpoilerMaxHeight,
-    showCodeToggle: d.showCodeToggle,
     previewCenter: d.previewCenter,
-    codeFirst: d.codeFirst,
     // code & importPath lazy injected later
   }));
 }
 
-// Static imports for demo code JSON files to avoid bundling issues
-const DEMO_CODE_MAPS: Record<string, any> = {};
-
-// Import all available demo code JSON files statically
-try { DEMO_CODE_MAPS.Rating = require('../data/generated/demo-code-Rating.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Button = require('../data/generated/demo-code-Button.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Input = require('../data/generated/demo-code-Input.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Card = require('../data/generated/demo-code-Card.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Text = require('../data/generated/demo-code-Text.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Flex = require('../data/generated/demo-code-Flex.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Grid = require('../data/generated/demo-code-Grid.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Badge = require('../data/generated/demo-code-Badge.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Avatar = require('../data/generated/demo-code-Avatar.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Notice = require('../data/generated/demo-code-Notice.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Accordion = require('../data/generated/demo-code-Accordion.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.AutoComplete = require('../data/generated/demo-code-AutoComplete.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.BrandButton = require('../data/generated/demo-code-BrandButton.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Breadcrumbs = require('../data/generated/demo-code-Breadcrumbs.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Carousel = require('../data/generated/demo-code-Carousel.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Checkbox = require('../data/generated/demo-code-Checkbox.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Chip = require('../data/generated/demo-code-Chip.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.CodeBlock = require('../data/generated/demo-code-CodeBlock.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.ColorInput = require('../data/generated/demo-code-ColorInput.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.ColorPicker = require('../data/generated/demo-code-ColorPicker.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Container = require('../data/generated/demo-code-Container.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.CopyButton = require('../data/generated/demo-code-CopyButton.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.DataTable = require('../data/generated/demo-code-DataTable.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.DatePicker = require('../data/generated/demo-code-DatePicker.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Dialog = require('../data/generated/demo-code-Dialog.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Divider = require('../data/generated/demo-code-Divider.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.EmojiPicker = require('../data/generated/demo-code-EmojiPicker.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.FileInput = require('../data/generated/demo-code-FileInput.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Gallery = require('../data/generated/demo-code-Gallery.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.HoverCard = require('../data/generated/demo-code-HoverCard.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.KeyCap = require('../data/generated/demo-code-KeyCap.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Link = require('../data/generated/demo-code-Link.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Markdown = require('../data/generated/demo-code-Markdown.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Menu = require('../data/generated/demo-code-Menu.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.NavigationProgress = require('../data/generated/demo-code-NavigationProgress.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Pagination = require('../data/generated/demo-code-Pagination.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.PhoneInput = require('../data/generated/demo-code-PhoneInput.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.PinInput = require('../data/generated/demo-code-PinInput.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Progress = require('../data/generated/demo-code-Progress.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.QRCode = require('../data/generated/demo-code-QRCode.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Radio = require('../data/generated/demo-code-Radio.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Search = require('../data/generated/demo-code-Search.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Select = require('../data/generated/demo-code-Select.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Skeleton = require('../data/generated/demo-code-Skeleton.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Slider = require('../data/generated/demo-code-Slider.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Loader = require('../data/generated/demo-code-Loader.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Spoiler = require('../data/generated/demo-code-Spoiler.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Spotlight = require('../data/generated/demo-code-Spotlight.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Stepper = require('../data/generated/demo-code-Stepper.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Switch = require('../data/generated/demo-code-Switch.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Table = require('../data/generated/demo-code-Table.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.TableOfContents = require('../data/generated/demo-code-TableOfContents.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Tabs = require('../data/generated/demo-code-Tabs.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.TextArea = require('../data/generated/demo-code-TextArea.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.TimePicker = require('../data/generated/demo-code-TimePicker.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Timeline = require('../data/generated/demo-code-Timeline.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Title = require('../data/generated/demo-code-Title.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Toast = require('../data/generated/demo-code-Toast.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Toggle = require('../data/generated/demo-code-Toggle.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Tooltip = require('../data/generated/demo-code-Tooltip.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Tree = require('../data/generated/demo-code-Tree.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.Waveform = require('../data/generated/demo-code-Waveform.json'); } catch { /* ignore */ }
-// Charts components
-try { DEMO_CODE_MAPS.AreaChart = require('../data/generated/demo-code-AreaChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.BarChart = require('../data/generated/demo-code-BarChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.BubbleChart = require('../data/generated/demo-code-BubbleChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.CandlestickChart = require('../data/generated/demo-code-CandlestickChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.ComboChart = require('../data/generated/demo-code-ComboChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.DonutChart = require('../data/generated/demo-code-DonutChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.FunnelChart = require('../data/generated/demo-code-FunnelChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.GroupedBarChart = require('../data/generated/demo-code-GroupedBarChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.HeatmapChart = require('../data/generated/demo-code-HeatmapChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.HistogramChart = require('../data/generated/demo-code-HistogramChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.LineChart = require('../data/generated/demo-code-LineChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.NetworkChart = require('../data/generated/demo-code-NetworkChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.PieChart = require('../data/generated/demo-code-PieChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.RadarChart = require('../data/generated/demo-code-RadarChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.RadialBarChart = require('../data/generated/demo-code-RadialBarChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.RidgeChart = require('../data/generated/demo-code-RidgeChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.SankeyChart = require('../data/generated/demo-code-SankeyChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.ScatterChart = require('../data/generated/demo-code-ScatterChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.SparklineChart = require('../data/generated/demo-code-SparklineChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.StackedAreaChart = require('../data/generated/demo-code-StackedAreaChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.StackedBarChart = require('../data/generated/demo-code-StackedBarChart.json'); } catch { /* ignore */ }
-try { DEMO_CODE_MAPS.ViolinChart = require('../data/generated/demo-code-ViolinChart.json'); } catch { /* ignore */ }
+// Demo code shards are registered by the auto-generated loader
+// (data/generated/demoCodeLoader.ts, written by scripts/generate-demos.ts).
+// Delegating to it keeps every component with a generated shard wired up —
+// a hand-maintained require list here silently drops newly added components,
+// which is what left Knob (and ~40 others) with no "View code" toggle.
+let loadGeneratedCodeMap: ((component: string) => Record<string, any> | null) | null = null;
+try { ({ loadCodeMap: loadGeneratedCodeMap } = require('../data/generated/demoCodeLoader')); } catch { /* ignore */ }
 
 function loadCodeMap(component: string): Record<string, any> | null {
   if (codeCache[component]) return codeCache[component];
-  
-  const codeMap = DEMO_CODE_MAPS[component];
+  if (!loadGeneratedCodeMap) return null;
+
+  const codeMap = loadGeneratedCodeMap(component);
   if (codeMap) {
     codeCache[component] = codeMap;
     return codeMap;
   }
-  
+
   return null;
 }
 
@@ -232,7 +177,7 @@ export function attachDemoCode(component: string, demos: NewDemo[]): NewDemo[] {
   return demos.map(d => {
     const entry = codeMap[`${component}.${d.id}`];
     if (entry) {
-      return { ...d, code: entry.code, importPath: entry.importPath };
+      return { ...d, code: entry.code, files: entry.files, importPath: entry.importPath, githubUrl: entry.githubUrl };
     }
     return d;
   });
@@ -254,7 +199,7 @@ export function getAllNewComponents(): NewComponentIndexEntry[] {
   if (!componentsMeta) return [];
   return Object.keys(componentsMeta).map(name => {
     const meta = componentsMeta[name] || {};
-    const demoCount = (demosIndex?.demos || []).filter((d: any) => d.component === name && !d.hidden).length;
+    const demoCount = (demosIndex?.demos || []).filter((d: any) => d.component === name && isPublicDemo(d)).length;
     return {
       name,
       title: meta.title || name,

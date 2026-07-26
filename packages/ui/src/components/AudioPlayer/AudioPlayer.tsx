@@ -15,10 +15,18 @@ import type {
   AudioError 
 } from './types';
 
-const Audio = resolveOptionalModule<any>('expo-audio', {
-  accessor: module => module.Audio,
-  devWarning: 'expo-audio not found, using mock audio implementation',
+const ExpoAudio = resolveOptionalModule<any>('expo-audio', {
+  devWarning: 'expo-audio not found; AudioPlayer renders its controls but cannot play audio',
 });
+
+/** How often expo-audio reports playback status, in ms. Tight enough for a moving waveform. */
+const STATUS_UPDATE_INTERVAL = 100;
+
+/**
+ * `PlaybackState`, `ProgressData` and the ref methods are in milliseconds, while
+ * expo-audio works in seconds — convert at the boundary rather than in the UI.
+ */
+const toMs = (seconds: number | undefined) => Math.round((seconds ?? 0) * 1000);
 
 export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
   source,
@@ -74,6 +82,8 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
   
   // Refs
   const audioRef = useRef<any>(null);
+  const statusSubscriptionRef = useRef<{ remove: () => void } | null>(null);
+  const hasLoadedRef = useRef<boolean>(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const waveformRef = useRef<any>(null);
   
@@ -90,103 +100,111 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
   });
   
   const [peaks, setPeaks] = useState<number[]>(providedPeaks || []);
+  // Mirrors `peaks` for the status listener, which must not close over stale state.
+  const peaksRef = useRef<number[]>(providedPeaks || []);
+  peaksRef.current = peaks;
   const [progress, setProgress] = useState(0);
   const [buffered, setBuffered] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   // Audio loading and initialization
   const loadAudio = useCallback(async (audioSource: typeof source) => {
-    if (!audioSource || !Audio) {
-      console.warn('No audio source provided or expo-av not available');
+    if (!audioSource) {
+      console.warn('AudioPlayer: no audio source provided');
+      return;
+    }
+
+    if (!ExpoAudio?.createAudioPlayer) {
+      const audioError: AudioError = {
+        code: 'MODULE_MISSING',
+        message: 'expo-audio is required for playback. Install it with `npx expo install expo-audio`.',
+        details: null,
+      };
+      setError(audioError.message);
+      onError?.(audioError);
       return;
     }
 
     try {
       setPlaybackState(prev => ({ ...prev, isLoading: true }));
       setError(null);
+      hasLoadedRef.current = false;
 
-      // Unload previous audio
-      if (audioRef.current) {
-        await audioRef.current.unloadAsync();
+      // Release the previous player and its listener before replacing them
+      statusSubscriptionRef.current?.remove();
+      statusSubscriptionRef.current = null;
+      audioRef.current?.remove?.();
+
+      // expo-audio accepts a URI string, a `require()`d asset, or a source object directly
+      const player = ExpoAudio.createAudioPlayer(audioSource, {
+        updateInterval: STATUS_UPDATE_INTERVAL,
+      });
+
+      audioRef.current = player;
+      player.loop = loop;
+      player.volume = volume;
+      if (rate !== 1) {
+        player.setPlaybackRate(rate);
       }
 
-      // Create new audio instance
-      const { sound } = await Audio.Sound.createAsync(
-        typeof audioSource === 'string' ? { uri: audioSource } : audioSource,
-        {
-          shouldPlay: autoPlay,
-          isLooping: loop,
-          volume: volume,
-          rate: rate,
+      // Status updates drive both the exposed state and the waveform progress
+      statusSubscriptionRef.current = player.addListener('playbackStatusUpdate', (status: any) => {
+        const durationMs = toMs(status.duration);
+        const currentTimeMs = toMs(status.currentTime);
+
+        const newState: PlaybackState = {
+          isPlaying: status.playing ?? false,
+          isLoading: !status.isLoaded,
+          isBuffering: status.isBuffering ?? false,
+          currentTime: currentTimeMs,
+          duration: durationMs,
+          volume: player.volume ?? volume,
+          rate: status.playbackRate ?? rate,
+          loop: status.loop ?? loop,
+        };
+
+        setPlaybackState(newState);
+        onPlaybackStateChange?.(newState);
+
+        if (durationMs > 0) {
+          const newProgress = Math.min(1, currentTimeMs / durationMs);
+          setProgress(newProgress);
+
+          const progressData: ProgressData = {
+            currentTime: currentTimeMs,
+            duration: durationMs,
+            progress: newProgress,
+            position: newProgress,
+            buffered: buffered,
+          };
+          onProgress?.(progressData);
         }
-      );
 
-      audioRef.current = sound;
+        // `onLoad` fires once, on the first status that carries a real duration
+        if (!hasLoadedRef.current && status.isLoaded) {
+          hasLoadedRef.current = true;
+          onLoad?.({
+            duration: durationMs,
+            sampleRate: 44100, // expo-audio does not expose these
+            channels: 2,
+            peaks: peaksRef.current,
+          } as AudioLoadData);
+        }
 
-      // Set up status update listener
-      sound.setOnPlaybackStatusUpdate((status: any) => {
-        if (status.isLoaded) {
-          const newState: PlaybackState = {
-            isPlaying: status.isPlaying || false,
-            isLoading: false,
-            isBuffering: status.isBuffering || false,
-            currentTime: status.positionMillis || 0,
-            duration: status.durationMillis || 0,
-            volume: status.volume || 1,
-            rate: status.rate || 1,
-            loop: status.isLooping || false,
-          };
-
-          setPlaybackState(newState);
-          onPlaybackStateChange?.(newState);
-
-          // Update progress
-          if (newState.duration > 0) {
-            const newProgress = newState.currentTime / newState.duration;
-            setProgress(newProgress);
-            
-            const progressData: ProgressData = {
-              currentTime: newState.currentTime,
-              duration: newState.duration,
-              progress: newProgress,
-              position: newProgress,
-              buffered: buffered,
-            };
-            onProgress?.(progressData);
-          }
-
-          // Handle end of playback
-          if (status.didJustFinish && !loop) {
-            onEnd?.();
-          }
-        } else if (status.error) {
-          const audioError: AudioError = {
-            code: 'PLAYBACK_ERROR',
-            message: status.error,
-            details: status,
-          };
-          setError(audioError.message);
-          onError?.(audioError);
+        if (status.didJustFinish && !loop) {
+          onEnd?.();
         }
       });
 
-      // Get audio metadata and generate waveform if needed
-      const loadData: AudioLoadData = {
-        duration: 0, // Will be updated by status listener
-        sampleRate: 44100, // Default
-        channels: 2, // Default
-        peaks: peaks,
-      };
-
       // Generate waveform if not provided and enabled
       if (!providedPeaks && generateWaveform) {
-        const generatedPeaks = await generateWaveformFromAudio(sound, waveformOptions);
+        const generatedPeaks = await generateWaveformFromAudio(player, waveformOptions);
         setPeaks(generatedPeaks);
-        loadData.peaks = generatedPeaks;
       }
 
-      onLoad?.(loadData);
-
+      if (autoPlay) {
+        player.play();
+      }
     } catch (err) {
       const audioError: AudioError = {
         code: 'LOAD_ERROR',
@@ -198,23 +216,27 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     } finally {
       setPlaybackState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [autoPlay, loop, volume, rate, providedPeaks, generateWaveform, waveformOptions, onLoad, onPlaybackStateChange, onProgress, onEnd, onError, buffered, peaks]);
+  }, [autoPlay, loop, volume, rate, providedPeaks, generateWaveform, waveformOptions, onLoad, onPlaybackStateChange, onProgress, onEnd, onError, buffered]);
 
-  // Generate waveform from audio
-  const generateWaveformFromAudio = async (sound: any, options: typeof waveformOptions): Promise<number[]> => {
-    // This is a simplified implementation
-    // In a real app, you'd need more sophisticated audio analysis
+  // Placeholder peaks. expo-audio exposes PCM frames only while `setAudioSamplingEnabled`
+  // is on and playback is running, so there is no way to analyze a file up front —
+  // pass measured `peaks` when the shape of the waveform matters.
+  const generateWaveformFromAudio = async (_player: any, options: typeof waveformOptions): Promise<number[]> => {
     const samples = options.samples || 200;
-    const mockPeaks = Array.from({ length: samples }, () => Math.random() * 0.8 + 0.1);
-    return mockPeaks;
+    return Array.from({ length: samples }, () => Math.random() * 0.8 + 0.1);
   };
 
   // Playback controls
   const play = useCallback(async () => {
-    if (!audioRef.current) return;
-    
+    const player = audioRef.current;
+    if (!player) return;
+
     try {
-      await audioRef.current.playAsync();
+      // Restart instead of sitting at the end of a finished clip
+      if (player.duration > 0 && player.currentTime >= player.duration - 0.05) {
+        await player.seekTo(0);
+      }
+      player.play();
       await playSound('button-press'); // UI feedback
     } catch (err) {
       console.error('Play error:', err);
@@ -223,9 +245,9 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
 
   const pause = useCallback(async () => {
     if (!audioRef.current) return;
-    
+
     try {
-      await audioRef.current.pauseAsync();
+      audioRef.current.pause();
       await playSound('button-press'); // UI feedback
     } catch (err) {
       console.error('Pause error:', err);
@@ -233,10 +255,12 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
   }, [playSound]);
 
   const stop = useCallback(async () => {
-    if (!audioRef.current) return;
-    
+    const player = audioRef.current;
+    if (!player) return;
+
     try {
-      await audioRef.current.stopAsync();
+      player.pause();
+      await player.seekTo(0);
       setProgress(0);
       await playSound('button-press'); // UI feedback
     } catch (err) {
@@ -244,11 +268,12 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     }
   }, [playSound]);
 
+  /** `time` is in milliseconds, matching `PlaybackState`. */
   const seek = useCallback(async (time: number) => {
     if (!audioRef.current) return;
-    
+
     try {
-      await audioRef.current.setPositionAsync(time);
+      await audioRef.current.seekTo(Math.max(0, time) / 1000);
     } catch (err) {
       console.error('Seek error:', err);
     }
@@ -256,10 +281,9 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
 
   const setVolumeLevel = useCallback(async (newVolume: number) => {
     if (!audioRef.current) return;
-    
+
     try {
-      const clampedVolume = Math.max(0, Math.min(1, newVolume));
-      await audioRef.current.setVolumeAsync(clampedVolume);
+      audioRef.current.volume = Math.max(0, Math.min(1, newVolume));
     } catch (err) {
       console.error('Volume error:', err);
     }
@@ -267,10 +291,9 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
 
   const setPlaybackRate = useCallback(async (newRate: number) => {
     if (!audioRef.current) return;
-    
+
     try {
-      const clampedRate = Math.max(0.5, Math.min(2.0, newRate));
-      await audioRef.current.setRateAsync(clampedRate, true);
+      audioRef.current.setPlaybackRate(Math.max(0.5, Math.min(2.0, newRate)));
     } catch (err) {
       console.error('Rate error:', err);
     }
@@ -310,30 +333,19 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     setRate: setPlaybackRate,
     setLoop: async (newLoop: boolean) => {
       if (audioRef.current) {
-        await audioRef.current.setIsLoopingAsync(newLoop);
+        audioRef.current.loop = newLoop;
       }
     },
-    getCurrentTime: async () => {
-      if (audioRef.current) {
-        const status = await audioRef.current.getStatusAsync();
-        return status.positionMillis || 0;
-      }
-      return 0;
-    },
-    getDuration: async () => {
-      if (audioRef.current) {
-        const status = await audioRef.current.getStatusAsync();
-        return status.durationMillis || 0;
-      }
-      return 0;
-    },
+    getCurrentTime: async () => toMs(audioRef.current?.currentTime),
+    getDuration: async () => toMs(audioRef.current?.duration),
     getPlaybackState: () => playbackState,
     load: loadAudio,
     unload: async () => {
-      if (audioRef.current) {
-        await audioRef.current.unloadAsync();
-        audioRef.current = null;
-      }
+      statusSubscriptionRef.current?.remove();
+      statusSubscriptionRef.current = null;
+      audioRef.current?.remove?.();
+      audioRef.current = null;
+      hasLoadedRef.current = false;
     },
     exportAudio: async () => {
       throw new Error('Export not implemented');
@@ -343,18 +355,36 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     clearSelection: () => {}, // TODO: Implement
   }), [play, pause, stop, seek, setVolumeLevel, setPlaybackRate, playbackState, loadAudio, peaks]);
 
-  // Load audio on mount or source change
+  // Load audio on mount or source change. `loadAudio` is called through a ref so that
+  // prop or callback changes do not tear down and reload a playing clip.
+  const loadAudioRef = useRef(loadAudio);
+  loadAudioRef.current = loadAudio;
+
   useEffect(() => {
     if (source) {
-      loadAudio(source);
+      loadAudioRef.current(source);
     }
-    
+
     return () => {
-      if (audioRef.current) {
-        audioRef.current.unloadAsync().catch(console.warn);
-      }
+      statusSubscriptionRef.current?.remove();
+      statusSubscriptionRef.current = null;
+      audioRef.current?.remove?.();
+      audioRef.current = null;
     };
-  }, [source, loadAudio]);
+  }, [source]);
+
+  // Keep a loaded player in sync with prop changes
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+  }, [volume]);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.loop = loop;
+  }, [loop]);
+
+  useEffect(() => {
+    audioRef.current?.setPlaybackRate?.(rate);
+  }, [rate]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -429,7 +459,7 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
             accessibilityLabel={playbackState.volume > 0 ? 'Mute' : 'Unmute'}
           >
             <Icon
-              name={playbackState.volume > 0 ? 'volume-2' : 'volume-x'}
+              name={playbackState.volume > 0 ? 'volume-up' : 'volume-off'}
               size={20}
               color={theme.colors.gray[6]}
             />

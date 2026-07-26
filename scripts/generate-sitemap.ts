@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CHART_DOCS } from '../apps/platform-blocks.com/config/charts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -72,19 +73,12 @@ async function generateSitemap(): Promise<void> {
   // Main sections
   const mainSections = [
     { path: '/getting-started', priority: 0.9 },
-    { path: '/installation', priority: 0.9 },
     { path: '/components', priority: 0.9 },
     { path: '/charts', priority: 0.9 },
     { path: '/hooks', priority: 0.9 },
-    { path: '/theming', priority: 0.8 },
     { path: '/accessibility', priority: 0.8 },
-    { path: '/keyboard', priority: 0.8 },
     { path: '/localization', priority: 0.8 },
-    { path: '/examples', priority: 0.7 },
-    { path: '/docs', priority: 0.7 },
     { path: '/faq', priority: 0.6 },
-    { path: '/roadmap', priority: 0.6 },
-    { path: '/support', priority: 0.6 },
   ];
 
   mainSections.forEach(section => {
@@ -113,22 +107,18 @@ async function generateSitemap(): Promise<void> {
     });
   }
 
-  // Load charts from meta (if exists)
-  const chartsMeta = await readJSONIfExists<Record<string, any>>(
-    path.join(generatedDir, 'charts-meta.json')
-  );
-
-  if (chartsMeta) {
-    const chartNames = Object.keys(chartsMeta).sort();
-    chartNames.forEach(name => {
+  // Charts (sourced from the docs app chart registry).
+  CHART_DOCS.map((chart) => chart.slug)
+    .sort()
+    .forEach((slug) => {
       urls.push({
-        loc: `${BASE_URL}/charts/${name}`,
+        loc: `${BASE_URL}/charts/${slug}`,
         lastmod: currentDate,
         changefreq: 'monthly',
         priority: 0.8,
       });
     });
-  }
+
 
   // Load hooks from meta (if exists)
   const hooksMeta = await readJSONIfExists<Record<string, any>>(
@@ -146,17 +136,6 @@ async function generateSitemap(): Promise<void> {
       });
     });
   }
-
-  // Platform-specific pages
-  const platforms = ['web', 'ios', 'android', 'macos', 'windows', 'tvos'];
-  platforms.forEach(platform => {
-    urls.push({
-      loc: `${BASE_URL}/platforms/${platform}`,
-      lastmod: currentDate,
-      changefreq: 'monthly',
-      priority: 0.6,
-    });
-  });
 
   // Generate XML
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';

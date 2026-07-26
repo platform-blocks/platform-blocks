@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useFocus, useAnnouncer } from '../../../core/accessibility/hooks';
-import { createAccessibilityProps } from '../../../core/accessibility/utils';
+import { createAccessibilityProps, getAccessibilityValueProps } from '../../../core/accessibility/utils';
 import { DESIGN_TOKENS } from '../../../core';
 import { useTheme } from '../../../core/theme';
 import { Icon } from '../../Icon';
@@ -165,12 +165,12 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
           role: 'none',
         })}
         accessibilityRole="progressbar"
-        accessibilityValue={{
+        {...getAccessibilityValueProps({
           min: 0,
           max,
           now: value,
           text: `${percentage}% complete`,
-        }}
+        })}
         accessibilityLabel={label}
       >
         <View

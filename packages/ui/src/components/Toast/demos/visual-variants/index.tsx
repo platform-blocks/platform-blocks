@@ -1,36 +1,63 @@
-import { Button, Column, Row, Text, useToast } from '@platform-blocks/ui';
+import { Block, Button, Icon, Row, Text, Toast, useToast } from '@platform-blocks/ui';
 
-type ToastVariant = 'filled' | 'outline' | 'light';
+const VARIANTS = ['light', 'filled', 'outline'] as const;
+
+type ToastVariant = (typeof VARIANTS)[number];
+
+const COPY: Record<ToastVariant, string> = {
+  light: 'Subtle surface with a colored left accent.',
+  filled: 'Solid fill with auto-contrast text.',
+  outline: 'Surface with a full colored border.',
+};
 
 export default function Demo() {
   const toast = useToast();
 
-  const showVariant = (variant: ToastVariant) => {
-    toast.success({
-      variant,
-      title: `${variant.charAt(0).toUpperCase()}${variant.slice(1)} toast`,
-      message: 'The request completed correctly.',
-    });
-  };
-
   return (
-    <Column gap="sm">
+    <Block gap="md">
       <Text size="xs" colorVariant="secondary">
-        The variant prop controls the surface style: filled uses a solid color
-        with auto-contrast text, outline adds a full border, and light uses a
-        subtle surface with a colored left accent.
+        The `variant` prop controls the toast surface. Each preview below pairs
+        the variant with the `success` severity — swap `sev` or `color` to
+        recolor any of them.
       </Text>
+
+      {VARIANTS.map((variant) => (
+        <Block key={variant} gap="xs">
+          <Text variant="small" colorVariant="secondary">
+            {variant}
+          </Text>
+          <Toast
+            visible
+            persistent
+            autoHide={0}
+            variant={variant}
+            sev="success"
+            title="Changes saved"
+            icon={<Icon name="success" variant="filled" />}
+            withCloseButton={false}
+          >
+            {COPY[variant]}
+          </Toast>
+        </Block>
+      ))}
+
       <Row gap="xs" wrap="wrap">
-        <Button onPress={() => showVariant('filled')} colorVariant="success.5">
-          Filled
-        </Button>
-        <Button onPress={() => showVariant('outline')} variant="outline">
-          Outline
-        </Button>
-        <Button onPress={() => showVariant('light')} variant="light">
-          Light
-        </Button>
+        {VARIANTS.map((variant) => (
+          <Button
+            key={variant}
+            variant={variant === 'filled' ? 'filled' : 'outline'}
+            onPress={() =>
+              toast.success({
+                variant,
+                title: `${variant} toast`,
+                message: COPY[variant],
+              })
+            }
+          >
+            Show {variant}
+          </Button>
+        ))}
       </Row>
-    </Column>
+    </Block>
   );
 }

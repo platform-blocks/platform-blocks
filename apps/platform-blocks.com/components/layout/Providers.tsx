@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { 
   HapticsProvider, 
   PlatformBlocksProvider, 
@@ -209,7 +209,7 @@ export const AppProviders: React.FC<Props> = React.memo(({ children }) => {
   ), [children, dialogsEnabled, notificationsEnabled]);
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider initialMetrics={SSR_SAFE_AREA_METRICS}>
       <HapticsProvider>
         <DirectionProvider 
           initialDirection="ltr"
@@ -236,34 +236,53 @@ export const AppProviders: React.FC<Props> = React.memo(({ children }) => {
 
 AppProviders.displayName = 'AppProviders';
 
+/**
+ * Metrics used to seed SafeAreaProvider. On native, `initialWindowMetrics` is
+ * populated synchronously; during web static rendering (Node) it is null, which
+ * would leave insets null and make `useSafeAreaInsets()` throw — blanking the
+ * whole prerendered tree. Falling back to zeroed metrics keeps insets defined so
+ * every route renders real content into the static HTML.
+ */
+const SSR_SAFE_AREA_METRICS = initialWindowMetrics ?? {
+  frame: { x: 0, y: 0, width: 0, height: 0 },
+  insets: { top: 0, left: 0, right: 0, bottom: 0 },
+};
+
+/**
+ * Categorical series palette — a fixed hue order, assigned by slot and never cycled.
+ *
+ * Replaces deriving the palette from semantic roles at a uniform shade, which produced
+ * adjacent slots a reader cannot separate: in dark mode `tertiary[5]` is a light blue
+ * sitting next to `primary[5]`, and `sky[5]`/`cyan[5]` differed by only ΔE 6.7 even with
+ * full colour vision.
+ *
+ * These steps were selected with the palette validator and pass all six checks —
+ * lightness band, chroma floor, CVD separation, normal-vision floor, and 3:1 contrast —
+ * against BOTH the light (#fcfcfb) and dark (#1a1a19) chart surfaces. Worst adjacent pair
+ * is cyan↔amber at ΔE 19.0 under protanopia; the floor is 8. Re-run the validator before
+ * changing the order or any step.
+ *
+ * One shared set (rather than per-mode steps) keeps a series the same colour across a
+ * theme toggle. Pinned as hex rather than indexed off the theme ramps because the light
+ * and dark ramps run in opposite directions — the same index is a different step in each.
+ *
+ * Deliberately excluded: `secondary` (a near-neutral slate that fails the chroma floor and
+ * reads as "no data"), and the sky / pink / tertiary ramps (redundant with cyan / purple).
+ */
+const CHART_SERIES_PALETTE = [
+  '#3B82F6', // blue
+  '#16A34A', // green
+  '#A855F7', // purple
+  '#D97706', // amber
+  '#0891B2', // cyan
+  '#65A30D', // lime
+  '#6366F1', // indigo
+  '#EF4444', // red
+];
+
 const ChartThemeBridge: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const theme = useTheme();
-  const accentPalette = React.useMemo(() => {
-    const candidates = [
-      theme.colors.primary?.[5],
-      theme.colors.secondary?.[5],
-      theme.colors.tertiary?.[5],
-      theme.colors.success?.[5],
-      theme.colors.warning?.[5],
-      theme.colors.error?.[5],
-      theme.colors.cyan?.[5],
-      theme.colors.sky?.[5],
-      theme.colors.purple?.[5],
-      theme.colors.indigo?.[5],
-      theme.colors.pink?.[5],
-      theme.colors.lime?.[5],
-    ].filter(Boolean) as string[];
-    const unique: string[] = [];
-    const seen = new Set<string>();
-    candidates.forEach((color) => {
-      const key = color.trim().toLowerCase();
-      if (!seen.has(key)) {
-        seen.add(key);
-        unique.push(color);
-      }
-    });
-    return unique.length ? unique : undefined;
-  }, [theme]);
+  const accentPalette = CHART_SERIES_PALETTE;
 
   const hostBridge = React.useMemo(() => ({
     textPrimary: theme.text.primary,

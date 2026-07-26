@@ -1,4 +1,4 @@
-import { Block, Column, Loader, Row, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Loader, Row, Text, useTheme } from '@platform-blocks/ui';
 
 interface LoaderSwatch {
   label: string;
@@ -16,7 +16,7 @@ export default function Demo() {
   ];
 
   return (
-    <Column gap="md">
+    <Block>
       {swatches.map(({ label, color }) => (
         <Row key={label} gap="md" align="center">
           <Block minW={88}>
@@ -29,6 +29,6 @@ export default function Demo() {
           <Loader variant="dots" color={color} />
         </Row>
       ))}
-    </Column>
+    </Block>
   );
 }

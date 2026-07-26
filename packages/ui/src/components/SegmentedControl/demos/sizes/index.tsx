@@ -1,28 +1,18 @@
-import { Card, Column, SegmentedControl, Text } from '@platform-blocks/ui';
+import { Block, SegmentedControl, Text } from '@platform-blocks/ui';
 
-const sizes = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
-const options = ['React', 'Angular', 'Vue'];
+import { frameworkNames } from '../data';
+
+const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
 
 export default function Demo() {
   return (
-    <Column gap="lg">
-      <Card p="md">
-        <Column gap="md">
-          <Text size="sm" colorVariant="secondary">
-            Choose from the full size scale to match surrounding inputs or navigation elements.
-          </Text>
-          <Column gap="sm">
-            {sizes.map((size) => (
-              <Column key={size} gap="xs">
-                <Text size="xs" colorVariant="secondary">
-                  Size: {size.toUpperCase()}
-                </Text>
-                <SegmentedControl size={size} defaultValue="react" data={options} />
-              </Column>
-            ))}
-          </Column>
-        </Column>
-      </Card>
-    </Column>
+    <Block>
+      {SIZES.map((size) => (
+        <Block key={size}>
+          <Text variant="small" colorVariant="secondary">{size}</Text>
+          <SegmentedControl size={size} data={frameworkNames} defaultValue="React" />
+        </Block>
+      ))}
+    </Block>
   );
 }

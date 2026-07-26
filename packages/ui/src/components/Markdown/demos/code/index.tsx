@@ -1,4 +1,4 @@
-import { Column, Markdown, Text } from '@platform-blocks/ui';
+import { Block, Markdown, Text } from '@platform-blocks/ui';
 
 const CONTENT = `# Code examples
 
@@ -31,11 +31,11 @@ Inline code: \`const result = fibonacci(10);\``;
 
 export default function Demo() {
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <Markdown>{CONTENT}</Markdown>
       <Text size="sm" colorVariant="secondary">
         Showcases fenced code blocks with syntax highlighting
       </Text>
-    </Column>
+    </Block>
   );
 }

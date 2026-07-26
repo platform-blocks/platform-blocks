@@ -3,18 +3,25 @@ import { SpacingProps, LayoutProps } from '../../core/utils';
 import { BorderRadiusProps } from '../../core/theme/radius';
 import { ShadowProps } from '../../core/theme/shadow';
 import { SizeValue } from '../../core/theme/sizes';
-import { TooltipProps } from '../Tooltip';
-import { IconProps } from '../Icon/types';
+import { TooltipProps, TooltipPropValue } from '../Tooltip';
+import { IconProps, ExternalIconComponent } from '../Icon/types';
 
 export interface IconButtonProps extends SpacingProps, LayoutProps, BorderRadiusProps, ShadowProps {
-  /** Icon name from the registry */
-  icon: string;
+  /**
+   * Icon to render. Accepts a registry name, or an external icon library
+   * component/element (e.g. a Tabler icon) for use without registration.
+   */
+  icon: string | ExternalIconComponent | React.ReactElement;
   /** Called when the button is pressed */
   onPress?: () => void;
   /** Called when the button layout is calculated */
   onLayout?: (event: any) => void;
-  /** Button visual variant */
-  variant?: 'filled' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'none';
+  /**
+   * Button visual variant. `default` is the neutral surface-plus-hairline button,
+   * matching `Button`; a solid primary fill is opt-in via `filled`.
+   * @default 'default'
+   */
+  variant?: 'default' | 'filled' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'none';
   /** Button size */
   size?: SizeValue;
   /** Whether the button is disabled */
@@ -34,12 +41,22 @@ export interface IconButtonProps extends SpacingProps, LayoutProps, BorderRadius
   iconVariant?: IconProps['variant'];
   /** Icon size override (defaults to appropriate size for button size) */
   iconSize?: IconProps['size'];
-  /** Tooltip text to show on hover/focus - when provided, wraps button in Tooltip component */
-  tooltip?: string;
-  /** Tooltip position when tooltip prop is used */
+  /**
+   * Tooltip shown on hover/focus — wraps the button in a `Tooltip`.
+   * Pass a string, or a config object (`{ label, maxWidth, withArrow, … }`) for
+   * long labels that need a wider bubble.
+   */
+  tooltip?: TooltipPropValue;
+  /** Tooltip position when the string form of `tooltip` is used */
   tooltipPosition?: TooltipProps['position'];
   /** Accessibility label - highly recommended for icon-only buttons */
   accessibilityLabel?: string;
+  /**
+   * Length of the press scale transition in ms. `0` applies the pressed state
+   * instantly. Always 0 under reduced motion.
+   * @default 100
+   */
+  transitionDuration?: number;
   /** Style overrides for the button container */
   style?: any;
   /** Test ID for testing */

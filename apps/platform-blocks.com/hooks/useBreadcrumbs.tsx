@@ -29,25 +29,11 @@ export function useBreadcrumbs(): BreadcrumbItem[] {
 
       }
     },
-    '/examples': {
-      label: 'All Examples',
-      href: '/examples',
-      onPress: () => {
-        router.push('/examples');
-      }
-    },
     '/charts': {
       label: 'Charts',
       href: '/charts',
       onPress: () => {
         router.push('/charts');
-      }
-    },
-    '/platforms': {
-      label: 'Platforms',
-      href: '/platforms',
-      onPress: () => {
-        router.push('/platforms');
       }
     },
     '/localization': {
@@ -57,32 +43,11 @@ export function useBreadcrumbs(): BreadcrumbItem[] {
         router.push('/localization');
       }
     },
-    '/theming': {
-      label: 'Theming',
-      href: '/theming',
-      onPress: () => {
-        router.push('/theming');
-      }
-    },
     '/hooks': { 
       label: 'Hooks',
       href: '/hooks',
       onPress: () => {
         router.push('/hooks');
-      }
-    },
-    '/installation': {
-      label: 'Installation',
-      href: '/installation',
-      onPress: () => {
-        router.push('/installation');
-      }
-    },
-    '/icons': {
-      label: 'Icons',
-      href: '/icons',
-      onPress: () => {
-        router.push('/icons');
       }
     },
     '/getting-started': {
@@ -98,13 +63,6 @@ export function useBreadcrumbs(): BreadcrumbItem[] {
       onPress: () => {
         router.push('/faq');
       } 
-    },
-    '/support': {
-      label: 'Support',
-      href: '/support',
-      onPress: () => {
-        router.push('/support');
-      }
     }
   }
 
@@ -190,35 +148,3 @@ export function generateComponentBreadcrumbs(componentName: string, router: any)
   ];
 }
 
-/**
- * Generate breadcrumbs for example pages
- */
-export function generateExampleBreadcrumbs(exampleName: string, router: any, isApp: boolean = false): BreadcrumbItem[] {
-  const breadcrumbs: BreadcrumbItem[] = [
-    {
-      label: 'Platform Blocks',
-      href: '/',
-      onPress: () => router.push('/')
-    },
-    {
-      label: 'Examples',
-      href: '/examples',
-      onPress: () => router.push('/examples')
-    }
-  ];
-
-  if (isApp) {
-    breadcrumbs.push({
-      label: 'Apps',
-      href: '/examples/apps',
-      onPress: () => router.push('/examples/apps')
-    });
-  }
-
-  breadcrumbs.push({
-    label: exampleName,
-    disabled: true
-  });
-
-  return breadcrumbs;
-}

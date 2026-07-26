@@ -4,7 +4,7 @@ description: Basic image gallery with navigation and metadata.
 tags: [gallery, images, navigation, metadata]
 category: basics
 order: 10
-highlightLines: [53-65, 95-105]
+highlightLines: [21-27]
 status: stable
 since: 1.0.0
 hidden: false

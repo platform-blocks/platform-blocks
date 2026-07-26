@@ -4,6 +4,7 @@ import { View, Pressable, ScrollView, Platform, Dimensions } from 'react-native'
 import { Text } from '../Text';
 import { Card } from '../Card';
 import { useOptionalOverlayApi } from '../../core/providers/OverlayProvider';
+import { useControllableState } from '../../hooks/useControllableState';
 import type { ContextMenuItem, ContextMenuProps } from './types';
 export type { ContextMenuItem, ContextMenuProps } from './types';
 
@@ -15,7 +16,7 @@ const ESTIMATED_WIDTH = 200;
 const ROW_HEIGHT = 32;
 const VIEWPORT_PADDING = 8;
 
-export const ContextMenu: React.FC<ContextMenuProps> = ({
+export const ContextMenu = React.forwardRef<View, ContextMenuProps>(({
   children,
   items,
   closeOnSelect = true,
@@ -26,12 +27,13 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   open: controlledOpen,
   position: controlledPosition,
   style,
-}) => {
-  const [internalOpen, setInternalOpen] = useState(false);
+}, ref) => {
+  const [actualOpen, setOpen] = useControllableState<boolean>({
+    value: controlledOpen,
+    defaultValue: false,
+  });
   const [coords, setCoords] = useState<Coords>({ x: 0, y: 0 });
   const longPressTimer = useRef<any>(null);
-  const isControlled = controlledOpen !== undefined;
-  const actualOpen = isControlled ? controlledOpen : internalOpen;
 
   // When an OverlayProvider is available (the default via PlatformBlocksProvider),
   // the menu is portaled through the app-level OverlayRenderer so it escapes any
@@ -61,16 +63,16 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   const openAt = useCallback((x: number, y: number) => {
     setCoords(clampToViewport(x, y));
     if (!actualOpen) {
-      if (!isControlled) setInternalOpen(true);
+      setOpen(true);
       onOpen?.();
     }
-  }, [actualOpen, isControlled, onOpen, clampToViewport]);
+  }, [actualOpen, setOpen, onOpen, clampToViewport]);
 
   const handleOverlayClosed = useCallback(() => {
     overlayIdRef.current = null;
-    if (!isControlled) setInternalOpen(false);
+    setOpen(false);
     onClose?.();
-  }, [isControlled, onClose]);
+  }, [setOpen, onClose]);
 
   const handleSelect = useCallback((item: ContextMenuItem) => {
     item.onSelect?.();
@@ -78,10 +80,10 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     if (usePortal) {
       if (overlayIdRef.current) overlayApi!.closeOverlay(overlayIdRef.current);
     } else {
-      if (!isControlled) setInternalOpen(false);
+      setOpen(false);
       if (actualOpen) onClose?.();
     }
-  }, [closeOnSelect, usePortal, overlayApi, isControlled, actualOpen, onClose]);
+  }, [closeOnSelect, usePortal, overlayApi, setOpen, actualOpen, onClose]);
 
   // The menu surface, shared by the portal and inline-fallback paths.
   const renderMenu = useCallback(() => (
@@ -143,10 +145,10 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     if (usePortal) {
       if (overlayIdRef.current) overlayApi!.closeOverlay(overlayIdRef.current);
     } else {
-      if (!isControlled) setInternalOpen(false);
+      setOpen(false);
       if (actualOpen) onClose?.();
     }
-  }, [usePortal, overlayApi, isControlled, actualOpen, onClose]);
+  }, [usePortal, overlayApi, setOpen, actualOpen, onClose]);
 
   // Inline-fallback only: close on click outside / scroll (web).
   useEffect(() => {
@@ -201,7 +203,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   };
 
   return (
-    <View style={style}>
+    <View ref={ref} style={style}>
       {children(triggerProps)}
       {!usePortal && actualOpen && (
         <View
@@ -220,6 +222,8 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       )}
     </View>
   );
-};
+});
+
+ContextMenu.displayName = 'ContextMenu';
 
 export default ContextMenu;

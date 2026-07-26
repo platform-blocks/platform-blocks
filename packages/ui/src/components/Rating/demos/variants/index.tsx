@@ -5,7 +5,7 @@ export default function Demo() {
   const [interactiveValue, setInteractiveValue] = useState<number>(4);
 
   return (
-    <Block gap="lg">
+    <Block>
       <Rating
         value={interactiveValue}
         onChange={setInteractiveValue}
@@ -25,6 +25,21 @@ export default function Demo() {
         size="lg"
         label="Tooltip rating"
         disclaimer="Tooltips show numeric value on hover."
+      />
+      <Rating
+        defaultValue={4}
+        showTooltip
+        getTooltipLabel={(value, count) => `${value} out of ${count} stars`}
+        size="lg"
+        label="Custom tooltip text"
+        disclaimer="Pass `getTooltipLabel` to format the tooltip."
+      />
+      <Rating
+        value={3}
+        disabled
+        size="lg"
+        label="Disabled rating"
+        disclaimer="`disabled` blocks input and dims the control."
       />
     </Block>
   );

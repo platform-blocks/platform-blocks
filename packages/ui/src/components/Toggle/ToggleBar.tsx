@@ -44,7 +44,7 @@ export interface ToggleBarProps {
   style?: any;
 }
 
-export const ToggleBar: React.FC<ToggleBarProps> = ({
+export const ToggleBar = React.forwardRef<View, ToggleBarProps>(({
   value,
   onChange,
   options,
@@ -55,7 +55,7 @@ export const ToggleBar: React.FC<ToggleBarProps> = ({
   selectedVariant = 'filled',
   gap = 8,
   style,
-}) => {
+}, ref) => {
   const theme = useTheme();
 
   const handleToggle = useCallback((val: string | number) => {
@@ -80,7 +80,7 @@ export const ToggleBar: React.FC<ToggleBarProps> = ({
   }, [onChange, value, multiple, required]);
 
   return (
-    <View style={[{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -(gap/2) }, style]}>
+    <View ref={ref} style={[{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -(gap/2) }, style]}>
       {options.map(opt => {
         const selected = value.includes(opt.value);
         const variant = selected ? selectedVariant : (opt.chipVariant || chipVariant);
@@ -102,7 +102,7 @@ export const ToggleBar: React.FC<ToggleBarProps> = ({
       })}
     </View>
   );
-};
+});
 
 ToggleBar.displayName = 'ToggleBar';
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Column, Text, ToggleButton, ToggleGroup } from '@platform-blocks/ui';
+import { Block, Text, ToggleButton, ToggleGroup } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [formats, setFormats] = useState(['bold']);
@@ -12,13 +12,13 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="sm">
-      <Column gap="xs">
+    <Block>
+      <Block>
         <Text weight="semibold">Multiple selection</Text>
         <Text size="xs" colorVariant="secondary">
           The default mode returns an array of selected values.
         </Text>
-      </Column>
+      </Block>
 
       <ToggleGroup value={formats} onChange={handleChange}>
         <ToggleButton value="bold">Bold</ToggleButton>
@@ -30,6 +30,6 @@ export default function Demo() {
       <Text size="xs" colorVariant="secondary">
         Active formatting: {formats.length > 0 ? formats.join(', ') : 'none'}
       </Text>
-    </Column>
+    </Block>
   );
 }

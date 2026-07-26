@@ -1,6 +1,6 @@
 {
   "name": "platform-blocks",
-  "version": "0.11.0",
+  "version": "1.0.0",
   "workspaces": [
     "packages/ui",
     "packages/charts",
@@ -8,32 +8,36 @@
     "packages/create-platform-blocks"
   ],
   "scripts": {
-    "build": "npm run build --workspace=packages/ui",
-    "dev": "npm run start --workspace=apps/platform-blocks.com",
-    "docs": "npm run start --workspace=apps/platform-blocks.com",
-    "ui:build": "npm run build --workspace=packages/ui",
-    "ui:test": "npm run test --workspace=packages/ui",
-    "ui:lint": "npm run lint --workspace=packages/ui",
-    "charts:build": "npm run build --workspace=packages/charts",
-    "charts:test": "npm run test --workspace=packages/charts",
-    "charts:lint": "npm run lint --workspace=packages/charts",
+    "build": "npm --prefix packages/ui run build",
+    "dev": "npm --prefix apps/platform-blocks.com run start",
+    "docs": "npm --prefix apps/platform-blocks.com run start",
+    "ui:build": "npm --prefix packages/ui run build",
+    "ui:test": "npm --prefix packages/ui run test",
+    "ui:lint": "npm --prefix packages/ui run lint",
+    "charts:build": "npm --prefix packages/charts run build",
+    "charts:test": "npm --prefix packages/charts run test",
+    "charts:lint": "npm --prefix packages/charts run lint",
     "docs:lint": "cd apps/platform-blocks.com && npx expo lint",
-    "clean": "npm run clean --workspace=packages/ui",
+    "clean": "npm --prefix packages/ui run clean",
     "i18n:scan": "tsx scripts/scan-i18n-keys.ts",
     "demos:generate": "npx --yes tsx scripts/generate-demos.ts",
     "demos:validate": "npx --yes tsx scripts/validate-demos.ts",
     "demos:all": "npm run demos:generate && npm run demos:validate",
-    "docs:all": "npm run demos:generate && npm run demos:validate && npm run docs:generate --workspace=apps/platform-blocks.com && npm run generate-code-map --workspace=apps/platform-blocks.com",
-    "site:build": "npm run ui:build && npm run docs:all && npm run build-web --workspace=apps/platform-blocks.com",
+    "snack:exports": "npx --yes tsx scripts/generate-snack-exports.ts",
+    "docs:all": "npm run demos:generate && npm run demos:validate && npm run snack:exports && npm --prefix apps/platform-blocks.com run docs:generate && npm --prefix apps/platform-blocks.com run generate-code-map",
+    "site:build": "npm run ui:build && npm run docs:all && npm --prefix apps/platform-blocks.com run build-web",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "docs:baseline": "npm run build-web --workspace=apps/platform-blocks.com && npx playwright test --config=playwright.config.ts",
-    "verify:packages": "npm run lint --workspace=packages/ui && npm run test --workspace=packages/ui && npm run lint --workspace=packages/charts && npm run test --workspace=packages/charts",
-    "verify:packages:build": "npm run build --workspace=packages/ui && npm run build --workspace=packages/charts",
-    "release": "npm run verify:packages && npm run verify:packages:build && npm run ui:build && tsx scripts/publish-release.ts"
+    "docs:baseline": "npm --prefix apps/platform-blocks.com run build-web && npx playwright test --config=playwright.config.ts",
+    "verify:packages": "npm run ui:exports:check && npm run ui:lint && npm run ui:test && npm run charts:lint && npm run charts:test",
+    "verify:packages:build": "npm run ui:build && npm run charts:build",
+    "release": "npm run verify:packages && npm run verify:packages:build && npm run ui:build && tsx scripts/publish-release.ts",
+    "ui:exports": "tsx scripts/generate-ui-exports.ts",
+    "ui:exports:check": "tsx scripts/generate-ui-exports.ts --check"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",
+    "@types/node": "^26.1.1",
     "@types/react": "~19.2.2",
     "@types/react-dom": "~19.2.3",
     "rollup": "^4.57.0",
@@ -43,13 +47,16 @@
     "@shopify/flash-list": "2.3.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-native": "0.85.3",
+    "react-native": "0.86.0",
     "react-native-reanimated-carousel": "^4.0.0",
     "react-native-svg": "15.15.4",
     "react-test-renderer": "19.2.3"
   },
   "optionalDependencies": {
     "@rollup/rollup-darwin-arm64": "^4.52.3"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   },
   "author": "Josh Stovall",
   "license": "MIT",

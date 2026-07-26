@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { Button } from '../Button';
 
 // Mock the heavy dependencies
@@ -174,6 +175,31 @@ describe('Button Component - Rendering & Behavior', () => {
       
       fireEvent.press(getByTestId('button'));
       expect(onPress).not.toHaveBeenCalled();
+    });
+
+    it('should keep the content width on every loading cycle', () => {
+      const flatten = (style: any) =>
+        Array.isArray(style) ? Object.assign({}, ...style.flat(9).filter(Boolean)) : style;
+
+      const { getByTestId, rerender } = render(
+        <Button title="Submit application" testID="button" />
+      );
+
+      // Layout fires once on mount with the natural content width.
+      fireEvent(getByTestId('button'), 'layout', {
+        nativeEvent: { layout: { width: 180, height: 40 } },
+      });
+
+      rerender(<Button title="Submit application" loading testID="button" />);
+      expect(flatten(getByTestId('button').props.style).width).toBe(180);
+
+      // Loading ends: the content width is unchanged, so no new layout event fires.
+      rerender(<Button title="Submit application" testID="button" />);
+      expect(flatten(getByTestId('button').props.style).width).toBeUndefined();
+
+      // The next cycle must still freeze at the measured content width.
+      rerender(<Button title="Submit application" loading testID="button" />);
+      expect(flatten(getByTestId('button').props.style).width).toBe(180);
     });
   });
 
@@ -446,14 +472,92 @@ describe('Button Component - Rendering & Behavior', () => {
 
     it('should accept tooltipPosition prop', () => {
       const { getByTestId } = render(
-        <Button 
-          title="Tooltip" 
-          tooltip="Info" 
-          tooltipPosition="bottom" 
-          testID="button" 
+        <Button
+          title="Tooltip"
+          tooltip="Info"
+          tooltipPosition="bottom"
+          testID="button"
         />
       );
       expect(getByTestId('button')).toBeTruthy();
+    });
+  });
+
+  // ============================================================================
+  // DEFAULT VARIANT & SIZING TESTS
+  // ============================================================================
+
+  describe('Defaults', () => {
+    /** Flattened style of the Pressable, which carries fill and border. */
+    const pressableStyle = (element: any) =>
+      StyleSheet.flatten(
+        typeof element.props.style === 'function'
+          ? element.props.style({ pressed: false })
+          : element.props.style
+      );
+
+    /**
+     * The outer wrapper owns cross-axis sizing. It is the rendered root, several
+     * views above the Pressable, so read it from the tree rather than by depth.
+     */
+    const wrapperStyle = (tree: any) => StyleSheet.flatten(tree?.props?.style);
+
+    it('defaults to the neutral `default` variant rather than a primary fill', () => {
+      const neutral = render(<Button title="Default" testID="button" />);
+      const filled = render(<Button title="Filled" variant="filled" testID="filled" />);
+
+      const style = pressableStyle(neutral.getByTestId('button'));
+      // Neutral surface fill with a visible hairline — no accent color
+      expect(style.borderWidth).toBe(1);
+      expect(style.borderColor).not.toBe('transparent');
+      expect(style.backgroundColor).not.toBe(
+        pressableStyle(filled.getByTestId('filled')).backgroundColor
+      );
+    });
+
+    it('renders the default variant explicitly the same as no variant at all', () => {
+      const implicit = render(<Button title="Same" testID="implicit" />);
+      const explicit = render(<Button title="Same" variant="default" testID="explicit" />);
+
+      expect(pressableStyle(explicit.getByTestId('explicit'))).toEqual(
+        pressableStyle(implicit.getByTestId('implicit'))
+      );
+    });
+
+    it('still fills when the filled variant is requested', () => {
+      const { getByTestId } = render(
+        <Button title="Filled" variant="filled" testID="button" />
+      );
+
+      const style = pressableStyle(getByTestId('button'));
+      expect(style.backgroundColor).not.toBe('transparent');
+    });
+
+    it('hugs its content instead of stretching to the parent width', () => {
+      const { toJSON } = render(<Button title="Hug" testID="button" />);
+
+      expect(wrapperStyle(toJSON()).alignItems).toBe('flex-start');
+    });
+
+    it('stretches when fullWidth, an explicit width, or a flex value is given', () => {
+      const full = render(<Button title="Full" fullWidth />);
+      expect(wrapperStyle(full.toJSON()).alignItems).toBe('stretch');
+
+      const fixed = render(<Button title="Fixed" w={240} />);
+      expect(wrapperStyle(fixed.toJSON()).alignItems).toBe('stretch');
+
+      const flexed = render(<Button title="Flexed" style={{ flex: 1 }} />);
+      expect(wrapperStyle(flexed.toJSON()).alignItems).toBe('stretch');
+    });
+
+    it('routes alignSelf to the wrapper so the parent still positions the button', () => {
+      const { getByTestId, toJSON } = render(
+        <Button title="Centered" style={{ alignSelf: 'center' }} testID="button" />
+      );
+
+      expect(wrapperStyle(toJSON()).alignSelf).toBe('center');
+      // …and not left behind on the Pressable, where it would do nothing
+      expect(pressableStyle(getByTestId('button')).alignSelf).toBeUndefined();
     });
   });
 });

@@ -1,18 +1,16 @@
-import { Card, Column, Title } from '@platform-blocks/ui';
+import { Block, Card, Title } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="lg">
-      <Card p="md">
-        <Column gap="sm">
-          <Title underline>Underline only</Title>
-          <Title afterline>Afterline only</Title>
-          <Title underline afterline>Underline with afterline</Title>
-          <Title underline underlineColor="#ff4d4f" underlineStroke={4}>
-            Custom underline color and stroke
-          </Title>
-        </Column>
-      </Card>
-    </Column>
+    <Card p="md">
+      <Block>
+        <Title underline>Underline only</Title>
+        <Title afterline>Afterline only</Title>
+        <Title underline afterline>Underline with afterline</Title>
+        <Title underline underlineColor="#ff4d4f" underlineStroke={4}>
+          Custom underline color and stroke
+        </Title>
+      </Block>
+    </Card>
   );
 }

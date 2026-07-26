@@ -11,6 +11,7 @@ props:
   borderWidth: Custom border width in px — implies `withBorder`
   bg: Background override — accepts CSS color or theme palette name (`'primary' | 'gray' | 'success' | 'warning' | 'error' | 'secondary'`) → resolves to that palette's subtle shade. Also accepts `theme.backgrounds` keys (`'surface' | 'subtle' | 'elevated' | 'base'`).
   padding: Internal padding — size token ('xs'…'3xl') or pixel number
+  clip: Clips children to the card's radius — use with full-bleed `Card.Section` content (off by default so menus/popovers can escape)
   radius: Corner radius (size token or number)
   shadow: Shadow token (overrides the variant's default shadow)
   onPress: Makes the card pressable; renders inside a `<Pressable>` with a pressed-state style

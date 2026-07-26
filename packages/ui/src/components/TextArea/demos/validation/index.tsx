@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Button, Column, Text, TextArea } from '@platform-blocks/ui';
+import { Block, Button, Text, TextArea } from '@platform-blocks/ui';
 
 type ValidationErrors = {
   feedback?: string;
@@ -40,9 +40,9 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="lg" fullWidth>
+    <Block fullWidth>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" weight="semibold">
           Required feedback
         </Text>
@@ -65,7 +65,7 @@ export default function Demo() {
           helperText="Tell us what went well and what could improve."
           fullWidth
         />
-      </Column>
+      </Block>
 
 
       <Button variant="filled" onPress={handleSubmit}>
@@ -79,8 +79,7 @@ export default function Demo() {
       ) : null}
 
       {Object.keys(errors).length > 0 && (
-        <Column
-          gap="xs"
+        <Block
           style={{
             borderRadius: 8,
             borderWidth: 1,
@@ -99,8 +98,8 @@ export default function Demo() {
                 • {errorMessage}
               </Text>
             ))}
-        </Column>
+        </Block>
       )}
-    </Column>
+    </Block>
   );
 }

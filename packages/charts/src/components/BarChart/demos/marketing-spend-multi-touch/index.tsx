@@ -1,51 +1,6 @@
 import { BarChart } from '../../';
 
-const CAMPAIGN_SPEND = [
-  {
-    id: 'paid-search',
-    category: 'Paid search',
-    value: 820,
-    color: '#0891b2',
-    data: { objective: 'Capture late-stage demand' },
-  },
-  {
-    id: 'paid-social',
-    category: 'Paid social',
-    value: 540,
-    color: '#6366f1',
-    data: { objective: 'Net new persona awareness' },
-  },
-  {
-    id: 'field-events',
-    category: 'Field events',
-    value: 460,
-    color: '#f97316',
-    data: { objective: 'Pipeline acceleration' },
-  },
-  {
-    id: 'webinars',
-    category: 'Webinars & workshops',
-    value: 380,
-    color: '#22c55e',
-    data: { objective: 'Activation & nurture' },
-  },
-  {
-    id: 'content',
-    category: 'Content syndication',
-    value: 295,
-    color: '#a855f7',
-    data: { objective: 'Top-of-funnel scale' },
-  },
-  {
-    id: 'partners',
-    category: 'Partner marketing',
-    value: 260,
-    color: '#f43f5e',
-    data: { objective: 'Co-sell influence' },
-  },
-];
-
-const TOTAL_SPEND = CAMPAIGN_SPEND.reduce((sum, item) => sum + item.value, 0);
+import { CAMPAIGN_SPEND, TOTAL_SPEND } from './data';
 
 const formatSpend = (value: number) => `$${value.toLocaleString()}k`;
 
@@ -76,7 +31,7 @@ export default function Demo() {
         labelFormatter: (value) => `$${value.toFixed(0)}k`,
       }}
       xAxis={{ show: true }}
-      grid={{ show: true, color: '#E8F1FF' }}
+      grid={{ show: true }}
       tooltip={{
         formatter: (datum) => {
           const share = TOTAL_SPEND ? (datum.value / TOTAL_SPEND) * 100 : 0;

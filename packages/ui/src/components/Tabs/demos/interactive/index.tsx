@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Column, Tabs, Text } from '@platform-blocks/ui';
+import { Block, Tabs, Text } from '@platform-blocks/ui';
 
 const ITEMS = [
   {
@@ -24,11 +24,11 @@ export default function Demo() {
   const activeLabel = ITEMS.find((item) => item.key === activeTab)?.label ?? activeTab;
 
   return (
-    <Column gap="sm">
+    <Block>
       <Tabs activeTab={activeTab} onTabChange={setActiveTab} items={ITEMS} />
       <Text variant="small" colorVariant="muted">
         Active tab: {activeLabel}
       </Text>
-    </Column>
+    </Block>
   );
 }

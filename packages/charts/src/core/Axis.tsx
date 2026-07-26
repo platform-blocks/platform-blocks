@@ -31,6 +31,8 @@ export interface AxisProps {
   labelColor?: string;
   labelFontSize?: number;
   labelStyle?: TextStyle;
+  /** Width of the axis-title box. Widen it so a long title stays on one line. */
+  labelWidth?: number;
 }
 
 // Simple axis renderer (View-based). For high performance / crisp lines use SVG later.
@@ -59,6 +61,7 @@ export const Axis: React.FC<AxisProps> = ({
   labelColor,
   labelFontSize,
   labelStyle,
+  labelWidth,
 }) => {
   const theme = useChartTheme();
   const isHorizontal = orientation === 'top' || orientation === 'bottom';
@@ -106,6 +109,12 @@ export const Axis: React.FC<AxisProps> = ({
   const vTickExtent = tickSize + tickPadding + vLabelWidth;
   const vTitleGap = 8;
   const vTitleCenter = vTickExtent + vTitleGap + resolvedLabelFontSize / 2;
+  // Axis titles are laid out in a fixed-width box (rotated ones about its center).
+  const titleBoxWidth = labelWidth ?? 100;
+  const titleBoxHalf = titleBoxWidth / 2;
+  // A rotated title keeps the box's center, so centering it along the axis means
+  // placing the box's *height* — one text line — at the midpoint, not its width.
+  const titleLineHalf = (resolvedLabelFontSize * 1.3) / 2;
 
   return (
     <View style={[rootStyle, style]} pointerEvents="none">
@@ -167,13 +176,13 @@ export const Axis: React.FC<AxisProps> = ({
             color: resolvedLabelColor,
             fontSize: resolvedLabelFontSize,
             fontWeight: '600',
-            ...(orientation === 'bottom' && { top: labelOffset, left: length / 2 - 50, width: 100, textAlign: 'center' }),
-            ...(orientation === 'top' && { top: -labelOffset, left: length / 2 - 50, width: 100, textAlign: 'center' }),
-            // Rotated titles are laid out as a 100px-wide box, then rotated about their
-            // center, so the visible centerline sits at (left + 50). Place that center a
+            ...(orientation === 'bottom' && { top: labelOffset, left: length / 2 - titleBoxHalf, width: titleBoxWidth, textAlign: 'center' }),
+            ...(orientation === 'top' && { top: -labelOffset, left: length / 2 - titleBoxHalf, width: titleBoxWidth, textAlign: 'center' }),
+            // Rotated titles are laid out in that same box, then rotated about their
+            // center, so the visible centerline sits at (left + half). Place that center a
             // fixed distance beyond the tick labels so the title never overlaps them.
-            ...(orientation === 'left' && { top: length / 2 - 50, left: -vTitleCenter - 50, width: 100, textAlign: 'center', transform: [{ rotate: '-90deg' }] }),
-            ...(orientation === 'right' && { top: length / 2 - 50, left: vTitleCenter - 50, width: 100, textAlign: 'center', transform: [{ rotate: '90deg' }] }),
+            ...(orientation === 'left' && { top: length / 2 - titleLineHalf, left: -vTitleCenter - titleBoxHalf, width: titleBoxWidth, textAlign: 'center', transform: [{ rotate: '-90deg' }] }),
+            ...(orientation === 'right' && { top: length / 2 - titleLineHalf, left: vTitleCenter - titleBoxHalf, width: titleBoxWidth, textAlign: 'center', transform: [{ rotate: '90deg' }] }),
             ...labelStyle,
           }}
         >

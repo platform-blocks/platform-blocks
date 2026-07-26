@@ -17,8 +17,6 @@ variants:
     description: "Multi-select that stays open when selecting options"
   - name: "custom"
     description: "Customized styling and advanced features"
-  - name: "label-customization"
-    description: "Override label and description Text props with labelProps / descriptionProps"
   - name: "variants"
     description: "Visual variants for the trigger shell — default, filled, outline, unstyled"
 dependencies:

@@ -1,12 +1,12 @@
 ---
-title: Core styles
+title: Basics
 category: basics
 order: 10
-tags: [variants, getting-started]
+tags: [chip, getting-started]
 highlightLines: []
 status: stable
 since: 1.0.0
 hidden: false
 ---
 
-Toggle the `variant` prop between the default, `filled`, `outline`, `light`, and `subtle` styles when you need different emphasis levels for the same Chip content.
+Wrap any label in a Chip to render a compact tag — the default `filled` variant and `primary` color apply automatically.

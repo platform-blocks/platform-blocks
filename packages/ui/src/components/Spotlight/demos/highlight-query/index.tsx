@@ -1,4 +1,4 @@
-import { Button, Card, Column, Spotlight, Text, useSpotlightStoreInstance, type SpotlightProps } from '@platform-blocks/ui';
+import { Block, Button, Card, Spotlight, Text, type SpotlightProps, useSpotlightStoreInstance } from '@platform-blocks/ui';
 
 // Actions intentionally share overlapping substrings to show highlighting effect
 const actions: SpotlightProps['actions'] = [
@@ -36,9 +36,9 @@ export default function Demo() {
   const [store] = useSpotlightStoreInstance();
 
   return (
-    <Column gap="lg">
+    <Block>
       <Card p="md">
-        <Column gap="md">
+        <Block>
           <Text size="sm" colorVariant="secondary">
             Passing `highlightQuery` emphasizes matching substrings across labels and descriptions, reinforcing why a result surfaced.
           </Text>
@@ -46,9 +46,9 @@ export default function Demo() {
           <Text size="xs" colorVariant="secondary">
             Try typing “proj” or “create” to see the inline highlights.
           </Text>
-        </Column>
+        </Block>
       </Card>
       <Spotlight actions={actions} highlightQuery store={store} />
-    </Column>
+    </Block>
   );
 }

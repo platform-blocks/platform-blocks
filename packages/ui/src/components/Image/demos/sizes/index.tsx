@@ -1,39 +1,20 @@
-import { Image, Card, Text, Row } from '@platform-blocks/ui';
+import { Block, Image, Row, Text } from '@platform-blocks/ui';
 
-export default function ImageSizesDemo() {
+const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
+
+/** Inline 8x8 PNG — keeps the demo offline and identical on web and native. */
+const SAMPLE_SRC =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAALklEQVR42mNITvsIR409P+CIAasokMuAVRQqgSkKksAqiiKB5goGrKJQCawuBgC2Wnfh+zNA9wAAAABJRU5ErkJggg==';
+
+export default function Demo() {
   return (
-    <Card>
-      <Text size="lg" weight="semibold" mb={16}>Image Sizes</Text>
-      <Row gap={16} style={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <Image 
-          src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=100&h=100&fit=crop" 
-          size="xs"
-          alt="Extra small"
-        />
-        <Image 
-          src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=100&h=100&fit=crop" 
-          size="sm"
-          alt="Small"
-        />
-        <Image 
-          src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=100&h=100&fit=crop" 
-          size="md"
-          alt="Medium"
-        />
-        <Image 
-          src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=100&h=100&fit=crop" 
-          size="lg"
-          alt="Large"
-        />
-        <Image 
-          src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=100&h=100&fit=crop" 
-          size="xl"
-          alt="Extra large"
-        />
-      </Row>
-      <Text size="sm" color="gray.6" mt={16}>
-        Using size presets: xs, sm, md, lg, xl
-      </Text>
-    </Card>
+    <Row align="flex-end" gap="lg" wrap="wrap">
+      {SIZES.map((size) => (
+        <Block key={size} align="center">
+          <Image src={SAMPLE_SRC} size={size} radius="md" alt={`Sample image at ${size}`} />
+          <Text variant="small">{size}</Text>
+        </Block>
+      ))}
+    </Row>
   );
 }

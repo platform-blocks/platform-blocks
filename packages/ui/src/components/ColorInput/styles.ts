@@ -1,5 +1,6 @@
 import { ViewStyle, TextStyle } from 'react-native';
 import { useTheme } from '../../core/theme';
+import { resolveSurface } from '../../core/theme/surfaces';
 
 export interface ColorInputSizeMetrics {
   inputHeight: number;
@@ -47,9 +48,8 @@ export function useColorInputStyles(metrics: ColorInputSizeMetrics) {
   };
 
   const inputFocused: ViewStyle = {
+    // Border-only focus: no outer glow (matches Input/TextArea).
     borderColor: theme.colors.primary[5],
-    boxShadow: `0 0 4px ${theme.colors.primary[5]}40`,
-    elevation: 2,
   };
 
   const inputDisabled: ViewStyle = {
@@ -111,11 +111,14 @@ export function useColorInputStyles(metrics: ColorInputSizeMetrics) {
     backgroundColor: theme.colors.gray[2],
   };
 
+  // Level 2 — the same step menus, select dropdowns and popovers sit at.
+  const dropdownSurface = resolveSurface(theme, 2);
+
   const dropdown: ViewStyle = {
-    backgroundColor: theme.backgrounds.elevated,
+    backgroundColor: dropdownSurface.background,
     borderRadius: parseInt(theme.radii.md),
     borderWidth: 1,
-    borderColor: theme.colors.gray[3],
+    borderColor: dropdownSurface.border,
     boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     elevation: 8,
     padding: 16,

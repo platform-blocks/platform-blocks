@@ -1,4 +1,4 @@
-import { Column, Tabs, Text } from '@platform-blocks/ui';
+import { Block, Tabs, Text } from '@platform-blocks/ui';
 
 type Orientation = 'horizontal' | 'vertical';
 
@@ -47,16 +47,16 @@ const ORIENTATIONS: Array<{ label: string; orientation: Orientation; helper: str
 
 export default function Demo() {
   return (
-    <Column gap="xl">
+    <Block>
       {ORIENTATIONS.map(({ label, orientation, helper }) => (
-        <Column key={orientation} gap="xs">
+        <Block key={orientation}>
           <Text weight="medium">{label}</Text>
           <Tabs orientation={orientation} items={buildItems(orientation)} />
           <Text variant="small" colorVariant="muted">
             {helper}
           </Text>
-        </Column>
+        </Block>
       ))}
-    </Column>
+    </Block>
   );
 }

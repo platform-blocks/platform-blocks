@@ -5,6 +5,7 @@ import type { GestureResponderEvent } from 'react-native';
 import { Text } from '../Text';
 import type { TextProps } from '../Text';
 import { useTheme } from '../../core/theme';
+import { surfaceInteractionTint } from '../../core/theme/surfaces';
 import { getSpacingStyles, extractSpacingProps, SpacingProps, mergeSlotProps } from '../../core/utils';
 import { useDirection } from '../../core/providers/DirectionProvider';
 import { resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
@@ -97,6 +98,9 @@ const MIN_MENU_ITEM_METRICS = {
   minHeight: 28,
 } as const;
 
+// Font size tracks the theme token of the same name — a menu item at `md` reads
+// at the same size as any other `md` control (input text, labels), so a dropdown
+// never renders visibly smaller than the trigger that opened it.
 const MENU_ITEM_BASE_METRICS: Record<'xs' | 'sm' | 'md' | 'lg', MenuItemButtonMetrics> = {
   xs: {
     fontSize: getFontSize('xs'),
@@ -115,7 +119,7 @@ const MENU_ITEM_BASE_METRICS: Record<'xs' | 'sm' | 'md' | 'lg', MenuItemButtonMe
     minHeight: 34,
   },
   md: {
-    fontSize: getFontSize('sm'),
+    fontSize: getFontSize('md'),
     paddingX: 12,
     paddingY: 8,
     gap: 10,
@@ -123,7 +127,7 @@ const MENU_ITEM_BASE_METRICS: Record<'xs' | 'sm' | 'md' | 'lg', MenuItemButtonMe
     minHeight: 38,
   },
   lg: {
-    fontSize: getFontSize('md'),
+    fontSize: getFontSize('lg'),
     paddingX: 14,
     paddingY: 10,
     gap: 12,
@@ -281,11 +285,17 @@ export const MenuItemButton = forwardRef<View, MenuItemButtonProps>((allProps, r
           activeText: isDark ? theme.colors.warning[2] : theme.colors.warning[6],
         };
       default:
+        // Neutral hover and press are translucent overlays, not palette shades:
+        // an opaque shade is only correct at one elevation, and these items
+        // render on level-2 dropdowns as often as on level-1 panels. Press is
+        // the same tint as hover, just deeper — a neutral row has no reason to
+        // flash the accent color under the finger. Callers that do want an
+        // accent press ask for it with `activeTone="primary"`.
         return {
           text: theme.text.primary,
           bg: 'transparent',
-          hoverBg: isDark ? theme.colors.gray[3] : theme.colors.gray[1],
-          activeBg: isDark ? theme.colors.primary[4] : theme.colors.primary[0],
+          hoverBg: surfaceInteractionTint(theme, 'hover'),
+          activeBg: surfaceInteractionTint(theme, 'pressed'),
           activeText: isDark ? (theme.text.onPrimary ?? theme.text.primary) : theme.colors.primary[6],
         };
     }

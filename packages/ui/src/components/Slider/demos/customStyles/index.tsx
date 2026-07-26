@@ -6,9 +6,9 @@ export default function Demo() {
   const [range, setRange] = useState<[number, number]>([20, 80]);
 
   return (
-    <Block gap={24} fullWidth>
+    <Block fullWidth>
       <Card>
-        <Block gap={12}>
+        <Block>
           <Text size="lg" weight="semibold">Palette-driven slider</Text>
           <Text size="sm" style={{ color: '#555' }}>
             `colorScheme`, sizing overrides, and style props let the slider carry product branding.
@@ -45,7 +45,7 @@ export default function Demo() {
       </Card>
 
       <Card>
-        <Block gap={12}>
+        <Block>
           <Text size="lg" weight="semibold">Custom range slider</Text>
           <Text size="sm" style={{ color: '#555' }}>
             RangeSlider shares the same overrides, making it easy to mix palettes per context.

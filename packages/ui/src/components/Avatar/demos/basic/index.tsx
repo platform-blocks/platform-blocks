@@ -2,7 +2,7 @@ import { Avatar } from '@platform-blocks/ui'
 
 export default () => (
   <Avatar
-    src="https://randomuser.me/api/portraits/women/66.jpg"
+    src={require('../../../../assets/avatars/avatar-1.png')}
     fallback="JD"
     size="xl"
   />

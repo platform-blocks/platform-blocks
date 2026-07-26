@@ -24,7 +24,8 @@ describe('Button Component', () => {
   describe('Basic Rendering', () => {
     it('should be defined and exportable', () => {
       expect(Button).toBeDefined();
-      expect(typeof Button).toBe('function');
+      // `forwardRef` components are exotic objects, not plain functions.
+      expect(['function', 'object']).toContain(typeof Button);
     });
 
     it('should accept title prop', () => {

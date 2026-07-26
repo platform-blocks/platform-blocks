@@ -155,7 +155,6 @@ export function ShimmerText(props: ShimmerTextProps) {
   const extraDistance = normalizedSpread - 1;
   const minPosition = -extraDistance;
   const maxPosition = 1 + extraDistance;
-  const positionRange = maxPosition - minPosition;
   const initialWebPosition = direction === 'rtl' ? maxPosition : minPosition;
   const finalWebPosition = direction === 'rtl' ? minPosition : maxPosition;
 
@@ -178,14 +177,19 @@ export function ShimmerText(props: ShimmerTextProps) {
   );
   const gradientLocations = useMemo(() => createLocations(resolvedColors), [resolvedColors]);
 
-  const [webPosition, setWebPosition] = useState(initialWebPosition);
-
-  useEffect(() => {
-    if (!isWeb) {
-      return;
-    }
-    setWebPosition(initialWebPosition);
-  }, [initialWebPosition, isWeb]);
+  // Web drives the sweep with a CSS animation rather than a JS-driven position,
+  // so nothing runs per frame. `null` leaves the gradient parked at its start.
+  const webAnimation = useMemo(() => {
+    if (!isWeb || !shouldAnimate) return undefined;
+    return {
+      from: initialWebPosition,
+      to: finalWebPosition,
+      duration,
+      delay,
+      repeat: shouldRepeat,
+      repeatDelay,
+    };
+  }, [isWeb, shouldAnimate, initialWebPosition, finalWebPosition, duration, delay, shouldRepeat, repeatDelay]);
 
   useEffect(() => {
     debugFlag.value = debug ? 1 : 0;
@@ -279,94 +283,6 @@ export function ShimmerText(props: ShimmerTextProps) {
   }, [progress, startX, endX]);
 
   const overlayBaseStyle = useMemo(() => stripColorFromStyle(style), [style]);
-
-  useEffect(() => {
-    if (!isWeb) {
-      return;
-    }
-
-    const startPositionValue = initialWebPosition;
-
-    if (!shouldAnimate) {
-      setWebPosition((prev) => {
-        if (Math.abs(prev - startPositionValue) < 0.001) {
-          return prev;
-        }
-        return startPositionValue;
-      });
-      return;
-    }
-
-    setWebPosition((prev) => {
-      if (Math.abs(prev - startPositionValue) < 0.001) {
-        return prev;
-      }
-      return startPositionValue;
-    });
-
-    const durationMs = Math.max(16, duration * 1000);
-    const delayMs = Math.max(0, delay * 1000);
-    const repeatDelayMs = Math.max(0, repeatDelay * 1000);
-  const totalCycle = shouldRepeat ? durationMs + repeatDelayMs : durationMs;
-
-    let frameId: number | null = null;
-    let startTime: number | null = null;
-    let finished = false;
-
-    const step = (timestamp: number) => {
-      if (finished) {
-        return;
-      }
-
-      if (startTime === null) {
-        startTime = timestamp;
-      }
-
-      const elapsed = timestamp - startTime;
-
-      if (elapsed < delayMs) {
-        frameId = requestAnimationFrame(step);
-        return;
-      }
-
-      const activeElapsed = elapsed - delayMs;
-
-      if (!shouldRepeat && activeElapsed >= durationMs) {
-        setWebPosition(finalWebPosition);
-        finished = true;
-        return;
-      }
-
-      const cyclePosition = shouldRepeat
-        ? activeElapsed % totalCycle
-        : Math.min(activeElapsed, durationMs);
-
-      const progressValue = cyclePosition <= durationMs
-        ? Math.min(Math.max(cyclePosition / durationMs, 0), 1)
-        : 1;
-
-      const positionValue = direction === 'rtl'
-        ? maxPosition - progressValue * positionRange
-        : minPosition + progressValue * positionRange;
-      setWebPosition((prev) => {
-        if (Math.abs(prev - positionValue) < 0.001) {
-          return prev;
-        }
-        return positionValue;
-      });
-
-      frameId = requestAnimationFrame(step);
-    };
-
-    frameId = requestAnimationFrame(step);
-
-    return () => {
-      finished = true;
-      if (frameId != null) {
-        cancelAnimationFrame(frameId);
-      }
-    };
-  }, [isWeb, shouldAnimate, shouldRepeat, duration, delay, repeatDelay, direction, initialWebPosition, finalWebPosition, maxPosition, positionRange, minPosition]);
 
   const renderNative = () => {
     if (!gradientModuleAvailable || !OptionalLinearGradient) {
@@ -484,8 +400,8 @@ export function ShimmerText(props: ShimmerTextProps) {
             colors={gradientColors}
             locations={gradientLocations}
             angle={direction === 'rtl' ? 180 : 0}
-            position={webPosition}
-            animate={false}
+            position={initialWebPosition}
+            animation={webAnimation}
             selectable={false}
             style={overlayBaseStyle}
           >

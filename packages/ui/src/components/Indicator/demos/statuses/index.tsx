@@ -1,10 +1,10 @@
-import { Avatar, Block, Column, Indicator, Row, Text, useTheme } from '@platform-blocks/ui';
+import { Avatar, Block, Indicator, Row, Text, useTheme } from '@platform-blocks/ui';
 
 const presenceStatuses = [
-  { label: 'Online', palette: 'success' },
-  { label: 'Idle', palette: 'warning' },
-  { label: 'Busy', palette: 'error' },
-  { label: 'Offline', palette: 'gray' },
+  { label: 'Online', palette: 'success', avatar: require('../../../../assets/avatars/avatar-1.png') },
+  { label: 'Idle', palette: 'warning', avatar: require('../../../../assets/avatars/avatar-2.png') },
+  { label: 'Busy', palette: 'error', avatar: require('../../../../assets/avatars/avatar-3.png') },
+  { label: 'Offline', palette: 'gray', avatar: require('../../../../assets/avatars/avatar-4.png') },
 ] as const;
 
 const notificationCounts = [3, 47, 99, 134, 1005];
@@ -18,32 +18,32 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="lg">
-      <Column gap="xs">
+    <Block>
+      <Block>
         <Text size="sm" weight="medium">
           Presence indicators
         </Text>
 
         <Row gap="lg" wrap="wrap">
           {presenceStatuses.map((status) => (
-            <Column key={status.label} align="center" gap="xs">
+            <Block key={status.label} align="center">
               <Block position="relative">
                 <Avatar
                   size={56}
                   fallback={status.label.charAt(0)}
-                  src={`https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(status.label)}`}
+                  src={status.avatar}
                 />
                 <Indicator placement="bottom-right" size={14} color={resolveColor(status.palette)} />
               </Block>
               <Text size="xs" colorVariant="secondary">
                 {status.label}
               </Text>
-            </Column>
+            </Block>
           ))}
         </Row>
-      </Column>
+      </Block>
 
-      <Column gap="xs">
+      <Block>
         <Text size="sm" weight="medium">
           Max count handling
         </Text>
@@ -65,7 +65,7 @@ export default function Demo() {
             );
           })}
         </Row>
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

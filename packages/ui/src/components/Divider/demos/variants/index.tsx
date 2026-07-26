@@ -1,9 +1,9 @@
-import { Block, Column, Divider, Text } from '@platform-blocks/ui';
+import { Block, Divider, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="xl">
-      <Column gap="sm">
+    <Block>
+      <Block>
         <Text variant="p" weight="medium">
           Release Notes
         </Text>
@@ -14,9 +14,9 @@ export default function Demo() {
         <Text variant="p">
           The winter update introduces a revamped queue and faster syncing.
         </Text>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text variant="p" weight="medium">
           Sprint Checklist
         </Text>
@@ -27,9 +27,9 @@ export default function Demo() {
         <Text variant="p">
           QA sign-off, regression pass, and rollout comms are scheduled for Friday.
         </Text>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text variant="p" weight="medium">
           Creator Status
         </Text>
@@ -40,9 +40,9 @@ export default function Demo() {
         <Text variant="p">
           Enable payouts once verification documents finish processing.
         </Text>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text variant="p" weight="medium">
           Section break
         </Text>
@@ -53,9 +53,9 @@ export default function Demo() {
         <Text variant="p">
           The fade keeps long-form content breathable without dropping a horizontal stripe.
         </Text>
-      </Column>
+      </Block>
 
-      <Block direction="row" align="center" gap="md" wrap="wrap">
+      <Block direction="row" align="center" wrap="wrap">
         <Text variant="small" weight="medium">
           Published
         </Text>
@@ -72,6 +72,6 @@ export default function Demo() {
           Archived
         </Text>
       </Block>
-    </Column>
+    </Block>
   );
 }

@@ -1,13 +1,13 @@
 import React from 'react';
-import { ViewStyle, StyleProp } from 'react-native';
+import { ViewStyle, StyleProp, ImageSourcePropType } from 'react-native';
 import type { ComponentSizeValue } from '../../core/theme/componentSize';
 import type { TextProps } from '../Text';
 
 export interface AvatarProps {
   /** Size of the avatar */
   size?: ComponentSizeValue;
-  /** Image source URL for the avatar */
-  src?: string;
+  /** Image for the avatar: a remote URL string or a bundled asset (`require('./avatar.png')`) */
+  src?: string | ImageSourcePropType;
   /** Fallback shown when no image is provided: initials string or a custom React node (e.g. an icon). */
   fallback?: React.ReactNode;
   /** Background color for the fallback initials */

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Column, DatePicker, Text } from '@platform-blocks/ui';
+import { Block, DatePicker, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [value, setValue] = useState<Date | null>(null);
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <DatePicker
         value={value}
         onChange={(next) => setValue(next as Date | null)}
@@ -14,6 +14,6 @@ export default function Demo() {
       <Text size="sm" colorVariant="secondary">
         {value ? `Selected: ${value.toLocaleDateString()}` : 'No date selected'}
       </Text>
-    </Column>
+    </Block>
   );
 }

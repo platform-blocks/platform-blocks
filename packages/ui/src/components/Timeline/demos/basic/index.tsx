@@ -1,4 +1,4 @@
-import { Column, Text, Timeline } from '@platform-blocks/ui';
+import { Block, Text, Timeline } from '@platform-blocks/ui';
 
 const events = [
   {
@@ -25,10 +25,6 @@ const events = [
 
 export default function Demo() {
   return (
-    <Column gap="md">
-      <Text size="sm" colorVariant="secondary">
-        Use `Timeline.Item` components to communicate major project milestones alongside short descriptions.
-      </Text>
       <Timeline active={2}>
         {events.map((event) => (
           <Timeline.Item key={event.title} title={event.title}>
@@ -39,7 +35,6 @@ export default function Demo() {
           </Timeline.Item>
         ))}
       </Timeline>
-    </Column>
   );
 }
 

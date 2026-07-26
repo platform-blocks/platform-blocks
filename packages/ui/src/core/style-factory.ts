@@ -141,7 +141,7 @@ function createInputComponentStyles(
     backgroundColor: disabled
       ? (theme.colorScheme === 'dark' ? '#2C2C2E' : theme.colors.gray[0])
       : theme.backgrounds.surface,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: error
       ? theme.colors.error[5]
       : focused
@@ -149,10 +149,7 @@ function createInputComponentStyles(
         : disabled
           ? theme.backgrounds.border
           : 'transparent',
-    // Focus ring
-    ...(focused && !disabled && typeof window !== 'undefined' && theme.states?.focusRing && {
-      boxShadow: `0 0 0 2px ${theme.states.focusRing}`,
-    }),
+    // No focus ring/glow — focus is carried by `borderColor` above.
     // Subtle shadow
     ...(!disabled && theme.colorScheme === 'light' && {
       boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',

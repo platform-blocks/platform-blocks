@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Render custom option layouts with detail text and selected state styling.
+Render each option with additional detail and selection styling using `renderOption`.

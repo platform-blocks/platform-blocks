@@ -22,7 +22,6 @@ props:
   labelProps: Override props applied to the inner label `<Text>` (style, weight, ff, size, colorVariant)
 examples:
   - basic
-  - label-customization
 ---
 
 A row button used inside menus and command palettes. The inner label `<Text>` accepts the full Text-prop API via `labelProps` (`ff`, `weight`, `tracking`, `uppercase`, `colorVariant`, `style`).

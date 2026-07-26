@@ -1,10 +1,9 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { View, Platform, Pressable, ViewStyle } from 'react-native';
 import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme';
 import { getRadius, getSpacing } from '../../core/theme/sizes';
-import { useOverlayApi } from '../../core/providers/OverlayProvider';
-import { measureElement, calculateOverlayPositionEnhanced } from '../../core/utils/positioning-enhanced';
+import { useDropdownPositioning } from '../../core/hooks/useDropdownPositioning';
 import type { HoverCardProps, HoverCardFactoryPayload } from './types';
 
 // A lightweight hover-activated floating panel similar to Mantine HoverCard
@@ -12,7 +11,7 @@ function HoverCardBase(props: HoverCardProps, ref: React.Ref<View>) {
   const {
     children,
     target,
-    position = 'bottom',
+    position: position_ = 'bottom',
     offset = 8,
     openDelay = 100,
     closeDelay = 150,
@@ -36,15 +35,45 @@ function HoverCardBase(props: HoverCardProps, ref: React.Ref<View>) {
   const openTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<View>(null);
-  const overlayIdRef = useRef<string | null>(null);
   const isHoveringTargetRef = useRef(false);
   const isHoveringOverlayRef = useRef(false);
   const isOpenedRef = useRef(false);
   const theme = useTheme();
-  const { openOverlay, closeOverlay } = useOverlayApi();
 
   const isOpened = controlledOpened !== undefined ? controlledOpened : opened;
   isOpenedRef.current = isOpened;
+
+  /**
+   * Positioning, measurement and overlay lifecycle all come from the shared
+   * hook now.
+   *
+   * The hand-rolled version this replaces measured the trigger behind a pair of
+   * `setTimeout`s, assumed a flat `120px` card height, positioned once, and then
+   * never looked again — so a card whose content was taller than the guess
+   * opened on the wrong side of a trigger near the viewport edge, and any scroll
+   * left it stranded at its original coordinates. The hook measures the card
+   * itself, caps it to the space available, pins it to the trigger-adjacent edge
+   * and keeps it docked as the page scrolls.
+   */
+  const {
+    position,
+    anchorRef,
+    popoverRef,
+    showOverlay,
+    hideOverlay,
+  } = useDropdownPositioning({
+    isOpen: isOpened && !disabled,
+    placement: position_,
+    offset,
+    flip: true,
+    shift: true,
+    closeOnClickOutside: trigger !== 'hover',
+    closeOnEscape,
+    onClose: () => handleCloseRef.current(),
+  });
+
+  // `handleClose` is defined below but referenced by the hook's onClose above.
+  const handleCloseRef = useRef<() => void>(() => {});
 
   const clearTimers = useCallback(() => {
     if (openTimeout.current) { clearTimeout(openTimeout.current); openTimeout.current = null; }
@@ -82,14 +111,13 @@ function HoverCardBase(props: HoverCardProps, ref: React.Ref<View>) {
 
   const handleClose = useCallback(() => {
     if (!isOpenedRef.current) return;
-    if (overlayIdRef.current) {
-      closeOverlay(overlayIdRef.current);
-      overlayIdRef.current = null;
-    }
+    hideOverlay();
     setOpened(false);
     isOpenedRef.current = false;
     onClose?.();
-  }, [closeOverlay, onClose]);
+  }, [hideOverlay, onClose]);
+
+  handleCloseRef.current = handleClose;
 
   // Escape key (web only)
   useEffect(() => {
@@ -110,92 +138,54 @@ function HoverCardBase(props: HoverCardProps, ref: React.Ref<View>) {
     }, closeDelay);
   }, [handleClose, closeDelay, clearTimers]);
 
-  const handleOpen = useCallback(async () => {
+  const handleOpen = useCallback(() => {
     if (disabled || isOpenedRef.current) return;
+    setOpened(true);
+    isOpenedRef.current = true;
+    onOpen?.();
+  }, [disabled, onOpen]);
 
-    try {
-      // Wait a tick to ensure layout
-      await new Promise(resolve => setTimeout(resolve, 10));
-
-      // Measure anchor element
-      const triggerRect = await measureElement(containerRef);
-      console.log('[HoverCard] triggerRect:', triggerRect);
-
-      // Retry if zero dimensions
-      if (triggerRect.width === 0 && triggerRect.height === 0) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        const retryRect = await measureElement(containerRef);
-        console.log('[HoverCard] retryRect:', retryRect);
-        if (retryRect.width > 0 || retryRect.height > 0) {
-          Object.assign(triggerRect, retryRect);
-        }
-      }
-
-      // Calculate overlay size
-      const overlayWidth = w || 240;
-      const overlayHeight = 120; // estimate
-      const overlaySize = { width: overlayWidth, height: overlayHeight };
-
-      // Calculate position using same logic as Menu
-      const positionResult = calculateOverlayPositionEnhanced(triggerRect, overlaySize, {
-        placement: position,
-        offset,
-        strategy: strategy === 'portal' ? 'fixed' : strategy,
-      });
-      console.log('[HoverCard] positionResult:', positionResult);
-
-      // Build overlay content
-      const overlayContent = (
-        <View
-          style={[
-            {
-              backgroundColor: theme.colors.gray[0],
-              borderRadius: getRadius(radius),
-              paddingHorizontal: getSpacing('md'),
-              paddingVertical: getSpacing('sm'),
-              borderWidth: 1,
-              borderColor: theme.colors.gray[3],
-              minWidth: w || 160,
-              maxWidth: w || 320,
-            },
-            shadowStyle,
-          ]}
-          {...(Platform.OS === 'web' && trigger === 'hover' ? {
-            onMouseEnter: () => { isHoveringOverlayRef.current = true; clearTimers(); },
-            onMouseLeave: () => { isHoveringOverlayRef.current = false; scheduleClose(); },
-          } : {})}
-        >
-          {children}
-          {renderArrow(positionResult.placement)}
-        </View>
-      );
-
-      // Open overlay - use positionResult.x and positionResult.y as the final position
-      console.log('[HoverCard] Opening overlay at:', { x: positionResult.x, y: positionResult.y });
-      const overlayId = openOverlay({
-        content: overlayContent,
-        anchor: { x: positionResult.x, y: positionResult.y, width: overlaySize.width, height: overlaySize.height },
-        trigger,
-        closeOnClickOutside: trigger !== 'hover',
-        closeOnEscape,
-        strategy,
-        zIndex,
-        onClose: () => {
-          overlayIdRef.current = null;
-          setOpened(false);
-          isOpenedRef.current = false;
-          onClose?.();
+  const overlayContent = useMemo(() => (
+    <View
+      ref={popoverRef}
+      style={[
+        {
+          backgroundColor: theme.colors.gray[0],
+          borderRadius: getRadius(radius),
+          paddingHorizontal: getSpacing('md'),
+          paddingVertical: getSpacing('sm'),
+          borderWidth: 1,
+          borderColor: theme.colors.gray[3],
+          minWidth: w || 160,
+          maxWidth: w || 320,
         },
-      });
+        shadowStyle,
+      ]}
+      {...(Platform.OS === 'web' && trigger === 'hover' ? {
+        onMouseEnter: () => { isHoveringOverlayRef.current = true; clearTimers(); },
+        onMouseLeave: () => { isHoveringOverlayRef.current = false; scheduleClose(); },
+      } : {})}
+    >
+      {children}
+      {renderArrow(position?.placement ?? position_)}
+    </View>
+  ), [popoverRef, theme.colors.gray, radius, w, shadowStyle, trigger, clearTimers, scheduleClose, children, renderArrow, position?.placement, position_]);
 
-      overlayIdRef.current = overlayId;
-      setOpened(true);
-      isOpenedRef.current = true;
-      onOpen?.();
-    } catch (error) {
-      console.warn('Failed to open hover card:', error);
-    }
-  }, [disabled, w, position, offset, strategy, closeOnEscape, zIndex, trigger, theme, radius, shadowStyle, children, onOpen, onClose, openOverlay, clearTimers, scheduleClose, renderArrow]);
+  // Push the card once the hook has measured a position, and update it in place
+  // afterwards — re-opening the overlay on every position change would tear down
+  // the node the pointer is hovering and close the card out from under it.
+  useEffect(() => {
+    if (!isOpened || !position) return;
+
+    showOverlay(overlayContent, {
+      zIndex,
+      trigger,
+      strategy,
+      maxHeight: position.maxHeight,
+    });
+  }, [isOpened, position, overlayContent, showOverlay, zIndex, trigger, strategy]);
+
+  useEffect(() => () => hideOverlay(), [hideOverlay]);
 
   const scheduleOpen = useCallback(() => {
     clearTimers();
@@ -223,15 +213,18 @@ function HoverCardBase(props: HoverCardProps, ref: React.Ref<View>) {
     targetProps.onPress = handleToggle;
   }
 
-  // Create a callback ref that forwards to both internal and external refs
+  // Create a callback ref that forwards to both internal and external refs, and
+  // to the positioning hook's anchor — the container is what the card is
+  // measured against and stays docked to.
   const combinedRef = useCallback((node: View | null) => {
     containerRef.current = node;
+    (anchorRef as any).current = node;
     if (typeof ref === 'function') {
       ref(node);
     } else if (ref) {
       (ref as any).current = node;
     }
-  }, [ref]);
+  }, [ref, anchorRef]);
 
   return (
     <View 

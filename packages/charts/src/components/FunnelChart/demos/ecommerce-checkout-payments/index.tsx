@@ -1,31 +1,12 @@
 import { FunnelChart } from '../../';
 
-type CheckoutMeta = {
-  insight?: string;
-  paymentSplit?: {
-    stripe: number;
-    paypal: number;
-    bnpl: number;
-  };
-};
+import { CHECKOUT_FUNNEL, CheckoutMeta } from './data';
 
 const compact = (value: number) => {
   const abs = Math.abs(value);
   if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
   if (abs >= 1_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
   return `${value}`;
-};
-
-const CHECKOUT_FUNNEL = {
-  id: 'checkout-flow',
-  name: 'Checkout completion',
-  steps: [
-    { label: 'Product views', value: 158_000, color: '#7c3aed' },
-    { label: 'Carts', value: 89_400, color: '#8b5cf6', meta: { insight: 'Shipping cost surprises prompt abandon' } as CheckoutMeta },
-    { label: 'Shipping', value: 74_200, color: '#a855f7', meta: { insight: 'Address autocomplete boosted completion +12%' } as CheckoutMeta },
-    { label: 'Payment', value: 51_200, color: '#c084fc', meta: { insight: 'Card validations reject 28% due to CVV retries' } as CheckoutMeta },
-    { label: 'Orders', value: 38_600, color: '#d8b4fe', meta: { paymentSplit: { stripe: 0.52, paypal: 0.31, bnpl: 0.17 } } as CheckoutMeta },
-  ],
 };
 
 const formatPaymentSplit = (split: CheckoutMeta['paymentSplit']) => {

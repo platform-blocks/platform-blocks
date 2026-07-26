@@ -1,7 +1,7 @@
 ---
 title: Server-side pagination
 category: usage
-order: 60
+order: 80
 tags: [datatable, pagination, server, api, manual]
 highlightLines: []
 status: stable

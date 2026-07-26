@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ColorInput, Column, Text } from '@platform-blocks/ui';
+import { Block, ColorInput, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [color1, setColor1] = useState('#2196F3');
@@ -17,8 +17,8 @@ export default function Demo() {
   ];
 
   return (
-    <Column gap="md" fullWidth>
-      <Column gap="xs" fullWidth>
+    <Block fullWidth>
+      <Block fullWidth>
         <Text size="sm" weight="semibold">
           Custom blue palette
         </Text>
@@ -29,9 +29,9 @@ export default function Demo() {
           label="Blue shades"
           fullWidth
         />
-      </Column>
+      </Block>
 
-      <Column gap="xs" fullWidth>
+      <Block fullWidth>
         <Text size="sm" weight="semibold">
           Custom green palette
         </Text>
@@ -42,9 +42,9 @@ export default function Demo() {
           label="Green shades"
           fullWidth
         />
-      </Column>
+      </Block>
 
-      <Column gap="xs" fullWidth>
+      <Block fullWidth>
         <Text size="sm" weight="semibold">
           Without swatches
         </Text>
@@ -55,7 +55,7 @@ export default function Demo() {
           label="Color wheel only"
           fullWidth
         />
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

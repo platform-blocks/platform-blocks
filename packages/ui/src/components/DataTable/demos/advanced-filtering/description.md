@@ -3,10 +3,10 @@ title: Column Filters
 category: behavior
 order: 20
 tags: [datatable, filters]
-highlightLines: [44-53]
+highlightLines: []
 status: stable
 since: 1.0.0
 hidden: false
 ---
 
-Toggle `filterable` on each column to surface context-aware controls and provide quick clearing for active filters.
+Mark columns `filterable` and set `filterType` to pick the control: an input for `text`/`number`/`date`, a dropdown for `select`/`boolean` (options auto-derived from the data when `filterOptions` is omitted). `showColumnFilters` renders those controls as a persistent row under the headers; omit it to keep them in each header's filter menu.

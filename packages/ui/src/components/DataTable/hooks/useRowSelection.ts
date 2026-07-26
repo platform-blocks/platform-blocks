@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useControllableState } from '../../../hooks/useControllableState';
 
 interface UseRowSelectionProps {
   /** All row IDs in current view (after filtering/pagination) */
@@ -44,19 +45,13 @@ export function useRowSelection({
   persistAcrossPagination = false
 }: UseRowSelectionProps): UseRowSelectionReturn {
   
-  const [internalSelectedRows, setInternalSelectedRows] = useState<(string | number)[]>(initialSelectedRows);
+  const [selectedRows, updateSelection] = useControllableState<(string | number)[]>({
+    value: controlledSelectedRows,
+    defaultValue: initialSelectedRows,
+    finalValue: [],
+    onChange: onSelectionChange,
+  });
   const lastSelectedRowRef = useRef<string | number | null>(null);
-  
-  // Use controlled or internal state
-  const selectedRows = controlledSelectedRows !== undefined ? controlledSelectedRows : internalSelectedRows;
-  
-  const updateSelection = useCallback((newSelection: (string | number)[]) => {
-    if (onSelectionChange) {
-      onSelectionChange(newSelection);
-    } else {
-      setInternalSelectedRows(newSelection);
-    }
-  }, [onSelectionChange]);
 
   // Computed values
   const visibleSelectedRows = useMemo(() => {

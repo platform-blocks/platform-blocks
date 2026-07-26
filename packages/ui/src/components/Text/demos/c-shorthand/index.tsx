@@ -1,8 +1,8 @@
-import { Column, Text } from '@platform-blocks/ui';
+import { Block, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="md">
+    <Block>
       <Text weight="semibold">c (color shorthand)</Text>
 
       <Text c="dimmed">c="dimmed" — maps to theme.text.muted</Text>
@@ -20,6 +20,6 @@ export default function Demo() {
         <Text c="dimmed">subtle inline text</Text> next to{' '}
         <Text c="primary" weight="600">brand text</Text>.
       </Text>
-    </Column>
+    </Block>
   );
 }

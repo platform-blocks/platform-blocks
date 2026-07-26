@@ -1,9 +1,11 @@
-import { Alert } from 'react-native';
+import { useRef } from 'react';
+import { Alert, TextInput } from 'react-native';
 
-import { Button, Column, Input, Row, Text, useDialog } from '@platform-blocks/ui';
+import { Block, Button, Input, Row, Text, useDialog } from '@platform-blocks/ui';
 
 export default function Demo() {
   const { openDialog, closeDialog } = useDialog();
+  const nameRef = useRef<TextInput>(null);
 
   const showFormDialog = () => {
     let formData = { name: '', email: '' };
@@ -11,13 +13,18 @@ export default function Demo() {
     const dialogId = openDialog({
       variant: 'modal',
       title: 'Create Account',
+      // Focus the name field once the open transition settles. `autoFocus: true`
+      // picks the first focusable field automatically, but only on web — a ref
+      // works on every platform.
+      autoFocus: nameRef,
       content: (
-        <Column gap="md" p="md">
+        <Block p="md">
           <Text size="sm" colorVariant="secondary">
             Fill in your details to create an account.
           </Text>
 
           <Input
+            inputRef={nameRef}
             placeholder="Your name"
             label="Name"
             onChangeText={(text) => {
@@ -35,12 +42,12 @@ export default function Demo() {
           />
 
           <Row gap="sm" mt="sm">
-            <Column grow={1}>
-              <Button fullWidth variant="outline" onPress={() => closeDialog(dialogId)}>
+            <Block grow={1}>
+              <Button fullWidth variant="secondary" onPress={() => closeDialog(dialogId)}>
                 Cancel
               </Button>
-            </Column>
-            <Column grow={1}>
+            </Block>
+            <Block grow={1}>
               <Button
                 fullWidth
                 onPress={() => {
@@ -52,12 +59,13 @@ export default function Demo() {
                   Alert.alert('Success', `Account created for ${formData.name}`);
                   closeDialog(dialogId);
                 }}
+                variant="filled"
               >
                 Create account
               </Button>
-            </Column>
+            </Block>
           </Row>
-        </Column>
+        </Block>
       )
     });
   };

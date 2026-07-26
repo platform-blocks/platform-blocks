@@ -1,4 +1,4 @@
-import { Column, Markdown, Text } from '@platform-blocks/ui';
+import { Block, Markdown, Text } from '@platform-blocks/ui';
 
 const CONTENT = `# Hello Markdown
 
@@ -14,11 +14,11 @@ Inline code: \`const x = 42;\``;
 
 export default function Demo() {
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <Markdown>{CONTENT}</Markdown>
       <Text size="sm" colorVariant="secondary">
         Rendered using the default Markdown renderer
       </Text>
-    </Column>
+    </Block>
   );
 }

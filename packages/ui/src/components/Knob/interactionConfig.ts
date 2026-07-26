@@ -1,5 +1,8 @@
 import type { KnobInteractionConfig, KnobInteractionMode } from './types';
 
+const clampNumber = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
+
 export type NormalizedInteractionConfig = {
   modes: KnobInteractionMode[];
   lockThresholdPx: number;
@@ -11,6 +14,8 @@ export type NormalizedInteractionConfig = {
   spinDeadZoneDegrees: number;
   spinPrecisionRadius?: number;
   respectStartSide: boolean;
+  tapToSet: boolean;
+  tapDeadRadiusRatio: number;
   scroll: { enabled: boolean; ratio: number; invert: boolean; preventPageScroll: boolean };
   onModeChange?: (mode: KnobInteractionMode | null) => void;
 };
@@ -45,6 +50,7 @@ export const normalizeInteractionConfig = (
   const spinStopAtLimits = Boolean((config as any)?.spinStopAtLimits);
   const spinDeadZoneRaw = (config as any)?.spinDeadZoneDegrees;
   const slideHysteresisRaw = (config as any)?.slideHysteresisPx;
+  const tapDeadRadiusRaw = (config as any)?.tapDeadRadiusRatio;
 
   const scrollEnabled =
     scrollConfig.enabled !== undefined ? !!scrollConfig.enabled : uniqueModes.includes('scroll');
@@ -82,6 +88,12 @@ export const normalizeInteractionConfig = (
       (config as any)?.respectStartSide === undefined
         ? true
         : Boolean((config as any)?.respectStartSide),
+    tapToSet:
+      (config as any)?.tapToSet === undefined ? true : Boolean((config as any)?.tapToSet),
+    tapDeadRadiusRatio:
+      typeof tapDeadRadiusRaw === 'number' && Number.isFinite(tapDeadRadiusRaw)
+        ? clampNumber(tapDeadRadiusRaw, 0, 1)
+        : 0.15,
     scroll: {
       enabled: scrollEnabled,
       ratio:

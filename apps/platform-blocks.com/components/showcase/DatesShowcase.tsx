@@ -324,14 +324,11 @@ const DatesPlayground: React.FC = () => {
                   Time picker panel
                 </Text>
                 <TimePicker
-                  label="Team standup"
                   value={timeValue}
                   onChange={(next) => setTimeValue(next)}
                   format={12}
                   withSeconds
                   minuteStep={5}
-                  clearable
-                  fullWidth
                 />
                 <Text size="xs" colorVariant="secondary">
                   Scheduled: {formatTime(timeValue, true)}

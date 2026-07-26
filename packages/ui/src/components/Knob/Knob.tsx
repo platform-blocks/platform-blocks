@@ -1,8 +1,7 @@
-import React, { MutableRefObject, useCallback, useEffect, useMemo, useRef } from 'react';
-import { NativeSyntheticEvent, TextInputKeyPressEventData, Platform } from 'react-native';
+import React, { MutableRefObject, useCallback, useMemo, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import type { View } from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme';
@@ -15,6 +14,7 @@ import {
 } from '../../core/utils';
 import type {
   KnobProps,
+  KnobBehavior,
   KnobMark,
   KnobValueLabelConfig,
   KnobValueLabelPosition,
@@ -24,6 +24,7 @@ import type {
   KnobRootProps,
   KnobFillPartProps,
   KnobRingPartProps,
+  KnobRingSegmentPartProps,
   KnobProgressPartProps,
   KnobTickLayerPartProps,
   KnobPointerPartProps,
@@ -38,8 +39,11 @@ import {
   getArcAngleFromRatio,
   buildArcPathForSweep,
   buildArcPathBetweenAngles,
+  buildArcPathBetweenRatios,
+  getSignedArcSweepBetweenRatios,
 } from './arc';
 import { resolveKnobAppearance } from './appearance';
+import { resolveKnobSize } from './sizes';
 import { clamp } from './utils/math';
 import { findClosestMarkEntry } from './utils/marks';
 import { toRadians } from './utils/geometry';
@@ -47,6 +51,7 @@ import { useKnobGeometry } from './hooks/useKnobGeometry';
 import { useKnobValue } from './hooks/useKnobValue';
 import { useKnobValueLabels } from './hooks/useKnobValueLabels';
 import { useKnobGestures } from './hooks/useKnobGestures';
+import { useKnobKeyboard } from './hooks/useKnobKeyboard';
 import { normalizeInteractionConfig } from './interactionConfig';
 import { knobStyles as styles } from './styles';
 import { KnobSurface } from './components/KnobSurface';
@@ -64,10 +69,25 @@ const getGestureDegreeSpan = (isEndless: boolean, sweepAngle: number) => {
   return Math.min(360, Math.max(1, sweepAngle));
 };
 
-const getKeyFromEvent = (event: NativeSyntheticEvent<TextInputKeyPressEventData> | any) => {
-  const nativeEvent = event?.nativeEvent ?? event;
-  return nativeEvent?.key ?? nativeEvent?.code;
-};
+/**
+ * `variant` used to carry these. It now carries the visual presets, so a behavior value
+ * arriving on `variant` is routed to `behavior` and flagged. The two sets are disjoint,
+ * which is what makes telling them apart at runtime safe.
+ */
+const LEGACY_BEHAVIOR_VARIANTS = new Set<string>(['level', 'stepped', 'endless', 'dual', 'status']);
+
+let hasWarnedLegacyVariant = false;
+const warnLegacyVariant = __DEV__
+  ? (value: string) => {
+    if (hasWarnedLegacyVariant) return;
+    hasWarnedLegacyVariant = true;
+    console.warn(
+      `[Knob] \`variant="${value}"\` is a behavior, not a visual style — pass it as ` +
+      `\`behavior="${value}"\`. \`variant\` now selects the visual preset ` +
+      '(default | minimal | digital | retro | studio).'
+    );
+  }
+  : () => { };
 
 const KnobBase = factory<{
   props: KnobProps;
@@ -86,7 +106,7 @@ const KnobBase = factory<{
     onChangeEnd,
     onScrubStart,
     onScrubEnd,
-    size: sizeProp = 120,
+    size: sizeProp,
     thumbSize: thumbSizeProp,
     disabled = false,
     readOnly = false,
@@ -96,7 +116,8 @@ const KnobBase = factory<{
     marks,
     restrictToMarks: restrictToMarksProp,
     mode: modeProp,
-    variant,
+    behavior: behaviorProp,
+    variant: variantProp,
     label,
     description,
     labelPosition = 'top',
@@ -116,14 +137,22 @@ const KnobBase = factory<{
   const layoutStyles = useMemo(() => getLayoutStyles(layoutProps), [layoutProps]);
 
   const hasLabelContent = label != null || description != null;
-  const resolvedMode = modeProp ?? (variant === 'endless' ? 'endless' : 'bounded');
-  const resolvedVariant = variant ?? (resolvedMode === 'endless' ? 'endless' : 'level');
+  const legacyBehaviorFromVariant = LEGACY_BEHAVIOR_VARIANTS.has(variantProp as string)
+    ? (variantProp as unknown as KnobBehavior)
+    : undefined;
+  if (legacyBehaviorFromVariant) {
+    warnLegacyVariant(legacyBehaviorFromVariant);
+  }
+  const variant = legacyBehaviorFromVariant ? undefined : variantProp;
+  const behavior = behaviorProp ?? legacyBehaviorFromVariant;
+  const resolvedMode = modeProp ?? (behavior === 'endless' ? 'endless' : 'bounded');
+  const resolvedBehavior = behavior ?? (resolvedMode === 'endless' ? 'endless' : 'level');
   const isEndless = resolvedMode === 'endless';
 
-  const size = Math.max(60, sizeProp);
+  const size = resolveKnobSize(sizeProp);
   const baseThumbSize = thumbSizeProp ?? Math.max(12, Math.round(size * 0.18));
 
-  const { layoutState, handleLayout, centerX, centerY, radiusValue, angle } = useKnobGeometry(size);
+  const { layoutState, handleLayout } = useKnobGeometry(size);
 
   const interactionConfig = useMemo(
     () => normalizeInteractionConfig(appearance?.interaction),
@@ -135,23 +164,28 @@ const KnobBase = factory<{
     [appearance?.arc, isEndless]
   );
 
-  const valueToAngle = useCallback(
-    (val: number) => {
+  // Returns null when the range is degenerate, so callers can fall back to `startAngle`.
+  const valueToRatio = useCallback(
+    (val: number): number | null => {
       if (isEndless) {
         const spanRaw = max - min;
         const span = spanRaw === 0 ? 360 : Math.abs(spanRaw);
-        if (!Number.isFinite(span) || span <= 0) {
-          return arcConfig.startAngle;
-        }
-        const normalized = ((val - min) % span + span) % span;
-        const ratio = normalized / span;
-        return getArcAngleFromRatio(arcConfig, ratio);
+        if (!Number.isFinite(span) || span <= 0) return null;
+        return (((val - min) % span) + span) % span / span;
       }
-      if (max <= min) return arcConfig.startAngle;
-      const ratio = clamp((val - min) / (max - min), 0, 1);
+      if (max <= min) return null;
+      return clamp((val - min) / (max - min), 0, 1);
+    },
+    [isEndless, max, min]
+  );
+
+  const valueToAngle = useCallback(
+    (val: number) => {
+      const ratio = valueToRatio(val);
+      if (ratio === null) return arcConfig.startAngle;
       return getArcAngleFromRatio(arcConfig, ratio);
     },
-    [isEndless, max, min, arcConfig]
+    [valueToRatio, arcConfig]
   );
 
   const {
@@ -170,20 +204,35 @@ const KnobBase = factory<{
     step,
     marks,
     restrictToMarksProp,
-    resolvedVariant,
+    resolvedBehavior,
     isEndless,
     onChange,
     onChangeEnd,
-    angle,
-    valueToAngle,
   });
+
+  // Drives the thumb's press state. The gesture layer already brackets every scrub with
+  // these callbacks, so this rides along rather than tracking the pointer a second time.
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const handleScrubStart = useCallback(() => {
+    setIsScrubbing(true);
+    onScrubStart?.();
+  }, [onScrubStart]);
+  const handleScrubEnd = useCallback(() => {
+    setIsScrubbing(false);
+    onScrubEnd?.();
+  }, [onScrubEnd]);
 
   const activeMark = useMemo(
     () => findClosestMarkEntry(displayValue, marksNormalized),
     [displayValue, marksNormalized]
   );
-  const statusAccent =
-    !disabled && resolvedVariant === 'status' && activeMark?.accentColor
+  // The nearest mark's accent can take over the knob's own accent — always for `status`
+  // scenes, and for anything else that opts in with `appearance.accentFromMarks`. From
+  // there it flows through `resolveKnobAppearance` into the thumb, arm and progress arc.
+  const markAccent =
+    !disabled &&
+      (resolvedBehavior === 'status' || appearance?.accentFromMarks) &&
+      activeMark?.accentColor
       ? activeMark.accentColor
       : undefined;
 
@@ -191,14 +240,15 @@ const KnobBase = factory<{
     () =>
       resolveKnobAppearance({
         appearance,
+        variant,
         theme,
-        variant: resolvedVariant,
+        behavior: resolvedBehavior,
         disabled,
         size,
         thumbSize: baseThumbSize,
-        accentColor: statusAccent,
+        accentColor: markAccent,
       }),
-    [appearance, theme, resolvedVariant, disabled, size, baseThumbSize, statusAccent]
+    [appearance, variant, theme, resolvedBehavior, disabled, size, baseThumbSize, markAccent]
   );
 
   const panningConfig = resolvedAppearance.panning;
@@ -211,7 +261,17 @@ const KnobBase = factory<{
   const progressMode = resolvedAppearance.progress?.mode ?? 'none';
   const showProgress = !!resolvedAppearance.progress && progressMode !== 'none' && !isEndless;
   const showSplitProgress = showProgress && progressMode === 'split' && max > min;
-  const showContiguousProgress = showProgress && progressMode !== 'split';
+  // `ring.segmentMode: 'progress'` promotes the bands from a static backdrop to the progress
+  // arc itself. They then own the fill, so the plain contiguous stroke would only paint over
+  // them. Split progress keeps its own two-arc rendering and is left alone.
+  const segmentsDriveProgress =
+    resolvedAppearance.ring.segmentMode === 'progress' &&
+    resolvedAppearance.ring.segments.length > 0 &&
+    !showSplitProgress &&
+    !isEndless &&
+    max > min;
+  const showContiguousProgress =
+    showProgress && progressMode !== 'split' && !segmentsDriveProgress;
   const progressRatio = showContiguousProgress ? boundedRatio : 0;
 
   const defaultPivotValue = useMemo(() => (max <= min ? min : min + (max - min) / 2), [min, max]);
@@ -284,6 +344,65 @@ const KnobBase = factory<{
     [arcConfig, ringRadius, ringSvgCenter]
   );
 
+  // Bands laid end to end from `min`, each consuming `value` units of the range — the rotary
+  // equivalent of stacking `Progress.Section`s. Butt caps keep neighbours meeting cleanly
+  // instead of overlapping into bulges the way the ring's default round cap would.
+  const ringSegmentPaths = useMemo(() => {
+    const segments = resolvedAppearance.ring.segments;
+    if (!segments.length) return [];
+    const span = max - min;
+    if (!Number.isFinite(span) || span <= 0) return [];
+
+    // Driving the progress means the bands stop at the current value, and sit on the
+    // progress track rather than the ring so they land exactly where the stroke they are
+    // replacing would have.
+    const limitRatio = segmentsDriveProgress ? boundedRatio : 1;
+    if (limitRatio <= 0) return [];
+    const baseThickness = segmentsDriveProgress ? progressThickness : ringThickness;
+    const baseRadius = segmentsDriveProgress ? progressRadius : ringRadius;
+    const defaultColor = segmentsDriveProgress
+      ? resolvedAppearance.progress?.color ?? resolvedAppearance.ring.color
+      : resolvedAppearance.ring.color;
+
+    const paths: { key: string; path: string; color: string; thickness: number }[] = [];
+    let consumed = 0;
+    segments.forEach((segment, index) => {
+      const fromRatio = consumed / span;
+      if (fromRatio >= limitRatio) return;
+      consumed += segment.value;
+      const thickness = segment.thickness ?? baseThickness;
+      const path = buildArcPathBetweenRatios(
+        arcConfig,
+        baseRadius + (baseThickness - thickness) / 2,
+        fromRatio,
+        Math.min(consumed / span, limitRatio),
+        { cx: ringSvgCenter, cy: ringSvgCenter }
+      );
+      if (!path) return;
+      paths.push({
+        key: `${index}`,
+        path,
+        color: segment.color ?? defaultColor,
+        thickness,
+      });
+    });
+    return paths;
+  }, [
+    resolvedAppearance.ring.segments,
+    resolvedAppearance.ring.color,
+    resolvedAppearance.progress?.color,
+    segmentsDriveProgress,
+    boundedRatio,
+    min,
+    max,
+    arcConfig,
+    ringRadius,
+    ringThickness,
+    progressRadius,
+    progressThickness,
+    ringSvgCenter,
+  ]);
+
   const progressPath = useMemo(
     () =>
       showContiguousProgress
@@ -308,15 +427,6 @@ const KnobBase = factory<{
     },
     [ref]
   );
-
-  useEffect(() => {
-    centerX.value = layoutState.cx;
-    centerY.value = layoutState.cy;
-  }, [layoutState, centerX, centerY]);
-
-  useEffect(() => {
-    radiusValue.value = Math.max(0, ringRadius + thumbOffset);
-  }, [ringRadius, thumbOffset, radiusValue]);
 
   const valueSpan = useMemo(() => {
     const rawSpan = Math.abs(max - min);
@@ -356,12 +466,21 @@ const KnobBase = factory<{
     if (isAtPivot) {
       return { positivePath: '', negativePath: '', pivotAngle };
     }
+    // Walk the arc from the pivot by a signed sweep rather than aiming at `displayAngle`
+    // directly — both angles are independently wrapped into [0,360), so the raw difference
+    // can run the long way around (symptom: left-of-center pans drew a near-full ring).
+    const pivotRatio = valueToRatio(pivotValue);
+    const displayRatio = valueToRatio(displayValue);
+    if (pivotRatio === null || displayRatio === null) {
+      return { positivePath: '', negativePath: '', pivotAngle };
+    }
+    const sweep = getSignedArcSweepBetweenRatios(arcConfig, pivotRatio, displayRatio);
     const path = buildArcPathBetweenAngles(
       ringSvgCenter,
       ringSvgCenter,
       progressRadius,
       pivotAngle,
-      displayAngle
+      pivotAngle + sweep
     );
     if (!path) {
       return { positivePath: '', negativePath: '', pivotAngle };
@@ -375,8 +494,11 @@ const KnobBase = factory<{
     ringSvgCenter,
     progressRadius,
     pivotAngle,
-    displayAngle,
     pivotDelta,
+    pivotValue,
+    displayValue,
+    valueToRatio,
+    arcConfig,
   ]);
 
   const progressStrokeColor = resolvedAppearance.progress?.color ?? resolvedAppearance.ring.color;
@@ -404,11 +526,6 @@ const KnobBase = factory<{
     };
   }, [showZeroIndicator, splitProgressState, progressThickness, progressRadius, ringSvgCenter]);
 
-  useEffect(() => {
-    valueRef.current = displayValue;
-    angle.value = valueToAngle(displayValue);
-  }, [displayValue, valueToAngle, angle]);
-
   const { panHandlers } = useKnobGestures({
     disabled,
     readOnly,
@@ -420,8 +537,8 @@ const KnobBase = factory<{
     gestureDegreeSpan,
     layoutState,
     handleValueUpdate,
-    onScrubStart,
-    onScrubEnd,
+    onScrubStart: handleScrubStart,
+    onScrubEnd: handleScrubEnd,
     onChangeEnd,
     valueRef,
     hostRef,
@@ -436,7 +553,8 @@ const KnobBase = factory<{
   const panningValueFormatter = panningConfig?.valueFormatter;
 
   const { valueLabelSlots } = useKnobValueLabels({
-    resolvedVariant,
+    resolvedBehavior,
+    size,
     withLabel,
     valueLabelProp,
     formatLabel,
@@ -449,21 +567,38 @@ const KnobBase = factory<{
     activeMark,
   });
 
-  // ✅ Fixed alignment math
-  const thumbAnimatedStyle = useAnimatedStyle(() => {
-    const rad = toRadians(angle.value);
-    const r = radiusValue.value;
-    const x = r * Math.sin(rad);
-    const y = -r * Math.cos(rad);
+  // Positioned during render (not via a post-commit effect) so the thumb paints at the
+  // correct angle on the very first frame instead of snapping in from 12 o'clock. The press
+  // scale rides in the same array because a style key can only be set once — `transform`
+  // from a later style object would replace this one rather than merge with it.
+  const thumbRadius = Math.max(0, ringRadius + thumbOffset);
+  const thumbActiveScale = resolvedAppearance.thumb?.activeScale ?? 1;
+  const thumbScale = isScrubbing ? thumbActiveScale : 1;
+  const thumbTransformStyle = useMemo<ViewStyle>(() => {
+    const rad = toRadians(displayAngle);
     return {
-      transform: [{ translateX: x }, { translateY: y }],
+      transform: [
+        { translateX: thumbRadius * Math.sin(rad) },
+        { translateY: -thumbRadius * Math.cos(rad) },
+        // Applied after the translation, so the thumb grows in place instead of drifting.
+        { scale: thumbScale },
+      ],
     };
-  }, [radiusValue, angle]);
+  }, [displayAngle, thumbRadius, thumbScale]);
 
-  const webTabIndex = (disabled ? -1 : 0) as 0 | -1;
-  const keyboardHandlers = Platform.OS === 'web'
-    ? { onKeyDown: () => { }, tabIndex: webTabIndex }
-    : {};
+  const { keyboardHandlers, accessibilityActions, onAccessibilityAction } = useKnobKeyboard({
+    disabled,
+    readOnly,
+    min,
+    max,
+    step,
+    isEndless,
+    restrictToMarks,
+    marksNormalized,
+    valueRef,
+    handleValueUpdate,
+    isRTL,
+  });
 
   const ringBaseStroke = showProgress
     ? resolvedAppearance.progress?.trailColor ?? resolvedAppearance.ring.trailColor
@@ -484,6 +619,7 @@ const KnobBase = factory<{
     ringBackgroundColor: resolvedAppearance.ring.backgroundColor,
     ringBaseStroke,
     ringPath,
+    ringSegmentPaths,
     ringThickness,
     ringCap: ringStrokeCap,
     ringShadowStyle,
@@ -518,7 +654,7 @@ const KnobBase = factory<{
     boundedRatio,
     size,
     thumbSize,
-    resolvedVariant,
+    resolvedBehavior,
     displayValue,
     activeMark,
     disabled,
@@ -541,10 +677,11 @@ const KnobBase = factory<{
     thumbSize,
     thumbColor,
     disabled,
-    thumbAnimatedStyle,
+    thumbTransformStyle,
     thumbStyle,
     displayValue,
     displayAngle,
+    isScrubbing,
   };
 
   const knobSurface = (
@@ -560,6 +697,8 @@ const KnobBase = factory<{
       panHandlers={panHandlers}
       handleLayout={handleLayout}
       keyboardHandlers={keyboardHandlers}
+      accessibilityActions={accessibilityActions}
+      onAccessibilityAction={onAccessibilityAction}
       surfaceLayersProps={surfaceLayersProps}
       tickLayersProps={tickLayersProps}
       pointerLayerProps={pointerLayerProps}
@@ -602,6 +741,10 @@ const createPartComponent = <P extends object>(
 
 const KnobFillPart = createPartComponent<KnobFillPartProps>('fill', 'Knob.Fill');
 const KnobRingPart = createPartComponent<KnobRingPartProps>('ring', 'Knob.Ring');
+const KnobRingSegmentPart = createPartComponent<KnobRingSegmentPartProps>(
+  'ringSegment',
+  'Knob.RingSegment'
+);
 const KnobProgressPart = createPartComponent<KnobProgressPartProps>('progress', 'Knob.Progress');
 const KnobTickLayerPart = createPartComponent<KnobTickLayerPartProps>('tick', 'Knob.TickLayer');
 const KnobPointerPart = createPartComponent<KnobPointerPartProps>('pointer', 'Knob.Pointer');
@@ -628,6 +771,8 @@ const buildAppearanceFromParts = (
   const nextAppearance: KnobAppearance = baseAppearance ? { ...baseAppearance } : {};
   let tickLayers = normalizeTickInput(baseAppearance?.ticks);
   let tickLayersMutated = false;
+  let ringSegments = baseAppearance?.ring?.segments ?? [];
+  let ringSegmentsMutated = false;
 
   sortedParts.forEach((entry) => {
     switch (entry.kind) {
@@ -655,6 +800,16 @@ const buildAppearanceFromParts = (
           nextAppearance.ring = { ...(nextAppearance.ring ?? {}), ...rest };
           mutated = true;
         }
+        break;
+      }
+      case 'ringSegment': {
+        const { visible, ...rest } = entry.props;
+        if (visible === false) break;
+        if (!ringSegmentsMutated) {
+          ringSegments = [...ringSegments];
+          ringSegmentsMutated = true;
+        }
+        ringSegments.push(rest);
         break;
       }
       case 'progress': {
@@ -722,6 +877,13 @@ const buildAppearanceFromParts = (
 
   if (tickLayersMutated) {
     nextAppearance.ticks = tickLayers;
+    mutated = true;
+  }
+
+  // Written after the `ring` case so a `<Knob.Ring>` sibling cannot clobber the segments,
+  // whichever order the two parts appear in.
+  if (ringSegmentsMutated) {
+    nextAppearance.ring = { ...(nextAppearance.ring ?? {}), segments: ringSegments };
     mutated = true;
   }
 
@@ -796,6 +958,7 @@ type KnobCompoundComponent = typeof KnobBase & {
   Root: React.FC<KnobRootProps>;
   Fill: React.FC<KnobFillPartProps>;
   Ring: React.FC<KnobRingPartProps>;
+  RingSegment: React.FC<KnobRingSegmentPartProps>;
   Progress: React.FC<KnobProgressPartProps>;
   TickLayer: React.FC<KnobTickLayerPartProps>;
   Pointer: React.FC<KnobPointerPartProps>;
@@ -807,6 +970,7 @@ export const Knob = Object.assign(KnobBase, {
   Root: KnobRootComponent,
   Fill: KnobFillPart,
   Ring: KnobRingPart,
+  RingSegment: KnobRingSegmentPart,
   Progress: KnobProgressPart,
   TickLayer: KnobTickLayerPart,
   Pointer: KnobPointerPart,

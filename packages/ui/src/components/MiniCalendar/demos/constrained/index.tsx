@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Column, MiniCalendar, Text } from '@platform-blocks/ui';
+import { Block, MiniCalendar, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
@@ -12,7 +12,7 @@ export default function Demo() {
   }, []);
 
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <MiniCalendar
         value={selectedDate}
         onChange={(date: Date | null) => setSelectedDate(date)}
@@ -26,6 +26,6 @@ export default function Demo() {
       <Text size="xs" colorVariant="secondary">
         Only the next seven days are enabled
       </Text>
-    </Column>
+    </Block>
   );
 }

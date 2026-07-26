@@ -1,2 +1,2 @@
 export { Rating } from './Rating';
-export type { RatingProps } from './types';
+export type { RatingProps, RatingIcon } from './types';

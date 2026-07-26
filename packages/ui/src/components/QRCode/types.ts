@@ -1,12 +1,35 @@
-import { ViewStyle, StyleProp } from 'react-native';
+import { ViewStyle, StyleProp, ImageSourcePropType } from 'react-native';
 import { SpacingProps, LayoutProps } from '../../core/utils';
+import type { ComponentSizeValue } from '../../core/theme/componentSize';
+import type { TextProps } from '../Text';
 
 export interface QRCodeProps extends SpacingProps, LayoutProps {
   /** The data/text to encode in the QR code */
   value: string;
-  
-  /** Size of the QR code (both width and height) */
-  size?: number;
+
+  /**
+   * Caption rendered with the code — what the user is being asked to scan.
+   * Also supplies the accessibility label when `accessibilityLabel` is unset.
+   */
+  label?: React.ReactNode;
+
+  /** Secondary line rendered under the label, for the longer explanation. */
+  description?: React.ReactNode;
+
+  /** Which side of the code the caption sits on. @default 'bottom' */
+  labelPosition?: 'top' | 'bottom';
+
+  /** Override props applied to the label `<Text>` */
+  labelProps?: Omit<TextProps, 'children'>;
+
+  /** Override props applied to the description `<Text>` */
+  descriptionProps?: Omit<TextProps, 'children'>;
+
+  /**
+   * Size of the QR code (both width and height). Accepts a size token
+   * (`xs`–`3xl`) or an explicit pixel value.
+   */
+  size?: ComponentSizeValue;
   
   /** Background color of the QR code */
   backgroundColor?: string;
@@ -45,7 +68,8 @@ export interface QRCodeProps extends SpacingProps, LayoutProps {
   
   /** Logo to display in the center of the QR code */
   logo?: {
-  uri: string; // remote or data uri
+  /** Remote/data URI, or a bundled asset from `require('./logo.png')` */
+  uri: string | ImageSourcePropType;
   /** Optional React element to render as logo instead of default */
   element?: React.ReactNode;
     size?: number;
@@ -79,3 +103,9 @@ export interface QRCodeProps extends SpacingProps, LayoutProps {
   /** Custom toast message when copied */
   copyToastMessage?: string;
 }
+
+/**
+ * Props for the internal SVG renderer. `QRCode` resolves `size` tokens to a
+ * pixel value before rendering, so this layer only ever sees a number.
+ */
+export type QRCodeSVGProps = Omit<QRCodeProps, 'size'> & { size?: number };

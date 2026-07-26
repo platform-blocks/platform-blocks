@@ -5,7 +5,7 @@ import { DESIGN_TOKENS } from '../../core';
 import { useTheme } from '../../core/theme';
 import type { FormFieldProps } from './types';
 
-export const FormField: React.FC<FormFieldProps> = ({
+export const FormField = React.forwardRef<View, FormFieldProps>(({
   label,
   description,
   error,
@@ -13,7 +13,7 @@ export const FormField: React.FC<FormFieldProps> = ({
   children,
   width = 'full',
   labelPosition = 'top',
-}) => {
+}, ref) => {
   const theme = useTheme();
 
   const getWidth = () => {
@@ -41,6 +41,7 @@ export const FormField: React.FC<FormFieldProps> = ({
 
   const renderHorizontal = () => (
     <View
+      ref={ref}
       style={{
         flexDirection: 'row',
         alignItems: 'flex-start',
@@ -63,7 +64,7 @@ export const FormField: React.FC<FormFieldProps> = ({
   );
 
   const renderVertical = () => (
-    <View style={{ gap: DESIGN_TOKENS.spacing.xs, width: getWidth() }}>
+    <View ref={ref} style={{ gap: DESIGN_TOKENS.spacing.xs, width: getWidth() }}>
       <LabelContent />
       {children}
       {error && (
@@ -79,4 +80,6 @@ export const FormField: React.FC<FormFieldProps> = ({
   }
 
   return renderVertical();
-};
+});
+
+FormField.displayName = 'FormField';

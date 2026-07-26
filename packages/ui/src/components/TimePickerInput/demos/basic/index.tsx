@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Column, Text, TimePickerInput } from '@platform-blocks/ui';
+import { Block, Text, TimePickerInput } from '@platform-blocks/ui';
 import type { TimePickerValue } from '@platform-blocks/ui';
 
 export default function BasicTimePickerInputDemo() {
@@ -10,7 +10,7 @@ export default function BasicTimePickerInputDemo() {
     : null;
 
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <TimePickerInput
         value={value}
         onChange={setValue}
@@ -21,6 +21,6 @@ export default function BasicTimePickerInputDemo() {
       <Text size="sm" colorVariant="secondary">
         {formatted ? `Selected: ${formatted}` : 'No time selected'}
       </Text>
-    </Column>
+    </Block>
   );
 }

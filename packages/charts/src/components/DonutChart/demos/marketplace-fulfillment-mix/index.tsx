@@ -1,13 +1,6 @@
 import { DonutChart } from '../../';
-import type { DonutChartDataPoint } from '../../';
 
-const FULFILLMENT_PARTNERS: DonutChartDataPoint[] = [
-  { label: 'Direct warehouses', value: 1.35, color: '#4263EB' },
-  { label: '3PL network', value: 1.08, color: '#FF6B6B' },
-  { label: 'Regional partners', value: 0.82, color: '#20C997' },
-  { label: 'Drop-ship vendors', value: 0.54, color: '#FCC419' },
-  { label: 'Micro-fulfillment hubs', value: 0.31, color: '#FAB005' },
-];
+import { FULFILLMENT_PARTNERS } from './data';
 
 const formatOrders = (value: number) => `${value.toFixed(2)}M`;
 

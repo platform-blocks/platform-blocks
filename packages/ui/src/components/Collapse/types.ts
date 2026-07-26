@@ -17,7 +17,14 @@ export interface CollapseProps {
    * @default 300
    */
   duration?: number;
-  
+
+  /**
+   * Duration (ms) of the height transition. Cross-component spelling that takes
+   * precedence over `duration`; `0` snaps open/closed with no animation.
+   * @default 300
+   */
+  transitionDuration?: number;
+
   /**
    * Animation timing function
    * @default 'ease-out'

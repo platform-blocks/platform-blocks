@@ -1,35 +1,32 @@
-import { Block, Column, Row, Text, useMediaQuery } from '@platform-blocks/ui';
+import { Badge, Block, Row, Text, useMediaQuery } from '@platform-blocks/ui';
 
 export default function Demo() {
   const isCompact = useMediaQuery('(max-width: 640px)');
   const isWide = useMediaQuery('(min-width: 1024px)');
+  const columns = isCompact ? 1 : isWide ? 4 : 2;
 
   return (
-    <Column gap="md">
-      <Text>
-        Compact (≤640px):{' '}
-        <Text weight="700" c={isCompact ? 'success' : 'dimmed'}>
-          {String(isCompact)}
-        </Text>
-      </Text>
-      <Text>
-        Wide (≥1024px):{' '}
-        <Text weight="700" c={isWide ? 'success' : 'dimmed'}>
-          {String(isWide)}
-        </Text>
-      </Text>
+    <Block>
+      <Row gap="xs" wrap="wrap">
+        <Badge variant={isCompact ? 'light' : 'outline'} color={isCompact ? 'success' : 'gray'}>
+          Compact (≤640px)
+        </Badge>
+        <Badge variant={isWide ? 'light' : 'outline'} color={isWide ? 'success' : 'gray'}>
+          Wide (≥1024px)
+        </Badge>
+      </Row>
 
       <Row gap="md" wrap="wrap">
-        {Array.from({ length: isCompact ? 1 : isWide ? 4 : 2 }).map((_, i) => (
-          <Block key={i} bg="primary" p="md" radius="md" style={{ minWidth: 120 }}>
-            <Text style={{ color: '#fff' }}>Card {i + 1}</Text>
+        {Array.from({ length: columns }).map((_, i) => (
+          <Block key={i} bg="primary" p="md" radius="md" minW={120}>
+            <Text c="white">Card {i + 1}</Text>
           </Block>
         ))}
       </Row>
 
-      <Text size="sm" c="dimmed">
+      <Text size="sm" colorVariant="muted">
         Resize the viewport (or rotate the device) to see the layout adapt.
       </Text>
-    </Column>
+    </Block>
   );
 }

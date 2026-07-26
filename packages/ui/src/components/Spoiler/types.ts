@@ -16,7 +16,7 @@ export interface SpoilerProps extends SpacingProps {
   hideLabel?: string;
   /** Transition duration ms */
   transitionDuration?: number;
-  /** Size token influences padding / font */
+  /** Size token for the show/hide control font size */
   size?: SizeValue;
   /** Optional controlled open state */
   opened?: boolean;

@@ -1,4 +1,4 @@
-import { Column, Tabs, Text } from '@platform-blocks/ui';
+import { Block, Tabs, Text } from '@platform-blocks/ui';
 
 type Location = 'start' | 'end';
 
@@ -47,16 +47,16 @@ const buildItems = (location: Location) => [
 
 export default function Demo() {
   return (
-    <Column gap="xl">
+    <Block>
       {SECTIONS.map(({ label, location, helper }) => (
-        <Column key={location} gap="xs">
+        <Block key={location}>
           <Text weight="medium">{label}</Text>
           <Tabs variant="line" location={location} items={buildItems(location)} />
           <Text variant="small" colorVariant="muted">
             {helper}
           </Text>
-        </Column>
+        </Block>
       ))}
-    </Column>
+    </Block>
   );
 }

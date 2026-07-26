@@ -1,8 +1,8 @@
-import { Chip, Column, Row, Text } from '@platform-blocks/ui'
+import { Block, Chip, Row, Text } from '@platform-blocks/ui'
 
 export default function Demo() {
   return (
-    <Column gap="md" fullWidth={false}>
+    <Block fullWidth={false}>
       {/* Default: the dot inherits the chip's resolved text color per variant. */}
       <Row gap="xs" wrap="wrap" align="center">
         <Chip variant="filled" color="success" dot>
@@ -36,6 +36,6 @@ export default function Demo() {
         Use <Text size="xs" weight="600">dot</Text> to toggle the indicator and{' '}
         <Text size="xs" weight="600">dotColor</Text> to set a custom color.
       </Text>
-    </Column>
+    </Block>
   )
 }

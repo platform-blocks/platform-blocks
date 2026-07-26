@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Button, Card, Column, Text } from '@platform-blocks/ui';
-import { useHotkeys } from '@platform-blocks/ui';
+import { Block, KeyCap, Row, Text, useHotkeys } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [log, setLog] = useState<string[]>([]);
@@ -19,34 +18,19 @@ export default function Demo() {
   );
 
   return (
-    <Column gap="md" fullWidth>
-      <Text weight="semibold">Scoped editor shortcuts</Text>
-      <Text size="sm" colorVariant="secondary">
-        Press ⌘B, ⇧⌘P, or Escape while this card is focused to log the action.
-      </Text>
-      <Card variant="outline" style={{ padding: 16, gap: 16 }}>
-        <Column gap="sm">
-          <Text size="sm" colorVariant="muted">
-            The hook automatically cleans up listeners when the component unmounts.
-          </Text>
-          <Button variant="outline" onPress={() => append('Manual action triggered')}>
-            Add manual entry
-          </Button>
-        </Column>
-        <Column gap="xs">
-          {log.length ? (
-            log.map((entry, index) => (
-              <Text key={`${entry}-${index}`} size="sm">
-                {entry}
-              </Text>
-            ))
-          ) : (
-            <Text size="sm" colorVariant="muted">
-              No shortcuts fired yet.
-            </Text>
-          )}
-        </Column>
-      </Card>
-    </Column>
+    <Block align="flex-start">
+      <Row gap="xs" wrap="wrap">
+        <KeyCap keyCode="B" modifiers={['cmd']} size="sm">⌘B</KeyCap>
+        <KeyCap keyCode="P" modifiers={['cmd', 'shift']} size="sm">⇧⌘P</KeyCap>
+        <KeyCap keyCode="Escape" size="sm">Esc</KeyCap>
+      </Row>
+      {log.length ? (
+        log.map((entry, index) => (
+          <Text key={`${entry}-${index}`} size="sm">{entry}</Text>
+        ))
+      ) : (
+        <Text size="sm" colorVariant="muted">No shortcuts fired yet.</Text>
+      )}
+    </Block>
   );
 }

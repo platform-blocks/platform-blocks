@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-List chronological milestones with concise descriptions and timestamps using `Timeline.Item`.
+Use `Timeline.Item` components to communicate major project milestones alongside short descriptions.

@@ -16,8 +16,8 @@ export interface UseDropdownPositioningOptions extends UsePopoverPositioningOpti
 export interface UseDropdownPositioningReturn {
   /** Current position result */
   position: import('../utils/positioning-enhanced').PositionResult | null;
-  /** Update position manually */
-  updatePosition: () => Promise<void>;
+  /** Update position manually. Pass `{ silent: true }` to skip the isPositioning flag. */
+  updatePosition: (options?: { silent?: boolean }) => Promise<void>;
   /** Whether positioning is currently being calculated */
   isPositioning: boolean;
   /** Ref to attach to the anchor element */
@@ -31,6 +31,14 @@ export interface UseDropdownPositioningReturn {
       width?: number | string;
       maxHeight?: number | string;
       zIndex?: number;
+      /**
+       * Interaction that opened the overlay. `'hover'` is meaningful to the
+       * renderer: hover overlays are exempt from outside-click dismissal, since
+       * they close when the pointer leaves instead.
+       */
+      trigger?: 'click' | 'hover' | 'contextmenu' | 'manual';
+      /** Defaults to `'fixed'`; pass `'portal'` for a native modal-hosted overlay. */
+      strategy?: 'absolute' | 'fixed' | 'portal';
     }
   ) => void;
   /** Function to hide the overlay */
@@ -100,6 +108,8 @@ export function useDropdownPositioning(
     width?: number | string;
     maxHeight?: number | string;
     zIndex?: number;
+    trigger?: 'click' | 'hover' | 'contextmenu' | 'manual';
+    strategy?: 'absolute' | 'fixed' | 'portal';
   } = {}) => {
     if (!position) return;
 
@@ -115,10 +125,17 @@ export function useDropdownPositioning(
     const maxHeight = overrides.maxHeight ?? position.maxHeight;
     const zIndex = overrides.zIndex;
 
+    // Edge pin, when the placement produced one. The renderer prefers it over
+    // `anchor.y`, which keeps the dropdown still while its content resizes.
+    const pin = position.anchorEdge && typeof position.anchorOffset === 'number'
+      ? { pinEdge: position.anchorEdge, pinOffset: position.anchorOffset }
+      : { pinEdge: undefined, pinOffset: undefined };
+
     if (overlayIdRef.current) {
       updateOverlay(overlayIdRef.current, {
         content,
         anchor,
+        ...pin,
         width,
         maxHeight,
         ...(zIndex !== undefined ? { zIndex } : {}),
@@ -129,12 +146,14 @@ export function useDropdownPositioning(
     const overlayId = openOverlay({
       content,
       anchor,
+      ...pin,
       anchorNode: anchorRef.current,
       width,
       maxHeight,
-      strategy: 'fixed',
+      strategy: overrides.strategy ?? 'fixed',
       closeOnClickOutside,
       closeOnEscape,
+      ...(overrides.trigger !== undefined ? { trigger: overrides.trigger } : {}),
       ...(zIndex !== undefined ? { zIndex } : {}),
       onClose: () => {
         overlayIdRef.current = null;

@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Compare the `size` prop across small, medium, and large tokens while reusing the same steps.
+Compare the `size` prop across the full `xs`–`3xl` scale while reusing the same steps.

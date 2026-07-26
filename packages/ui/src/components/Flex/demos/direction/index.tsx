@@ -1,9 +1,9 @@
-import { Flex, Card, Text, Column } from '@platform-blocks/ui';
+import { Block, Card, Flex, Text } from '@platform-blocks/ui';
 
 export default function DirectionFlexDemo() {
   return (
-    <Column gap={24}>
-      <Column gap={8}>
+    <Block>
+      <Block>
         <Text variant="h4">Row Direction</Text>
         <Card variant="outline" p="md">
           <Flex direction="row" gap="md">
@@ -12,9 +12,9 @@ export default function DirectionFlexDemo() {
             <Card p="sm"><Text variant="p">Item 3</Text></Card>
           </Flex>
         </Card>
-      </Column>
+      </Block>
 
-      <Column gap={8}>
+      <Block>
         <Text variant="h4">Column Direction</Text>
         <Card variant="outline" p="md">
           <Flex direction="column" gap="md">
@@ -23,7 +23,7 @@ export default function DirectionFlexDemo() {
             <Card p="sm"><Text variant="p">Item 3</Text></Card>
           </Flex>
         </Card>
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

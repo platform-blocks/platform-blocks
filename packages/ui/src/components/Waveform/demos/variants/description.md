@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Adjust `color`, `variant`, and `normalize` to restyle the waveform without changing the peak data.
+`variant` picks the render style — `bars`, `rounded`, `line`, or `gradient` — and `color` and `normalize` restyle the result. All four are drawn from the same peak data.

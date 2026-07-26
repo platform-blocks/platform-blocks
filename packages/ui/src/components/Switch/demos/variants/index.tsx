@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Column, Row, Switch, Text } from '@platform-blocks/ui';
+import { Block, Row, Switch, Text } from '@platform-blocks/ui';
 
 const VARIANTS = [
   { variant: 'filled', hint: 'filled (default) — solid track fills with the active color' },
@@ -17,9 +17,9 @@ export default function Demo() {
   });
 
   return (
-    <Column gap="lg">
+    <Block>
       {VARIANTS.map(({ variant, hint }) => (
-        <Column key={variant} gap="xs">
+        <Block key={variant}>
           <Text variant="small" colorVariant="muted">
             {hint}
           </Text>
@@ -33,8 +33,8 @@ export default function Demo() {
             <Switch variant={variant} checked={false} label="Off" />
             <Switch variant={variant} checked color="success" label="Success" />
           </Row>
-        </Column>
+        </Block>
       ))}
-    </Column>
+    </Block>
   );
 }

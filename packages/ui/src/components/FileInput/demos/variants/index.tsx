@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Column, FileInput, Text } from '@platform-blocks/ui';
+import { Block, FileInput, Text } from '@platform-blocks/ui';
 import type { FileInputFile } from '@platform-blocks/ui';
 
 const sizes = [
@@ -16,9 +16,9 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="md" fullWidth>
+    <Block fullWidth>
       {sizes.map(({ label, size }) => (
-        <Column key={label} gap="xs" fullWidth>
+        <Block key={label} fullWidth>
           <Text size="sm" weight="semibold">
             {label}
           </Text>
@@ -35,10 +35,10 @@ export default function Demo() {
               Selected: {files[label].length}
             </Text>
           ) : null}
-        </Column>
+        </Block>
       ))}
 
-      <Column gap="xs" fullWidth>
+      <Block fullWidth>
         <Text size="sm" weight="semibold">
           Custom placeholder
         </Text>
@@ -48,7 +48,7 @@ export default function Demo() {
           onFilesChange={handleChange('custom')}
           fullWidth
         />
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

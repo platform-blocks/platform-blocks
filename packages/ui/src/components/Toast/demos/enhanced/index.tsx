@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Button, Column, Text, Toast, useToast } from '@platform-blocks/ui';
+import { Block, Button, Text, Toast, useToast } from '@platform-blocks/ui';
 
 export default function Demo() {
   const toast = useToast();
@@ -122,7 +122,7 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="sm">
+    <Block>
       <Button onPress={showSwipeableToast}>Swipe to dismiss</Button>
       <Button variant="outline" onPress={showAnimatedToast}>
         Bounce animation
@@ -143,7 +143,7 @@ export default function Demo() {
         Promise integration
       </Button>
 
-      <Column gap="xs">
+      <Block>
         <Text size="xs" colorVariant="secondary">
           Tap-to-dismiss example:
         </Text>
@@ -157,7 +157,7 @@ export default function Demo() {
         >
           This toast can be dismissed by tapping.
         </Toast>
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

@@ -6,6 +6,7 @@ docs/node_modules/
 # Build outputs
 ui/lib/
 charts/lib/
+packages/*/lib/
 docs/dist/
 docs/.expo/
 
@@ -83,3 +84,4 @@ ios/
 test-results/
 docs/assets/chart-baselines/*.png
 *.snap
+design-review/

@@ -1,23 +1,7 @@
 import { useState } from 'react';
 import { Button, Card, Block, Row, Stepper, Text } from '@platform-blocks/ui';
 
-const steps = [
-  {
-    label: 'Account',
-    description: 'Create your credentials',
-    details: 'Set up your sign-in information and confirm your contact details.',
-  },
-  {
-    label: 'Verification',
-    description: 'Confirm your email',
-    details: 'Check your inbox for a verification link to secure the account.',
-  },
-  {
-    label: 'Profile',
-    description: 'Complete setup',
-    details: 'Add profile details so the team can find and collaborate with you.',
-  },
-];
+import { onboardingSteps as steps } from '../data';
 
 const totalSteps = steps.length;
 
@@ -35,9 +19,9 @@ export default function Demo() {
   const goNext = () => handleStepChange(activeStep + 1);
 
   return (
-    <Block gap="lg" fullWidth>
+    <Block fullWidth>
       <Card p="md">
-        <Block gap="md">
+        <Block>
           <Text size="sm" colorVariant="secondary">
             Control the current step with the `active` prop and provide completion content with `Stepper.Completed`.
           </Text>

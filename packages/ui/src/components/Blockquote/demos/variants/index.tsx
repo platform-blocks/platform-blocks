@@ -1,18 +1,18 @@
-import { Blockquote, Column, Text } from '@platform-blocks/ui';
+import { Block, Blockquote, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="xl">
-      <Column gap="sm">
+    <Block>
+      <Block>
         <Text variant="h5" weight="semibold">
           Default
         </Text>
         <Blockquote author={{ name: 'Anonymous' }}>
           The best way to predict the future is to create it.
         </Blockquote>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text variant="h5" weight="semibold">
           Testimonial
         </Text>
@@ -21,16 +21,16 @@ export default function Demo() {
           author={{
             name: 'Sarah Johnson',
             title: 'Marketing Director',
-            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
+            avatar: require('../../../../assets/avatars/avatar-4.png'),
           }}
           rating={{ value: 4, max: 5 }}
           shadow
         >
           Great experience with this service. The team was professional and delivered quality results.
         </Blockquote>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text variant="h5" weight="semibold">
           Featured
         </Text>
@@ -44,9 +44,9 @@ export default function Demo() {
         >
           Imagination is more important than knowledge.
         </Blockquote>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text variant="h5" weight="semibold">
           Minimal
         </Text>
@@ -59,7 +59,7 @@ export default function Demo() {
         >
           Just discovered this amazing new feature! 🚀
         </Blockquote>
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

@@ -43,9 +43,11 @@ jobs:
           EXPO_NO_TELEMETRY: "1"
           EXPO_PUBLIC_WEB_APP_ROOT: "/"
 
-      - name: Add SPA fallback
-        run: cp dist/index.html dist/404.html
-        working-directory: apps/platform-blocks.com
+      # No SPA-fallback step here on purpose. `build-web` already writes
+      # dist/404.html from dist/index.html (scripts/inject-seo-tags.ts) and then
+      # marks it noindex. Copying index.html over it again after the build undoes
+      # that, republishing the fallback as an indexable page whose canonical
+      # points at the homepage.
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

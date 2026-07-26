@@ -3,10 +3,10 @@ export const ACCORDION_DEFAULTS = {
   defaultExpanded: [] as string[],
   variant: 'default',
   size: 'md',
-  color: 'primary',
   showChevron: true,
   autoPersist: true,
   animated: true,
+  transitionDuration: 220,
   chevronPosition: 'end',
   density: 'comfortable'
 } as const;

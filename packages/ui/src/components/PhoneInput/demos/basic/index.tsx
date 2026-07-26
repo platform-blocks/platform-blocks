@@ -1,35 +1,40 @@
 import { useState } from 'react';
 
-import { Card, Code, Column, PhoneInput, Text } from '@platform-blocks/ui';
+import { Block, Card, Code, PhoneInput, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [raw, setRaw] = useState('');
   const [formatted, setFormatted] = useState('');
+  const [e164, setE164] = useState('');
+  const [complete, setComplete] = useState(false);
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <Text weight="semibold">Basic phone input</Text>
       <Text size="sm" colorVariant="secondary">
-        Controlled phone field showing both the raw digits and the formatted display value.
+        Controlled phone field showing the raw national digits, the formatted display
+        value, and the submittable E.164 form.
       </Text>
       <PhoneInput
         label="Phone number"
         value={raw}
-        onChange={(rawDigits, formattedDisplay) => {
+        onChange={(rawDigits, formattedDisplay, meta) => {
           setRaw(rawDigits);
           setFormatted(formattedDisplay);
+          setE164(meta.e164);
+          setComplete(meta.isComplete);
         }}
         country="US"
         showCountryCode
       />
       <Card variant="outline" p="sm">
-        <Column gap="xs">
+        <Block>
           <Text size="xs" colorVariant="secondary">
             Current values
           </Text>
-          <Code size="sm">{JSON.stringify({ raw, formatted }, null, 2)}</Code>
-        </Column>
+          <Code size="sm">{JSON.stringify({ raw, formatted, e164, complete }, null, 2)}</Code>
+        </Block>
       </Card>
-    </Column>
+    </Block>
   );
 }

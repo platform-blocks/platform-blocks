@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Button, Card, Column, Text, Video } from '@platform-blocks/ui';
+import { Asset } from 'expo-asset';
+import { Block, Button, Card, Text, Video } from '@platform-blocks/ui';
 import type { VideoTimelineEvent, VideoState } from '../../types';
 
+// `source.url` takes a URL, so resolve the bundled clip to one. `Image.resolveAssetSource`
+// is native-only, whereas expo-asset works on web too.
 const SOURCE = {
-  url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+  url: Asset.fromModule(require('../../../../assets/video/demo-clip.mp4')).uri,
 } as const;
 
 export default function Demo() {
@@ -13,22 +16,22 @@ export default function Demo() {
     () => [
       {
         id: 'intro',
-        time: 5,
+        time: 2,
         type: 'chapter',
         data: { label: 'Introduction', description: 'Video introduction starts' },
         callback: (_, state) => {
           console.log('Introduction reached!', state.currentTime);
-          setLog((entries) => [...entries, 'Reached introduction at 5s']);
+          setLog((entries) => [...entries, 'Reached introduction at 2s']);
         },
       },
       {
         id: 'main-content',
-        time: 15,
+        time: 5,
         type: 'chapter',
         data: { label: 'Main content', description: 'Main content begins' },
         callback: (_, state) => {
           console.log('Main content reached!', state.currentTime);
-          setLog((entries) => [...entries, 'Reached main content at 15s']);
+          setLog((entries) => [...entries, 'Reached main content at 5s']);
         },
       },
     ],
@@ -40,45 +43,43 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="lg">
-      <Card p="md">
-        <Column gap="md">
-          <Text size="sm" colorVariant="secondary">
-            Attach `timeline` markers to run callbacks as playback crosses those timestamps. Use the `onTimelineEvent` hook for analytics or syncing UI.
+    <Card p="md">
+      <Block>
+        <Text size="sm" colorVariant="secondary">
+          Attach `timeline` markers to run callbacks as playback crosses those timestamps. Use the `onTimelineEvent` hook for analytics or syncing UI.
+        </Text>
+        <Video
+          source={SOURCE}
+          w="100%"
+          h={300}
+          controls
+          timeline={timelineEvents}
+          onTimelineEvent={handleTimelineEvent}
+        />
+        <Block>
+          <Text size="xs" colorVariant="secondary">
+            Timeline log
           </Text>
-          <Video
-            source={SOURCE}
-            w="100%"
-            h={300}
-            controls
-            timeline={timelineEvents}
-            onTimelineEvent={handleTimelineEvent}
-          />
-          <Column gap="xs">
+          {log.length === 0 ? (
             <Text size="xs" colorVariant="secondary">
-              Timeline log
+              Press play to fire registered markers.
             </Text>
-            {log.length === 0 ? (
-              <Text size="xs" colorVariant="secondary">
-                Press play to fire registered markers.
-              </Text>
-            ) : (
-              <Column gap="xs">
-                {log.map((entry, index) => (
-                  <Text key={`${entry}-${index}`} size="xs">
-                    {entry}
-                  </Text>
-                ))}
-              </Column>
-            )}
-            {log.length > 0 && (
-              <Button size="xs" variant="outline" onPress={() => setLog([])}>
-                Clear log
-              </Button>
-            )}
-          </Column>
-        </Column>
-      </Card>
-    </Column>
+          ) : (
+            <Block>
+              {log.map((entry, index) => (
+                <Text key={`${entry}-${index}`} size="xs">
+                  {entry}
+                </Text>
+              ))}
+            </Block>
+          )}
+          {log.length > 0 && (
+            <Button size="xs" variant="outline" onPress={() => setLog([])}>
+              Clear log
+            </Button>
+          )}
+        </Block>
+      </Block>
+    </Card>
   );
 }

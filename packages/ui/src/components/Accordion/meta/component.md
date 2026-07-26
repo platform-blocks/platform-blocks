@@ -22,6 +22,8 @@ props:
   headerTextStyle: Raw TextStyle applied to header labels (escape hatch)
   contentStyle: Style applied to each item's content View
   titleProps: Override props applied to each item's header `<Text>` (style, weight, ff, size, colorVariant)
+  animated: Enable transitions (`true`) or pass `{ duration, easing }`
+  transitionDuration: Transition length in ms for the chevron spin and panel height; `0` is instant
 examples:
   - basic
   - multiple

@@ -24,7 +24,6 @@ examples:
   colors: Different color variants
   sizes: Various sizes
   states: Different states and behaviors
-  label-customization: Override label and description Text props (labelProps, descriptionProps)
 ---
 
 Switch components provide a way to toggle between two states, typically representing on/off or enabled/disabled states.

@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { ColorInput, Column, Text } from '@platform-blocks/ui';
+import { Block, ColorInput, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [color, setColor] = useState('#FF6B6B');
 
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <ColorInput
         value={color}
         onChange={setColor}
@@ -17,6 +17,6 @@ export default function Demo() {
       <Text size="sm" colorVariant="secondary">
         Selected: {color || 'none'}
       </Text>
-    </Column>
+    </Block>
   );
 }

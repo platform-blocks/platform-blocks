@@ -1,15 +1,15 @@
 import { Linking } from 'react-native';
-import { Text, Accordion, P, Flex, Space } from '@platform-blocks/ui';
-import { Icon } from '@platform-blocks/ui';
-import { PageWrapper } from 'components/PageWrapper';
-import { useBrowserTitle, formatPageTitle } from 'hooks/useBrowserTitle';
+import { Text, Accordion, P, Flex, Column } from '@platform-blocks/ui';
+import { DocsPage } from '../../components/DocsPage';
 import { DocsPageHeader } from '../../components/DocsPageHeader';
-import { DISCORD_INVITE, GITHUB_REPO } from 'config/urls';
+import { useBrowserTitle, formatPageTitle } from 'hooks/useBrowserTitle';
 
+// NOTE: The question/answer text here is mirrored as plain strings in
+// config/faq.ts, which powers the FAQPage JSON-LD in the static SEO build.
+// Keep the two in sync when editing questions or answers.
 const FAQ_DATA = [{
   id: 1,
   key: 'what-is',
-  // icon: <Icon name="star" color="orange" />,
   title: 'What is Platform Blocks?',
   content: <Flex><Text>Platform Blocks is a React Native UI component library designed for building cross-platform applications with a consistent look and feel. It provides a set of customizable, accessible, and themeable components that work seamlessly on iOS, Android, and web platforms.</Text></Flex>
 }, {
@@ -44,20 +44,22 @@ export default function FAQScreen() {
   useBrowserTitle(formatPageTitle('FAQ'));
 
   return (
-    <PageWrapper>
-      <DocsPageHeader
-        subtitle="Common questions about Platform Blocks library"
-      >
-        Frequently Asked Questions
-      </DocsPageHeader>
-      <Space h={16} />
-      <Accordion
-        type="multiple"
-        variant="separated"
-        items={FAQ_DATA}
-        defaultExpanded={[]}//FAQ_DATA.map((item) => item.key)}
-        headerTextStyle={{ fontWeight: '600', fontSize: 17 }}
-      />
-    </PageWrapper>
+    <DocsPage>
+      <Column gap="xl">
+        {/* DocsPageHeader, not a bare Title: Title defaults to order 2, so this
+            page shipped its own name as an <h2> and had no <h1> at all. */}
+        <DocsPageHeader
+          text="Frequently Asked Questions"
+          subtitle="Common questions about Platform Blocks library"
+        />
+        <Accordion
+          type="multiple"
+          variant="default"
+          items={FAQ_DATA}
+          defaultExpanded={FAQ_DATA.map((item) => item.key)}
+          headerTextStyle={{ fontWeight: '600', fontSize: 17 }}
+        />
+      </Column>
+    </DocsPage>
   );
 }

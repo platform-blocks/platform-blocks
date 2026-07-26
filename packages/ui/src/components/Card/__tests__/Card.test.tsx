@@ -127,13 +127,14 @@ describe('Card - behavior', () => {
 
     const card = getByTestId('gradient-card');
     const styles = StyleSheet.flatten(card.props.style);
-    expect(styles.backgroundColor).toBe(mockTheme.colors.primary[4]);
+    // Gradient stops come from the shared resolveGradientStops helper: base [5] → deep [7].
+    expect(styles.backgroundColor).toBe(mockTheme.colors.primary[5]);
 
     const gradient = getByTestId('card-gradient');
     expect(gradient).toBeTruthy();
       expect(mockGradientRender).toHaveBeenCalledWith(
       expect.objectContaining({
-        colors: [mockTheme.colors.primary[4], mockTheme.colors.primary[6]],
+        colors: [mockTheme.colors.primary[5], mockTheme.colors.primary[7]],
         start: { x: 0, y: 0 },
         end: { x: 1, y: 1 },
         pointerEvents: 'none',

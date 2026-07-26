@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { View, Pressable, FlatList, Text as RNText, Modal, Platform } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { factory } from '../../core/factory/factory';
 import { FieldHeader } from '../_internal/FieldHeader';
@@ -8,11 +9,14 @@ import { useTheme } from '../../core/theme';
 import { createRadiusStyles } from '../../core/theme/radius';
 import { getSpacingStyles, extractSpacingProps, extractLayoutProps, getLayoutStyles } from '../../core/utils';
 import type { SizeValue } from '../../core/theme/types';
+import { getFontSize } from '../../core/theme/sizes';
 import { MenuItemButton } from '../MenuItemButton';
 import { ListGroup, ListGroupDivider } from '../ListGroup';
+import { Surface } from '../Surface';
 import { Icon } from '../Icon';
 import { ClearButton } from '../../core/components/ClearButton';
 import { useDirection } from '../../core/providers/DirectionProvider';
+import { useReducedMotion } from '../../core/motion/ReducedMotionProvider';
 import { useMenuStyles } from '../Menu/styles';
 import { Text } from '../Text';
 import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
@@ -22,6 +26,22 @@ import { useOverlayMode } from '../../hooks';
 import type { PlacementType } from '../../core/utils/positioning-enhanced';
 
 import type { SelectOption, SelectProps } from './Select.types';
+import { CustomOption } from './CustomOption';
+
+/** Matches the Accordion chevron spin so every disclosure affordance reads alike. */
+const CHEVRON_SPIN_DURATION = 220;
+
+/**
+ * Approximate height of one rendered option row.
+ *
+ * Only used to pre-empt the measurement, so being a few px out is harmless — it
+ * shifts the flip threshold slightly, never the final layout, which is driven by
+ * the `maxHeight` the positioner returns. Mirrors `MenuItemButton` in `compact`
+ * mode: one line of text plus its vertical padding.
+ */
+function estimateOptionRowHeight(size: SizeValue): number {
+  return Math.round(getFontSize(size) * 1.5) + 16;
+}
 
 const DROPDOWN_FALLBACK_PLACEMENTS: PlacementType[] = [
   'top-start',
@@ -42,7 +62,8 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
     options,
     placeholder = 'Select…',
     size = 'md',
-    radius = 'md',
+    // Undefined by design — the `input` radius token supplies the default.
+    radius,
     disabled,
     label,
     helperText,
@@ -71,9 +92,40 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
   const [value, setValue] = useState<any>(valueProp ?? defaultValue ?? null);
   const [triggerWidth, setTriggerWidth] = useState<number | null>(null);
 
+  // The chevron is a single `chevron-down` spun a half turn rather than two
+  // swapped icons, so opening and closing read as one continuous motion.
+  const reducedMotion = useReducedMotion();
+  const chevronRotation = useSharedValue(open ? 180 : 0);
+  useEffect(() => {
+    const target = open ? 180 : 0;
+    if (reducedMotion) {
+      chevronRotation.value = target;
+      return;
+    }
+    chevronRotation.value = withTiming(target, {
+      duration: CHEVRON_SPIN_DURATION,
+      easing: Easing.inOut(Easing.ease),
+    });
+  }, [open, reducedMotion, chevronRotation]);
+  const animatedChevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${chevronRotation.value}deg` }],
+  }));
+
   const triggerRef = useRef<View | null>(null);
   const keyboardManager = useKeyboardManagerOptional();
   const dismissKeyboardRef = keyboardManager?.dismissKeyboard;
+
+  // How tall the menu will be, known before it mounts. Feeding this to the
+  // positioner is what lets the very first calculation pick the correct side:
+  // without it the pre-measure pass assumes a short popover, decides a Select
+  // near the bottom of the window fits below, and then flips above once the real
+  // height arrives — the visible jump this replaces.
+  const estimatedDropdownHeight = useMemo(() => {
+    const rowHeight = estimateOptionRowHeight(size as SizeValue);
+    // +2 for the Surface border, and a divider between each pair of rows.
+    const contentHeight = options.length * rowHeight + Math.max(0, options.length - 1) + 2;
+    return typeof maxH === 'number' ? Math.min(maxH, contentHeight) : contentHeight;
+  }, [options.length, size, maxH]);
 
   const {
     position,
@@ -89,6 +141,7 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
     shift: true,
     offset: 6,
     boundary: 8,
+    desiredHeight: estimatedDropdownHeight,
     fallbackPlacements: DROPDOWN_FALLBACK_PLACEMENTS,
     keyboardAvoidance,
     closeOnClickOutside: true,
@@ -96,14 +149,6 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
     matchAnchorWidth: true,
     onClose: () => setOpen(false),
   });
-
-  const hasMeasuredDropdownRef = useRef(false);
-
-  useEffect(() => {
-    if (!open) {
-      hasMeasuredDropdownRef.current = false;
-    }
-  }, [open]);
 
   useEffect(() => {
     if (valueProp !== undefined) {
@@ -138,7 +183,7 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
     }
   }, [anchorRef, ref]);
 
-  const radiusStyles = createRadiusStyles(radius || 'md');
+  const radiusStyles = createRadiusStyles(radius, undefined, 'input');
   const { getInputStyles } = createInputStyles(theme, isRTL);
   const inputStyles = getInputStyles({
     size: size as SizeValue,
@@ -149,6 +194,11 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
     hasRightSection: true,
     variant,
   }, radiusStyles);
+
+  // The trigger renders its own <Text> rather than a real <TextInput>, so it has
+  // to resolve the field font size itself — the same scale `createInputStyles`
+  // uses — and the dropdown options are pinned to it.
+  const fieldFontSize = getFontSize(size as SizeValue);
 
   const spacingStyles = getSpacingStyles(spacingProps);
   const layoutStyles = getLayoutStyles(layoutProps);
@@ -197,22 +247,18 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
     });
   }, [disabled, measureTrigger, hideOverlay, keyboardManager, shouldUseModal]);
 
+  /**
+   * The dropdown is edge-pinned and height-capped by the positioner, so a layout
+   * pass no longer changes where it sits — it only refreshes `finalHeight` for
+   * consumers that read it. That makes this a plain silent refresh: the old
+   * `setTimeout(…, 16)` existed to defer a *corrective* reposition until after
+   * the DOM had settled, and correcting is exactly what no longer happens.
+   */
   const handleDropdownLayout = useCallback(() => {
     if (!shouldUseOverlay || !open) {
       return;
     }
-
-    const runUpdate = () => {
-      updatePosition();
-    };
-
-    if (!hasMeasuredDropdownRef.current) {
-      hasMeasuredDropdownRef.current = true;
-      setTimeout(runUpdate, 16);
-      return;
-    }
-
-    runUpdate();
+    updatePosition({ silent: true });
   }, [open, updatePosition, shouldUseOverlay]);
 
   useEffect(() => {
@@ -253,9 +299,14 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
 
   const handleSelect = useCallback((opt: SelectOption) => {
     if (opt.disabled) return;
-      hideOverlay(); // <-- add this line before changing state
 
-
+    // Deliberately no hideOverlay() here. The menu is pushed into the overlay
+    // registry, so tearing it down mid-selection means the follow-up render
+    // opens a *second* overlay while the first one's deferred onClose is still
+    // queued — that callback then closes this Select and orphans the menu that
+    // is actually on screen. Let the value change flow through and the effect
+    // below update the existing overlay in place; `close()` handles teardown
+    // when closeOnSelect is on.
     if (valueProp === undefined) {
       setValue(opt.value);
     }
@@ -288,11 +339,25 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
 
     return (
       <View style={widthStyle}>
-        <ListGroup
-          variant="default"
-          size="sm"
+        {/*
+          One painted surface, at level 2 (floating over content). The inner
+          ListGroup runs `flush` so it doesn't stamp a second background on top
+          — that double-paint is what made the dropdown read as a grey slab.
+        */}
+        <Surface
+          level={2}
+          withBorder
+          radius="md"
           style={{
             ...menuStyles.dropdown,
+            ...(maxHeightStyle ?? {}),
+            ...(widthStyle ?? {}),
+          }}
+        >
+        <ListGroup
+          variant="flush"
+          size={size as SizeValue}
+          style={{
             ...(maxHeightStyle ?? {}),
             ...(widthStyle ?? {}),
           }}
@@ -304,7 +369,14 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
               const selected = item.value === value;
 
               if (renderOption) {
-                return <View>{renderOption(item, false, selected)}</View>;
+                return (
+                  <CustomOption
+                    option={item}
+                    selected={selected}
+                    render={renderOption}
+                    onSelect={handleSelect}
+                  />
+                );
               }
 
               const primaryPalette = theme.colors.primary || [];
@@ -325,9 +397,17 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
                   textColor={baseTextColor}
                   hoverTextColor={baseTextColor}
                   activeTextColor={baseTextColor}
-                  startIcon={selected ? <Icon name="check" size={16} color={highlightColor} /> : <View style={{ width: 16 }} />}
+                  // No spacer on the unselected rows: labels sit flush against
+                  // the row padding, and only the selected option's checkmark
+                  // pushes its label across.
+                  startIcon={selected ? <Icon name="check" size={16} color={highlightColor} /> : undefined}
                   compact
                   rounded={false}
+                  size={size as SizeValue}
+                  // Options read at exactly the trigger's font size. `size` alone
+                  // isn't enough: a numeric `size` means "row height" to the menu
+                  // item but "font size" to the field, so pin the label directly.
+                  labelProps={{ size: fieldFontSize }}
                   style={{ borderRadius: 0 }}
                 >
                   {item.label}
@@ -339,9 +419,10 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
             bounces={false}
           />
         </ListGroup>
+        </Surface>
       </View>
     );
-  }, [resolvedDropdownWidth, listMaxHeight, menuStyles.dropdown, options, value, renderOption, theme.colors.primary, theme.colors.secondary, theme.colorScheme, theme.text.disabled, theme.text.primary, theme.text.onPrimary, handleSelect]);
+  }, [resolvedDropdownWidth, listMaxHeight, menuStyles.dropdown, options, value, renderOption, size, fieldFontSize, theme.colors.primary, theme.colors.secondary, theme.colorScheme, theme.text.disabled, theme.text.primary, theme.text.onPrimary, handleSelect]);
 
   useEffect(() => {
     if (!shouldUseOverlay) {
@@ -406,11 +487,23 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
   }, [disabled, valueProp, onChange, onClear, close]);
 
   const fieldContent = selectedOption ? (
-    <RNText style={{ color: disabled ? theme.text.disabled : theme.text.primary }}>
+    <RNText
+      style={{
+        color: disabled ? theme.text.disabled : theme.text.primary,
+        fontSize: fieldFontSize,
+        fontFamily: theme.fontFamily,
+      }}
+    >
       {selectedOption.label}
     </RNText>
   ) : (
-    <RNText style={{ color: disabled ? theme.text.disabled : theme.text.muted }}>
+    <RNText
+      style={{
+        color: disabled ? theme.text.disabled : theme.text.muted,
+        fontSize: fieldFontSize,
+        fontFamily: theme.fontFamily,
+      }}
+    >
       {placeholder}
     </RNText>
   );
@@ -431,6 +524,9 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
         onPress={toggle}
         {...(Platform.OS === 'web' ? { role: 'combobox' as const } : { accessibilityRole: 'button' as const })}
         accessibilityLabel={label || placeholder}
+        // The chevron now conveys open/closed by rotation alone, so the state has
+        // to be published to assistive tech explicitly.
+        accessibilityState={{ disabled: !!disabled, expanded: open }}
         disabled={disabled}
         style={[
           inputStyles.inputContainer,
@@ -460,11 +556,13 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
               hasRightSection={true}
             />
           )}
-          <Icon
-            name={open ? 'chevron-up' : 'chevron-down'}
-            size={16}
-            color={disabled ? theme.text.disabled : theme.text.muted}
-          />
+          <Animated.View style={animatedChevronStyle}>
+            <Icon
+              name="chevron-down"
+              size={16}
+              color={disabled ? theme.text.disabled : theme.text.muted}
+            />
+          </Animated.View>
         </View>
       </Pressable>
       {error && <RNText style={inputStyles.error}>{error}</RNText>}

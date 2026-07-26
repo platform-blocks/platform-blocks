@@ -4,10 +4,12 @@ import { Text } from '../Text';
 import { Flex } from '../Flex';
 import { Icon } from '../Icon';
 import { dateUtils } from '../Calendar/utils';
+import { useControllableState } from '../../hooks/useControllableState';
+import { getCurrentPeriodStyles } from '../Calendar/currentPeriod';
 import { useTheme } from '../../core/theme';
 import type { MiniCalendarProps } from '../Calendar/types';
 
-export const MiniCalendar: React.FC<MiniCalendarProps> = ({
+export const MiniCalendar = React.forwardRef<View, MiniCalendarProps>(({
   value,
   onChange,
   defaultValue,
@@ -21,12 +23,16 @@ export const MiniCalendar: React.FC<MiniCalendarProps> = ({
   renderDay,
   locale = 'en-US',
   size = 'md',
-}) => {
+}, ref) => {
   const theme = useTheme();
 
-  const isControlled = value !== undefined;
-  const [internalValue, setInternalValue] = useState<Date | null>(() => defaultValue ?? null);
-  const selectedDate = isControlled ? (value ?? null) : internalValue;
+  const [selectedValue, setSelectedDate] = useControllableState<Date | null>({
+    value,
+    defaultValue: defaultValue ?? null,
+    finalValue: null,
+    onChange,
+  });
+  const selectedDate = selectedValue ?? null;
   const previousSelectedRef = useRef<Date | null>(selectedDate ?? null);
 
   const centerOffset = useMemo(() => Math.floor(numberOfDays / 2), [numberOfDays]);
@@ -76,18 +82,13 @@ export const MiniCalendar: React.FC<MiniCalendarProps> = ({
   const handleDayPress = useCallback(
     (date: Date) => {
       if (dateUtils.isDateDisabled(date, minDate, maxDate)) return;
-
-      if (!isControlled) {
-        setInternalValue(date);
-      }
-
-      onChange?.(date);
+      setSelectedDate(date);
     },
-    [isControlled, maxDate, minDate, onChange],
+    [maxDate, minDate, setSelectedDate],
   );
 
   return (
-    <View style={{ alignSelf: 'flex-start' }}>
+    <View ref={ref} style={{ alignSelf: 'flex-start' }}>
       <Flex
         direction="row"
         justify="space-between"
@@ -189,19 +190,14 @@ export const MiniCalendar: React.FC<MiniCalendarProps> = ({
                       justifyContent: 'center',
                       backgroundColor: isSelected
                         ? theme.colors.primary[5]
-                        : isToday && !isSelected
-                        ? theme.colors.gray[2]
                         : pressed && !isDisabled
                         ? theme.colors.gray[1]
                         : 'transparent',
-                      borderWidth: isToday && !isSelected ? 1 : 0,
-                      borderColor: theme.colors.primary[4],
+                      ...getCurrentPeriodStyles(theme, {
+                        isCurrent: isToday && !isDisabled,
+                        isSelected,
+                      }),
                       opacity: isDisabled ? 0.5 : 1,
-                      shadowColor: isSelected ? theme.colors.primary[5] : 'transparent',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: isSelected ? 0.15 : 0,
-                      shadowRadius: 3,
-                      elevation: isSelected ? 1 : 0,
                     },
                   ]}
                   {...dayProps}
@@ -231,4 +227,6 @@ export const MiniCalendar: React.FC<MiniCalendarProps> = ({
       </ScrollView>
     </View>
   );
-};
+});
+
+MiniCalendar.displayName = 'MiniCalendar';

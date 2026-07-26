@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Column, Rating, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Rating, Text, useTheme } from '@platform-blocks/ui';
 
 const COLOR_CONFIG = [
   {
@@ -42,16 +42,13 @@ export default function Demo() {
   });
 
   return (
-    <Column gap="lg">
+    <Block>
       {COLOR_CONFIG.map(({ key, label, getColors }) => {
         const palette = theme.colors[key as keyof typeof theme.colors] ?? theme.colors.gray;
         const { color, emptyColor, hoverColor } = getColors(palette);
 
         return (
-          <Column key={key} gap="xs">
-            <Text variant="small" colorVariant="muted">
-              {label}
-            </Text>
+          <Block key={key}>
             <Rating
               value={values[key]}
               onChange={(next) =>
@@ -61,10 +58,16 @@ export default function Demo() {
               emptyColor={emptyColor}
               hoverColor={hoverColor}
               size="lg"
+              labelPosition="right"
+              label={
+            <Text variant="small" colorVariant="muted">
+              {label}
+            </Text>
+            }
             />
-          </Column>
+          </Block>
         );
       })}
-    </Column>
+    </Block>
   );
 }

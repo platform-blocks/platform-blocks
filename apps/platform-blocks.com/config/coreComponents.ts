@@ -23,8 +23,7 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Checkbox', category: 'input', icon: 'check' },
   { name: 'Switch', category: 'input', icon: 'toggle' },
   { name: 'Toggle', category: 'input', icon: 'toggle', description: 'Toggle button group for single or multiple selection' },
-  { name: 'BrandButton', category: 'input', icon: 'bolt', description: 'Branded action button variant supporting themes & states' },
-  { name: 'AppStoreBadge', category: 'input', icon: 'badge', description: 'Badge for App Store with customizable text and icon' },
+  { name: 'BrandButton', category: 'input', icon: 'bolt', description: 'Branded action button and store badge for every brand in the icon registry' },
   { name: 'Radio', category: 'input', icon: 'radio' },
 
   // Input Components
@@ -41,13 +40,14 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'AutoComplete', category: 'input', icon: 'autocomplete', description: 'Predictive text input with keyboard-aware suggestions and async loading' },
   { name: 'ColorInput', category: 'input', icon: 'colors', description: 'Color selection input with swatches and hex input' },
   { name: 'ColorPicker', category: 'input', icon: 'colors', description: 'Color selection input with swatches' },
+  { name: 'ControlField', category: 'input', icon: 'check', description: 'Pressable row combining a label, description, and a switch/checkbox/radio control' },
   { name: 'EmojiPicker', category: 'input', icon: 'emoji', description: 'Emoji selection panel with categories, search, and skin tone support' },
 
   // Date Components
   { name: 'Calendar', category: 'dates', icon: 'calendar', description: 'A versatile calendar component for selecting dates, months, and years with customizable styles and behaviors.' },
   { name: 'MiniCalendar', category: 'dates', icon: 'calendar', description: 'A compact calendar component for displaying a month view with selectable dates.' },
-  { name: 'TimePicker', category: 'dates', icon: 'clock', description: 'Time selection input with hour/minute interaction' },
-  { name: 'TimePickerInput', category: 'dates', icon: 'clock', description: 'Time selection input with dropdown clock interface' },
+  { name: 'TimePicker', category: 'dates', icon: 'clock', description: 'Inline time panel with hour/minute columns' },
+  { name: 'TimePickerInput', category: 'dates', icon: 'clock', description: 'Time field that opens the picker panel in a dialog' },
   { name: 'DatePicker', category: 'dates', icon: 'calendar' },
   { name: 'DatePickerInput', category: 'dates', icon: 'calendar', description: 'Date selection input with dropdown calendar' },
   { name: 'MonthPicker', category: 'dates', icon: 'calendar', description: 'Month selection input with dropdown calendar' },
@@ -64,8 +64,7 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Carousel', category: 'display', icon: 'carousel' },
   { name: 'Spoiler', category: 'display', icon: 'spoiler', description: 'Hides content until clicked' },
   { name: 'ColorSwatch', category: 'display', icon: 'colors', description: 'Individual color swatch for use in color palettes and pickers' },
-  { name: 'DataList', category: 'display', icon: 'colors', description: 'Data list rendering' },
-  
+
 
   // Typography Components
   { name: 'Text', category: 'typography', icon: 'text' },
@@ -93,6 +92,7 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
 
   // Layout Components
   { name: 'Block', category: 'layout', icon: 'block' },
+  { name: 'Surface', category: 'layout', icon: 'layers', description: 'Elevation primitive Card, Menu, Popover and Dialog are built on' },
   { name: 'Card', category: 'display', icon: 'card' },
   { name: 'Flex', category: 'layout', icon: 'flex' },
   { name: 'Grid', category: 'layout', icon: 'grid' },
@@ -103,8 +103,8 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'TableOfContents', category: 'navigation', icon: 'tableofcontents', description: 'Auto-generated document outline with anchor navigation' },
   { name: 'SegmentedControl', category: 'layout', icon: 'splitTrack' },
 
-  // Feedback Components 
-  { name: 'Notice', category: 'feedback', icon: 'bell' },
+  // Feedback Components
+  { name: 'Alert', category: 'feedback', icon: 'info', description: 'Prominent inline message tied to a semantic status' },
   { name: 'Blockquote', category: 'typography', icon: 'quote', description: 'Stylized blockquote for highlighting quotes or important text' },
   { name: 'Dialog', category: 'feedback', icon: 'dialog' },
   { name: 'Toast', category: 'feedback', icon: 'toast' },

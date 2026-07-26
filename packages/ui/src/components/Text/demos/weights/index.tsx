@@ -1,10 +1,10 @@
-import { Card, Column, Text } from '@platform-blocks/ui';
+import { Block, Card, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="lg">
+    <Block>
       <Card p="md">
-        <Column gap="xs">
+        <Block>
           <Text variant="p" weight="medium">
             Named weights
           </Text>
@@ -14,11 +14,11 @@ export default function Demo() {
           <Text weight="semibold">Semibold weight text</Text>
           <Text weight="bold">Bold weight text</Text>
           <Text weight="black">Black weight text</Text>
-        </Column>
+        </Block>
       </Card>
 
       <Card p="md">
-        <Column gap="xs">
+        <Block>
           <Text variant="p" weight="medium">
             Numeric weights
           </Text>
@@ -28,8 +28,8 @@ export default function Demo() {
           <Text weight="600">Weight 600 (Semibold)</Text>
           <Text weight="700">Weight 700 (Bold)</Text>
           <Text weight="900">Weight 900 (Black)</Text>
-        </Column>
+        </Block>
       </Card>
-    </Column>
+    </Block>
   );
 }

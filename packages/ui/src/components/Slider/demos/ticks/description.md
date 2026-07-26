@@ -1,7 +1,7 @@
 ---
 title: Ticks and Marks
 category: usage
-order: 30
+order: 15
 tags: [ticks, marks, scale]
 highlightLines: []
 status: stable

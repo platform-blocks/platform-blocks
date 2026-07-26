@@ -2,16 +2,7 @@ import { useState } from 'react';
 import { View, Text } from 'react-native';
 import { HistogramChart, HistogramBinSummary } from '../../';
 
-const LOAD_TIMES = [
-  1.2, 1.3, 1.4, 1.5, 1.5, 1.6, 1.6, 1.7, 1.7, 1.8, 1.8, 1.9,
-  1.9, 2.0, 2.0, 2.1, 2.1, 2.2, 2.2, 2.3, 2.3, 2.4, 2.4, 2.5,
-  2.5, 2.6, 2.6, 2.7, 2.7, 2.8, 2.8, 2.9, 2.9, 3.0, 3.1, 3.1,
-  3.2, 3.3, 3.3, 3.4, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0, 2.2,
-  1.8, 1.9, 2.0, 2.1, 2.3, 2.4, 2.5, 2.7, 2.8, 2.9,
-];
-
-const SLO_TARGET = 2.5;
-const AVERAGE_LOAD = LOAD_TIMES.reduce((sum, value) => sum + value, 0) / LOAD_TIMES.length;
+import { AVERAGE_LOAD, LOAD_TIMES, SLO_TARGET } from './data';
 
 export default function Demo() {
   const [focusedBin, setFocusedBin] = useState<HistogramBinSummary | null>(null);
@@ -28,7 +19,6 @@ export default function Demo() {
         binMethod="fd"
         showDensity
         densityThickness={3}
-        barColor="#4C6EF5"
         barOpacity={0.78}
         densityColor="#12B886"
         rangeHighlights={[{ id: 'slo-window', start: 0, end: SLO_TARGET, color: '#38BDF8', opacity: 0.12 }]}
@@ -56,7 +46,7 @@ export default function Demo() {
           title: 'Probability density',
           labelFormatter: (value) => value.toFixed(2),
         }}
-        grid={{ show: true, color: '#E3E8FF' }}
+        grid={{ show: true }}
         tooltip={{
           show: true,
           formatter: (bin) => `${bin.count} page views between ${bin.start.toFixed(1)}–${bin.end.toFixed(1)}s`,

@@ -1,4 +1,5 @@
 import React from 'react';
+import type { SharedValue } from 'react-native-reanimated';
 import { SpacingProps } from '../../core/utils';
 
 // Responsive sizing
@@ -30,6 +31,19 @@ export interface NavbarConfig {
   zIndex?: number;
   collapsedWidth?: number;
   expandOnHover?: boolean;
+  /**
+   * When paired with `expandOnHover`, hovering the collapsed rail pushes the
+   * main content to the right (flexing the page) instead of overlaying it.
+   * Defaults to `false` (overlay) to preserve existing behavior.
+   */
+  expandOnHoverPush?: boolean;
+  /**
+   * Auto-expand the navbar (start open, not a collapsed rail) once the viewport
+   * reaches this breakpoint or wider, e.g. `'xl'`. Overrides
+   * `startCollapsedDesktop` at/above the breakpoint; smaller desktops keep the
+   * collapsed-with-hover behavior.
+   */
+  autoExpandBreakpoint?: Breakpoint;
   startCollapsedDesktop?: boolean;
 }
 
@@ -71,6 +85,8 @@ export interface MobileMenuConfig {
   animationType?: 'slide' | 'fade' | 'none';
   showBackdrop?: boolean;
   closeOnOutsidePress?: boolean;
+  /** Open/close transition length in ms; `0` shows and hides instantly. @default 300 */
+  transitionDuration?: number;
 }
 
 export interface StatusBarConfig {
@@ -146,6 +162,10 @@ export interface AppShellContextValue {
   fullNavbarWidth: number | string;
   navbarCollapsedRailWidth: number | string;
   navbarExpandOnHover: boolean;
+  /** Whether hover-expansion should push the main content instead of overlaying it. */
+  navbarPushOnHover: boolean;
+  /** Hover-expansion progress (0 = collapsed rail, 1 = fully expanded). */
+  navbarHoverProgress: SharedValue<number>;
   asideWidth: number | string;
   footerHeight: number | string;
   bottomNavHeight: number | string;

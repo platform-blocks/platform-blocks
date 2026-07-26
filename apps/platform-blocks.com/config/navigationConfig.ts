@@ -1,4 +1,5 @@
 import { CORE_COMPONENTS } from './coreComponents';
+import { getAllHooks } from '../utils/hooksLoader';
 
 export interface NavItem {
   label: string;
@@ -44,6 +45,20 @@ const CHART_COMPONENT_NAV_ITEMS: NavItem[] = toNavItems(
   'components',
 );
 
+// Sourced from the generated hook metadata (npm run demos:generate) so the
+// sidebar never drifts from the hooks that actually have docs pages. Sorted by
+// name here rather than by meta `order` — an alphabetical rail is easier to scan
+// than a curated one once the list is long.
+const HOOK_NAV_ITEMS: NavItem[] = getAllHooks()
+  .map(hook => ({
+    label: hook.name,
+    route: `/hooks/${hook.name}`,
+    icon: 'hook',
+    searchable: true,
+    description: hook.description,
+  }))
+  .sort((a, b) => a.label.localeCompare(b.label));
+
 export const NAV_SECTIONS: NavSection[] = [
 
   {
@@ -52,20 +67,15 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Components', route: '/components', icon: 'grid', bottom: true, searchable: true },
       // { label: 'Charts', route: '/charts', icon: 'linechart', bottom: true, searchable: true },
       { label: 'Hooks', route: '/hooks', icon: 'hook', searchable: true, description: 'Reference for reusable React hooks in Platform Blocks' },
-      { label: 'Icons', route: '/icons', icon: 'star', searchable: true, description: 'Test custom icons package integration' },
     ]
   },
 
   {
     section: 'Docs',
     items: [
-      { label: 'Getting Started', route: '/getting-started', icon: 'home', bottom: true, searchable: true, description: 'Project overview' },
-      { label: 'Installation', route: '/installation', icon: 'download', searchable: true },
-      { label: 'Theming', route: '/theming', icon: 'palette', searchable: true, description: 'Customize colors, typography, and design system' },
+      { label: 'Getting Started', route: '/getting-started', icon: 'home', bottom: true, searchable: true, description: 'Install, set up the provider, and render your first component' },
       { label: 'Localization', route: '/localization', icon: 'globe', searchable: true },
-      // { label: 'Keyboard Management', route: '/keyboard', icon: 'keyboard', searchable: true, description: 'Set up shared keyboard dismissal, avoidance, and refocus patterns' },
-      { label: 'FAQ', route: '/faq', icon: 'question', searchable: true },
-      { label: 'Support', route: '/support', icon: 'support', bottom: true, searchable: true, description: 'Get help and contact information' },
+      { label: 'FAQ', route: '/faq', icon: 'question', bottom: true, searchable: true },
     ]
   },
   {
@@ -76,14 +86,11 @@ export const NAV_SECTIONS: NavSection[] = [
     section: 'Chart Components',
     items: CHART_COMPONENT_NAV_ITEMS,
   },
-  // {
-  //   section: 'Examples',
-  //   items: [
-  //     { label: 'Chatroom', route: '/examples/chatroom', icon: 'chat', searchable: true },
-  //     { label: 'Music Player', route: '/examples/music-player', icon: 'music', searchable: true },
-  //     { label: 'Dashboard', route: '/examples/dashboard', icon: 'linechart', searchable: true },
-  //   ]
-  // },
+  // Omitted entirely when the generated artifacts are missing, so a fresh clone
+  // shows an empty gap instead of a headed section with nothing under it.
+  ...(HOOK_NAV_ITEMS.length > 0
+    ? [{ section: 'Hooks', items: HOOK_NAV_ITEMS }]
+    : []),
   // {
   //   section: 'Charts',
   //   items: [

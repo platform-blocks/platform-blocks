@@ -22,7 +22,10 @@ related:
 examples:
   basic: Basic waveform display
   variants: Different visual variants
+  sizes: The seven size tokens
   synchronized: Synchronized waveforms
+  audioPlayback: Waveform driven by real audio playback
+  videoSync: Waveform synced to the Video component
   interactive: Interactive waveform controls
   fullWidth: Full width responsive layout
 ---

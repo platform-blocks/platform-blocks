@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Column, DatePickerInput, Text } from '@platform-blocks/ui';
+import { Block, DatePickerInput, Text } from '@platform-blocks/ui';
 
 export default function ValidationDatePickerInputDemo() {
   const [value, setValue] = useState<Date | null>(null);
@@ -23,7 +23,7 @@ export default function ValidationDatePickerInputDemo() {
   };
 
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <DatePickerInput
         value={value}
         onChange={handleChange}
@@ -40,6 +40,6 @@ export default function ValidationDatePickerInputDemo() {
       <Text size="sm" colorVariant="secondary">
         Past dates show the validation state
       </Text>
-    </Column>
+    </Block>
   );
 }

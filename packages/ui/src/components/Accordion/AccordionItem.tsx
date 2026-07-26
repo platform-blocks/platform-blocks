@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Pressable, Platform } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { Text } from '../Text';
 import { Icon } from '../Icon';
 import type { AccordionItem, AccordionProps } from './types';
@@ -27,10 +28,13 @@ export interface AccordionItemComponentProps {
   titleProps?: any;
   idPrefix: string;
   animated: AccordionAnimationProp;
+  /** Explicit ms override for the chevron spin and height transition; `0` is instant. */
+  transitionDuration?: number;
+  reducedMotion?: boolean;
   chevronPosition?: 'start' | 'end';
 }
 
-export const AccordionItemComponent: React.FC<AccordionItemComponentProps> = ({
+export const AccordionItemComponent = React.forwardRef<View, AccordionItemComponentProps>(({
   item,
   isExpanded,
   isDisabled,
@@ -48,14 +52,22 @@ export const AccordionItemComponent: React.FC<AccordionItemComponentProps> = ({
   titleProps,
   idPrefix,
   animated,
+  transitionDuration,
+  reducedMotion,
   chevronPosition = 'end',
-}) => {
+}, ref) => {
   const headerId = `${idPrefix}-header-${item.key}`;
   const panelId = `${idPrefix}-panel-${item.key}`;
-  const { CollapseConfig, animatedChevronStyle } = useAccordionItemAnimation({ expanded: isExpanded, animated });
+  const { CollapseConfig, animatedChevronStyle } = useAccordionItemAnimation({
+    expanded: isExpanded,
+    animated,
+    transitionDuration,
+    reducedMotion,
+  });
   const { shouldAnimate, duration, easing } = CollapseConfig;
 
-  // Chevron follows the accent color while expanded (from the `color` prop).
+  // Chevron keeps its resting tint unless an accent `color` is set — the open
+  // state is conveyed by the rotation, not by a heavier-looking icon.
   const resolvedChevronColor = isDisabled
     ? disabledChevronColor
     : isExpanded && accent.activeChevronColor
@@ -63,7 +75,7 @@ export const AccordionItemComponent: React.FC<AccordionItemComponentProps> = ({
       : chevronColor;
 
   return (
-    <View style={[
+    <View ref={ref} style={[
       styles.item,
       isLast && variant === 'default' && { borderBottomWidth: 0 },
       isExpanded && !isDisabled && accent.activeItem
@@ -82,9 +94,9 @@ export const AccordionItemComponent: React.FC<AccordionItemComponentProps> = ({
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
           {chevronPosition === 'start' && showChevron && (
-            <View style={[styles.chevron, animatedChevronStyle]}>
-              <Icon name="chevron-right" size="md" color={resolvedChevronColor} />
-            </View>
+            <Animated.View style={[styles.chevron, animatedChevronStyle]}>
+              <Icon name="chevron-down" size="md" color={resolvedChevronColor} />
+            </Animated.View>
           )}
           {item.icon && <View style={{ marginRight: 12 }}>{item.icon}</View>}
           <Text
@@ -105,13 +117,13 @@ export const AccordionItemComponent: React.FC<AccordionItemComponentProps> = ({
             {item.title}
           </Text>
           {chevronPosition === 'end' && showChevron && (
-            <View style={[
+            <Animated.View style={[
               styles.chevron,
+              { marginLeft: 'auto' as const },
               animatedChevronStyle,
-              { marginLeft: 'auto' }
             ]}>
-              <Icon name="chevron-right" size="md" color={resolvedChevronColor} />
-            </View>
+              <Icon name="chevron-down" size="md" color={resolvedChevronColor} />
+            </Animated.View>
           )}
         </View>
       </Pressable>
@@ -129,7 +141,7 @@ export const AccordionItemComponent: React.FC<AccordionItemComponentProps> = ({
       >
         {shouldAnimate ? (
           <Collapse
-            isCollapsed={isExpanded}
+            isCollapsed={!isExpanded}
             duration={duration}
             easing={easing}
             fadeContent={false}
@@ -154,6 +166,8 @@ export const AccordionItemComponent: React.FC<AccordionItemComponentProps> = ({
       </View>
     </View>
   );
-};
+});
+
+AccordionItemComponent.displayName = 'Accordion.Item';
 
 export default AccordionItemComponent;

@@ -9,28 +9,28 @@ import { DESIGN_TOKENS } from '../../core';
 import type { AudioPlayerRef, PlaybackState } from '../AudioPlayer';
 import { Block } from '../Block';
 
-// Sample audio URLs (these would be real audio files in production)
+// Short bundled clips so the demo plays offline and without a third-party host.
 const SAMPLE_AUDIO_FILES = [
   {
     id: '1',
-    title: 'Sample Track 1',
-    artist: 'Demo Artist',
-    uri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
-    duration: 30000,
+    title: 'Chime',
+    artist: 'Demo Tones',
+    uri: require('../../assets/sounds/chime.mp3'),
+    duration: 2600,
   },
   {
     id: '2',
-    title: 'Piano Melody',
-    artist: 'Classical Demo',
-    uri: 'https://www.soundjay.com/buttons/sounds/beep-07a.wav',
-    duration: 45000,
+    title: 'Arpeggio',
+    artist: 'Demo Tones',
+    uri: require('../../assets/sounds/melody.mp3'),
+    duration: 3860,
   },
   {
     id: '3',
-    title: 'Nature Sounds',
+    title: 'Rainfall',
     artist: 'Ambient Collection',
-    uri: 'https://www.soundjay.com/nature/sounds/rain-03.wav',
-    duration: 120000,
+    uri: require('../../assets/sounds/rain.mp3'),
+    duration: 6000,
   },
 ];
 

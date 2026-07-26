@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Calendar, Column, Text } from '@platform-blocks/ui';
+import { Block, Calendar, Text } from '@platform-blocks/ui';
 
 const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
 
@@ -18,7 +18,7 @@ export default function Demo() {
   }, [selectedRange]);
 
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <Calendar
         type="range"
         value={selectedRange}
@@ -28,6 +28,6 @@ export default function Demo() {
       <Text size="sm" colorVariant="secondary">
         {summary}
       </Text>
-    </Column>
+    </Block>
   );
 }

@@ -1,40 +1,9 @@
-import { View, StyleSheet } from 'react-native';
-import { GradientText } from '../..';
+import { GradientText } from '@platform-blocks/ui';
 
-export default function BasicDemo() {
+export default function Demo() {
   return (
-    <View style={styles.container}>
-      <GradientText colors={['#FF0080', '#7928CA']}>
-        Hello Gradient World
-      </GradientText>
-      
-      <View style={styles.spacer} />
-      
-      <GradientText 
-        colors={['#667eea', '#764ba2']} 
-        size="xl"
-        weight="bold"
-      >
-        Bold Gradient Text
-      </GradientText>
-      
-      <View style={styles.spacer} />
-      
-      <GradientText 
-        colors={['#f093fb', '#f5576c']}
-        variant="h2"
-      >
-        Heading with Gradient
-      </GradientText>
-    </View>
+    <GradientText colors={['#FF0080', '#7928CA']}>
+      Hello World
+    </GradientText>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: 16,
-  },
-  spacer: {
-    height: 16,
-  },
-});

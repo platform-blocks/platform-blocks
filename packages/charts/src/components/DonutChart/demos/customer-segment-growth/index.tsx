@@ -1,21 +1,10 @@
 import { DonutChart } from '../../';
 import type { DonutChartDataPoint } from '../../';
 
-const ARR_SEGMENTS: DonutChartDataPoint[] = [
-  { id: 'enterprise', label: 'Enterprise', value: 82, color: '#5F5CF1', data: { metric: 'arr' } },
-  { id: 'mid-market', label: 'Mid-Market', value: 54, color: '#4CC38A', data: { metric: 'arr' } },
-  { id: 'smb', label: 'SMB', value: 36, color: '#FDA065', data: { metric: 'arr' } },
-  { id: 'self-serve', label: 'Self-Serve', value: 22, color: '#74C0FC', data: { metric: 'arr' } },
-];
-
-const GROWTH_CONTRIBUTION: DonutChartDataPoint[] = [
-  { id: 'enterprise', label: 'Enterprise', value: 34, data: { metric: 'growth' } },
-  { id: 'mid-market', label: 'Mid-Market', value: 28, data: { metric: 'growth' } },
-  { id: 'smb', label: 'SMB', value: 22, data: { metric: 'growth' } },
-  { id: 'self-serve', label: 'Self-Serve', value: 16, data: { metric: 'growth' } },
-];
+import { ARR_SEGMENTS, GROWTH_CONTRIBUTION } from './data';
 
 const formatMillions = (value: number) => `${Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value)}M`;
+
 const getRingId = (slice?: DonutChartDataPoint | null) => (slice as any)?.ringId as string | undefined;
 
 export default function Demo() {

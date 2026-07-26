@@ -3,12 +3,14 @@ import { View, Pressable, useWindowDimensions } from 'react-native';
 import { Text } from '../Text';
 import { Flex } from '../Flex';
 import { Icon } from '../Icon';
-import { dateUtils } from '../Calendar/utils';
+import { dateUtils, getMonthGridWidth } from '../Calendar/utils';
+import { getCurrentPeriodStyles, getCurrentPeriodTextColor } from '../Calendar/currentPeriod';
 import { useTheme } from '../../core/theme';
 import { DESIGN_TOKENS } from '../../core';
 import { resolveResponsiveProp, type ResponsiveProp } from '../../core/theme/breakpoints';
 import { clampComponentSize, resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
 import type { MonthPickerProps } from './types';
+import { useControllableState } from '../../hooks/useControllableState';
 
 const DEFAULT_GRID: ResponsiveProp<number> = { 
   base: 3 //, md: 4
@@ -54,7 +56,7 @@ const resolveMonthPickerSize = (value: ComponentSizeValue): MonthPickerSizeConfi
   return resolved;
 };
 
-export const MonthPicker: React.FC<MonthPickerProps> = ({
+export const MonthPicker = React.forwardRef<View, MonthPickerProps>(({
   value,
   onChange,
   year: controlledYear,
@@ -66,15 +68,16 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
   monthLabelFormat = 'long',
   hideHeader = false,
   monthsPerRow,
-}) => {
+  fullWidth = false,
+}, ref) => {
   const theme = useTheme();
   const { width } = useWindowDimensions();
 
-  const [internalYear, setInternalYear] = useState(
-    controlledYear || value?.getFullYear() || new Date().getFullYear()
-  );
-
-  const currentYear = controlledYear || internalYear;
+  const [currentYear, setCurrentYear] = useControllableState<number>({
+    value: controlledYear,
+    defaultValue: () => value?.getFullYear() ?? new Date().getFullYear(),
+    onChange: onYearChange,
+  });
 
   const monthNames = useMemo(() => {
     const format = monthLabelFormat === 'short' ? 'short' : 'long';
@@ -93,13 +96,8 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
   }, [monthsPerRow, sizeConfig.columns, width]);
 
   const handleYearChange = useCallback(
-    (newYear: number) => {
-      if (!controlledYear) {
-        setInternalYear(newYear);
-      }
-      onYearChange?.(newYear);
-    },
-    [controlledYear, onYearChange]
+    (newYear: number) => setCurrentYear(newYear),
+    [setCurrentYear]
   );
 
   const handlePreviousYear = () => {
@@ -147,10 +145,23 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
     [value, currentYear]
   );
 
+  // Mark the month we're actually in, so the grid shows where "now" sits.
+  const isMonthCurrent = useCallback(
+    (monthIndex: number): boolean => {
+      const now = new Date();
+      return now.getFullYear() === currentYear && now.getMonth() === monthIndex;
+    },
+    [currentYear]
+  );
+
   const rows = Math.ceil(12 / resolvedMonthsPerRow);
 
+  // Month tiles are flex-sized, so an unconstrained picker balloons to fill its
+  // container. Default to the same natural width as a calendar's day grid.
+  const pickerWidth = fullWidth ? undefined : getMonthGridWidth(clampedSize);
+
   return (
-    <View>
+    <View ref={ref} style={pickerWidth === undefined ? undefined : { width: pickerWidth, maxWidth: '100%' }}>
       {!hideHeader && (
         <Flex
           direction="row"
@@ -218,6 +229,7 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
               const isSelected = isMonthSelected(monthIndex);
               const disabled = isMonthDisabled(monthIndex);
               const monthName = monthNames[monthIndex];
+              const currentPeriod = { isCurrent: isMonthCurrent(monthIndex) && !disabled, isSelected };
 
               return (
                 <Pressable
@@ -240,24 +252,20 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
                         ? theme.colors.gray[2]
                         : 'transparent',
                       borderRadius: DESIGN_TOKENS.radius.md,
+                      ...getCurrentPeriodStyles(theme, currentPeriod),
                       opacity: disabled ? 0.5 : 1,
-                      shadowColor: isSelected ? theme.colors.primary[5] : 'transparent',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: isSelected ? 0.2 : 0,
-                      shadowRadius: 4,
-                      elevation: isSelected ? 2 : 0,
                     },
                   ]}
                 >
                   <Text
                     size={sizeConfig.textSize}
-                    weight={isSelected ? 'semibold' : 'medium'}
+                    weight={isSelected || currentPeriod.isCurrent ? 'semibold' : 'medium'}
                     style={{
                       color: isSelected
                         ? 'white'
                         : disabled
                         ? theme.colors.gray[4]
-                        : theme.colors.gray[9],
+                        : getCurrentPeriodTextColor(theme, currentPeriod) ?? theme.colors.gray[9],
                       textAlign: 'center',
                       paddingHorizontal: DESIGN_TOKENS.spacing.xs,
                     }}
@@ -276,4 +284,6 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
       </View>
     </View>
   );
-};
+});
+
+MonthPicker.displayName = 'MonthPicker';

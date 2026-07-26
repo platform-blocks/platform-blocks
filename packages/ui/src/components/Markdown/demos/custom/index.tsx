@@ -1,4 +1,4 @@
-import { Card, Column, Markdown, Text } from '@platform-blocks/ui';
+import { Block, Card, Markdown, Text } from '@platform-blocks/ui';
 
 const CUSTOM_COMPONENTS = {
   h1: ({ children, ...props }: any) => (
@@ -38,11 +38,11 @@ Regular paragraph text with default styling.
 
 export default function Demo() {
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <Markdown components={CUSTOM_COMPONENTS}>{CONTENT}</Markdown>
       <Text size="sm" colorVariant="secondary">
         Headings, paragraphs, and quotes use custom renderers
       </Text>
-    </Column>
+    </Block>
   );
 }

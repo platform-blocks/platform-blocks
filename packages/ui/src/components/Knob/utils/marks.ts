@@ -26,6 +26,24 @@ export const pickClosestMark = (value: number, marks: KnobMark[]) => {
   return closest;
 };
 
+/**
+ * The next mark strictly past `value` in `direction`, for stepping between detents. Marks
+ * arrive sorted ascending from `normalizeMarks`. Returns `value` unchanged at either end,
+ * and "strictly past" is what keeps a keypress from re-snapping to the mark it is already
+ * sitting on.
+ */
+export const pickAdjacentMark = (value: number, marks: KnobMark[], direction: 1 | -1) => {
+  if (!marks.length) return value;
+  if (direction > 0) {
+    const next = marks.find((mark) => mark.value > value);
+    return next ? next.value : value;
+  }
+  for (let i = marks.length - 1; i >= 0; i -= 1) {
+    if (marks[i].value < value) return marks[i].value;
+  }
+  return value;
+};
+
 export const findClosestMarkEntry = (value: number, marks: KnobMark[]) => {
   if (!marks.length) return null;
   let closest = marks[0];

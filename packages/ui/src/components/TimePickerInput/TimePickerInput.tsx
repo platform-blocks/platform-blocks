@@ -1,39 +1,20 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { View, Pressable, FlatList, ViewStyle, Platform } from 'react-native';
+import { View, Pressable, Platform } from 'react-native';
+import { useMergedRef } from '../../core/utils';
 // NOTE: Using direct relative imports to avoid barrel (index.ts) circular dependency
 import { Text } from '../Text';
 import { Input } from '../Input';
-import { Button } from '../Button';
 import { Dialog } from '../Dialog';
 import { Flex } from '../Flex';
 import { Icon } from '../Icon';
 import { useTheme } from '../../core/theme';
+import { TimePicker, buildTimeValue } from '../TimePicker/TimePicker';
 import type { TimePickerValue } from '../TimePicker/types';
 import type { TimePickerInputProps } from './types';
 
 const pad = (n: number) => n.toString().padStart(2, '0');
 
-const buildTimeValue = (
-  format: 12 | 24,
-  withSeconds: boolean,
-  source?: TimePickerValue | null
-): TimePickerValue => {
-  if (source) {
-    return {
-      hours: source.hours,
-      minutes: source.minutes,
-      ...(withSeconds ? { seconds: source.seconds ?? 0 } : {}),
-    };
-  }
-
-  return {
-    hours: format === 12 ? 12 : 0,
-    minutes: 0,
-    ...(withSeconds ? { seconds: 0 } : {}),
-  };
-};
-
-export const TimePickerInput: React.FC<TimePickerInputProps> = ({
+export const TimePickerInput = React.forwardRef<View, TimePickerInputProps>(({
   value,
   defaultValue,
   onChange,
@@ -64,7 +45,7 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
   placeholderTextColor,
   startSectionProps,
   endSectionProps,
-}) => {
+}, ref) => {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const isControlled = value !== undefined;
@@ -109,18 +90,12 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
   }, [onClose]);
 
   const commit = useCallback(
-    (next: Partial<TimePickerValue>, toggleClose = false) => {
-      setInternal((prev) => {
-        const merged: TimePickerValue = { ...prev, ...next };
-        onChange?.(merged);
-        return merged;
-      });
+    (next: TimePickerValue) => {
+      setInternal(next);
       setHasValue(true);
-      if (toggleClose) {
-        handleClose();
-      }
+      onChange?.(next);
     },
-    [handleClose, onChange]
+    [onChange]
   );
 
   const clearValue = useCallback(() => {
@@ -131,34 +106,6 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
     setHasValue(false);
     onChange?.(null);
   }, [defaultValue, disabled, format, onChange, withSeconds]);
-
-  const hoursOptions = useMemo(() => {
-    if (is12h) return Array.from({ length: 12 }, (_, i) => i + 1);
-    return Array.from({ length: 24 }, (_, i) => i);
-  }, [is12h]);
-  const minuteOptions = useMemo(
-    () => Array.from({ length: Math.ceil(60 / minuteStep) }, (_, i) => i * minuteStep),
-    [minuteStep]
-  );
-  const secondOptions = useMemo(
-    () => Array.from({ length: Math.ceil(60 / secondStep) }, (_, i) => i * secondStep),
-    [secondStep]
-  );
-
-  const switchMeridiem = () => {
-    if (!is12h) return;
-    commit({ hours: (internal.hours + 12) % 24 });
-  };
-
-  const setHourDisplay = (hDisplay: number) => {
-    let hour24 = hDisplay;
-    if (is12h) {
-      const currentIsPM = internal.hours >= 12;
-      if (hDisplay === 12) hour24 = currentIsPM ? 12 : 0;
-      else hour24 = currentIsPM ? hDisplay + 12 : hDisplay;
-    }
-    commit({ hours: hour24 });
-  };
 
   const containerStyles = { position: 'relative' as const };
 
@@ -172,52 +119,9 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
           return cols * columnWidth + meridiemWidth + padding;
         })();
 
-  const listCommon: ViewStyle = {
-    maxHeight: 200,
-    width: '100%',
-  };
-
-  const renderNumber = (n: number, active: boolean, onPress: () => void) => (
-    <Pressable
-      key={n}
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => ({
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 10,
-        backgroundColor: active
-          ? theme.colors.primary[5]
-          : pressed
-          ? theme.colors.gray[2]
-          : 'transparent',
-        marginVertical: 2,
-        marginHorizontal: 4,
-        minWidth: 48,
-        alignItems: 'center',
-        shadowColor: active ? theme.colors.primary[5] : 'transparent',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: active ? 0.2 : 0,
-        shadowRadius: 4,
-        elevation: active ? 2 : 0,
-      })}
-    >
-      <Text
-        size="md"
-        weight={active ? 'semibold' : 'medium'}
-        style={{
-          color: active ? 'white' : theme.colors.gray[8],
-          fontSize: 16,
-        }}
-      >
-        {pad(n)}
-      </Text>
-    </Pressable>
-  );
-
   return (
     <View
-      ref={containerRef as any}
+      ref={useMergedRef<View>(containerRef, ref) as any}
       style={[containerStyles, inputWidth != null ? { width: inputWidth } : null, style]}
     >
       <Pressable onPress={handleOpen} disabled={disabled} {...(Platform.OS === 'web' ? { role: 'group' as any } : { accessibilityRole: 'button' })}>
@@ -245,7 +149,7 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
                 if (mer === 'am' && h === 12) h = 0;
               }
               if (h >= 0 && h < 24 && m < 60 && s < 60) {
-                commit({ hours: h, minutes: m, seconds: s });
+                commit({ hours: h, minutes: m, ...(withSeconds ? { seconds: s } : {}) });
               }
             }
           }}
@@ -273,7 +177,6 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
 
       <Dialog
         visible={open}
-        // variant="fullscreen"
         onClose={handleClose}
         w={typeof computedPanelWidth === 'number' ? computedPanelWidth : 360}
         title={title || 'Select Time'}
@@ -286,124 +189,18 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
             alignItems: 'center',
           }}
         >
-          <Flex direction="row" gap={6} align="flex-start" justify="center">
-            <View style={{ width: columnWidth, alignItems: 'center' }}>
-              <Text
-                size="sm"
-                weight="medium"
-                style={{
-                  marginBottom: 12,
-                  textAlign: 'center',
-                }}
-              >
-                Hour
-              </Text>
-              <FlatList
-                data={hoursOptions}
-                keyExtractor={(item) => 'h-' + item}
-                renderItem={({ item }) =>
-                  renderNumber(
-                    item,
-                    (is12h ? ((internal.hours + 11) % 12) + 1 : internal.hours) === item,
-                    () => setHourDisplay(item)
-                  )
-                }
-                style={[listCommon, { borderRadius: 12, backgroundColor: theme.colors.gray[1] }]}
-                contentContainerStyle={{ paddingVertical: 8 }}
-                showsVerticalScrollIndicator={false}
-              />
-            </View>
-            <View style={{ width: columnWidth, alignItems: 'center' }}>
-              <Text
-                size="sm"
-                weight="medium"
-                style={{
-                  marginBottom: 12,
-                  textAlign: 'center',
-                }}
-              >
-                Minute
-              </Text>
-              <FlatList
-                data={minuteOptions}
-                keyExtractor={(item) => 'm-' + item}
-                renderItem={({ item }) =>
-                  renderNumber(item, internal.minutes === item, () =>
-                    commit({ minutes: item }, autoClose && !withSeconds)
-                  )
-                }
-                style={[listCommon, { borderRadius: 12, backgroundColor: theme.colors.gray[1] }]}
-                contentContainerStyle={{ paddingVertical: 8 }}
-                showsVerticalScrollIndicator={false}
-              />
-            </View>
-            {withSeconds && (
-              <View style={{ width: columnWidth, alignItems: 'center' }}>
-                <Text
-                  size="sm"
-                  weight="medium"
-                  style={{
-                    marginBottom: 12,
-                    textAlign: 'center',
-                  }}
-                >
-                  Second
-                </Text>
-                <FlatList
-                  data={secondOptions}
-                  keyExtractor={(item) => 's-' + item}
-                  renderItem={({ item }) =>
-                    renderNumber(item, (internal.seconds ?? 0) === item, () =>
-                      commit({ seconds: item }, autoClose)
-                    )
-                  }
-                  style={[listCommon, { borderRadius: 12, backgroundColor: theme.colors.gray[1] }]}
-                  contentContainerStyle={{ paddingVertical: 8 }}
-                  showsVerticalScrollIndicator={false}
-                />
-              </View>
-            )}
-            {is12h && (
-              <View style={{ alignItems: 'center' }}>
-                <Text
-                  size="sm"
-                  weight="medium"
-                  style={{
-                    marginBottom: 12,
-                    textAlign: 'center',
-                  }}
-                >
-                  Period
-                </Text>
-                <Flex
-                  align="center"
-                  justify="center"
-                  style={{
-                    height: listCommon.maxHeight,
-                    paddingVertical: 8,
-                  }}
-                >
-                  <Pressable
-                    onPress={switchMeridiem}
-                    style={({ pressed }) => ({
-                      paddingHorizontal: 16,
-                      paddingVertical: 12,
-                      borderRadius: 12,
-                      backgroundColor: pressed
-                        ? theme.colors.primary[6]
-                        : theme.colors.primary[5],
-                      minWidth: 60,
-                      alignItems: 'center',
-                    })}
-                  >
-                    <Text size="md" weight="semibold" style={{ color: 'white' }}>
-                      {internal.hours >= 12 ? 'PM' : 'AM'}
-                    </Text>
-                  </Pressable>
-                </Flex>
-              </View>
-            )}
-          </Flex>
+          <TimePicker
+            value={internal}
+            onChange={commit}
+            onChangeComplete={autoClose ? handleClose : undefined}
+            format={format}
+            withSeconds={withSeconds}
+            minuteStep={minuteStep}
+            secondStep={secondStep}
+            columnWidth={columnWidth}
+            disabled={disabled}
+          />
+
           {!autoClose && (
             <View
               style={{
@@ -438,6 +235,6 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
       </Dialog>
     </View>
   );
-};
+});
 
 TimePickerInput.displayName = 'TimePickerInput';

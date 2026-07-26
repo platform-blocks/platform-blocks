@@ -61,6 +61,13 @@ export interface CheckboxProps extends BaseComponentProps {
   /** Override styles/props applied to the description `<Text>` */
   descriptionProps?: Omit<TextProps, 'children'>;
 
+  /**
+   * Length of the check/uncheck animation in ms; the fill and mark phases scale
+   * against it. `0` applies the state instantly. Always 0 under reduced motion.
+   * @default 160
+   */
+  transitionDuration?: number;
+
   /** Checkbox content/children (alternative to label) */
   children?: React.ReactNode;
 

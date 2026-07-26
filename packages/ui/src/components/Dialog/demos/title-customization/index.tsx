@@ -1,4 +1,4 @@
-import { Button, Column, Text, useDialog } from '@platform-blocks/ui';
+import { Block, Button, Text, useDialog } from '@platform-blocks/ui';
 
 export default function Demo() {
   const { openDialog, closeDialog } = useDialog();
@@ -9,16 +9,16 @@ export default function Demo() {
       title: 'Welcome aboard',
       titleProps,
       content: (
-        <Column gap="md" p="md">
+        <Block p="md">
           <Text>Dialog title styled via `titleProps`.</Text>
           <Button onPress={() => closeDialog(id)}>Close</Button>
-        </Column>
+        </Block>
       ),
     });
   };
 
   return (
-    <Column gap="sm">
+    <Block>
       <Button onPress={() => open(undefined)}>Default</Button>
       <Button
         onPress={() =>
@@ -54,6 +54,6 @@ export default function Demo() {
       >
         Brand-coloured monospace
       </Button>
-    </Column>
+    </Block>
   );
 }

@@ -1,111 +1,28 @@
 import { Block, Carousel, Text } from '@platform-blocks/ui';
 
+const slides = ['#1D4ED8', '#0F766E', '#C026D3', '#B45309', '#7C3AED'];
+
 export default function Demo() {
   return (
-    <Block gap="md" w="100%">
-      <Carousel
-        height={220}
-        loop
-        autoPlay
-        autoPlayInterval={5000}
-        itemsPerPage={1}
-        slidesToScroll={1}
-        slideGap={12}
-        showArrows={false}
-        showDots
-        style={{ width: '100%' }}
-        breakpoints={{
-          '@media (min-width: 768px)': {
-            itemsPerPage: 2,
-            showArrows: true,
-          },
-          '@media (min-width: 1200px)': {
-            itemsPerPage: 4,
-            showDots: false,
-            slideGap: 16,
-          },
-        }}
-      >
-        <Block
-          gap="xs"
-          bg="#1D4ED8"
-          radius="lg"
-          p="lg"
-          justify="center"
-          minH={200}
-        >
+    <Carousel
+      height={180}
+      loop
+      showDots
+      slideGap={12}
+      itemsPerPage={1}
+      slidesToScroll={1}
+      breakpoints={{
+        '@media (min-width: 768px)': { itemsPerPage: 2 },
+        '@media (min-width: 1200px)': { itemsPerPage: 4 },
+      }}
+    >
+      {slides.map((bg, index) => (
+        <Block key={bg} bg={bg} radius="lg" h="full" align="center" justify="center">
           <Text variant="h4" color="white">
-            Soccer weekly
-          </Text>
-          <Text color="rgba(255,255,255,0.85)">
-            Star midfielders and highlight reels in one glance.
+            Slide {index + 1}
           </Text>
         </Block>
-
-        <Block
-          gap="xs"
-          bg="#0F766E"
-          radius="lg"
-          p="lg"
-          justify="center"
-          minH={200}
-        >
-          <Text variant="h4" color="white">
-            Basketball insights
-          </Text>
-          <Text color="rgba(255,255,255,0.85)">
-            League standings refresh every Monday morning.
-          </Text>
-        </Block>
-
-        <Block
-          gap="xs"
-          bg="#C026D3"
-          radius="lg"
-          p="lg"
-          justify="center"
-          minH={200}
-        >
-          <Text variant="h4" color="white">
-            Tennis rankings
-          </Text>
-          <Text color="rgba(255,255,255,0.85)">
-            Track tournament seeds as the tour moves cities.
-          </Text>
-        </Block>
-
-        <Block
-          gap="xs"
-          bg="#B45309"
-          radius="lg"
-          p="lg"
-          justify="center"
-          minH={200}
-        >
-          <Text variant="h4" color="white">
-            Baseball stat pack
-          </Text>
-          <Text color="rgba(255,255,255,0.85)">
-            Show on-base percentages and bullpen usage per club.
-          </Text>
-        </Block>
-
-        <Block
-          gap="xs"
-          bg="#7C3AED"
-          radius="lg"
-          p="lg"
-          justify="center"
-          minH={200}
-        >
-          <Text variant="h4" color="white">
-            Cycling bulletins
-          </Text>
-          <Text color="rgba(255,255,255,0.85)">
-            Surface stage previews while still showing other sports.
-          </Text>
-        </Block>
-      </Carousel>
-    </Block>
+      ))}
+    </Carousel>
   );
 }

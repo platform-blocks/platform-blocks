@@ -1,64 +1,17 @@
 import { Block, Carousel, Text } from '@platform-blocks/ui';
 
+const slides = ['#4C1D95', '#155E75', '#166534'];
+
 export default function Demo() {
-	return (
-		<Block gap="md" fullWidth>
-			<Carousel
-				height={220}
-				loop
-				autoPlay
-				autoPlayInterval={4500}
-				showDots
-				style={{ width: '100%' }}
-			>
-				<Block
-					gap="sm"
-					bg="#4C1D95"
-					radius="xl"
-					p="xl"
-					justify="center"
-					minH={220}
-				>
-					<Text variant="h3" color="white">
-						Weekly highlights
-					</Text>
-					<Text color="rgba(255,255,255,0.85)">
-						Rotate through featured stories without building pagination controls.
-					</Text>
-				</Block>
-
-				<Block
-					gap="sm"
-					bg="#155E75"
-					radius="xl"
-					p="xl"
-					justify="center"
-					minH={220}
-				>
-					<Text variant="h3" color="white">
-						Product updates
-					</Text>
-					<Text color="rgba(255,255,255,0.85)">
-						Enable `autoPlay` and `loop` to keep the carousel moving hands-free.
-					</Text>
-				</Block>
-
-				<Block
-					gap="sm"
-					bg="#166534"
-					radius="xl"
-					p="xl"
-					justify="center"
-					minH={220}
-				>
-					<Text variant="h3" color="white">
-						Team spotlights
-					</Text>
-					<Text color="rgba(255,255,255,0.85)">
-						Add a few slides to share wins, announcements, or campaign promos.
-					</Text>
-				</Block>
-			</Carousel>
-		</Block>
-	);
+  return (
+    <Carousel height={200} loop autoPlay autoPlayInterval={4500} showDots>
+      {slides.map((bg, index) => (
+        <Block key={bg} bg={bg} radius="lg" h="full" align="center" justify="center">
+          <Text variant="h3" color="white">
+            Slide {index + 1}
+          </Text>
+        </Block>
+      ))}
+    </Carousel>
+  );
 }

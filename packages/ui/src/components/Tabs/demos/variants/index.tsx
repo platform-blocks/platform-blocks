@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react';
-import { Column, Tabs, Text } from '@platform-blocks/ui';
+import { Block, Tabs, Text } from '@platform-blocks/ui';
 
 type Variant = NonNullable<ComponentProps<typeof Tabs>['variant']>;
 
@@ -43,9 +43,9 @@ const VARIANT_DEMOS: Array<{
 
 export default function Demo() {
   return (
-    <Column gap="xl">
+    <Block>
       {VARIANT_DEMOS.map(({ heading, variant, helper, items }) => (
-        <Column key={variant} gap="xs">
+        <Block key={variant}>
           <Text weight="medium">{heading}</Text>
           <Tabs
             variant={variant}
@@ -57,8 +57,8 @@ export default function Demo() {
           <Text variant="small" colorVariant="muted">
             {helper}
           </Text>
-        </Column>
+        </Block>
       ))}
-    </Column>
+    </Block>
   );
 }

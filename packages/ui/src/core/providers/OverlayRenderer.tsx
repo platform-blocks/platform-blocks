@@ -167,12 +167,6 @@ function OverlayContent({ overlay, isTopmost, onBackdropPress, nodesMap, overlay
     console.log('- zIndex:', overlay.zIndex);
   }
 
-  // Check if this is a top-positioned overlay
-  const isTopPlacement = overlay.placement?.startsWith('top');
-  
-  // For top placements, we need to anchor from the bottom of the overlay
-  // The anchor.y represents where the bottom of the overlay should be (top of the trigger minus offset)
-  // So we use the estimated height to calculate where the top of the overlay would be
   const overlayStyle: ViewStyle & any = {
     // Use fixed positioning on web for viewport-anchored overlays
     position: (Platform.OS === 'web' && overlay.strategy === 'fixed') ? ('fixed' as any) : 'absolute',
@@ -183,23 +177,19 @@ function OverlayContent({ overlay, isTopmost, onBackdropPress, nodesMap, overlay
     maxHeight: overlay.maxHeight,
   };
 
-  if (isTopPlacement && Platform.OS === 'web') {
-    // For top placements, position from the bottom of the overlay
-    // anchor.y is where the top of the overlay should be, but we want to anchor from the bottom
-    // so the overlay can grow upward naturally
-    // The "bottom" of the anchor point is: viewport.height - (anchor.y + estimatedHeight)
-    // But since we don't know actual height, use bottom anchoring relative to the trigger
-    // Actually, anchor.y already accounts for the estimated height, so:
-    // anchor.y = trigger.y - estimatedHeight - offset
-    // We want the overlay's bottom edge to be at: trigger.y - offset
-    // Which means: bottom = viewport.height - (trigger.y - offset) = viewport.height - anchor.y - estimatedHeight
-    // Simpler: just set top and let it render, but the issue is the estimate is wrong
-    
-    // Better approach: use the anchor.y + anchor.height as the "bottom anchor point"
-    // This is where the bottom of the overlay should be
-    const bottomAnchorPoint = (overlay.anchor?.y || 0) + (overlay.anchor?.height || 0);
+  // Pin to the trigger-adjacent viewport edge when the positioning layer supplied
+  // one. A `bottom` pin is what makes an above-the-trigger overlay grow upward
+  // without its top coordinate depending on its own height — the overlay can
+  // then change size (filtering a list, loading more rows) without moving.
+  //
+  // Both edges are plain numbers, so this works identically on web and native;
+  // it replaces an earlier web-only `calc(100vh - …)` that derived the edge from
+  // the overlay's *estimated* height and so mispositioned until re-measured.
+  if (overlay.pinEdge === 'bottom' && typeof overlay.pinOffset === 'number') {
     overlayStyle.top = undefined;
-    overlayStyle.bottom = `calc(100vh - ${bottomAnchorPoint}px)`;
+    overlayStyle.bottom = overlay.pinOffset;
+  } else if (overlay.pinEdge === 'top' && typeof overlay.pinOffset === 'number') {
+    overlayStyle.top = overlay.pinOffset;
   } else {
     overlayStyle.top = overlay.anchor?.y || 0;
   }

@@ -1,33 +1,11 @@
-import { View } from 'react-native';
-import { useState } from 'react';
-import { Avatar, Chip, Column, DataTable, Row, Text } from '@platform-blocks/ui';
-import type { DataTableColumn, DataTablePagination, DataTableSort } from '@platform-blocks/ui';
+import { Avatar, Chip, DataTable, Text } from '@platform-blocks/ui';
+import type { DataTableColumn } from '@platform-blocks/ui';
 
-type Employee = {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  status: 'active' | 'inactive' | 'pending';
-  team: string;
-  performance: number;
-};
+import { people, type Person } from '../data';
 
-const rows: Employee[] = [
-  { id: 1, name: 'Sierra Lane', email: 'sierra@example.com', role: 'Engineering Manager', status: 'active', team: 'Platform', performance: 4.7 },
-  { id: 2, name: 'Malik Howard', email: 'malik@example.com', role: 'Staff Engineer', status: 'active', team: 'Platform', performance: 4.5 },
-  { id: 3, name: 'Anita Verma', email: 'anita@example.com', role: 'Product Designer', status: 'pending', team: 'Design', performance: 4.2 },
-  { id: 4, name: 'Jon Park', email: 'jon@example.com', role: 'QA Lead', status: 'inactive', team: 'Quality', performance: 3.8 },
-  { id: 5, name: 'Maya Flores', email: 'maya@example.com', role: 'Data Scientist', status: 'active', team: 'Insights', performance: 4.9 },
-];
+const rows = people.slice(0, 5);
 
-const statusColor = {
-  active: '#16a34a',
-  inactive: '#dc2626',
-  pending: '#d97706',
-} as const;
-
-const columns: DataTableColumn<Employee>[] = [
+const columns: DataTableColumn<Person>[] = [
   {
     key: 'name',
     header: 'Teammate',
@@ -41,21 +19,9 @@ const columns: DataTableColumn<Employee>[] = [
           .map((part) => part[0])
           .join('')}
         label={<Text weight="semibold">{row.name}</Text>}
-        description={<Text variant="small" colorVariant="muted">{row.role}</Text>}
+        description={<Text variant="small" colorVariant="muted">{row.title}</Text>}
         gap={8}
       />
-    ),
-  },
-  {
-    key: 'email',
-    header: 'Email',
-    accessor: 'email',
-    sortable: true,
-    minWidth: 200,
-    cell: (value) => (
-      <Text colorVariant="primary" weight="medium">
-        {value}
-      </Text>
     ),
   },
   {
@@ -74,20 +40,13 @@ const columns: DataTableColumn<Employee>[] = [
     header: 'Status',
     accessor: 'status',
     sortable: true,
-    cell: (value: Employee['status']) => (
-      <Row gap="xs" align="center">
-        <View
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: 4,
-            backgroundColor: statusColor[value],
-          }}
-        />
-        <Text colorVariant={value === 'inactive' ? 'error' : value === 'pending' ? 'warning' : 'success'} weight="semibold">
-          {value.charAt(0).toUpperCase() + value.slice(1)}
-        </Text>
-      </Row>
+    cell: (value: Person['status']) => (
+      <Text
+        colorVariant={value === 'inactive' ? 'error' : value === 'pending' ? 'warning' : 'success'}
+        weight="semibold"
+      >
+        {value.charAt(0).toUpperCase() + value.slice(1)}
+      </Text>
     ),
   },
   {
@@ -96,31 +55,18 @@ const columns: DataTableColumn<Employee>[] = [
     accessor: 'performance',
     sortable: true,
     align: 'right',
-    cell: (value) => (
-      <Text weight="semibold">{value.toFixed(1)}</Text>
-    ),
+    cell: (value) => <Text weight="semibold">{value.toFixed(1)}</Text>,
   },
 ];
 
 export default function Demo() {
-  const [sortBy, setSortBy] = useState<DataTableSort[]>([]);
-  const [pagination, setPagination] = useState<DataTablePagination>({ page: 1, pageSize: 5, total: rows.length });
-
   return (
-    <Column gap="sm" fullWidth>
-      <Text size="sm" colorVariant="secondary">
-        Add avatars, chips, and inline status cues while keeping a compact density
-      </Text>
-      <DataTable
-        data={rows}
-        columns={columns}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-        pagination={pagination}
-        onPaginationChange={setPagination}
-        density="comfortable"
-        variant="striped"
-      />
-    </Column>
+    <DataTable
+      data={rows}
+      columns={columns}
+      density="comfortable"
+      variant="striped"
+      searchable={false}
+    />
   );
 }

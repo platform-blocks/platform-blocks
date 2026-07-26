@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Toggle `selectionMode` between `single` and `multiple` to manage how many nodes can be active at once.
+Set `selectionMode` to `single` or `multiple` and drive `selectedIds` from state. In `multiple` mode, shift-click captures a range and Cmd/Ctrl-click toggles one row.

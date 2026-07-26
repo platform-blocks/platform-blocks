@@ -28,6 +28,14 @@ npm i @platform-blocks/ui
 npm i @platform-blocks/charts
 ```
 
+Then install the peer dependencies your app provides — on Expo, use `expo install` so the versions match your SDK:
+
+```sh
+npx expo install react-native-reanimated react-native-safe-area-context react-native-svg @tabler/icons-react-native
+```
+
+`@tabler/icons-react-native` backs the `Icon` registry, which is imported from the package root — it is required, not optional. See the [package README](./packages/ui/README.md#peer-dependencies) for the full list.
+
 ## Key features
 
 - **Cross-platform** — iOS, Android, and Web from a single codebase
@@ -44,7 +52,6 @@ Full documentation and examples are available at [platform-blocks.com](https://p
 
 - [Getting started](https://platform-blocks.com/getting-started)
 - [Component gallery](https://platform-blocks.com/components)
-- [Interactive examples](https://platform-blocks.com/examples)
 - [Theming](https://platform-blocks.com/theming)
 - [Accessibility](https://platform-blocks.com/accessibility)
 - [llms.txt](https://platform-blocks.com/llms.txt) — Full API reference for LLMs and AI assistants

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Chip, Column } from '@platform-blocks/ui'
+import { Block, Chip } from '@platform-blocks/ui'
 
 const initialSports = [
   { label: 'Soccer', emoji: '⚽' },
@@ -15,7 +15,7 @@ export default function Demo() {
   }
 
   return (
-    <Column gap="sm">
+    <Block>
       {chips.map((chip) => (
         <Chip
           key={chip.label}
@@ -24,6 +24,6 @@ export default function Demo() {
           {chip.label}
         </Chip>
       ))}
-    </Column>
+    </Block>
   )
 }

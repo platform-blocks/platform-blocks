@@ -3,6 +3,7 @@ import { View, PanResponder, Platform } from 'react-native';
 import { useTheme } from '../../core/theme';
 import { resolveComponentSize, type ComponentSize } from '../../core/theme/componentSize';
 import { factory } from '../../core/factory';
+import { useControllableState } from '../../hooks/useControllableState';
 import type { SliderProps, RangeSliderProps, SliderTick } from './types';
 import {
   SLIDER_CONSTANTS,
@@ -139,17 +140,19 @@ export const Slider = factory<{
 
   const theme = useTheme();
   const [isDragging, setIsDragging] = useState(false);
-  // Uncontrolled internal value
-  const isControlled = value !== undefined;
-  const [internal, setInternal] = useState<number>(value ?? defaultValue);
-  // Keep internal in sync when controlled value changes
-  useEffect(() => {
-    if (isControlled && value !== internal && value !== undefined) {
-      setInternal(value);
-    }
-  }, [value, isControlled, internal]);
+  const [currentValue, setCurrentValue] = useControllableState<number>({
+    value,
+    defaultValue,
+    finalValue: min,
+    onChange,
+  });
   const [isHovering, setIsHovering] = useState(false);
   const containerRef = useRef<View>(null);
+  // Container geometry captured once per drag. Measuring inside the move
+  // handler forced a synchronous layout flush on every pointer event (the
+  // previous move had already dirtied layout via setCurrentValue), which is
+  // what made dragging stutter. Geometry can't change mid-drag anyway.
+  const dragMetricsRef = useRef<{ start: number; length: number } | null>(null);
 
   // Track actual container dimensions when fullWidth is enabled
   const [actualContainerSize, setActualContainerSize] = useState<{ width: number, height: number } | null>(null);
@@ -173,7 +176,7 @@ export const Slider = factory<{
   const trackHeight = trackSize ?? SLIDER_CONSTANTS.TRACK_HEIGHT[sliderSize];
 
   // Memoized processed value
-  const clampedValue = useSliderValue(isControlled ? (value as number) : internal, min, max, step, restrictToTicks, ticks, false) as number;
+  const clampedValue = useSliderValue(currentValue, min, max, step, restrictToTicks, ticks, false) as number;
 
   // Memoized value label handling
   const defaultValueFormatter = useCallback((val: number) => formatSliderValue(val, step, precision), [step, precision]);
@@ -259,15 +262,27 @@ export const Slider = factory<{
 
     // Sanity check: make sure the value is reasonable
     if (newValue >= min && newValue <= max) {
-      if (!isControlled) setInternal(newValue);
-      onChange?.(newValue);
+      setCurrentValue(newValue);
     }
-  }, [disabled, positions.trackLength, calculateNewValue, onChange, thumbSize, orientationProps.isVertical, min, max, isControlled]);
+  }, [disabled, positions.trackLength, calculateNewValue, setCurrentValue, thumbSize, orientationProps.isVertical, min, max]);
 
   const handlePress = useCallback((evt: any) => {
     const { locationX, locationY } = evt.nativeEvent;
     commitFromLocation(locationX, locationY);
   }, [commitFromLocation]);
+
+  // Snapshot container geometry for the drag about to start. `measure` is async
+  // on native, so the first move may still land before it resolves — the move
+  // handler falls back to location coordinates until then.
+  const captureDragMetrics = useCallback(() => {
+    if (!containerRef.current) return;
+    containerRef.current.measure((_x, _y, width, height, pageX, pageY) => {
+      const start = orientationProps.isVertical ? pageY : pageX;
+      const length = orientationProps.isVertical ? height : width;
+      if (typeof start !== 'number' || typeof length !== 'number') return;
+      dragMetricsRef.current = { start, length };
+    });
+  }, [orientationProps.isVertical]);
 
   // Memoized pan responder
   const panResponder = useMemo(() => PanResponder.create({
@@ -276,6 +291,7 @@ export const Slider = factory<{
 
     onPanResponderGrant: (evt) => {
       setIsDragging(true);
+      captureDragMetrics();
       if (Platform.OS === 'web') {
         document.body.style.userSelect = 'none';
       }
@@ -300,58 +316,38 @@ export const Slider = factory<{
       const { locationX, locationY } = evt.nativeEvent;
       const locationCoordinate = orientationProps.isVertical ? locationY : locationX;
 
-      // Get container position and calculate relative position
-      if (containerRef.current) {
-        containerRef.current.measure((x, y, width, height, pageX, pageY) => {
-          const containerStart = orientationProps.isVertical ? pageY : pageX;
-          const containerLength = orientationProps.isVertical ? height : width;
-          const actualTrackLength = containerLength - thumbSize;
+      // Read the geometry captured on grant instead of re-measuring per move.
+      const metrics = dragMetricsRef.current;
+      const actualTrackLength = (metrics ? metrics.length : positions.trackLength + thumbSize) - thumbSize;
 
-          if (containerStart !== undefined && moveCoordinate > 0) {
-            // Primary method: use move coordinate with container position
-            let relativePosition = moveCoordinate - containerStart - (thumbSize / 2);
+      let relativePosition: number;
+      if (metrics && moveCoordinate > 0) {
+        // Primary method: use move coordinate with container position
+        relativePosition = moveCoordinate - metrics.start - (thumbSize / 2);
+      } else if (locationCoordinate > 0) {
+        // Fallback method: use location coordinate directly
+        relativePosition = locationCoordinate - (thumbSize / 2);
+      } else {
+        return;
+      }
 
-            // For vertical sliders, invert the position so top = max value, bottom = min value
-            if (orientationProps.isVertical) {
-              relativePosition = actualTrackLength - relativePosition;
-            }
+      // For vertical sliders, invert the position so top = max value, bottom = min value
+      if (orientationProps.isVertical) {
+        relativePosition = actualTrackLength - relativePosition;
+      }
 
-            const clampedPosition = sliderUtils.clamp(relativePosition, 0, actualTrackLength);
-            const newValue = calculateNewValue(clampedPosition, actualTrackLength);
+      const clampedPosition = sliderUtils.clamp(relativePosition, 0, actualTrackLength);
+      const newValue = calculateNewValue(clampedPosition, actualTrackLength);
 
-            // Sanity check: make sure the value is reasonable
-            if (newValue >= min && newValue <= max) {
-              if (!isControlled) setInternal(newValue);
-              onChange?.(newValue);
-            }
-          } else if (locationCoordinate > 0) {
-            // Fallback method: use location coordinate directly
-            let relativePosition = locationCoordinate - (thumbSize / 2);
-
-            // For vertical sliders, invert the position so top = max value, bottom = min value
-            if (orientationProps.isVertical) {
-              relativePosition = actualTrackLength - relativePosition;
-            }
-
-            const clampedRelativePosition = sliderUtils.clamp(
-              relativePosition,
-              0,
-              actualTrackLength
-            );
-            const newValue = calculateNewValue(clampedRelativePosition, actualTrackLength);
-
-            // Sanity check: make sure the value is reasonable
-            if (newValue >= min && newValue <= max) {
-              if (!isControlled) setInternal(newValue);
-              onChange?.(newValue);
-            }
-          }
-        });
+      // Sanity check: make sure the value is reasonable
+      if (newValue >= min && newValue <= max) {
+        setCurrentValue(newValue);
       }
     },
 
     onPanResponderRelease: () => {
       setIsDragging(false);
+      dragMetricsRef.current = null;
       if (Platform.OS === 'web') {
         document.body.style.userSelect = '';
       }
@@ -359,14 +355,27 @@ export const Slider = factory<{
 
     onPanResponderTerminate: () => {
       setIsDragging(false);
+      dragMetricsRef.current = null;
       if (Platform.OS === 'web') {
         document.body.style.userSelect = '';
       }
     },
-  }), [disabled, positions.trackLength, calculateNewValue, onChange, thumbSize, orientationProps.isVertical, min, max, commitFromLocation, isControlled]);
+  }), [disabled, positions.trackLength, calculateNewValue, setCurrentValue, thumbSize, orientationProps.isVertical, min, max, commitFromLocation, captureDragMetrics]);
 
   return (
-    <View style={[{ flex: 1 }, style, spacingProps]}>
+    <View
+      style={[
+        { flex: 1 },
+        // The container below sizes itself with `width: '100%'`, which resolves
+        // against this wrapper. Parents that shrink-to-fit their children
+        // (`alignItems: 'center'`, a row, an auto-width Card) leave the wrapper
+        // sized to its content, so fullWidth silently degrades to a stub.
+        // Stretching here keeps the percentage meaningful.
+        fullWidth && orientation === 'horizontal' && { alignSelf: 'stretch', width: '100%' },
+        style,
+        spacingProps,
+      ]}
+    >
       {/* Input label */}
       {label && <SliderLabel label={label} />}
 
@@ -377,6 +386,11 @@ export const Slider = factory<{
           height: fullWidth && orientation === 'vertical' ? '100%' : orientationProps.containerHeight,
           justifyContent: 'center',
           position: 'relative',
+          // With fullWidth the real container size isn't known until onLayout
+          // measures it, so ticks/thumb/active-track are first placed against a
+          // default width and would visibly jump into place. Keep the content
+          // hidden for that first frame so it pops in already positioned.
+          opacity: fullWidth && !actualContainerSize ? 0 : 1,
           ...(Platform.OS === 'web' && orientation === 'vertical' ? { touchAction: 'none' as const } : null),
         }}
         onLayout={(event) => {
@@ -515,6 +529,8 @@ export const RangeSlider = factory<{
   const [dragState, setDragState] = useState<{ thumb: 'min' | 'max' | null }>({ thumb: null });
   const [isHovering, setIsHovering] = useState(false);
   const rangeContainerRef = useRef<View>(null);
+  // Captured once per drag — see the note on the single Slider's dragMetricsRef.
+  const rangeDragMetricsRef = useRef<{ start: number; length: number } | null>(null);
 
   // Track actual container dimensions when fullWidth is enabled
   const [actualRangeContainerSize, setActualRangeContainerSize] = useState<{ width: number, height: number } | null>(null);
@@ -645,6 +661,16 @@ export const RangeSlider = factory<{
     }
   }, [disabled, dragState.thumb, positions.trackLength, calculateNewValue, minValue, maxValue, onChange, thumbSize, orientationProps.isVertical, min, max]);
 
+  const captureRangeDragMetrics = useCallback(() => {
+    if (!rangeContainerRef.current) return;
+    rangeContainerRef.current.measure((_x, _y, width, height, pageX, pageY) => {
+      const start = orientationProps.isVertical ? pageY : pageX;
+      const length = orientationProps.isVertical ? height : width;
+      if (typeof start !== 'number' || typeof length !== 'number') return;
+      rangeDragMetricsRef.current = { start, length };
+    });
+  }, [orientationProps.isVertical]);
+
   // Memoized pan responder factory
   const createThumbPanResponder = useCallback((thumbType: 'min' | 'max') => {
     return PanResponder.create({
@@ -653,6 +679,7 @@ export const RangeSlider = factory<{
 
       onPanResponderGrant: () => {
         setDragState({ thumb: thumbType });
+        captureRangeDragMetrics();
         if (Platform.OS === 'web') {
           document.body.style.userSelect = 'none';
         }
@@ -668,137 +695,79 @@ export const RangeSlider = factory<{
         const { locationX, locationY } = evt.nativeEvent;
         const locationCoordinate = orientationProps.isVertical ? locationY : locationX;
 
-        if (rangeContainerRef.current) {
-          rangeContainerRef.current.measure((x, y, width, height, pageX, pageY) => {
-            const containerStart = orientationProps.isVertical ? pageY : pageX;
-            const containerLength = orientationProps.isVertical ? height : width;
-            const actualTrackLength = containerLength - thumbSize;
+        // Read the geometry captured on grant instead of re-measuring per move.
+        const metrics = rangeDragMetricsRef.current;
+        const actualTrackLength = (metrics ? metrics.length : positions.trackLength + thumbSize) - thumbSize;
 
-            if (containerStart !== undefined && moveCoordinate > 0) {
-              // Primary method: use move coordinate with container position
-              let relativePosition = moveCoordinate - containerStart - (thumbSize / 2);
+        let relativePosition: number;
+        if (metrics && moveCoordinate > 0) {
+          // Primary method: use move coordinate with container position
+          relativePosition = moveCoordinate - metrics.start - (thumbSize / 2);
+        } else if (locationCoordinate > 0) {
+          // Fallback method: use location coordinate directly
+          relativePosition = locationCoordinate - (thumbSize / 2);
+        } else {
+          return;
+        }
 
-              // For vertical sliders, invert the position so top = max value, bottom = min value
-              if (orientationProps.isVertical) {
-                relativePosition = actualTrackLength - relativePosition;
+        // For vertical sliders, invert the position so top = max value, bottom = min value
+        if (orientationProps.isVertical) {
+          relativePosition = actualTrackLength - relativePosition;
+        }
+
+        const newPosition = sliderUtils.clamp(relativePosition, 0, actualTrackLength);
+        const newValue = calculateNewValue(newPosition, actualTrackLength);
+
+        if (thumbType === 'min') {
+          let clampedValue = newValue;
+
+          if (pushOnOverlap) {
+            // Default behavior: prevent overlap by clamping to max value
+            clampedValue = Math.min(newValue, maxValue);
+          } else {
+            // Allow crossing: min thumb can go beyond max value
+            // If min thumb moves beyond max, update both values
+            if (clampedValue > maxValue) {
+              // Sanity check
+              if (clampedValue >= min && clampedValue <= max && maxValue >= min && maxValue <= max) {
+                onChange?.([maxValue, clampedValue]);
               }
-
-              const newPosition = sliderUtils.clamp(relativePosition, 0, actualTrackLength);
-              const newValue = calculateNewValue(newPosition, actualTrackLength);
-
-              if (thumbType === 'min') {
-                let clampedValue = newValue;
-
-                if (pushOnOverlap) {
-                  // Default behavior: prevent overlap by clamping to max value
-                  clampedValue = Math.min(newValue, maxValue);
-                } else {
-                  // Allow crossing: min thumb can go beyond max value
-                  clampedValue = newValue;
-
-                  // If min thumb moves beyond max, update both values
-                  if (clampedValue > maxValue) {
-                    // Sanity check
-                    if (clampedValue >= min && clampedValue <= max && maxValue >= min && maxValue <= max) {
-                      onChange?.([maxValue, clampedValue]);
-                    }
-                    return;
-                  }
-                }
-
-                // Sanity check
-                if (clampedValue >= min && clampedValue <= max) {
-                  onChange?.([clampedValue, maxValue]);
-                }
-              } else {
-                let clampedValue = newValue;
-
-                if (pushOnOverlap) {
-                  // Default behavior: prevent overlap by clamping to min value
-                  clampedValue = Math.max(newValue, minValue);
-                } else {
-                  // Allow crossing: max thumb can go below min value
-                  clampedValue = newValue;
-
-                  // If max thumb moves below min, update both values
-                  if (clampedValue < minValue) {
-                    // Sanity check
-                    if (clampedValue >= min && clampedValue <= max && minValue >= min && minValue <= max) {
-                      onChange?.([clampedValue, minValue]);
-                    }
-                    return;
-                  }
-                }
-
-                // Sanity check
-                if (clampedValue >= min && clampedValue <= max) {
-                  onChange?.([minValue, clampedValue]);
-                }
-              }
-            } else if (locationCoordinate > 0) {
-              // Fallback method: use location coordinate directly
-              let fallbackPosition = locationCoordinate - (thumbSize / 2);
-
-              // For vertical sliders, invert the position so top = max value, bottom = min value
-              if (orientationProps.isVertical) {
-                fallbackPosition = actualTrackLength - fallbackPosition;
-              }
-
-              const clampedFallbackPosition = sliderUtils.clamp(fallbackPosition, 0, actualTrackLength);
-              const fallbackValue = calculateNewValue(clampedFallbackPosition, actualTrackLength);
-
-              if (thumbType === 'min') {
-                let clampedValue = fallbackValue;
-
-                if (pushOnOverlap) {
-                  // Default behavior: prevent overlap by clamping to max value
-                  clampedValue = Math.min(fallbackValue, maxValue);
-                } else {
-                  // Allow crossing: min thumb can go beyond max value
-                  clampedValue = fallbackValue;
-
-                  // If min thumb moves beyond max, update both values
-                  if (clampedValue > maxValue) {
-                    if (clampedValue >= min && clampedValue <= max && maxValue >= min && maxValue <= max) {
-                      onChange?.([maxValue, clampedValue]);
-                    }
-                    return;
-                  }
-                }
-
-                if (clampedValue >= min && clampedValue <= max) {
-                  onChange?.([clampedValue, maxValue]);
-                }
-              } else {
-                let clampedValue = fallbackValue;
-
-                if (pushOnOverlap) {
-                  // Default behavior: prevent overlap by clamping to min value  
-                  clampedValue = Math.max(fallbackValue, minValue);
-                } else {
-                  // Allow crossing: max thumb can go below min value
-                  clampedValue = fallbackValue;
-
-                  // If max thumb moves below min, update both values
-                  if (clampedValue < minValue) {
-                    if (clampedValue >= min && clampedValue <= max && minValue >= min && minValue <= max) {
-                      onChange?.([clampedValue, minValue]);
-                    }
-                    return;
-                  }
-                }
-
-                if (clampedValue >= min && clampedValue <= max) {
-                  onChange?.([minValue, clampedValue]);
-                }
-              }
+              return;
             }
-          });
+          }
+
+          // Sanity check
+          if (clampedValue >= min && clampedValue <= max) {
+            onChange?.([clampedValue, maxValue]);
+          }
+        } else {
+          let clampedValue = newValue;
+
+          if (pushOnOverlap) {
+            // Default behavior: prevent overlap by clamping to min value
+            clampedValue = Math.max(newValue, minValue);
+          } else {
+            // Allow crossing: max thumb can go below min value
+            // If max thumb moves below min, update both values
+            if (clampedValue < minValue) {
+              // Sanity check
+              if (clampedValue >= min && clampedValue <= max && minValue >= min && minValue <= max) {
+                onChange?.([clampedValue, minValue]);
+              }
+              return;
+            }
+          }
+
+          // Sanity check
+          if (clampedValue >= min && clampedValue <= max) {
+            onChange?.([minValue, clampedValue]);
+          }
         }
       },
 
       onPanResponderRelease: () => {
         setDragState({ thumb: null });
+        rangeDragMetricsRef.current = null;
         if (Platform.OS === 'web') {
           document.body.style.userSelect = '';
         }
@@ -806,12 +775,13 @@ export const RangeSlider = factory<{
 
       onPanResponderTerminate: () => {
         setDragState({ thumb: null });
+        rangeDragMetricsRef.current = null;
         if (Platform.OS === 'web') {
           document.body.style.userSelect = '';
         }
       },
     });
-  }, [disabled, positions.trackLength, calculateNewValue, minValue, maxValue, onChange, thumbSize, orientationProps.isVertical, min, max, pushOnOverlap]);
+  }, [disabled, positions.trackLength, calculateNewValue, minValue, maxValue, onChange, thumbSize, orientationProps.isVertical, min, max, pushOnOverlap, captureRangeDragMetrics]);
 
   const minThumbPanResponder = useMemo(() => createThumbPanResponder('min'), [createThumbPanResponder]);
   const maxThumbPanResponder = useMemo(() => createThumbPanResponder('max'), [createThumbPanResponder]);
@@ -822,7 +792,15 @@ export const RangeSlider = factory<{
     : { marginBottom: valueLabelSpacing };
 
   return (
-    <View style={[containerSpacingStyle, style, spacingProps]}>
+    <View
+      style={[
+        containerSpacingStyle,
+        // Same shrink-to-fit guard as the single Slider — see the note there.
+        fullWidth && orientation === 'horizontal' && { alignSelf: 'stretch', width: '100%' },
+        style,
+        spacingProps,
+      ]}
+    >
       {/* Input label */}
       {label && <SliderLabel label={label} />}
 
@@ -833,6 +811,9 @@ export const RangeSlider = factory<{
           height: fullWidth && orientation === 'vertical' ? '100%' : orientationProps.containerHeight,
           justifyContent: 'center',
           position: 'relative',
+          // See the single-slider note: hide until measured so fullWidth ticks
+          // and thumbs pop in already positioned instead of jumping.
+          opacity: fullWidth && !actualRangeContainerSize ? 0 : 1,
           ...(Platform.OS === 'web' && orientation === 'vertical' ? { touchAction: 'none' as const } : null),
         }}
         onLayout={(event) => {

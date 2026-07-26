@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Column, Switch, Text } from '@platform-blocks/ui';
+import { Block, Switch, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [enabled, setEnabled] = useState<boolean>(true);
 
   return (
-    <Column gap="sm">
+    <Block>
       <Switch
         checked={enabled}
         onChange={setEnabled}
@@ -15,6 +15,6 @@ export default function Demo() {
       <Text variant="small" colorVariant="muted">
         Notices are {enabled ? 'enabled' : 'disabled'}.
       </Text>
-    </Column>
+    </Block>
   );
 }

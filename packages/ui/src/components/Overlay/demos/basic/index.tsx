@@ -1,14 +1,14 @@
 import { useState, type ComponentProps } from 'react';
-import { ImageBackground, StyleSheet } from 'react-native';
-import { Button, Column, Overlay, Text } from '@platform-blocks/ui';
+import { ImageBackground, StyleSheet, type ImageSourcePropType } from 'react-native';
+import { Block, Button, Overlay, Text } from '@platform-blocks/ui';
 
-const HERO_IMAGE = 'https://picsum.photos/800/450?random=8';
-const GRADIENT_IMAGE = 'https://picsum.photos/800/450?random=2';
-const BLUR_IMAGE = 'https://picsum.photos/800/450?random=10';
+const HERO_IMAGE = require('../../../../assets/images/scene-city.png');
+const GRADIENT_IMAGE = require('../../../../assets/images/scene-aurora.png');
+const BLUR_IMAGE = require('../../../../assets/images/scene-desert.png');
 
 type OverlayExample = {
   key: string;
-  image: string;
+  image: ImageSourcePropType;
   title: string;
   description: string;
   align?: 'flex-start' | 'center';
@@ -46,45 +46,45 @@ export default function Demo() {
   const [visible, setVisible] = useState(true);
 
   return (
-    <Column gap="xl" align="center" style={styles.wrapper}>
-      <Column gap="md" style={styles.section}>
-        <ImageBackground source={{ uri: HERO_IMAGE }} style={styles.image} imageStyle={styles.imageInner}>
+    <Block align="center" style={styles.wrapper}>
+      <Block style={styles.section}>
+        <ImageBackground source={HERO_IMAGE} style={styles.image} imageStyle={styles.imageInner}>
           {visible ? <Overlay color="#000" backgroundOpacity={0.8} radius="xl" /> : null}
-          <Column gap="xs" align="center" style={styles.overlayContent}>
+          <Block align="center" style={styles.overlayContent}>
             <Text variant="h4" weight="semibold" color="white">
               Toggle overlay
             </Text>
             <Text color="white" align="center">
               Overlay fills its parent. Use `backgroundOpacity` to dim the background without affecting children.
             </Text>
-          </Column>
+          </Block>
         </ImageBackground>
         <Button onPress={() => setVisible((current) => !current)}>
           {visible ? 'Hide overlay' : 'Show overlay'}
         </Button>
-      </Column>
+      </Block>
 
       {STATIC_EXAMPLES.map(({ key, image, overlayProps, align = 'flex-start', title, description }) => (
-        <Column key={key} gap="sm" style={styles.section}>
-          <ImageBackground source={{ uri: image }} style={styles.image} imageStyle={styles.imageInner}>
+        <Block key={key} style={styles.section}>
+          <ImageBackground source={image} style={styles.image} imageStyle={styles.imageInner}>
             <Overlay {...overlayProps}>
-              <Column gap="xs" align={align} style={styles.overlayContent}>
+              <Block align={align} style={styles.overlayContent}>
                 <Text variant="h4" weight="semibold" color="white">
                   {title}
                 </Text>
                 <Text color="white" align={align === 'center' ? 'center' : 'left'}>
                   {description}
                 </Text>
-              </Column>
+              </Block>
             </Overlay>
           </ImageBackground>
-        </Column>
+        </Block>
       ))}
 
       <Text variant="small" colorVariant="muted" align="center">
         Overlay inherits the size of its container, making it ideal for dimming media, spotlights, and modal scrims.
       </Text>
-    </Column>
+    </Block>
   );
 }
 

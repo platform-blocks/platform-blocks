@@ -1,4 +1,5 @@
 import React from 'react';
+import type { AccessibilityRole, AccessibilityState } from 'react-native';
 import type { PlatformBlocksTheme } from '../../core/theme';
 import type { SizeValue } from '../../core/theme/sizes';
 import { SpacingProps, LayoutProps } from '../../core/utils';
@@ -27,6 +28,13 @@ export interface CardProps extends SpacingProps, LayoutProps, BorderRadiusProps,
   /** Custom border width in px. Defaults to 1 when `withBorder` or `borderColor` is set. */
   borderWidth?: number;
   /**
+   * Clip children to the card's radius. Turn this on when a `Card.Section`
+   * carries full-bleed content (image, code surface) that would otherwise
+   * square off the card's rounded corners. Off by default so overlays that
+   * escape the card — menus, popovers, tooltips — keep working.
+   */
+  clip?: boolean;
+  /**
    * Background color override. Accepts any CSS color string or a theme color
    * palette name (`'primary' | 'secondary' | 'gray' | 'success' | 'warning' | 'error'`),
    * which resolves to that palette's shade-1 (subtle tint).
@@ -44,6 +52,20 @@ export interface CardProps extends SpacingProps, LayoutProps, BorderRadiusProps,
   // Web-only events passthrough
   onContextMenu?: (e: any) => void;
   testID?: string;
+  /**
+   * Accessibility role forwarded to the underlying element. Pressable cards
+   * default to a button; set `'link'` when the card navigates.
+   */
+  accessibilityRole?: AccessibilityRole;
+  /** Accessibility label forwarded to the underlying element. */
+  accessibilityLabel?: string;
+  /**
+   * Accessibility state forwarded to the underlying element. Required for the
+   * selectable roles — a card with `accessibilityRole="radio"` or `"checkbox"`
+   * has to announce its `checked` state or screen readers read every option as
+   * unselected.
+   */
+  accessibilityState?: AccessibilityState;
 }
 
 /**

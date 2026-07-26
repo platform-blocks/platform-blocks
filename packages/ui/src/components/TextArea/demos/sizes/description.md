@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Walks through xs to xl text areas with guidance on when each size fits best.
+Walks the full `size` scale, `xs` through `3xl`, so the field matches the surrounding form density.

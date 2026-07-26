@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Column, Row, Text, Waveform } from '@platform-blocks/ui';
+import { Block, Button, Row, Text, Waveform } from '@platform-blocks/ui';
 
 import { TRACK_TWO_PEAKS, WAVEFORM_DEMO_PEAKS } from '../data';
 
@@ -13,8 +13,8 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="lg">
-      <Column gap="sm">
+    <Block>
+      <Block>
         <Text variant="small">Narration track</Text>
         <Waveform
           peaks={WAVEFORM_DEMO_PEAKS}
@@ -25,9 +25,9 @@ export default function Demo() {
           interactive
           onSeek={handleSeek}
         />
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text variant="small">Background score</Text>
         <Waveform
           peaks={TRACK_TWO_PEAKS}
@@ -38,7 +38,7 @@ export default function Demo() {
           interactive
           onSeek={handleSeek}
         />
-      </Column>
+      </Block>
 
       <Row gap="sm" wrap="wrap">
         {CUE_POINTS.map((value) => (
@@ -49,7 +49,7 @@ export default function Demo() {
       </Row>
 
       <Text variant="small">Shared progress: {Math.round(progress * 100)}%</Text>
-    </Column>
+    </Block>
   );
 }
 

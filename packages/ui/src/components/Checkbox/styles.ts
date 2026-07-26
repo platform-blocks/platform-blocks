@@ -38,10 +38,15 @@ export const useCheckboxStyles = (props: CheckboxStyleProps & { theme: PlatformB
   return StyleSheet.create({
     checkbox: {
       alignItems: 'center',
+      // Unchecked fill tracks the semantic background tokens, NOT `gray[1]`.
+      // A dark theme's gray ramp may run light → dark (gray[1] near-white), so
+      // the raw index made unchecked boxes glow white on a dark page. `surface`
+      // is the same token `<Input variant="default">` fills with, so a checkbox
+      // and the fields around it read as one control set in both schemes.
       backgroundColor: (() => {
-  if (disabled) return theme.colors.gray[1];
+  if (disabled) return theme.backgrounds.subtle;
   if (checked || indeterminate) return activeColor;
-  return theme.colors.gray[1];
+  return theme.backgrounds.surface;
       })(),
       borderColor: (() => {
   if (disabled) return theme.colors.gray[3];

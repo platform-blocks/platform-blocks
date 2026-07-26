@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Column, Switch, Text } from '@platform-blocks/ui';
+import { Block, Switch, Text } from '@platform-blocks/ui';
 
 const PREFERENCE_CONTROLS = [
   {
@@ -33,8 +33,8 @@ export default function Demo() {
   );
 
   return (
-    <Column gap="lg">
-      <Column gap="sm">
+    <Block>
+      <Block>
         <Text variant="small" colorVariant="muted">
           Shared state
         </Text>
@@ -49,8 +49,8 @@ export default function Demo() {
             description={description}
           />
         ))}
-      </Column>
-  <Column gap="xs">
+      </Block>
+  <Block>
         <Text variant="small" colorVariant="muted">
           Summary
         </Text>
@@ -63,8 +63,8 @@ export default function Demo() {
         <Text variant="p">
           Audio highlights are {settings.audioHighlights ? 'on' : 'off'}.
         </Text>
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }
 

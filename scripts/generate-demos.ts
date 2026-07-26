@@ -11,12 +11,17 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
+import { GITHUB_REPO } from '../apps/platform-blocks.com/config/urls';
+
 const ROOT = path.resolve(__dirname, '..');
 const UI_COMPONENTS_DIR = path.join(ROOT, 'packages', 'ui', 'src', 'components');
 const UI_HOOKS_DIR = path.join(ROOT, 'packages', 'ui', 'src', 'hooks');
 const CHARTS_COMPONENTS_DIR = path.join(ROOT, 'packages', 'charts', 'src', 'components'); // charts components directory
 const OUTPUT_DIR = path.join(ROOT, 'apps', 'platform-blocks.com', 'data', 'generated');
 const COMPONENT_MARKDOWN_DIR = path.join(OUTPUT_DIR, 'component-markdown');
+// Publicly served copy of the per-component markdown, linked from each docs page
+// as "LLM docs" so agents can fetch the raw page source.
+const PUBLIC_COMPONENT_MARKDOWN_DIR = path.join(ROOT, 'apps', 'platform-blocks.com', 'public', 'llms', 'components');
 
 interface DemoMeta {
   id: string; // Component.demoId
@@ -33,19 +38,41 @@ interface DemoMeta {
   since?: string;
   hidden?: boolean;
   highlightLines?: (number | string)[];
-  renderStyle?: 'auto' | 'center' | 'code_flex';
+  renderStyle?: 'auto' | 'center';
   codeCopy?: boolean; // show copy button
   codeLineNumbers?: boolean; // show line numbers
   codeSpoiler?: boolean; // wrap code in spoiler
   codeSpoilerMaxHeight?: number;
-  showCodeToggle?: boolean; // show/hide toggle for code block (default true)
   previewCenter?: boolean; // center preview region regardless of layout
-  codeFirst?: boolean; // if true show code before preview
   code?: string; // raw source when inlined (hooks, playgrounds)
   importPath?: string; // source module path reference
+  githubUrl?: string; // source file on GitHub, linked from the demo's code panel
 }
 
-interface CodeEntry { code: string; hash: string; importPath: string; }
+interface DemoFile { name: string; code: string; githubUrl?: string; }
+interface CodeEntry { code: string; hash: string; importPath: string; files?: DemoFile[]; githubUrl?: string; }
+
+/**
+ * Branch the docs site links source at. `main` rather than a tag or commit SHA:
+ * the site is rebuilt from main, so a permalink would start pointing at stale
+ * source the moment a demo is edited.
+ */
+const GITHUB_BRANCH = 'main';
+
+/**
+ * Repo URL for a file on disk, powering the CodeBlock edit button on every demo.
+ * Paths are relative to the repo root, so the link survives the demo folder
+ * moving as long as the file still exists at its new path.
+ */
+function githubUrlFor(absPath: string): string {
+  const relative = path.relative(ROOT, absPath).split(path.sep).join('/');
+  return `${GITHUB_REPO}/blob/${GITHUB_BRANCH}/${relative}`;
+}
+
+/** Attaches `githubUrl` to `index.tsx` and keeps the sibling files' own links. */
+function withEntryFiles(indexPath: string, code: string, extraFiles: DemoFile[]): DemoFile[] {
+  return [{ name: 'index.tsx', code, githubUrl: githubUrlFor(indexPath) }, ...extraFiles];
+}
 
 function ensureDir(p: string) {
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
@@ -124,6 +151,63 @@ function parseHighlight(val: any): (number | string)[] | undefined {
   return undefined;
 }
 
+/**
+ * Extensions a demo folder can contribute as an extra source tab (`data.ts`,
+ * `theme.ts`, `fixtures.json`, …). `index.tsx` is the demo entry and is added
+ * first by the caller; `metadata.ts` and the description markdown are docs
+ * plumbing rather than example source, so they stay out of the tab strip.
+ */
+const DEMO_FILE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.json', '.css']);
+const DEMO_FILE_EXCLUDE = new Set(['index.tsx', 'index.ts', 'metadata.ts']);
+
+function collectDemoFiles(folderPath: string): DemoFile[] {
+  let entries: string[] = [];
+  try { entries = fs.readdirSync(folderPath); } catch { return []; }
+  return entries
+    .filter(name => !name.startsWith('.'))
+    .filter(name => !DEMO_FILE_EXCLUDE.has(name))
+    .filter(name => DEMO_FILE_EXTENSIONS.has(path.extname(name)))
+    .filter(name => { try { return fs.statSync(path.join(folderPath, name)).isFile(); } catch { return false; } })
+    .sort()
+    .map(name => ({
+      name,
+      code: fs.readFileSync(path.join(folderPath, name), 'utf8').trim(),
+      githubUrl: githubUrlFor(path.join(folderPath, name)),
+    }));
+}
+
+/**
+ * Fixtures a demo imports from outside its own folder — `../data`, shared by
+ * every demo of a component, and the occasional `../../<Other>/demos/data`.
+ * They are emitted as `data.ts` alongside the demo so the source tab strip and
+ * the Snack bundle both see a self-contained example; snackUrl.ts rewrites the
+ * import to match. Only `data` modules travel: a demo reaching further into the
+ * package is a component import, which the Snack resolves from npm instead.
+ */
+function collectSharedDataFiles(code: string, folderPath: string): DemoFile[] {
+  const files: DemoFile[] = [];
+  const seen = new Set<string>();
+  for (const match of code.matchAll(/from\s*['"]((?:\.\.\/)+(?:[^'"]*\/)?data)(?:\.ts)?['"]/g)) {
+    const resolved = path.resolve(folderPath, match[1]);
+    if (seen.has(resolved)) continue;
+    seen.add(resolved);
+    for (const ext of ['.ts', '.tsx']) {
+      if (!fs.existsSync(resolved + ext)) continue;
+      // The link points at the shared fixture's real location, not the demo
+      // folder it is surfaced under.
+      files.push({
+        name: 'data.ts',
+        code: fs.readFileSync(resolved + ext, 'utf8').trim(),
+        githubUrl: githubUrlFor(resolved + ext),
+      });
+      break;
+    }
+  }
+  // Two different shared fixtures would collide on the single `data.ts` name;
+  // no demo does that today, and shipping one silently would be worse.
+  return files.length > 1 ? [] : files;
+}
+
 function normalizePlaygroundMeta(value: any, componentName: string): PlaygroundMetaConfig | undefined {
   if (!value) return undefined;
   if (value === true) {
@@ -199,7 +283,22 @@ function collectDemos() {
       const codeHash = sha256(codeSnippet);
       const id = `${comp}.${folder}`;
       const relImport = `../../../../packages/ui/src/components/${comp}/demos/${folder}`;
-      codeByComponent[comp][id] = { code: codeSnippet, hash: codeHash, importPath: relImport };
+      // Sibling sources (data.ts, fixtures.json, …) become extra file tabs in
+      // the docs code panel. Emitted only when the demo actually has them.
+      const localFiles = collectDemoFiles(path.join(demoDir, folder));
+      const extraFiles = [
+        ...localFiles,
+        // A demo-local data.ts wins: the demo's own `./data` import points at it.
+        ...collectSharedDataFiles(codeSnippet, path.join(demoDir, folder))
+          .filter(file => !localFiles.some(local => local.name === file.name)),
+      ];
+      codeByComponent[comp][id] = {
+        code: codeSnippet,
+        hash: codeHash,
+        importPath: relImport,
+        githubUrl: githubUrlFor(indexPath),
+        ...(extraFiles.length ? { files: withEntryFiles(indexPath, codeSnippet, extraFiles) } : {}),
+      };
 
       // Metadata precedence: metadata.ts -> frontmatter in description.md -> defaults
       let meta: any = {};
@@ -244,7 +343,9 @@ function collectDemos() {
         component: comp,
         demo: short,
         title,
-        description: meta.description || mdDesc.split('\n').find(l => l.trim()) || '',
+        // The whole body, not just its first line: the docs page renders demo
+        // descriptions through <Markdown>, so lists and paragraphs must survive.
+        description: meta.description || mdDesc || '',
         localizedDescriptions: Object.keys(localizedDescriptions).length ? localizedDescriptions : undefined,
         tags: Array.isArray(meta.tags) ? meta.tags : [],
         category: meta.category || 'general',
@@ -253,14 +354,12 @@ function collectDemos() {
         since: meta.since,
         hidden: meta.hidden === true,
         highlightLines: parseHighlight(meta.highlightLines),
-        renderStyle: ['center', 'code_flex', 'auto'].includes(meta.renderStyle) ? meta.renderStyle : undefined,
+        renderStyle: ['center', 'auto'].includes(meta.renderStyle) ? meta.renderStyle : undefined,
         codeCopy: meta.codeCopy === true || meta.codeCopy === false ? meta.codeCopy : undefined,
         codeLineNumbers: meta.codeLineNumbers === true || meta.codeLineNumbers === false ? meta.codeLineNumbers : undefined,
         codeSpoiler: meta.codeSpoiler === true,
         codeSpoilerMaxHeight: typeof meta.codeSpoilerMaxHeight === 'number' ? meta.codeSpoilerMaxHeight : undefined,
-        showCodeToggle: meta.showCodeToggle === false ? false : undefined,
         previewCenter: meta.previewCenter === true ? true : undefined,
-        codeFirst: meta.codeFirst === true ? true : undefined
       });
     }
 
@@ -277,7 +376,7 @@ function collectDemos() {
       const raw = fs.readFileSync(tsxPath, 'utf8');
       const codeHash = sha256(raw);
       const relImport = `../../../../packages/ui/src/components/${comp}/demos/${baseName}`;
-      codeByComponent[comp][id] = { code: raw, hash: codeHash, importPath: relImport };
+      codeByComponent[comp][id] = { code: raw, hash: codeHash, importPath: relImport, githubUrl: githubUrlFor(tsxPath) };
       const mdPath = path.join(demoDir, `${baseName}.md`);
       let meta: any = {};
       let mdBody = '';
@@ -304,7 +403,7 @@ function collectDemos() {
         component: comp,
         demo: short,
         title,
-        description: meta.description || mdBody.split('\n').find(l => l.trim()) || '',
+        description: meta.description || mdBody || '',
         localizedDescriptions: Object.keys(localizedDescriptions2).length ? localizedDescriptions2 : undefined,
         tags: Array.isArray(meta.tags) ? meta.tags : [],
         category: meta.category || 'general',
@@ -313,15 +412,12 @@ function collectDemos() {
         since: meta.since,
         hidden: meta.hidden === true,
         highlightLines: parseHighlight(meta.highlightLines),
-        renderStyle: ['center', 'code_flex', 'auto'].includes(meta.renderStyle) ? meta.renderStyle : undefined,
-        showCodeToggle: true,
+        renderStyle: ['center', 'auto'].includes(meta.renderStyle) ? meta.renderStyle : undefined,
         codeCopy: meta.codeCopy === true || meta.codeCopy === false ? meta.codeCopy : undefined,
         codeLineNumbers: meta.codeLineNumbers === true || meta.codeLineNumbers === false ? meta.codeLineNumbers : undefined,
         codeSpoiler: meta.codeSpoiler === true,
         codeSpoilerMaxHeight: typeof meta.codeSpoilerMaxHeight === 'number' ? meta.codeSpoilerMaxHeight : undefined,
-        // showCodeToggle: meta.showCodeToggle === false ? false : undefined,
         previewCenter: meta.previewCenter === true ? true : undefined,
-        codeFirst: meta.codeFirst === true ? true : undefined
       });
     }
   }
@@ -379,7 +475,14 @@ function collectDemos() {
         const codeHash = sha256(codeSnippet);
         const id = `${comp}.${folder}`;
         const relImport = `../../../../packages/charts/src/components/${comp}/demos/${folder}`;
-        codeByComponent[comp][id] = { code: codeSnippet, hash: codeHash, importPath: relImport };
+        const chartExtraFiles = collectDemoFiles(path.join(demoDir, folder));
+        codeByComponent[comp][id] = {
+          code: codeSnippet,
+          hash: codeHash,
+          importPath: relImport,
+          githubUrl: githubUrlFor(indexPath),
+          ...(chartExtraFiles.length ? { files: withEntryFiles(indexPath, codeSnippet, chartExtraFiles) } : {}),
+        };
         let meta: any = {};
         const descPath = path.join(demoDir, folder, 'description.md');
         let mdDesc = '';
@@ -396,7 +499,7 @@ function collectDemos() {
           component: comp,
           demo: short,
           title,
-          description: meta.description || mdDesc.split('\n').find(l => l.trim()) || '',
+          description: meta.description || mdDesc || '',
           localizedDescriptions: undefined,
           tags: Array.isArray(meta.tags) ? meta.tags : [],
           category: meta.category || 'charts',
@@ -405,14 +508,12 @@ function collectDemos() {
           since: meta.since,
           hidden: meta.hidden === true,
           highlightLines: parseHighlight(meta.highlightLines),
-          renderStyle: ['center', 'code_flex', 'auto'].includes(meta.renderStyle) ? meta.renderStyle : undefined,
+          renderStyle: ['center', 'auto'].includes(meta.renderStyle) ? meta.renderStyle : undefined,
           codeCopy: meta.codeCopy === true || meta.codeCopy === false ? meta.codeCopy : undefined,
           codeLineNumbers: meta.codeLineNumbers === true || meta.codeLineNumbers === false ? meta.codeLineNumbers : undefined,
           codeSpoiler: meta.codeSpoiler === true,
           codeSpoilerMaxHeight: typeof meta.codeSpoilerMaxHeight === 'number' ? meta.codeSpoilerMaxHeight : undefined,
-          showCodeToggle: meta.showCodeToggle === false ? false : undefined,
           previewCenter: meta.previewCenter === true ? true : undefined,
-          codeFirst: meta.codeFirst === true ? true : undefined
         });
       }
 
@@ -432,7 +533,7 @@ function collectDemos() {
         }
         const codeHash = sha256(raw);
         const relImport = `../../../../packages/charts/src/components/${comp}/demos/${baseName}`;
-        codeByComponent[comp][id] = { code: raw, hash: codeHash, importPath: relImport };
+        codeByComponent[comp][id] = { code: raw, hash: codeHash, importPath: relImport, githubUrl: githubUrlFor(tsxPath) };
         const mdPath = path.join(demoDir, `${baseName}.md`);
         let meta: any = {};
         let mdBody = '';
@@ -448,7 +549,7 @@ function collectDemos() {
           component: comp,
           demo: short,
           title,
-          description: meta.description || mdBody.split('\n').find(l => l.trim()) || '',
+          description: meta.description || mdBody || '',
           localizedDescriptions: undefined,
           tags: Array.isArray(meta.tags) ? meta.tags : [],
           category: meta.category || 'charts',
@@ -457,14 +558,12 @@ function collectDemos() {
           since: meta.since,
           hidden: meta.hidden === true,
           highlightLines: parseHighlight(meta.highlightLines),
-          renderStyle: ['center', 'code_flex', 'auto'].includes(meta.renderStyle) ? meta.renderStyle : undefined,
+          renderStyle: ['center', 'auto'].includes(meta.renderStyle) ? meta.renderStyle : undefined,
           codeCopy: meta.codeCopy === true || meta.codeCopy === false ? meta.codeCopy : undefined,
           codeLineNumbers: meta.codeLineNumbers === true || meta.codeLineNumbers === false ? meta.codeLineNumbers : undefined,
           codeSpoiler: meta.codeSpoiler || true,
           codeSpoilerMaxHeight: typeof meta.codeSpoilerMaxHeight === 'number' ? meta.codeSpoilerMaxHeight : undefined,
-          showCodeToggle: meta.showCodeToggle === false ? false : undefined,
           previewCenter: meta.previewCenter === true ? true : undefined,
-          codeFirst: meta.codeFirst === true ? true : undefined
         });
       }
     }
@@ -786,7 +885,7 @@ function collectDemos() {
     }
   }
 
-  return { demos, codeByComponent, componentMeta, propsMeta, warningCounts, componentWarnings };
+  return { demos, codeByComponent, componentMeta, propsMeta, componentSourceDir, warningCounts, componentWarnings };
 }
 
 function collectHooks() {
@@ -852,7 +951,14 @@ function collectHooks() {
       const codeHash = sha256(codeSnippet);
       const id = `${hook}.${folder}`;
       const relImport = `../../../../packages/ui/src/hooks/${hook}/demos/${folder}`;
-      codeByHook[hook][id] = { code: codeSnippet, hash: codeHash, importPath: relImport };
+      const hookExtraFiles = collectDemoFiles(path.join(demosDir, folder));
+      codeByHook[hook][id] = {
+        code: codeSnippet,
+        hash: codeHash,
+        importPath: relImport,
+        githubUrl: githubUrlFor(indexPath),
+        ...(hookExtraFiles.length ? { files: withEntryFiles(indexPath, codeSnippet, hookExtraFiles) } : {}),
+      };
 
       let meta: any = {};
       const descPath = path.join(demosDir, folder, 'description.md');
@@ -887,7 +993,7 @@ function collectHooks() {
         demo: short,
         title,
         kind: 'hook',
-        description: meta.description || mdDesc.split('\n').find(l => l.trim()) || '',
+        description: meta.description || mdDesc || '',
         localizedDescriptions: Object.keys(localizedDescriptions).length ? localizedDescriptions : undefined,
         tags: Array.isArray(meta.tags) ? meta.tags : [],
         category: meta.category || 'general',
@@ -896,16 +1002,17 @@ function collectHooks() {
         since: meta.since,
         hidden: meta.hidden === true,
         highlightLines: parseHighlight(meta.highlightLines),
-        renderStyle: ['center', 'code_flex', 'auto'].includes(meta.renderStyle) ? meta.renderStyle : undefined,
+        renderStyle: ['center', 'auto'].includes(meta.renderStyle) ? meta.renderStyle : undefined,
         codeCopy: meta.codeCopy === true || meta.codeCopy === false ? meta.codeCopy : undefined,
         codeLineNumbers: meta.codeLineNumbers === true || meta.codeLineNumbers === false ? meta.codeLineNumbers : undefined,
         codeSpoiler: meta.codeSpoiler === true,
         codeSpoilerMaxHeight: typeof meta.codeSpoilerMaxHeight === 'number' ? meta.codeSpoilerMaxHeight : undefined,
-        showCodeToggle: meta.showCodeToggle === false ? false : undefined,
         previewCenter: meta.previewCenter === true ? true : undefined,
-        codeFirst: meta.codeFirst === true ? true : undefined,
         code: codeSnippet,
-        importPath: relImport
+        importPath: relImport,
+        // Hook demos render straight from this index — they never go through
+        // `attachDemoCode`, so the link has to ride along with the metadata.
+        githubUrl: githubUrlFor(indexPath)
       });
     }
   }
@@ -1078,8 +1185,24 @@ function buildComponentMarkdown(
 function generate() {
   ensureDir(OUTPUT_DIR);
   ensureDir(COMPONENT_MARKDOWN_DIR);
-  const { demos, codeByComponent, componentMeta, propsMeta, warningCounts, componentWarnings } = collectDemos();
+  ensureDir(PUBLIC_COMPONENT_MARKDOWN_DIR);
+  const { demos, codeByComponent, componentMeta, propsMeta, componentSourceDir, warningCounts, componentWarnings } = collectDemos();
   const { hooks, codeByHook, hookMeta } = collectHooks();
+
+  // Attach source provenance so docs pages can link to GitHub / npm without
+  // duplicating the package layout on the client.
+  for (const [comp, sourceDir] of Object.entries(componentSourceDir)) {
+    const meta = componentMeta[comp];
+    if (!meta) continue;
+    const relative = path.relative(ROOT, sourceDir).split(path.sep).join('/');
+    meta.sourcePath = relative;
+    meta.packageName = relative.startsWith('packages/charts/')
+      ? '@platform-blocks/charts'
+      : '@platform-blocks/ui';
+    if (fs.existsSync(path.join(sourceDir, 'meta', 'component.md'))) {
+      meta.docsPath = `${relative}/meta/component.md`;
+    }
+  }
 
   // Sort metadata
   demos.sort((a, b) => a.component.localeCompare(b.component) || a.order - b.order || a.title.localeCompare(b.title));
@@ -1146,6 +1269,8 @@ function generate() {
     markdownIndex[name] = markdown;
     const filePath = path.join(COMPONENT_MARKDOWN_DIR, `${name}.md`);
     writeTextFile(filePath, markdown);
+    // Served verbatim at /llms/components/<Name>.md for the "LLM docs" link.
+    writeTextFile(path.join(PUBLIC_COMPONENT_MARKDOWN_DIR, `${name}.md`), markdown);
   }
   writeJsonPretty(path.join(OUTPUT_DIR, 'component-markdown.json'), markdownIndex);
 
@@ -1283,7 +1408,10 @@ function generate() {
   codeLoaderLines.push('');
 
   for (const comp of Object.keys(codeByComponent).sort()) {
-    codeLoaderLines.push(`try { DEMO_CODE_MAPS.${comp} = require('../demo-code-${comp}.json'); } catch { /* ignore */ }`);
+    // Shards are written to OUTPUT_DIR alongside this loader, so the specifier
+    // must be './' — '../' resolves outside data/generated and the require
+    // silently falls into the catch, leaving every demo without code.
+    codeLoaderLines.push(`try { DEMO_CODE_MAPS.${comp} = require('./demo-code-${comp}.json'); } catch { /* ignore */ }`);
   }
 
   codeLoaderLines.push('');
@@ -1307,7 +1435,7 @@ function generate() {
   hookCodeLoaderLines.push('');
 
   for (const hook of Object.keys(codeByHook).sort()) {
-    hookCodeLoaderLines.push(`try { HOOK_CODE_MAPS.${hook} = require('../hook-code-${hook}.json'); } catch { /* ignore */ }`);
+    hookCodeLoaderLines.push(`try { HOOK_CODE_MAPS.${hook} = require('./hook-code-${hook}.json'); } catch { /* ignore */ }`);
   }
 
   hookCodeLoaderLines.push('');

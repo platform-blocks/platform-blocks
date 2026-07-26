@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Card, Code, Column, PhoneInput, Text } from '@platform-blocks/ui';
+import { Block, Card, Code, PhoneInput, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [us, setUs] = useState('');
@@ -9,13 +9,13 @@ export default function Demo() {
   const [br, setBr] = useState('');
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <Text weight="semibold">Country formatting</Text>
       <Text size="sm" colorVariant="secondary">
         Compare built-in masks for several countries. Each input stores digits only while rendering a localized format.
       </Text>
 
-      <Column gap="sm">
+      <Block>
         <PhoneInput
           label="United States"
           country="US"
@@ -25,7 +25,7 @@ export default function Demo() {
         />
         <PhoneInput
           label="United Kingdom"
-          country="UK"
+          country="GB"
           value={uk}
           onChange={(raw) => setUk(raw)}
           showCountryCode
@@ -44,16 +44,16 @@ export default function Demo() {
           onChange={(raw) => setBr(raw)}
           showCountryCode
         />
-      </Column>
+      </Block>
 
       <Card variant="outline" p="sm">
-        <Column gap="xs">
+        <Block>
           <Text size="xs" colorVariant="secondary">
             Raw digit values
           </Text>
           <Code size="sm">{JSON.stringify({ us, uk, fr, br }, null, 2)}</Code>
-        </Column>
+        </Block>
       </Card>
-    </Column>
+    </Block>
   );
 }

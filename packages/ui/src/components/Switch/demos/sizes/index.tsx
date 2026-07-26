@@ -1,25 +1,16 @@
-import type { SwitchProps } from '@platform-blocks/ui';
-import { Column, Row, Switch, Text } from '@platform-blocks/ui';
+import { Block, Row, Switch, Text } from '@platform-blocks/ui';
 
-const SIZES: NonNullable<SwitchProps['size']>[] = ['sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
 
 export default function Demo() {
   return (
-    <Column gap="md">
-      <Row gap="sm" align="center">
-        {SIZES.map((size) => (
-          <Switch
-            key={size}
-            defaultChecked
-            size={size}
-            label={`${String(size).toUpperCase()}`}
-            labelPosition="top"
-          />
-        ))}
-      </Row>
-
-    </Column>
+    <Row align="center" gap="lg" wrap="wrap">
+      {SIZES.map((size) => (
+        <Block key={size} align="center">
+          <Switch size={size} defaultChecked />
+          <Text variant="small">{size}</Text>
+        </Block>
+      ))}
+    </Row>
   );
 }
-
-

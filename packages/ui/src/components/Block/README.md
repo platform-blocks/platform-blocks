@@ -132,7 +132,7 @@ import { Block } from '@platform-blocks/ui';
 | `align` | `'stretch' \| 'flex-start' \| 'flex-end' \| 'center' \| 'baseline'` | Align items |
 | `justify` | `'flex-start' \| 'flex-end' \| 'center' \| 'space-between' \| 'space-around' \| 'space-evenly'` | Justify content |
 | `wrap` | `boolean \| 'nowrap' \| 'wrap' \| 'wrap-reverse'` | Flex wrap (`true` maps to `'wrap'`)
-| `gap` | `number \| SizeValue` | Gap between children |
+| `gap` | `number \| SizeValue` | Gap between children (defaults to `'sm'`; pass `0` to remove it) |
 
 #### Positioning
 

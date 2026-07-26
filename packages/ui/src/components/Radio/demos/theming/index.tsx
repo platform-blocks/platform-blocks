@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Column, Radio, RadioGroup, Text } from '@platform-blocks/ui';
+import { Block, Radio, RadioGroup, Text } from '@platform-blocks/ui';
 
 const COLOR_OPTIONS = ['primary', 'secondary', 'success', 'error'] as const;
 
@@ -8,8 +8,8 @@ export default function Demo() {
   const [colorValue, setColorValue] = useState<typeof COLOR_OPTIONS[number]>('primary');
 
   return (
-    <Column gap="lg">
-      <Column gap="sm">
+    <Block>
+      <Block>
         <Text variant="small" colorVariant="muted">
           Size tokens
         </Text>
@@ -23,13 +23,13 @@ export default function Demo() {
             { label: 'Field level', value: 'field' }
           ]}
         />
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text variant="small" colorVariant="muted">
           Semantic colors
         </Text>
-        <Column gap="xs">
+        <Block>
           {COLOR_OPTIONS.map((tone) => (
             <Radio
               key={tone}
@@ -40,18 +40,18 @@ export default function Demo() {
               color={tone}
             />
           ))}
-        </Column>
-      </Column>
+        </Block>
+      </Block>
 
-      <Column gap="xs">
+      <Block>
         <Text variant="small" colorVariant="muted">
           Common states
         </Text>
         <Radio value="available" checked label="Available" />
         <Radio value="disabled" disabled label="Disabled" />
         <Radio value="error" error="Select a seat" label="Needs attention" />
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }
 

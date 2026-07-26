@@ -91,12 +91,32 @@ describe('Tooltip - behavior', () => {
     expect(queryByText('Controlled')).toBeNull();
   });
 
-  it('applies the provided multiline width and arrow placement styles', () => {
+  it('lets long labels wrap instead of clamping them to a single line', () => {
+    const { getByText } = render(
+      <Tooltip label="A label far longer than the bubble can show on one line" opened>
+        <Text>Target</Text>
+      </Tooltip>
+    );
+
+    const labelNode: any = getByText('A label far longer than the bubble can show on one line');
+    expect(labelNode.props.numberOfLines).toBeUndefined();
+  });
+
+  it('clamps the label when lineClamp is set', () => {
+    const { getByText } = render(
+      <Tooltip label="Truncate me" opened lineClamp={1}>
+        <Text>Target</Text>
+      </Tooltip>
+    );
+
+    expect(getByText('Truncate me').props.numberOfLines).toBe(1);
+  });
+
+  it('applies an explicit width as a fixed bubble width, with arrow placement styles', () => {
     const { getByText } = render(
       <Tooltip
         label="Long copy"
         opened
-        multiline
         width={160}
         withArrow
         position="bottom"

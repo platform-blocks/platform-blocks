@@ -120,8 +120,6 @@ export interface LineChartProps
   disableAnimations?: boolean;
   /** Apply LTOB data decimation above this point count */
   decimationThreshold?: number;
-  /** Enable spatial index for nearest-point (improves large n performance) */
-  useSpatialIndex?: boolean;
   /** X axis scale type */
   xScaleType?: 'linear' | 'log' | 'time';
   /** Y axis scale type */

@@ -1,4 +1,4 @@
-import { Card, Column, Link, Text } from '@platform-blocks/ui';
+import { Block, Card, Link, Text } from '@platform-blocks/ui';
 
 const resources = [
   { href: '#brand', label: 'brand guidelines' },
@@ -10,21 +10,19 @@ const [brandGuide, voiceGuide, releaseChecklist] = resources;
 
 export default function Demo() {
   return (
-    <Column gap="lg">
-      <Card p="md">
-        <Column gap="md">
-          <Text size="sm" colorVariant="secondary">
-            Use `Link` inline with body copy to direct readers to additional guidance without breaking the flow of text.
-          </Text>
-          <Text size="sm">
-            Before publishing, review the{' '}
-            <Link href={brandGuide.href}>{brandGuide.label}</Link>, consult our{' '}
-            <Link href={voiceGuide.href}>{voiceGuide.label}</Link>, and confirm each launch in the{' '}
-            <Link href={releaseChecklist.href}>{releaseChecklist.label}</Link>.
-          </Text>
-        </Column>
-      </Card>
-    </Column>
+    <Card p="md">
+      <Block>
+        <Text size="sm" colorVariant="secondary">
+          Use `Link` inline with body copy to direct readers to additional guidance without breaking the flow of text.
+        </Text>
+        <Text size="sm">
+          Before publishing, review the{' '}
+          <Link href={brandGuide.href}>{brandGuide.label}</Link>, consult our{' '}
+          <Link href={voiceGuide.href}>{voiceGuide.label}</Link>, and confirm each launch in the{' '}
+          <Link href={releaseChecklist.href}>{releaseChecklist.label}</Link>.
+        </Text>
+      </Block>
+    </Card>
   );
 }
 

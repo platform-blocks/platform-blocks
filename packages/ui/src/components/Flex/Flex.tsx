@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, ViewStyle, DimensionValue } from 'react-native';
+import { View, ViewProps, ViewStyle, StyleProp, DimensionValue } from 'react-native';
 
 import { factory, Factory } from '../../core/factory';
 import { SpacingProps, getSpacingStyles, LayoutProps, getLayoutStyles, extractSpacingProps, extractLayoutProps } from '../../core/utils';
 import { SizeValue, getSpacing } from '../../core/theme/sizes';
 import { useDirection } from '../../core/providers/DirectionProvider';
 
-export interface FlexProps extends SpacingProps, LayoutProps {
+export interface FlexProps extends SpacingProps, LayoutProps, Omit<ViewProps, 'style'> {
   /** Flex direction */
   direction?: 'row' | 'column' | 'row-reverse' | 'column-reverse';
 
@@ -41,7 +41,7 @@ export interface FlexProps extends SpacingProps, LayoutProps {
   children?: React.ReactNode;
 
   /** Custom styles */
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 
   /** Test ID for testing */
   testID?: string;
@@ -61,7 +61,7 @@ export const Flex = factory<Factory<{ props: FlexProps; ref: View }>>(
       align = 'flex-start',
       justify = 'flex-start',
       wrap = 'nowrap',
-      gap,
+      gap = 'sm',
       rowGap,
       columnGap,
       grow,
@@ -70,7 +70,10 @@ export const Flex = factory<Factory<{ props: FlexProps; ref: View }>>(
       children,
       style,
       testID,
-      disableRTLMirroring = false
+      disableRTLMirroring = false,
+      // Everything Flex doesn't own — onLayout, accessibility props, nativeID,
+      // pointerEvents, dataSet — forwards to the underlying View untouched.
+      ...rest
     } = otherProps;
 
     // Mirror row direction in RTL unless explicitly disabled
@@ -110,6 +113,7 @@ export const Flex = factory<Factory<{ props: FlexProps; ref: View }>>(
 
     return (
       <View
+        {...rest}
         ref={ref}
         style={[flexStyle, spacingStyle, layoutStyle, style]}
         testID={testID}

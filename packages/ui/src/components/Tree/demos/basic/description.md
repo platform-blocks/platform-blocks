@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Render a hierarchical dataset with collapsing branches and react to `onToggle`/`onNavigate` events.
+Render a hierarchical dataset with collapsing branches. Use `indent` to control how far each level is inset.

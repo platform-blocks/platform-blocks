@@ -1,7 +1,7 @@
 import { View, Text } from 'react-native';
 import { SparklineChart } from '../../';
 
-const BUG_BACKLOG = [9, 11, 13, 12, 15, 18, 21, 24, 19, 16, 14, 12, 11, 10];
+import { BUG_BACKLOG } from './data';
 
 export default function Demo() {
   const latest = BUG_BACKLOG[BUG_BACKLOG.length - 1];

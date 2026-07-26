@@ -1,10 +1,10 @@
-import { Column, Markdown, Text } from '@platform-blocks/ui';
+import { Block, Markdown, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const inlineContent = 'This is **bold text** and this is *italic text* with `inline code`.';
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <Text size="md" as="div">
         Inline markdown: <Markdown>{inlineContent}</Markdown>
       </Text>
@@ -17,6 +17,6 @@ export default function Demo() {
       <Text size="md" as="div">
         Code in context: Use <Markdown>`const x = 42;`</Markdown> to declare a variable.
       </Text>
-    </Column>
+    </Block>
   );
 }

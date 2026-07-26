@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Checkbox, Column, Text } from '@platform-blocks/ui';
+import { Block, Checkbox, Text } from '@platform-blocks/ui';
 
 const COLORS = ['primary', 'secondary', 'success', 'warning', 'error'] as const;
 
@@ -14,9 +14,9 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="sm">
+    <Block>
       <Text weight="medium">Semantic colors</Text>
-      <Column gap="xs">
+      <Block>
         {COLORS.map((color) => (
           <Checkbox
             key={color}
@@ -26,7 +26,7 @@ export default function Demo() {
             onChange={() => toggle(color)}
           />
         ))}
-      </Column>
+      </Block>
       <Checkbox
         colorVariant="success"
         label="Default checked"
@@ -35,6 +35,6 @@ export default function Demo() {
       <Text variant="small" colorVariant="muted">
         Use `colorVariant` to match checkbox accents with message intent while keeping labels readable.
       </Text>
-    </Column>
+    </Block>
   );
 }

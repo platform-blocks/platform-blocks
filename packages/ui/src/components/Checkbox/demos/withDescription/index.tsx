@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { Checkbox, Column, Text } from '@platform-blocks/ui';
+import { Block, Checkbox, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [newsletter, setNewsletter] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   return (
-    <Column gap="sm" style={{ maxWidth: 420 }}>
-      <Text weight="medium">Descriptions and helper text</Text>
+    <Block style={{ maxWidth: 400 }}>
       <Checkbox
         label="Receive product updates"
         description="Get occasional emails about new features and improvements."
@@ -25,6 +24,6 @@ export default function Demo() {
       <Text variant="small" colorVariant="muted">
         Use `description` for supporting copy and pair with `error` to surface validation details.
       </Text>
-    </Column>
+    </Block>
   );
 }

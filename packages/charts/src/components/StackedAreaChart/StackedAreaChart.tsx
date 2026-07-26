@@ -9,10 +9,11 @@ import Animated, {
   withDelay,
   SharedValue
 } from 'react-native-reanimated';
-import { LineChartProps, LineChartSeries } from '../LineChart/types';
+import { LineChartSeries } from '../LineChart/types';
+import { StackedAreaChartProps } from './types';
 import { ChartDataPoint } from '../../types';
-import { ChartContainer, ChartTitle, ChartLegend } from '../../ChartBase';
-import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
+import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
+import { useChartInteractionContext, usePointer, useActiveTarget } from '../../interaction/ChartInteractionContext';
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { PointSeriesHitTester } from '../../core/hittest/point';
 import type { HitSeries, Mark } from '../../core/hittest/types';
@@ -32,13 +33,6 @@ import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
 import type { Scale } from '../../utils/scales';
 
-export interface StackedAreaChartProps extends Omit<LineChartProps, 'data' | 'fill' | 'smooth'> {
-  series: LineChartSeries[];
-  stackOrder?: 'normal' | 'reverse';
-  smooth?: boolean;
-  opacity?: number; // base opacity for layers
-  stackMode?: 'absolute' | 'percentage';
-}
 
 interface StackedPoint { 
   x: number; 
@@ -256,7 +250,6 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
     resetOnDoubleTap,
     clampToInitialDomain,
     invertPinchZoom,
-    annotations,
     disabled = false,
     stackOrder = 'normal',
     ...rest
@@ -271,6 +264,12 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
 
   const register = interaction?.register;
   const updateSeriesVisibility = interaction?.updateSeriesVisibility;
+
+  // Live pointer + resolved target drive a cursor-tracking crosshair (snaps to the
+  // nearest x when a target is resolved, else follows the raw pointer). usePointer
+  // re-renders per-frame during hover — acceptable for a cursor-following visual.
+  const pointer = usePointer();
+  const { activeTarget } = useActiveTarget();
 
   // Use custom hooks for data processing
   const stackedData = useStackedData(series, stackOrder, interaction);
@@ -312,17 +311,23 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
 
   // Adjust padding based on legend position to prevent overlap with axis labels
   const basePadding = useMemo(() => ({ top: 40, right: 20, bottom: 60, left: yAxis?.title ? 104 : 80 }), [yAxis?.title]);
-  const padding = useMemo(() => {
-    if (!legend?.show) return basePadding;
-    const position = legend.position || 'bottom';
-    return {
-      ...basePadding,
-      top: position === 'top' ? basePadding.top + 40 : basePadding.top,
-      bottom: position === 'bottom' ? basePadding.bottom + 40 : basePadding.bottom,
-      left: position === 'left' ? basePadding.left + 120 : basePadding.left,
-      right: position === 'right' ? basePadding.right + 120 : basePadding.right,
-    };
-  }, [legend?.show, legend?.position, basePadding]);
+  // Grown so the plot clears the title and legend overlays.
+  const legendLabels = useMemo(
+    () => layers.map((l) => ({ label: l.name || String(l.id) })),
+    [layers]
+  );
+  const padding = useMemo(
+    () =>
+      withChartBandPadding(basePadding, {
+        title,
+        subtitle,
+        legendItems: legend?.show ? legendLabels : undefined,
+        legendPosition: legend?.position,
+        legendFontSize: legend?.fontSize,
+        containerWidth: width,
+      }),
+    [basePadding, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels, width]
+  );
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
 
@@ -517,6 +522,29 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
           })}
         </G>
       </Svg>
+
+      {/* Crosshair — a vertical guide tracking the cursor x across the plot. Snaps to the
+          resolved active target's x when one exists, else follows the raw pointer. Pointer
+          coords from useChartPointer are container-origin (x = containerX), matching
+          activeTarget.pixel.x (scaleX + padding.left), so positioned directly. */}
+      {enableCrosshair && pointer?.inside && (() => {
+        const rawX = activeTarget?.pixel?.x ?? pointer.x;
+        if (!Number.isFinite(rawX)) return null;
+        const crosshairX = Math.max(padding.left, Math.min(padding.left + plotWidth, rawX));
+        return (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: crosshairX,
+              top: padding.top,
+              height: plotHeight,
+              width: 1,
+              backgroundColor: theme.colors.grid || 'rgba(0,0,0,0.2)',
+            }}
+          />
+        );
+      })()}
 
       {xAxis?.show !== false && plotWidth > 0 && (
         <Axis

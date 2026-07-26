@@ -1,7 +1,7 @@
 ---
 title: Events
 category: behavior
-order: 50
+order: 15
 tags: [events, scrubbing, callbacks]
 highlightLines: []
 status: experimental

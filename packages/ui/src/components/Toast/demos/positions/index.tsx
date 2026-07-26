@@ -1,4 +1,4 @@
-import { Button, Column, Row, Text, useToast } from '@platform-blocks/ui';
+import { Block, Button, Row, Text, useToast } from '@platform-blocks/ui';
 
 const toastPositions = [
   'top-left',
@@ -21,7 +21,7 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="sm">
+    <Block>
       <Text size="xs" colorVariant="secondary">
         Pass `position` to align the toast container with your layout.
       </Text>
@@ -32,7 +32,7 @@ export default function Demo() {
           </Button>
         ))}
       </Row>
-    </Column>
+    </Block>
   );
 }
 

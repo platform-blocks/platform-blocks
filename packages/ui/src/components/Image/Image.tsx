@@ -4,6 +4,7 @@ import { useTheme } from '../../core/theme';
 import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
 import { getBorderRadius, RADIUS_SCALE } from '../../core/theme/radius';
 import type { ImageProps } from './types';
+import { resolveImageSource } from '../../utils/imageSource';
 
 const IMAGE_SIZES = {
   xs: 24,
@@ -74,15 +75,25 @@ export function Image({
   
   // Build styles
   const spacingStyles = getSpacingStyles(spacingProps);
-  
+
+  const flatContainerStyle = StyleSheet.flatten(containerStyle) as ViewStyle | undefined;
+  const flatStyle = StyleSheet.flatten(style) as ViewStyle | undefined;
+
   const containerStyles: ViewStyle = {
     ...spacingStyles,
-    ...StyleSheet.flatten(containerStyle),
+    ...flatContainerStyle,
   };
-  
+
+  // `style`/`containerStyle` size the wrapper, not the image. When a caller sizes the box
+  // that way instead of through `w`/`h`/`size`, the inner image would otherwise fall back
+  // to its intrinsic dimensions and ignore `resizeMode` — fill the box on each axis the
+  // wrapper actually constrains.
+  const boxWidth = flatStyle?.width ?? flatContainerStyle?.width;
+  const boxHeight = flatStyle?.height ?? flatContainerStyle?.height;
+
   const imageStyles: ImageStyle = {
-    width: finalWidth,
-    height: finalHeight,
+    width: finalWidth ?? (boxWidth !== undefined ? '100%' : undefined),
+    height: finalHeight ?? (boxHeight !== undefined ? '100%' : undefined),
     aspectRatio,
     borderWidth,
     borderColor: borderColor || theme.colors.gray[3],
@@ -114,11 +125,17 @@ export function Image({
     ...containerStyles,
     ...style,
   };
-  
+
+  // A radius supplied through `style` needs the same clipping the `rounded`/`circle` props get,
+  // otherwise the square-cornered image bleeds past the rounded wrapper.
+  if (combinedStyles.borderRadius !== undefined && combinedStyles.overflow === undefined) {
+    combinedStyles.overflow = 'hidden';
+  }
+
   // Determine image source (memoized to avoid re-triggering loads on each render)
   const imageSource = useMemo(() => {
     if (source) return source;
-    return src ? { uri: src } : undefined;
+    return resolveImageSource(src);
   }, [source, src]);
   
   const handleLoadStart = useCallback(() => {

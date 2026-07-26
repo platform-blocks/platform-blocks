@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Column, Pagination, Text } from '@platform-blocks/ui';
+import { Block, Pagination, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const totalItems = 248;
@@ -10,7 +10,7 @@ export default function Demo() {
   const total = Math.max(1, Math.ceil(totalItems / pageSize));
 
   return (
-    <Column gap="sm">
+    <Block>
       <Pagination
         current={current}
         total={total}
@@ -28,6 +28,6 @@ export default function Demo() {
       <Text size="xs" colorVariant="secondary">
         Page {current} of {total} · {pageSize} rows per page
       </Text>
-    </Column>
+    </Block>
   );
 }

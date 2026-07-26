@@ -1,9 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
-import { Button, Card, Column, Row, Text, Video } from '@platform-blocks/ui';
+import { Asset } from 'expo-asset';
+import { Block, Button, Card, Row, Text, Video } from '@platform-blocks/ui';
 import type { VideoRef } from '../../types';
 
+// `source.url` takes a URL, so resolve the bundled clip to one. `Image.resolveAssetSource`
+// is native-only, whereas expo-asset works on web too.
 const SOURCE = {
-  url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+  url: Asset.fromModule(require('../../../../assets/video/demo-clip.mp4')).uri,
 } as const;
 
 export default function Demo() {
@@ -16,7 +19,7 @@ export default function Demo() {
     () => [
       { label: 'Play', onPress: () => videoRef.current?.play() },
       { label: 'Pause', onPress: () => videoRef.current?.pause() },
-      { label: 'Skip to 30s', onPress: () => videoRef.current?.seek(30) },
+      { label: 'Skip to 4s', onPress: () => videoRef.current?.seek(4) },
       { label: 'Volume 50%', onPress: () => videoRef.current?.setVolume(0.5) },
   { label: 'Mute', onPress: () => videoRef.current?.setVolume(0) },
   { label: 'Unmute', onPress: () => videoRef.current?.setVolume(1) },
@@ -37,56 +40,54 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="lg">
-      <Card p="md">
-        <Column gap="md">
-          <Text size="sm" colorVariant="secondary">
-            Combine default transport controls with imperative helpers to script playback, adjust volume, and toggle captions from surrounding UI.
+    <Card p="md">
+      <Block>
+        <Text size="sm" colorVariant="secondary">
+          Combine default transport controls with imperative helpers to script playback, adjust volume, and toggle captions from surrounding UI.
+        </Text>
+        <Video
+          ref={videoRef}
+          source={SOURCE}
+          w="100%"
+          h={300}
+          controls={{
+            play: true,
+            pause: true,
+            progress: true,
+            time: true,
+            volume: true,
+            fullscreen: true,
+            playbackRate: true,
+            quality: true,
+            autoHide: true,
+            autoHideTimeout: 3000,
+          }}
+          onPlay={() => setStatus('Playing')}
+          onPause={() => setStatus('Paused')}
+          onLoad={() => setStatus('Loaded')}
+          onBuffer={(buffering) => setStatus(buffering ? 'Buffering…' : 'Playing')}
+          onTimeUpdate={(state) => setCurrentTime(state.currentTime)}
+          onDurationChange={(value) => setDuration(value)}
+          onError={(error) => setStatus(`Error: ${error}`)}
+        />
+        <Block>
+          <Text size="xs" colorVariant="secondary">
+            Status: {status}
           </Text>
-          <Video
-            ref={videoRef}
-            source={SOURCE}
-            w="100%"
-            h={300}
-            controls={{
-              play: true,
-              pause: true,
-              progress: true,
-              time: true,
-              volume: true,
-              fullscreen: true,
-              playbackRate: true,
-              quality: true,
-              autoHide: true,
-              autoHideTimeout: 3000,
-            }}
-            onPlay={() => setStatus('Playing')}
-            onPause={() => setStatus('Paused')}
-            onLoad={() => setStatus('Loaded')}
-            onBuffer={(buffering) => setStatus(buffering ? 'Buffering…' : 'Playing')}
-            onTimeUpdate={(state) => setCurrentTime(state.currentTime)}
-            onDurationChange={(value) => setDuration(value)}
-            onError={(error) => setStatus(`Error: ${error}`)}
-          />
-          <Column gap="xs">
+          {duration > 0 && (
             <Text size="xs" colorVariant="secondary">
-              Status: {status}
+              Progress: {formatTime(currentTime)} / {formatTime(duration)}
             </Text>
-            {duration > 0 && (
-              <Text size="xs" colorVariant="secondary">
-                Progress: {formatTime(currentTime)} / {formatTime(duration)}
-              </Text>
-            )}
-          </Column>
-          <Row gap="sm" wrap="wrap">
-            {actions.map((action) => (
-              <Button key={action.label} size="xs" variant="outline" onPress={action.onPress}>
-                {action.label}
-              </Button>
-            ))}
-          </Row>
-        </Column>
-      </Card>
-    </Column>
+          )}
+        </Block>
+        <Row gap="sm" wrap="wrap">
+          {actions.map((action) => (
+            <Button key={action.label} size="xs" variant="outline" onPress={action.onPress}>
+              {action.label}
+            </Button>
+          ))}
+        </Row>
+      </Block>
+    </Card>
   );
 }

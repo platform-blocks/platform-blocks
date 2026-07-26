@@ -5,10 +5,11 @@ import {
   ViolinChartProps,
   ViolinStatsMarkersConfig,
   ViolinDensitySeries,
+  ViolinDensityPoint,
   ViolinSeriesInteractionEvent,
   ViolinSeriesStats,
 } from './types';
-import { ChartContainer, ChartTitle } from '../../ChartBase';
+import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
@@ -17,7 +18,7 @@ import { getColorFromScheme, colorSchemes, formatNumber } from '../../utils';
 import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { BandCategoryHitTester } from '../../core/hittest/band';
-import type { HitSeries, Mark } from '../../core/hittest/types';
+import type { HitSeries, Mark, ActiveTarget } from '../../core/hittest/types';
 import { AnimatedViolinShape } from './AnimatedViolinShape';
 import { linearScale as createLinearScale } from '../../utils/scales';
 import type { Scale } from '../../utils/scales';
@@ -149,17 +150,23 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
     };
   }, [legend, showLegend, legendPosition]);
 
-  const padding = React.useMemo(() => {
-    if (!resolvedLegend?.show) return basePadding;
-    const position = resolvedLegend.position || 'bottom';
-    return {
-      ...basePadding,
-      top: position === 'top' ? basePadding.top + 40 : basePadding.top,
-      bottom: position === 'bottom' ? basePadding.bottom + 40 : basePadding.bottom,
-      left: position === 'left' ? basePadding.left + 120 : basePadding.left,
-      right: position === 'right' ? basePadding.right + 120 : basePadding.right,
-    };
-  }, [resolvedLegend?.show, resolvedLegend?.position]);
+  // Grown so the plot clears the title and legend overlays.
+  const legendLabels = React.useMemo(
+    () => series.map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
+    [series]
+  );
+  const padding = React.useMemo(
+    () =>
+      withChartBandPadding(basePadding, {
+        title,
+        subtitle,
+        legendItems: resolvedLegend?.show ? legendLabels : undefined,
+        legendPosition: resolvedLegend?.position,
+        legendFontSize: (resolvedLegend as { fontSize?: number } | undefined)?.fontSize,
+        containerWidth: width,
+      }),
+    [basePadding.left, basePadding.top, title, subtitle, resolvedLegend?.show, resolvedLegend?.position, legendLabels, width]
+  );
   const plotWidth = Math.max(0, width - padding.left - padding.right);
   const plotHeight = Math.max(0, height - padding.top - padding.bottom);
   const seriesCount = series.length;
@@ -449,14 +456,56 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
     return () => register('violin', null);
   }, [register, hitSeries, isHorizontal]);
 
+  // Map a resolved pointer target back to the public series-interaction event.
+  // The band tester resolves one mark per violin: mark.id is the series index and
+  // mark.datum is the densData entry (carrying .source/.stats/.dens).
+  const resolveSeriesEvent = React.useCallback(
+    (target: ActiveTarget | null): ViolinSeriesInteractionEvent | null => {
+      if (!target) return null;
+      const v = target.datum as (typeof densData)[number] | undefined;
+      if (!v || !v.source) return null;
+      const seriesIndex = typeof target.markId === 'number' ? target.markId : densData.indexOf(v);
+      return {
+        series: v.source,
+        seriesIndex,
+        stats: v.stats,
+        density: v.dens as ViolinDensityPoint[],
+      };
+    },
+    [densData]
+  );
+
+  // Tracks the series the pointer last resolved to, so focus fires once per new
+  // series and blur fires for the series we leave (on move-away or pointer leave).
+  const lastFocusedRef = React.useRef<{ index: number; event: ViolinSeriesInteractionEvent } | null>(null);
+
   const { handlers: pointerHandlers, ref: surfaceRef, onLayout: surfaceOnLayout } = useChartPointer({
     padding,
     plotWidth,
     plotHeight,
     enabled: Boolean(interaction),
     hover: true,
-    press: false,
+    press: Boolean(onSeriesPress),
     tester,
+    onPointer: (_e, target) => {
+      const event = resolveSeriesEvent(target);
+      const nextIndex = event ? event.seriesIndex : null;
+      const prev = lastFocusedRef.current;
+      if (nextIndex === (prev?.index ?? null)) return;
+      if (prev) onSeriesBlur?.(prev.event);
+      lastFocusedRef.current = event ? { index: event.seriesIndex, event } : null;
+      if (event) onSeriesFocus?.(event);
+    },
+    onLeave: () => {
+      const prev = lastFocusedRef.current;
+      if (!prev) return;
+      lastFocusedRef.current = null;
+      onSeriesBlur?.(prev.event);
+    },
+    onPress: (_e, target) => {
+      const event = resolveSeriesEvent(target);
+      if (event) onSeriesPress?.(event);
+    },
   });
 
   return (
@@ -467,7 +516,19 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
       interactionConfig={{ multiTooltip: true, enableCrosshair: true }}
     >
       {(title || subtitle) && <ChartTitle title={title} subtitle={subtitle} />}
-      
+
+      {resolvedLegend?.show && (
+        <ChartLegend
+          items={densData.map((v) => ({
+            label: v.name,
+            color: v.color,
+            visible: v.visible,
+          }))}
+          position={resolvedLegend.position}
+          align={resolvedLegend.align}
+        />
+      )}
+
       {grid && plotWidth > 0 && plotHeight > 0 && (
         <ChartGrid
           grid={grid}

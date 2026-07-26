@@ -134,6 +134,41 @@ describe('Dialog - behavior', () => {
     expect(queryByText('Should not appear')).toBeNull();
   });
 
+  describe('autoFocus', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    it('focuses the provided ref after the enter transition', () => {
+      const focus = jest.fn();
+      const ref = { current: { focus } } as any;
+
+      render(renderDialog({ autoFocus: ref }));
+      expect(focus).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(300);
+      expect(focus).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not focus when autoFocus is omitted', () => {
+      const focus = jest.fn();
+      render(renderDialog());
+
+      jest.advanceTimersByTime(300);
+      expect(focus).not.toHaveBeenCalled();
+    });
+
+    it('cancels the pending focus when the dialog unmounts first', () => {
+      const focus = jest.fn();
+      const ref = { current: { focus } } as any;
+
+      const { unmount } = render(renderDialog({ autoFocus: ref }));
+      unmount();
+      jest.advanceTimersByTime(300);
+
+      expect(focus).not.toHaveBeenCalled();
+    });
+  });
+
   it('omits header and close button when dialog is not closable', () => {
     const { queryByTestId, queryByText } = render(
       <Dialog visible title="System Settings" closable={false} onClose={jest.fn()}>

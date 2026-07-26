@@ -1,5 +1,16 @@
-import { ReactNode } from 'react';
+import { ReactNode, RefObject } from 'react';
 import type { TextProps } from '../Text';
+
+/**
+ * Focus behaviour applied once the dialog's enter transition settles.
+ * - `true` — focus the first focusable element inside the dialog body. Web
+ *   only; native platforms have no way to enumerate focusable nodes, so pass a
+ *   ref there instead.
+ * - a ref — call `.focus()` on that element (e.g. an `Input`'s `inputRef`).
+ *   Works on every platform.
+ * - `false` — leave focus where it is.
+ */
+export type DialogAutoFocus = boolean | RefObject<any>;
 
 // Public props for the imperative <Dialog /> component instance
 export interface DialogProps {
@@ -33,8 +44,27 @@ export interface DialogProps {
   showHeader?: boolean;
   /** Controls which part of the bottom sheet responds to swipe-to-dismiss gestures */
   bottomSheetSwipeZone?: 'container' | 'handle' | 'none';
+  /**
+   * Length of the open/close transition in ms; the built-in timings scale
+   * against a 300ms baseline. `0` shows and dismisses the dialog instantly.
+   * Always 0 under reduced motion.
+   * @default 300
+   */
+  transitionDuration?: number;
   /** Override props applied to the title `<Text>` (style, weight, ff, size, colorVariant). */
   titleProps?: Omit<TextProps, 'children'>;
+  /**
+   * Moves focus into the dialog once it has finished opening. See
+   * {@link DialogAutoFocus}.
+   * @default false
+   */
+  autoFocus?: DialogAutoFocus;
+  /**
+   * Keeps Tab focus cycling inside the dialog while it is open and restores
+   * focus to the previously focused element when it closes. Web only.
+   * @default true
+   */
+  trapFocus?: boolean;
 }
 
 // Internal configuration object stored in context for stacked dialogs
@@ -55,6 +85,10 @@ export interface DialogConfig {
   style?: object;
   showHeader?: boolean;
   titleProps?: Omit<TextProps, 'children'>;
+  /** Moves focus into the dialog once it has finished opening. See {@link DialogAutoFocus}. */
+  autoFocus?: DialogAutoFocus;
+  /** Trap Tab focus inside the dialog and restore it on close (web only, default true). */
+  trapFocus?: boolean;
 }
 
 // Value shape provided by DialogContext

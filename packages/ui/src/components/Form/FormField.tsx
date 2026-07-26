@@ -6,13 +6,13 @@ import { FormInput } from './FormInput';
 import { FormError } from './FormError';
 import { FormLabel } from './FormLabel';
 
-export const FormField: React.FC<FormFieldProps> = ({
+export const FormField = React.forwardRef<View, FormFieldProps>(({
   name,
   dependsOn = [],
   validateWhen,
   validation,
   children
-}) => {
+}, ref) => {
   const formContext = useFormContext();
   
   // Check if field should be visible/enabled based on dependencies
@@ -82,8 +82,10 @@ export const FormField: React.FC<FormFieldProps> = ({
   });
 
   return (
-    <View>
+    <View ref={ref}>
       {childrenWithProps}
     </View>
   );
-};
+});
+
+FormField.displayName = 'FormField';

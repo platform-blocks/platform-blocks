@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { render } from '@testing-library/react-native';
 
 import { Radio, RadioGroup } from '../Radio';
+import { Icon } from '../../Icon';
 
 const mockTheme = {
   colors: {
@@ -57,6 +58,20 @@ jest.mock('../../_internal/FieldHeader', () => {
   };
 });
 
+/** Hex to the `rgba()` form animated color interpolations resolve to. */
+const rgba = (hex: string) => {
+  const value = parseInt(hex.slice(1), 16);
+  return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, 1)`;
+};
+
+/** Every flattened style in a rendered tree, depth first. */
+const collectStyles = (node: any): any[] => {
+  if (!node || typeof node !== 'object') return [];
+  const own = node.props?.style ? [StyleSheet.flatten(node.props.style)] : [];
+  const children = Array.isArray(node.children) ? node.children.flatMap(collectStyles) : [];
+  return [...own, ...children];
+};
+
 describe('Radio - rendering', () => {
   it('applies size tokens to radio control dimensions', () => {
     const { getByTestId } = render(
@@ -81,20 +96,29 @@ describe('Radio - rendering', () => {
       />
     );
 
-    const outerStyles = StyleSheet.flatten(getByTestId('radio-success').props.style);
-    const innerChildren = React.Children.toArray(getByTestId('radio-success').props.children);
-    const innerView = innerChildren.find((child): child is React.ReactElement<{ style?: any }> => (
-      React.isValidElement(child) && !!(child.props as any)?.style
-    ));
+    const layers = React.Children.toArray(getByTestId('radio-success').props.children)
+      .filter((child): child is React.ReactElement<{ style?: any }> => (
+        React.isValidElement(child) && Array.isArray((child.props as any)?.style)
+      ))
+      // Index 0 of each layer's style array is the resting style; the animated
+      // override that follows it holds interpolation nodes, not plain values.
+      .map(child => StyleSheet.flatten(child.props.style[0]));
 
-    if (!innerView) {
-      throw new Error('Radio inner circle not found');
+    // A selected radio is a solid accent disc with a lighter dot punched out of
+    // its center — the track covers the whole control, ring included.
+    const [trackStyles, dotStyles] = layers;
+
+    if (!trackStyles || !dotStyles) {
+      throw new Error('Radio track and dot not found');
     }
 
-    const innerStyles = StyleSheet.flatten(innerView.props.style);
-
-    expect(outerStyles.borderColor).toBe(mockTheme.colors.success[6]);
-    expect(innerStyles.backgroundColor).toBe(mockTheme.colors.success[6]);
+    expect(trackStyles.backgroundColor).toBe(mockTheme.colors.success[6]);
+    expect(trackStyles.position).toBe('absolute');
+    expect(dotStyles.backgroundColor).toBe('#ffffff');
+    // md control is 24px with a 1px ring, so the hole is 22px and shrinks to a
+    // 10px dot — 40% of the control.
+    expect(dotStyles.height).toBe(22);
+    expect(dotStyles.height * dotStyles.transform[0].scale).toBeCloseTo(10);
   });
 });
 
@@ -118,6 +142,31 @@ describe('RadioGroup - rendering', () => {
     const styles = StyleSheet.flatten(radiogroup?.props.style);
     expect(styles.flexDirection).toBe('row');
     expect(styles.gap).toBe(16);
+  });
+
+  it('marks card options with the radio circle rather than a check icon', () => {
+    const { toJSON, UNSAFE_queryAllByType } = render(
+      <RadioGroup
+        variant="card"
+        value="basic"
+        options={[
+          { label: 'Basic', value: 'basic' },
+          { label: 'Pro', value: 'pro' },
+        ]}
+        testID="cards"
+      />
+    );
+
+    // The track disc of each circle: absolutely positioned, md-sized (24px).
+    // Animated styles resolve to rgba() in the rendered tree.
+    const tracks = collectStyles(toJSON())
+      .filter(style => style.position === 'absolute' && style.borderRadius === 12);
+
+    expect(tracks).toHaveLength(2);
+    expect(tracks[0].backgroundColor).toBe(rgba(mockTheme.colors.primary[6]));
+    expect(tracks[1].backgroundColor).toBe(rgba(mockTheme.colors.gray[4]));
+    // The check icon the card used to show on select is gone.
+    expect(UNSAFE_queryAllByType(Icon)).toHaveLength(0);
   });
 
   it('dims group label when disabled', () => {

@@ -7,9 +7,10 @@ import { buildMatrix as internalBuildMatrix } from './core/buildMatrix';
 import { useTheme } from '../../core/theme';
 import { getSpacingStyles, extractSpacingProps, getLayoutStyles, extractLayoutProps } from '../../core/utils';
 import { Text } from '../Text';
-import type { QRCodeProps } from './types';
+import type { QRCodeSVGProps } from './types';
+import { resolveImageSource } from '../../utils/imageSource';
 
-export function QRCodeSVG(props: QRCodeProps) {
+export function QRCodeSVG(props: QRCodeSVGProps) {
   const { spacingProps, otherProps: propsAfterSpacing } = extractSpacingProps(props);
   const { layoutProps, otherProps } = extractLayoutProps(propsAfterSpacing);
 
@@ -266,7 +267,7 @@ export function QRCodeSVG(props: QRCodeProps) {
             logo.element
           ) : (
             <Image
-              source={{ uri: logo.uri }}
+              source={resolveImageSource(logo.uri)}
               style={{
                 width: logoSize,
                 height: logoSize,

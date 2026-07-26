@@ -1,16 +1,16 @@
-import { Block, Column, Text, Waveform } from '@platform-blocks/ui';
+import { Block, Text, Waveform } from '@platform-blocks/ui';
 
 import { WAVEFORM_DEMO_PEAKS } from '../data';
 
 export default function Demo() {
   return (
-    <Column gap="lg">
-      <Block gap="xs" w="100%" maxW={320}>
+    <Block>
+      <Block w="100%" maxW={320}>
         <Text variant="small">Fixed width waveform</Text>
         <Waveform peaks={WAVEFORM_DEMO_PEAKS} progress={0.35} h={56} />
       </Block>
 
-      <Block gap="xs" w="100%">
+      <Block w="100%">
         <Text variant="small">`fullWidth` stretches to the container</Text>
         <Waveform
           peaks={WAVEFORM_DEMO_PEAKS}
@@ -20,6 +20,6 @@ export default function Demo() {
           color="primary"
         />
       </Block>
-    </Column>
+    </Block>
   );
 }

@@ -31,7 +31,7 @@ import {
   Switch,
   Text,
   Timeline,
-  TimePicker,
+  TimePickerInput,
   useToast,
   ToggleButton,
   ToggleGroup,
@@ -169,9 +169,9 @@ export const EverythingPlayground = () => {
             }}
           />
           <DatePickerInput label="Start date" placeholder="Select date" />
-          <TimePicker label="Start time" />
+          <TimePickerInput label="Start time" />
           <DatePickerInput label="Full width date" placeholder="Select date" fullWidth />
-          <TimePicker label="Full width time" fullWidth format={12} withSeconds />
+          <TimePickerInput label="Full width time" fullWidth format={12} withSeconds />
         </Row>
       )
     },

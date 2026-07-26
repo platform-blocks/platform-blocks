@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Use the `limit` prop on `AvatarGroup` to cap the number of visible avatars and render a surplus indicator for the remaining count. Pass `surplusTooltip` to wrap that `+N` indicator in a Tooltip — handy for revealing who's hidden on hover.
+Set `limit` to cap visible avatars and show the remaining count. Pass `surplusTooltip` to reveal who's hidden on hover.

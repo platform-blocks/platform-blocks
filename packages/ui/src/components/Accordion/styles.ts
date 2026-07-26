@@ -19,18 +19,34 @@ export const resolveAccent = (theme: PlatformBlocksTheme, color: AccordionProps[
 export interface AccordionAccentStyles {
   activeHeaderText: TextStyle;
   activeItem: ViewStyle;
-  activeChevronColor: string;
+  /**
+   * Chevron tint while expanded. Left undefined when no accent is set so the
+   * chevron keeps its resting color — the open state reads from the rotation
+   * and bolded title, not from a shift in icon weight.
+   */
+  activeChevronColor?: string;
 }
 
 /**
  * Build the expanded-item emphasis styles for a given color. Shared by the
  * accordion-level `color` prop and per-item `color` overrides so a single
  * accordion can mix accents.
+ *
+ * With no `color` set (the default) the expanded item stays neutral — the open
+ * state reads from the bolded title and the rotated chevron alone, with no color
+ * tint or surface fill. A brand accent is opt-in via the `color` prop.
  */
 export const buildAccentStyles = (
   theme: PlatformBlocksTheme,
   color: AccordionProps['color']
 ): AccordionAccentStyles => {
+  if (!color) {
+    return {
+      activeHeaderText: { fontWeight: '600' as const, color: theme.text.primary },
+      activeItem: {},
+      activeChevronColor: undefined,
+    };
+  }
   const accent = resolveAccent(theme, color);
   return {
     activeHeaderText: { fontWeight: '600' as const, color: accent.text },
@@ -88,14 +104,14 @@ export const getAccordionStyles = (
   theme: PlatformBlocksTheme,
   variant: AccordionProps['variant'] = 'default',
   size: SizeValue = 'md',
-  color: AccordionProps['color'] = 'primary',
+  color: AccordionProps['color'] = undefined,
   radiusStyles: any | undefined,
   density: AccordionProps['density'] = 'comfortable'
 ): AccordionComputedStyles & {
   activeHeaderText: TextStyle;
   disabledHeaderText: TextStyle;
   activeItem: ViewStyle;
-  activeChevronColor: string;
+  activeChevronColor?: string;
 } => {
   const fontSize = getFontSize(size);
   const basePadding = getSpacing(size);

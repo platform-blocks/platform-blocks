@@ -15,6 +15,7 @@ import { GalleryControls } from './GalleryControls';
 import { GalleryThumbnails } from './GalleryThumbnails';
 import { GalleryMetadata } from './GalleryMetadata';
 import type { GalleryModalProps } from './types';
+import { resolveImageSource } from '../../utils/imageSource';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -180,7 +181,7 @@ export const Gallery: React.FC<GalleryModalProps> = ({
   const currentImage = images[currentIndex];
   const currentImageSource = useMemo(() => {
     if (!currentImage) return undefined;
-    return { uri: currentImage.uri };
+    return resolveImageSource(currentImage.uri);
   }, [currentImage?.uri]);
 
   if (!visible || images.length === 0) return null;

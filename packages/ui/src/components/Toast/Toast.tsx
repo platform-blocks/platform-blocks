@@ -22,19 +22,99 @@ const Gesture = gestureHandler?.Gesture;
 const GestureHandlerRootView = gestureHandler?.GestureHandlerRootView;
 
 import { factory } from '../../core/factory';
-import { getSpacing } from '../../core/theme/sizes';
 import { createRadiusStyles } from '../../core/theme/radius';
+import {
+  resolveComponentSize,
+  type ComponentSize,
+  type ComponentSizeValue,
+} from '../../core/theme/componentSize';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { readableTextOn } from '../../core/theme/colorUtils';
+import { resolveSurface } from '../../core/theme/surfaces';
+import { getShadowValue, COMPONENT_SHADOW_DEFAULTS } from '../../core/theme/shadow';
 import { getSpacingStyles, extractSpacingProps, mergeSlotProps } from '../../core/utils';
-import { ToastProps, ToastColor, ToastSeverity, ToastAction, ToastAnimationConfig, ToastSwipeConfig } from './types';
+import { ToastProps, ToastColor, ToastSeverity, ToastAction, ToastAnimationConfig, ToastSwipeConfig, ToastSizeMetrics } from './types';
 import { useHaptics } from '../../hooks/useHaptics';
 import { Icon } from '../Icon';
+import { IconButton } from '../IconButton';
 
 interface ToastFactoryPayload {
   props: ToastProps;
   ref: View;
 }
+
+const TOAST_ALLOWED_SIZES: ComponentSize[] = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+
+// Full seven-token scale. `md` reproduces the historical toast metrics exactly,
+// so adding the prop is a no-op for existing usage.
+const TOAST_SIZE_SCALE: Record<ComponentSize, ToastSizeMetrics> = {
+  xs: {
+    padding: 6, gap: 4, titleSize: 12, titleGap: 2, bodySize: 11, bodyLineHeight: 15,
+    iconSize: 14, minHeight: 36, actionFontSize: 10,
+    actionPaddingHorizontal: 6, actionPaddingVertical: 2, closeButtonSize: 24,
+  },
+  sm: {
+    padding: 9, gap: 6, titleSize: 14, titleGap: 3, bodySize: 12, bodyLineHeight: 17,
+    iconSize: 16, minHeight: 48, actionFontSize: 11,
+    actionPaddingHorizontal: 6, actionPaddingVertical: 3, closeButtonSize: 28,
+  },
+  md: {
+    padding: 12, gap: 8, titleSize: 16, titleGap: 4, bodySize: 14, bodyLineHeight: 20,
+    iconSize: 20, minHeight: 60, actionFontSize: 12,
+    actionPaddingHorizontal: 8, actionPaddingVertical: 4, closeButtonSize: 32,
+  },
+  lg: {
+    padding: 14, gap: 10, titleSize: 18, titleGap: 5, bodySize: 16, bodyLineHeight: 23,
+    iconSize: 24, minHeight: 68, actionFontSize: 14,
+    actionPaddingHorizontal: 10, actionPaddingVertical: 5, closeButtonSize: 36,
+  },
+  xl: {
+    padding: 16, gap: 12, titleSize: 20, titleGap: 6, bodySize: 18, bodyLineHeight: 26,
+    iconSize: 28, minHeight: 76, actionFontSize: 15,
+    actionPaddingHorizontal: 12, actionPaddingVertical: 6, closeButtonSize: 40,
+  },
+  '2xl': {
+    padding: 20, gap: 14, titleSize: 24, titleGap: 7, bodySize: 20, bodyLineHeight: 29,
+    iconSize: 32, minHeight: 88, actionFontSize: 16,
+    actionPaddingHorizontal: 14, actionPaddingVertical: 7, closeButtonSize: 44,
+  },
+  '3xl': {
+    padding: 24, gap: 16, titleSize: 28, titleGap: 8, bodySize: 22, bodyLineHeight: 32,
+    iconSize: 40, minHeight: 100, actionFontSize: 18,
+    actionPaddingHorizontal: 16, actionPaddingVertical: 8, closeButtonSize: 52,
+  },
+};
+
+const BASE_TOAST_METRICS = TOAST_SIZE_SCALE.md;
+
+const resolveToastMetrics = (value: ComponentSizeValue | undefined): ToastSizeMetrics => {
+  // A numeric size is read as the title font size; everything else scales with it
+  // so a custom value stays proportional instead of snapping to the nearest token.
+  if (typeof value === 'number') {
+    const ratio = value / BASE_TOAST_METRICS.titleSize;
+    return {
+      padding: Math.max(4, Math.round(BASE_TOAST_METRICS.padding * ratio)),
+      gap: Math.max(2, Math.round(BASE_TOAST_METRICS.gap * ratio)),
+      titleSize: value,
+      titleGap: Math.max(1, Math.round(BASE_TOAST_METRICS.titleGap * ratio)),
+      bodySize: Math.max(9, Math.round(BASE_TOAST_METRICS.bodySize * ratio)),
+      bodyLineHeight: Math.max(12, Math.round(BASE_TOAST_METRICS.bodyLineHeight * ratio)),
+      iconSize: Math.max(10, Math.round(BASE_TOAST_METRICS.iconSize * ratio)),
+      minHeight: Math.max(28, Math.round(BASE_TOAST_METRICS.minHeight * ratio)),
+      actionFontSize: Math.max(9, Math.round(BASE_TOAST_METRICS.actionFontSize * ratio)),
+      actionPaddingHorizontal: Math.max(4, Math.round(BASE_TOAST_METRICS.actionPaddingHorizontal * ratio)),
+      actionPaddingVertical: Math.max(2, Math.round(BASE_TOAST_METRICS.actionPaddingVertical * ratio)),
+      closeButtonSize: Math.max(16, Math.round(BASE_TOAST_METRICS.closeButtonSize * ratio)),
+    };
+  }
+
+  const resolved = resolveComponentSize(value, TOAST_SIZE_SCALE, {
+    allowedSizes: TOAST_ALLOWED_SIZES,
+    fallback: 'md',
+  });
+
+  return typeof resolved === 'number' ? resolveToastMetrics(resolved) : resolved;
+};
 
 // Helper function to map severity to theme colors
 const getSeverityColor = (severity: ToastSeverity): ToastColor => {
@@ -54,7 +134,8 @@ const getSeverityColor = (severity: ToastSeverity): ToastColor => {
 
 function ToastBase(props: ToastProps, ref: React.Ref<View>) {
   const {
-    variant = 'filled',
+    variant = 'light',
+    size = 'md',
     color = 'gray',
     sev,
     title,
@@ -66,6 +147,7 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
     onClose,
     visible = false,
     animationDuration = 300,
+    transitionDuration,
     autoHide = 4000,
     position = 'top',
     style,
@@ -79,6 +161,7 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
     swipeConfig,
     onSwipeDismiss,
     keepMounted = true,
+    selectable = false,
     titleProps,
     bodyProps,
     ...rest
@@ -91,7 +174,8 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
 
   // Handle radius prop with 'md' as default for toasts
   const radiusStyles = createRadiusStyles(radius || 'md');
-  const padding = getSpacing('md');
+  const metrics = React.useMemo(() => resolveToastMetrics(size), [size]);
+  const padding = metrics.padding;
 
   // Helper function to get hidden position based on toast position
   const getHiddenPosition = React.useCallback((pos: string): number => {
@@ -120,10 +204,14 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
   // Get screen dimensions for swipe calculations
   const screenWidth = Dimensions.get('window').width;
   
+  // `transitionDuration` is the cross-component spelling and wins over the
+  // Toast-specific `animationDuration`; 0 shows/hides with no transition.
+  const resolvedDuration = Math.max(transitionDuration ?? animationDuration, 0);
+
   // Default configurations
   const defaultAnimationConfig: ToastAnimationConfig = {
     type: 'slide',
-    duration: animationDuration,
+    duration: resolvedDuration,
     easing: Easing.out(Easing.ease),
     springConfig: {
       damping: 15,
@@ -140,6 +228,8 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
   };
 
   const finalAnimationConfig = { ...defaultAnimationConfig, ...animationConfig };
+  // Effective show/hide length; 0 means "no transition" and is applied directly.
+  const toastDuration = Math.max(finalAnimationConfig.duration ?? resolvedDuration, 0);
   const finalSwipeConfig = { ...defaultSwipeConfig, ...swipeConfig };
 
   // Memoize expensive calculations
@@ -321,7 +411,24 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
       // Reset swipe positions
       swipeX.value = 0;
       swipeY.value = 0;
-      
+
+      if (toastDuration === 0) {
+        // No transition — present the toast already in place.
+        slideAnimation.value = 0;
+        fadeAnimation.value = 1;
+        triggerHapticFeedback(sev);
+        if (autoHide > 0 && !persistent) {
+          autoHideTimeoutRef.current = setTimeout(() => {
+            onClose?.();
+          }, autoHide);
+        }
+        return () => {
+          if (autoHideTimeoutRef.current) {
+            clearTimeout(autoHideTimeoutRef.current);
+          }
+        };
+      }
+
       // Animate in based on animation type
       switch (finalAnimationConfig.type) {
         case 'bounce':
@@ -329,7 +436,7 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
           break;
         case 'scale':
           slideAnimation.value = withTiming(0, { 
-            duration: finalAnimationConfig.duration,
+            duration: toastDuration,
             easing: finalAnimationConfig.easing
           });
           break;
@@ -339,13 +446,13 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
         case 'slide':
         default:
           slideAnimation.value = withTiming(0, { 
-            duration: finalAnimationConfig.duration,
+            duration: toastDuration,
             easing: finalAnimationConfig.easing || Easing.out(Easing.back(1.1))
           });
       }
       
       fadeAnimation.value = withTiming(1, { 
-        duration: finalAnimationConfig.duration! * 0.8,
+        duration: toastDuration * 0.8,
         easing: Easing.out(Easing.ease)
       });
 
@@ -358,10 +465,15 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
           onClose?.();
         }, autoHide);
       }
+    } else if (toastDuration === 0) {
+      // No transition — drop straight to the hidden state.
+      slideAnimation.value = getHiddenPosition(position);
+      fadeAnimation.value = 0;
+      if (shouldUnmountOnHide) handleShouldRenderUpdate(false);
     } else {
       // Slide out and fade out
       slideAnimation.value = withTiming(getHiddenPosition(position), { 
-        duration: finalAnimationConfig.duration,
+        duration: toastDuration,
         easing: Easing.in(Easing.back(1.1))
       }, (finished) => {
         'worklet';
@@ -370,7 +482,7 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
         }
       });
       fadeAnimation.value = withTiming(0, { 
-        duration: finalAnimationConfig.duration! * 0.6,
+        duration: toastDuration * 0.6,
         easing: Easing.in(Easing.ease)
       });
     }
@@ -382,6 +494,12 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
     };
   }, [visible, finalAnimationConfig, autoHide, onClose, slideAnimation, fadeAnimation, swipeX, swipeY, position, persistent, triggerHapticFeedback, sev, getHiddenPosition, handleShouldRenderUpdate, shouldUnmountOnHide]);
 
+  // A toast floats above everything, so it sits at the top of the elevation
+  // ladder alongside Dialog. Previously this used `colors.gray[0]`, which is
+  // the *page base* in the dark theme (#0E0E11) — the toast fill matched the
+  // background exactly and the message read as floating text with no container.
+  const surface = resolveSurface(theme, 3);
+
   const getToastStyles = () => {
     const baseStyles: ViewStyle = {
       ...radiusStyles,
@@ -390,20 +508,32 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
       alignItems: 'center',
       ...Platform.select({
         android: {
-          minHeight: 56,
-          maxHeight: 120,
+          minHeight: metrics.minHeight - 4,
+          maxHeight: metrics.minHeight * 2,
           width: '100%',
           alignSelf: 'stretch',
           marginHorizontal: 0, // Ensure no horizontal margins
         },
         default: {
-          minHeight: 60,
+          minHeight: metrics.minHeight,
           width: maxWidth ? Math.min(maxWidth, 400) : '100%',
           maxWidth: maxWidth || 400,
         }
       }),
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25)',
+      // Theme-driven so the dark scale's heavier shadows apply; a fixed 25%
+      // black shadow is invisible against a near-black page.
+      boxShadow: getShadowValue(COMPONENT_SHADOW_DEFAULTS.toast, theme),
       elevation: 5,
+      // Press-and-hold on a toast should swipe/dismiss it, never start a text
+      // selection or raise the iOS callout menu. Text slots opt out too, but the
+      // container covers the padding and non-text chrome as well.
+      ...(Platform.OS === 'web' && !selectable
+        ? {
+          userSelect: 'none' as any,
+          WebkitUserSelect: 'none' as any,
+          WebkitTouchCallout: 'none' as any,
+        }
+        : {}),
     };
 
     if (colorConfig) {
@@ -417,7 +547,7 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
         case 'outline':
           return {
             ...baseStyles,
-            backgroundColor: theme.colors.gray[0],
+            backgroundColor: surface.background,
             borderWidth: 1,
             borderColor: colorConfig[5]
           };
@@ -425,7 +555,11 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
         default:
           return {
             ...baseStyles,
-            backgroundColor: theme.colors.gray[0],
+            backgroundColor: surface.background,
+            // Hairline on the three non-accent sides: dark mode reads elevation
+            // through the border, since the shadow barely registers there.
+            borderWidth: 1,
+            borderColor: surface.border,
             borderLeftWidth: 4,
             borderLeftColor: colorConfig[5]
           };
@@ -442,7 +576,7 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
         case 'outline':
           return {
             ...baseStyles,
-            backgroundColor: theme.colors.gray[0],
+            backgroundColor: surface.background,
             borderWidth: 1,
             borderColor: customColor
           };
@@ -450,7 +584,9 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
         default:
           return {
             ...baseStyles,
-            backgroundColor: theme.colors.gray[0],
+            backgroundColor: surface.background,
+            borderWidth: 1,
+            borderColor: surface.border,
             borderLeftWidth: 4,
             borderLeftColor: customColor
           };
@@ -488,6 +624,12 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
   const toastStyles = getToastStyles();
   const textColor = getTextColor();
   const iconColor = getIconColor();
+  // The close affordance follows the toast's text, not its status color: on a
+  // filled toast that means the readable foreground, otherwise muted chrome.
+  const closeIconColor = variant === 'filled' ? readableTextOn(filledFill) : theme.text.muted;
+  // The loading ring sits inside the icon slot, slightly inset so it reads as
+  // the same optical weight as a severity glyph at every size.
+  const spinnerSize = Math.max(10, Math.round(metrics.iconSize * 0.8));
 
   if (shouldUnmountOnHide && !shouldRender) {
     return null;
@@ -520,21 +662,21 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
       {/* Icon or Loading */}
       {(icon || loading) && (
         <View style={{
-          marginRight: getSpacing('sm'),
+          marginRight: metrics.gap,
           // Inherit the row's alignItems:'center' on every platform. (Android
           // previously forced alignSelf:'flex-start', which pinned the icon to
           // the top instead of centering it like web.)
           marginTop: 2,
         }}>
           {loading ? (
-            <View style={{ width: 20, height: 20, justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ width: metrics.iconSize, height: metrics.iconSize, justifyContent: 'center', alignItems: 'center' }}>
               {/* Improved loading indicator */}
               <Animated.View
                 style={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: 8,
-                  borderWidth: 2,
+                  width: spinnerSize,
+                  height: spinnerSize,
+                  borderRadius: spinnerSize / 2,
+                  borderWidth: Math.max(1, Math.round(spinnerSize / 8)),
                   borderColor: iconColor,
                   borderTopColor: 'transparent',
                 }}
@@ -544,7 +686,7 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
             React.isValidElement(icon)
               ? React.cloneElement(icon as React.ReactElement<any>, {
                 color: iconColor,
-                size: 'md'
+                size: metrics.iconSize
               })
               : icon
           ) : null}
@@ -564,14 +706,15 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
           <Text
             {...mergeSlotProps(
               {
-                size: 16,
+                size: metrics.titleSize,
                 weight: '600',
                 numberOfLines: 2,
+                selectable,
                 style: {
                   color: textColor,
-                  marginBottom: children ? getSpacing('xs') : 0,
+                  marginBottom: children ? metrics.titleGap : 0,
                   ...Platform.select({
-                    android: { lineHeight: 20 },
+                    android: { lineHeight: Math.round(metrics.titleSize * 1.25) },
                   }),
                 },
               },
@@ -586,9 +729,10 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
           <Text
             {...mergeSlotProps(
               {
-                size: 14,
-                lineHeight: 20,
+                size: metrics.bodySize,
+                lineHeight: metrics.bodyLineHeight,
                 numberOfLines: 3,
+                selectable,
                 style: {
                   color: textColor,
                   ...Platform.select({
@@ -606,29 +750,32 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
 
       {/* Action buttons */}
       {actions && actions.length > 0 && (
-        <View style={{ 
-          flexDirection: 'row', 
-          marginLeft: getSpacing('sm'),
-          gap: getSpacing('xs')
+        <View style={{
+          flexDirection: 'row',
+          marginLeft: metrics.gap,
+          gap: Math.max(2, Math.round(metrics.gap / 2))
         }}>
           {actions.map((action, index) => (
             <TouchableOpacity
               key={index}
               onPress={action.onPress}
               style={{
-                paddingHorizontal: getSpacing('sm'),
-                paddingVertical: getSpacing('xs'),
+                paddingHorizontal: metrics.actionPaddingHorizontal,
+                paddingVertical: metrics.actionPaddingVertical,
                 borderRadius: 4,
                 backgroundColor: action.color || (variant === 'filled' ? 'rgba(255,255,255,0.2)' : iconColor + '20'),
               }}
               accessibilityRole="button"
               accessibilityLabel={action.label}
             >
-              <Text style={{
-                fontSize: 12,
-                fontWeight: '600',
-                color: action.color || textColor,
-              }}>
+              <Text
+                selectable={selectable}
+                style={{
+                  fontSize: metrics.actionFontSize,
+                  fontWeight: '600',
+                  color: action.color || textColor,
+                }}
+              >
                 {action.label}
               </Text>
             </TouchableOpacity>
@@ -636,21 +783,24 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
         </View>
       )}
 
-      {/* Close Button */}
+      {/* Close Button — dismissal is chrome, not part of the message, so it
+          stays neutral instead of picking up the severity color the leading
+          icon uses. */}
       {withCloseButton && (
-        <TouchableOpacity
+        <IconButton
+          icon="close"
           onPress={onClose}
-          style={{
-            marginLeft: getSpacing('sm'),
-            padding: getSpacing('xs'),
-            marginTop: -getSpacing('xs'),
-            marginRight: -getSpacing('xs')
-          }}
+          variant="ghost"
+          size={metrics.closeButtonSize}
+          iconSize={Math.round(metrics.closeButtonSize / 2)}
+          iconColor={closeIconColor}
           accessibilityLabel={closeButtonLabel || 'Close notification'}
-          accessibilityRole="button"
-        >
-          <Icon name="close" size="sm" color={iconColor} stroke={2.5} />
-        </TouchableOpacity>
+          style={{
+            marginLeft: metrics.gap,
+            marginTop: -Math.round(metrics.gap / 2),
+            marginRight: -Math.round(metrics.gap / 2),
+          }}
+        />
       )}
       </Animated.View>
     </TouchableOpacity>

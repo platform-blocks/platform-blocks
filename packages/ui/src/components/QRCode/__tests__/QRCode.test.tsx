@@ -68,6 +68,22 @@ describe('QRCode component', () => {
     );
   });
 
+  it('resolves size tokens to pixel values', () => {
+    render(<QRCode value="tokens" size="sm" />);
+
+    expect(mockQRCodeSVG).toHaveBeenCalledWith(
+      expect.objectContaining({ size: 128 })
+    );
+  });
+
+  it('falls back to the default pixel size when size is omitted', () => {
+    render(<QRCode value="default-size" />);
+
+    expect(mockQRCodeSVG).toHaveBeenCalledWith(
+      expect.objectContaining({ size: 400 })
+    );
+  });
+
   it('forwards advanced appearance props to QRCodeSVG', () => {
     const logo = { uri: 'https://logo.png', size: 48, backgroundColor: '#FFF' };
     const gradient = { type: 'linear' as const, from: '#000', to: '#FFF', rotation: 45 };
@@ -144,6 +160,31 @@ describe('QRCode component', () => {
         })
       );
     });
+  });
+
+  it('renders label and description as captions', () => {
+    const { getByText } = render(
+      <QRCode value="captioned" label="Scan me" description="Opens the docs" />
+    );
+
+    expect(getByText('Scan me')).toBeTruthy();
+    expect(getByText('Opens the docs')).toBeTruthy();
+  });
+
+  it('uses a string label as the accessibility label when none is given', () => {
+    render(<QRCode value="a11y" label="Scan for tickets" />);
+
+    expect(mockQRCodeSVG).toHaveBeenCalledWith(
+      expect.objectContaining({ accessibilityLabel: 'Scan for tickets' })
+    );
+  });
+
+  it('keeps an explicit accessibilityLabel ahead of the label', () => {
+    render(<QRCode value="a11y" label="Scan for tickets" accessibilityLabel="Event QR" />);
+
+    expect(mockQRCodeSVG).toHaveBeenCalledWith(
+      expect.objectContaining({ accessibilityLabel: 'Event QR' })
+    );
   });
 
   it('truncates long values in default copy toast message', async () => {

@@ -7,6 +7,7 @@ import { MonthPicker } from '../MonthPicker';
 import { DESIGN_TOKENS } from '../../core';
 import type { MonthPickerInputProps } from './types';
 import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
+import { useControllableState } from '../../hooks/useControllableState';
 
 const DEFAULT_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
   month: 'long',
@@ -36,9 +37,13 @@ export const MonthPickerInput = forwardRef<View, MonthPickerInputProps>(function
   ref
 ) {
   const [opened, setOpened] = useState(false);
-  const isControlled = value !== undefined;
-  const [internalValue, setInternalValue] = useState<Date | null>(defaultValue ?? null);
-  const currentValue = (isControlled ? value : internalValue) ?? null;
+  const [selectedValue, setValue] = useControllableState<Date | null>({
+    value,
+    defaultValue: defaultValue ?? null,
+    finalValue: null,
+    onChange,
+  });
+  const currentValue = selectedValue ?? null;
   const keyboardManager = useKeyboardManagerOptional();
 
   const {
@@ -61,16 +66,6 @@ export const MonthPickerInput = forwardRef<View, MonthPickerInputProps>(function
     const intl = new Intl.DateTimeFormat(locale, options);
     return (date: Date) => intl.format(date);
   }, [formatValue, formatOptions, locale]);
-
-  const setValue = useCallback(
-    (next: Date | null) => {
-      if (!isControlled) {
-        setInternalValue(next);
-      }
-      onChange?.(next);
-    },
-    [isControlled, onChange]
-  );
 
   const handleOpen = useCallback(() => {
     if (disabled) return;

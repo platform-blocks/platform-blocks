@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Column, Text, ToggleButton, ToggleGroup } from '@platform-blocks/ui';
+import { Block, Text, ToggleButton, ToggleGroup } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [alignment, setAlignment] = useState('center');
@@ -12,7 +12,7 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="xs">
+    <Block>
       <ToggleGroup value={alignment} exclusive onChange={handleChange}>
         <ToggleButton value="left">Left</ToggleButton>
         <ToggleButton value="center">Center</ToggleButton>
@@ -21,6 +21,6 @@ export default function Demo() {
       <Text size="xs" colorVariant="secondary">
         Selected alignment: {alignment}
       </Text>
-    </Column>
+    </Block>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Column, PinInput, Text } from '@platform-blocks/ui';
+import { Block, PinInput, Text } from '@platform-blocks/ui';
 
 type SizeToken = 'xs' | 'sm' | 'md' | 'lg';
 
@@ -53,11 +53,11 @@ export default function Demo() {
   ];
 
   return (
-    <Column gap="lg">
+    <Block>
       <Text weight="semibold">PIN input sizes</Text>
 
       {sizeExamples.map((example) => (
-        <Column gap="sm" key={example.id}>
+        <Block key={example.id}>
           <Text size="sm" weight="semibold">
             {example.label}
           </Text>
@@ -70,9 +70,9 @@ export default function Demo() {
             size={example.size}
             label={`${example.label} PIN`}
           />
-        </Column>
+        </Block>
       ))}
-    </Column>
+    </Block>
   );
 }
 

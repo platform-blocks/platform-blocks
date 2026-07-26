@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, Text as RNText, ViewStyle, TextStyle, Platform, Linking } from 'react-native';
+import { Pressable, Text as RNText, View, ViewStyle, TextStyle, Platform, Linking } from 'react-native';
 
 import { useTheme } from '../../core/theme';
 import { SizeValue, getFontSize } from '../../core/theme/sizes';
@@ -79,7 +79,7 @@ const getLinkStyles = (
   return baseStyles;
 };
 
-export const Link: React.FC<LinkProps> = (props) => {
+export const Link = React.forwardRef<View, LinkProps>((props, ref) => {
   const {
     children,
     href,
@@ -194,6 +194,7 @@ export const Link: React.FC<LinkProps> = (props) => {
   // On React Native, use Pressable
   return (
     <Pressable
+      ref={ref}
       onPress={handlePress}
       disabled={disabled}
       style={[
@@ -218,4 +219,6 @@ export const Link: React.FC<LinkProps> = (props) => {
       )}
     </Pressable>
   );
-};
+});
+
+Link.displayName = 'Link';

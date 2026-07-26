@@ -1,4 +1,4 @@
-import { Button, Column, Row, Text, useToast } from '@platform-blocks/ui';
+import { Block, Button, Row, Text, useToast } from '@platform-blocks/ui';
 
 export default function Demo() {
   const toast = useToast();
@@ -32,7 +32,7 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="sm">
+    <Block>
       <Text size="xs" colorVariant="secondary">
         Use the severity helpers to render consistent styling for each toast type.
       </Text>
@@ -50,7 +50,7 @@ export default function Demo() {
           Info
         </Button>
       </Row>
-    </Column>
+    </Block>
   );
 }
 

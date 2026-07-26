@@ -1,6 +1,6 @@
 {
   "name": "@platform-blocks/ui",
-  "version": "0.11.0",
+  "version": "1.0.0",
   "description": "A comprehensive React Native UI component library — 80+ accessible, themeable, cross-platform components for iOS, Android, and Web",
   "type": "module",
   "main": "lib/cjs/index.js",
@@ -16,7 +16,742 @@
       "require": "./lib/cjs/index.js",
       "default": "./lib/esm/index.js"
     },
-    "./package.json": "./package.json"
+    "./snack": {
+      "types": "./lib/snack.d.ts",
+      "react-native": "./lib/esm/snack.js",
+      "import": "./lib/esm/snack.js",
+      "require": "./lib/cjs/snack.js",
+      "default": "./lib/esm/snack.js"
+    },
+    "./package.json": "./package.json",
+    "./Accordion": {
+      "types": "./lib/components/Accordion/index.d.ts",
+      "react-native": "./lib/esm/components/Accordion/index.js",
+      "import": "./lib/esm/components/Accordion/index.js",
+      "require": "./lib/cjs/components/Accordion/index.js",
+      "default": "./lib/esm/components/Accordion/index.js"
+    },
+    "./Alert": {
+      "types": "./lib/components/Alert/index.d.ts",
+      "react-native": "./lib/esm/components/Alert/index.js",
+      "import": "./lib/esm/components/Alert/index.js",
+      "require": "./lib/cjs/components/Alert/index.js",
+      "default": "./lib/esm/components/Alert/index.js"
+    },
+    "./AppShell": {
+      "types": "./lib/components/AppShell/index.d.ts",
+      "react-native": "./lib/esm/components/AppShell/index.js",
+      "import": "./lib/esm/components/AppShell/index.js",
+      "require": "./lib/cjs/components/AppShell/index.js",
+      "default": "./lib/esm/components/AppShell/index.js"
+    },
+    "./AudioPlayer": {
+      "types": "./lib/components/AudioPlayer/index.d.ts",
+      "react-native": "./lib/esm/components/AudioPlayer/index.js",
+      "import": "./lib/esm/components/AudioPlayer/index.js",
+      "require": "./lib/cjs/components/AudioPlayer/index.js",
+      "default": "./lib/esm/components/AudioPlayer/index.js"
+    },
+    "./AutoComplete": {
+      "types": "./lib/components/AutoComplete/index.d.ts",
+      "react-native": "./lib/esm/components/AutoComplete/index.js",
+      "import": "./lib/esm/components/AutoComplete/index.js",
+      "require": "./lib/cjs/components/AutoComplete/index.js",
+      "default": "./lib/esm/components/AutoComplete/index.js"
+    },
+    "./Avatar": {
+      "types": "./lib/components/Avatar/index.d.ts",
+      "react-native": "./lib/esm/components/Avatar/index.js",
+      "import": "./lib/esm/components/Avatar/index.js",
+      "require": "./lib/cjs/components/Avatar/index.js",
+      "default": "./lib/esm/components/Avatar/index.js"
+    },
+    "./Badge": {
+      "types": "./lib/components/Badge/index.d.ts",
+      "react-native": "./lib/esm/components/Badge/index.js",
+      "import": "./lib/esm/components/Badge/index.js",
+      "require": "./lib/cjs/components/Badge/index.js",
+      "default": "./lib/esm/components/Badge/index.js"
+    },
+    "./Block": {
+      "types": "./lib/components/Block/index.d.ts",
+      "react-native": "./lib/esm/components/Block/index.js",
+      "import": "./lib/esm/components/Block/index.js",
+      "require": "./lib/cjs/components/Block/index.js",
+      "default": "./lib/esm/components/Block/index.js"
+    },
+    "./Blockquote": {
+      "types": "./lib/components/Blockquote/index.d.ts",
+      "react-native": "./lib/esm/components/Blockquote/index.js",
+      "import": "./lib/esm/components/Blockquote/index.js",
+      "require": "./lib/cjs/components/Blockquote/index.js",
+      "default": "./lib/esm/components/Blockquote/index.js"
+    },
+    "./BrandButton": {
+      "types": "./lib/components/BrandButton/index.d.ts",
+      "react-native": "./lib/esm/components/BrandButton/index.js",
+      "import": "./lib/esm/components/BrandButton/index.js",
+      "require": "./lib/cjs/components/BrandButton/index.js",
+      "default": "./lib/esm/components/BrandButton/index.js"
+    },
+    "./BrandIcon": {
+      "types": "./lib/components/BrandIcon/index.d.ts",
+      "react-native": "./lib/esm/components/BrandIcon/index.js",
+      "import": "./lib/esm/components/BrandIcon/index.js",
+      "require": "./lib/cjs/components/BrandIcon/index.js",
+      "default": "./lib/esm/components/BrandIcon/index.js"
+    },
+    "./Breadcrumbs": {
+      "types": "./lib/components/Breadcrumbs/index.d.ts",
+      "react-native": "./lib/esm/components/Breadcrumbs/index.js",
+      "import": "./lib/esm/components/Breadcrumbs/index.js",
+      "require": "./lib/cjs/components/Breadcrumbs/index.js",
+      "default": "./lib/esm/components/Breadcrumbs/index.js"
+    },
+    "./Button": {
+      "types": "./lib/components/Button/index.d.ts",
+      "react-native": "./lib/esm/components/Button/index.js",
+      "import": "./lib/esm/components/Button/index.js",
+      "require": "./lib/cjs/components/Button/index.js",
+      "default": "./lib/esm/components/Button/index.js"
+    },
+    "./Calendar": {
+      "types": "./lib/components/Calendar/index.d.ts",
+      "react-native": "./lib/esm/components/Calendar/index.js",
+      "import": "./lib/esm/components/Calendar/index.js",
+      "require": "./lib/cjs/components/Calendar/index.js",
+      "default": "./lib/esm/components/Calendar/index.js"
+    },
+    "./Card": {
+      "types": "./lib/components/Card/index.d.ts",
+      "react-native": "./lib/esm/components/Card/index.js",
+      "import": "./lib/esm/components/Card/index.js",
+      "require": "./lib/cjs/components/Card/index.js",
+      "default": "./lib/esm/components/Card/index.js"
+    },
+    "./Carousel": {
+      "types": "./lib/components/Carousel/index.d.ts",
+      "react-native": "./lib/esm/components/Carousel/index.js",
+      "import": "./lib/esm/components/Carousel/index.js",
+      "require": "./lib/cjs/components/Carousel/index.js",
+      "default": "./lib/esm/components/Carousel/index.js"
+    },
+    "./Checkbox": {
+      "types": "./lib/components/Checkbox/index.d.ts",
+      "react-native": "./lib/esm/components/Checkbox/index.js",
+      "import": "./lib/esm/components/Checkbox/index.js",
+      "require": "./lib/cjs/components/Checkbox/index.js",
+      "default": "./lib/esm/components/Checkbox/index.js"
+    },
+    "./Chip": {
+      "types": "./lib/components/Chip/index.d.ts",
+      "react-native": "./lib/esm/components/Chip/index.js",
+      "import": "./lib/esm/components/Chip/index.js",
+      "require": "./lib/cjs/components/Chip/index.js",
+      "default": "./lib/esm/components/Chip/index.js"
+    },
+    "./CodeBlock": {
+      "types": "./lib/components/CodeBlock/index.d.ts",
+      "react-native": "./lib/esm/components/CodeBlock/index.js",
+      "import": "./lib/esm/components/CodeBlock/index.js",
+      "require": "./lib/cjs/components/CodeBlock/index.js",
+      "default": "./lib/esm/components/CodeBlock/index.js"
+    },
+    "./Collapse": {
+      "types": "./lib/components/Collapse/index.d.ts",
+      "react-native": "./lib/esm/components/Collapse/index.js",
+      "import": "./lib/esm/components/Collapse/index.js",
+      "require": "./lib/cjs/components/Collapse/index.js",
+      "default": "./lib/esm/components/Collapse/index.js"
+    },
+    "./ColorInput": {
+      "types": "./lib/components/ColorInput/index.d.ts",
+      "react-native": "./lib/esm/components/ColorInput/index.js",
+      "import": "./lib/esm/components/ColorInput/index.js",
+      "require": "./lib/cjs/components/ColorInput/index.js",
+      "default": "./lib/esm/components/ColorInput/index.js"
+    },
+    "./ColorPicker": {
+      "types": "./lib/components/ColorPicker/index.d.ts",
+      "react-native": "./lib/esm/components/ColorPicker/index.js",
+      "import": "./lib/esm/components/ColorPicker/index.js",
+      "require": "./lib/cjs/components/ColorPicker/index.js",
+      "default": "./lib/esm/components/ColorPicker/index.js"
+    },
+    "./ColorSwatch": {
+      "types": "./lib/components/ColorSwatch/index.d.ts",
+      "react-native": "./lib/esm/components/ColorSwatch/index.js",
+      "import": "./lib/esm/components/ColorSwatch/index.js",
+      "require": "./lib/cjs/components/ColorSwatch/index.js",
+      "default": "./lib/esm/components/ColorSwatch/index.js"
+    },
+    "./ContextMenu": {
+      "types": "./lib/components/ContextMenu/index.d.ts",
+      "react-native": "./lib/esm/components/ContextMenu/index.js",
+      "import": "./lib/esm/components/ContextMenu/index.js",
+      "require": "./lib/cjs/components/ContextMenu/index.js",
+      "default": "./lib/esm/components/ContextMenu/index.js"
+    },
+    "./ControlField": {
+      "types": "./lib/components/ControlField/index.d.ts",
+      "react-native": "./lib/esm/components/ControlField/index.js",
+      "import": "./lib/esm/components/ControlField/index.js",
+      "require": "./lib/cjs/components/ControlField/index.js",
+      "default": "./lib/esm/components/ControlField/index.js"
+    },
+    "./CopyButton": {
+      "types": "./lib/components/CopyButton/index.d.ts",
+      "react-native": "./lib/esm/components/CopyButton/index.js",
+      "import": "./lib/esm/components/CopyButton/index.js",
+      "require": "./lib/cjs/components/CopyButton/index.js",
+      "default": "./lib/esm/components/CopyButton/index.js"
+    },
+    "./DataList": {
+      "types": "./lib/components/DataList/index.d.ts",
+      "react-native": "./lib/esm/components/DataList/index.js",
+      "import": "./lib/esm/components/DataList/index.js",
+      "require": "./lib/cjs/components/DataList/index.js",
+      "default": "./lib/esm/components/DataList/index.js"
+    },
+    "./DataTable": {
+      "types": "./lib/components/DataTable/index.d.ts",
+      "react-native": "./lib/esm/components/DataTable/index.js",
+      "import": "./lib/esm/components/DataTable/index.js",
+      "require": "./lib/cjs/components/DataTable/index.js",
+      "default": "./lib/esm/components/DataTable/index.js"
+    },
+    "./DatePicker": {
+      "types": "./lib/components/DatePicker/index.d.ts",
+      "react-native": "./lib/esm/components/DatePicker/index.js",
+      "import": "./lib/esm/components/DatePicker/index.js",
+      "require": "./lib/cjs/components/DatePicker/index.js",
+      "default": "./lib/esm/components/DatePicker/index.js"
+    },
+    "./DatePickerInput": {
+      "types": "./lib/components/DatePickerInput/index.d.ts",
+      "react-native": "./lib/esm/components/DatePickerInput/index.js",
+      "import": "./lib/esm/components/DatePickerInput/index.js",
+      "require": "./lib/cjs/components/DatePickerInput/index.js",
+      "default": "./lib/esm/components/DatePickerInput/index.js"
+    },
+    "./Dialog": {
+      "types": "./lib/components/Dialog/index.d.ts",
+      "react-native": "./lib/esm/components/Dialog/index.js",
+      "import": "./lib/esm/components/Dialog/index.js",
+      "require": "./lib/cjs/components/Dialog/index.js",
+      "default": "./lib/esm/components/Dialog/index.js"
+    },
+    "./Divider": {
+      "types": "./lib/components/Divider/index.d.ts",
+      "react-native": "./lib/esm/components/Divider/index.js",
+      "import": "./lib/esm/components/Divider/index.js",
+      "require": "./lib/cjs/components/Divider/index.js",
+      "default": "./lib/esm/components/Divider/index.js"
+    },
+    "./EmojiPicker": {
+      "types": "./lib/components/EmojiPicker/index.d.ts",
+      "react-native": "./lib/esm/components/EmojiPicker/index.js",
+      "import": "./lib/esm/components/EmojiPicker/index.js",
+      "require": "./lib/cjs/components/EmojiPicker/index.js",
+      "default": "./lib/esm/components/EmojiPicker/index.js"
+    },
+    "./FileInput": {
+      "types": "./lib/components/FileInput/index.d.ts",
+      "react-native": "./lib/esm/components/FileInput/index.js",
+      "import": "./lib/esm/components/FileInput/index.js",
+      "require": "./lib/cjs/components/FileInput/index.js",
+      "default": "./lib/esm/components/FileInput/index.js"
+    },
+    "./Flex": {
+      "types": "./lib/components/Flex/index.d.ts",
+      "react-native": "./lib/esm/components/Flex/index.js",
+      "import": "./lib/esm/components/Flex/index.js",
+      "require": "./lib/cjs/components/Flex/index.js",
+      "default": "./lib/esm/components/Flex/index.js"
+    },
+    "./FloatingActions": {
+      "types": "./lib/components/FloatingActions/index.d.ts",
+      "react-native": "./lib/esm/components/FloatingActions/index.js",
+      "import": "./lib/esm/components/FloatingActions/index.js",
+      "require": "./lib/cjs/components/FloatingActions/index.js",
+      "default": "./lib/esm/components/FloatingActions/index.js"
+    },
+    "./Form": {
+      "types": "./lib/components/Form/index.d.ts",
+      "react-native": "./lib/esm/components/Form/index.js",
+      "import": "./lib/esm/components/Form/index.js",
+      "require": "./lib/cjs/components/Form/index.js",
+      "default": "./lib/esm/components/Form/index.js"
+    },
+    "./FormLayout": {
+      "types": "./lib/components/FormLayout/index.d.ts",
+      "react-native": "./lib/esm/components/FormLayout/index.js",
+      "import": "./lib/esm/components/FormLayout/index.js",
+      "require": "./lib/cjs/components/FormLayout/index.js",
+      "default": "./lib/esm/components/FormLayout/index.js"
+    },
+    "./Gallery": {
+      "types": "./lib/components/Gallery/index.d.ts",
+      "react-native": "./lib/esm/components/Gallery/index.js",
+      "import": "./lib/esm/components/Gallery/index.js",
+      "require": "./lib/cjs/components/Gallery/index.js",
+      "default": "./lib/esm/components/Gallery/index.js"
+    },
+    "./Gauge": {
+      "types": "./lib/components/Gauge/index.d.ts",
+      "react-native": "./lib/esm/components/Gauge/index.js",
+      "import": "./lib/esm/components/Gauge/index.js",
+      "require": "./lib/cjs/components/Gauge/index.js",
+      "default": "./lib/esm/components/Gauge/index.js"
+    },
+    "./GradientText": {
+      "types": "./lib/components/GradientText/index.d.ts",
+      "react-native": "./lib/esm/components/GradientText/index.js",
+      "import": "./lib/esm/components/GradientText/index.js",
+      "require": "./lib/cjs/components/GradientText/index.js",
+      "default": "./lib/esm/components/GradientText/index.js"
+    },
+    "./Grid": {
+      "types": "./lib/components/Grid/index.d.ts",
+      "react-native": "./lib/esm/components/Grid/index.js",
+      "import": "./lib/esm/components/Grid/index.js",
+      "require": "./lib/cjs/components/Grid/index.js",
+      "default": "./lib/esm/components/Grid/index.js"
+    },
+    "./Highlight": {
+      "types": "./lib/components/Highlight/index.d.ts",
+      "react-native": "./lib/esm/components/Highlight/index.js",
+      "import": "./lib/esm/components/Highlight/index.js",
+      "require": "./lib/cjs/components/Highlight/index.js",
+      "default": "./lib/esm/components/Highlight/index.js"
+    },
+    "./Icon": {
+      "types": "./lib/components/Icon/index.d.ts",
+      "react-native": "./lib/esm/components/Icon/index.js",
+      "import": "./lib/esm/components/Icon/index.js",
+      "require": "./lib/cjs/components/Icon/index.js",
+      "default": "./lib/esm/components/Icon/index.js"
+    },
+    "./IconButton": {
+      "types": "./lib/components/IconButton/index.d.ts",
+      "react-native": "./lib/esm/components/IconButton/index.js",
+      "import": "./lib/esm/components/IconButton/index.js",
+      "require": "./lib/cjs/components/IconButton/index.js",
+      "default": "./lib/esm/components/IconButton/index.js"
+    },
+    "./Image": {
+      "types": "./lib/components/Image/index.d.ts",
+      "react-native": "./lib/esm/components/Image/index.js",
+      "import": "./lib/esm/components/Image/index.js",
+      "require": "./lib/cjs/components/Image/index.js",
+      "default": "./lib/esm/components/Image/index.js"
+    },
+    "./Indicator": {
+      "types": "./lib/components/Indicator/index.d.ts",
+      "react-native": "./lib/esm/components/Indicator/index.js",
+      "import": "./lib/esm/components/Indicator/index.js",
+      "require": "./lib/cjs/components/Indicator/index.js",
+      "default": "./lib/esm/components/Indicator/index.js"
+    },
+    "./Input": {
+      "types": "./lib/components/Input/index.d.ts",
+      "react-native": "./lib/esm/components/Input/index.js",
+      "import": "./lib/esm/components/Input/index.js",
+      "require": "./lib/cjs/components/Input/index.js",
+      "default": "./lib/esm/components/Input/index.js"
+    },
+    "./KeyCap": {
+      "types": "./lib/components/KeyCap/index.d.ts",
+      "react-native": "./lib/esm/components/KeyCap/index.js",
+      "import": "./lib/esm/components/KeyCap/index.js",
+      "require": "./lib/cjs/components/KeyCap/index.js",
+      "default": "./lib/esm/components/KeyCap/index.js"
+    },
+    "./KeyboardAwareLayout": {
+      "types": "./lib/components/KeyboardAwareLayout/index.d.ts",
+      "react-native": "./lib/esm/components/KeyboardAwareLayout/index.js",
+      "import": "./lib/esm/components/KeyboardAwareLayout/index.js",
+      "require": "./lib/cjs/components/KeyboardAwareLayout/index.js",
+      "default": "./lib/esm/components/KeyboardAwareLayout/index.js"
+    },
+    "./Knob": {
+      "types": "./lib/components/Knob/index.d.ts",
+      "react-native": "./lib/esm/components/Knob/index.js",
+      "import": "./lib/esm/components/Knob/index.js",
+      "require": "./lib/cjs/components/Knob/index.js",
+      "default": "./lib/esm/components/Knob/index.js"
+    },
+    "./Layout": {
+      "types": "./lib/components/Layout/index.d.ts",
+      "react-native": "./lib/esm/components/Layout/index.js",
+      "import": "./lib/esm/components/Layout/index.js",
+      "require": "./lib/cjs/components/Layout/index.js",
+      "default": "./lib/esm/components/Layout/index.js"
+    },
+    "./Link": {
+      "types": "./lib/components/Link/index.d.ts",
+      "react-native": "./lib/esm/components/Link/index.js",
+      "import": "./lib/esm/components/Link/index.js",
+      "require": "./lib/cjs/components/Link/index.js",
+      "default": "./lib/esm/components/Link/index.js"
+    },
+    "./ListGroup": {
+      "types": "./lib/components/ListGroup/index.d.ts",
+      "react-native": "./lib/esm/components/ListGroup/index.js",
+      "import": "./lib/esm/components/ListGroup/index.js",
+      "require": "./lib/cjs/components/ListGroup/index.js",
+      "default": "./lib/esm/components/ListGroup/index.js"
+    },
+    "./Loader": {
+      "types": "./lib/components/Loader/index.d.ts",
+      "react-native": "./lib/esm/components/Loader/index.js",
+      "import": "./lib/esm/components/Loader/index.js",
+      "require": "./lib/cjs/components/Loader/index.js",
+      "default": "./lib/esm/components/Loader/index.js"
+    },
+    "./LoadingOverlay": {
+      "types": "./lib/components/LoadingOverlay/index.d.ts",
+      "react-native": "./lib/esm/components/LoadingOverlay/index.js",
+      "import": "./lib/esm/components/LoadingOverlay/index.js",
+      "require": "./lib/cjs/components/LoadingOverlay/index.js",
+      "default": "./lib/esm/components/LoadingOverlay/index.js"
+    },
+    "./Markdown": {
+      "types": "./lib/components/Markdown/index.d.ts",
+      "react-native": "./lib/esm/components/Markdown/index.js",
+      "import": "./lib/esm/components/Markdown/index.js",
+      "require": "./lib/cjs/components/Markdown/index.js",
+      "default": "./lib/esm/components/Markdown/index.js"
+    },
+    "./Masonry": {
+      "types": "./lib/components/Masonry/index.d.ts",
+      "react-native": "./lib/esm/components/Masonry/index.js",
+      "import": "./lib/esm/components/Masonry/index.js",
+      "require": "./lib/cjs/components/Masonry/index.js",
+      "default": "./lib/esm/components/Masonry/index.js"
+    },
+    "./Menu": {
+      "types": "./lib/components/Menu/index.d.ts",
+      "react-native": "./lib/esm/components/Menu/index.js",
+      "import": "./lib/esm/components/Menu/index.js",
+      "require": "./lib/cjs/components/Menu/index.js",
+      "default": "./lib/esm/components/Menu/index.js"
+    },
+    "./MenuItemButton": {
+      "types": "./lib/components/MenuItemButton/index.d.ts",
+      "react-native": "./lib/esm/components/MenuItemButton/index.js",
+      "import": "./lib/esm/components/MenuItemButton/index.js",
+      "require": "./lib/cjs/components/MenuItemButton/index.js",
+      "default": "./lib/esm/components/MenuItemButton/index.js"
+    },
+    "./MiniCalendar": {
+      "types": "./lib/components/MiniCalendar/index.d.ts",
+      "react-native": "./lib/esm/components/MiniCalendar/index.js",
+      "import": "./lib/esm/components/MiniCalendar/index.js",
+      "require": "./lib/cjs/components/MiniCalendar/index.js",
+      "default": "./lib/esm/components/MiniCalendar/index.js"
+    },
+    "./MonthPicker": {
+      "types": "./lib/components/MonthPicker/index.d.ts",
+      "react-native": "./lib/esm/components/MonthPicker/index.js",
+      "import": "./lib/esm/components/MonthPicker/index.js",
+      "require": "./lib/cjs/components/MonthPicker/index.js",
+      "default": "./lib/esm/components/MonthPicker/index.js"
+    },
+    "./MonthPickerInput": {
+      "types": "./lib/components/MonthPickerInput/index.d.ts",
+      "react-native": "./lib/esm/components/MonthPickerInput/index.js",
+      "import": "./lib/esm/components/MonthPickerInput/index.js",
+      "require": "./lib/cjs/components/MonthPickerInput/index.js",
+      "default": "./lib/esm/components/MonthPickerInput/index.js"
+    },
+    "./Navigation": {
+      "types": "./lib/components/Navigation/index.d.ts",
+      "react-native": "./lib/esm/components/Navigation/index.js",
+      "import": "./lib/esm/components/Navigation/index.js",
+      "require": "./lib/cjs/components/Navigation/index.js",
+      "default": "./lib/esm/components/Navigation/index.js"
+    },
+    "./NumberInput": {
+      "types": "./lib/components/NumberInput/index.d.ts",
+      "react-native": "./lib/esm/components/NumberInput/index.js",
+      "import": "./lib/esm/components/NumberInput/index.js",
+      "require": "./lib/cjs/components/NumberInput/index.js",
+      "default": "./lib/esm/components/NumberInput/index.js"
+    },
+    "./Overlay": {
+      "types": "./lib/components/Overlay/index.d.ts",
+      "react-native": "./lib/esm/components/Overlay/index.js",
+      "import": "./lib/esm/components/Overlay/index.js",
+      "require": "./lib/cjs/components/Overlay/index.js",
+      "default": "./lib/esm/components/Overlay/index.js"
+    },
+    "./Pagination": {
+      "types": "./lib/components/Pagination/index.d.ts",
+      "react-native": "./lib/esm/components/Pagination/index.js",
+      "import": "./lib/esm/components/Pagination/index.js",
+      "require": "./lib/cjs/components/Pagination/index.js",
+      "default": "./lib/esm/components/Pagination/index.js"
+    },
+    "./PhoneInput": {
+      "types": "./lib/components/PhoneInput/index.d.ts",
+      "react-native": "./lib/esm/components/PhoneInput/index.js",
+      "import": "./lib/esm/components/PhoneInput/index.js",
+      "require": "./lib/cjs/components/PhoneInput/index.js",
+      "default": "./lib/esm/components/PhoneInput/index.js"
+    },
+    "./PinInput": {
+      "types": "./lib/components/PinInput/index.d.ts",
+      "react-native": "./lib/esm/components/PinInput/index.js",
+      "import": "./lib/esm/components/PinInput/index.js",
+      "require": "./lib/cjs/components/PinInput/index.js",
+      "default": "./lib/esm/components/PinInput/index.js"
+    },
+    "./Popover": {
+      "types": "./lib/components/Popover/index.d.ts",
+      "react-native": "./lib/esm/components/Popover/index.js",
+      "import": "./lib/esm/components/Popover/index.js",
+      "require": "./lib/cjs/components/Popover/index.js",
+      "default": "./lib/esm/components/Popover/index.js"
+    },
+    "./Progress": {
+      "types": "./lib/components/Progress/index.d.ts",
+      "react-native": "./lib/esm/components/Progress/index.js",
+      "import": "./lib/esm/components/Progress/index.js",
+      "require": "./lib/cjs/components/Progress/index.js",
+      "default": "./lib/esm/components/Progress/index.js"
+    },
+    "./QRCode": {
+      "types": "./lib/components/QRCode/index.d.ts",
+      "react-native": "./lib/esm/components/QRCode/index.js",
+      "import": "./lib/esm/components/QRCode/index.js",
+      "require": "./lib/cjs/components/QRCode/index.js",
+      "default": "./lib/esm/components/QRCode/index.js"
+    },
+    "./Radio": {
+      "types": "./lib/components/Radio/index.d.ts",
+      "react-native": "./lib/esm/components/Radio/index.js",
+      "import": "./lib/esm/components/Radio/index.js",
+      "require": "./lib/cjs/components/Radio/index.js",
+      "default": "./lib/esm/components/Radio/index.js"
+    },
+    "./Rating": {
+      "types": "./lib/components/Rating/index.d.ts",
+      "react-native": "./lib/esm/components/Rating/index.js",
+      "import": "./lib/esm/components/Rating/index.js",
+      "require": "./lib/cjs/components/Rating/index.js",
+      "default": "./lib/esm/components/Rating/index.js"
+    },
+    "./Ring": {
+      "types": "./lib/components/Ring/index.d.ts",
+      "react-native": "./lib/esm/components/Ring/index.js",
+      "import": "./lib/esm/components/Ring/index.js",
+      "require": "./lib/cjs/components/Ring/index.js",
+      "default": "./lib/esm/components/Ring/index.js"
+    },
+    "./Search": {
+      "types": "./lib/components/Search/index.d.ts",
+      "react-native": "./lib/esm/components/Search/index.js",
+      "import": "./lib/esm/components/Search/index.js",
+      "require": "./lib/cjs/components/Search/index.js",
+      "default": "./lib/esm/components/Search/index.js"
+    },
+    "./SegmentedControl": {
+      "types": "./lib/components/SegmentedControl/index.d.ts",
+      "react-native": "./lib/esm/components/SegmentedControl/index.js",
+      "import": "./lib/esm/components/SegmentedControl/index.js",
+      "require": "./lib/cjs/components/SegmentedControl/index.js",
+      "default": "./lib/esm/components/SegmentedControl/index.js"
+    },
+    "./Select": {
+      "types": "./lib/components/Select/index.d.ts",
+      "react-native": "./lib/esm/components/Select/index.js",
+      "import": "./lib/esm/components/Select/index.js",
+      "require": "./lib/cjs/components/Select/index.js",
+      "default": "./lib/esm/components/Select/index.js"
+    },
+    "./ShimmerText": {
+      "types": "./lib/components/ShimmerText/index.d.ts",
+      "react-native": "./lib/esm/components/ShimmerText/index.js",
+      "import": "./lib/esm/components/ShimmerText/index.js",
+      "require": "./lib/cjs/components/ShimmerText/index.js",
+      "default": "./lib/esm/components/ShimmerText/index.js"
+    },
+    "./Skeleton": {
+      "types": "./lib/components/Skeleton/index.d.ts",
+      "react-native": "./lib/esm/components/Skeleton/index.js",
+      "import": "./lib/esm/components/Skeleton/index.js",
+      "require": "./lib/cjs/components/Skeleton/index.js",
+      "default": "./lib/esm/components/Skeleton/index.js"
+    },
+    "./Slider": {
+      "types": "./lib/components/Slider/index.d.ts",
+      "react-native": "./lib/esm/components/Slider/index.js",
+      "import": "./lib/esm/components/Slider/index.js",
+      "require": "./lib/cjs/components/Slider/index.js",
+      "default": "./lib/esm/components/Slider/index.js"
+    },
+    "./Space": {
+      "types": "./lib/components/Space/index.d.ts",
+      "react-native": "./lib/esm/components/Space/index.js",
+      "import": "./lib/esm/components/Space/index.js",
+      "require": "./lib/cjs/components/Space/index.js",
+      "default": "./lib/esm/components/Space/index.js"
+    },
+    "./Spoiler": {
+      "types": "./lib/components/Spoiler/index.d.ts",
+      "react-native": "./lib/esm/components/Spoiler/index.js",
+      "import": "./lib/esm/components/Spoiler/index.js",
+      "require": "./lib/cjs/components/Spoiler/index.js",
+      "default": "./lib/esm/components/Spoiler/index.js"
+    },
+    "./Spotlight": {
+      "types": "./lib/components/Spotlight/index.d.ts",
+      "react-native": "./lib/esm/components/Spotlight/index.js",
+      "import": "./lib/esm/components/Spotlight/index.js",
+      "require": "./lib/cjs/components/Spotlight/index.js",
+      "default": "./lib/esm/components/Spotlight/index.js"
+    },
+    "./Stepper": {
+      "types": "./lib/components/Stepper/index.d.ts",
+      "react-native": "./lib/esm/components/Stepper/index.js",
+      "import": "./lib/esm/components/Stepper/index.js",
+      "require": "./lib/cjs/components/Stepper/index.js",
+      "default": "./lib/esm/components/Stepper/index.js"
+    },
+    "./Surface": {
+      "types": "./lib/components/Surface/index.d.ts",
+      "react-native": "./lib/esm/components/Surface/index.js",
+      "import": "./lib/esm/components/Surface/index.js",
+      "require": "./lib/cjs/components/Surface/index.js",
+      "default": "./lib/esm/components/Surface/index.js"
+    },
+    "./Switch": {
+      "types": "./lib/components/Switch/index.d.ts",
+      "react-native": "./lib/esm/components/Switch/index.js",
+      "import": "./lib/esm/components/Switch/index.js",
+      "require": "./lib/cjs/components/Switch/index.js",
+      "default": "./lib/esm/components/Switch/index.js"
+    },
+    "./Table": {
+      "types": "./lib/components/Table/index.d.ts",
+      "react-native": "./lib/esm/components/Table/index.js",
+      "import": "./lib/esm/components/Table/index.js",
+      "require": "./lib/cjs/components/Table/index.js",
+      "default": "./lib/esm/components/Table/index.js"
+    },
+    "./TableOfContents": {
+      "types": "./lib/components/TableOfContents/index.d.ts",
+      "react-native": "./lib/esm/components/TableOfContents/index.js",
+      "import": "./lib/esm/components/TableOfContents/index.js",
+      "require": "./lib/cjs/components/TableOfContents/index.js",
+      "default": "./lib/esm/components/TableOfContents/index.js"
+    },
+    "./Tabs": {
+      "types": "./lib/components/Tabs/index.d.ts",
+      "react-native": "./lib/esm/components/Tabs/index.js",
+      "import": "./lib/esm/components/Tabs/index.js",
+      "require": "./lib/cjs/components/Tabs/index.js",
+      "default": "./lib/esm/components/Tabs/index.js"
+    },
+    "./Text": {
+      "types": "./lib/components/Text/index.d.ts",
+      "react-native": "./lib/esm/components/Text/index.js",
+      "import": "./lib/esm/components/Text/index.js",
+      "require": "./lib/cjs/components/Text/index.js",
+      "default": "./lib/esm/components/Text/index.js"
+    },
+    "./TextArea": {
+      "types": "./lib/components/TextArea/index.d.ts",
+      "react-native": "./lib/esm/components/TextArea/index.js",
+      "import": "./lib/esm/components/TextArea/index.js",
+      "require": "./lib/cjs/components/TextArea/index.js",
+      "default": "./lib/esm/components/TextArea/index.js"
+    },
+    "./TimePicker": {
+      "types": "./lib/components/TimePicker/index.d.ts",
+      "react-native": "./lib/esm/components/TimePicker/index.js",
+      "import": "./lib/esm/components/TimePicker/index.js",
+      "require": "./lib/cjs/components/TimePicker/index.js",
+      "default": "./lib/esm/components/TimePicker/index.js"
+    },
+    "./TimePickerInput": {
+      "types": "./lib/components/TimePickerInput/index.d.ts",
+      "react-native": "./lib/esm/components/TimePickerInput/index.js",
+      "import": "./lib/esm/components/TimePickerInput/index.js",
+      "require": "./lib/cjs/components/TimePickerInput/index.js",
+      "default": "./lib/esm/components/TimePickerInput/index.js"
+    },
+    "./Timeline": {
+      "types": "./lib/components/Timeline/index.d.ts",
+      "react-native": "./lib/esm/components/Timeline/index.js",
+      "import": "./lib/esm/components/Timeline/index.js",
+      "require": "./lib/cjs/components/Timeline/index.js",
+      "default": "./lib/esm/components/Timeline/index.js"
+    },
+    "./Title": {
+      "types": "./lib/components/Title/index.d.ts",
+      "react-native": "./lib/esm/components/Title/index.js",
+      "import": "./lib/esm/components/Title/index.js",
+      "require": "./lib/cjs/components/Title/index.js",
+      "default": "./lib/esm/components/Title/index.js"
+    },
+    "./Toast": {
+      "types": "./lib/components/Toast/index.d.ts",
+      "react-native": "./lib/esm/components/Toast/index.js",
+      "import": "./lib/esm/components/Toast/index.js",
+      "require": "./lib/cjs/components/Toast/index.js",
+      "default": "./lib/esm/components/Toast/index.js"
+    },
+    "./Toggle": {
+      "types": "./lib/components/Toggle/index.d.ts",
+      "react-native": "./lib/esm/components/Toggle/index.js",
+      "import": "./lib/esm/components/Toggle/index.js",
+      "require": "./lib/cjs/components/Toggle/index.js",
+      "default": "./lib/esm/components/Toggle/index.js"
+    },
+    "./Tooltip": {
+      "types": "./lib/components/Tooltip/index.d.ts",
+      "react-native": "./lib/esm/components/Tooltip/index.js",
+      "import": "./lib/esm/components/Tooltip/index.js",
+      "require": "./lib/cjs/components/Tooltip/index.js",
+      "default": "./lib/esm/components/Tooltip/index.js"
+    },
+    "./Tree": {
+      "types": "./lib/components/Tree/index.d.ts",
+      "react-native": "./lib/esm/components/Tree/index.js",
+      "import": "./lib/esm/components/Tree/index.js",
+      "require": "./lib/cjs/components/Tree/index.js",
+      "default": "./lib/esm/components/Tree/index.js"
+    },
+    "./Video": {
+      "types": "./lib/components/Video/index.d.ts",
+      "react-native": "./lib/esm/components/Video/index.js",
+      "import": "./lib/esm/components/Video/index.js",
+      "require": "./lib/cjs/components/Video/index.js",
+      "default": "./lib/esm/components/Video/index.js"
+    },
+    "./Waveform": {
+      "types": "./lib/components/Waveform/index.d.ts",
+      "react-native": "./lib/esm/components/Waveform/index.js",
+      "import": "./lib/esm/components/Waveform/index.js",
+      "require": "./lib/cjs/components/Waveform/index.js",
+      "default": "./lib/esm/components/Waveform/index.js"
+    },
+    "./YearPicker": {
+      "types": "./lib/components/YearPicker/index.d.ts",
+      "react-native": "./lib/esm/components/YearPicker/index.js",
+      "import": "./lib/esm/components/YearPicker/index.js",
+      "require": "./lib/cjs/components/YearPicker/index.js",
+      "default": "./lib/esm/components/YearPicker/index.js"
+    },
+    "./YearPickerInput": {
+      "types": "./lib/components/YearPickerInput/index.d.ts",
+      "react-native": "./lib/esm/components/YearPickerInput/index.js",
+      "import": "./lib/esm/components/YearPickerInput/index.js",
+      "require": "./lib/cjs/components/YearPickerInput/index.js",
+      "default": "./lib/esm/components/YearPickerInput/index.js"
+    }
   },
   "files": [
     "lib",
@@ -72,17 +807,18 @@
     "@babel/preset-flow": "^7.27.0",
     "@babel/preset-react": "^7.28.0",
     "@babel/preset-typescript": "^7.28.0",
-    "@react-native/babel-preset": "^0.85.3",
-    "@react-native/jest-preset": "^0.85.3",
     "@react-native-masked-view/masked-view": "^0.3.2",
-    "@types/node": "^24.3.0",
+    "@react-native/babel-preset": "^0.86.0",
+    "@react-native/jest-preset": "^0.86.0",
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.0",
     "@rollup/plugin-typescript": "^12.3.0",
     "@shopify/flash-list": "^2.2.0",
+    "@tabler/icons-react-native": "^3.45.0",
     "@testing-library/react-native": "^13.3.0",
     "@types/jest": "^30.0.0",
+    "@types/node": "^24.3.0",
     "@types/react": "^19.2.0",
     "babel-jest": "^30.2.0",
     "eslint": "^9.0.0",
@@ -91,21 +827,21 @@
     "eslint-plugin-react-hooks": "^7.0.0",
     "eslint-plugin-react-native": "^5.0.0",
     "eslint-plugin-unused-imports": "^4.3.0",
-    "expo-audio": "~56.0.11",
-    "expo-document-picker": "~56.0.4",
-    "expo-haptics": "~56.0.3",
-    "expo-linear-gradient": "~56.0.4",
-    "expo-status-bar": "~56.0.4",
+    "expo-audio": "~57.0.0",
+    "expo-document-picker": "~57.0.0",
+    "expo-haptics": "~57.0.0",
+    "expo-linear-gradient": "~57.0.0",
+    "expo-status-bar": "~57.0.0",
     "jest": "^30.2.0",
     "jest-environment-node": "^30.2.0",
-    "jest-expo": "~56.0.4",
+    "jest-expo": "~57.0.0",
     "react": "19.2.3",
-    "react-native": "0.85.3",
-    "react-native-reanimated": "4.3.1",
+    "react-native": "0.86.0",
+    "react-native-reanimated": "4.5.0",
     "react-native-reanimated-carousel": "^4.0.0",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-svg": "15.15.4",
-    "react-native-worklets": "0.8.3",
+    "react-native-worklets": "0.10.0",
     "react-syntax-highlighter": "^16.1.0",
     "react-test-renderer": "19.2.3",
     "rollup": "^4.57.0",
@@ -116,6 +852,7 @@
   "peerDependencies": {
     "@react-native-masked-view/masked-view": ">=0.3.0",
     "@shopify/flash-list": ">=1.6.0",
+    "@tabler/icons-react-native": ">=3.0.0",
     "expo-audio": ">=1.0.0",
     "expo-document-picker": ">=13.0.0",
     "expo-haptics": ">=14.0.0",

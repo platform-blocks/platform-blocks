@@ -1,19 +1,19 @@
-import { Skeleton, Column, Row } from '@platform-blocks/ui';
+import { Block, Row, Skeleton } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="lg">
+    <Block>
       <Row gap="lg" align="center" wrap="wrap">
         <Skeleton shape="avatar" size="sm" />
         <Skeleton shape="avatar" size="md" />
         <Skeleton shape="avatar" size="lg" />
         <Skeleton shape="avatar" size="xl" />
       </Row>
-      <Column gap="sm">
+      <Block>
         <Skeleton shape="text" w="100%" />
         <Skeleton shape="text" w="90%" />
         <Skeleton shape="text" w="70%" />
-      </Column>
+      </Block>
       <Row gap="md" wrap="wrap">
         <Skeleton shape="button" w={80} />
         <Skeleton shape="button" w={100} />
@@ -26,6 +26,6 @@ export default function Demo() {
       </Row>
       <Skeleton shape="rectangle" h={60} />
       <Skeleton shape="card" h={200} />
-    </Column>
+    </Block>
   );
 }

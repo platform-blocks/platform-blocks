@@ -1,42 +1,6 @@
 import { BarChart } from '../../';
 
-const RECRUITING_PROGRESS = [
-  {
-    id: 'engineering',
-    category: 'Engineering',
-    value: 48,
-    color: '#4f46e5',
-    data: { previous: 42, openRoles: 6, priority: 'Backend & AI platform' },
-  },
-  {
-    id: 'product',
-    category: 'Product',
-    value: 21,
-    color: '#0ea5e9',
-    data: { previous: 18, openRoles: 3, priority: 'Activation journeys' },
-  },
-  {
-    id: 'sales',
-    category: 'Revenue',
-    value: 27,
-    color: '#22c55e',
-    data: { previous: 24, openRoles: 4, priority: 'Enterprise AEs' },
-  },
-  {
-    id: 'success',
-    category: 'Customer Success',
-    value: 19,
-    color: '#f59e0b',
-    data: { previous: 16, openRoles: 2, priority: 'Strategic segments' },
-  },
-  {
-    id: 'support',
-    category: 'Support',
-    value: 15,
-    color: '#ec4899',
-    data: { previous: 14, openRoles: 2, priority: 'Follow-the-sun coverage' },
-  },
-];
+import { RECRUITING_PROGRESS } from './data';
 
 const formatDelta = (value: number, datum: (typeof RECRUITING_PROGRESS)[number]) => {
   const previous = datum.data?.previous ?? 0;
@@ -69,7 +33,7 @@ export default function Demo() {
         labelFormatter: (value) => `${Math.round(value)}`,
       }}
       yAxis={{ show: true }}
-      grid={{ show: true, color: '#E5E7EB' }}
+      grid={{ show: true }}
       tooltip={{
         formatter: (datum) => {
           const previous = datum.data?.previous ?? 0;

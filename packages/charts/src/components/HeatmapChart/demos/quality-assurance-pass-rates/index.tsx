@@ -1,14 +1,6 @@
 import { HeatmapChart } from '../../';
 
-const SUITES = ['Authentication', 'Checkout', 'APIs', 'Mobile app', 'Reporting'];
-const RELEASES = ['RC1', 'RC2', 'RC3', 'RC4'];
-const PASS_RATES = [
-  [92, 95, 97, 96],
-  [88, 91, 93, 94],
-  [94, 96, 98, 99],
-  [85, 89, 92, 93],
-  [90, 92, 95, 96],
-];
+import { PASS_RATES, RELEASES, SUITES } from './data';
 
 export default function Demo() {
   return (

@@ -1,37 +1,20 @@
-import { Button, Card, Column, Text } from '@platform-blocks/ui';
-import { useHaptics } from '../..';
+import { Block, Button, Row, Text, useHaptics } from '@platform-blocks/ui';
 
 export default function Demo() {
   const { impactPressIn, impactPressOut, notifySuccess, notifyWarning, notifyError, selection } = useHaptics({ throttleMs: 80 });
 
   return (
-    <Column gap="md" fullWidth>
-      <Text weight="semibold">Map haptic patterns to common actions</Text>
-      <Text size="sm" colorVariant="secondary">
-        The hook guards against unsupported environments and throttles repeated triggers.
-      </Text>
-      <Card variant="outline" style={{ padding: 16, gap: 12 }}>
-        <Button onPressIn={impactPressIn} onPressOut={impactPressOut}>
-          Press feedback
-        </Button>
-        <Button variant="outline" onPress={selection}>
-          Selection feedback
-        </Button>
-        <Column gap="sm" fullWidth>
-          <Text size="sm" weight="semibold">Notifications</Text>
-          <Column gap="xs" fullWidth>
-            <Button size="sm" onPress={notifySuccess}>
-              Success
-            </Button>
-            <Button size="sm" variant="outline" onPress={notifyWarning}>
-              Warning
-            </Button>
-            <Button size="sm" variant="outline" onPress={notifyError}>
-              Error
-            </Button>
-          </Column>
-        </Column>
-      </Card>
-    </Column>
+    <Block align="flex-start">
+      <Row gap="sm" wrap="wrap">
+        <Button onPressIn={impactPressIn} onPressOut={impactPressOut}>Press feedback</Button>
+        <Button variant="outline" onPress={selection}>Selection feedback</Button>
+      </Row>
+      <Text size="sm" weight="semibold">Notifications</Text>
+      <Row gap="sm" wrap="wrap">
+        <Button size="sm" color="success" onPress={notifySuccess}>Success</Button>
+        <Button size="sm" color="warning" onPress={notifyWarning}>Warning</Button>
+        <Button size="sm" color="error" onPress={notifyError}>Error</Button>
+      </Row>
+    </Block>
   );
 }

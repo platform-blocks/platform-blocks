@@ -6,7 +6,7 @@ export default function Demo() {
   const [email, setEmail] = useState('team@example.com');
 
   return (
-    <Block gap="md">
+    <Block>
       <Checkbox
         label="Show popover"
         checked={opened}
@@ -19,7 +19,7 @@ export default function Demo() {
           </Button>
         </Popover.Target>
         <Popover.Dropdown>
-          <Block gap="sm" p="sm" >
+          <Block p="sm" >
             <Text weight="semibold">Invite team member</Text>
             <Input
               label="Email"

@@ -22,4 +22,6 @@ export interface YearPickerProps {
   hideHeader?: boolean;
   /** Total number of years to render (defaults to 20) */
   totalYears?: number;
+  /** Stretch to fill the container instead of sizing to the natural grid width. Default `false`. */
+  fullWidth?: boolean;
 }

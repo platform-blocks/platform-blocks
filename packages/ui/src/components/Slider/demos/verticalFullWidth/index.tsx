@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { Slider, Text, Row, Column, Card, Block } from '@platform-blocks/ui';
+import { Block, Card, Row, Slider, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [value, setValue] = useState(25);
 
   return (
     <Card>
-      <Column gap={24}>
+      <Block>
         
         <Row gap={32} style={{ height: 300 }}>
           {/* Regular height vertical slider */}
-          <Block gap={12} style={{ alignItems: 'center', height: 300}}>
+          <Block style={{ alignItems: 'center', height: 300}}>
             <Text size="md" weight="medium">Regular Height</Text>
             <Slider
               value={value}
@@ -28,7 +28,7 @@ export default function Demo() {
 
           {/* Full height vertical slider */}
           <View style={{ height: '100%' }}>
-            <Column gap={12} style={{ alignItems: 'center', height: '100%' }}>
+            <Block style={{ alignItems: 'center', height: '100%' }}>
               <Text size="md" weight="medium">Full Height</Text>
               <View style={{ flex: 1, justifyContent: 'center' }}>
                 <Slider
@@ -44,7 +44,7 @@ export default function Demo() {
               <Text size="sm" style={{ color: '#666' }}>
                 Stretches to parent
               </Text>
-            </Column>
+            </Block>
           </View>
 
           {/* In constrained container */}
@@ -54,7 +54,7 @@ export default function Demo() {
             borderRadius: 8,
             alignItems: 'center'
           }}>
-            <Column gap={12} style={{ alignItems: 'center', height: '100%' }}>
+            <Block style={{ alignItems: 'center', height: '100%' }}>
               <Text size="sm">80% height container</Text>
               <View style={{ flex: 1, justifyContent: 'center' }}>
                 <Slider
@@ -67,14 +67,14 @@ export default function Demo() {
                   fullWidth
                 />
               </View>
-            </Column>
+            </Block>
           </View>
         </Row>
 
         <Text size="sm" style={{ color: '#666', textAlign: 'center' }}>
           Note: For vertical sliders, fullWidth makes them stretch to the parent's height
         </Text>
-      </Column>
+      </Block>
     </Card>
   );
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ViewStyle, ImageStyle, StyleProp } from 'react-native';
+import { ViewStyle, ImageStyle, StyleProp, ImageSourcePropType } from 'react-native';
 import { SizeValue, ColorValue, SpacingProps } from '../../core/theme/types';
 import { LayoutProps } from '../../core/utils';
 import { BorderRadiusProps } from '../../core/theme/radius';
@@ -13,11 +13,11 @@ export interface BaseComponentProps extends SpacingProps {
 }
 
 export interface ImageProps extends BaseComponentProps, Omit<LayoutProps, 'w' | 'h'>, BorderRadiusProps {
-  /** Image source URI */
-  src: string;
-  
+  /** Remote image URI, or a bundled asset from `require('./photo.png')` */
+  src?: string | ImageSourcePropType;
+
   /** Image source object (alternative to src) */
-  source?: { uri: string } | number;
+  source?: ImageSourcePropType;
   
   /** Alternative text for accessibility */
   alt?: string;

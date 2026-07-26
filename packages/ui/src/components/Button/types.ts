@@ -3,7 +3,7 @@ import { SpacingProps, LayoutProps } from '../../core/utils';
 import { BorderRadiusProps } from '../../core/theme/radius';
 import { ShadowProps } from '../../core/theme/shadow';
 import { SizeValue } from '../../core/theme/sizes';
-import { TooltipProps } from '../Tooltip';
+import { TooltipProps, TooltipPropValue } from '../Tooltip';
 import type { TextProps } from '../Text';
 
 export interface ButtonProps extends SpacingProps, LayoutProps, BorderRadiusProps, ShadowProps {
@@ -26,8 +26,15 @@ export interface ButtonProps extends SpacingProps, LayoutProps, BorderRadiusProp
   onLongPress?: () => void;
   /** Called when the button layout is calculated */
   onLayout?: (event: any) => void;
-  /** Button visual variant */
-  variant?: 'filled' | 'light' | 'subtle' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'link' | 'none';
+  /**
+   * Button visual variant.
+   *
+   * `default` is a neutral button — the card surface with a hairline border and
+   * body text — so an unstyled `<Button>` never claims the accent color. A solid
+   * primary fill is opt-in via `filled`.
+   * @default 'default'
+   */
+  variant?: 'default' | 'filled' | 'light' | 'subtle' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'link' | 'none';
   /**
    * Theme color the button is tinted with. A palette token (`primary`, `success`,
    * `error`, …) or any raw CSS/hex color. Applies to the color-bearing variants
@@ -43,7 +50,11 @@ export interface ButtonProps extends SpacingProps, LayoutProps, BorderRadiusProp
   loading?: boolean;
   /** Text to show when loading (if not provided, shows empty text but maintains original width) */
   loadingTitle?: string;
-  /** Whether button should fill the full width of its parent container */
+  /**
+   * Whether button should fill the full width of its parent container. Buttons
+   * size to their content by default; `fullWidth`, an explicit `w`, or a flex
+   * value in `style` makes them fill instead.
+   */
   fullWidth?: boolean;
   /**
    * Custom color override for the button. Accepts raw CSS color OR theme token syntax:
@@ -61,10 +72,20 @@ export interface ButtonProps extends SpacingProps, LayoutProps, BorderRadiusProp
   startIcon?: React.ReactNode;
   /** Icon to show on the right side of the button */
   endIcon?: React.ReactNode;
-  /** Tooltip text to show on hover/focus - when provided, wraps button in Tooltip component */
-  tooltip?: string;
-  /** Tooltip position when tooltip prop is used */
+  /**
+   * Tooltip shown on hover/focus — wraps the button in a `Tooltip`.
+   * Pass a string for the common case, or a config object to tune the tooltip:
+   * `tooltip={{ label: 'Long explanation…', maxWidth: 320, withArrow: true }}`.
+   */
+  tooltip?: TooltipPropValue;
+  /** Tooltip position when the string form of `tooltip` is used */
   tooltipPosition?: TooltipProps['position'];
+  /**
+   * Length of the press / pulse / hover transitions in ms. `0` applies each
+   * state instantly (no scale animation). Always 0 under reduced motion.
+   * @default 110
+   */
+  transitionDuration?: number;
   /** Style overrides for the button container */
   style?: any;
   /** Test ID for testing library queries */

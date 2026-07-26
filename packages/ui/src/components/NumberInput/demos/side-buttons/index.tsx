@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { Column, NumberInput, Row, Text } from '@platform-blocks/ui';
+import { Block, NumberInput, Row, Text } from '@platform-blocks/ui';
 
 const EnhancedNumberInput = NumberInput as any;
 
@@ -10,13 +10,13 @@ export default function Demo() {
   const effectiveStep = useMemo(() => step || 1, [step]);
 
   return (
-    <Column gap="lg" style={{ maxWidth: 360 }}>
+    <Block style={{ maxWidth: 360 }}>
       <Text weight="semibold">Side buttons and shift multiplier</Text>
       <Text size="sm" colorVariant="secondary">
         Combine side buttons with the default controls to support coarse and fine adjustments.
       </Text>
 
-      <Column gap="sm">
+      <Block>
         <EnhancedNumberInput
           label="Playback speed"
           value={value}
@@ -41,9 +41,9 @@ export default function Demo() {
             Shift-click = ±{effectiveStep * 10}
           </Text>
         </Row>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" weight="semibold">
           Adjust the base step
         </Text>
@@ -63,7 +63,7 @@ export default function Demo() {
             }
           }}
         />
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

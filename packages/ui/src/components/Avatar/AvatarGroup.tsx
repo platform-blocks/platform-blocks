@@ -61,7 +61,7 @@ export function AvatarGroup({
           </View>
         );
         return surplusTooltip
-          ? <Tooltip label={surplusTooltip} multiline width={220}>{surplus}</Tooltip>
+          ? <Tooltip label={surplusTooltip} maxWidth={220}>{surplus}</Tooltip>
           : surplus;
       })()}
     </View>

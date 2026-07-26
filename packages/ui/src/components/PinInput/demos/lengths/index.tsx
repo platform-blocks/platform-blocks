@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Column, PinInput, Text } from '@platform-blocks/ui';
+import { Block, PinInput, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [fourDigit, setFourDigit] = useState('');
@@ -35,10 +35,10 @@ export default function Demo() {
   ];
 
   return (
-    <Column gap="lg">
+    <Block>
       <Text weight="semibold">PIN input lengths</Text>
       {lengthExamples.map((example) => (
-        <Column gap="sm" key={example.length}>
+        <Block key={example.length}>
           <Text size="sm" weight="semibold">
             {example.title}
           </Text>
@@ -51,9 +51,9 @@ export default function Demo() {
             length={example.length}
             label={example.label}
           />
-        </Column>
+        </Block>
       ))}
-    </Column>
+    </Block>
   );
 }
 

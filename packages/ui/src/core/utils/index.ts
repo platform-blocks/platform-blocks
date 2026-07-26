@@ -14,6 +14,7 @@ export { SpacingProps, BaseSystemProps, getSpacingStyles, extractSpacingProps } 
 // Slot-prop helper used by every component that exposes `labelProps` /
 // `titleProps` / `bodyProps` / etc.
 export { mergeSlotProps } from './mergeSlotProps';
+export { mergeRefs, useMergedRef } from './mergeRefs';
 
 // Export universal props system
 export { 

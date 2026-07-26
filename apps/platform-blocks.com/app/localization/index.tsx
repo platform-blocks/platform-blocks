@@ -1,6 +1,6 @@
-import { Text, Button, useI18n, ToggleBar, Chip, useTheme, Notice, H2, Flex, Block, CodeBlock } from '@platform-blocks/ui';
+import { Text, Button, useI18n, ToggleBar, Notice, Flex, Block, CodeBlock } from '@platform-blocks/ui';
 import { useBrowserTitle, formatPageTitle } from 'hooks/useBrowserTitle';
-import { PageLayout } from 'components';
+import { DocsPage } from 'components';
 import { DocsPageHeader } from '../../components/DocsPageHeader';
 
 const RESOURCES_SNIPPET = `
@@ -45,18 +45,19 @@ function Greeting() {
 
 function LocalizationContent() {
   const { t, setLocale, locale } = useI18n();
-  const theme = useTheme();
 
   const locales = ['en', 'fr', 'es'] as const;
 
   return (
-    <PageLayout>
-      <Block gap="md" mb="lg" m={12}>
+    <DocsPage>
+      <Block gap="md" mb="lg">
         <DocsPageHeader
           tx="localization.title"
           action={
             <Notice icon="globe">
-              <Text variant="h4">{t('localization.helloWorld')}</Text>
+              {/* Decorative sample copy, not a section heading — as an h4 it was
+                  the only heading between the page h1 and its h2 sections. */}
+              <Text size="lg" weight="semibold">{t('localization.helloWorld')}</Text>
             </Notice>
           }
         />
@@ -77,18 +78,18 @@ function LocalizationContent() {
         {/* <Text tx='localization.steps.aggregate' /> */}
 
         <Flex direction="column" gap="xl">
-          <CodeBlock title="resources.ts" language="javascript" showLineNumbers highlightLines={['1', '2', '3']}>{RESOURCES_SNIPPET}</CodeBlock>
+          <CodeBlock files={[{ name: 'resources.ts' }]} showLineNumbers highlightLines={['1', '2', '3']}>{RESOURCES_SNIPPET}</CodeBlock>
           <Text tx="localization.steps.provider" />
-          <CodeBlock title="App.tsx" language="javascript" showLineNumbers>{PROVIDER_SNIPPET}</CodeBlock>
+          <CodeBlock files={[{ name: 'App.tsx' }]} showLineNumbers>{PROVIDER_SNIPPET}</CodeBlock>
           {/* <Text tx='localization.steps.usageTx' /> */}
           {/* <Text tx='localization.steps.usageHook' /> */}
           <Text tx="localization.steps.switch" />
-          <CodeBlock title="Usage" language="javascript" showLineNumbers>{USAGE_SNIPPET}</CodeBlock>
+          <CodeBlock files={[{ name: 'Greeting.tsx' }]} showLineNumbers>{USAGE_SNIPPET}</CodeBlock>
           {/* <Text tx='localization.steps.format' /> */}
           {/* <Text tx='localization.steps.missing' /> */}
         </Flex>
       </Block>
-    </PageLayout>
+    </DocsPage>
   );
 }
 

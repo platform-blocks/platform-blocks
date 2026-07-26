@@ -1,4 +1,4 @@
-import { Block, Button, Column, Row, Space, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Button, Row, Space, Text, useTheme } from '@platform-blocks/ui';
 
 const GROUPS = [
   {
@@ -17,9 +17,9 @@ export default function Demo() {
   const theme = useTheme();
 
   return (
-    <Column gap="xl">
+    <Block>
       {GROUPS.map(({ label, gap, helper }) => (
-        <Column key={label} gap="xs">
+        <Block key={label}>
           <Text weight="medium">{label}</Text>
           <Block bg={theme.backgrounds.surface} radius="lg" p="md">
             <Row align="center">
@@ -37,8 +37,8 @@ export default function Demo() {
           <Text variant="small" colorVariant="muted">
             {helper}
           </Text>
-        </Column>
+        </Block>
       ))}
-    </Column>
+    </Block>
   );
 }

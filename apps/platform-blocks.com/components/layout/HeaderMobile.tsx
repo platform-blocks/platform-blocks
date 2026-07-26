@@ -1,5 +1,4 @@
 import React from 'react';
-import { Pressable } from 'react-native';
 import {
   Flex,
   IconButton,
@@ -9,7 +8,7 @@ import {
   useTheme,
   useThemeMode,
 } from '@platform-blocks/ui';
-import { useRouter } from 'expo-router';
+import { RouteLink } from '../RouteLink';
 
 export interface DocsHeaderMobileProps {
   orientation: 'portrait' | 'landscape';
@@ -23,7 +22,6 @@ export const DocsHeaderMobile: React.FC<DocsHeaderMobileProps> = ({ orientation 
   const { openNavbar } = useAppShellApi();
   const { mode, cycleMode } = useThemeMode();
   const theme = useTheme();
-  const router = useRouter();
 
   const themeIcon = mode === 'light' ? 'sun' : mode === 'dark' ? 'moon' : 'contrast';
 
@@ -46,9 +44,12 @@ export const DocsHeaderMobile: React.FC<DocsHeaderMobileProps> = ({ orientation 
         onPress={openNavbar}
       />
 
-      <Pressable
-        onPress={() => router.push('/')}
-        accessibilityRole="link"
+      {/* This is the header that static rendering emits — prerendering has no
+          viewport width, so every prerendered page falls to the mobile shell.
+          That makes this wordmark the only link home a crawler sees on a deep
+          page, so it has to be a real anchor rather than a Pressable. */}
+      <RouteLink
+        href="/"
         accessibilityLabel="Go to docs home"
         style={{ flexDirection: 'row', alignItems: 'center' }}
       >
@@ -63,7 +64,7 @@ export const DocsHeaderMobile: React.FC<DocsHeaderMobileProps> = ({ orientation 
         <Text size="lg" weight="semibold">
           Platform Blocks
         </Text>
-      </Pressable>
+      </RouteLink>
 
       <IconButton
         icon={themeIcon as any}

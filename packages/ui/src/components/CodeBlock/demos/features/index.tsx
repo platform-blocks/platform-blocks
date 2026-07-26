@@ -1,4 +1,4 @@
-import { CodeBlock, Column, Text } from '@platform-blocks/ui';
+import { Block, CodeBlock, Text } from '@platform-blocks/ui';
 
 const fibonacciExample = `function fibonacci(n) {
   if (n <= 1) {
@@ -37,39 +37,39 @@ console.log(message);`;
 
 export default function Demo() {
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <Text weight="semibold">Feature highlights</Text>
       <Text size="sm" colorVariant="secondary">
         Combine titles, line numbers, full-width layouts, and copy controls to match different documentation needs.
       </Text>
-      <Column gap="lg">
-        <Column gap="xs">
+      <Block>
+        <Block>
           <Text size="sm" weight="semibold">
             Title with line numbers
           </Text>
           <CodeBlock title="With title and line numbers" showLineNumbers>
             {fibonacciExample}
           </CodeBlock>
-        </Column>
+        </Block>
 
-        <Column gap="xs">
+        <Block>
           <Text size="sm" weight="semibold">
             Full-width layout
           </Text>
           <CodeBlock title="Full width example" fullWidth language="javascript">
             {fullWidthExample}
           </CodeBlock>
-        </Column>
+        </Block>
 
-        <Column gap="xs">
+        <Block>
           <Text size="sm" weight="semibold">
             Copy button disabled
           </Text>
           <CodeBlock title="No copy button" showCopyButton={false}>
             {disabledCopyExample}
           </CodeBlock>
-        </Column>
-      </Column>
-    </Column>
+        </Block>
+      </Block>
+    </Block>
   );
 }

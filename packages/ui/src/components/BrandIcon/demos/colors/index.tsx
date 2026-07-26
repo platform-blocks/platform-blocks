@@ -1,19 +1,46 @@
-import { BrandIcon, Card, Block, Row, Text } from '@platform-blocks/ui';
-import { FEATURED_BRANDS } from '../data';
+import { BrandIcon, Block, Row, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Card variant="outline" p="xl">
-      <Row align="center" gap="md" wrap="wrap">
-        {FEATURED_BRANDS.map((brand) => (
-          <Block key={brand} align="center" gap="xs">
-            <BrandIcon brand={brand} size="xl" />
-            <Text variant="small" align="center">
-              {brand}
-            </Text>
-          </Block>
-        ))}
-      </Row>
-    </Card>
+    <Block>
+      <Block>
+        <Text variant="small" colorVariant="secondary">
+          Authentic brand palettes
+        </Text>
+        <Row align="center" gap="md" wrap="wrap">
+          <BrandIcon brand="google" size="xl" />
+          <BrandIcon brand="facebook" size="xl" />
+          <BrandIcon brand="apple" size="xl" />
+          <BrandIcon brand="github" size="xl" />
+          <BrandIcon brand="x" size="xl" />
+        </Row>
+      </Block>
+
+      <Block>
+        <Text variant="small" colorVariant="secondary">
+          Custom blue
+        </Text>
+        <Row align="center" gap="md" wrap="wrap">
+          <BrandIcon brand="google" size="xl" color="#1976D2" />
+          <BrandIcon brand="facebook" size="xl" color="#1976D2" />
+          <BrandIcon brand="apple" size="xl" color="#1976D2" />
+          <BrandIcon brand="github" size="xl" color="#1976D2" />
+          <BrandIcon brand="x" size="xl" color="#1976D2" />
+        </Row>
+      </Block>
+
+      <Block>
+        <Text variant="small" colorVariant="secondary">
+          Custom red
+        </Text>
+        <Row align="center" gap="md" wrap="wrap">
+          <BrandIcon brand="google" size="xl" color="#D32F2F" />
+          <BrandIcon brand="facebook" size="xl" color="#D32F2F" />
+          <BrandIcon brand="apple" size="xl" color="#D32F2F" />
+          <BrandIcon brand="github" size="xl" color="#D32F2F" />
+          <BrandIcon brand="x" size="xl" color="#D32F2F" />
+        </Row>
+      </Block>
+    </Block>
   );
 }

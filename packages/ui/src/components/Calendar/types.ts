@@ -45,7 +45,9 @@ export interface CalendarProps extends DisclaimerSupport {
   getDayProps?: (date: Date) => Partial<DayProps>;
   renderDay?: (date: Date) => React.ReactNode;
   size?: SizeValue;
-  
+  /** Stretch to fill the container instead of sizing to the day grid. Default `false`. */
+  fullWidth?: boolean;
+
   // Static mode (non-interactive)
   static?: boolean;
 }

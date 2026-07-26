@@ -190,7 +190,7 @@ const createFillPath = (points: Array<{ chartX: number; chartY: number }>, plotH
 };
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { LineChartProps, ChartInteractionEvent, ChartDataPoint, LineChartSeries } from '../../types';
-import { ChartContainer, ChartTitle, ChartLegend } from '../../ChartBase';
+import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
 import { useChartInteractionContext, usePointer } from '../../interaction/ChartInteractionContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import type { Scale } from '../../utils/scales';
@@ -397,19 +397,24 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
     }
   }, [initializeDomains, xDomain, yDomain, interaction?.domains]);
 
-  // Chart dimensions - adjust padding based on legend position to prevent overlap
+  // Chart dimensions — grown so the plot clears the title and legend overlays.
   const basePadding = { top: 40, right: 20, bottom: 60, left: yAxis?.title ? 104 : 80 };
-  const legendPadding = React.useMemo(() => {
-    if (!legend?.show) return basePadding;
-    const position = legend.position || 'bottom';
-    return {
-      ...basePadding,
-      top: position === 'top' ? basePadding.top + 40 : basePadding.top,
-      bottom: position === 'bottom' ? basePadding.bottom + 40 : basePadding.bottom,
-      left: position === 'left' ? basePadding.left + 120 : basePadding.left,
-      right: position === 'right' ? basePadding.right + 120 : basePadding.right,
-    };
-  }, [legend?.show, legend?.position]);
+  const legendLabels = React.useMemo(
+    () => normalizedSeries.map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
+    [normalizedSeries]
+  );
+  const legendPadding = React.useMemo(
+    () =>
+      withChartBandPadding(basePadding, {
+        title,
+        subtitle,
+        legendItems: legend?.show ? legendLabels : undefined,
+        legendPosition: legend?.position,
+        legendFontSize: legend?.fontSize,
+        containerWidth: width,
+      }),
+    [basePadding.left, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels, width]
+  );
   const padding = legendPadding;
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;

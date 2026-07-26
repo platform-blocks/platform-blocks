@@ -1,87 +1,34 @@
 import { useState } from 'react';
-import { Column, DataTable, Text } from '@platform-blocks/ui';
+import { DataTable } from '@platform-blocks/ui';
 import type { DataTableColumn, DataTablePagination, DataTableSort } from '@platform-blocks/ui';
 
-type Employee = {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  status: 'active' | 'inactive' | 'pending';
-  department: string;
-};
+import { people, type Person } from '../data';
 
-const rows: Employee[] = [
-  { id: 1, name: 'Aria Chen', email: 'aria@example.com', role: 'Product Manager', status: 'active', department: 'Product' },
-  { id: 2, name: 'Ben Ortiz', email: 'ben@example.com', role: 'Engineer', status: 'active', department: 'Engineering' },
-  { id: 3, name: 'Carla Singh', email: 'carla@example.com', role: 'Designer', status: 'inactive', department: 'Design' },
-  { id: 4, name: 'Diego Price', email: 'diego@example.com', role: 'Support', status: 'pending', department: 'Operations' },
-  { id: 5, name: 'Elena Ruiz', email: 'elena@example.com', role: 'Engineer', status: 'active', department: 'Engineering' },
-];
-
-const columns: DataTableColumn<Employee>[] = [
-  {
-    key: 'name',
-    header: 'Name',
-    accessor: 'name',
-    sortable: true,
-    cell: (value) => <Text weight="semibold">{value}</Text>,
-  },
-  {
-    key: 'email',
-    header: 'Email',
-    accessor: 'email',
-    sortable: true,
-    minWidth: 200,
-  },
-  {
-    key: 'role',
-    header: 'Role',
-    accessor: 'role',
-    sortable: true,
-  },
-  {
-    key: 'status',
-    header: 'Status',
-    accessor: 'status',
-    sortable: true,
-    cell: (value: Employee['status']) => (
-      <Text colorVariant={value === 'active' ? 'success' : value === 'inactive' ? 'error' : 'warning'} weight="semibold">
-        {value.toUpperCase()}
-      </Text>
-    ),
-  },
-  {
-    key: 'department',
-    header: 'Department',
-    accessor: 'department',
-    sortable: true,
-  },
+const columns: DataTableColumn<Person>[] = [
+  { key: 'name', header: 'Name', accessor: 'name', sortable: true },
+  { key: 'email', header: 'Email', accessor: 'email', sortable: true, minWidth: 200 },
+  { key: 'title', header: 'Role', accessor: 'title', sortable: true },
+  { key: 'department', header: 'Department', accessor: 'department', sortable: true },
 ];
 
 export default function Demo() {
   const [sortBy, setSortBy] = useState<DataTableSort[]>([]);
   const [pagination, setPagination] = useState<DataTablePagination>({
     page: 1,
-    pageSize: 4,
-    total: rows.length,
+    pageSize: 5,
+    total: people.length,
   });
 
   return (
-    <Column gap="sm" fullWidth>
-      <Text size="sm" colorVariant="secondary">
-        Sortable columns with built-in pagination and search
-      </Text>
-      <DataTable
-        data={rows}
-        columns={columns}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-        pagination={pagination}
-        onPaginationChange={setPagination}
-        searchable
-        searchPlaceholder="Search teammates"
-      />
-    </Column>
+    <DataTable
+      data={people}
+      columns={columns}
+      sortBy={sortBy}
+      onSortChange={setSortBy}
+      pagination={pagination}
+      onPaginationChange={setPagination}
+      searchable
+      searchPlaceholder="Search teammates"
+    />
   );
 }

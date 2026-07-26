@@ -1,453 +1,626 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { View, Pressable, Platform } from 'react-native';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Platform, ScrollView, View } from 'react-native';
+
 // NOTE: Direct component/theme imports to break circular dependency with barrel index.ts
 import { Text } from '../Text';
-import { Icon } from '../Icon';
+import { resolveOptionalModule } from '../../utils/optionalModule';
 import { useTheme } from '../../core/theme';
-import { Checkbox } from '../Checkbox';
+import { withAlpha } from '../../core/theme/colorUtils';
+import { surfaceInteractionTint } from '../../core/theme/surfaces';
+import { useDirection } from '../../core/providers/DirectionProvider';
+import { extractSpacingProps, getSpacingStyles } from '../../core/utils';
 import { Collapse } from '../Collapse';
-import type { TreeNode, TreeProps } from './types';
+import { useControllableState } from '../../hooks/useControllableState';
+
+import { TreeRow, type TreeRowColors } from './TreeRow';
+import { resolveTreeMetrics } from './treeSizes';
+import { useTreeState } from './useTreeState';
+import { findNode, getCheckState, idRange, toggleCheckedIds } from './treeUtils';
+import type { TreeNode, TreeProps, TreeRenderNode, TreeRow as TreeRowMeta } from './types';
+
 export type { TreeNode, TreeProps } from './types';
 
-interface InternalNodeState {
-  [id: string]: boolean; // open state
-}
+const web = Platform.OS === 'web';
+const TYPE_AHEAD_TIMEOUT = 800;
 
-const buildInitialState = (nodes: TreeNode[], expandAll: boolean): InternalNodeState => {
-  const state: InternalNodeState = {};
-  const walk = (list: TreeNode[]) => {
-    list.forEach(n => {
-      if (n.children?.length) {
-        state[n.id] = expandAll || !!n.startOpen;
-        walk(n.children);
-      }
-    });
-  };
-  walk(nodes);
-  return state;
-};
+/**
+ * Only `virtualized` trees need FlashList, so it is resolved on demand rather
+ * than imported at module scope — a tree that never virtualizes should not drag
+ * the dependency into the bundle, or require it to be installed at all.
+ */
+const resolveFlashList = () =>
+  resolveOptionalModule<any>('@shopify/flash-list', {
+    accessor: (mod) => mod?.FlashList,
+    devWarning:
+      '@shopify/flash-list is not installed; <Tree virtualized> renders every row inside a ScrollView instead.',
+  });
 
-// Collect all descendant ids
-const collectDescendants = (node: TreeNode): string[] => {
-  if (!node.children) return [];
-  const ids: string[] = [];
-  const walk = (n: TreeNode) => {
-    n.children?.forEach(c => {
-      ids.push(c.id);
-      walk(c);
-    });
-  };
-  walk(node);
-  return ids;
-};
+/**
+ * Wraps a branch's children so the collapse animation can play out. The
+ * `onCollapsed` callback is read through a ref because `Collapse` lists
+ * `onAnimationEnd` in its effect dependencies — a fresh closure per render
+ * would restart the animation on every state change.
+ */
+const AnimatedBranch = React.memo(function AnimatedBranch({
+  id,
+  expanded,
+  onCollapsed,
+  children,
+}: {
+  id: string;
+  expanded: boolean;
+  onCollapsed: (id: string) => void;
+  children: React.ReactNode;
+}) {
+  const expandedRef = useRef(expanded);
+  expandedRef.current = expanded;
+  const onCollapsedRef = useRef(onCollapsed);
+  onCollapsedRef.current = onCollapsed;
 
-const findNode = (nodes: TreeNode[], id: string): TreeNode | undefined => {
-  for (const n of nodes) {
-    if (n.id === id) return n;
-    if (n.children) {
-      const f = findNode(n.children, id);
-      if (f) return f;
-    }
-  }
-  return undefined;
-};
+  const handleAnimationEnd = useCallback(() => {
+    if (!expandedRef.current) onCollapsedRef.current(id);
+  }, [id]);
 
-// Get all visible node IDs in order (respecting expansion state)
-const getVisibleNodeIds = (nodes: TreeNode[], openState: InternalNodeState): string[] => {
-  const ids: string[] = [];
-  const walk = (nodeList: TreeNode[]) => {
-    nodeList.forEach(node => {
-      ids.push(node.id);
-      if (node.children && openState[node.id]) {
-        walk(node.children);
-      }
-    });
-  };
-  walk(nodes);
-  return ids;
-};
+  return (
+    <Collapse isCollapsed={!expanded} collapsedHeight={0} animateOnMount onAnimationEnd={handleAnimationEnd}>
+      <View>{children}</View>
+    </Collapse>
+  );
+});
 
-// Get range of node IDs between two nodes (inclusive)
-const getNodeRange = (visibleIds: string[], startId: string, endId: string): string[] => {
-  const startIndex = visibleIds.indexOf(startId);
-  const endIndex = visibleIds.indexOf(endId);
+export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
+  const { spacingProps, otherProps } = extractSpacingProps(props as any);
+  const {
+    data,
+    onNavigate,
+    onNodePress,
+    collapsible = true,
+    size = 'md',
+    indent,
+    showGuides = false,
+    accordion = false,
+    expandAll = false,
+    renderLabel,
+    renderEndSection,
+    style,
+    rowStyle,
+    selectionMode = 'none',
+    selectedIds,
+    defaultSelectedIds,
+    onSelectionChange,
+    onActiveNodeChange,
+    checkboxes = false,
+    checkedIds,
+    defaultCheckedIds,
+    onCheckedChange,
+    cascadeCheck = true,
+    expandOnClick = true,
+    expandedIds,
+    defaultExpandedIds,
+    onExpandedIdsChange,
+    onToggle,
+    loadChildren,
+    filterQuery = '',
+    hideFiltered = true,
+    autoExpandOnFilter = true,
+    noResultsFallback,
+    highlight,
+    striped = false,
+    useAnimations = true,
+    virtualized = false,
+    height,
+    keyboardNavigation = true,
+    selectionColor,
+    accessibilityLabel,
+  } = otherProps as TreeProps;
 
-  if (startIndex === -1 || endIndex === -1) return [];
-
-  const minIndex = Math.min(startIndex, endIndex);
-  const maxIndex = Math.max(startIndex, endIndex);
-
-  return visibleIds.slice(minIndex, maxIndex + 1);
-};
-
-export const Tree: React.FC<TreeProps> = ({
-  data,
-  onNavigate,
-  onNodePress,
-  collapsible = true,
-  indent = 14,
-  accordion = false,
-  expandAll = false,
-  renderLabel,
-  style,
-  selectionMode = 'none',
-  selectedIds,
-  defaultSelectedIds = [],
-  onSelectionChange,
-  onActiveNodeChange,
-  checkboxes = false,
-  checkedIds,
-  defaultCheckedIds = [],
-  onCheckedChange,
-  cascadeCheck = true,
-  expandOnClick = true,
-  expandedIds,
-  onToggle,
-  filterQuery = '',
-  hideFiltered = true,
-  noResultsFallback = <Text size="sm" color="gray">No results</Text>,
-  highlight,
-  striped = false,
-  useAnimations = true,
-}) => {
   const theme = useTheme?.() as any;
+  const { isRTL } = useDirection();
   const isDark = theme?.colorScheme === 'dark';
-  const selectionBg = isDark ? `${theme.colors?.primary?.[5] || '#2684FF'}33` : `${theme.colors?.primary?.[5] || '#2684FF'}22`;
-  const selectionBgStrong = isDark ? `${theme.colors?.primary?.[5] || '#2684FF'}66` : `${theme.colors?.primary?.[5] || '#2684FF'}44`;
-  const selectionBorder = isDark ? `${theme.colors?.primary?.[5] || '#2684FF'}AA` : `${theme.colors?.primary?.[5] || '#2684FF'}66`;
-  const stripeColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.035)';
-  const [uncontrolledOpen, setUncontrolledOpen] = useState<InternalNodeState>(() => buildInitialState(data, expandAll));
-  const controlledOpen = useMemo(() => {
-    if (!expandedIds) return null;
-    const map: InternalNodeState = {};
-    expandedIds.forEach(id => {
-      map[id] = true;
+  const metrics = useMemo(() => resolveTreeMetrics(size), [size]);
+  const indentWidth = indent ?? metrics.indent;
+
+  const reactId = useId();
+  const domId = `tree-${reactId.replace(/:/g, '')}`;
+  const rowDomId = useCallback((id: string) => `${domId}-row-${id}`, [domId]);
+
+  const colors = useMemo<TreeRowColors>(() => {
+    const accent = selectionColor || theme?.colors?.primary?.[5] || '#2684FF';
+    const labelColor = theme?.text?.primary || theme?.colors?.gray?.[9] || '#1C1C1E';
+    return {
+      selectedBg: withAlpha(accent, isDark ? 0.28 : 0.14),
+      hoverBg: surfaceInteractionTint(theme, 'hover'),
+      pressedBg: surfaceInteractionTint(theme, 'pressed'),
+      stripeBg: surfaceInteractionTint(theme, 'band'),
+      selectedBorder: withAlpha(accent, isDark ? 0.55 : 0.35),
+      focusRing: theme?.states?.focusRing || accent,
+      label: labelColor,
+      selectedLabel: (isDark ? theme?.colors?.primary?.[3] : theme?.colors?.primary?.[7]) || labelColor,
+      chevron: theme?.text?.secondary || theme?.text?.muted || theme?.colors?.gray?.[7] || '#666',
+      disabled: theme?.text?.disabled || theme?.colors?.gray?.[3] || '#C7C7CC',
+      guide: surfaceInteractionTint(theme, 'selected'),
+    };
+  }, [isDark, selectionColor, theme]);
+
+  // Branches whose collapse animation is still running. Their children stay in
+  // the render tree until it ends, then unmount — the old implementation kept
+  // every branch ever opened mounted at height 0, where the rows stayed in the
+  // tab order and in find-in-page results.
+  const [collapsingIds, setCollapsingIds] = useState<Set<string>>(() => new Set());
+  const dropCollapsed = useCallback((id: string) => {
+    setCollapsingIds(prev => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
     });
-    return map;
-  }, [expandedIds]);
-  const open = expandedIds ? (controlledOpen ?? {}) : uncontrolledOpen;
-  const setOpen = useCallback((value: InternalNodeState | ((prev: InternalNodeState) => InternalNodeState)) => {
-    if (expandedIds) return;
-    setUncontrolledOpen(prev => (typeof value === 'function' ? (value as (state: InternalNodeState) => InternalNodeState)(prev) : value));
-  }, [expandedIds]);
+  }, []);
 
-  const [mountedBranches, setMountedBranches] = useState<Record<string, boolean>>({});
-  const ensureBranchMounted = useCallback((id: string) => {
-    if (!useAnimations) return;
-    setMountedBranches(prev => {
-      if (prev[id]) return prev;
-      return { ...prev, [id]: true };
-    });
-  }, [useAnimations]);
+  const handleToggle = useCallback((node: TreeNode, expanded: boolean) => {
+    if (!expanded && useAnimations && !virtualized) {
+      setCollapsingIds(prev => new Set(prev).add(node.id));
+    } else if (expanded) {
+      // Re-opening ends the exit animation early; without this the branch would
+      // stay flagged as collapsing if `Collapse` never reported an end (content
+      // that measured zero height, an unmount mid-animation).
+      dropCollapsed(node.id);
+    }
+    onToggle?.(node, expanded);
+  }, [dropCollapsed, onToggle, useAnimations, virtualized]);
 
-  const [internalSelected, setInternalSelected] = useState<string[]>(defaultSelectedIds);
-  const [internalChecked, setInternalChecked] = useState<string[]>(defaultCheckedIds);
-  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+  const tree = useTreeState({
+    data,
+    expandAll,
+    collapsible,
+    accordion,
+    expandedIds,
+    defaultExpandedIds,
+    onExpandedIdsChange,
+    onToggle: handleToggle,
+    filterQuery,
+    hideFiltered,
+    autoExpandOnFilter,
+    loadChildren,
+    keepMountedIds: collapsingIds,
+  });
 
-  const effectiveSelected = selectedIds ?? internalSelected;
-  // If consumer supplied onActiveNodeChange but no selection mode, implicitly enable single selection
-  const effectiveSelectionMode = (selectionMode === 'none' && onActiveNodeChange) ? 'single' : selectionMode;
-  const effectiveChecked = checkedIds ?? internalChecked;
+  const { rows, rowIds, rowIndexById, renderNodes, descendantMap, parentMap, loadingIds } = tree;
 
-  const toggle = useCallback((node: TreeNode) => {
-    if (!collapsible || !node.children?.length) return;
+  const [effectiveSelected, commitSelected] = useControllableState<string[]>({
+    value: selectedIds,
+    defaultValue: defaultSelectedIds,
+    finalValue: [],
+    onChange: onSelectionChange,
+  });
+  const [effectiveChecked, commitChecked] = useControllableState<string[]>({
+    value: checkedIds,
+    defaultValue: defaultCheckedIds,
+    finalValue: [],
+    onChange: onCheckedChange,
+  });
 
-    if (expandedIds) {
-      const willOpen = !open[node.id];
-      onToggle?.(node, willOpen);
-      if (willOpen) {
-        ensureBranchMounted(node.id);
-      }
+  const selectedSet = useMemo(() => new Set(effectiveSelected), [effectiveSelected]);
+  const checkedSet = useMemo(() => new Set(effectiveChecked), [effectiveChecked]);
+
+  const anchorId = useRef<string | null>(null);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [containerFocused, setContainerFocused] = useState(false);
+
+  // A consumer that only asked for `onActiveNodeChange` still means "single".
+  const effectiveSelectionMode =
+    selectionMode === 'none' && onActiveNodeChange ? 'single' : selectionMode;
+
+  const setSelected = useCallback((ids: string[], node: TreeNode) => {
+    commitSelected(ids, node);
+    const primaryId = ids[0];
+    const primaryNode = primaryId ? findNode(data, primaryId, tree.loadedChildren) || null : null;
+    onActiveNodeChange?.(primaryNode, ids);
+  }, [commitSelected, data, onActiveNodeChange, tree.loadedChildren]);
+
+  const selectableIds = useCallback((ids: string[]) => ids.filter(id => {
+    const found = findNode(data, id, tree.loadedChildren);
+    return !!found && (found.selectable ?? true) && !found.disabled;
+  }), [data, tree.loadedChildren]);
+
+  const applySelection = useCallback((node: TreeNode, event?: any) => {
+    if (effectiveSelectionMode === 'none' || (node.selectable ?? true) === false) return;
+
+    if (effectiveSelectionMode === 'single') {
+      setSelected([node.id], node);
+      anchorId.current = node.id;
       return;
     }
 
-    setOpen((prev: InternalNodeState) => {
-      const next = { ...prev };
-      const willOpen = !next[node.id];
-      if (accordion) {
-        Object.keys(next).forEach(k => { if (k !== node.id) next[k] = false; });
-      }
-      next[node.id] = willOpen;
-      onToggle?.(node, willOpen);
-      if (willOpen) {
-        ensureBranchMounted(node.id);
-      }
-      return next;
-    });
-  }, [collapsible, accordion, onToggle, expandedIds, open, ensureBranchMounted]);
+    // Read each flag off both the event and its nativeEvent: RN Web puts them on
+    // the DOM event, RN on the native one, and a keyboard event carries them at
+    // the top level. `||` rather than `??` — a `false` metaKey must not stop the
+    // lookup before ctrlKey is considered.
+    const flag = (name: 'shiftKey' | 'metaKey' | 'ctrlKey') =>
+      !!(event?.[name] || event?.nativeEvent?.[name]);
+    const shiftKey = flag('shiftKey');
+    const modifierKey = flag('metaKey') || flag('ctrlKey');
 
-  useEffect(() => {
-    if (!useAnimations) return;
-    Object.keys(open).forEach(id => {
-      if (open[id]) {
-        ensureBranchMounted(id);
-      }
-    });
-  }, [open, ensureBranchMounted, useAnimations]);
+    if (shiftKey && anchorId.current && anchorId.current !== node.id) {
+      // Ranges walk the visible row order, so a range taken while a filter is
+      // active can no longer sweep up rows that are not on screen.
+      setSelected(selectableIds(idRange(rowIds, anchorId.current, node.id)), node);
+      return;
+    }
 
-  const setSelected = (ids: string[], node: TreeNode) => {
-    if (selectedIds === undefined) setInternalSelected(ids);
-    onSelectionChange?.(ids, node);
-    const primaryId = ids[0];
-    const primaryNode = primaryId ? findNode(data, primaryId) || null : null;
-    onActiveNodeChange?.(primaryNode, ids);
-  };
+    if (modifierKey) {
+      const next = selectedSet.has(node.id)
+        ? effectiveSelected.filter(id => id !== node.id)
+        : [...effectiveSelected, node.id];
+      setSelected(next, node);
+      anchorId.current = node.id;
+      return;
+    }
 
-  const setChecked = (ids: string[], node: TreeNode) => {
-    if (checkedIds === undefined) setInternalChecked(ids);
-    onCheckedChange?.(ids, node);
-  };
+    setSelected([node.id], node);
+    anchorId.current = node.id;
+  }, [effectiveSelected, effectiveSelectionMode, rowIds, selectableIds, selectedSet, setSelected]);
 
-  const handleRowPress = (node: TreeNode, isBranch: boolean, event?: any) => {
+  const handleRowPress = useCallback((node: TreeNode, isBranch: boolean, event?: any) => {
     if (node.disabled) return;
 
     const intercept = onNodePress?.(node, { isBranch, event });
     if (intercept === false) return;
 
-    // expansion
-    if (isBranch && expandOnClick) {
-      toggle(node);
+    setFocusedId(node.id);
+
+    if (isBranch && expandOnClick && collapsible) {
+      tree.toggleNode(node);
     }
 
-    // selection
-    if (effectiveSelectionMode !== 'none' && (node.selectable ?? true)) {
-      if (effectiveSelectionMode === 'single') {
-        setSelected([node.id], node);
-        setLastSelectedId(node.id);
-      } else if (effectiveSelectionMode === 'multiple') {
-        const exists = effectiveSelected.includes(node.id);
+    applySelection(node, event);
 
-        // Check for modifier keys on web platforms
-        const isShiftClick = Platform.OS === 'web' && event?.nativeEvent?.shiftKey;
-        const isCtrlClick = Platform.OS === 'web' && (event?.nativeEvent?.ctrlKey || event?.nativeEvent?.metaKey);
+    // Documented behaviour, finally implemented: leaves activate, and any node
+    // carrying an href activates. The old guard required `href`, so the leaf
+    // case — the one every file-browser demo relies on — never fired.
+    if (node.href || !isBranch) onNavigate?.(node);
+  }, [applySelection, collapsible, expandOnClick, onNavigate, onNodePress, tree]);
 
-        if (isShiftClick && lastSelectedId && lastSelectedId !== node.id) {
-          // Range selection
-          const visibleIds = getVisibleNodeIds(data, open);
-          const rangeIds = getNodeRange(visibleIds, lastSelectedId, node.id);
+  const handleCheck = useCallback((node: TreeNode) => {
+    if (node.disabled) return;
+    const next = toggleCheckedIds(node, effectiveChecked, descendantMap[node.id], cascadeCheck);
+    commitChecked(next, node);
+  }, [cascadeCheck, commitChecked, descendantMap, effectiveChecked]);
 
-          // Filter out any nodes that are not selectable
-          const selectableRangeIds = rangeIds.filter(id => {
-            const foundNode = findNode(data, id);
-            return foundNode && (foundNode.selectable ?? true) && !foundNode.disabled;
-          });
+  const handleDisclosureToggle = useCallback((node: TreeNode) => {
+    setFocusedId(node.id);
+    tree.toggleNode(node);
+  }, [tree]);
 
-          // Merge with existing selection, removing duplicates
-          const newSelection = Array.from(new Set([...effectiveSelected, ...selectableRangeIds]));
-          setSelected(newSelection, node);
-        } else if (isCtrlClick) {
-          // Ctrl/Cmd+click - toggle individual item without affecting others
-          const next = exists ? effectiveSelected.filter(i => i !== node.id) : [...effectiveSelected, node.id];
-          setSelected(next, node);
-          setLastSelectedId(node.id);
-        } else {
-          // Regular click - replace selection with single item or toggle if already selected
-          if (exists && effectiveSelected.length === 1) {
-            // If clicking on the only selected item, deselect it
-            setSelected([], node);
-            setLastSelectedId(null);
-          } else {
-            // Replace selection with this item
-            setSelected([node.id], node);
-            setLastSelectedId(node.id);
+  /* ---------------------------------------------------------------- keyboard */
+
+  const keyboardEnabled = web && keyboardNavigation !== false;
+  const containerRef = useRef<any>(null);
+  const typeAhead = useRef<{ buffer: string; at: number }>({ buffer: '', at: 0 });
+
+  // Everything the key handler needs, refreshed each render so the listener can
+  // stay attached across re-renders without going stale.
+  const nav = useRef<any>(null);
+  nav.current = {
+    rows,
+    rowIds,
+    rowIndexById,
+    focusedId,
+    setFocusedId,
+    isRTL,
+    checkboxes,
+    selectionMode: effectiveSelectionMode,
+    parentMap,
+    setNodeExpanded: tree.setNodeExpanded,
+    handleRowPress,
+    handleCheck,
+    applySelection,
+    selectableIds,
+    setSelected,
+    anchorId,
+    collapsible,
+  };
+
+  useEffect(() => {
+    if (!keyboardEnabled) return;
+    const node = containerRef.current as any;
+    if (!node || typeof node.addEventListener !== 'function') return;
+
+    node.tabIndex = 0;
+    if (node.style) node.style.outline = 'none';
+
+    const onFocus = () => setContainerFocused(true);
+    const onBlur = () => setContainerFocused(false);
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      const s = nav.current;
+      if (!s || !s.rows.length) return;
+
+      const current = s.focusedId ? s.rowIndexById.get(s.focusedId) ?? -1 : -1;
+      const focusIndex = (index: number) => {
+        const clamped = Math.max(0, Math.min(s.rows.length - 1, index));
+        const target = s.rows[clamped] as TreeRowMeta;
+        s.setFocusedId(target.node.id);
+        return target;
+      };
+      const row = current >= 0 ? (s.rows[current] as TreeRowMeta) : null;
+      const forwardKey = s.isRTL ? 'ArrowLeft' : 'ArrowRight';
+      const backKey = s.isRTL ? 'ArrowRight' : 'ArrowLeft';
+
+      const extendTo = (target: TreeRowMeta) => {
+        if (s.selectionMode !== 'multiple') return;
+        const anchor = s.anchorId.current ?? row?.node.id ?? target.node.id;
+        s.anchorId.current = anchor;
+        s.setSelected(s.selectableIds(idRange(s.rowIds, anchor, target.node.id)), target.node);
+      };
+
+      switch (event.key) {
+        case 'ArrowDown': {
+          event.preventDefault();
+          const target = focusIndex(current < 0 ? 0 : current + 1);
+          if (event.shiftKey) extendTo(target);
+          return;
+        }
+        case 'ArrowUp': {
+          event.preventDefault();
+          const target = focusIndex(current < 0 ? 0 : current - 1);
+          if (event.shiftKey) extendTo(target);
+          return;
+        }
+        case 'Home':
+          event.preventDefault();
+          focusIndex(0);
+          return;
+        case 'End':
+          event.preventDefault();
+          focusIndex(s.rows.length - 1);
+          return;
+        case forwardKey:
+          event.preventDefault();
+          if (!row) return;
+          if (row.isBranch && !row.expanded && s.collapsible) s.setNodeExpanded(row.node, true);
+          else if (row.isBranch && row.expanded) focusIndex(current + 1);
+          return;
+        case backKey: {
+          event.preventDefault();
+          if (!row) return;
+          if (row.isBranch && row.expanded && s.collapsible) {
+            s.setNodeExpanded(row.node, false);
+            return;
           }
+          const parentId = row.parentId ?? s.parentMap[row.node.id];
+          const parentIndex = parentId ? s.rowIndexById.get(parentId) : undefined;
+          if (parentIndex !== undefined) focusIndex(parentIndex);
+          return;
+        }
+        case 'Enter':
+          event.preventDefault();
+          if (row) s.handleRowPress(row.node, row.isBranch, event);
+          return;
+        case ' ':
+        case 'Spacebar':
+          event.preventDefault();
+          if (!row) return;
+          if (s.checkboxes) s.handleCheck(row.node);
+          else s.handleRowPress(row.node, row.isBranch, event);
+          return;
+        default:
+          break;
+      }
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a') {
+        if (s.selectionMode !== 'multiple') return;
+        event.preventDefault();
+        const all = s.selectableIds(s.rowIds);
+        if (all.length) s.setSelected(all, s.rows[0].node);
+        return;
+      }
+
+      // Type-ahead: printable characters jump to the next row whose label starts
+      // with what has been typed, wrapping around the current position.
+      if (event.key.length !== 1 || event.metaKey || event.ctrlKey || event.altKey) return;
+      const now = Date.now();
+      const buffer =
+        now - typeAhead.current.at > TYPE_AHEAD_TIMEOUT
+          ? event.key.toLowerCase()
+          : typeAhead.current.buffer + event.key.toLowerCase();
+      typeAhead.current = { buffer, at: now };
+
+      const start = current < 0 ? 0 : current + 1;
+      const total = s.rows.length;
+      for (let step = 0; step < total; step += 1) {
+        const candidate = s.rows[(start + step) % total] as TreeRowMeta;
+        if (candidate.node.label.toLowerCase().startsWith(buffer)) {
+          event.preventDefault();
+          s.setFocusedId(candidate.node.id);
+          return;
         }
       }
-    }
-
-    // navigation
-    if (node.href) onNavigate?.(node);
-  };
-
-  // Precompute descendant ids per branch for performance (stable unless data changes)
-  const descendantMap = useMemo(() => {
-    const map: Record<string, string[]> = {};
-    const build = (nodes: TreeNode[]) => {
-      nodes.forEach(n => {
-        if (n.children?.length) {
-          map[n.id] = collectDescendants(n);
-          build(n.children);
-        }
-      });
     };
-    build(data);
-    return map;
-  }, [data]);
 
-  // Aggregate state helper for branches (leaves return direct checked/unchecked)
-  const getAggregateState = (node: TreeNode): 'checked' | 'indeterminate' | 'unchecked' => {
-    if (!node.children?.length) {
-      return effectiveChecked.includes(node.id) ? 'checked' : 'unchecked';
-    }
-    const descendants = descendantMap[node.id] || [];
-    const selfChecked = effectiveChecked.includes(node.id);
-    const checkedDescCount = descendants.reduce((acc, id) => acc + (effectiveChecked.includes(id) ? 1 : 0), 0);
-    const totalDesc = descendants.length;
-    // Fully checked only when self + all descendants checked
-    if (selfChecked && checkedDescCount === totalDesc && totalDesc > 0) return 'checked';
-    // Unchecked when neither self nor any descendants are checked
-    if (!selfChecked && checkedDescCount === 0) return 'unchecked';
-    // Otherwise indeterminate (covers: parent-only, some descendants, all descendants w/o parent)
-    return 'indeterminate';
-  };
+    node.addEventListener('keydown', onKeyDown);
+    node.addEventListener('focus', onFocus);
+    node.addEventListener('blur', onBlur);
+    return () => {
+      node.removeEventListener('keydown', onKeyDown);
+      node.removeEventListener('focus', onFocus);
+      node.removeEventListener('blur', onBlur);
+    };
+  }, [keyboardEnabled]);
 
-  const toggleCheckbox = (node: TreeNode) => {
-    let next: string[] = effectiveChecked.slice();
-    const isLeaf = !node.children?.length || !cascadeCheck;
-    if (isLeaf) {
-      const selfChecked = next.includes(node.id);
-      next = selfChecked ? next.filter(id => id !== node.id) : [...next, node.id];
-      setChecked(Array.from(new Set(next)), node);
-      return;
-    }
-    const descendants = descendantMap[node.id] || [];
-    const selfChecked = next.includes(node.id);
-    const checkedDesc = descendants.filter(id => next.includes(id));
-    const totalDesc = descendants.length;
-    const allDescendantsChecked = checkedDesc.length === totalDesc && totalDesc > 0;
-    // Tri-state cycle (branch): none -> parent only -> full -> none; partial -> full
-    if (!selfChecked && checkedDesc.length === 0) { // none -> parent only
-      next.push(node.id);
-    } else if (selfChecked && checkedDesc.length === 0) { // parent only -> full
-      next = Array.from(new Set([...next, node.id, ...descendants]));
-    } else if (selfChecked && allDescendantsChecked) { // full -> none
-      next = next.filter(id => id !== node.id && !descendants.includes(id));
-    } else { // any partial variant -> full
-      next = Array.from(new Set([...next, node.id, ...descendants]));
-    }
-    setChecked(next, node);
-  };
-
-  // Filtering logic
-  const normalizedQuery = filterQuery.trim().toLowerCase();
-  const matchesQuery = (label: string) => label.toLowerCase().includes(normalizedQuery);
-
-  const filterTree = (nodes: TreeNode[]): TreeNode[] => {
-    if (!normalizedQuery) return nodes;
-    const result: TreeNode[] = [];
-    for (const n of nodes) {
-      const childFiltered = n.children ? filterTree(n.children) : undefined;
-      const match = matchesQuery(n.label);
-      if (match || (childFiltered && childFiltered.length)) {
-        result.push({ ...n, children: childFiltered });
+  // Mirror the roving focus to assistive tech and keep the focused row on screen.
+  useEffect(() => {
+    if (!keyboardEnabled) return;
+    const node = containerRef.current as any;
+    if (!node?.setAttribute) return;
+    if (focusedId && rowIndexById.has(focusedId)) {
+      node.setAttribute('aria-activedescendant', rowDomId(focusedId));
+      if (typeof document !== 'undefined') {
+        document.getElementById(rowDomId(focusedId))?.scrollIntoView({ block: 'nearest' });
       }
+    } else {
+      node.removeAttribute('aria-activedescendant');
     }
-    return result;
-  };
+  }, [focusedId, keyboardEnabled, rowDomId, rowIndexById]);
 
-  const filteredData = hideFiltered ? filterTree(data) : data;
-  const hasResults = filteredData.length > 0;
+  // A focused row that filtering or a collapse removed would otherwise keep the
+  // ring pointing at something invisible.
+  useEffect(() => {
+    if (focusedId && !rowIndexById.has(focusedId)) setFocusedId(null);
+  }, [focusedId, rowIndexById]);
 
-  let rowCounter = -1;
+  /* ------------------------------------------------------------------ render */
 
-  const renderNode = (node: TreeNode, depth: number) => {
-    const isBranch = !!node.children?.length;
-    const isOpen = !!open[node.id];
-    const leftPad = depth * indent;
-    const selected = effectiveSelected.includes(node.id);
-    const aggregate = isBranch ? getAggregateState(node) : (effectiveChecked.includes(node.id) ? 'checked' : 'unchecked');
-    const checked = aggregate === 'checked';
-    const indeterminate = aggregate === 'indeterminate';
-    const disabled = !!node.disabled;
+  const renderRow = useCallback((row: TreeRowMeta) => {
+    const { node } = row;
     const showCheckbox = checkboxes && (node.selectable ?? true);
-    const rowNumber = ++rowCounter;
-    const stripedBg = striped && !selected ? (rowNumber % 2 === 1 ? stripeColor : 'transparent') : 'transparent';
-
-    const labelContent = (() => {
-      const base = node.label;
-      if (!normalizedQuery || !highlight) return base;
-      return highlight(base, normalizedQuery);
-    })();
-    const shouldRenderChildren = useAnimations ? (isOpen || mountedBranches[node.id]) : isOpen;
+    const checkState = getCheckState(node, checkedSet, descendantMap[node.id], cascadeCheck);
 
     return (
-      <View key={node.id} style={{}}>
-        <Pressable
-          onPress={(event) => handleRowPress(node, isBranch, event)}
-          style={({ pressed }) => ({
-            paddingVertical: 4,
-            paddingRight: 8,
-            paddingLeft: 6 + leftPad,
-            borderRadius: 6,
-            backgroundColor: selected ? selectionBgStrong : pressed ? selectionBg : stripedBg,
-            borderWidth: selected ? 1 : 0,
-            borderColor: selected ? selectionBorder : 'transparent',
-            flexDirection: 'row',
-            alignItems: 'center',
-            opacity: disabled ? 0.45 : 1
-          })}
-          accessibilityRole="button"
-          accessibilityLabel={node.label}
-        >
-          {isBranch ? (
-            <Pressable
-              onPress={() => toggle(node)}
-              style={{ padding: 4 }}
-              hitSlop={4}
-              disabled={disabled}
-              accessibilityLabel={isOpen ? 'Collapse' : 'Expand'}
-            >
-              <Icon
-                name={isOpen ? 'chevron-down' : 'chevron-right'}
-                size="md"
-                color={disabled ? (theme?.text?.disabled || theme?.colors?.gray?.[3] || '#C7C7CC') : (theme?.text?.secondary || theme?.text?.muted || theme?.colors?.gray?.[7] || '#666')}
-                stroke={2}
-              />
-            </Pressable>
-          ) : node.icon ? (
-            <View style={{ width: 16, alignItems: 'center' }}>
-              {node.icon}
-            </View>
-          ) : (
-            // No icon: add spacer matching icon width to keep labels aligned with siblings
-            <View style={{ width: 16, alignItems: 'center' }} />
-          )}
-          <View style={{ width: 4 }} />
-          {showCheckbox && (
-            <Checkbox
-              checked={checked}
-              indeterminate={indeterminate}
-              indeterminateIcon={<Icon name="minus" />}
-              disabled={disabled}
-              onChange={() => toggleCheckbox(node)}
-              size="sm"
-              style={{ marginRight: 4 }}
-            />
-          )}
-          {renderLabel ? (
-            renderLabel(node, depth, isOpen, { selected, checked, indeterminate })
-          ) : (
-            <Text size="sm" color={selected ? theme.colors?.primary?.[7] || theme.colors?.textPrimary : theme.colors?.textPrimary} style={{ fontWeight: selected ? '600' : '400' }}>
-              {labelContent}
-            </Text>
-          )}
-        </Pressable>
-        {isBranch && shouldRenderChildren && (
-          useAnimations ? (
-            <Collapse
-              isCollapsed={isOpen}
-              collapsedHeight={0}
-              animateOnMount
-            >
-              <View>
-                {node.children!.map(child => renderNode(child, depth + 1))}
-              </View>
-            </Collapse>
-          ) : (
-            <View>
-              {node.children!.map(child => renderNode(child, depth + 1))}
-            </View>
-          )
+      <TreeRow
+        key={node.id}
+        row={row}
+        metrics={metrics}
+        indent={indentWidth}
+        colors={colors}
+        isRTL={isRTL}
+        selected={selectedSet.has(node.id)}
+        focused={containerFocused && focusedId === node.id}
+        loading={loadingIds.has(node.id)}
+        checkState={checkState}
+        showCheckbox={showCheckbox}
+        showDisclosure={collapsible}
+        showGuides={showGuides}
+        striped={striped && row.index % 2 === 1}
+        domId={web ? rowDomId(node.id) : undefined}
+        filterQuery={filterQuery}
+        multiSelectable={effectiveSelectionMode === 'multiple'}
+        selectable={effectiveSelectionMode !== 'none'}
+        rowStyle={rowStyle}
+        renderLabel={renderLabel}
+        renderEndSection={renderEndSection}
+        highlight={highlight}
+        onPress={handleRowPress}
+        onToggle={handleDisclosureToggle}
+        onCheck={handleCheck}
+      />
+    );
+  }, [
+    cascadeCheck,
+    checkboxes,
+    checkedSet,
+    collapsible,
+    colors,
+    containerFocused,
+    descendantMap,
+    effectiveSelectionMode,
+    filterQuery,
+    focusedId,
+    handleCheck,
+    handleDisclosureToggle,
+    handleRowPress,
+    highlight,
+    indentWidth,
+    isRTL,
+    loadingIds,
+    metrics,
+    renderEndSection,
+    renderLabel,
+    rowDomId,
+    rowStyle,
+    selectedSet,
+    showGuides,
+    striped,
+  ]);
+
+  // Animated rendering nests each branch inside a `Collapse`, so the DOM gains
+  // the two generic wrappers `Collapse` needs to measure and clip. Rows keep
+  // their `treeitem` roles and the wrapper this component owns is presentational;
+  // the flat and virtualized paths emit the strictly-nested structure.
+  const renderAnimated = useCallback((nodes: TreeRenderNode[]): React.ReactNode =>
+    nodes.map(entry => (
+      <View key={entry.row.node.id} {...(web ? { role: 'none' } : {})}>
+        {renderRow(entry.row)}
+        {entry.mounted && (
+          <AnimatedBranch
+            id={entry.row.node.id}
+            expanded={entry.row.expanded}
+            onCollapsed={dropCollapsed}
+          >
+            <View {...(web ? { role: 'group' } : {})}>{renderAnimated(entry.children)}</View>
+          </AnimatedBranch>
+        )}
+      </View>
+    )), [dropCollapsed, renderRow]);
+
+  const spacingStyle = useMemo(
+    () => getSpacingStyles(spacingProps, isRTL),
+    [spacingProps, isRTL]
+  );
+
+  // RN Web forwards `role` / `aria-*` to the DOM; native RN ignores them, so the
+  // web branch is cast rather than squeezed into RN's `Role` union.
+  const containerProps = {
+    ref: (instance: any) => {
+      containerRef.current = instance;
+      if (typeof ref === 'function') ref(instance);
+      else if (ref) (ref as React.MutableRefObject<any>).current = instance;
+    },
+    style: [spacingStyle as any, style],
+    ...((web
+      ? {
+          id: domId,
+          role: 'tree',
+          'aria-label': accessibilityLabel ?? 'Tree',
+          ...(effectiveSelectionMode === 'multiple' ? { 'aria-multiselectable': true } : {}),
+        }
+      : { accessibilityLabel }) as any),
+  } as any;
+
+  if (!rows.length) {
+    return (
+      <View {...containerProps}>
+        {noResultsFallback !== undefined ? (
+          noResultsFallback
+        ) : (
+          <Text size="sm" colorVariant="secondary">
+            No results
+          </Text>
         )}
       </View>
     );
-  };
+  }
+
+  if (virtualized) {
+    const FlashListComponent = resolveFlashList();
+    return (
+      <View {...containerProps}>
+        <View style={{ height: height ?? 320 }}>
+          {FlashListComponent ? (
+            <FlashListComponent
+              data={rows}
+              keyExtractor={(row: TreeRowMeta) => row.node.id}
+              renderItem={({ item }: { item: TreeRowMeta }) => renderRow(item)}
+              // Required by FlashList v1, dropped in v2 — the peer range allows
+              // both, so it goes through untyped.
+              {...({ estimatedItemSize: metrics.rowHeight + 2 } as Record<string, unknown>)}
+              extraData={{ selectedSet, checkedSet, focusedId, containerFocused }}
+              showsVerticalScrollIndicator={web}
+            />
+          ) : (
+            <ScrollView>{rows.map(renderRow)}</ScrollView>
+          )}
+        </View>
+      </View>
+    );
+  }
 
   return (
-    <View style={style}>
-      {hasResults ? filteredData.map(n => renderNode(n, 0)) : noResultsFallback}
+    <View {...containerProps}>
+      {useAnimations ? renderAnimated(renderNodes) : rows.map(renderRow)}
     </View>
   );
-};
+});
+
+Tree.displayName = 'Tree';
 
 export default Tree;

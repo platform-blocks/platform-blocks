@@ -1,17 +1,11 @@
-import { Column, QRCode, Row, Text, useTheme } from '@platform-blocks/ui';
-
-const SCHEMES = [
-  { key: 'primary', label: 'Primary accent' },
-  { key: 'success', label: 'Success state' },
-  { key: 'warning', label: 'Warning state' },
-  { key: 'error', label: 'Error state' }
-] as const;
+import { Block, QRCode, Row, Text, useTheme } from '@platform-blocks/ui';
+import { SCHEMES } from './data';
 
 export default function Demo() {
   const theme = useTheme();
 
   return (
-    <Column gap="lg">
+    <Block>
       <Text variant="small" colorVariant="muted">
         Theme-aligned palettes
       </Text>
@@ -22,23 +16,18 @@ export default function Demo() {
           const background = palette?.[0] ?? theme.backgrounds.surface;
 
           return (
-            <Column key={key} gap="xs" align="center">
-              <QRCode
-                value="https://platform-blocks.com"
-                size={144}
-                backgroundColor={background}
-                color={foreground}
-                quietZone={2}
-              />
-              <Text variant="small" colorVariant="muted">
-                {label}
-              </Text>
-            </Column>
+            <QRCode
+              key={key}
+              value="https://platform-blocks.com"
+              size={144}
+              backgroundColor={background}
+              color={foreground}
+              quietZone={2}
+              label={label}
+            />
           );
         })}
       </Row>
-    </Column>
+    </Block>
   );
 }
-
-

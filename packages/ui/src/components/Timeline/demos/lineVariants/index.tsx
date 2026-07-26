@@ -1,4 +1,4 @@
-import { Column, Text, Timeline } from '@platform-blocks/ui';
+import { Block, Text, Timeline } from '@platform-blocks/ui';
 
 const phases = ['Start', 'Plan', 'Build'];
 
@@ -18,32 +18,25 @@ const releaseFlow = [
 
 export default function Demo() {
   return (
-    <Column gap="lg">
-      <Text size="sm" colorVariant="secondary">
-        Change the connector pattern for individual steps with the `lineVariant` prop.
-      </Text>
-
-      <Column gap="md">
-        {variantExamples.map((example) => (
-          <Column key={example.label} gap="sm">
-            <Text weight="semibold">{example.label}</Text>
-            <Timeline>
-              {phases.map((title) => (
-                <Timeline.Item key={`${example.label}-${title}`} title={title} lineVariant={example.variant} />
-              ))}
-            </Timeline>
-          </Column>
-        ))}
-      </Column>
-
-      <Column gap="sm">
-        <Text weight="semibold">Mix variants within the same flow</Text>
+    <Block direction="row" justify="space-between" fullWidth>
+      {variantExamples.map((example) => (
+        <Block key={example.label}>
+          <Text weight="semibold">{example.label}</Text>
+          <Timeline>
+            {phases.map((title) => (
+              <Timeline.Item key={`${example.label}-${title}`} title={title} lineVariant={example.variant} />
+            ))}
+          </Timeline>
+        </Block>
+      ))}
+      <Block>
+        <Text weight="semibold">Mix line variants</Text>
         <Timeline>
           {releaseFlow.map((step) => (
             <Timeline.Item key={step.title} title={step.title} lineVariant={step.variant} />
           ))}
         </Timeline>
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

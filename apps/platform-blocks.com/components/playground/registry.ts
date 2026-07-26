@@ -9,9 +9,14 @@ import {
   ListGroup,
   ListGroupItem,
   Form,
+  brandIcons,
 } from '@platform-blocks/ui';
+import { Asset } from 'expo-asset';
 
-export type PlaygroundControlType = 'boolean' | 'segmented' | 'select' | 'number' | 'text' | 'color' | 'size-slider';
+/** Every supported BrandIcon name, alphabetized for the playground select */
+const BRAND_NAMES = Object.keys(brandIcons).sort();
+
+export type PlaygroundControlType = 'boolean' | 'segmented' | 'select' | 'number' | 'text' | 'color' | 'size-slider' | 'range';
 
 export interface PlaygroundControlOverride {
   controlType?: PlaygroundControlType;
@@ -22,6 +27,12 @@ export interface PlaygroundControlOverride {
   placeholder?: string;
   colorPresets?: string[];
   label?: string;
+  /**
+   * For `controlType: 'range'` — the sibling prop driven by the upper thumb. The
+   * control lives under the lower prop's name; the paired prop's own control is
+   * dropped so the two edit as a single range slider.
+   */
+  pairWith?: string;
 }
 
 export interface PlaygroundExtraControl extends PlaygroundControlOverride {
@@ -66,7 +77,8 @@ const CITY_SUGGESTIONS = [
 ];
 
 const PROGRESS_COLORS = ['primary', 'secondary', 'success', 'warning', 'error', 'gray'];
-const KNOB_VARIANTS: Array<'level' | 'stepped' | 'endless' | 'dual' | 'status'> = ['level', 'stepped', 'endless', 'dual', 'status'];
+const KNOB_BEHAVIORS: Array<'level' | 'stepped' | 'endless' | 'dual' | 'status'> = ['level', 'stepped', 'endless', 'dual', 'status'];
+const KNOB_VARIANTS: Array<'default' | 'minimal' | 'digital' | 'retro' | 'studio'> = ['default', 'minimal', 'digital', 'retro', 'studio'];
 const SLIDER_VARIANTS: Array<'horizontal' | 'vertical'> = ['horizontal', 'vertical'];
 const TAB_VARIANTS: Array<'line' | 'chip' | 'card' | 'folder'> = ['line', 'chip', 'card', 'folder'];
 const TAB_COLOR_OPTIONS = ['primary', 'secondary', 'gray', 'tertiary'];
@@ -165,7 +177,8 @@ const ALERT_VARIANTS: Array<'light' | 'filled' | 'outline' | 'subtle'> = ['subtl
 const ALERT_COLOR_OPTIONS: Array<'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'gray'> = ['primary', 'secondary', 'success', 'warning', 'error', 'gray'];
 const ALERT_SEVERITIES: Array<'info' | 'success' | 'warning' | 'error'> = ['info', 'success', 'warning', 'error'];
 
-const AVATAR_SAMPLE_IMAGE = 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=160&q=80';
+// Served from apps/platform-blocks.com/public/avatars — keeps the playground off third-party image hosts.
+const AVATAR_SAMPLE_IMAGE = '/avatars/avatar-1.png';
 const AVATAR_COLOR_PRESETS = ['#0f172a', '#475569', '#6366f1', '#0ea5e9', '#f97316', '#f43f5e'];
 
 const STEPPER_ORIENTATIONS: Array<'horizontal' | 'vertical'> = ['horizontal', 'vertical'];
@@ -265,13 +278,14 @@ const buildAccordionPlaygroundItems = () =>
 // Sample data + helpers for data-driven / compositional component playgrounds
 // ---------------------------------------------------------------------------
 
-const SAMPLE_IMAGE = 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=640&q=80';
-const SAMPLE_VIDEO = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+const SAMPLE_IMAGE = require('../../assets/images/scene-meadow.png');
+const SAMPLE_VIDEO = Asset.fromModule(require('../../assets/video/demo-clip.mp4')).uri;
 
+// Gallery reads `id` + `uri` off each item, so keep those keys in sync with GalleryItem.
 const GALLERY_IMAGES = [
-  { src: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80', alt: 'Circuit board', title: 'Circuitry' },
-  { src: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=800&q=80', alt: 'Aurora', title: 'Aurora' },
-  { src: 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=800&q=80', alt: 'Galaxy', title: 'Deep field' },
+  { id: 'aurora', uri: require('../../assets/images/scene-aurora.png'), alt: 'Aurora over a ridge', title: 'Aurora' },
+  { id: 'city', uri: require('../../assets/images/scene-city.png'), alt: 'City skyline at dusk', title: 'City lights' },
+  { id: 'forest', uri: require('../../assets/images/scene-forest.png'), alt: 'Evergreen forest', title: 'Forest trail' },
 ];
 
 const TREE_DATA = [
@@ -759,7 +773,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     controlOverrides: {
       type: { controlType: 'segmented', options: ACCORDION_TYPES },
       variant: { controlType: 'segmented', options: ACCORDION_VARIANTS },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       color: { controlType: 'segmented', options: ACCORDION_COLORS },
       density: { controlType: 'segmented', options: ACCORDION_DENSITY },
       chevronPosition: { controlType: 'segmented', options: ACCORDION_CHEVRON_POSITIONS },
@@ -782,7 +796,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, 'tooltip', 'tooltipPosition'],
     controlOverrides: {
       variant: { controlType: 'segmented', options: ['filled', 'secondary', 'outline', 'ghost', 'gradient', 'link', 'none'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       colorVariant: {
         controlType: 'color',
         placeholder: 'primary.6 or #3b82f6',
@@ -814,7 +828,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     controlOverrides: {
       value: { controlType: 'select', options: SPORTS_OPTIONS.map(option => option.value) },
       variant: { controlType: 'segmented', options: ['default', 'filled', 'outline', 'unstyled'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS }
+      size: { controlType: 'size-slider', options: SIZE_TOKENS }
     }
   },
   AutoComplete: {
@@ -832,7 +846,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['placeholder', 'size', 'radius', 'disabled', 'clearable', 'multiSelect', 'allowCustomValue'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'data', 'renderItem', 'renderEmptyState', 'renderLoadingState', 'value', 'selectedValues', 'textInputProps', 'selectedValuesContainerStyle', 'selectedValueChipProps', 'suggestionsStyle', 'suggestionItemStyle'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS }
+      size: { controlType: 'size-slider', options: SIZE_TOKENS }
     }
   },
   Knob: {
@@ -843,20 +857,39 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       min: 0,
       max: 100,
       step: 1,
-      size: 200,
-      variant: 'level',
+      size: 'xl',
+      behavior: 'level',
+      variant: 'default',
       valueLabel: {
         position: 'center',
         suffix: '%'
       }
     },
-    pinnedProps: ['value', 'min', 'max', 'step', 'size', 'variant'],
+    pinnedProps: ['value', 'min', 'max', 'step', 'size', 'ringThickness', 'variant', 'behavior'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'valueLabel', 'marks', 'tickLayers', 'panning', 'appearance', 'interaction', 'pointer', 'progress', 'renderThumb'],
     controlOverrides: {
       value: { controlType: 'number', min: 0, max: 100, step: 1 },
-      size: { controlType: 'number', min: 120, max: 320, step: 10 },
-      variant: { controlType: 'segmented', options: KNOB_VARIANTS }
-    }
+      min: { controlType: 'range', pairWith: 'max', label: 'Min / Max', min: 0, max: 200, step: 1 },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
+      variant: { controlType: 'select', options: KNOB_VARIANTS },
+      behavior: { controlType: 'select', options: KNOB_BEHAVIORS }
+    },
+    // Ring thickness lives under the nested `appearance` prop, which flat controls can't
+    // reach — expose it on its own and fold it back in. It starts at 0 meaning "auto", so
+    // the visual variants keep the stroke weights that distinguish them until you take over.
+    extraControls: [
+      { name: 'ringThickness', label: 'Ring Thickness (0 = auto)', controlType: 'number', min: 0, max: 40, step: 1, initialValue: 0 },
+    ],
+    transformProps: (values) => {
+      const { ringThickness, ...rest } = values;
+      if (typeof ringThickness === 'number' && ringThickness > 0) {
+        rest.appearance = {
+          ...(rest.appearance ?? {}),
+          ring: { ...(rest.appearance?.ring ?? {}), thickness: ringThickness },
+        };
+      }
+      return rest;
+    },
   },
   Slider: {
     id: 'Slider',
@@ -911,7 +944,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, 'transitionDuration', 'radius'],
     controlOverrides: {
       value: { controlType: 'number', min: 0, max: 100, step: 5 },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       color: { controlType: 'select', options: PROGRESS_COLORS }
     }
   },
@@ -949,6 +982,40 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       shadow: { controlType: 'select', options: CARD_SHADOW_OPTIONS }
     }
   },
+  Surface: {
+    id: 'Surface',
+    component: 'Surface',
+    initialProps: {
+      level: 1,
+      padding: 'md',
+      radius: 'lg',
+      children: React.createElement(
+        Text,
+        { style: { fontSize: 16 } },
+        'A Surface owns one decision: how far off the page it sits.'
+      )
+    },
+    pinnedProps: ['level', 'raised', 'withBorder', 'bg', 'padding', 'radius', 'shadow', 'borderColor', 'borderWidth'],
+    hiddenProps: [...COMMON_EVENT_PROPS, 'style', 'testID'],
+    controlOverrides: {
+      // Number, not segmented — segmented emits strings, and the level has to
+      // stay numeric for the ladder lookup.
+      level: { controlType: 'number', min: 0, max: 3, step: 1 },
+      raised: { controlType: 'boolean' },
+      // Left unset in initialProps so the default 'auto' (hairline in dark mode
+      // only) is what the playground shows until you toggle it.
+      withBorder: { controlType: 'boolean' },
+      bg: {
+        controlType: 'select',
+        options: ['', 'primary', 'secondary', 'success', 'warning', 'error', 'gray', 'surface', 'subtle', 'elevated', 'base']
+      },
+      borderColor: { controlType: 'color' },
+      borderWidth: { controlType: 'number', min: 0, max: 6, step: 1 },
+      padding: { controlType: 'select', options: SIZE_TOKENS },
+      radius: { controlType: 'select', options: RADIUS_TOKENS },
+      shadow: { controlType: 'select', options: CARD_SHADOW_OPTIONS }
+    }
+  },
   Input: {
     id: 'Input',
     component: 'Input',
@@ -969,7 +1036,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     controlOverrides: {
       type: { controlType: 'segmented', options: INPUT_TYPES },
       variant: { controlType: 'segmented', options: ['default', 'filled', 'outline', 'unstyled'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       radius: { controlType: 'select', options: RADIUS_TOKENS },
       placeholderTextColor: { controlType: 'color' }
     }
@@ -992,7 +1059,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, 'controls', 'children', 'onIcon', 'offIcon'],
     controlOverrides: {
       variant: { controlType: 'select', options: SWITCH_VARIANTS },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       color: { controlType: 'select', options: SWITCH_COLOR_OPTIONS },
       labelPosition: { controlType: 'segmented', options: SWITCH_LABEL_POSITIONS }
     },
@@ -1033,7 +1100,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, 'items', 'tabStyle', 'textStyle', 'contentStyle', 'persistKey', 'autoPersist', 'children', 'disabledKeys'],
     controlOverrides: {
       variant: { controlType: 'segmented', options: TAB_VARIANTS },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       color: { controlType: 'select', options: TAB_COLOR_OPTIONS },
       orientation: { controlType: 'segmented', options: ['horizontal', 'vertical'] },
       location: { controlType: 'segmented', options: ['start', 'end'] },
@@ -1085,7 +1152,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['size', 'variant', 'color', 'animateOnPress', 'pressed'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'modifiers'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       variant: { controlType: 'segmented', options: ['default', 'minimal', 'outline', 'filled'] },
       color: { controlType: 'select', options: ['primary', 'secondary', 'gray', 'success', 'warning', 'error'] },
       modifiers: false
@@ -1149,7 +1216,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, 'tx', 'txParams', 'value', 'fontFamily', 'as'],
     controlOverrides: {
       variant: { controlType: 'select', options: TEXT_VARIANT_OPTIONS },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       colorVariant: { controlType: 'select', options: TEXT_COLOR_VARIANTS },
       color: {
         controlType: 'color',
@@ -1185,7 +1252,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['active', 'size', 'colorVariant', 'align', 'lineWidth', 'bulletSize', 'centerMode', 'reverseActive'],
     hiddenProps: [...COMMON_EVENT_PROPS],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       colorVariant: { controlType: 'select', options: TIMELINE_COLOR_VARIANTS },
       color: {
         controlType: 'color',
@@ -1224,39 +1291,25 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     id: 'DataList',
     component: 'DataList',
     initialProps: {
+      // `data` shorthand renders directly — more robust than injecting
+      // Item/ItemLabel/ItemValue children by reflecting off the component.
+      data: [
+        { label: 'Name', value: 'John Doe' },
+        { label: 'Email', value: 'john@example.com' },
+        { label: 'Role', value: 'Software Engineer' },
+      ],
       orientation: 'horizontal',
       size: 'md',
       withDivider: false,
       labelWidth: 120,
     },
-    pinnedProps: ['orientation', 'size', 'withDivider', 'labelWidth'],
-    hiddenProps: [...COMMON_EVENT_PROPS],
+    pinnedProps: ['orientation', 'size', 'withDivider', 'labelWidth', 'spacing'],
+    hiddenProps: [...COMMON_EVENT_PROPS, 'data', 'children', 'style', 'testID', 'labelColor', 'valueColor', 'dividerColor'],
     controlOverrides: {
       orientation: { controlType: 'segmented', options: ['horizontal', 'vertical'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       labelWidth: { controlType: 'number', min: 60, max: 240, step: 10 },
     },
-    previewWrapper: (node) => {
-      if (!React.isValidElement(node)) return node;
-      const Item = (node.type as any)?.Item;
-      const ItemLabel = (node.type as any)?.ItemLabel;
-      const ItemValue = (node.type as any)?.ItemValue;
-      if (!Item || !ItemLabel || !ItemValue) return node;
-      const rows = [
-        { label: 'Name', value: 'John Doe' },
-        { label: 'Email', value: 'john@example.com' },
-        { label: 'Role', value: 'Software Engineer' },
-      ];
-      const items = rows.map((row) =>
-        React.createElement(
-          Item,
-          { key: row.label },
-          React.createElement(ItemLabel, undefined, row.label),
-          React.createElement(ItemValue, undefined, row.value),
-        )
-      );
-      return React.cloneElement(node, undefined, items);
-    }
   },
   Waveform: {
     id: 'Waveform',
@@ -1317,13 +1370,15 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       fullWidth: false,
       radius: 'md'
     },
-    pinnedProps: ['variant', 'color', 'sev', 'withCloseButton', 'fullWidth', 'radius'],
-    hiddenProps: [...COMMON_EVENT_PROPS, 'icon', 'closeButtonLabel', 'onClose'],
+    pinnedProps: ['title', 'children', 'variant', 'color', 'sev', 'withCloseButton', 'fullWidth', 'radius'],
+    hiddenProps: [...COMMON_EVENT_PROPS, 'icon', 'closeButtonLabel', 'onClose', 'style', 'testID', 'titleProps', 'bodyProps'],
     controlOverrides: {
       variant: { controlType: 'segmented', options: ALERT_VARIANTS },
       color: { controlType: 'select', options: ALERT_COLOR_OPTIONS },
       sev: { controlType: 'segmented', options: ALERT_SEVERITIES },
-      radius: { controlType: 'select', options: RADIUS_TOKENS }
+      radius: { controlType: 'select', options: RADIUS_TOKENS },
+      title: { controlType: 'text', placeholder: 'Alert title' },
+      children: { controlType: 'text', placeholder: 'Alert message' }
     }
   },
   Avatar: {
@@ -1345,7 +1400,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['size', 'src', 'fallback', 'online', 'showText', 'gap', 'indicatorColor', 'backgroundColor', 'textColor'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'accessibilityLabel', 'style', 'fallbackProps', 'labelProps', 'descriptionProps'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       src: { controlType: 'text', placeholder: 'https://example.com/avatar.jpg' },
       gap: { controlType: 'number', min: 0, max: 32, step: 1 },
       backgroundColor: { controlType: 'color', colorPresets: AVATAR_COLOR_PRESETS, placeholder: '#0f172a' },
@@ -1369,7 +1424,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       active: { controlType: 'number', min: 0, max: STEPPER_SAMPLE_STEPS.length - 1, step: 1 },
       orientation: { controlType: 'segmented', options: STEPPER_ORIENTATIONS },
       iconPosition: { controlType: 'segmented', options: STEPPER_ICON_POSITIONS },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       color: { controlType: 'color', placeholder: '#6366f1', colorPresets: ['#6366f1', '#0ea5e9', '#22c55e', '#f97316'] }
     },
     previewWrapper: (node) => {
@@ -1413,7 +1468,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, 'colors', 'containerStyle', 'debug', 'startOnView', 'inViewMargin'],
     controlOverrides: {
       variant: { controlType: 'select', options: TEXT_VARIANT_OPTIONS },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       color: { controlType: 'color', placeholder: '#94a3b8', colorPresets: SHIMMER_COLOR_PRESETS },
       shimmerColor: { controlType: 'color', placeholder: '#f8fafc', colorPresets: SHIMMER_COLOR_PRESETS },
       direction: { controlType: 'segmented', options: SHIMMER_DIRECTIONS },
@@ -1441,7 +1496,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, 'colors', 'locations', 'start', 'end'],
     controlOverrides: {
       variant: { controlType: 'select', options: TEXT_VARIANT_OPTIONS },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       weight: { controlType: 'segmented', options: FONT_WEIGHT_OPTIONS },
       angle: { controlType: 'number', min: 0, max: 360, step: 5 },
       position: { controlType: 'number', min: 0, max: 1, step: 0.05 }
@@ -1473,7 +1528,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS],
     controlOverrides: {
       variant: { controlType: 'segmented', options: LOADER_VARIANTS },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       color: { controlType: 'color', placeholder: '#6366f1', colorPresets: LOADER_COLOR_PRESETS },
       speed: { controlType: 'number', min: 200, max: 2000, step: 50 }
     }
@@ -1512,7 +1567,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, 'startIcon', 'endIcon', 'onRemove', 'removePosition', 'style', 'textStyle', 'v', 'c'],
     controlOverrides: {
       variant: { controlType: 'segmented', options: ['filled', 'outline', 'light', 'subtle', 'gradient'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       color: { controlType: 'select', options: ['primary', 'secondary', 'success', 'warning', 'error', 'gray'] },
       children: { controlType: 'text', placeholder: 'Badge label' },
     },
@@ -1531,30 +1586,9 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, 'startIcon', 'endIcon', 'onRemove', 'removePosition', 'style', 'textStyle'],
     controlOverrides: {
       variant: { controlType: 'segmented', options: ['filled', 'outline', 'light', 'subtle', 'gradient'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       color: { controlType: 'segmented', options: ['primary', 'secondary', 'success', 'warning', 'error', 'gray'] },
       children: { controlType: 'text', placeholder: 'Chip label' },
-    },
-  },
-  Notice: {
-    id: 'Notice',
-    component: 'Notice',
-    initialProps: {
-      title: 'System update',
-      children: 'A new software version is available for download.',
-      variant: 'light',
-      color: 'primary',
-      fullWidth: true,
-      withCloseButton: false,
-    },
-    pinnedProps: ['title', 'children', 'variant', 'color', 'sev', 'fullWidth', 'withCloseButton'],
-    hiddenProps: [...COMMON_EVENT_PROPS, 'closeButtonLabel', 'style', 'testID', 'icon'],
-    controlOverrides: {
-      variant: { controlType: 'segmented', options: ['light', 'filled', 'outline', 'subtle'] },
-      color: { controlType: 'segmented', options: ['primary', 'secondary', 'success', 'warning', 'error', 'gray'] },
-      sev: { controlType: 'segmented', options: ['info', 'success', 'warning', 'error'] },
-      title: { controlType: 'text', placeholder: 'Notice title' },
-      children: { controlType: 'text', placeholder: 'Notice message' },
     },
   },
   Checkbox: {
@@ -1570,10 +1604,35 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['label', 'checked', 'size', 'disabled', 'indeterminate', 'colorVariant', 'labelPosition', 'description', 'error'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'defaultChecked', 'icon', 'indeterminateIcon', 'style', 'testID', 'children', 'required'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       colorVariant: { controlType: 'segmented', options: ['primary', 'secondary', 'success', 'error', 'warning'] },
       labelPosition: { controlType: 'segmented', options: ['left', 'right', 'top', 'bottom'] },
       label: { controlType: 'text', placeholder: 'Checkbox label' },
+      description: { controlType: 'text', placeholder: 'Description text' },
+      error: { controlType: 'text', placeholder: 'Error message' },
+    },
+  },
+  ControlField: {
+    id: 'ControlField',
+    component: 'ControlField',
+    initialProps: {
+      label: 'Push notifications',
+      description: 'Get notified when something happens',
+      variant: 'switch',
+      checked: true,
+      size: 'md',
+      indicatorPosition: 'right',
+      disabled: false,
+      isInvalid: false,
+    },
+    pinnedProps: ['label', 'description', 'variant', 'checked', 'size', 'indicatorPosition', 'colorVariant', 'disabled', 'isRequired', 'isInvalid', 'error'],
+    hiddenProps: [...COMMON_EVENT_PROPS, 'isSelected', 'defaultSelected', 'control', 'color', 'style', 'testID', 'children', 'accessibilityLabel', 'labelProps', 'descriptionProps'],
+    controlOverrides: {
+      variant: { controlType: 'segmented', options: ['switch', 'checkbox', 'radio'] },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
+      indicatorPosition: { controlType: 'segmented', options: ['left', 'right'] },
+      colorVariant: { controlType: 'segmented', options: ['primary', 'secondary', 'success', 'error', 'warning'] },
+      label: { controlType: 'text', placeholder: 'Label text' },
       description: { controlType: 'text', placeholder: 'Description text' },
       error: { controlType: 'text', placeholder: 'Error message' },
     },
@@ -1593,7 +1652,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, 'value', 'style', 'testID'],
     controlOverrides: {
       variant: { controlType: 'segmented', options: ['solid', 'ghost'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       colorVariant: { controlType: 'segmented', options: ['primary', 'secondary', 'success', 'error', 'warning'] },
       children: { controlType: 'text', placeholder: 'Toggle label' },
     },
@@ -1619,7 +1678,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['variant', 'orientation', 'labelPosition', 'size', 'color', 'label', 'description', 'error', 'disabled', 'required'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'name', 'style', 'testID', 'children', 'onKeyDown', 'value', 'checked', 'icon'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       labelPosition: { controlType: 'segmented', options: ['left', 'right'] },
       label: { controlType: 'text', placeholder: 'Group label' },
       description: { controlType: 'text', placeholder: 'Description text' },
@@ -1661,7 +1720,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, 'colors', 'style', 'testID'],
     controlOverrides: {
       shape: { controlType: 'segmented', options: ['text', 'chip', 'avatar', 'button', 'card', 'circle', 'rectangle', 'rounded'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       w: { controlType: 'number', min: 50, max: 500, step: 10, label: 'Width' },
       h: { controlType: 'number', min: 20, max: 300, step: 10, label: 'Height' },
       animationDuration: { controlType: 'number', min: 500, max: 3000, step: 100 },
@@ -1680,7 +1739,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['value', 'count', 'size', 'readOnly', 'allowFraction', 'color', 'emptyColor', 'gap'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'onHover', 'character', 'emptyCharacter', 'hoverColor', 'style', 'testID', 'accessibilityLabel', 'accessibilityHint', 'label', 'labelPosition', 'labelGap', 'precision', 'defaultValue', 'showTooltip'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       count: { controlType: 'number', min: 1, max: 10, step: 1 },
       value: { controlType: 'number', min: 0, max: 10, step: 0.5 },
       gap: { controlType: 'number', min: 0, max: 20, step: 1 },
@@ -1713,7 +1772,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       // 'gradient' added — fades transparent → color → transparent (uses
       // expo-linear-gradient when available; falls back gracefully otherwise)
       variant: { controlType: 'segmented', options: ['solid', 'dashed', 'dotted', 'gradient'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       labelPosition: { controlType: 'segmented', options: ['left', 'center', 'right'] },
       label: { controlType: 'text', placeholder: 'Divider label' },
       // colorVariant aligned with the rest of the lib — drops 'tertiary' and
@@ -1786,7 +1845,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['size', 'maxItems', 'showIcons'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'items', 'accessibilityLabel'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       maxItems: { controlType: 'number', min: 1, max: 10, step: 1 },
     },
   },
@@ -1812,7 +1871,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       total: { controlType: 'number', min: 1, max: 100, step: 1 },
       siblings: { controlType: 'number', min: 0, max: 5, step: 1 },
       boundaries: { controlType: 'number', min: 0, max: 3, step: 1 },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       variant: { controlType: 'segmented', options: ['default', 'outline', 'subtle'] },
       color: { controlType: 'segmented', options: ['primary', 'secondary', 'gray'] },
     },
@@ -1833,7 +1892,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     controlOverrides: {
       icon: { controlType: 'text', placeholder: 'Icon name (e.g. rocket)' },
       variant: { controlType: 'segmented', options: ['filled', 'secondary', 'outline', 'ghost', 'gradient', 'none'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       colorVariant: { controlType: 'color', placeholder: '#6366f1', colorPresets: ['#228be6', '#845ef7', '#12b886', '#f59f00', '#e03131'] },
       tooltip: { controlType: 'text', placeholder: 'Tooltip text' },
     },
@@ -1856,7 +1915,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['label', 'placeholder', 'size', 'rows', 'autoResize', 'maxLength', 'showCharCounter', 'resize', 'disabled', 'error'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'value', 'defaultValue', 'minRows', 'maxRows', 'h', 'startSection', 'endSection', 'clearable', 'clearButtonLabel'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       rows: { controlType: 'number', min: 1, max: 20, step: 1 },
       maxLength: { controlType: 'number', min: 0, max: 2000, step: 50 },
       resize: { controlType: 'segmented', options: ['none', 'vertical', 'horizontal', 'both'] },
@@ -1884,7 +1943,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['label', 'size', 'min', 'max', 'step', 'withControls', 'withSideButtons', 'disabled', 'allowDecimal', 'allowNegative', 'prefix', 'suffix', 'thousandSeparator'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'value', 'defaultValue', 'precision', 'decimalScale', 'fixedDecimalScale', 'decimalSeparator', 'thousandsGroupStyle', 'format', 'currency', 'startValue', 'shiftMultiplier', 'hideControlsOnMobile', 'withDragGesture', 'dragAxis', 'clampBehavior', 'allowEmpty', 'allowLeadingZeros', 'startSection', 'endSection', 'clearable', 'clearButtonLabel'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       min: { controlType: 'number', min: -1000, max: 1000, step: 1 },
       max: { controlType: 'number', min: -1000, max: 10000, step: 1 },
       step: { controlType: 'number', min: 0.01, max: 100, step: 0.5 },
@@ -1939,7 +1998,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['size', 'color', 'orientation', 'fullWidth', 'disabled', 'readOnly', 'variant', 'withItemsBorders', 'label', 'labelPosition'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'data', 'value', 'defaultValue', 'autoContrast', 'transitionDuration', 'transitionTimingFunction', 'description'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       color: { controlType: 'color', placeholder: '#228be6', colorPresets: ['#228be6', '#845ef7', '#12b886', '#f59f00', '#e03131'] },
       orientation: { controlType: 'segmented', options: ['horizontal', 'vertical'] },
       variant: { controlType: 'segmented', options: ['default', 'filled', 'outline', 'ghost'] },
@@ -1962,7 +2021,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     controlOverrides: {
       highlight: { controlType: 'text', placeholder: 'Text to highlight' },
       highlightColor: { controlType: 'color', placeholder: '#ffec99', colorPresets: ['#ffec99', '#a5d8ff', '#b2f2bb', '#ffc9c9', '#d0bfff'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       weight: { controlType: 'segmented', options: ['normal', 'medium', 'semibold', 'bold'] },
       color: { controlType: 'color', placeholder: '#1a1b1e', colorPresets: ['#1a1b1e', '#495057', '#228be6', '#e03131'] },
     },
@@ -1982,7 +2041,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       fullWidth: true,
     },
     pinnedProps: ['language', 'title', 'showLineNumbers', 'highlight', 'showCopyButton', 'variant', 'wrap', 'fullWidth', 'spoiler', 'fileHeader'],
-    hiddenProps: [...COMMON_EVENT_PROPS, 'children', 'fileName', 'fileIcon', 'highlightLines', 'spoilerMaxHeight', 'promptSymbol', 'githubUrl', 'colors'],
+    hiddenProps: [...COMMON_EVENT_PROPS, 'children', 'fileName', 'fileIcon', 'files', 'defaultFile', 'activeFile', 'highlightLines', 'spoilerMaxHeight', 'promptSymbol', 'githubUrl', 'colors'],
     controlOverrides: {
       language: { controlType: 'select', options: ['tsx', 'typescript', 'javascript', 'python', 'json', 'html', 'css', 'bash', 'markdown'] },
       title: { controlType: 'text', placeholder: 'File title' },
@@ -2014,40 +2073,65 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     },
     previewWrapper: (node) => React.createElement(View, { style: { width: '100%', maxWidth: 420 } }, node),
   },
-  AppStoreBadge: {
-    id: 'AppStoreBadge',
-    component: 'AppStoreBadge',
-    initialProps: {
-      brand: 'apple',
-      primaryText: 'Download on the',
-      secondaryText: 'App Store',
-      size: 'md',
-      disabled: false,
-    },
-    pinnedProps: ['brand', 'primaryText', 'secondaryText', 'size', 'disabled', 'darkMode'],
-    hiddenProps: [...COMMON_EVENT_PROPS, 'backgroundColor', 'textColor', 'borderColor'],
-    controlOverrides: {
-      brand: { controlType: 'select', options: ['apple', 'google', 'app-store', 'galaxy-store', 'amazonAppstore', 'chromeWebStore'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
-    },
-  },
   Blockquote: {
     id: 'Blockquote',
     component: 'Blockquote',
     initialProps: {
       children: 'Design is not just what it looks like and feels like. Design is how it works.',
-      author: 'Steve Jobs',
-      source: 'Apple',
-      border: true,
+      variant: 'testimonial',
+      size: 'md',
       alignment: 'left',
+      attributionAlignment: 'right',
+      border: false,
+      shadow: true,
+      verified: true,
+      quoteIconPosition: 'top-left',
     },
-    pinnedProps: ['variant', 'size', 'alignment', 'border', 'shadow', 'verified', 'author', 'source'],
-    hiddenProps: [...COMMON_EVENT_PROPS, 'links', 'rating', 'date', 'quoteIcon', 'quoteIconPosition', 'quoteIconSize', 'verifiedTooltip', 'color'],
+    pinnedProps: [
+      'variant', 'size', 'alignment', 'attributionAlignment', 'quoteIconPosition',
+      'authorName', 'authorTitle', 'authorOrganization', 'authorAvatar',
+      'sourceName', 'date', 'ratingValue', 'verified', 'border', 'shadow',
+    ],
+    // `author`/`source`/`rating` are objects — they're edited through the flat
+    // sub-controls below and reassembled in transformProps.
+    hiddenProps: [...COMMON_EVENT_PROPS, 'author', 'source', 'rating', 'links', 'quoteIcon', 'quoteIconSize', 'verifiedTooltip', 'color'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
-      alignment: { controlType: 'segmented', options: ['left', 'center', 'right'] },
-      author: { controlType: 'text', placeholder: 'Author name' },
-      source: { controlType: 'text', placeholder: 'Source' },
+      variant: { controlType: 'select', options: ['default', 'testimonial', 'featured', 'minimal'] },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
+      alignment: { controlType: 'segmented', options: ['left', 'center', 'right'], label: 'Quote alignment' },
+      attributionAlignment: { controlType: 'segmented', options: ['left', 'center', 'right'], label: 'Author side' },
+      quoteIconPosition: { controlType: 'select', options: ['top-left', 'top-center', 'bottom-right', 'none'] },
+      date: { controlType: 'text', placeholder: '2 hours ago' },
+    },
+    extraControls: [
+      { name: 'authorName', label: 'Author name', controlType: 'text', initialValue: 'Steve Jobs', placeholder: 'Author name' },
+      { name: 'authorTitle', label: 'Author title', controlType: 'text', initialValue: 'Co-founder', placeholder: 'Role or title' },
+      { name: 'authorOrganization', label: 'Author organization', controlType: 'text', initialValue: 'Apple', placeholder: 'Company' },
+      { name: 'authorAvatar', label: 'Author avatar', controlType: 'boolean', initialValue: true },
+      { name: 'sourceName', label: 'Source', controlType: 'text', initialValue: 'Apple Newsroom', placeholder: 'Source name' },
+      { name: 'ratingValue', label: 'Rating', controlType: 'number', initialValue: 5, min: 0, max: 5, step: 1 },
+    ],
+    transformProps: (values) => {
+      const { authorName, authorTitle, authorOrganization, authorAvatar, sourceName, ratingValue, ...rest } = values;
+      // Cleared text controls emit '' — drop them so the snippet stays clean.
+      const props: Record<string, any> = Object.fromEntries(
+        Object.entries(rest).filter(([, v]) => v !== '')
+      );
+
+      if (authorName) {
+        props.author = {
+          name: authorName,
+          ...(authorTitle ? { title: authorTitle } : {}),
+          ...(authorOrganization ? { organization: authorOrganization } : {}),
+          ...(authorAvatar
+            ? { avatar: AVATAR_SAMPLE_IMAGE, avatarFallback: String(authorName).charAt(0).toUpperCase() }
+            : {}),
+        };
+      }
+      if (sourceName) props.source = { name: sourceName };
+      if (Number(ratingValue) > 0) props.rating = { value: Number(ratingValue), max: 5, showValue: true };
+
+      return props;
     },
     previewWrapper: (node) => React.createElement(View, { style: { width: '100%', maxWidth: 520 } }, node),
   },
@@ -2063,31 +2147,41 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       fullWidth: false,
       loading: false,
       disabled: false,
+      // Filling either badge line swaps the single-line button for the store badge.
+      primaryText: '',
+      secondaryText: '',
     },
-    pinnedProps: ['brand', 'title', 'variant', 'size', 'iconPosition', 'iconVariant', 'fullWidth', 'loading', 'disabled'],
-    hiddenProps: [...COMMON_EVENT_PROPS, 'key', 'color', 'textColor', 'colorVariant', 'tooltip', 'tooltipPosition', 'labelProps', 'loadingTitle', 'onPressIn', 'onPressOut', 'onLongPress', 'onLayout', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
+    pinnedProps: ['brand', 'title', 'primaryText', 'secondaryText', 'variant', 'size', 'iconPosition', 'iconVariant', 'fullWidth', 'loading', 'disabled', 'darkMode'],
+    hiddenProps: [...COMMON_EVENT_PROPS, 'key', 'color', 'textColor', 'backgroundColor', 'borderColor', 'colorVariant', 'tooltip', 'tooltipPosition', 'labelProps', 'loadingTitle', 'onPressIn', 'onPressOut', 'onLongPress', 'onLayout', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
     controlOverrides: {
-      brand: { controlType: 'select', options: ['google', 'apple', 'facebook', 'github', 'x', 'microsoft', 'discord', 'spotify', 'slack', 'linkedin'] },
+      brand: { controlType: 'select', options: ['google', 'apple', 'facebook', 'github', 'x', 'microsoft', 'discord', 'spotify', 'slack', 'linkedin', 'app-store', 'google-play'] },
       variant: { controlType: 'segmented', options: ['filled', 'outline', 'ghost'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       iconPosition: { controlType: 'segmented', options: ['left', 'right'] },
       title: { controlType: 'text', placeholder: 'Button label' },
+      primaryText: { controlType: 'text', placeholder: 'Badge line 1, e.g. Download on the' },
+      secondaryText: { controlType: 'text', placeholder: 'Badge line 2, e.g. App Store' },
     },
+    // Cleared text controls emit '' — drop them so the snippet stays clean.
+    transformProps: (values) => Object.fromEntries(
+      Object.entries(values).filter(([key, value]) =>
+        !(value === '' && (key === 'primaryText' || key === 'secondaryText')))
+    ),
   },
   BrandIcon: {
     id: 'BrandIcon',
     component: 'BrandIcon',
     initialProps: {
       brand: 'github',
-      size: 48,
+      size: '3xl',
       variant: 'default',
       invertInDarkMode: true,
     },
     pinnedProps: ['brand', 'size', 'variant', 'color', 'invertInDarkMode', 'decorative'],
     hiddenProps: ['style', 'label', 'colorScheme'],
     controlOverrides: {
-      brand: { controlType: 'text', placeholder: 'Brand name (e.g. github, apple)' },
-      size: { controlType: 'number', min: 16, max: 96, step: 4 },
+      brand: { controlType: 'select', options: BRAND_NAMES, placeholder: 'Select a brand' },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       color: { controlType: 'color', placeholder: 'auto' },
     },
     previewWrapper: (node) => React.createElement(View, { style: { alignItems: 'center', justifyContent: 'center', paddingVertical: 24 } }, node),
@@ -2108,7 +2202,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, 'date', 'defaultDate', 'value', 'minDate', 'maxDate', 'excludeDate', 'locale', 'getDayProps', 'renderDay', 'level', 'defaultLevel', 'onLevelChange', 'onDateChange', 'static', 'weekendDays'],
     controlOverrides: {
       type: { controlType: 'segmented', options: ['single', 'multiple', 'range'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       numberOfMonths: { controlType: 'number', min: 1, max: 3, step: 1 },
       firstDayOfWeek: { controlType: 'number', min: 0, max: 6, step: 1 },
     },
@@ -2195,7 +2289,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, ...INPUT_NOISE_PROPS, 'swatches', 'placement', 'flip', 'shift', 'boundary', 'offset', 'autoReposition', 'fallbackPlacements', 'keyboardAvoidance', 'previewStyle', 'inputStyle', 'error', 'description', 'placeholder', 'label', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
     controlOverrides: {
       format: { controlType: 'segmented', options: ['hex', 'rgba', 'hsla'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       variant: { controlType: 'segmented', options: INPUT_VARIANTS },
       radius: { controlType: 'select', options: RADIUS_TOKENS },
     },
@@ -2262,7 +2356,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     controlOverrides: {
       value: { controlType: 'text', placeholder: 'Text to copy' },
       label: { controlType: 'text', placeholder: 'Button label' },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
     },
   },
   DataTable: {
@@ -2275,16 +2369,17 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       selectable: false,
       striped: true,
       variant: 'default',
-      density: 'md',
+      density: 'normal',
       fullWidth: true,
       showRowDividers: true,
     },
-    pinnedProps: ['searchable', 'selectable', 'striped', 'variant', 'density', 'fullWidth', 'showRowDividers', 'loading', 'enhancedHover'],
+    pinnedProps: ['searchable', 'selectable', 'striped', 'variant', 'density', 'fullWidth', 'showRowDividers', 'loading'],
     hiddenProps: [
-      ...COMMON_EVENT_PROPS, 'id', 'data', 'columns', 'error', 'emptyMessage', 'searchPlaceholder', 'searchValue', 'onSearchChange',
+      ...COMMON_EVENT_PROPS, 'exportFileName', 'footerLabel', 'columnOrder', 'ariaLabel', 'enhancedHover',
+      'id', 'data', 'columns', 'error', 'emptyMessage', 'searchPlaceholder', 'searchValue', 'onSearchChange',
       'sortBy', 'onSortChange', 'filters', 'onFilterChange', 'pagination', 'onPaginationChange', 'selectedRows', 'onSelectionChange',
       'getRowId', 'onRowClick', 'editMode', 'onEditModeChange', 'onCellEdit', 'bulkActions', 'height', 'virtual', 'enableColumnResizing',
-      'rowFeatureToggle', 'initialHiddenColumns', 'onColumnVisibilityChange', 'onColumnSettings', 'showColumnVisibilityManager',
+      'rowFeatureToggle', 'initialHiddenColumns', 'onColumnVisibilityChange', 'showColumnVisibilityManager',
       'rowsPerPageOptions', 'showRowsPerPageControl', 'rowActions', 'actionsColumnWidth', 'headerBackgroundColor', 'enhancedLoading',
       'enhancedEmptyState', 'hoverColor', 'enhancedSelection', 'borderColor', 'hoverHighlight', 'rowBorderWidth', 'rowBorderColor',
       'rowBorderStyle', 'columnBorderWidth', 'columnBorderColor', 'columnBorderStyle', 'showOuterBorder', 'outerBorderWidth',
@@ -2294,7 +2389,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     ],
     controlOverrides: {
       variant: { controlType: 'segmented', options: ['default', 'minimal', 'bordered'] },
-      density: { controlType: 'segmented', options: ['sm', 'md', 'lg'] },
+      density: { controlType: 'segmented', options: ['compact', 'normal', 'comfortable'] },
     },
     previewWrapper: (node) => React.createElement(View, { style: { width: '100%' } }, node),
   },
@@ -2328,7 +2423,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, ...INPUT_NOISE_PROPS, 'calendarProps', 'displayFormat', 'valueFormat', 'withInput', 'onOpen', 'onClose', 'error', 'helperText', 'description', 'onClear', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
     controlOverrides: {
       type: { controlType: 'segmented', options: ['single', 'multiple', 'range'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       variant: { controlType: 'segmented', options: INPUT_VARIANTS },
     },
     previewWrapper: (node) => React.createElement(View, { style: { width: '100%', maxWidth: 320 } }, node),
@@ -2368,7 +2463,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       'withAsterisk', 'onChangeText', 'onClear', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py',
     ],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       label: { controlType: 'text', placeholder: 'Field label' },
     },
     previewWrapper: (node) => React.createElement(View, { style: { width: '100%', maxWidth: 420 } }, node),
@@ -2434,7 +2529,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     component: 'Indicator',
     initialProps: {
       label: '3',
-      size: 16,
+      size: 'lg',
       placement: 'top-end',
       offset: 4,
       invisible: false,
@@ -2446,7 +2541,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['label', 'size', 'color', 'placement', 'offset', 'borderWidth', 'invisible'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'labelProps', 'borderColor'],
     controlOverrides: {
-      size: { controlType: 'number', min: 6, max: 32, step: 1 },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       color: { controlType: 'color', placeholder: '#e11d48', colorPresets: ['#e11d48', '#22c55e', '#f97316', '#6366f1', '#0ea5e9'] },
       placement: { controlType: 'select', options: ['top-start', 'top-end', 'bottom-start', 'bottom-end'] },
       offset: { controlType: 'number', min: -8, max: 16, step: 1 },
@@ -2468,7 +2563,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['size', 'variant', 'color', 'external', 'disabled', 'target'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'href', 'textStyle', 'fontFamily', 'ff', 'accessibilityLabel', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       variant: { controlType: 'segmented', options: ['default', 'subtle', 'underline'] },
       color: { controlType: 'color' },
       target: { controlType: 'segmented', options: ['_self', '_blank'] },
@@ -2485,7 +2580,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS],
     controlOverrides: {
       variant: { controlType: 'segmented', options: ['default', 'bordered', 'flush'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
     },
     transformProps: (values) => ({ ...values, children: buildListGroupChildren() }),
     previewWrapper: (node) => React.createElement(View, { style: { width: '100%', maxWidth: 360 } }, node),
@@ -2581,7 +2676,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     ],
     controlOverrides: {
       title: { controlType: 'text', placeholder: 'Item label' },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
     },
     previewWrapper: (node) => React.createElement(View, { style: { width: '100%', maxWidth: 260 } }, node),
   },
@@ -2594,7 +2689,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['size'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'value', 'defaultDate', 'getDayProps', 'nextControlProps', 'previousControlProps', 'minDate', 'maxDate'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
     },
     previewWrapper: (node) => React.createElement(View, { style: { alignItems: 'center' } }, node),
   },
@@ -2609,7 +2704,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['size', 'monthsPerRow', 'hideHeader'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'value', 'year', 'onYearChange', 'minDate', 'maxDate', 'locale', 'monthLabelFormat'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       monthsPerRow: { controlType: 'number', min: 1, max: 4, step: 1 },
     },
     previewWrapper: (node) => React.createElement(View, { style: { alignItems: 'center' } }, node),
@@ -2628,7 +2723,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['label', 'placeholder', 'size', 'variant', 'clearable', 'disabled', 'required', 'withAsterisk', 'closeOnSelect'],
     hiddenProps: [...COMMON_EVENT_PROPS, ...INPUT_NOISE_PROPS, 'locale', 'formatOptions', 'formatValue', 'monthPickerProps', 'modalTitle', 'onOpen', 'onClose', 'error', 'helperText', 'description', 'onClear', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       variant: { controlType: 'segmented', options: INPUT_VARIANTS },
     },
     previewWrapper: (node) => React.createElement(View, { style: { width: '100%', maxWidth: 320 } }, node),
@@ -2672,16 +2767,17 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       size: 'md',
       variant: 'default',
       showCountryCode: true,
-      autoDetect: true,
+      autoDetect: false,
+      selectableCountry: false,
       clearable: true,
       disabled: false,
     },
-    pinnedProps: ['label', 'country', 'size', 'variant', 'showCountryCode', 'autoDetect', 'clearable', 'disabled', 'required'],
-    hiddenProps: [...COMMON_EVENT_PROPS, ...INPUT_NOISE_PROPS, 'mask', 'placeholder', 'error', 'helperText', 'description', 'withAsterisk', 'onClear', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
+    pinnedProps: ['label', 'country', 'size', 'variant', 'showCountryCode', 'selectableCountry', 'autoDetect', 'clearable', 'disabled', 'required'],
+    hiddenProps: [...COMMON_EVENT_PROPS, ...INPUT_NOISE_PROPS, 'defaultCountry', 'onCountryChange', 'textInputProps', 'mask', 'placeholder', 'error', 'helperText', 'description', 'withAsterisk', 'onClear', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       variant: { controlType: 'segmented', options: INPUT_VARIANTS },
-      country: { controlType: 'select', options: ['US', 'GB', 'CA', 'AU', 'DE', 'FR', 'JP', 'IN', 'BR'] },
+      country: { controlType: 'select', options: ['US', 'CA', 'GB', 'FR', 'DE', 'AU', 'BR', 'IN', 'JP', 'INTL'] },
     },
     previewWrapper: (node) => React.createElement(View, { style: { width: '100%', maxWidth: 320 } }, node),
   },
@@ -2701,7 +2797,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, ...INPUT_NOISE_PROPS, 'maskChar', 'manageFocus', 'enforceOrderInitialOnly', 'placeholder', 'allowPaste', 'borderRadius', 'onComplete', 'textInputProps', 'autoCapitalize', 'autoCorrect', 'selectTextOnFocus', 'textContentType', 'textAlign', 'spellCheck', 'selectionColor', 'showSoftInputOnFocus', 'error', 'helperText', 'description', 'withAsterisk', 'onClear', 'variant', 'label', 'required', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
     controlOverrides: {
       length: { controlType: 'number', min: 3, max: 8, step: 1 },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       type: { controlType: 'segmented', options: ['numeric', 'alphanumeric'] },
       spacing: { controlType: 'number', min: 0, max: 24, step: 2 },
     },
@@ -2712,7 +2808,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     component: 'QRCode',
     initialProps: {
       value: 'https://platform-blocks.com',
-      size: 180,
+      size: 'md',
       errorCorrectionLevel: 'M',
       moduleShape: 'square',
       finderShape: 'square',
@@ -2723,7 +2819,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, 'logo', 'gradient', 'onError', 'onLoadStart', 'onLoadEnd', 'copyOnPress', 'copyToastTitle', 'copyToastMessage', 'accessibilityLabel', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
     controlOverrides: {
       value: { controlType: 'text', placeholder: 'URL or text' },
-      size: { controlType: 'number', min: 80, max: 320, step: 10 },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       color: { controlType: 'color', placeholder: '#000000' },
       backgroundColor: { controlType: 'color', placeholder: '#ffffff' },
       moduleShape: { controlType: 'segmented', options: ['square', 'rounded', 'dot'] },
@@ -2746,7 +2842,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['placeholder', 'size', 'radius', 'clearButton', 'loading', 'autoFocus', 'buttonMode', 'debounce'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'value', 'defaultValue', 'onSubmit', 'endSection', 'rightComponent', 'accessibilityLabel', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       radius: { controlType: 'select', options: RADIUS_TOKENS },
       debounce: { controlType: 'number', min: 0, max: 1000, step: 50 },
     },
@@ -2774,7 +2870,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     controlOverrides: {
       maxHeight: { controlType: 'number', min: 20, max: 200, step: 10 },
       transitionDuration: { controlType: 'number', min: 0, max: 800, step: 50 },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       showLabel: { controlType: 'text', placeholder: 'Show more' },
       hideLabel: { controlType: 'text', placeholder: 'Hide' },
     },
@@ -2842,7 +2938,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     hiddenProps: [...COMMON_EVENT_PROPS, 'scrollSpyOptions', 'getControlProps', 'initialData', 'reinitializeRef', 'onActiveChange', 'container', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
     controlOverrides: {
       variant: { controlType: 'segmented', options: ['none', 'filled', 'light'] },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       radius: { controlType: 'select', options: RADIUS_TOKENS },
       depthOffset: { controlType: 'number', min: 0, max: 40, step: 4 },
     },
@@ -2853,20 +2949,17 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     component: 'TimePicker',
     initialProps: {
       withSeconds: false,
-      allowInput: true,
       minuteStep: 1,
-      size: 'md',
       disabled: false,
-      clearable: true,
-      fullWidth: false,
     },
-    pinnedProps: ['format', 'withSeconds', 'allowInput', 'minuteStep', 'secondStep', 'size', 'disabled', 'clearable', 'fullWidth'],
-    hiddenProps: [...COMMON_EVENT_PROPS, 'value', 'defaultValue', 'panelWidth', 'columnWidth', 'inputWidth', 'onOpen', 'onClose', 'title', 'autoClose', 'label', 'description', 'error', 'helperText', 'labelProps', 'descriptionProps', 'placeholderTextColor', 'startSectionProps', 'endSectionProps', 'clearButtonLabel'],
+    pinnedProps: ['format', 'withSeconds', 'minuteStep', 'secondStep', 'columnWidth', 'columnHeight', 'disabled'],
+    hiddenProps: [...COMMON_EVENT_PROPS, 'value', 'defaultValue', 'onChangeComplete'],
     controlOverrides: {
       format: { controlType: 'segmented', options: ['12', '24'] },
       minuteStep: { controlType: 'number', min: 1, max: 30, step: 1 },
       secondStep: { controlType: 'number', min: 1, max: 30, step: 1 },
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      columnWidth: { controlType: 'number', min: 56, max: 160, step: 8 },
+      columnHeight: { controlType: 'number', min: 120, max: 360, step: 20 },
     },
     previewWrapper: (node) => React.createElement(View, { style: { width: '100%', maxWidth: 320 } }, node),
   },
@@ -2882,7 +2975,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['label', 'placeholder', 'size', 'clearable', 'disabled'],
     hiddenProps: [...COMMON_EVENT_PROPS, ...INPUT_NOISE_PROPS],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
     },
     previewWrapper: (node) => React.createElement(View, { style: { width: '100%', maxWidth: 320 } }, node),
   },
@@ -2979,7 +3072,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['size', 'yearsPerRow', 'hideHeader', 'totalYears'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'value', 'decade', 'onDecadeChange', 'minDate', 'maxDate'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       yearsPerRow: { controlType: 'number', min: 1, max: 4, step: 1 },
       totalYears: { controlType: 'number', min: 6, max: 24, step: 3 },
     },
@@ -2999,7 +3092,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     pinnedProps: ['label', 'placeholder', 'size', 'variant', 'clearable', 'disabled', 'required', 'withAsterisk', 'closeOnSelect'],
     hiddenProps: [...COMMON_EVENT_PROPS, ...INPUT_NOISE_PROPS, 'formatValue', 'yearPickerProps', 'modalTitle', 'onOpen', 'onClose', 'error', 'helperText', 'description', 'onClear', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
     controlOverrides: {
-      size: { controlType: 'segmented', options: SIZE_TOKENS },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
       variant: { controlType: 'segmented', options: INPUT_VARIANTS },
     },
     previewWrapper: (node) => React.createElement(View, { style: { width: '100%', maxWidth: 280 } }, node),

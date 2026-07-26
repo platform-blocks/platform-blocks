@@ -488,6 +488,43 @@ describe('Select - Type Safety and Prop Validation', () => {
       );
       expect(getByRole('button')).toBeTruthy();
     });
+
+    // Custom rows used to render inside a plain View, so the dropdown looked
+    // right and selected nothing.
+    it('should select a custom-rendered option when pressed', () => {
+      const onChange = jest.fn();
+      const { getByLabelText, getByText } = render(
+        <Select
+          options={mockOptions}
+          placeholder="Pick one"
+          onChange={onChange}
+          renderOption={(opt) => <Text>{opt.label} Custom</Text>}
+        />
+      );
+
+      fireEvent.press(getByLabelText('Pick one'));
+      fireEvent.press(getByText(`${mockOptions[1].label} Custom`));
+
+      expect(onChange).toHaveBeenCalledWith(mockOptions[1].value, mockOptions[1]);
+    });
+
+    it('should not select a disabled custom-rendered option', () => {
+      const onChange = jest.fn();
+      const options = [{ label: 'Nope', value: 'nope', disabled: true }];
+      const { getByLabelText, getByText } = render(
+        <Select
+          options={options}
+          placeholder="Pick one"
+          onChange={onChange}
+          renderOption={(opt) => <Text>{opt.label} Custom</Text>}
+        />
+      );
+
+      fireEvent.press(getByLabelText('Pick one'));
+      fireEvent.press(getByText('Nope Custom'));
+
+      expect(onChange).not.toHaveBeenCalled();
+    });
   });
 
   describe('MaxHeight Prop', () => {

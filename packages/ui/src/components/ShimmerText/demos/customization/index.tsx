@@ -1,8 +1,8 @@
-import { Column, ShimmerText } from '@platform-blocks/ui';
+import { Block, ShimmerText } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="lg" align="flex-start">
+    <Block align="flex-start">
       <ShimmerText shimmerColor="#facc15" spread={3} weight="bold" size="xl">
         Golden spotlight offer
       </ShimmerText>
@@ -21,6 +21,6 @@ export default function Demo() {
       <ShimmerText once repeat={false} delay={0.5}>
         Single pass announcement
       </ShimmerText>
-    </Column>
+    </Block>
   );
 }

@@ -21,6 +21,10 @@ import { useTheme } from '../../core/theme';
 import { useKeyCapStyles } from './styles';
 import { KeyCapProps, type KeyCapMetrics } from './types';
 import { resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
+import { useTransitionDuration } from '../../core/motion/useTransitionDuration';
+
+/** Baseline the built-in press sequence is authored against (down + up). */
+const KEYCAP_BASE_DURATION = 250;
 
 // Helper function to normalize key codes
 const normalizeKeyCode = (key: string): string => {
@@ -114,6 +118,7 @@ export const KeyCap = factory<{
     variant = 'default',
     color = 'gray',
     animateOnPress = true,
+    transitionDuration,
     keyCode,
     modifiers,
     pressed: controlledPressed,
@@ -132,6 +137,7 @@ export const KeyCap = factory<{
 
   // Animation values
   const pressedValue = useSharedValue(0);
+  const pressMotionDuration = useTransitionDuration(transitionDuration, KEYCAP_BASE_DURATION);
   const [isPressed, setIsPressed] = useState(false);
 
   // Calculate final pressed state
@@ -159,14 +165,21 @@ export const KeyCap = factory<{
   const triggerPressAnimation = useCallback(() => {
     if (!animateOnPress || Platform.OS !== 'web') return;
 
-    pressedValue.value = withSequence(
-      withTiming(1, { duration: 100 }),
-      withTiming(0, { duration: 150 })
-    );
+    // `transitionDuration={0}` (and reduced motion) leave the cap at rest —
+    // a zero-length down/up sequence would render nothing anyway.
+    if (pressMotionDuration > 0) {
+      const scale = pressMotionDuration / KEYCAP_BASE_DURATION;
+      pressedValue.value = withSequence(
+        withTiming(1, { duration: Math.round(100 * scale) }),
+        withTiming(0, { duration: Math.round(150 * scale) })
+      );
+      setIsPressed(true);
+      setTimeout(() => setIsPressed(false), Math.round(250 * scale));
+      return;
+    }
 
-    setIsPressed(true);
-    setTimeout(() => setIsPressed(false), 250);
-  }, [animateOnPress, pressedValue]);
+    pressedValue.value = 0;
+  }, [animateOnPress, pressedValue, pressMotionDuration]);
 
   // Handle key press events (Web only)
   useEffect(() => {
@@ -217,11 +230,36 @@ export const KeyCap = factory<{
 
   // On web, render as kbd element for semantic HTML and better default styling
   if (Platform.OS === 'web') {
+    // The RN container style carries border/background values that DOM-side
+    // shorthands below would fight with (`borderWidth` vs `borderBottomWidth`,
+    // `backgroundColor` vs `background`). Drop them so React never sees a
+    // shorthand and a longhand updating the same value across renders.
+    const {
+      borderWidth,
+      borderColor,
+      borderBottomWidth,
+      borderBottomColor,
+      backgroundColor,
+      borderTopLeftRadius,
+      borderTopRightRadius,
+      borderBottomLeftRadius,
+      borderBottomRightRadius,
+      paddingHorizontal,
+      ...webContainerStyle
+    } = Object.assign({}, ...containerStyle);
+    const borderSideColor = theme.colors.surface[3];
+
     return (
       <kbd
         ref={ref as any}
         style={{
-          ...Object.assign({}, ...containerStyle),
+          // `paddingHorizontal` is RN-only, so map it to physical padding here.
+          // It goes before the spread so consumer spacing props (px/pl/pr, which
+          // resolve to logical padding on web) still win.
+          ...(paddingHorizontal !== undefined
+            ? { paddingLeft: paddingHorizontal, paddingRight: paddingHorizontal }
+            : null),
+          ...webContainerStyle,
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -236,9 +274,15 @@ export const KeyCap = factory<{
           background: finalPressed 
             ? theme.colors.surface[3]
             : `linear-gradient(180deg, ${theme.colors.surface[1]} 0%, ${theme.colors.surface[2]} 50%, ${theme.colors.surface[3]} 100%)`,
-          border: `1px solid ${theme.colors.surface[3]}`,
-          borderBottomColor: theme.colors.surface[4],
+          borderStyle: 'solid',
+          borderTopWidth: '1px',
+          borderRightWidth: '1px',
+          borderLeftWidth: '1px',
           borderBottomWidth: finalPressed ? '1px' : '2px',
+          borderTopColor: borderSideColor,
+          borderRightColor: borderSideColor,
+          borderLeftColor: borderSideColor,
+          borderBottomColor: theme.colors.surface[4],
           borderRadius: radiusStyles.borderRadius ?? styles.container.borderRadius ?? 6,
           boxShadow: finalPressed 
             ? 'inset 0 1px 2px rgba(0, 0, 0, 0.1)'

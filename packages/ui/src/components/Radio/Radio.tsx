@@ -1,14 +1,119 @@
-import React, { useCallback, useMemo } from 'react';
-import { View, Pressable, Platform } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { View, Pressable, Platform, Animated, Easing } from 'react-native';
 import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme';
 import { Text } from '../Text';
 import { FieldHeader } from '../_internal/FieldHeader';
-import { RadioProps, RadioGroupProps } from './types';
-import { useRadioStyles } from './styles';
+import { RadioProps, RadioGroupProps, RadioStyleProps } from './types';
+import { PlatformBlocksTheme } from '../../core/theme/types';
+import { getRadioMetrics, useRadioStyles } from './styles';
 import { Icon } from '../Icon';
 import { useDirection } from '../../core/providers/DirectionProvider';
+import { composite, readableTextOn } from '../../core/theme/colorUtils';
 import { getControlIconSize } from '../../core/theme/sizes';
+import { useTransitionDuration } from '../../core/motion/useTransitionDuration';
+
+/** Length of the default select animation; the deselect phase scales against it. */
+const RADIO_BASE_DURATION = 160;
+
+interface RadioIndicatorProps extends RadioStyleProps {
+  transitionDuration?: number;
+}
+
+/**
+ * Styles and animated layers of the radio circle, shared by `Radio` and the
+ * `card` variant of `RadioGroup` so both animate identically.
+ *
+ * Returns the component's full stylesheet alongside `layers` — the two views
+ * that make up the circle — so a caller can drop them into whatever element it
+ * already renders (a `Pressable` for `Radio`) instead of nesting another view.
+ */
+const useRadioIndicator = (props: RadioIndicatorProps & { theme: PlatformBlocksTheme }) => {
+  const { checked, disabled, error, size, color, transitionDuration, theme } = props;
+
+  const styleProps = { checked, disabled, error, size, color, theme };
+  const styles = useRadioStyles(styleProps);
+  // Endpoints the selection animation interpolates between.
+  const metrics = getRadioMetrics(styleProps);
+
+  // 0 is unselected, 1 is selected. One value drives the ring closing into a
+  // filled disc and the center hole shrinking into the dot, so the two read as
+  // a single movement rather than two layers crossfading.
+  const progress = useRef(new Animated.Value(checked ? 1 : 0)).current;
+  const motionDuration = useTransitionDuration(transitionDuration, RADIO_BASE_DURATION);
+
+  useEffect(() => {
+    // `transitionDuration={0}` (and reduced motion) land on the end state with
+    // no animation; any other explicit value scales the transition to match.
+    if (motionDuration === 0) {
+      progress.setValue(checked ? 1 : 0);
+      return;
+    }
+    // Deselecting is quicker than selecting — it is the incidental half of a
+    // group change, and the newly selected radio is what should draw the eye.
+    const duration = Math.round(motionDuration * (checked ? 1 : 0.7));
+    Animated.timing(progress, {
+      toValue: checked ? 1 : 0,
+      duration,
+      easing: Easing.out(Easing.cubic),
+      // Interpolating colors rules out the native driver; the control is a
+      // couple of views, so the JS driver keeps up.
+      useNativeDriver: false,
+    }).start();
+  }, [checked, progress, motionDuration]);
+
+  // An array rather than a fragment so callers can spread these straight into
+  // whatever element they render as the circle.
+  const layers = [
+    (
+      <Animated.View
+        key="track"
+        pointerEvents="none"
+        style={[
+          styles.radioTrack,
+          {
+            backgroundColor: progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [metrics.ringColor, metrics.fillColor],
+            }),
+          },
+        ]}
+      />
+    ),
+    (
+      <Animated.View
+        key="dot"
+        pointerEvents="none"
+        style={[
+          styles.radioInner,
+          {
+            backgroundColor: progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [metrics.holeColor, metrics.dotColor],
+            }),
+            transform: [
+              { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, metrics.dotScale] }) },
+            ],
+          },
+        ]}
+      />
+    ),
+  ];
+
+  return { styles, layers };
+};
+
+/**
+ * Standalone radio circle for surfaces that supply their own press target and
+ * label — the `card` variant, which shows selection with the circle rather than
+ * a check icon so it matches the `default` variant.
+ */
+const RadioIndicator = (props: RadioIndicatorProps) => {
+  const theme = useTheme();
+  const { styles, layers } = useRadioIndicator({ ...props, theme });
+
+  return <View pointerEvents="none" style={styles.radio}>{layers}</View>;
+};
 
 export const Radio = factory<{
   props: RadioProps;
@@ -34,18 +139,20 @@ export const Radio = factory<{
     onKeyDown,
     labelProps,
     descriptionProps,
+    transitionDuration,
     ...spacingProps
   } = props;
 
   const theme = useTheme();
   const { isRTL } = useDirection();
-  const styles = useRadioStyles({
+  const { styles, layers } = useRadioIndicator({
     checked,
     disabled,
     error: !!error,
     size,
     color,
-    theme
+    transitionDuration,
+    theme,
   });
 
   const handlePress = useCallback(() => {
@@ -98,7 +205,7 @@ export const Radio = factory<{
         }}
         accessibilityLabel={typeof labelContent === 'string' ? labelContent : undefined}
       >
-        <View style={styles.radioInner} />
+        {layers}
       </Pressable>
     </View>
   );
@@ -171,6 +278,7 @@ export const RadioGroup = factory<{
     description,
     gap = 8,
     labelPosition,
+    transitionDuration,
     testID,
     style,
     ...spacingProps
@@ -240,11 +348,20 @@ export const RadioGroup = factory<{
       gray: theme.colors.gray,
     };
     const palette = map[color as string] || theme.colors.primary;
+    const accentColor = palette[6] as string;
+    const surfaceColor = (theme.backgrounds?.surface ?? '#ffffff') as string;
     return {
-      accentColor: palette[6] as string,
-      accentTint: (theme.colorScheme === 'dark' ? palette[9] : palette[0]) as string,
-      surfaceColor: (theme.backgrounds?.surface ?? '#ffffff') as string,
-      subtleBorder: theme.colors.gray[3] as string,
+      accentColor,
+      // Washing the accent over the actual surface rather than reaching for an
+      // end of the color scale: dark palettes run dark→light, so indexing for
+      // "the subtlest shade" lands on a near-white and turns a selected card
+      // into a bright block. A composited wash stays a tint in either scheme.
+      accentTint: composite(accentColor, surfaceColor, theme.colorScheme === 'dark' ? 0.18 : 0.1),
+      // White on the accent for as long as it stays legible — dark themes take
+      // their accent from the light end of the scale, where it doesn't.
+      onAccentColor: readableTextOn(accentColor, '#1A1A1A', theme.text.onPrimary || '#ffffff'),
+      surfaceColor,
+      subtleBorder: (theme.backgrounds?.border ?? theme.colors.gray[3]) as string,
     };
   })();
 
@@ -255,9 +372,11 @@ export const RadioGroup = factory<{
     optDisabled: boolean,
   ) => {
     // Caller (the options.map below) only invokes this for non-default variants.
-    const { accentColor, accentTint, surfaceColor, subtleBorder } = variantColors!;
+    const { accentColor, accentTint, onAccentColor, surfaceColor, subtleBorder } = variantColors!;
     const baseTextColor = selected
-      ? (variant === 'chip' || variant === 'segmented' ? '#fff' : accentColor)
+      // `chip` and `segmented` fill with the accent, so their label sits on it;
+      // `card` only tints, and keeps the accent itself as the label color.
+      ? (variant === 'chip' || variant === 'segmented' ? onAccentColor : accentColor)
       : (optDisabled ? theme.text.disabled : theme.text.primary);
 
     let containerStyle: any;
@@ -351,8 +470,22 @@ export const RadioGroup = factory<{
           ) : null}
         </View>
 
-        {variant === 'card' && selected ? (
-          <Icon name="check" size={getControlIconSize(size)} color={accentColor} />
+        {variant === 'card' ? (
+          // The same circle the `default` variant uses, so selection reads the
+          // same across variants. It renders in both states rather than only
+          // when selected, which also keeps the card from reflowing on press.
+          <View style={{ marginTop: 2 }}>
+            <RadioIndicator
+              checked={selected}
+              disabled={optDisabled}
+              // A group-level error message doesn't recolor the controls in the
+              // `default` variant either — the message carries it.
+              error={false}
+              size={size}
+              color={color}
+              transitionDuration={transitionDuration}
+            />
+          </View>
         ) : null}
       </Pressable>
     );
@@ -414,6 +547,7 @@ export const RadioGroup = factory<{
                 description={option.description}
                 icon={option.icon}
                 labelPosition={labelPosition}
+                transitionDuration={transitionDuration}
                 testID={`${testID}-option-${index}`}
               />
             ))

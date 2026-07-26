@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Showcase helper descriptions plus validation errors for required agreements.
+Descriptions and helper text

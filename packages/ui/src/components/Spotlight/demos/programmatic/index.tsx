@@ -1,15 +1,15 @@
 import { useMemo, useState } from 'react';
 import {
+  Block,
   Button,
   Card,
-  Column,
   Row,
+  spotlight,
   Spotlight,
   SpotlightProvider,
   Text,
-  spotlight,
-  useSpotlightStoreInstance,
   type SpotlightProps,
+  useSpotlightStoreInstance,
 } from '@platform-blocks/ui';
 
 const baseActions: SpotlightProps['actions'] = [
@@ -72,9 +72,9 @@ export default function Demo() {
 
   return (
     <SpotlightProvider>
-      <Column gap="lg">
+      <Block>
         <Card p="md">
-          <Column gap="md">
+          <Block>
             <Text size="sm" colorVariant="secondary">
               Combine local stores with the global `spotlight` helper. This demo adds actions to its scoped store while still toggling the shared palette.
             </Text>
@@ -87,11 +87,11 @@ export default function Demo() {
             <Text size="xs" colorVariant="secondary">
               Select “Add dynamic action” to append more commands on the fly.
             </Text>
-          </Column>
+          </Block>
         </Card>
         <Spotlight actions={actions} store={store} />
         <Spotlight actions={globalActions} />
-      </Column>
+      </Block>
     </SpotlightProvider>
   );
 }

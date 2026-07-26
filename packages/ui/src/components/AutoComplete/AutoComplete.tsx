@@ -22,11 +22,19 @@ import { Chip } from '../Chip';
 import type { ChipProps } from '../Chip/types';
 import { ClearButton } from '../../core/components/ClearButton';
 import { getIconSize } from '../../core/theme/unified-sizing';
+import { getFontSize } from '../../core/theme/sizes';
 import { Highlight } from '../Highlight';
 import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
 import { handleSelectionComplete } from '../../core/keyboard/selection';
 import { resolveOptionalModule } from '../../utils/optionalModule';
 import { useOverlayMode, useDebouncedCallback } from '../../hooks';
+import { useIsMobile } from '../../core/responsive';
+
+/** Tallest the scrolling suggestion list is allowed to get. */
+const SUGGESTIONS_MAX_HEIGHT = 250;
+
+/** Padding and border the popover adds around that list. */
+const SUGGESTIONS_CHROME_HEIGHT = 8;
 
 type SimpleDebounced<F extends (...args: any[]) => void> = ((...args: Parameters<F>) => void) & {
   cancel: () => void;
@@ -138,21 +146,36 @@ const SuggestionItem = React.memo(({
   isSelected,
   highlightQuery,
   menuHighlightColor,
+  highlightTextColor,
+  highlightBackgroundColor,
   menuActiveBg,
   baseTextColor,
   menuItemButtonStyle,
   suggestionItemStyle,
+  size,
+  labelFontSize,
   onSelect,
 }: {
   item: AutoCompleteOption;
   isActive: boolean;
   isSelected: boolean;
   highlightQuery?: string;
+  /** Tint for the selected-row check icon. Always theme-derived. */
   menuHighlightColor: string;
+  /** Text color for the matched substring — `highlightColor` or the theme default. */
+  highlightTextColor: string;
+  highlightBackgroundColor: string;
   menuActiveBg: string;
   baseTextColor: string;
   menuItemButtonStyle: any;
   suggestionItemStyle: any;
+  /** Row metrics (padding, height) follow the field's size. */
+  size: SizeValue;
+  /**
+   * Resolved label size. The label is a `Highlight`, not MenuItemButton's own
+   * `<Text>`, so it never saw the row's font size — pass the field's directly.
+   */
+  labelFontSize: number;
   onSelect: (item: AutoCompleteOption) => void;
 }) => {
   const [hovered, setHovered] = useState(false);
@@ -178,6 +201,7 @@ const SuggestionItem = React.memo(({
       startIcon={<AnimatedCheck selected={isSelected} color={menuHighlightColor} />}
       compact
       rounded={false}
+      size={size}
       style={[menuItemButtonStyle, highlighted && { backgroundColor: menuActiveBg }, suggestionItemStyle]}
       {...(Platform.OS === 'web' ? {
         onMouseDown: (event: any) => {
@@ -192,10 +216,11 @@ const SuggestionItem = React.memo(({
     >
       <Highlight
         highlight={highlightQuery}
+        size={labelFontSize}
         highlightProps={{
-          color: item.disabled ? baseTextColor : menuHighlightColor,
+          color: item.disabled ? baseTextColor : highlightTextColor,
           style: {
-            backgroundColor: 'transparent',
+            backgroundColor: item.disabled ? 'transparent' : highlightBackgroundColor,
             fontWeight: '700',
             paddingHorizontal: 0,
             paddingVertical: 0,
@@ -242,6 +267,8 @@ export const AutoComplete = factory<{
     renderLoadingState,
     filter = defaultFilter,
     highlightMatches = true,
+    highlightColor,
+    highlightBackgroundColor = 'transparent',
     suggestionsStyle,
     suggestionItemStyle,
     value,
@@ -250,7 +277,9 @@ export const AutoComplete = factory<{
     style,
     disabled,
     size = 'md',
-    radius = 'md',
+    // Left undefined so `createRadiusStyles(…, 'input')` applies the shared input
+    // radius token; hardcoding 'md' here silently pinned it.
+    radius,
     multiSelect = false,
     selectedValues = [],
   renderSelectedValue,
@@ -324,8 +353,9 @@ export const AutoComplete = factory<{
   }, [refocusAfterSelect, useModal, usePortal]);
 
   const theme = useTheme();
+  const isMobile = useIsMobile();
   const radiusStyles = useMemo(() => createRadiusStyles(radius, undefined, 'input'), [radius]);
-  const inputStyleFactory = useMemo(() => createInputStyles(theme), [theme]);
+  const inputStyleFactory = useMemo(() => createInputStyles(theme, false, isMobile), [theme, isMobile]);
   const { openOverlay, closeOverlay, updateOverlay } = useOverlayApi();
   const keyboardManager = useKeyboardManagerOptional();
   const [suggestions, setSuggestions] = useState<AutoCompleteOption[]>([]);
@@ -352,7 +382,11 @@ export const AutoComplete = factory<{
   const moveHighlightRef = useRef<((direction: 1 | -1) => void) | null>(null);
   const overlayIdRef = useRef<string | null>(null);
   const containerRef = useRef<View>(null);
-  const prevPushedPositionRef = useRef<null | { x: number; y: number; w: number; h: number; mw?: number; mh?: number }>(null);
+  const prevPushedPositionRef = useRef<null | {
+    x: number; y: number; w: number; h: number; mw?: number; mh?: number;
+    /** Pinned edge and its offset, so a pin-only change still pushes an update. */
+    pe?: 'top' | 'bottom'; po?: number;
+  }>(null);
 
   const dismissKeyboardFn = keyboardManager?.dismissKeyboard;
   const dismissKeyboard = useCallback(() => {
@@ -380,13 +414,18 @@ export const AutoComplete = factory<{
       autoUpdate: autoReposition,
       fallbackPlacements,
       matchAnchorWidth: true,
+      // Deliberately the popover's *maximum* height rather than its current
+      // content height. The side is then chosen once, from a value that doesn't
+      // change as the user types and the result list filters down — so the
+      // popover can't decide to flip mid-keystroke. A short list simply doesn't
+      // fill the reserved space; because the popover is edge-pinned it doesn't
+      // move either.
+      desiredHeight: SUGGESTIONS_MAX_HEIGHT + SUGGESTIONS_CHROME_HEIGHT,
     }
   );
 
   // Guard: remember last popover size to avoid re-triggering updatePosition on position-only changes
   const lastPopoverSizeRef = useRef<{ w: number; h: number } | null>(null);
-  const didInitialMeasureRef = useRef(false);
-  const updatePositionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [inputHeight, setInputHeight] = useState(0);
   const [measuredWidth, setMeasuredWidth] = useState<number | undefined>(
     Platform.OS === 'web' ? undefined : 300 // Default fallback for mobile
@@ -411,6 +450,12 @@ export const AutoComplete = factory<{
     hasLeftSection: false,
     hasRightSection,
   }, radiusStyles), [inputStyleFactory, size, focused, error, disabled, hasRightSection, radiusStyles]);
+
+  // Suggestions read at the input's font size — the same scale
+  // `createInputStyles` resolves — so the popover matches the field it belongs
+  // to instead of sitting at a fixed `sm`. Group headers stay one step down.
+  const fieldFontSize = getFontSize(size as SizeValue);
+  const groupHeaderFontSize = Math.max(10, fieldFontSize - 2);
 
   // While the center-screen picker (modal) is open it owns focus, so the base
   // input behind the dimmed overlay should not render its focus ring.
@@ -437,6 +482,11 @@ export const AutoComplete = factory<{
     return primaryPalette[6] || primaryPalette[5] || '#3B82F6';
   }, [theme.colors.primary, theme.colorScheme]);
 
+  // The matched substring can be tinted independently of the check icon, so a
+  // consumer can point `highlightColor` at e.g. `theme.colors.highlight` without
+  // recoloring the selection affordance.
+  const highlightTextColor = highlightColor ?? menuHighlightColor;
+
   // Background for the keyboard-highlighted row — a neutral `secondary` tint
   // (not the primary active color), mirroring the default tone's active shade
   // indices but on the secondary ramp.
@@ -462,82 +512,33 @@ export const AutoComplete = factory<{
   currentQueryRef.current = query;
   currentSelectedValuesRef.current = selectedValues;
 
+  /**
+   * A layout pass no longer implies a reposition.
+   *
+   * This used to carry a whole compensation scheme: when the popover sat above
+   * the input and its content shrank, it manually pushed the overlay's anchor
+   * down by the height delta, then scheduled a re-measure on an 8ms/16ms timer.
+   * All of that existed because a `top` placement was positioned by its *top*
+   * edge (`anchorTop - popoverHeight - offset`), so every filtered keystroke
+   * moved the popover and had to be chased.
+   *
+   * The popover is now pinned by the edge that touches the input, so its height
+   * has no bearing on where it sits and there is nothing to compensate for. Only
+   * a width change can still affect layout (cross-axis alignment), so that is
+   * the only thing that triggers a refresh.
+   */
   const handlePopoverLayout = useCallback((e: any) => {
     const { width, height } = e?.nativeEvent?.layout || {};
     if (!width || !height) return;
 
-    // Clear any pending update position calls to avoid race conditions
-    if (updatePositionTimeoutRef.current) {
-      clearTimeout(updatePositionTimeoutRef.current);
-      updatePositionTimeoutRef.current = null;
-    }
-
-    // Call once on first mount to allow flip/fit logic to run with real size
-    if (!didInitialMeasureRef.current) {
-      didInitialMeasureRef.current = true;
-      lastPopoverSizeRef.current = { w: width, h: height };
-      // Defer slightly to ensure DOM has applied styles
-      updatePositionTimeoutRef.current = setTimeout(() => {
-        updatePositionTimeoutRef.current = null;
-        updatePosition();
-      }, 16);
-      return;
-    }
-
-    // Check if height changed - this is especially important when popover is above input
     const prev = lastPopoverSizeRef.current;
     const widthChanged = !prev || Math.abs(prev.w - width) > 0.5;
-    const heightChanged = !prev || Math.abs(prev.h - height) > 0.5;
+    lastPopoverSizeRef.current = { w: width, h: height };
 
-    if (
-      prev &&
-      prev.h - height > 0.5 &&
-      overlayIdRef.current &&
-      usePortal &&
-      !useModal &&
-      position?.placement?.startsWith('top')
-    ) {
-      const heightDelta = prev.h - height;
-      const currentAnchor = prevPushedPositionRef.current;
-      const baseX = currentAnchor?.x ?? position?.x ?? 0;
-      const baseY = currentAnchor?.y ?? position?.y ?? 0;
-      const baseWidth = currentAnchor?.w ?? position?.finalWidth ?? width;
-
-      const nextAnchorY = baseY + heightDelta;
-
-      prevPushedPositionRef.current = {
-        x: baseX,
-        y: nextAnchorY,
-        w: baseWidth,
-        h: height,
-        mh: position?.maxHeight,
-      };
-
-      updateOverlay(overlayIdRef.current, {
-        anchor: {
-          x: baseX,
-          y: nextAnchorY,
-          width: baseWidth,
-          height,
-        },
-        width: measuredWidth || baseWidth,
-        maxHeight: position?.maxHeight,
-      });
+    if (widthChanged) {
+      updatePosition({ silent: true });
     }
-
-    if (widthChanged || heightChanged) {
-      lastPopoverSizeRef.current = { w: width, h: height };
-
-      // Use different delays based on what changed
-      // Height changes need faster response when popover is above input
-      const delay = heightChanged ? 8 : 16;
-
-      updatePositionTimeoutRef.current = setTimeout(() => {
-        updatePositionTimeoutRef.current = null;
-        updatePosition();
-      }, delay);
-    }
-  }, [updatePosition, position, updateOverlay, useModal, usePortal, measuredWidth]);
+  }, [updatePosition]);
 
   const spacingStyles = getSpacingStyles(spacingProps);
   const layoutStyles = getLayoutStyles(layoutProps);
@@ -949,14 +950,18 @@ export const AutoComplete = factory<{
         isSelected={isSelected}
         highlightQuery={highlightQuery}
         menuHighlightColor={menuHighlightColor}
+        highlightTextColor={highlightTextColor}
+        highlightBackgroundColor={highlightBackgroundColor}
         menuActiveBg={menuActiveBg}
         baseTextColor={baseTextColor}
         menuItemButtonStyle={styles.menuItemButton}
         suggestionItemStyle={suggestionItemStyle}
+        size={size as SizeValue}
+        labelFontSize={fieldFontSize}
         onSelect={handleSelectSuggestion}
       />
     );
-  }, [handleSelectSuggestion, highlightMatches, suggestionItemStyle, theme.text.disabled, theme.text.primary, menuHighlightColor, menuActiveBg]);
+  }, [handleSelectSuggestion, highlightMatches, suggestionItemStyle, theme.text.disabled, theme.text.primary, menuHighlightColor, highlightTextColor, highlightBackgroundColor, menuActiveBg, size, fieldFontSize]);
 
   // Render item with enhanced parameters - use refs to prevent infinite loops
   const renderSuggestionItem = useCallback((item: AutoCompleteOption, index: number, isActive = false) => {
@@ -987,13 +992,19 @@ export const AutoComplete = factory<{
       container: {
         position: 'relative' as const,
         width: inputWidth != null ? (inputWidth as DimensionValue) : ('100%' as DimensionValue),
-        ...(minWidth ? { minWidth } : {}),
+        // An explicit `inputWidth` outranks the shared desktop width floor from
+        // `createInputStyles`, which would otherwise win over `width`.
+        ...(minWidth ? { minWidth } : inputWidth != null ? { minWidth: 0 } : {}),
       },
       inputContainer: {
-        alignItems: multiSelect ? 'flex-start' as const : 'center' as const,
-        // Reserve the vertical padding up-front in multiSelect so adding the
-        // first chip doesn't grow the input / shift the layout.
-        paddingVertical: multiSelect ? 10 : undefined,
+        // `center` in both modes: once chips wrap past the field's minHeight there
+        // is no slack left to distribute, so this only matters for the short case —
+        // where it keeps a single row of chips off the top edge.
+        alignItems: 'center' as const,
+        // No vertical padding override: multiSelect keeps the shared input padding
+        // so an empty (or single-row) field is exactly as tall as a plain Input.
+        // A `sm` chip is shorter than the field's content box, so the first chip
+        // doesn't grow it either — height only changes when chips wrap to a new row.
         ...(Platform.OS === 'web' && {
           transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
         }),
@@ -1002,20 +1013,19 @@ export const AutoComplete = factory<{
         flex: 1,
         flexDirection: 'row' as const,
         flexWrap: multiSelect ? 'wrap' as const : 'nowrap' as const,
-        alignItems: multiSelect ? 'flex-start' as const : 'center' as const,
+        alignItems: 'center' as const,
+        // Gaps rather than per-chip margins: spacing lands *between* chips and rows
+        // only, so a single row adds no height of its own.
+        ...(multiSelect ? { rowGap: 4, columnGap: 6 } : null),
       },
-      chip: {
-        marginRight: 6,
-        marginBottom: multiSelect ? 6 : 0,
-        marginTop: multiSelect ? 2 : 0,
-      },
+      // Spacing comes from the selectionArea gaps above; kept as a slot so
+      // `selectedValueChipProps.style` still has something to merge onto.
+      chip: {},
       input: {
         flexGrow: 1,
         flexShrink: 1,
         paddingRight: showClearButton ? 12 : 0,
         minWidth: multiSelect ? 80 : undefined,
-        marginTop: multiSelect ? 2 : 0,
-        marginBottom: multiSelect ? 2 : 0,
       },
       suggestions: {
         position: 'absolute' as const,
@@ -1129,14 +1139,14 @@ export const AutoComplete = factory<{
     if (row.type === 'header') {
       return (
         <View style={styles.groupHeader}>
-          <Text size="xs" colorVariant="secondary" style={styles.groupHeaderText}>
+          <Text size={groupHeaderFontSize} colorVariant="secondary" style={styles.groupHeaderText}>
             {row.label}
           </Text>
         </View>
       );
     }
     return renderSuggestionItem(row.option, row.index, rowIndex === highlightedRow);
-  }, [renderSuggestionItem, styles.groupHeader, styles.groupHeaderText, highlightedRow]);
+  }, [renderSuggestionItem, styles.groupHeader, styles.groupHeaderText, highlightedRow, groupHeaderFontSize]);
 
   const suggestionRowKeyExtractor = useCallback((row: SuggestionRow) => row.key, []);
 
@@ -1273,8 +1283,8 @@ export const AutoComplete = factory<{
           spinner signals the refetch); only fall back to the in-popover spinner
           on the very first load when there's nothing to show yet. */}
       {suggestions.length > 0 ? (
-        <ListGroup variant="default" size="sm"
-          style={{ maxHeight: 250 }}
+        <ListGroup variant="default" size={size as SizeValue}
+          style={{ maxHeight: SUGGESTIONS_MAX_HEIGHT }}
         >
           {/* FlatList self-sizes to its content up to `maxHeight`, so the popover
               grows and shrinks with the number of matching results instead of
@@ -1288,7 +1298,7 @@ export const AutoComplete = factory<{
             keyExtractor={suggestionRowKeyExtractor}
             ItemSeparatorComponent={renderItem ? undefined : SuggestionSeparator}
             showsVerticalScrollIndicator={false}
-            style={{ maxHeight: 250 }}
+            style={{ maxHeight: SUGGESTIONS_MAX_HEIGHT }}
           />
         </ListGroup>
       ) : loading ? (
@@ -1312,7 +1322,7 @@ export const AutoComplete = factory<{
         </View>
       ) : null}
     </View>
-  ), [loading, suggestions, query, minSearchLength, renderLoadingState, renderEmptyState, renderItem, suggestionRows, highlightedRow, listExtraData, renderSuggestionRow, suggestionRowKeyExtractor, SuggestionSeparator, stableSuggestionStyles]);
+  ), [loading, suggestions, query, minSearchLength, renderLoadingState, renderEmptyState, renderItem, suggestionRows, highlightedRow, listExtraData, renderSuggestionRow, suggestionRowKeyExtractor, SuggestionSeparator, stableSuggestionStyles, size]);
 
   // Keep overlay content in sync with latest suggestions/loading states when using portal strategy
   // Use a ref to prevent infinite loops from content updates
@@ -1324,32 +1334,10 @@ export const AutoComplete = factory<{
     }
   }, [suggestionContent, usePortal, useModal, updateOverlay]);
 
-  // Track suggestions count changes to trigger repositioning when content height changes
-  const prevSuggestionsCountRef = useRef<number>(0);
-  const prevLoadingRef = useRef<boolean>(false);
-
-  useEffect(() => {
-    const currentCount = suggestions.length;
-    const currentLoading = loading;
-
-    // Check if the content height likely changed due to different number of items or loading state
-    if (overlayIdRef.current && usePortal && !useModal && (
-      prevSuggestionsCountRef.current !== currentCount ||
-      prevLoadingRef.current !== currentLoading
-    )) {
-      // Update refs
-      prevSuggestionsCountRef.current = currentCount;
-      prevLoadingRef.current = currentLoading;
-
-      // Trigger position update after a short delay to let the content re-render
-      // This is especially important when the popover is positioned above the input
-      setTimeout(() => {
-        if (overlayIdRef.current) {
-          updatePosition();
-        }
-      }, 50); // Slightly longer delay to ensure layout changes are complete
-    }
-  }, [suggestions.length, loading, usePortal, useModal, updatePosition]);
+  // Result-count and loading changes used to schedule a deferred reposition here,
+  // because they changed the popover's height and a `top` placement was
+  // positioned from its own height. The popover is edge-pinned now, so a content
+  // change is purely a resize and needs no repositioning at all.
 
   // Track input width changes to update popover width
   const prevMeasuredWidthRef = useRef<number | undefined>(undefined);
@@ -1454,6 +1442,8 @@ export const AutoComplete = factory<{
           width: position.finalWidth,
           height: position.finalHeight,
         },
+        pinEdge: position.anchorEdge,
+        pinOffset: position.anchorOffset,
         strategy: Platform.OS === 'web' ? 'fixed' : 'portal',
         closeOnClickOutside: true,
         closeOnEscape: true,
@@ -1464,7 +1454,6 @@ export const AutoComplete = factory<{
           overlayIdRef.current = null;
           overlayCreationInProgressRef.current = false;
           setShowSuggestions(false);
-          didInitialMeasureRef.current = false;
           lastPopoverSizeRef.current = null;
         }
       });
@@ -1495,41 +1484,49 @@ export const AutoComplete = factory<{
 
   // Update overlay position when positioning changes (for real-time repositioning)
   // Deduplicate overlay updates: only push changes when something actually changed
-  const positionUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   useEffect(() => {
     if (overlayIdRef.current && position && usePortal && !useModal) {
-      const current = { x: position.x, y: position.y, w: position.finalWidth, h: position.finalHeight, mh: position.maxHeight };
+      const current = {
+        x: position.x,
+        y: position.y,
+        w: position.finalWidth,
+        h: position.finalHeight,
+        mh: position.maxHeight,
+        pe: position.anchorEdge,
+        po: position.anchorOffset,
+      };
       const prev = prevPushedPositionRef.current;
-      const changed = !prev || Math.abs(prev.x - current.x) > 0.5 || Math.abs(prev.y - current.y) > 0.5 || Math.abs((prev.w || 0) - (current.w || 0)) > 0.5 || Math.abs((prev.h || 0) - (current.h || 0)) > 0.5 || prev.mh !== current.mh;
+      const changed = !prev
+        || Math.abs(prev.x - current.x) > 0.5
+        || Math.abs(prev.y - current.y) > 0.5
+        || Math.abs((prev.w || 0) - (current.w || 0)) > 0.5
+        || Math.abs((prev.h || 0) - (current.h || 0)) > 0.5
+        || prev.mh !== current.mh
+        || prev.pe !== current.pe
+        || Math.abs((prev.po ?? 0) - (current.po ?? 0)) > 0.5;
 
       if (changed) {
         prevPushedPositionRef.current = current;
 
-        // Clear any pending position updates to avoid race conditions
-        if (positionUpdateTimeoutRef.current) {
-          clearTimeout(positionUpdateTimeoutRef.current);
-        }
-
-        // Debounce position updates to prevent cascade loops
-        positionUpdateTimeoutRef.current = setTimeout(() => {
-          positionUpdateTimeoutRef.current = null;
-          if (overlayIdRef.current) {
-            updateOverlay(overlayIdRef.current, {
-              anchor: {
-                x: position.x,
-                y: position.y,
-                width: position.finalWidth,
-                height: position.finalHeight,
-              },
-              width: measuredWidth || 260,
-              maxHeight: position.maxHeight,
-            });
-          }
-        }, 8);
+        // Pushed synchronously. The 8ms debounce this replaces was guarding
+        // against a feedback loop where repositioning changed the layout, which
+        // triggered another reposition; the popover's position no longer depends
+        // on its own size, so that loop can't form.
+        updateOverlay(overlayIdRef.current, {
+          anchor: {
+            x: position.x,
+            y: position.y,
+            width: position.finalWidth,
+            height: position.finalHeight,
+          },
+          pinEdge: position.anchorEdge,
+          pinOffset: position.anchorOffset,
+          width: measuredWidth || 260,
+          maxHeight: position.maxHeight,
+        });
       }
     }
-  }, [position, updateOverlay, usePortal, useModal]);
+  }, [position, updateOverlay, usePortal, useModal, measuredWidth]);
 
   // Sync internal query state with external value prop
   useEffect(() => {
@@ -1545,15 +1542,9 @@ export const AutoComplete = factory<{
     }
   }, [showSuggestionsOnFocus, data, maxSuggestions, query]);
 
-  // Cleanup timeouts on unmount to prevent memory leaks and potential crashes
+  // Cleanup on unmount to prevent memory leaks and potential crashes
   useEffect(() => {
     return () => {
-      if (updatePositionTimeoutRef.current) {
-        clearTimeout(updatePositionTimeoutRef.current);
-      }
-      if (positionUpdateTimeoutRef.current) {
-        clearTimeout(positionUpdateTimeoutRef.current);
-      }
       // Clean up overlay reference
       if (overlayIdRef.current) {
         closeOverlay(overlayIdRef.current);
@@ -1690,16 +1681,16 @@ export const AutoComplete = factory<{
       </View>
 
       {/* Error & Helper Text */}
-      {error && (
+      {error ? (
         <Text style={inputStyles.error}>
           {error}
         </Text>
-      )}
-      {!error && helperText && (
+      ) : null}
+      {!error && helperText ? (
         <Text style={inputStyles.helperText}>
           {helperText}
         </Text>
-      )}
+      ) : null}
 
       {showSuggestions && useModal ? (
         <Modal

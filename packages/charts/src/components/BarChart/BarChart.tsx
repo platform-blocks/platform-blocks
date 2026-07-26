@@ -8,12 +8,13 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import Svg, { Rect, G, Text as SvgText, Line } from 'react-native-svg';
+import Svg, { Path, G, Text as SvgText, Line } from 'react-native-svg';
+import { roundedBarPath, barCornerMask } from '../../utils/barPath';
 
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { BarChartProps, BarChartDataPoint, BarChartSeries } from './types';
 import { ChartInteractionEvent } from '../../types';
-import { ChartContainer, ChartTitle, ChartLegend } from '../../ChartBase';
+import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
 import { Axis } from '../../core/Axis';
 import { ChartGrid as Grid } from '../../core/ChartGrid';
 import { linearScale } from '../../utils/scales';
@@ -23,7 +24,7 @@ import { BandCategoryHitTester } from '../../core/hittest/band';
 import type { HitSeries, Mark } from '../../core/hittest/types';
 import { generateTicks, getColorFromScheme, colorSchemes, formatNumber } from '../../utils';
 
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 type ComputedBar = {
   globalIndex: number;
@@ -103,32 +104,37 @@ const AnimatedBarRect: React.FC<AnimatedBarRectProps> = React.memo(
       scale.value = withSpring(targetScale, { damping: 16, stiffness: 180 });
     }, [targetScale, scale]);
 
+    // Only the data-end corners round; the baseline end stays square.
+    const corners = useMemo(
+      () => barCornerMask(orientation, bar.isPositive),
+      [orientation, bar.isPositive],
+    );
+
     const animatedProps = useAnimatedProps(() => {
       const progress = animationProgress.value;
       const scaleValue = scale.value;
 
+      let x: number;
+      let y: number;
+      let w: number;
+      let h: number;
+
       if (orientation === 'vertical') {
-        const scaledHeight = bar.height * progress * scaleValue;
-        const clampedHeight = Math.max(0, scaledHeight);
-        const y = bar.isPositive ? bar.originY - clampedHeight : bar.originY;
-        return {
-          x: bar.x,
-          y,
-          width: bar.width,
-          height: clampedHeight,
-        } as any;
+        h = Math.max(0, bar.height * progress * scaleValue);
+        x = bar.x;
+        y = bar.isPositive ? bar.originY - h : bar.originY;
+        w = bar.width;
+      } else {
+        w = Math.max(0, bar.width * progress * scaleValue);
+        x = bar.isPositive ? bar.originX : bar.originX - w;
+        y = bar.y;
+        h = bar.height;
       }
 
-      const scaledWidth = bar.width * progress * scaleValue;
-      const clampedWidth = Math.max(0, scaledWidth);
-      const x = bar.isPositive ? bar.originX : bar.originX - clampedWidth;
       return {
-        x,
-        y: bar.y,
-        width: clampedWidth,
-        height: bar.height,
+        d: roundedBarPath(x, y, w, h, borderRadius, corners.tl, corners.tr, corners.br, corners.bl),
       } as any;
-    }, [bar, orientation]);
+    }, [bar, orientation, borderRadius, corners]);
 
     const isWeb = Platform.OS === 'web';
 
@@ -145,10 +151,8 @@ const AnimatedBarRect: React.FC<AnimatedBarRectProps> = React.memo(
     };
 
     return (
-      <AnimatedRect
+      <AnimatedPath
         animatedProps={animatedProps}
-        rx={borderRadius}
-        ry={borderRadius}
         fill={fill}
         opacity={opacity}
         stroke={stroke}
@@ -211,6 +215,7 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
     onDataPointPress,
     disabled = false,
     animationDuration = 800,
+    animation,
     style,
     valueFormatter,
     valueLabel,
@@ -395,25 +400,28 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
 
   // Reserve extra room on the left for a rotated y-axis title so it clears the tick labels.
   const basePadding = { top: 40, right: 20, bottom: 60, left: yAxis?.title ? 104 : 80 };
+  const legendLabels = useMemo(
+    () => normalizedSeries.map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
+    [normalizedSeries]
+  );
   const chartDimensions = useMemo(
     () => {
-      const adjustedPadding = !legend?.show ? basePadding : (() => {
-        const position = legend.position || 'bottom';
-        return {
-          ...basePadding,
-          top: position === 'top' ? basePadding.top + 40 : basePadding.top,
-          bottom: position === 'bottom' ? basePadding.bottom + 40 : basePadding.bottom,
-          left: position === 'left' ? basePadding.left + 120 : basePadding.left,
-          right: position === 'right' ? basePadding.right + 120 : basePadding.right,
-        };
-      })();
+      // Grown so the plot clears the title and legend overlays.
+      const adjustedPadding = withChartBandPadding(basePadding, {
+        title,
+        subtitle,
+        legendItems: legend?.show ? legendLabels : undefined,
+        legendPosition: legend?.position,
+        legendFontSize: legend?.fontSize,
+        containerWidth: width,
+      });
       return {
         padding: adjustedPadding,
         plotWidth: width - adjustedPadding.left - adjustedPadding.right,
         plotHeight: height - adjustedPadding.top - adjustedPadding.bottom,
       };
     },
-    [width, height, legend?.show, legend?.position, yAxis?.title]
+    [width, height, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels, yAxis?.title]
   );
 
   const { padding, plotWidth, plotHeight } = chartDimensions;
@@ -674,10 +682,10 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
     }
     animationProgress.value = 0;
     animationProgress.value = withTiming(1, {
-      duration: animationDuration,
+      duration: animation?.duration ?? animationDuration ?? 800,
       easing: Easing.out(Easing.cubic),
     });
-  }, [disabled, animationDuration, animationProgress]);
+  }, [disabled, animation?.duration, animationDuration, animationProgress]);
 
   useEffect(() => {
     startAnimation();
@@ -741,6 +749,12 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
       if (!entry) { entry = { name: bar.seriesName, color: bar.color, marks: [] }; bySeries.set(key, entry); }
       const rectX = bar.x + padding.left;
       const rectY = bar.y + padding.top;
+      // Only tooltip.formatter and tooltip.show are honored here; per-chart tooltip
+      // styling (backgroundColor/textColor/fontSize/…) is not, because the tooltip is
+      // rendered by the shared/global ChartActiveTooltip. When the formatter returns a
+      // string it becomes formattedValue; a ReactNode becomes customTooltip. Falls back
+      // to valueFormatter / formatNumber.
+      const tf = tooltip?.formatter?.(bar.datum);
       entry.marks.push({
         id: bar.globalIndex,
         pixel: { x: rectX + bar.width / 2, y: rectY + bar.height / 2 },
@@ -749,11 +763,14 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
         label: bar.seriesName ?? String(bar.datum.category),
         color: bar.color,
         extent: { rect: { x: rectX, y: rectY, width: bar.width, height: bar.height }, cell: { row: 0, col: bar.categoryIndex } },
-        formattedValue: valueFormatter ? String(valueFormatter(bar.originalValue, bar.datum, bar.globalIndex)) : formatNumber(bar.originalValue),
+        formattedValue: typeof tf === 'string'
+          ? tf
+          : (valueFormatter ? String(valueFormatter(bar.originalValue, bar.datum, bar.globalIndex)) : formatNumber(bar.originalValue)),
+        ...(tf != null && typeof tf !== 'string' ? { customTooltip: tf } : {}),
       });
     });
     return Array.from(bySeries.entries()).map(([id, e]) => ({ id, name: e.name, color: e.color || '', visible: true, marks: e.marks }));
-  }, [bars, padding.left, padding.top, valueFormatter]);
+  }, [bars, padding.left, padding.top, valueFormatter, tooltip]);
 
   const tester = useMemo(
     () => new BandCategoryHitTester(hitSeries, { orientation: orientation === 'vertical' ? 'x' : 'y' }),
@@ -916,7 +933,7 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
       disabled={disabled}
       animationDuration={animationDuration}
       style={style}
-      interactionConfig={{ multiTooltip: true, enableCrosshair: true }}
+      interactionConfig={{ multiTooltip: true, enableCrosshair: true, liveTooltip: tooltip?.show === false ? false : true }}
       {...rest}
     >
       {(title || subtitle) && <ChartTitle title={title} subtitle={subtitle} />}

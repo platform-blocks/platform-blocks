@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Column, NumberInput, Text } from '@platform-blocks/ui';
+import { Block, NumberInput, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [price, setPrice] = useState<number | undefined>(249.99);
@@ -11,8 +11,8 @@ export default function Demo() {
     : undefined;
 
   return (
-    <Column gap="lg">
-      <Column gap="sm">
+    <Block>
+      <Block>
         <NumberInput
           label="List price"
           value={price}
@@ -34,11 +34,11 @@ export default function Demo() {
           step={0.5}
           allowDecimal
         />
-      </Column>
+      </Block>
 
       <Text size="xs" colorVariant="secondary">
         Final price: {finalPrice != null ? `$${finalPrice.toFixed(2)}` : '—'}
       </Text>
-    </Column>
+    </Block>
   );
 }

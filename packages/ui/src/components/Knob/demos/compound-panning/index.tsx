@@ -1,12 +1,10 @@
 import { useMemo, useState } from 'react';
 
-import { Column, Knob, Text } from '@platform-blocks/ui';
+import { Block, Knob, Text } from '@platform-blocks/ui';
 
-const PAN_MARKS = [-100, -50, 0, 50, 100].map((value) => ({
-  value,
-  label:
-    value === 0 ? 'C' : value < 0 ? `L${Math.abs(value)}` : `R${Math.abs(value)}`,
-}));
+// The split arc reads the same on both sides of center: direction is carried by which way
+// the arc grows and by the L/R label, not by a color change.
+const PAN_COLOR = '#4ade80';
 
 export default function Demo() {
   const [pan, setPan] = useState(-18);
@@ -17,7 +15,7 @@ export default function Demo() {
   }, [pan]);
 
   return (
-    <Column gap="sm" align="center">
+    <Block align="center">
       <Knob.Root
         min={-100}
         max={100}
@@ -25,14 +23,12 @@ export default function Demo() {
         onChange={setPan}
         step={1}
         size={220}
-        marks={PAN_MARKS}
         appearance={{
           arc: { startAngle: -135, sweepAngle: 270, clampInput: true },
           panning: {
             pivotValue: 0,
-            positiveColor: '#4ade80',
-            negativeColor: '#fb7185',
-            showZeroIndicator: true,
+            positiveColor: PAN_COLOR,
+            negativeColor: PAN_COLOR,
           },
         }}
       >
@@ -42,23 +38,9 @@ export default function Demo() {
           borderWidth={2}
           borderColor="rgba(148, 163, 184, 0.4)"
         />
-        <Knob.Ring thickness={22} color="#0f172a" trailColor="#1f2937" />
+        <Knob.Ring color="#0f172a" trailColor="#1f2937" />
         <Knob.Progress mode="split" thickness={14} roundedCaps />
-        <Knob.TickLayer
-          source="marks"
-          shape="line"
-          length={20}
-          width={4}
-          position="outer"
-          radiusOffset={8}
-          label={{
-            show: true,
-            position: 'outer',
-            offset: 18,
-            style: { color: '#e2e8f0', fontSize: 12, fontWeight: '600' },
-          }}
-        />
-        <Knob.Thumb size={26} color="#f8fafc" strokeWidth={3} strokeColor="#0f172a" offset={6} />
+        <Knob.Thumb  color="#f8fafc" strokeWidth={3} strokeColor="#0f172a" />
         <Knob.ValueLabel
           position="center"
           formatter={(value) => `${value > 0 ? 'R' : value < 0 ? 'L' : ''}${Math.abs(Math.round(value))}`}
@@ -68,6 +50,6 @@ export default function Demo() {
       <Text size="sm" colorVariant="secondary">
         Stereo balance · {readout}
       </Text>
-    </Column>
+    </Block>
   );
 }

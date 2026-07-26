@@ -1,68 +1,15 @@
-import { View, StyleSheet } from 'react-native';
-import { GradientText } from '../..';
-import { Text } from '../../../Text';
+import { Block, GradientText } from '@platform-blocks/ui';
 
-export default function AnglesDemo() {
+const angles = [0, 45, 90, 135];
+
+export default function Demo() {
   return (
-    <View style={styles.container}>
-      <View>
-        <Text variant="small" colorVariant="muted">0° (Left to Right)</Text>
-        <GradientText 
-          colors={['#FF0080', '#7928CA']}
-          angle={0}
-          size="lg"
-        >
-          Horizontal Gradient
+    <Block gap="md">
+      {angles.map((angle) => (
+        <GradientText key={angle} colors={['#FF0080', '#7928CA']} angle={angle} size="lg">
+          {angle}° gradient
         </GradientText>
-      </View>
-      
-      <View style={styles.spacer} />
-      
-      <View>
-        <Text variant="small" colorVariant="muted">45° (Diagonal)</Text>
-        <GradientText 
-          colors={['#667eea', '#764ba2']}
-          angle={45}
-          size="lg"
-        >
-          Diagonal Gradient
-        </GradientText>
-      </View>
-      
-      <View style={styles.spacer} />
-      
-      <View>
-        <Text variant="small" colorVariant="muted">90° (Top to Bottom)</Text>
-        <GradientText 
-          colors={['#f093fb', '#f5576c']}
-          angle={90}
-          size="lg"
-        >
-          Vertical Gradient
-        </GradientText>
-      </View>
-      
-      <View style={styles.spacer} />
-      
-      <View>
-        <Text variant="small" colorVariant="muted">135° (Diagonal)</Text>
-        <GradientText 
-          colors={['#ffd200', '#f7971e']}
-          angle={135}
-          size="lg"
-        >
-          Reverse Diagonal
-        </GradientText>
-      </View>
-    </View>
+      ))}
+    </Block>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: 16,
-  },
-  spacer: {
-    height: 20,
-  },
-});

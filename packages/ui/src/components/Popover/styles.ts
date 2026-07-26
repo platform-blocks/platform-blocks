@@ -2,6 +2,7 @@ import { StyleSheet } from 'react-native';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
 import { createRadiusStyles } from '../../core/theme/radius';
 import { createShadowStyles } from '../../core/theme/shadow';
+import { resolveSurface } from '../../core/theme/surfaces';
 import type { RadiusValue } from '../../core/theme/radius';
 import type { ShadowValue } from '../../core/theme/shadow';
 
@@ -14,6 +15,9 @@ interface CreateStylesParams {
 export const createPopoverStyles = (theme: PlatformBlocksTheme) => (params: CreateStylesParams) => {
   const radiusStyles = createRadiusStyles(params.radius);
   const shadowStyles = createShadowStyles(params.shadow, theme, 'popover');
+  // Level 2 — floating over content, same step as menus and select dropdowns,
+  // so the two never disagree about what "a thing on top of the page" looks like.
+  const surface = resolveSurface(theme, 2);
 
   return StyleSheet.create({
     wrapper: {
@@ -23,8 +27,8 @@ export const createPopoverStyles = (theme: PlatformBlocksTheme) => (params: Crea
       ...shadowStyles,
     },
     dropdown: {
-      backgroundColor: theme.backgrounds.surface,
-      borderColor: theme.backgrounds.border,
+      backgroundColor: surface.background,
+      borderColor: surface.border,
       borderWidth: 1,
       color: theme.text.primary,
       ...radiusStyles,
@@ -35,7 +39,9 @@ export const createPopoverStyles = (theme: PlatformBlocksTheme) => (params: Crea
       position: 'absolute',
       width: params.arrowSize * 2,
       height: params.arrowSize * 2,
-      backgroundColor: theme.backgrounds.surface,
+      // Must match `dropdown` exactly — the arrow is a rotated square that
+      // continues the surface, so any mismatch shows as a seam.
+      backgroundColor: surface.background,
       transform: [{ rotate: '45deg' }],
     },
   });

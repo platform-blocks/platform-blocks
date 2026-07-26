@@ -16,7 +16,7 @@ A comprehensive React Native UI component library for building accessible, theme
 
 ## Features
 
-- **80+ components** — Inputs, navigation, data display, overlays, media, and more
+- **95+ components** — Inputs, dates, navigation, data display, overlays, media, and more
 - **Cross-platform** — iOS, Android, and Web from a single codebase
 - **Themeable** — Built-in light and dark themes with full customization via `createTheme`
 - **Accessible** — Screen reader, keyboard navigation, and RTL support out of the box
@@ -28,10 +28,18 @@ A comprehensive React Native UI component library for building accessible, theme
 ## Installation
 
 ```bash
-npm install @platform-blocks/ui
+npm install @platform-blocks/ui @tabler/icons-react-native
+```
+
+On Expo, install the peers with `npx expo install` so the versions match your SDK:
+
+```bash
+npx expo install react-native-reanimated react-native-safe-area-context react-native-svg @tabler/icons-react-native
 ```
 
 ### Peer dependencies
+
+All of these are required. `@tabler/icons-react-native` backs the `Icon` registry, which is imported from the package root — without it, `Icon` (and every component that renders one) fails to resolve.
 
 | Package | Version |
 | --- | --- |
@@ -40,6 +48,7 @@ npm install @platform-blocks/ui
 | `react-native-reanimated` | `>=3.4.0` |
 | `react-native-safe-area-context` | `>=4.5.0` |
 | `react-native-svg` | `>=13.0.0` |
+| `@tabler/icons-react-native` | `>=3.0.0` |
 
 ### Optional integrations
 
@@ -63,52 +72,72 @@ export function App() {
 
 ## Components
 
+Every name below links to its documentation page, with live examples and a full prop table.
+
 ### Layout
-`AppShell` · `Flex` · `Grid` · `Row` · `Column` · `Masonry` · `KeyboardAwareLayout` · `BottomAppBar`
+[`AppShell`](https://platform-blocks.com/components/AppShell) · [`Block`](https://platform-blocks.com/components/Block) · [`Surface`](https://platform-blocks.com/components/Surface) · [`Flex`](https://platform-blocks.com/components/Flex) · [`Grid`](https://platform-blocks.com/components/Grid) · [`Masonry`](https://platform-blocks.com/components/Masonry) · [`Space`](https://platform-blocks.com/components/Space) · `Row` · `Column` · `KeyboardAwareLayout` · `BottomAppBar`
 
 ### Typography
-`Text` · `H1`–`H6` · `P` · `Strong` · `Code` · `Kbd` · `Mark` · `Highlight` · `Markdown` · `ShimmerText`
+[`Text`](https://platform-blocks.com/components/Text) · [`Title`](https://platform-blocks.com/components/Title) · [`Highlight`](https://platform-blocks.com/components/Highlight) · [`GradientText`](https://platform-blocks.com/components/GradientText) · [`ShimmerText`](https://platform-blocks.com/components/ShimmerText) · [`Blockquote`](https://platform-blocks.com/components/Blockquote) · [`Markdown`](https://platform-blocks.com/components/Markdown) · [`KeyCap`](https://platform-blocks.com/components/KeyCap)
+
+`Text` also ships semantic aliases: `H1`–`H6`, `P`, `Small`, `Strong`, `Bold`, `Italic`, `Underline`, `Code`, `Kbd`, `Mark`, `Cite`, `Sub`, `Sup`.
 
 ### Forms & inputs
-`Input` · `TextArea` · `NumberInput` · `PasswordInput` · `PinInput` · `PhoneInput` · `Search` · `Select` · `AutoComplete` · `Checkbox` · `Radio` · `Switch` · `Slider` · `RangeSlider` · `Knob` · `ToggleButton` · `SegmentedControl` · `DatePicker` · `TimePicker` · `Calendar` · `ColorInput` · `ColorPicker` · `EmojiPicker` · `FileInput` · `Rating` · `Form`
+[`Button`](https://platform-blocks.com/components/Button) · [`BrandButton`](https://platform-blocks.com/components/BrandButton) · [`Input`](https://platform-blocks.com/components/Input) · [`TextArea`](https://platform-blocks.com/components/TextArea) · [`NumberInput`](https://platform-blocks.com/components/NumberInput) · [`PinInput`](https://platform-blocks.com/components/PinInput) · [`PhoneInput`](https://platform-blocks.com/components/PhoneInput) · [`Search`](https://platform-blocks.com/components/Search) · [`Select`](https://platform-blocks.com/components/Select) · [`AutoComplete`](https://platform-blocks.com/components/AutoComplete) · [`Checkbox`](https://platform-blocks.com/components/Checkbox) · [`Radio`](https://platform-blocks.com/components/Radio) · [`Switch`](https://platform-blocks.com/components/Switch) · [`Toggle`](https://platform-blocks.com/components/Toggle) · [`SegmentedControl`](https://platform-blocks.com/components/SegmentedControl) · [`Slider`](https://platform-blocks.com/components/Slider) · [`Knob`](https://platform-blocks.com/components/Knob) · [`Rating`](https://platform-blocks.com/components/Rating) · [`FileInput`](https://platform-blocks.com/components/FileInput) · [`ColorInput`](https://platform-blocks.com/components/ColorInput) · [`ColorPicker`](https://platform-blocks.com/components/ColorPicker) · [`ColorSwatch`](https://platform-blocks.com/components/ColorSwatch) · [`EmojiPicker`](https://platform-blocks.com/components/EmojiPicker) · [`ControlField`](https://platform-blocks.com/components/ControlField) · [`Form`](https://platform-blocks.com/components/Form)
+
+`PasswordInput` (from `Input`), `RangeSlider` (from `Slider`), and `ToggleButton` / `ToggleGroup` / `ToggleBar` (from `Toggle`) are exported alongside their base components.
+
+### Dates & time
+[`Calendar`](https://platform-blocks.com/components/Calendar) · [`MiniCalendar`](https://platform-blocks.com/components/MiniCalendar) · [`DatePicker`](https://platform-blocks.com/components/DatePicker) · [`DatePickerInput`](https://platform-blocks.com/components/DatePickerInput) · [`MonthPicker`](https://platform-blocks.com/components/MonthPicker) · [`MonthPickerInput`](https://platform-blocks.com/components/MonthPickerInput) · [`YearPicker`](https://platform-blocks.com/components/YearPicker) · [`YearPickerInput`](https://platform-blocks.com/components/YearPickerInput) · [`TimePicker`](https://platform-blocks.com/components/TimePicker) · [`TimePickerInput`](https://platform-blocks.com/components/TimePickerInput)
 
 ### Navigation
-`Tabs` · `Breadcrumbs` · `Menu` · `Pagination` · `Stepper`
+[`Tabs`](https://platform-blocks.com/components/Tabs) · [`Menu`](https://platform-blocks.com/components/Menu) · [`MenuItemButton`](https://platform-blocks.com/components/MenuItemButton) · [`Breadcrumbs`](https://platform-blocks.com/components/Breadcrumbs) · [`Pagination`](https://platform-blocks.com/components/Pagination) · [`Stepper`](https://platform-blocks.com/components/Stepper) · [`Link`](https://platform-blocks.com/components/Link) · [`TableOfContents`](https://platform-blocks.com/components/TableOfContents)
 
 ### Data display
-`DataTable` · `Table` · `Card` · `Avatar` · `Badge` · `Chip` · `Timeline` · `Tree` · `ListGroup` · `Blockquote` · `TableOfContents` · `Accordion`
+[`DataTable`](https://platform-blocks.com/components/DataTable) · [`Table`](https://platform-blocks.com/components/Table) · [`DataList`](https://platform-blocks.com/components/DataList) · [`ListGroup`](https://platform-blocks.com/components/ListGroup) · [`Card`](https://platform-blocks.com/components/Card) · [`Avatar`](https://platform-blocks.com/components/Avatar) · [`Badge`](https://platform-blocks.com/components/Badge) · [`Indicator`](https://platform-blocks.com/components/Indicator) · [`Chip`](https://platform-blocks.com/components/Chip) · [`Timeline`](https://platform-blocks.com/components/Timeline) · [`Tree`](https://platform-blocks.com/components/Tree) · [`Accordion`](https://platform-blocks.com/components/Accordion)
 
 ### Feedback
-`Toast` · `Notice` · `Progress` · `Skeleton` · `Loader` · `Gauge` · `Ring`
+[`Alert`](https://platform-blocks.com/components/Alert) · [`Toast`](https://platform-blocks.com/components/Toast) · [`Progress`](https://platform-blocks.com/components/Progress) · [`Ring`](https://platform-blocks.com/components/Ring) · [`Skeleton`](https://platform-blocks.com/components/Skeleton) · [`Loader`](https://platform-blocks.com/components/Loader) · [`LoadingOverlay`](https://platform-blocks.com/components/LoadingOverlay) · `Gauge` · `Notice`
 
 ### Overlays
-`Dialog` · `Tooltip` · `Popover` · `ContextMenu` · `Overlay` · `LoadingOverlay` · `Spotlight` · `FloatingActions`
+[`Dialog`](https://platform-blocks.com/components/Dialog) · [`Tooltip`](https://platform-blocks.com/components/Tooltip) · [`Popover`](https://platform-blocks.com/components/Popover) · [`ContextMenu`](https://platform-blocks.com/components/ContextMenu) · [`Overlay`](https://platform-blocks.com/components/Overlay) · [`Spotlight`](https://platform-blocks.com/components/Spotlight) · `FloatingActions`
 
 ### Media
-`Icon` · `IconButton` · `Image` · `BrandIcon` · `Carousel` · `Gallery` · `Video` · `Waveform`
+[`Icon`](https://platform-blocks.com/components/Icon) · [`IconButton`](https://platform-blocks.com/components/IconButton) · [`BrandIcon`](https://platform-blocks.com/components/BrandIcon) · [`Image`](https://platform-blocks.com/components/Image) · [`Carousel`](https://platform-blocks.com/components/Carousel) · [`Gallery`](https://platform-blocks.com/components/Gallery) · [`Video`](https://platform-blocks.com/components/Video) · [`AudioPlayer`](https://platform-blocks.com/components/AudioPlayer) · [`Waveform`](https://platform-blocks.com/components/Waveform)
 
 ### Utilities
-`Collapse` · `Divider` · `Link` · `CodeBlock` · `CopyButton` · `QRCode` · `Spoiler`
+[`Collapse`](https://platform-blocks.com/components/Collapse) · [`Divider`](https://platform-blocks.com/components/Divider) · [`CodeBlock`](https://platform-blocks.com/components/CodeBlock) · [`CopyButton`](https://platform-blocks.com/components/CopyButton) · [`QRCode`](https://platform-blocks.com/components/QRCode) · [`Spoiler`](https://platform-blocks.com/components/Spoiler)
 
 ### App store & marketplace badges
-Ready-made buttons and badges for App Store, Google Play, Microsoft Store, Amazon, Spotify, Apple Music, YouTube, Discord, GitHub, and 20+ more.
+Ready-made buttons and badges for App Store, Google Play, Microsoft Store, Amazon, Spotify, Apple Music, YouTube, Discord, GitHub, and 20+ more — see [`BrandButton`](https://platform-blocks.com/components/BrandButton) and [`BrandIcon`](https://platform-blocks.com/components/BrandIcon).
+
+### Charts
+25 chart types (line, bar, area, pie, donut, candlestick, sankey, heatmap, and more) ship in the companion [`@platform-blocks/charts`](https://www.npmjs.com/package/@platform-blocks/charts) package — browse them at [platform-blocks.com/charts](https://platform-blocks.com/charts).
 
 ## Hooks
 
 | Hook | Description |
 | --- | --- |
-| `useClipboard` | Copy text to clipboard |
-| `useDeviceInfo` | Device and platform information |
-| `useEscapeKey` | Escape key handler |
-| `useGlobalHotkeys` | Global keyboard shortcuts |
-| `useHotkeys` | Scoped keyboard shortcuts |
-| `useHaptics` | Haptic feedback control |
+| [`useClipboard`](https://platform-blocks.com/hooks/useClipboard) | Copy text to clipboard |
+| [`useControllableState`](https://platform-blocks.com/hooks/useControllableState) | Controlled / uncontrolled value state |
+| [`useDebouncedCallback`](https://platform-blocks.com/hooks/useDebouncedCallback) | Debounced function wrapper with cancel / flush |
+| [`useDebouncedValue`](https://platform-blocks.com/hooks/useDebouncedValue) | Debounced copy of a changing value |
+| [`useDeviceInfo`](https://platform-blocks.com/hooks/useDeviceInfo) | Device and platform information |
+| [`useDisclosure`](https://platform-blocks.com/hooks/useDisclosure) | Boolean open / close / toggle state |
+| [`useEscapeKey`](https://platform-blocks.com/hooks/useEscapeKey) | Escape key handler |
+| [`useGlobalHotkeys`](https://platform-blocks.com/hooks/useGlobalHotkeys) | Global keyboard shortcuts |
+| [`useHotkeys`](https://platform-blocks.com/hooks/useHotkeys) | Scoped keyboard shortcuts |
+| [`useHaptics`](https://platform-blocks.com/hooks/useHaptics) | Haptic feedback control |
 | `useHapticsSettings` | Haptics configuration |
-| `useMaskedInput` | Input masking |
-| `useOverlayMode` | Overlay UI state |
-| `useScrollSpy` | Scroll position tracking |
-| `useSpotlightToggle` | Spotlight tutorial control |
-| `useToggleColorScheme` | Dark / light mode toggle |
+| [`useHover`](https://platform-blocks.com/hooks/useHover) | Cross-platform hover state and handlers |
+| [`useMaskedInput`](https://platform-blocks.com/hooks/useMaskedInput) | Input masking |
+| [`useMediaQuery`](https://platform-blocks.com/hooks/useMediaQuery) | Media queries on web, dimension queries on native |
+| [`useOverlayMode`](https://platform-blocks.com/hooks/useOverlayMode) | Overlay UI state |
+| [`useScrollSpy`](https://platform-blocks.com/hooks/useScrollSpy) | Scroll position tracking |
+| `useSoundHaptics` | Sound system's `triggerHaptic` wrapper |
+| [`useSpotlightToggle`](https://platform-blocks.com/hooks/useSpotlightToggle) | Spotlight tutorial control |
+| [`useTitleRegistration`](https://platform-blocks.com/hooks/useTitleRegistration) | Register headings with the title registry |
+| [`useToggleColorScheme`](https://platform-blocks.com/hooks/useToggleColorScheme) | Dark / light mode toggle |
 
 ## Theming
 
@@ -136,9 +165,11 @@ Full documentation, interactive examples, and component playground are available
 
 - [Getting started](https://platform-blocks.com/getting-started)
 - [Component gallery](https://platform-blocks.com/components)
-- [Interactive examples](https://platform-blocks.com/examples)
-- [Theming guide](https://platform-blocks.com/theming)
+- [Charts](https://platform-blocks.com/charts)
+- [Hooks](https://platform-blocks.com/hooks)
 - [Accessibility](https://platform-blocks.com/accessibility)
+- [Localization](https://platform-blocks.com/localization)
+- [FAQ](https://platform-blocks.com/faq)
 - [llms.txt](https://platform-blocks.com/llms.txt) — Full API reference for LLMs and AI assistants
 
 ## Contributing

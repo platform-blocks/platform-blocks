@@ -1,4 +1,4 @@
-import { Column, Tabs, Text } from '@platform-blocks/ui';
+import { Block, Tabs, Text } from '@platform-blocks/ui';
 
 const ITEMS = [
   {
@@ -20,11 +20,11 @@ const ITEMS = [
 
 export default function Demo() {
   return (
-    <Column gap="sm">
+    <Block>
       <Tabs items={ITEMS} />
       <Text variant="small" colorVariant="muted">
         Tabs render inline content directly below the active trigger by default.
       </Text>
-    </Column>
+    </Block>
   );
 }

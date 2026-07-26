@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Checkbox, Column, Text } from '@platform-blocks/ui';
+import { Block, Checkbox, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [enabled, setEnabled] = useState(true);
@@ -7,8 +7,7 @@ export default function Demo() {
   const [withError, setWithError] = useState(false);
 
   return (
-    <Column gap="sm">
-      <Text weight="medium">State variants</Text>
+    <Block>
       <Checkbox label="Enabled" checked={enabled} onChange={setEnabled} />
       <Checkbox label="Disabled" checked={false} disabled />
       <Checkbox label="Required" required checked={required} onChange={setRequired} />
@@ -18,9 +17,6 @@ export default function Demo() {
         checked={withError}
         onChange={setWithError}
       />
-      <Text variant="small" colorVariant="muted">
-        Combine `required`, `disabled`, and `error` to communicate validation and accessibility states.
-      </Text>
-    </Column>
+    </Block>
   );
 }

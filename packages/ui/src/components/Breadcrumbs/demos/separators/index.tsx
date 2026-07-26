@@ -1,4 +1,4 @@
-import { Breadcrumbs, Column, Icon } from '@platform-blocks/ui';
+import { Block, Breadcrumbs, Icon } from '@platform-blocks/ui';
 
 const ITEMS = [
   { label: 'Home', href: '/' },
@@ -9,11 +9,11 @@ const ITEMS = [
 
 export default function Demo() {
   return (
-    <Column gap="md">
+    <Block>
       <Breadcrumbs items={ITEMS} />
       <Breadcrumbs items={ITEMS} separator=">" />
       <Breadcrumbs items={ITEMS} separator={<Icon name="chevron-right" size={14} />} />
       <Breadcrumbs items={ITEMS} separator="•" />
-    </Column>
+    </Block>
   );
 }

@@ -10,7 +10,7 @@ import {
   Input,
   NumberInput,
   Slider,
-  Chip,
+  RangeSlider,
   ColorPicker,
   Space,
   CodeBlock
@@ -50,6 +50,8 @@ interface ControlDefinition {
   placeholder?: string;
   colorPresets?: string[];
   initialValue: any;
+  /** `range` controls only — the prop driven by the upper thumb. */
+  pairWith?: string;
 }
 
 const SIZE_TOKEN_OPTIONS = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
@@ -71,6 +73,7 @@ const CONTROL_TYPES_WITH_FIELD_LABEL = new Set<PlaygroundControlType>([
   'select',
   'number',
   'size-slider',
+  'range',
   'text'
 ]);
 
@@ -116,7 +119,7 @@ class PreviewErrorBoundary extends React.Component<
 }
 
 export function ComponentPlayground({ component, propsMeta, config }: ComponentPlaygroundProps) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const isStacked = width < 1100;
   const targetName = config.component || component;
   const blockComponent = Blocks[targetName as keyof typeof Blocks] as React.ComponentType | undefined;
@@ -166,34 +169,62 @@ export function ComponentPlayground({ component, propsMeta, config }: ComponentP
     setValues(prev => ({ ...prev, [name]: value }));
   };
 
+  // Split into a compact toggle grid (booleans) and a full-width settings list
+  // (everything else) so long control lists stay scannable instead of sprawling
+  // into one endless column.
+  const toggleControls = controls.filter(c => c.controlType === 'boolean');
+  const settingControls = controls.filter(c => c.controlType !== 'boolean');
+
+  const renderControlFor = (control: ControlDefinition) =>
+    renderControl(
+      control,
+      values[control.name],
+      handlePropChange,
+      control.pairWith ? values[control.pairWith] : undefined
+    );
+
+  const renderSettingControl = (control: ControlDefinition) => {
+    // Controls that render their own field label need no header row of their
+    // own; the required marker rides on that label, so the row is just a label.
+    const usesFieldLabel = CONTROL_TYPES_WITH_FIELD_LABEL.has(control.controlType);
+    return (
+      <View key={control.name}>
+        {!usesFieldLabel && (
+          <Text variant="small" weight="semibold" style={styles.controlHeader}>
+            {control.label}
+          </Text>
+        )}
+        <View style={styles.controlBody}>
+          {renderControlFor(control)}
+        </View>
+      </View>
+    );
+  };
+
   const controlsContent = controls.length ? (
-    <ScrollView contentContainerStyle={styles.controlsContent} showsVerticalScrollIndicator={false}>
-      {controls.map(control => {
-        const usesFieldLabel = CONTROL_TYPES_WITH_FIELD_LABEL.has(control.controlType);
-        const showHeader = control.required || !usesFieldLabel;
-        return (
-          <View key={control.name} >
-            {showHeader && (
-              <Flex direction="row" justify="space-between" align="center" style={styles.controlHeader}>
-                <View>
-                  {!usesFieldLabel && (
-                    <Text variant="small" weight="semibold">{control.label}</Text>
-                  )}
-                </View>
-                {control.required && <Chip size="xs" variant="outline">Required</Chip>}
-              </Flex>
-            )}
-            <View style={styles.controlBody}>
-              {renderControl(control, values[control.name], handlePropChange)}
-            </View>
-            {/* {control.description && (
-              <Text variant="small" colorVariant="muted" style={styles.controlDescription}>
-                {control.description}
-              </Text>
-            )} */}
+    <ScrollView
+      style={[!isStacked && { maxHeight: Math.max(360, height - 220) }]}
+      contentContainerStyle={styles.controlsContent}
+      showsVerticalScrollIndicator={false}
+    >
+      {toggleControls.length > 0 && (
+        <View style={styles.controlGroup}>
+          <Flex direction="row" wrap="wrap" gap={12}>
+            {toggleControls.map(control => (
+              <View key={control.name} style={isStacked ? styles.fullWidth : styles.toggleCell}>
+                {renderControlFor(control)}
+              </View>
+            ))}
+          </Flex>
+        </View>
+      )}
+      {settingControls.length > 0 && (
+        <View style={styles.controlGroup}>
+          <View style={styles.controlsContent}>
+            {settingControls.map(renderSettingControl)}
           </View>
-        );
-      })}
+        </View>
+      )}
     </ScrollView>
   ) : (
     <View style={styles.emptyState}>
@@ -256,7 +287,8 @@ export function ComponentPlayground({ component, propsMeta, config }: ComponentP
 function renderControl(
   control: ControlDefinition,
   value: any,
-  onChange: (name: string, next: any) => void
+  onChange: (name: string, next: any) => void,
+  pairValue?: any
 ): React.ReactNode {
   const commonPlaceholder = control.placeholder || `Set ${control.label.toLowerCase()}`;
   const handleChange = (nextValue: any) => onChange(control.name, nextValue);
@@ -332,12 +364,66 @@ function renderControl(
         </View>
       );
     }
+    case 'range': {
+      if (!control.pairWith) break;
+      const bound = control.pairWith;
+      const min = control.min ?? DEFAULT_NUMBER_RANGE.min;
+      const max = control.max ?? DEFAULT_NUMBER_RANGE.max;
+      const step = control.step ?? DEFAULT_NUMBER_RANGE.step;
+      const toNumber = (candidate: any, fallback: number) =>
+        typeof candidate === 'number' && Number.isFinite(candidate) ? candidate : fallback;
+      const lower = toNumber(value, min);
+      const upper = toNumber(pairValue, max);
+      // The two props are independent state entries, so a user typing into either
+      // NumberInput can invert them — keep the slider's own value ordered while
+      // still writing each prop back under its own name.
+      const sliderValue: [number, number] = [Math.min(lower, upper), Math.max(lower, upper)];
+      return (
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <RangeSlider
+              label={control.label}
+              required={control.required}
+              value={sliderValue}
+              min={min}
+              max={max}
+              step={step}
+              onChange={([nextLower, nextUpper]) => {
+                onChange(control.name, nextLower);
+                onChange(bound, nextUpper);
+              }}
+            />
+          </View>
+          <View style={{ width: 96 }}>
+            <NumberInput
+              value={lower}
+              min={min}
+              max={max}
+              step={step}
+              onChange={(next) => handleChange(typeof next === 'number' ? next : lower)}
+            />
+          </View>
+          <View style={{ width: 96 }}>
+            <NumberInput
+              value={upper}
+              min={min}
+              max={max}
+              step={step}
+              onChange={(next) => onChange(bound, typeof next === 'number' ? next : upper)}
+            />
+          </View>
+        </View>
+      );
+    }
     case 'size-slider': {
       const tokens = (control.options && control.options.length ? control.options : SIZE_TOKEN_OPTIONS);
       const fallbackToken = (typeof control.initialValue === 'string' && tokens.includes(control.initialValue)) ? control.initialValue : tokens[0];
       const currentToken = (typeof value === 'string' && tokens.includes(value)) ? value : fallbackToken;
       const currentIndex = Math.max(0, tokens.indexOf(currentToken));
-      const ticks = tokens.map((token, idx) => ({ value: idx, label: formatOptionLabel(token) }));
+      // Ticks and the thumb bubble show the token verbatim — they *are* the prop value,
+      // so `formatOptionLabel` would render a misleading "Xs" next to a raw "2xl".
+      const tokenAt = (idx: number) => tokens[Math.min(tokens.length - 1, Math.max(0, Math.round(idx)))];
+      const ticks = tokens.map((token, idx) => ({ value: idx, label: token }));
       return (
         <View>
           <Slider
@@ -351,10 +437,8 @@ function renderControl(
             ticks={ticks}
             showTicks
             restrictToTicks
-            onChange={(nextIdx: number) => {
-              const clamped = Math.min(tokens.length - 1, Math.max(0, Math.round(nextIdx)));
-              handleChange(tokens[clamped]);
-            }}
+            valueLabel={(idx: number) => tokenAt(idx)}
+            onChange={(nextIdx: number) => handleChange(tokenAt(nextIdx))}
           />
           <Space h="xs" />
           {/* <Text variant="small" colorVariant="muted">
@@ -424,8 +508,19 @@ function deriveControls(propsMeta: PropDoc[], config: ComponentPlaygroundConfig)
     if (control) controls.push(control);
   }
 
+  // A `range` control edits two props at once, so the upper prop must not also
+  // get a control of its own.
+  const pairedNames = new Set(
+    controls
+      .filter(control => control.controlType === 'range' && control.pairWith)
+      .map(control => control.pairWith as string)
+  );
+  const visibleControls = pairedNames.size
+    ? controls.filter(control => !pairedNames.has(control.name))
+    : controls;
+
   const pinned = config.pinnedProps || [];
-  controls.sort((a, b) => {
+  visibleControls.sort((a, b) => {
     const idxA = pinned.indexOf(a.name);
     const idxB = pinned.indexOf(b.name);
     if (idxA !== -1 && idxB !== -1) return idxA - idxB;
@@ -434,6 +529,8 @@ function deriveControls(propsMeta: PropDoc[], config: ComponentPlaygroundConfig)
     return a.name.localeCompare(b.name);
   });
 
+  // Seeded from every derived control, including the one hidden behind a range
+  // pairing — that prop still needs a starting value.
   const defaults: Record<string, any> = { ...(config.initialProps || {}) };
   controls.forEach(control => {
     if (defaults[control.name] === undefined) {
@@ -441,7 +538,7 @@ function deriveControls(propsMeta: PropDoc[], config: ComponentPlaygroundConfig)
     }
   });
 
-  return { controls, defaults };
+  return { controls: visibleControls, defaults };
 }
 
 const FUNCTION_ALIAS_SUFFIX = /(Formatter|Renderer|Accessor|Predicate|Comparator|Getter|Selector|Callback|Handler|Fn)$/;
@@ -496,6 +593,7 @@ function buildExtraControl(extra: PlaygroundExtraControl): ControlDefinition | n
     step: extra.step,
     placeholder: extra.placeholder,
     colorPresets: extra.colorPresets,
+    pairWith: extra.pairWith,
     initialValue,
   };
 }
@@ -580,6 +678,7 @@ function buildControlDefinition(prop: PropDoc, override?: PlaygroundControlOverr
     step: override?.step,
     placeholder: override?.placeholder,
     colorPresets: override?.colorPresets,
+    pairWith: override?.pairWith,
     initialValue
   };
 }
@@ -610,7 +709,7 @@ function deriveInitialValue(
     return options.includes('md') ? 'md' : options[0];
   }
 
-  if (controlType === 'number') {
+  if (controlType === 'number' || controlType === 'range') {
     return typeof parsedDefault === 'number' ? parsedDefault : undefined;
   }
 
@@ -770,6 +869,13 @@ const styles = StyleSheet.create({
   codeText: {
     fontFamily: 'monospace',
     fontSize: 14
+  },
+  controlGroup: {
+    gap: 12
+  },
+  toggleCell: {
+    width: '48%',
+    flexGrow: 1
   },
   controlsContent: {
     gap: 20

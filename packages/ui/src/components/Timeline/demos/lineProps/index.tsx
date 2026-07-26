@@ -1,4 +1,4 @@
-import { Column, Text, Timeline } from '@platform-blocks/ui';
+import { Block, Text, Timeline } from '@platform-blocks/ui';
 
 const launches = [
   { title: 'Announcement', description: 'Introduced the roadmap to stakeholders.' },
@@ -8,12 +8,12 @@ const launches = [
 
 export default function Demo() {
   return (
-    <Column gap="lg">
+    <Block>
       <Text size="sm" colorVariant="secondary">
         Customize the connector line globally with the `color`, `colorVariant`, and `lineWidth` props on `Timeline`.
       </Text>
 
-      <Column gap="sm">
+      <Block>
         <Text weight="semibold">Theme color</Text>
         <Timeline colorVariant="primary.6">
           {launches.map((milestone) => (
@@ -22,9 +22,9 @@ export default function Demo() {
             </Timeline.Item>
           ))}
         </Timeline>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text weight="semibold">Thicker connector</Text>
         <Timeline lineWidth={4}>
           {launches.slice(0, 2).map((milestone) => (
@@ -33,9 +33,9 @@ export default function Demo() {
             </Timeline.Item>
           ))}
         </Timeline>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text weight="semibold">Combined styling</Text>
         <Timeline colorVariant="success.6" lineWidth={3}>
           {launches.slice(1).map((milestone) => (
@@ -44,8 +44,8 @@ export default function Demo() {
             </Timeline.Item>
           ))}
         </Timeline>
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }
 

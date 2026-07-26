@@ -1,8 +1,8 @@
-import { Grid, GridItem, Card, Column, Text } from '@platform-blocks/ui';
+import { Block, Card, Grid, GridItem, Text } from '@platform-blocks/ui';
 
 export default function BasicGridDemo() {
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <Grid columns={12} gap={12}>
         {Array.from({ length: 12 }).map((_, index) => (
           <GridItem key={index} span={1}>
@@ -17,6 +17,6 @@ export default function BasicGridDemo() {
       <Text size="sm" colorVariant="secondary">
         Twelve even columns, each spanning a single track
       </Text>
-    </Column>
+    </Block>
   );
 }

@@ -9,4 +9,4 @@ since: 1.1.0
 hidden: false
 ---
 
-Demonstrates the `dual` variant with a center frequency label and a derived percentage below the knob.
+Demonstrates the `dual` behavior with a center frequency label and a derived percentage below the knob.

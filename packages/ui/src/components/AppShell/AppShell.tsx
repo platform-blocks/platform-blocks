@@ -5,7 +5,7 @@ import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-
 
 import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme/ThemeProvider';
-import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
+import { getSpacingStyles, extractSpacingProps, useMergedRef } from '../../core/utils';
 import { useDirection } from '../../core/providers/DirectionProvider';
 import type {
   AppShellProps,
@@ -59,17 +59,18 @@ export const useAppShellLayout = (): AppShellLayout => {
 };
 
 // Component for header
-export const AppShellHeader: React.FC<AppShellHeaderProps> = ({
+export const AppShellHeader = React.forwardRef<View, AppShellHeaderProps>(({
   children,
   withBorder = true,
   zIndex,
   style,
-}) => {
+}, ref) => {
   const theme = useTheme();
   const { headerHeight } = useAppShell();
 
   return (
     <View
+      ref={ref}
       style={[
         {
           height: headerHeight,
@@ -88,6 +89,19 @@ export const AppShellHeader: React.FC<AppShellHeaderProps> = ({
       {children}
     </View>
   );
+});
+
+AppShellHeader.displayName = 'AppShellHeader';
+
+const BREAKPOINT_ORDER = ['base', 'xs', 'sm', 'md', 'lg', 'xl'] as const;
+
+// True when the current breakpoint is at least as wide as `target`.
+const isBreakpointAtLeast = (current: string, target?: string): boolean => {
+  if (!target) return false;
+  const ci = BREAKPOINT_ORDER.indexOf(current as (typeof BREAKPOINT_ORDER)[number]);
+  const ti = BREAKPOINT_ORDER.indexOf(target as (typeof BREAKPOINT_ORDER)[number]);
+  if (ci === -1 || ti === -1) return false;
+  return ci >= ti;
 };
 
 const coerceNumber = (val: any, fallback: number): number => {
@@ -102,16 +116,16 @@ const coerceNumber = (val: any, fallback: number): number => {
 };
 
 // Component for navbar
-export const AppShellNavbar: React.FC<AppShellNavbarProps> = ({
+export const AppShellNavbar = React.forwardRef<View, AppShellNavbarProps>(({
   children,
   withBorder = true,
   zIndex,
   style,
   drawerMode,
-}) => {
+}, ref) => {
   const theme = useTheme();
   const { isRTL } = useDirection();
-  const { navbarWidth, fullNavbarWidth, headerHeight, footerHeight, isNavbarCollapsed, isMobile, navbarOpen, closeNavbar, transitionDuration, navbarCollapsedRailWidth, navbarExpandOnHover } = useAppShell();
+  const { navbarWidth, fullNavbarWidth, headerHeight, footerHeight, isNavbarCollapsed, isMobile, navbarOpen, closeNavbar, transitionDuration, navbarCollapsedRailWidth, navbarExpandOnHover, navbarPushOnHover, navbarHoverProgress } = useAppShell();
   const { width: windowWidth } = useWindowDimensions();
   const [hovering, setHovering] = React.useState(false);
 
@@ -121,25 +135,45 @@ export const AppShellNavbar: React.FC<AppShellNavbarProps> = ({
   const railWidth = React.useMemo(() => coerceNumber(navbarCollapsedRailWidth, 72), [navbarCollapsedRailWidth]);
   const targetExpandedWidth = React.useMemo(() => coerceNumber(fullNavbarWidth, 240), [fullNavbarWidth]);
 
-  // Animated value controls slide/width
+  // Animated value controls slide/width. `transitionDuration={0}` means "no
+  // transition": assign the target directly instead of timing over 0ms.
+  const animateTo = React.useCallback(
+    (shared: { value: number }, next: number, easing: (t: number) => number) => {
+      if (transitionDuration <= 0) {
+        shared.value = next;
+        return;
+      }
+      shared.value = withTiming(next, { duration: transitionDuration, easing });
+    },
+    [transitionDuration]
+  );
+
   const progress = useSharedValue(navbarOpen ? 1 : 0);
   React.useEffect(() => {
-    progress.value = withTiming(navbarOpen ? 1 : 0, { duration: transitionDuration, easing: Easing.inOut(Easing.cubic) });
-  }, [navbarOpen, transitionDuration, progress]);
+    animateTo(progress, navbarOpen ? 1 : 0, Easing.inOut(Easing.cubic));
+  }, [navbarOpen, animateTo, progress]);
 
   const widthValue = useSharedValue<number>(navbarOpen ? targetExpandedWidth : railWidth);
   React.useEffect(() => {
     if (effectiveDrawer) return;
     const next = navbarOpen ? targetExpandedWidth : railWidth;
-    widthValue.value = withTiming(next, { duration: transitionDuration, easing: Easing.inOut(Easing.cubic) });
-  }, [effectiveDrawer, navbarOpen, targetExpandedWidth, railWidth, transitionDuration, widthValue]);
+    animateTo(widthValue, next, Easing.inOut(Easing.cubic));
+  }, [effectiveDrawer, navbarOpen, targetExpandedWidth, railWidth, animateTo, widthValue]);
 
   React.useEffect(() => {
     if (effectiveDrawer) return;
     if (!navbarExpandOnHover || navbarOpen) return;
     const next = hovering ? targetExpandedWidth : railWidth;
-    widthValue.value = withTiming(next, { duration: transitionDuration, easing: Easing.out(Easing.cubic) });
-  }, [effectiveDrawer, hovering, navbarOpen, navbarExpandOnHover, targetExpandedWidth, railWidth, transitionDuration, widthValue]);
+    animateTo(widthValue, next, Easing.out(Easing.cubic));
+  }, [effectiveDrawer, hovering, navbarOpen, navbarExpandOnHover, targetExpandedWidth, railWidth, animateTo, widthValue]);
+
+  // Push mode: mirror the hover state into the shared progress value so the
+  // main content can flex alongside the expanding rail (0 = rail, 1 = expanded).
+  React.useEffect(() => {
+    if (effectiveDrawer || !navbarPushOnHover) return;
+    const next = (hovering && !navbarOpen) ? 1 : 0;
+    animateTo(navbarHoverProgress, next, Easing.out(Easing.cubic));
+  }, [effectiveDrawer, navbarPushOnHover, hovering, navbarOpen, animateTo, navbarHoverProgress]);
 
   const widthAnimatedStyles = useAnimatedStyle(() => ({ width: widthValue.value }), [widthValue]);
   const contentAnimatedStyles = useAnimatedStyle(() => ({
@@ -213,6 +247,7 @@ export const AppShellNavbar: React.FC<AppShellNavbarProps> = ({
     if (fullNavbarWidth === 0) return null; // truly no navbar configured
     return (
       <Animated.View
+        ref={ref}
         style={[
           {
             // height: '100%',
@@ -267,6 +302,7 @@ export const AppShellNavbar: React.FC<AppShellNavbarProps> = ({
         }, backdropAnimatedStyles]}
       />
       <Animated.View
+        ref={ref}
         style={[
           {
             width: drawerWidth,
@@ -295,15 +331,17 @@ export const AppShellNavbar: React.FC<AppShellNavbarProps> = ({
       </Animated.View>
     </>
   );
-};
+});
+
+AppShellNavbar.displayName = 'AppShellNavbar';
 
 // Component for aside (right panel)
-export const AppShellAside: React.FC<AppShellAsideProps> = ({
+export const AppShellAside = React.forwardRef<View, AppShellAsideProps>(({
   children,
   withBorder = true,
   zIndex,
   style,
-}) => {
+}, ref) => {
   const theme = useTheme();
   const { isRTL } = useDirection();
   const { asideWidth, headerHeight, footerHeight, isAsideCollapsed } = useAppShell();
@@ -312,6 +350,7 @@ export const AppShellAside: React.FC<AppShellAsideProps> = ({
 
   return (
     <View
+      ref={ref}
       style={[
         {
           width: asideWidth,
@@ -335,21 +374,24 @@ export const AppShellAside: React.FC<AppShellAsideProps> = ({
       {children}
     </View>
   );
-};
+});
+
+AppShellAside.displayName = 'AppShellAside';
 
 // Component for footer
-export const AppShellFooter: React.FC<AppShellFooterProps> = ({
+export const AppShellFooter = React.forwardRef<View, AppShellFooterProps>(({
   children,
   withBorder = true,
   zIndex,
   style,
-}) => {
+}, ref) => {
   const theme = useTheme();
   const { isRTL } = useDirection();
   const { footerHeight, navbarWidth, asideWidth } = useAppShell();
 
   return (
     <View
+      ref={ref}
       style={[
         {
           height: footerHeight,
@@ -373,15 +415,17 @@ export const AppShellFooter: React.FC<AppShellFooterProps> = ({
       {children}
     </View>
   );
-};
+});
+
+AppShellFooter.displayName = 'AppShellFooter';
 
 // Component for bottom navigation (mobile)
-export const AppShellBottomNav: React.FC<AppShellBottomNavProps> = ({
+export const AppShellBottomNav = React.forwardRef<View, AppShellBottomNavProps>(({
   children,
   withBorder = true,
   zIndex,
   style,
-}) => {
+}, ref) => {
   const theme = useTheme();
   const { bottomNavHeight, isMobile } = useAppShell();
 
@@ -389,6 +433,7 @@ export const AppShellBottomNav: React.FC<AppShellBottomNavProps> = ({
 
   return (
     <View
+      ref={ref}
       style={[
         {
           height: bottomNavHeight,
@@ -407,10 +452,12 @@ export const AppShellBottomNav: React.FC<AppShellBottomNavProps> = ({
       {children}
     </View>
   );
-};
+});
+
+AppShellBottomNav.displayName = 'AppShellBottomNav';
 
 // Component for main content
-export const AppShellMain: React.FC<AppShellMainProps> = ({
+export const AppShellMain = React.forwardRef<View, AppShellMainProps>(({
   children,
   style,
   id,
@@ -421,7 +468,7 @@ export const AppShellMain: React.FC<AppShellMainProps> = ({
   hideTocOnMobile = true,
   tocWidth = 280,
   tocWithBorder = true,
-}) => {
+}, ref) => {
   const theme = useTheme();
   const { isRTL } = useDirection();
   const {
@@ -430,7 +477,12 @@ export const AppShellMain: React.FC<AppShellMainProps> = ({
     navbarWidth,
     asideWidth,
     bottomNavHeight,
-    isMobile
+    isMobile,
+    navbarPushOnHover,
+    navbarHoverProgress,
+    fullNavbarWidth,
+    navbarCollapsedRailWidth,
+    navbarOpen,
   } = useAppShell();
   const insets = useSafeAreaInsets();
 
@@ -456,6 +508,27 @@ export const AppShellMain: React.FC<AppShellMainProps> = ({
     : (isMobile ? 0 : numericAsideWidth + effectiveTocWidth);
   const contentTop = numericHeaderHeight + (isMobile ? topInset : 0);
   const contentBottom = (isMobile ? numericBottomNavHeight : numericFooterHeight) + (isMobile && numericBottomNavHeight === 0 ? bottomInset : 0);
+
+  // Push-on-hover: how much further the content slides once the rail is fully
+  // expanded. `numericNavbarWidth` already equals the collapsed rail width, so
+  // we only add the remaining delta up to the full width, scaled by progress.
+  const pushDelta = React.useMemo(() => {
+    if (!navbarPushOnHover || isMobile || navbarOpen) return 0;
+    return Math.max(0, coerceNumber(fullNavbarWidth, 0) - coerceNumber(navbarCollapsedRailWidth, 0));
+  }, [navbarPushOnHover, isMobile, navbarOpen, fullNavbarWidth, navbarCollapsedRailWidth]);
+
+  // Own both horizontal insets from the worklet. Reanimated exclusively manages
+  // any property an animated style ever sets, so a static `left` would freeze at
+  // its first value once hover animates it. Driving left/right here keeps them in
+  // sync with layout changes (e.g. the rail auto-expanding at xl) AND animates the
+  // hover push. `pushDelta` is 0 whenever push mode is off or the rail is already
+  // open, so this reduces to the plain static offset in every other case.
+  const contentInsetStyle = useAnimatedStyle(() => {
+    const extra = navbarHoverProgress.value * pushDelta;
+    return isRTL
+      ? { left: contentLeft, right: contentRight + extra }
+      : { left: contentLeft + extra, right: contentRight };
+  }, [pushDelta, contentLeft, contentRight, isRTL]);
 
   const horizontalPadding = maxWidth && centerContent ? 0 : 0;
 
@@ -496,6 +569,8 @@ export const AppShellMain: React.FC<AppShellMainProps> = ({
   // to the inner ScrollView so scrolling works even when the cursor is
   // in the left/right margins outside the maxWidth content area.
   const outerRef = useRef<View>(null);
+  // Wheel handling needs the node; the consumer's ref is composed onto it.
+  const mergedOuterRef = useMergedRef<View>(outerRef, ref);
   const scrollableRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (Platform.OS !== 'web') return;
@@ -548,40 +623,30 @@ export const AppShellMain: React.FC<AppShellMainProps> = ({
 
   return (
     <>
-      <View
-        ref={outerRef}
+      <Animated.View
+        ref={mergedOuterRef}
         {...webAttributes}
         style={[
           {
             position: 'absolute',
             top: contentTop,
-            left: contentLeft,
-            right: contentRight,
             bottom: contentBottom,
-            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.gray[0] : theme.colors.gray[0],
+            // Use the page background token so the area outside the centered
+            // maxWidth content column matches the scrollable page body (which
+            // paints theme.backgrounds.base). gray[0] is a slightly different
+            // light-mode grey and produced a visible seam at the column edge.
+            backgroundColor: theme.backgrounds.base,
           },
+          // left/right (incl. hover push) are owned by the animated style.
+          contentInsetStyle,
           style,
-          {backgroundColor: 'white',},
-
-          { // Keep solid fallback color for native / non-web
-      // backgroundColor: theme.colorScheme === 'dark' ? '#000000' : '#FAFAFA',
-      // // On web add a subtle gradient so the sticky translucent header shows variation underneath
-      ...(Platform.OS === 'web' && {
-        backgroundColor:
-        theme.colorScheme === 'dark' ? 'transparent' :'white',
-        // allow gradient to define appearance
-        // backgroundImage: theme.colorScheme === 'dark'
-        //   ? 'linear-gradient(rgba(0,0,0,0.8), #000000 140px)'
-        //   : 'linear-gradient(rgba(250,250,250,0.8), #eaeaeaff 140px)',
-      } as any),}
-
         ]}
       >
         {/* Content with optional max width constraint */}
         <View style={contentStyles as any}>
           {children}
         </View>
-      </View>
+      </Animated.View>
 
       {/* Table of Contents */}
       {tableOfContents && (!hideTocOnMobile || !isMobile) && (
@@ -593,17 +658,20 @@ export const AppShellMain: React.FC<AppShellMainProps> = ({
       )}
     </>
   );
-};
+});
+
+AppShellMain.displayName = 'AppShellMain';
 
 // Section component for organizing navbar/aside content
-export const AppShellSection: React.FC<AppShellSectionProps> = ({
+export const AppShellSection = React.forwardRef<View, AppShellSectionProps>(({
   children,
   grow = false,
   withScrollArea = false,
   style,
-}) => {
+}, ref) => {
   return (
     <View
+      ref={ref}
       style={[
         {
           flex: grow ? 1 : undefined,
@@ -614,7 +682,9 @@ export const AppShellSection: React.FC<AppShellSectionProps> = ({
       {children}
     </View>
   );
-};
+});
+
+AppShellSection.displayName = 'AppShellSection';
 
 // Main AppShell component
 function AppShellBase(props: AppShellProps, ref: React.Ref<View>) {
@@ -685,12 +755,20 @@ function AppShellBase(props: AppShellProps, ref: React.Ref<View>) {
   const footerHeight = footerConfig ? resolveResponsiveValue(footerConfig.height, breakpoint) : 0;
   const bottomNavHeight = bottomNavConfig && isMobile ? resolveResponsiveValue(bottomNavConfig.height, breakpoint) : 0;
 
+  // Desired desktop open state: expanded when `startCollapsedDesktop` is off, or
+  // when the viewport has reached `autoExpandBreakpoint` (e.g. auto-expand the
+  // rail on xl screens while keeping it collapsed-with-hover on smaller desktops).
+  const desktopNavbarOpen = React.useMemo(() => {
+    if (!navbarConfig) return false;
+    if (isBreakpointAtLeast(breakpoint, navbarConfig.autoExpandBreakpoint)) return true;
+    return !navbarConfig.startCollapsedDesktop;
+  }, [navbarConfig, breakpoint]);
+
   // Local state for drawer open when mobile
   const [navbarOpen, setNavbarOpen] = React.useState(() => {
     if (!navbarConfig) return false;
     if (isMobile) return false;
-    if (navbarConfig.startCollapsedDesktop) return false;
-    return true;
+    return desktopNavbarOpen;
   });
   const openNavbar = React.useCallback(() => setNavbarOpen(true), []);
   const closeNavbar = React.useCallback(() => setNavbarOpen(false), []);
@@ -705,9 +783,9 @@ function AppShellBase(props: AppShellProps, ref: React.Ref<View>) {
     if (isMobile) {
       setNavbarOpen(false);
     } else {
-      setNavbarOpen(!(navbarConfig.startCollapsedDesktop));
+      setNavbarOpen(desktopNavbarOpen);
     }
-  }, [isMobile, navbarConfig]);
+  }, [isMobile, navbarConfig, desktopNavbarOpen]);
 
   // Calculate navbar state (desktop inline vs mobile drawer)
   const fullNavbarWidth = navbarConfig ? resolveResponsiveValue(navbarConfig.width, breakpoint) : 0;
@@ -723,6 +801,19 @@ function AppShellBase(props: AppShellProps, ref: React.Ref<View>) {
       ? 0 // drawer overlays content
       : navbarOpen ? fullNavbarWidth : railWidth)
     : 0;
+
+  // Hover-expansion: when `expandOnHoverPush` is enabled the collapsed rail
+  // pushes the main content aside (flexing the page) instead of overlaying it.
+  // The navbar writes to this shared value on hover; AppShellNavbar and
+  // AppShellMain both read it via animated styles so the content reflows on the
+  // UI thread without re-rendering the (heavy) page subtree.
+  const navbarHoverProgress = useSharedValue(0);
+  const navbarPushOnHover = Boolean(
+    navbarConfig
+      && !isMobile
+      && (navbarConfig.expandOnHover ?? true)
+      && (navbarConfig as { expandOnHoverPush?: boolean }).expandOnHoverPush
+  );
 
   // Calculate aside state
   const isAsideCollapsed = asideConfig
@@ -753,6 +844,8 @@ function AppShellBase(props: AppShellProps, ref: React.Ref<View>) {
     fullNavbarWidth,
     navbarCollapsedRailWidth: railWidth,
     navbarExpandOnHover: navbarConfig?.expandOnHover ?? true,
+    navbarPushOnHover,
+    navbarHoverProgress,
   }), [
     headerHeight,
     navbarWidth,
@@ -771,6 +864,8 @@ function AppShellBase(props: AppShellProps, ref: React.Ref<View>) {
     fullNavbarWidth,
     railWidth,
     isAsideCollapsed,
+    navbarPushOnHover,
+    navbarHoverProgress,
   ]);
 
   // Memoized selector payloads for re-render isolation

@@ -1,4 +1,4 @@
-import { Column, Row, Switch, Text } from '@platform-blocks/ui';
+import { Block, Row, Switch, Text } from '@platform-blocks/ui';
 
 const COLOR_VARIANTS = [
   { label: 'Primary', color: 'primary' },
@@ -10,7 +10,7 @@ const COLOR_VARIANTS = [
 
 export default function Demo() {
   return (
-    <Column gap="md">
+    <Block>
       <Text variant="small" colorVariant="muted">
         Semantic color variants
       </Text>
@@ -19,7 +19,7 @@ export default function Demo() {
           <Switch key={color} defaultChecked label={label} labelPosition="right" color={color} />
         ))}
       </Row>
-    </Column>
+    </Block>
   );
 }
 

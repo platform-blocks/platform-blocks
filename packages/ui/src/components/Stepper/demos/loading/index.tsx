@@ -33,9 +33,9 @@ export default function Demo() {
   }, []);
 
   return (
-    <Block gap="lg" fullWidth>
+    <Block fullWidth>
       <Card p="md">
-        <Block gap="md">
+        <Block>
           <Text size="sm" colorVariant="secondary">
             Apply the `loading` prop to a step when a background task is running to replace the icon with a spinner.
           </Text>

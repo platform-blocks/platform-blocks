@@ -1,18 +1,8 @@
 import { useState } from 'react'
 
-import { AutoComplete, Chip, Icon } from '@platform-blocks/ui'
+import { AutoComplete, Block, Chip, Icon } from '@platform-blocks/ui'
 import type { AutoCompleteOption } from '../../types'
-
-const musicGenres: AutoCompleteOption[] = [
-  { label: 'Pop', value: 'pop' },
-  { label: 'Rock', value: 'rock' },
-  { label: 'Hip Hop', value: 'hiphop' },
-  { label: 'Jazz', value: 'jazz' },
-  { label: 'Classical', value: 'classical' },
-  { label: 'Electronic', value: 'electronic' },
-  { label: 'Country', value: 'country' },
-  { label: 'R&B', value: 'rnb' },
-]
+import { musicGenres } from '../data'
 
 export default function Demo() {
   const [inputValue, setInputValue] = useState('')
@@ -29,35 +19,36 @@ export default function Demo() {
   }
 
   return (
-    <AutoComplete
-      label="Music genres"
-      placeholder="Search genres..."
-      data={musicGenres}
-      value={inputValue}
-      onChangeText={setInputValue}
-      onSelect={handleToggle}
-      multiSelect
-      selectedValues={selectedGenres}
-      minSearchLength={0}
-      clearable
-      onClear={() => {
-        setSelectedGenres([])
-        setInputValue('')
-      }}
-      selectedValuesContainerStyle={{ flexWrap: 'wrap', gap: 6 }}
-      renderSelectedValue={(item, _index, helpers) => (
-        <Chip
-          key={item.value}
-          size="sm"
-          variant="filled"
-          color="primary"
-          endIcon={<Icon name="x" size={12} color="currentColor" />}
-          onRemove={helpers.onRemove}
-        >
-          {item.label}
-        </Chip>
-      )}
-      fullWidth
-    />
+    <Block w={400}>
+      <AutoComplete
+        label="Music genres"
+        placeholder="Search genres..."
+        data={musicGenres}
+        value={inputValue}
+        onChangeText={setInputValue}
+        onSelect={handleToggle}
+        multiSelect
+        selectedValues={selectedGenres}
+        minSearchLength={0}
+        clearable
+        onClear={() => {
+          setSelectedGenres([])
+          setInputValue('')
+        }}
+        selectedValuesContainerStyle={{ flexWrap: 'wrap', gap: 6 }}
+        renderSelectedValue={(item, _index, helpers) => (
+          <Chip
+            key={item.value}
+            size="sm"
+            variant="surface"
+            endIcon={<Icon name="x" size={12} color="currentColor" />}
+            onRemove={helpers.onRemove}
+          >
+            {item.label}
+          </Chip>
+        )}
+        inputWidth={400}
+      />
+    </Block>
   )
 }

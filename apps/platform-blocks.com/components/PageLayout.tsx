@@ -1,9 +1,16 @@
 import React from 'react';
-import { View, StyleSheet, Platform, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, StyleSheet, Platform, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from 'react-native';
 import { usePathname } from 'expo-router';
 import { usePersistentScroll, getSavedScroll } from '../utils/usePersistentScroll';
 import { KeyboardAwareLayout, useTheme } from '@platform-blocks/ui';
+import { BREAKPOINTS } from '@platform-blocks/ui/core/responsive';
 import { FooterContent } from './layout/FooterPage';
+
+/**
+ * Horizontal gutter PageLayout applies on narrow viewports. Exported so screens
+ * that want to run an element to the screen edge know how much to cancel out.
+ */
+export const NARROW_PAGE_GUTTER = 16;
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -13,6 +20,8 @@ interface PageLayoutProps {
 
 export function PageLayout({ children, style, contentContainerStyle }: PageLayoutProps) {
   const theme = useTheme();
+  const { width } = useWindowDimensions();
+  const isNarrow = width < BREAKPOINTS.md;
   // Use broader ref type to satisfy usePersistentScroll expectations across platforms
   const scrollRef = React.useRef<any>(null);
   const { onScroll: onPersistScroll } = usePersistentScroll(scrollRef, { delayFrames: 2 });
@@ -66,7 +75,11 @@ export function PageLayout({ children, style, contentContainerStyle }: PageLayou
         scrollEventThrottle: 16,
       }}
     >
-      <View style={[{ overflow: 'visible' as any, paddingHorizontal: Platform.OS === 'web' ? 8 : 0 }, style]}>
+      {/* Horizontal padding gives card shadows room before the ScrollView's
+          overflow-x clip at the content-column edge (largest theme shadows
+          spread ~24px). Narrow viewports keep a smaller gutter so content never
+          touches the screen edge, and accept some shadow clipping. */}
+      <View style={[{ overflow: 'visible' as any, paddingHorizontal: Platform.OS === 'web' && !isNarrow ? 24 : NARROW_PAGE_GUTTER }, style]}>
         {children}
       </View>
       <View style={dynamicStyles.footerWrapper}>

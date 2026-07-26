@@ -1,13 +1,13 @@
 import { useState } from 'react';
 
-import { Column, FileInput, Text } from '@platform-blocks/ui';
+import { Block, FileInput, Text } from '@platform-blocks/ui';
 import type { FileInputFile } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [files, setFiles] = useState<FileInputFile[]>([]);
 
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <FileInput
         label="Upload files"
         helperText="Choose files from your device"
@@ -20,6 +20,6 @@ export default function Demo() {
           Selected: {files.map((file) => file.name).join(', ')}
         </Text>
       )}
-    </Column>
+    </Block>
   );
 }

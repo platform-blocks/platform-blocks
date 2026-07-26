@@ -1,15 +1,6 @@
 import { HistogramChart } from '../../';
 
-const TRANSACTION_AMOUNTS = [
-  120, 135, 142, 150, 155, 160, 162, 168, 170, 174,
-  180, 184, 188, 192, 198, 205, 210, 218, 225, 230,
-  240, 245, 250, 260, 270, 280, 295, 310, 330, 340,
-  360, 380, 395, 410, 430, 455, 480, 500, 520, 540,
-  560, 580, 600, 620, 640, 660, 690, 720, 750, 780,
-  820, 860, 890, 930, 970, 1020, 1080, 1150, 1220, 1310,
-];
-
-const REVIEW_THRESHOLD = 750;
+import { REVIEW_THRESHOLD, TRANSACTION_AMOUNTS } from './data';
 
 export default function Demo() {
   return (
@@ -22,7 +13,6 @@ export default function Demo() {
       bins={16}
       binMethod="fd"
       showDensity
-      barColor="#F97316"
       barOpacity={0.76}
       densityColor="#0EA5E9"
       rangeHighlights={[
@@ -45,7 +35,7 @@ export default function Demo() {
         title: 'Probability density',
         labelFormatter: (value) => value.toFixed(3),
       }}
-      grid={{ show: true, color: '#FFECE5' }}
+      grid={{ show: true }}
       tooltip={{
         show: true,
         formatter: (bin) => `${bin.count} orders between $${bin.start.toFixed(0)}–$${bin.end.toFixed(0)}`,

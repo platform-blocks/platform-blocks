@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Column, FileInput, Flex, Text } from '@platform-blocks/ui';
+import { Block, Button, FileInput, Flex, Text } from '@platform-blocks/ui';
 import type { FileInputFile } from '@platform-blocks/ui';
 
 export default function Demo() {
@@ -32,7 +32,7 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <FileInput
         label="Select files to upload"
         helperText="Choose files and click upload to simulate progress"
@@ -44,11 +44,11 @@ export default function Demo() {
       />
 
       {files.length > 0 && (
-        <Column gap="sm" fullWidth>
+        <Block fullWidth>
           <Text size="sm" weight="semibold">
             Selected files
           </Text>
-          <Column gap="xs">
+          <Block>
             {files.map((file, index) => (
               <Flex
                 key={file.id ?? file.name}
@@ -58,7 +58,7 @@ export default function Demo() {
                 p={8}
                 style={{ borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 4 }}
               >
-                <Column gap="xs">
+                <Block>
                   <Text size="sm" weight="medium">
                     {file.name}
                   </Text>
@@ -70,13 +70,13 @@ export default function Demo() {
                       Progress: {uploadProgress[file.name]}%
                     </Text>
                   )}
-                </Column>
+                </Block>
                 <Button size="xs" variant="outline" onPress={() => handleRemove(index)} disabled={isUploading}>
                   Remove
                 </Button>
               </Flex>
             ))}
-          </Column>
+          </Block>
 
           <Flex direction="row" gap={12} wrap="wrap">
             <Button
@@ -98,8 +98,8 @@ export default function Demo() {
               Clear all
             </Button>
           </Flex>
-        </Column>
+        </Block>
       )}
-    </Column>
+    </Block>
   );
 }

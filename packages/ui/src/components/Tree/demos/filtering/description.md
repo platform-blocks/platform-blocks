@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Provide `filterQuery`, `hideFiltered`, and a `highlight` renderer to add search to the tree with a custom empty state.
+Provide `filterQuery` with `hideFiltered` to search the tree. A `highlight` renderer and `noResultsFallback` are also available for custom match styling and empty states.

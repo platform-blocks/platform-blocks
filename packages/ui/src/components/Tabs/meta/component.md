@@ -19,8 +19,6 @@ variants:
     description: "Vertical and horizontal tab orientations"
   - name: "animated"
     description: "Smooth transitions and animations between tab content"
-  - name: "label-customization"
-    description: "Override label Text props (ff, weight, tracking, uppercase) via labelProps"
 dependencies:
   - "@platform-blocks/core"
 related:

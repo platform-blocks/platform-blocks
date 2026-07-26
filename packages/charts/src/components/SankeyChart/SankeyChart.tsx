@@ -251,6 +251,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
     onLinkHover,
     highlightOnHover = true,
     onDataInconsistency,
+    ...rest
   } = props;
   const theme = useChartTheme();
   
@@ -282,7 +283,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
   // Defensive programming: handle empty data
   if (!nodes || nodes.length === 0) {
     return (
-      <ChartContainer width={width} height={height} style={style}>
+      <ChartContainer {...rest} width={width} height={height} style={style}>
         {(title || subtitle) && <ChartTitle title={title} subtitle={subtitle} />}
         <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>No nodes provided</Text>
@@ -293,7 +294,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
   
   if (!links || links.length === 0) {
     return (
-      <ChartContainer width={width} height={height} style={style}>
+      <ChartContainer {...rest} width={width} height={height} style={style}>
         {(title || subtitle) && <ChartTitle title={title} subtitle={subtitle} />}
         <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>No links provided</Text>
@@ -698,7 +699,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
   }, [handleNodeHover, handleLinkHover]);
 
   return (
-    <ChartContainer width={width} height={height} style={style} interactionConfig={{ multiTooltip:true }}>
+    <ChartContainer {...rest} width={width} height={height} style={style} interactionConfig={{ multiTooltip:true }}>
       {(title||subtitle) && <ChartTitle title={title} subtitle={subtitle} />}
       <Svg
         width={width}

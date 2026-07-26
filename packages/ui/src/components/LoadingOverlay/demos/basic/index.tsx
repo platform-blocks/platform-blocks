@@ -1,6 +1,6 @@
 import { useState, type ComponentProps } from 'react';
 import { StyleSheet } from 'react-native';
-import { Button, Card, Column, Input, LoadingOverlay, Switch, Text } from '@platform-blocks/ui';
+import { Block, Button, Card, Input, LoadingOverlay, Switch, Text } from '@platform-blocks/ui';
 
 type TextFieldConfig = {
   key: string;
@@ -27,8 +27,8 @@ export default function Demo() {
   const [visible, setVisible] = useState(false);
 
   return (
-    <Column gap="lg" align="center" style={styles.wrapper}>
-      <Column gap="md" style={styles.section}>
+    <Block align="center" style={styles.wrapper}>
+      <Block style={styles.section}>
         <Card style={styles.card} shadow="lg">
           <LoadingOverlay
             visible={visible}
@@ -36,34 +36,34 @@ export default function Demo() {
             loaderProps={{ variant: 'dots', size: 'lg' }}
           />
 
-          <Column gap="lg">
-            <Column gap="xs">
+          <Block>
+            <Block>
               <Text variant="h4" weight="semibold">
                 Account details
               </Text>
               <Text variant="p" colorVariant="muted">
                 Pause form interaction while requests finish and keep the layout intact.
               </Text>
-            </Column>
+            </Block>
 
-            <Column gap="md">
+            <Block>
               {TEXT_FIELDS.map(({ key, ...field }) => (
                 <Input key={key} disabled={visible} {...field} />
               ))}
               <Switch label="Subscribe to product updates" disabled={visible} />
-            </Column>
-          </Column>
+            </Block>
+          </Block>
         </Card>
 
         <Button onPress={() => setVisible((current) => !current)}>
           {visible ? 'Stop loading' : 'Simulate loading'}
         </Button>
-      </Column>
+      </Block>
 
       <Text variant="small" colorVariant="muted" align="center">
         LoadingOverlay anchors to a relative container and dims the content while the loader animates.
       </Text>
-    </Column>
+    </Block>
   );
 }
 

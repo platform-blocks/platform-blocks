@@ -1,19 +1,19 @@
-import { Column, Spoiler, Text } from '@platform-blocks/ui';
+import { Block, Spoiler, Text } from '@platform-blocks/ui';
 
 const longText =
   'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.';
 
 export default function Demo() {
   return (
-    <Column gap="lg">
-      <Column gap="sm">
+    <Block>
+      <Block>
         <Text size="sm" colorVariant="muted">Default control</Text>
         <Spoiler maxHeight={60}>
           <Text>{longText}</Text>
         </Spoiler>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">
           Uppercase tracked control
         </Text>
@@ -25,9 +25,9 @@ export default function Demo() {
         >
           <Text>{longText}</Text>
         </Spoiler>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">
           Monospace control
         </Text>
@@ -39,7 +39,7 @@ export default function Demo() {
         >
           <Text>{longText}</Text>
         </Spoiler>
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

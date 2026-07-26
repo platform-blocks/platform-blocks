@@ -1,9 +1,10 @@
 import React from 'react';
+import type { Text as RNText } from 'react-native';
 import { Text } from '../Text';
 import { useFormContext, useOptionalFormContext } from './FormContext';
 import { FormErrorProps } from './types';
 
-export const FormError: React.FC<FormErrorProps> = ({ name, error }) => {
+export const FormError = React.forwardRef<RNText, FormErrorProps>(({ name, error }, ref) => {
   const formContext = useOptionalFormContext();
   
   let errorMessage = error;
@@ -18,6 +19,7 @@ export const FormError: React.FC<FormErrorProps> = ({ name, error }) => {
 
   return (
     <Text 
+      ref={ref}
       style={{ 
         fontSize: 12, 
         color: '#e53e3e', 
@@ -27,6 +29,6 @@ export const FormError: React.FC<FormErrorProps> = ({ name, error }) => {
       {errorMessage}
     </Text>
   );
-};
+});
 
 FormError.displayName = 'FormError';

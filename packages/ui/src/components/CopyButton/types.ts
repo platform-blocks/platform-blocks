@@ -1,5 +1,6 @@
 import { ViewStyle, StyleProp } from 'react-native';
 import type { ComponentSizeValue } from '../../core/theme/componentSize';
+import type { TooltipPropValue } from '../Tooltip';
 
 export interface CopyButtonProps {
   /** The text to copy to clipboard */
@@ -20,9 +21,9 @@ export interface CopyButtonProps {
   style?: StyleProp<ViewStyle>;
   /** Disable the "copied to clipboard" toast */
   disableToast?: boolean;
-  /** Tooltip text */
-  tooltip?: string;
-  /** Tooltip position */
+  /** Tooltip text, or a full Tooltip config (`{ label, maxWidth, … }`) */
+  tooltip?: TooltipPropValue;
+  /** Tooltip position when the string form of `tooltip` is used */
   tooltipPosition?: 'top' | 'bottom' | 'left' | 'right';
   /** Presentation mode: default button (legacy) or bare icon */
   mode?: 'button' | 'icon';

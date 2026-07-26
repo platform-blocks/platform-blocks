@@ -1,161 +1,96 @@
 import React from 'react';
-import { View } from 'react-native';
-import { Card, CodeBlock, Block } from '@platform-blocks/ui';
+import { useWindowDimensions } from 'react-native';
+import { Block, Card, CodeBlock } from '@platform-blocks/ui';
+import { BREAKPOINTS } from '@platform-blocks/ui/core/responsive';
 import type { NewDemo } from '../utils/demosLoader';
 
 export interface DemoRendererProps {
   demo: NewDemo & { code?: string };
   preview: React.ReactNode;
-  mode?: 'preview' | 'code' | 'preview-code';
+  /**
+   * Horizontal gutter, in px, that the card should cancel out so it runs to the
+   * screen edge. The owning screen passes its own container padding — only it
+   * knows that number. Corners square off when bleeding, since a radius at the
+   * viewport edge has nothing to sit against.
+   */
+  bleed?: number;
 }
 
 /**
- * Layout-aware demo renderer. Uses demo.renderStyle to choose layout.
- *  - auto: vertical stack (preview then code)
- *  - center: centers preview horizontally
- *  - code_flex: side-by-side (wrap to column on small widths via flex wrap)
+ * Demo card: interactive preview on top, source code flush underneath, both
+ * inside a single bordered container. There is no preview/code toggle — the
+ * code for a demo is always visible.
  */
-export const DemoRenderer: React.FC<DemoRendererProps> = ({ demo, preview, mode = 'preview' }) => {
+export const DemoRenderer: React.FC<DemoRendererProps> = ({ demo, preview, bleed = 0 }) => {
   const {
-    renderStyle = 'auto',
     code,
+    files,
     codeCopy,
     codeLineNumbers = false,
     codeSpoiler,
     codeSpoilerMaxHeight,
     previewCenter = true,
-    codeFirst = false,
     highlightLines,
-    githubUrl
+    githubUrl,
+    renderStyle = 'auto'
   } = demo as any;
 
-  const showBoth = mode === 'preview-code';
-  const effectiveCodeFirst = showBoth ? false : codeFirst;
-  const shouldShowCode = (mode === 'code' || showBoth) && Boolean(code);
-  const shouldShowPreview = (mode !== 'code' || showBoth) || !code;
+  const hasCode = Boolean(code) && (demo as any).showCode !== false;
 
-  const codeBlock = shouldShowCode && code ? (
-    <CodeBlock
-      showCopyButton={codeCopy !== false}
-      showLineNumbers={codeLineNumbers === true}
-      highlightLines={highlightLines as any}
-      spoiler={codeSpoiler}
-      spoilerMaxHeight={codeSpoilerMaxHeight}
-      language="tsx"
-      wrap={false}
-      githubUrl={githubUrl}
-      // title prop added to frontmatter in demo description.md files
-      // Future: wire demo.fileName / demo.fileIcon if added to generator
-      fileName={(demo as any).fileName}
-      fileIcon={(demo as any).fileIcon}
-      fullWidth
-    >
-      {code}
-    </CodeBlock>
-  ) : null;
+  const centerPreview = previewCenter !== false || renderStyle === 'center';
 
-  if (renderStyle === 'center') {
-    return (
-      <Card variant="outline" style={{ padding: 24, alignItems: 'center' }}>
-        {shouldShowPreview && (
-          <View style={{ alignItems: 'center', justifyContent: 'center', marginBottom: shouldShowCode ? 16 : 0 }}>
-            {preview}
-          </View>
-        )}
-        {codeBlock}
-      </Card>
-    );
-  }
+  // Phone widths can't afford 24px of card padding on top of the page gutters.
+  const { width } = useWindowDimensions();
+  const cardPadding = width < BREAKPOINTS.md ? 'sm' : '2xl';
 
-  if (renderStyle === 'code_flex') {
-    return (
-      <Block>
-        <Block
-          direction="row"
-          gap={24}
-          wrap="wrap"
-          style={{
-            width: '100%',
-            alignItems: previewCenter ? 'center' : undefined,
-            justifyContent: previewCenter ? 'center' : undefined
-          }}
-        >
-          {effectiveCodeFirst ? (
-            <>
-              {codeBlock && (
-                <Card variant="outline" style={{ flex: 1, minWidth: 260, padding: 0 }}>
-                  {codeBlock}
-                </Card>
-              )}
-              {shouldShowPreview && (
-                <Card
-                  variant="outline"
-                  style={{
-                    flex: 1,
-                    minWidth: 260,
-                    alignItems: previewCenter ? 'center' : undefined,
-                    justifyContent: previewCenter ? 'center' : undefined,
-                    padding: 16
-                  }}
-                >
-                  {preview}
-                </Card>
-              )}
-            </>
-          ) : (
-            <>
-              {shouldShowPreview && (
-                <Card
-                  variant="outline"
-                  style={{
-                    flex: 1,
-                    minWidth: 260,
-                    alignItems: previewCenter ? 'center' : undefined,
-                    justifyContent: previewCenter ? 'center' : undefined,
-                    padding: 16
-                  }}
-                >
-                  {preview}
-                </Card>
-              )}
-              {codeBlock && { codeBlock }}
-            </>
-          )}
-        </Block>
-      </Block>
-    );
-  }
-
-  // auto (default)
   return (
-    <Block>
-      {!effectiveCodeFirst && shouldShowPreview && (
-        <View
-          style={{
-            marginBottom: shouldShowCode ? 12 : 0,
-            width: '100%',
-            alignItems: previewCenter ? 'center' : undefined,
-            justifyContent: previewCenter ? 'center' : undefined
-          }}
-        >
-          {preview}
-        </View>
-      )}
-      {codeBlock}
-      {effectiveCodeFirst && shouldShowPreview && (
-        <Card variant="outline">
-          <View
-            style={{
-              marginTop: shouldShowCode ? 12 : 0,
-              width: '100%',
-              alignItems: previewCenter ? 'center' : undefined,
-              justifyContent: previewCenter ? 'center' : undefined
-            }}
+    <Card
+      variant="outline"
+      radius={bleed ? 'none' : 'xl'}
+      clip
+      fullWidth
+      style={bleed ? { marginHorizontal: -bleed } : undefined}
+    >
+      {/* The card's padding covers the preview's top/sides; a section escapes it
+          horizontally, so the gap above the code rule has to come from here. */}
+     
+        <Card.Section withBorder>
+     
+      <Block
+        direction="column"
+        justify="center"
+        align={centerPreview ? 'center' : 'stretch'}
+       p={cardPadding}
+        // pb={hasCode ? '2xl' : undefined}
+        fullWidth
+      >
+        {preview}
+      </Block>
+
+</Card.Section>
+      {hasCode && (
+        // Full-bleed: the code panel drops its own radius/border and inherits
+        // the card's, so it reads as one flush section rather than a nested box.
+        <Card.Section >
+          <CodeBlock
+            showCopyButton={codeCopy !== false}
+            showLineNumbers={codeLineNumbers === true}
+            highlightLines={highlightLines as any}
+            spoiler={codeSpoiler}
+            spoilerMaxHeight={codeSpoilerMaxHeight}
+            language="tsx"
+            wrap={false}
+            githubUrl={githubUrl}
+            files={files}
+            radius="none"
+            withBorder={false}
+            mb={0}
+            fullWidth
           >
-            {preview}
-          </View>
-        </Card>
+            {code}
+          </CodeBlock>
+        </Card.Section>
       )}
-    </Block>
+    </Card>
   );
 };

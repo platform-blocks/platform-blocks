@@ -30,8 +30,9 @@ export function getShadowValue(
     return undefined;
   }
 
-  // Handle size tokens
-  if (value in theme.shadows) {
+  // Handle size tokens. Guard the lookup — partial themes (and test doubles)
+  // legitimately omit `shadows`, and `in` throws on undefined.
+  if (theme?.shadows && value in theme.shadows) {
     return theme.shadows[value as keyof typeof theme.shadows];
   }
 
@@ -45,7 +46,9 @@ export function getShadowValue(
 export const COMPONENT_SHADOW_DEFAULTS = {
   button: 'sm' as ShadowValue,
   badge: 'sm' as ShadowValue,
-  card: 'md' as ShadowValue,
+  // Single knob for a resting Card. `xs` is one soft layer; `sm` and above add
+  // a second pass that reads as lifted — `Card variant="elevated"` opts into that.
+  card: 'xs' as ShadowValue,
   chip: 'sm' as ShadowValue,
   modal: 'xl' as ShadowValue,
   tooltip: 'md' as ShadowValue,

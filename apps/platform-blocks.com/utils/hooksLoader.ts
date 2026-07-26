@@ -29,14 +29,12 @@ export interface HookDemo {
   since?: string;
   hidden?: boolean;
   highlightLines?: (number | string)[];
-  renderStyle?: 'auto' | 'center' | 'code_flex';
+  renderStyle?: 'auto' | 'center';
   codeCopy?: boolean;
   codeLineNumbers?: boolean;
   codeSpoiler?: boolean;
   codeSpoilerMaxHeight?: number;
-  showCodeToggle?: boolean;
   previewCenter?: boolean;
-  codeFirst?: boolean;
   code?: string;
   importPath?: string;
 }
@@ -101,9 +99,7 @@ export function getHookDemos(hook: string): HookDemo[] {
     codeLineNumbers: d.codeLineNumbers,
     codeSpoiler: d.codeSpoiler,
     codeSpoilerMaxHeight: d.codeSpoilerMaxHeight,
-    showCodeToggle: d.showCodeToggle,
     previewCenter: d.previewCenter,
-    codeFirst: d.codeFirst,
     code: d.code,
     importPath: d.importPath
   }));

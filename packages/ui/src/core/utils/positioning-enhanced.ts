@@ -1,98 +1,18 @@
 import { Platform, Dimensions } from 'react-native';
 
-// ============================================================================
-// Caching System (LRU Cache for performance)
-// ============================================================================
-
-const OVERLAY_CACHE_LIMIT = 200;
-
-type OverlayCacheEntry = {
-  result: PositionResult;
-};
-
-const overlayPositionCache = new Map<string, OverlayCacheEntry>();
-
-const formatNumber = (value: number) =>
-  Number.isFinite(value) ? Math.round(value * 100) / 100 : 0;
-
-const createOverlayCacheKey = (
-  anchorX: number,
-  anchorY: number,
-  anchorWidth: number,
-  anchorHeight: number,
-  overlayWidth: number,
-  overlayHeight: number,
-  placement: string,
-  offset: number,
-  viewport: Viewport,
-  strategy: string,
-  flip: boolean,
-  shift: boolean,
-  boundary: number,
-  matchAnchorWidth: boolean
-) => {
-  return [
-    formatNumber(anchorX),
-    formatNumber(anchorY),
-    formatNumber(anchorWidth),
-    formatNumber(anchorHeight),
-    formatNumber(overlayWidth),
-    formatNumber(overlayHeight),
-    placement,
-    formatNumber(offset),
-    formatNumber(viewport.width),
-    formatNumber(viewport.height),
-    formatNumber(viewport.padding),
-    strategy,
-    flip ? '1' : '0',
-    shift ? '1' : '0',
-    formatNumber(boundary),
-    matchAnchorWidth ? '1' : '0',
-    Platform.OS,
-  ].join('|');
-};
-
-const getCachedOverlayPosition = (key: string) => {
-  const cached = overlayPositionCache.get(key);
-  if (!cached) return undefined;
-  // Promote entry to the most recently used position (LRU)
-  overlayPositionCache.delete(key);
-  overlayPositionCache.set(key, cached);
-  return { ...cached.result };
-};
-
-const setCachedOverlayPosition = (key: string, result: PositionResult) => {
-  overlayPositionCache.set(key, { result: { ...result } });
-  if (overlayPositionCache.size > OVERLAY_CACHE_LIMIT) {
-    const oldest = overlayPositionCache.keys().next().value;
-    if (oldest) {
-      overlayPositionCache.delete(oldest);
-    }
-  }
-};
-
+/**
+ * Position results used to be memoised in an LRU keyed on rounded geometry. That
+ * cache predated the per-frame scroll repositioning and actively worked against
+ * it: the placement decision is now stateful (see `currentPlacement` hysteresis),
+ * so a cache hit could resurrect a side the popover had already flipped away
+ * from. The math here is a couple of dozen arithmetic ops — cheaper than the
+ * key-building string join the cache needed — so it simply runs every time.
+ *
+ * Kept as an exported no-op because it is part of the public surface.
+ */
 export const clearOverlayPositionCache = () => {
-  overlayPositionCache.clear();
+  /* no cache to clear — retained for API compatibility */
 };
-
-let viewportListenersRegistered = false;
-
-const registerViewportListeners = () => {
-  if (viewportListenersRegistered) return;
-  viewportListenersRegistered = true;
-  const clear = () => clearOverlayPositionCache();
-  try {
-    Dimensions.addEventListener('change', clear);
-  } catch (error) {
-    // noop – older RN versions may throw when addEventListener signature differs
-  }
-
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    window.addEventListener('resize', clear, { passive: true } as any);
-  }
-};
-
-registerViewportListeners();
 
 // ============================================================================
 // Type Definitions
@@ -125,6 +45,24 @@ export interface PositionResult {
   /** Final calculated dimensions that fit in viewport */
   finalWidth: number;
   finalHeight: number;
+  /**
+   * Viewport edge the popover should be pinned to on its main axis, and the
+   * distance from that edge.
+   *
+   * This is the important half of the result for vertical placements. Pinning to
+   * the trigger-adjacent edge (`top` for a dropdown below, `bottom` for one
+   * above) makes the rendered position independent of the popover's own height:
+   * the content grows and shrinks *away* from the trigger. Without it, a `top`
+   * placement is `y = anchorTop - popoverHeight - offset`, so every content
+   * change — an AutoComplete list filtering down as you type — moves the whole
+   * popover, and any discrepancy between the estimated and measured height shows
+   * up as a jump on first paint.
+   *
+   * `y` remains populated as a best-effort absolute coordinate for consumers
+   * that need one, but renderers should prefer these fields when present.
+   */
+  anchorEdge?: 'top' | 'bottom';
+  anchorOffset?: number;
 }
 
 export type PlacementType = 
@@ -147,7 +85,45 @@ export interface PositioningOptions {
   fallbackPlacements?: PlacementType[];
   /** Match the anchor element's width (useful for dropdown inputs) */
   matchAnchorWidth?: boolean;
+  /**
+   * How tall the popover expects to be, in px, *before* it has been measured.
+   *
+   * This is what lets the very first calculation pick the correct side. A
+   * dropdown almost always knows this up front (its `maxH`, or row height ×
+   * option count, whichever is smaller); supplying it means the pre-measure pass
+   * and the post-measure pass reach the same conclusion, so there is no visible
+   * flip. Falls back to the measured height, then to `DEFAULT_DESIRED_HEIGHT`.
+   */
+  desiredHeight?: number;
+  /**
+   * Space at the bottom of the viewport that is covered by something the popover
+   * must avoid — in practice the on-screen keyboard.
+   *
+   * Passed separately rather than baked into `viewport.height` because the two
+   * are needed for different things: available-space math has to exclude the
+   * keyboard, but a bottom edge pin is resolved by the platform against the
+   * *real* viewport, so pinning against a shrunken height would lift the popover
+   * by the keyboard height twice.
+   */
+  viewportInsetBottom?: number;
+  /**
+   * The placement currently on screen, if any. Used for flip hysteresis: an open
+   * popover only switches sides when the other side is meaningfully better, so
+   * scrolling across the decision threshold doesn't make it ping-pong.
+   */
+  currentPlacement?: PlacementType;
+  /** How much extra space (px) the opposite side must offer before re-flipping an already-open popover. */
+  flipHysteresis?: number;
 }
+
+/** Assumed popover height when neither a measurement nor a `desiredHeight` hint is available. */
+const DEFAULT_DESIRED_HEIGHT = 240;
+
+/** Never squeeze a popover below this; better to overflow than to render a sliver. */
+const MIN_POPOVER_HEIGHT = 80;
+
+/** Default extra space the opposite side must offer before an open popover re-flips. */
+const DEFAULT_FLIP_HYSTERESIS = 24;
 
 /**
  * Default fallback placements for a given primary placement.
@@ -166,8 +142,151 @@ function getDirectionalFallbacks(placement: PlacementType): PlacementType[] {
   return ['bottom', 'top', 'right', 'left'];
 }
 
+/** True for placements whose main axis is vertical — i.e. dropdown-shaped. */
+function isVerticalPlacement(placement: PlacementType): boolean {
+  const side = String(placement).split('-')[0];
+  return side === 'top' || side === 'bottom';
+}
+
 /**
- * Enhanced overlay positioning that prevents off-screen rendering with intelligent caching
+ * Positioning for vertical (dropdown-shaped) placements.
+ *
+ * Deliberately does *not* share the flip/fallback/enforce machinery below, which
+ * works by placing the popover and then correcting it once it turns out not to
+ * fit. That correct-after-the-fact loop is what produced the visible "renders
+ * below, then jumps above" behaviour, because the first pass runs before the
+ * popover has been measured and therefore guesses its height.
+ *
+ * This path makes the popover unable to be wrong instead of correcting it:
+ *
+ *  1. The side is chosen from the space available above and below the trigger,
+ *     compared against `desiredHeight` — a value the caller knows before the
+ *     popover mounts. The pre-measure and post-measure passes agree, so nothing
+ *     flips after paint.
+ *  2. `maxHeight` is capped to the chosen side's available space, so the popover
+ *     physically cannot overflow the viewport and never needs correcting.
+ *  3. The result is pinned to the trigger-adjacent edge, so the rendered
+ *     position doesn't depend on the popover's own height at all.
+ */
+function calculateVerticalPosition(
+  anchor: Rect,
+  overlay: { width: number; height: number },
+  options: Required<Pick<PositioningOptions, 'placement' | 'offset' | 'viewport' | 'flip' | 'shift' | 'boundary' | 'matchAnchorWidth'>> & {
+    desiredHeight?: number;
+    viewportInsetBottom: number;
+    currentPlacement?: PlacementType;
+    flipHysteresis: number;
+  }
+): PositionResult {
+  const {
+    placement, offset, viewport, flip, shift, boundary, matchAnchorWidth,
+    desiredHeight, viewportInsetBottom, currentPlacement, flipHysteresis,
+  } = options;
+
+  const requestedSide = String(placement).split('-')[0] as 'top' | 'bottom';
+  const align = String(placement).split('-')[1] as 'start' | 'end' | undefined;
+
+  // Usable bottom edge excludes anything overlaying the viewport (the keyboard).
+  const usableBottom = viewport.height - viewportInsetBottom;
+
+  const spaceBelow = usableBottom - (anchor.y + anchor.height) - offset - boundary;
+  const spaceAbove = anchor.y - offset - boundary;
+
+  // What the popover wants: an explicit hint, else its measured height, else a
+  // conservative assumption. The assumption matters — guessing *small* is what
+  // makes a dropdown near the bottom edge wrongly choose "below".
+  const desired = desiredHeight && desiredHeight > 0
+    ? desiredHeight
+    : (overlay.height > 0 ? overlay.height : DEFAULT_DESIRED_HEIGHT);
+
+  const spaceOn = (side: 'top' | 'bottom') => (side === 'bottom' ? spaceBelow : spaceAbove);
+  const opposite = (side: 'top' | 'bottom') => (side === 'bottom' ? 'top' : 'bottom') as 'top' | 'bottom';
+
+  let side = requestedSide;
+  if (flip) {
+    const other = opposite(requestedSide);
+    if (spaceOn(requestedSide) < desired && spaceOn(other) > spaceOn(requestedSide)) {
+      side = other;
+    }
+  }
+
+  // Hysteresis: an already-open popover keeps its current side unless the other
+  // one is meaningfully roomier. Without this, scrolling the trigger across the
+  // threshold flips the popover back and forth every frame.
+  const currentSide = currentPlacement && isVerticalPlacement(currentPlacement)
+    ? (String(currentPlacement).split('-')[0] as 'top' | 'bottom')
+    : null;
+  if (currentSide && currentSide !== side && spaceOn(side) - spaceOn(currentSide) < flipHysteresis) {
+    side = currentSide;
+  }
+
+  // Cap to the chosen side. The popover can now never overflow, so no
+  // post-measure correction is ever required.
+  const available = spaceOn(side);
+  const maxHeight = Math.max(MIN_POPOVER_HEIGHT, available);
+  const finalHeight = Math.min(desired, maxHeight);
+
+  // --- Cross axis (horizontal) -------------------------------------------
+  const overlayWidth = matchAnchorWidth
+    ? anchor.width
+    : Math.min(overlay.width, Math.max(0, viewport.width - boundary * 2));
+
+  let x: number;
+  if (align === 'start') {
+    x = anchor.x;
+  } else if (align === 'end') {
+    x = anchor.x + anchor.width - overlayWidth;
+  } else {
+    x = anchor.x + anchor.width / 2 - overlayWidth / 2;
+  }
+
+  let shifted = false;
+  if (shift) {
+    const minX = boundary;
+    const maxX = Math.max(boundary, viewport.width - overlayWidth - boundary);
+    const clamped = Math.max(minX, Math.min(x, maxX));
+    if (clamped !== x) {
+      shifted = true;
+      x = clamped;
+    }
+  }
+
+  // --- Main axis (vertical) ----------------------------------------------
+  // Pin to the edge touching the trigger. Note the bottom pin resolves against
+  // the *real* viewport height, not `usableBottom` — the platform lays out
+  // `bottom` relative to the full viewport, and the keyboard has already been
+  // accounted for by capping `maxHeight`.
+  let anchorEdge: 'top' | 'bottom';
+  let anchorOffset: number;
+  let y: number;
+
+  if (side === 'bottom') {
+    anchorEdge = 'top';
+    anchorOffset = anchor.y + anchor.height + offset;
+    y = anchorOffset;
+  } else {
+    anchorEdge = 'bottom';
+    anchorOffset = viewport.height - (anchor.y - offset);
+    y = Math.max(boundary, anchor.y - offset - finalHeight);
+  }
+
+  return {
+    x,
+    y,
+    placement: (align ? `${side}-${align}` : side) as PlacementType,
+    maxWidth: matchAnchorWidth ? undefined : Math.max(0, viewport.width - boundary * 2),
+    maxHeight,
+    flipped: side !== requestedSide,
+    shifted,
+    finalWidth: overlayWidth,
+    finalHeight,
+    anchorEdge,
+    anchorOffset,
+  };
+}
+
+/**
+ * Enhanced overlay positioning that prevents off-screen rendering.
  */
 export function calculateOverlayPositionEnhanced(
   anchor: Rect,
@@ -184,55 +303,59 @@ export function calculateOverlayPositionEnhanced(
     boundary = 8,
     fallbackPlacements = getDirectionalFallbacks(placement),
     matchAnchorWidth = false,
+    desiredHeight,
+    viewportInsetBottom = 0,
+    currentPlacement,
+    flipHysteresis = DEFAULT_FLIP_HYSTERESIS,
   } = options;
 
   // If overlay height is unknown/small (pre-measure), use a heuristic height for decision-making
   // This helps avoid choosing "bottom" when near the bottom of the viewport.
-  const heuristicHeight = Math.max(overlay.height || 0, 240);
+  const heuristicHeight = Math.max(overlay.height || 0, desiredHeight || DEFAULT_DESIRED_HEIGHT);
   // When matchAnchorWidth is true, use anchor width for overlay width calculations
   const overlayWidth = matchAnchorWidth ? anchor.width : overlay.width;
   const overlayHeight = overlay.height > 0 ? overlay.height : heuristicHeight;
-  
+
+  // Everything below reasons about the space actually available, so the region
+  // covered by the on-screen keyboard is excluded from the viewport bounds.
+  const bounds: Viewport = viewportInsetBottom > 0
+    ? { ...viewport, height: Math.max(1, viewport.height - viewportInsetBottom) }
+    : viewport;
+
   // Account for scroll if using absolute positioning
-  const scrollX = (Platform.OS === 'web' && strategy === 'absolute') 
+  const scrollX = (Platform.OS === 'web' && strategy === 'absolute')
     ? (window.pageXOffset || document.documentElement.scrollLeft || 0) : 0;
-  const scrollY = (Platform.OS === 'web' && strategy === 'absolute') 
+  const scrollY = (Platform.OS === 'web' && strategy === 'absolute')
     ? (window.pageYOffset || document.documentElement.scrollTop || 0) : 0;
 
   // Adjusted anchor position
   const anchorX = anchor.x + scrollX;
   const anchorY = anchor.y + scrollY;
 
-  // Check cache first
-  const cacheKey = createOverlayCacheKey(
-    anchorX,
-    anchorY,
-    anchor.width,
-    anchor.height,
-    overlayWidth,
-    overlayHeight,
-    placement,
-    offset,
-    viewport,
-    strategy,
-    flip,
-    shift,
-    boundary,
-    matchAnchorWidth
-  );
-
-  const cached = getCachedOverlayPosition(cacheKey);
-  if (cached) {
-    return cached;
-  }
-
   // Available space calculation
-  const spaces = calculateAvailableSpaces(anchor, viewport, boundary, scrollX, scrollY);
-  
+  const spaces = calculateAvailableSpaces(anchor, bounds, boundary, scrollX, scrollY);
+
   // Determine optimal placement
   let finalPlacement = placement;
   if (placement === 'auto') {
-    finalPlacement = findBestPlacement(spaces, overlay, offset, fallbackPlacements);
+    finalPlacement = findBestPlacement(
+      spaces,
+      { width: overlayWidth, height: overlayHeight },
+      offset,
+      fallbackPlacements
+    );
+  }
+
+  // Dropdown-shaped placements take the edge-pinned path above — including an
+  // `auto` that just resolved to one, which is how an unconfigured Menu arrives
+  // here. Only genuinely horizontal placements keep the original
+  // place-then-correct behaviour, which tooltips rely on for their
+  // axis-rotating fallbacks.
+  if (isVerticalPlacement(finalPlacement)) {
+    return calculateVerticalPosition(anchor, overlay, {
+      placement: finalPlacement, offset, viewport, flip, shift, boundary, matchAnchorWidth,
+      desiredHeight, viewportInsetBottom, currentPlacement, flipHysteresis,
+    });
   }
 
   // Try primary placement first
@@ -240,19 +363,19 @@ export function calculateOverlayPositionEnhanced(
     finalPlacement, 
     { x: anchorX, y: anchorY, width: anchor.width, height: anchor.height },
     { width: overlayWidth, height: overlayHeight }, 
-    viewport, 
+    bounds, 
     offset, 
     boundary
   );
 
   // If primary placement doesn't fit and flip is enabled, try alternatives
-  if (flip && !fitsInViewport(result, viewport, boundary)) {
+  if (flip && !fitsInViewport(result, bounds, boundary)) {
     const flippedPlacement = getFlippedPlacement(finalPlacement);
     const flippedResult = calculatePositionForPlacement(
       flippedPlacement,
       { x: anchorX, y: anchorY, width: anchor.width, height: anchor.height },
       { width: overlayWidth, height: overlayHeight },
-      viewport,
+      bounds,
       offset,
       boundary
     );
@@ -262,7 +385,7 @@ export function calculateOverlayPositionEnhanced(
     const originalCoversAnchor = coversAnchor(result, anchorRect);
     const flippedCoversAnchor = coversAnchor(flippedResult, anchorRect);
     
-    if (fitsInViewport(flippedResult, viewport, boundary) || 
+    if (fitsInViewport(flippedResult, bounds, boundary) || 
         (!originalCoversAnchor && flippedCoversAnchor) ||
         (originalCoversAnchor && !flippedCoversAnchor)) {
       result = { ...flippedResult, flipped: true };
@@ -271,7 +394,7 @@ export function calculateOverlayPositionEnhanced(
   }
 
   // If still doesn't fit, try fallback placements
-  if (!fitsInViewport(result, viewport, boundary)) {
+  if (!fitsInViewport(result, bounds, boundary)) {
     const anchorRect = { x: anchorX, y: anchorY, width: anchor.width, height: anchor.height };
     let bestFallback: PositionResult | null = null;
     let bestFallbackPlacement: PlacementType | null = null;
@@ -283,13 +406,13 @@ export function calculateOverlayPositionEnhanced(
         fallback,
         anchorRect,
         { width: overlayWidth, height: overlayHeight },
-        viewport,
+        bounds,
         offset,
         boundary
       );
 
-      // Prefer placements that fit in viewport
-      if (fitsInViewport(fallbackResult, viewport, boundary)) {
+      // Prefer placements that fit in bounds
+      if (fitsInViewport(fallbackResult, bounds, boundary)) {
         result = { ...fallbackResult, flipped: fallback !== placement };
         finalPlacement = fallback;
         break;
@@ -304,7 +427,7 @@ export function calculateOverlayPositionEnhanced(
     }
     
     // If no fallback fits perfectly, use the best one that doesn't cover anchor
-    if (!fitsInViewport(result, viewport, boundary) && bestFallback && bestFallbackPlacement) {
+    if (!fitsInViewport(result, bounds, boundary) && bestFallback && bestFallbackPlacement) {
       result = { ...bestFallback, flipped: bestFallbackPlacement !== placement };
       finalPlacement = bestFallbackPlacement;
     }
@@ -312,13 +435,13 @@ export function calculateOverlayPositionEnhanced(
 
   // Apply shifting if enabled and still needed
   if (shift) {
-    result = applyShifting(result, viewport, boundary);
+    result = applyShifting(result, bounds, boundary);
   }
 
   // Final constraint enforcement - this guarantees no off-screen rendering
   // Pass anchor info to avoid covering it when possible
   const anchorRect = { x: anchorX, y: anchorY, width: anchor.width, height: anchor.height };
-  result = enforceViewportBoundsWithAnchorAwareness(result, viewport, boundary, anchorRect, offset);
+  result = enforceViewportBoundsWithAnchorAwareness(result, bounds, boundary, anchorRect, offset);
 
   // If enforcement moved the overlay to the opposite vertical side to avoid covering the anchor,
   // reflect that in the returned placement so arrows/styles are consistent.
@@ -335,9 +458,6 @@ export function calculateOverlayPositionEnhanced(
     finalWidth: computedFinalWidth,
     finalHeight: Math.min(result.finalHeight || overlay.height, result.maxHeight || overlay.height),
   };
-
-  // Cache the result
-  setCachedOverlayPosition(cacheKey, finalResult);
 
   return finalResult;
 }

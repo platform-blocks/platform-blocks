@@ -1,14 +1,17 @@
 import type { PlatformBlocksTheme } from '../../core/theme/types';
 import type {
   KnobAppearance,
+  KnobVariant,
+  KnobRingSegment,
   KnobRingShadow,
   KnobPointerStyle,
   KnobTickLayer,
   KnobThumbShape,
   KnobThumbStyle,
-  KnobVariant,
+  KnobBehavior,
   KnobPanningConfig,
 } from './types';
+import { buildKnobVariantAppearance, mergeKnobAppearance } from './variants';
 
 const clampNumber = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -20,6 +23,9 @@ const getDefaultRingThickness = (size: number) => {
 
 const getDefaultThumbSize = (size: number) => Math.max(12, Math.round(size * 0.18));
 
+/** How much the thumb grows while the knob is being scrubbed. */
+const DEFAULT_THUMB_ACTIVE_SCALE = 1.25;
+
 export type ResolvedRingStyle = {
   thickness: number;
   color: string;
@@ -28,6 +34,8 @@ export type ResolvedRingStyle = {
   cap: 'butt' | 'round';
   radiusOffset: number;
   shadow?: KnobRingShadow;
+  segments: KnobRingSegment[];
+  segmentMode: 'track' | 'progress';
 };
 
 export type ResolvedFillStyle = {
@@ -39,6 +47,7 @@ export type ResolvedFillStyle = {
 
 export type ResolvedThumbStyle = {
   size: number;
+  activeScale: number;
   color: string;
   shape: KnobThumbShape;
   strokeWidth: number;
@@ -69,8 +78,10 @@ export type ResolvedKnobAppearance = {
 
 export interface ResolveAppearanceOptions {
   appearance?: KnobAppearance;
+  /** Visual preset merged *under* `appearance`. */
+  variant?: KnobVariant;
   theme: PlatformBlocksTheme;
-  variant: KnobVariant;
+  behavior: KnobBehavior;
   disabled: boolean;
   size: number;
   thumbSize?: number;
@@ -79,11 +90,11 @@ export interface ResolveAppearanceOptions {
 
 const pickAccentColor = (
   theme: PlatformBlocksTheme,
-  variant: KnobVariant,
+  behavior: KnobBehavior,
   accentColor?: string
 ) => {
   if (accentColor) return accentColor;
-  switch (variant) {
+  switch (behavior) {
     case 'status':
       return theme.colors.primary[5];
     case 'dual':
@@ -94,9 +105,10 @@ const pickAccentColor = (
 };
 
 export const resolveKnobAppearance = ({
-  appearance,
-  theme,
+  appearance: appearanceProp,
   variant,
+  theme,
+  behavior,
   disabled,
   size,
   thumbSize,
@@ -104,9 +116,16 @@ export const resolveKnobAppearance = ({
 }: ResolveAppearanceOptions): ResolvedKnobAppearance => {
   const derivedThumbSize = thumbSize ?? getDefaultThumbSize(size);
   const ringThicknessBase = getDefaultRingThickness(size);
+  const highlightColor = pickAccentColor(theme, behavior, accentColor);
+
+  // The variant only supplies defaults, so it goes underneath everything the caller passed.
+  const appearance = mergeKnobAppearance(
+    buildKnobVariantAppearance(variant, { theme, size, accentColor: highlightColor, disabled }),
+    appearanceProp
+  );
+
   const resolvedRingThickness = appearance?.ring?.thickness ?? ringThicknessBase;
   const ringColorFallback = disabled ? theme.colors.gray[4] : theme.colors.gray[3];
-  const highlightColor = pickAccentColor(theme, variant, accentColor);
 
   const ring: ResolvedRingStyle = {
     thickness: resolvedRingThickness,
@@ -117,6 +136,11 @@ export const resolveKnobAppearance = ({
     cap: appearance?.ring?.cap ?? 'round',
     radiusOffset: appearance?.ring?.radiusOffset ?? 0,
     shadow: appearance?.ring?.shadow,
+    segments: (appearance?.ring?.segments ?? []).filter(
+      (segment): segment is KnobRingSegment =>
+        !!segment && Number.isFinite(segment.value) && segment.value > 0
+    ),
+    segmentMode: appearance?.ring?.segmentMode === 'progress' ? 'progress' : 'track',
   };
 
   const fill: ResolvedFillStyle | null = appearance?.fill === null
@@ -124,7 +148,7 @@ export const resolveKnobAppearance = ({
     : {
         color:
           appearance?.fill?.color ??
-          (variant === 'status'
+          (behavior === 'status'
             ? theme.colors.surface?.[0] ?? theme.backgrounds.surface
             : theme.backgrounds.surface),
         borderWidth: appearance?.fill?.borderWidth ?? 0,
@@ -137,6 +161,9 @@ export const resolveKnobAppearance = ({
     ? null
     : {
         size: appearance?.thumb?.size ?? derivedThumbSize,
+        activeScale: Number.isFinite(appearance?.thumb?.activeScale as number)
+          ? Math.max(0, appearance!.thumb!.activeScale as number)
+          : DEFAULT_THUMB_ACTIVE_SCALE,
         color: appearance?.thumb?.color ?? (disabled ? theme.colors.gray[4] : highlightColor),
         shape: appearance?.thumb?.shape ?? 'circle',
         strokeWidth: appearance?.thumb?.strokeWidth ?? 0,
@@ -158,11 +185,16 @@ export const resolveKnobAppearance = ({
         thickness: appearance?.progress?.thickness ?? ring.thickness,
       };
 
+  // The arm is opt-in: the stock dial has none, and the variants that want one ask for it.
+  // Anything falsy — omitted, `null`, or `false` — leaves it off.
   const pointerInput = appearance?.pointer;
-  const pointer: (KnobPointerStyle & { visible: boolean }) | null =
-    pointerInput === undefined || pointerInput === null || pointerInput === false
-      ? null
-      : { visible: pointerInput.visible ?? true, ...pointerInput };
+  const pointer: (KnobPointerStyle & { visible: boolean }) | null = !pointerInput
+    ? null
+    : {
+        ...pointerInput,
+        visible: pointerInput.visible ?? true,
+        color: pointerInput.color ?? (disabled ? theme.colors.gray[4] : highlightColor),
+      };
 
   const ticksInput = appearance?.ticks;
   let ticks: KnobTickLayer[] = [];

@@ -1,4 +1,4 @@
-import { Column, Markdown, Text } from '@platform-blocks/ui';
+import { Block, Markdown, Text } from '@platform-blocks/ui';
 
 const CONTENT = `# Table examples
 
@@ -37,11 +37,11 @@ const CONTENT = `# Table examples
 
 export default function Demo() {
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <Markdown>{CONTENT}</Markdown>
       <Text size="sm" colorVariant="secondary">
         Multiple table layouts rendered with Markdown
       </Text>
-    </Column>
+    </Block>
   );
 }

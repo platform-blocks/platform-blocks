@@ -1,45 +1,6 @@
 import { LineChart } from '../../';
 
-const SERIES = [
-  {
-    id: 'north-america',
-    name: 'North America',
-    color: '#4C6EF5',
-    data: [
-      { x: 1, y: 120 },
-      { x: 2, y: 138 },
-      { x: 3, y: 152 },
-      { x: 4, y: 167 },
-      { x: 5, y: 176 },
-      { x: 6, y: 189 },
-      { x: 7, y: 205 },
-      { x: 8, y: 220 },
-      { x: 9, y: 232 },
-      { x: 10, y: 246 },
-      { x: 11, y: 260 },
-      { x: 12, y: 278 },
-    ],
-  },
-  {
-    id: 'emea',
-    name: 'EMEA',
-    color: '#20C997',
-    data: [
-      { x: 1, y: 96 },
-      { x: 2, y: 108 },
-      { x: 3, y: 117 },
-      { x: 4, y: 126 },
-      { x: 5, y: 134 },
-      { x: 6, y: 142 },
-      { x: 7, y: 150 },
-      { x: 8, y: 158 },
-      { x: 9, y: 168 },
-      { x: 10, y: 175 },
-      { x: 11, y: 182 },
-      { x: 12, y: 191 },
-    ],
-  },
-];
+import { SERIES } from './data';
 
 export default function Demo() {
   return (
@@ -59,7 +20,7 @@ export default function Demo() {
         title: 'Customers (thousands)',
         labelFormatter: (value) => `${value}`,
       }}
-      grid={{ show: true, style: 'dashed', color: '#E0E7FF' }}
+      grid={{ show: true, style: 'dashed' }}
       legend={{ show: true, position: 'bottom' }}
       tooltip={{
         show: true,

@@ -1,35 +1,6 @@
 import { BarChart } from '../../';
 
-const FEATURE_ADOPTION = [
-  {
-    id: 'enterprise',
-    category: 'Enterprise',
-    value: 1280,
-    color: '#2563eb',
-    data: { accounts: 1640, adoptionRate: 0.78 },
-  },
-  {
-    id: 'midmarket',
-    category: 'Mid-market',
-    value: 930,
-    color: '#0ea5e9',
-    data: { accounts: 1310, adoptionRate: 0.71 },
-  },
-  {
-    id: 'growth',
-    category: 'Growth',
-    value: 610,
-    color: '#22c55e',
-    data: { accounts: 980, adoptionRate: 0.62 },
-  },
-  {
-    id: 'starter',
-    category: 'Starter',
-    value: 340,
-    color: '#f97316',
-    data: { accounts: 720, adoptionRate: 0.47 },
-  },
-];
+import { FEATURE_ADOPTION } from './data';
 
 const formatAccounts = (value: number) => `${value.toLocaleString()} accounts`;
 
@@ -64,7 +35,7 @@ export default function Demo() {
         labelFormatter: (value) => value.toLocaleString(),
       }}
       xAxis={{ show: true }}
-      grid={{ show: true, color: '#EFF6FF' }}
+      grid={{ show: true }}
       tooltip={{
         formatter: (datum) => {
           const accounts = datum.data?.accounts ?? datum.value;

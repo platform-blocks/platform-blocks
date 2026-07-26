@@ -5,6 +5,7 @@ import { Text } from '../Text/Text';
 import { Highlight } from '../Highlight';
 import { View, ScrollView, StyleSheet, Pressable, TextInput, useWindowDimensions, Keyboard } from 'react-native';
 import { useTheme } from '../../core/theme/ThemeProvider';
+import { surfaceInteractionTint } from '../../core/theme/surfaces';
 import { useSpotlightStore, setDefaultSpotlightStore } from './SpotlightStore';
 import { useGlobalHotkeys } from '../../hooks/useHotkeys';
 import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
@@ -103,6 +104,7 @@ function SpotlightSearch({
   onClose,
   autoFocus = true,
   inputRef: forwardedRef,
+  withCloseButton,
   ...props
 }: SpotlightSearchProps) {
   const theme = useTheme();
@@ -110,6 +112,9 @@ function SpotlightSearch({
   const [isFocused, setIsFocused] = React.useState(false);
   const { isMobileExperience } = useOverlayMode();
   const isMobile = isMobileExperience;
+  // Mobile presents the spotlight fullscreen: there is no reachable backdrop and
+  // no Escape key, so the search row carries the only way out.
+  const showCloseButton = (withCloseButton ?? isMobile) && !!onClose;
   let effectivePlaceholder = placeholder;
   if (isMobile) {
     const verbosePattern = /components,\s*demos,\s*documentation/i;
@@ -192,6 +197,21 @@ function SpotlightSearch({
           onKeyPress={handleKeyPress}
           {...props}
         />
+        {showCloseButton && (
+          <Pressable
+            onPress={() => {
+              inputRef.current?.blur?.();
+              Keyboard.dismiss();
+              onClose?.();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Close search"
+            hitSlop={12}
+            style={styles.searchCloseButton}
+          >
+            <Icon name="x" size="md" color={theme.text.secondary} />
+          </Pressable>
+        )}
       </View>
     </View>
   );
@@ -308,22 +328,19 @@ function SpotlightAction({
     style,
   ];
 
+  // Spotlight had independently hand-rolled the same overlay approach the
+  // surface tints now provide; routing through the helper keeps it in step with
+  // menus and list rows instead of drifting.
   const pressedStyle = {
-    backgroundColor: theme.colorScheme === 'dark'
-      ? 'rgba(255, 255, 255, 0.15)'
-      : 'rgba(0, 0, 0, 0.08)',
+    backgroundColor: surfaceInteractionTint(theme, 'pressed'),
   };
 
   const hoverStyle = {
-    backgroundColor: theme.colorScheme === 'dark'
-      ? 'rgba(255, 255, 255, 0.08)'
-      : 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: surfaceInteractionTint(theme, 'hover'),
   };
 
   const selectedStyle = {
-    backgroundColor: theme.colorScheme === 'dark'
-      ? 'rgba(255, 255, 255, 0.12)'
-      : 'rgba(0, 0, 0, 0.06)',
+    backgroundColor: surfaceInteractionTint(theme, 'selected'),
     borderLeftWidth: 3,
     borderLeftColor: theme.colors.primary[5],
     paddingLeft: 13, // adjust for added border (original inner gap 16 - 3)
@@ -401,7 +418,10 @@ function SpotlightActionsGroup({
       <View style={[
         styles.groupHeader,
         {
-          backgroundColor: theme.colors.surface[1],
+          // A band on the spotlight surface, not a surface of its own — an
+          // opaque palette shade here was darker than the modal it sat on in
+          // dark mode.
+          backgroundColor: surfaceInteractionTint(theme, 'band'),
           borderBottomColor: theme.colorScheme === 'dark'
             ? 'rgba(255, 255, 255, 0.1)'
             : 'rgba(0, 0, 0, 0.1)'
@@ -868,6 +888,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 12,
+  },
+  searchCloseButton: {
+    alignItems: 'center',
+    height: 32,
+    justifyContent: 'center',
+    width: 32,
   },
   spotlightContainer: {
     height: SPOTLIGHT_DIALOG_HEIGHT, // Fixed height

@@ -50,12 +50,13 @@ import { Waveform } from '@platform-blocks/ui';
 - **fullWidth** (boolean): Whether to use responsive full width
 
 ### Visual Styling
-- **variant** ('bars' | 'line' | 'gradient'): Visual style (default: 'bars')
+- **variant** ('bars' | 'rounded' | 'line' | 'gradient'): Visual style (default: 'bars')
+- **size** ('xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | number): Scales height, bar width/gap, stroke width, and label type together (default: 'md'). A number is read as the height. Any of the props below override the value the token supplies.
 - **barWidth** (number): Width of each bar in pixels (default: 2)
 - **barGap** (number): Gap between bars in pixels (default: 1)
 - **strokeWidth** (number): Line width for line variant (default: 2)
 - **minBarHeight** (number): Minimum bar height (default: 1)
-- **gradientColors** (string[]): Colors for gradient variant
+- **gradientColors** (string[]): Colors for gradient variant (defaults to a ramp derived from `color`)
 
 ### Interactive Features
 - **interactive** (boolean): Enable touch/drag interactions

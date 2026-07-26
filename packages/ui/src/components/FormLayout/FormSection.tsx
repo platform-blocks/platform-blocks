@@ -6,14 +6,14 @@ import { DESIGN_TOKENS } from '../../core';
 import { useTheme } from '../../core/theme';
 import type { FormSectionProps } from './types';
 
-export const FormSection: React.FC<FormSectionProps> = ({
+export const FormSection = React.forwardRef<View, FormSectionProps>(({
   title,
   description,
   children,
   spacing = 'md',
   collapsible = false,
   defaultCollapsed = false,
-}) => {
+}, ref) => {
   const theme = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
@@ -42,7 +42,7 @@ export const FormSection: React.FC<FormSectionProps> = ({
   );
 
   return (
-    <View style={{ gap: getSpacing() }}>
+    <View ref={ref} style={{ gap: getSpacing() }}>
       {/* Header */}
       {(title || description) && (
         <View style={{ paddingBottom: DESIGN_TOKENS.spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.colors.gray[2] }}>
@@ -80,4 +80,6 @@ export const FormSection: React.FC<FormSectionProps> = ({
       )}
     </View>
   );
-};
+});
+
+FormSection.displayName = 'FormSection';

@@ -8,6 +8,7 @@ import { View } from 'react-native';
 
 
 import { useTheme } from '../../core/theme';
+import { useReducedMotion } from '../../core/motion/ReducedMotionProvider';
 import { SizeValue, getFontSize, getSpacing } from '../../core/theme/sizes';
 import { BorderRadiusProps, createRadiusStyles } from '../../core/theme/radius';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
@@ -16,6 +17,7 @@ import type { AccordionProps, AccordionRef } from './types';
 import { fastHash } from '../../core/utils/hash';
 import { getAccordionStyles, buildAccentStyles, type AccordionAccentStyles } from './styles';
 import { AccordionItemComponent } from './AccordionItem';
+import { useControllableState } from '../../hooks/useControllableState';
 
 // (Item component + styles moved to separate files)
 
@@ -32,7 +34,7 @@ const AccordionBase = (props: AccordionProps, ref: React.Ref<AccordionRef>) => {
     onExpandedChange,
     variant = 'default',
     size = 'md',
-    color = 'primary',
+    color,
     showChevron = true,
     style,
     headerStyle,
@@ -43,6 +45,7 @@ const AccordionBase = (props: AccordionProps, ref: React.Ref<AccordionRef>) => {
     persistKey,
     autoPersist = true,
     animated = true,
+    transitionDuration,
     onItemToggle,
     chevronPosition = 'end',
     density = 'comfortable',
@@ -53,6 +56,7 @@ const AccordionBase = (props: AccordionProps, ref: React.Ref<AccordionRef>) => {
   const spacingStyles = getSpacingStyles(spacingProps);
 
   const theme = useTheme();
+  const reducedMotion = useReducedMotion();
   const radiusStylesRef = useRef(radius ? createRadiusStyles(radius) : undefined);
   // Cache radius; update only if radius prop identity changes
   useEffect(() => { radiusStylesRef.current = radius ? createRadiusStyles(radius) : undefined; }, [radius]);
@@ -72,29 +76,26 @@ const AccordionBase = (props: AccordionProps, ref: React.Ref<AccordionRef>) => {
   }
   const effectivePersistKey = persistKey || autoKeyRef.current || undefined;
 
-  // Initialize internal state with lazy initializer (handles persistence)
-  const [internalExpanded, setInternalExpanded] = useState<string[]>(() => {
-    if (controlledExpanded !== undefined) return controlledExpanded;
-    if (effectivePersistKey && persistStoreRef.current?.has(effectivePersistKey)) {
-      const saved = persistStoreRef.current.get(effectivePersistKey)!;
-      return [...saved];
-    }
-    return type === 'single' && defaultExpanded.length > 0 ? [defaultExpanded[0]] : [...defaultExpanded];
+  const [expanded, setExpanded, isControlled] = useControllableState<string[]>({
+    value: controlledExpanded,
+    // Restores a persisted set on first mount; `single` keeps at most one key.
+    defaultValue: () => {
+      if (effectivePersistKey && persistStoreRef.current?.has(effectivePersistKey)) {
+        return [...persistStoreRef.current.get(effectivePersistKey)!];
+      }
+      return type === 'single' && defaultExpanded.length > 0 ? [defaultExpanded[0]] : [...defaultExpanded];
+    },
+    finalValue: [],
+    onChange: onExpandedChange,
   });
 
   // Persist on change (uncontrolled only)
   useEffect(() => {
-    if (controlledExpanded === undefined && effectivePersistKey) {
-      persistStoreRef.current?.set(effectivePersistKey, internalExpanded);
+    if (!isControlled && effectivePersistKey) {
+      persistStoreRef.current?.set(effectivePersistKey, expanded);
     }
-  }, [internalExpanded, controlledExpanded, effectivePersistKey]);
+  }, [expanded, isControlled, effectivePersistKey]);
 
-  // Sync internal state if switching from controlled to uncontrolled or vice versa (rare)
-  useEffect(() => {
-    if (controlledExpanded !== undefined) return; // ignore when controlled
-  }, [controlledExpanded]);
-
-  const expanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
   const styles = getAccordionStyles(theme, variant, size, color, radiusStylesRef.current, density);
 
   // Dev warnings for duplicate keys
@@ -112,8 +113,7 @@ const AccordionBase = (props: AccordionProps, ref: React.Ref<AccordionRef>) => {
     const itemKeySet = new Set(items.map(i => i.key));
     const filtered = expanded.filter(k => itemKeySet.has(k));
     if (filtered.length !== expanded.length) {
-      if (controlledExpanded === undefined) setInternalExpanded(filtered);
-      onExpandedChange?.(filtered);
+      setExpanded(filtered);
     }
   }, [items]);
 
@@ -140,9 +140,7 @@ const AccordionBase = (props: AccordionProps, ref: React.Ref<AccordionRef>) => {
         : [...expanded, itemKey];
     }
 
-    // Update state
-    if (controlledExpanded === undefined) setInternalExpanded(newExpanded);
-    onExpandedChange?.(newExpanded);
+    setExpanded(newExpanded);
     onItemToggle?.({
       itemKey,
       expanded: !currentlyExpanded,
@@ -160,16 +158,14 @@ const AccordionBase = (props: AccordionProps, ref: React.Ref<AccordionRef>) => {
         return;
       }
       const keys = items.filter(i => !i.disabled).map(i => i.key);
-      if (controlledExpanded === undefined) setInternalExpanded(keys);
-      onExpandedChange?.(keys);
+      setExpanded(keys);
     },
     collapseAll: () => {
-      if (controlledExpanded === undefined) setInternalExpanded([]);
-      onExpandedChange?.([]);
+      setExpanded([]);
     },
     toggle: (key: string) => handleItemPress(key),
     getExpanded: () => [...expanded],
-  }), [expanded, items, type, variant, controlledExpanded]);
+  }), [expanded, items, type, variant, setExpanded]);
 
   // Accordion-level accent; reused unless an item overrides `color`.
   const defaultAccent: AccordionAccentStyles = {
@@ -206,6 +202,8 @@ const AccordionBase = (props: AccordionProps, ref: React.Ref<AccordionRef>) => {
             titleProps={titleProps}
             idPrefix={`accordion-${instanceId.current}`}
             animated={animated}
+            transitionDuration={transitionDuration}
+            reducedMotion={reducedMotion}
             chevronPosition={chevronPosition}
           />
         );

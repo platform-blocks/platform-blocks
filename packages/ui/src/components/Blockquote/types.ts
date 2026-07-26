@@ -1,4 +1,4 @@
-import type { ViewStyle, StyleProp } from 'react-native';
+import type { ViewStyle, StyleProp, ImageSourcePropType } from 'react-native';
 import type { SizeValue } from '../../core/theme/types';
 import type { BrandName } from '../BrandIcon/brands';
 
@@ -6,7 +6,8 @@ export interface BlockquoteAuthor {
   name: string;
   title?: string;
   organization?: string;
-  avatar?: string;
+  /** Remote avatar URL, or a bundled asset from `require('./avatar.png')` */
+  avatar?: string | ImageSourcePropType;
   avatarFallback?: string;
 }
 
@@ -64,6 +65,11 @@ export interface BlockquoteProps {
   
   // Layout
   alignment?: 'left' | 'center' | 'right';
+  /**
+   * Which side the attribution block (avatar, name, source, meta) sits on.
+   * Defaults to `'right'`, or `'center'` when `alignment` is `'center'`.
+   */
+  attributionAlignment?: 'left' | 'center' | 'right';
   border?: boolean;
   shadow?: boolean;
   

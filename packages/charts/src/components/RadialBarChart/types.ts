@@ -33,14 +33,10 @@ export interface RadialBarChartProps
   barThickness?: number;
   /** Gap (px) between concentric bars */
   gap?: number;
-  /** Minimum angle span percentage (helps show tiny values) */
-  minAngle?: number;
   /** Start angle in degrees (default -90 = top) */
   startAngle?: number;
   /** End angle in degrees (default 270 for full circle) */
   endAngle?: number;
-  /** Animate value growth */
-  animate?: boolean;
   /** Show value labels at the tip of each arc */
   showValueLabels?: boolean;
   /** Format value for label */
@@ -53,7 +49,7 @@ export interface RadialBarChartProps
   multiTooltip?: boolean;
   /** Keep tooltip following the pointer */
   liveTooltip?: boolean;
-  /** Enable highlighted crosshair arc */
+  /** Highlight the hovered ring (dim the others) on pointer interaction. Default false. */
   enableCrosshair?: boolean;
   /** Legend configuration */
   legend?: ChartLegend;

@@ -1,14 +1,24 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Text, Button, Card, Flex, Loader, Tabs, Markdown, useI18n, Title, TableOfContents, Switch, Link } from '@platform-blocks/ui';
+import { Text, Button, Card, Flex, Loader, Tabs, Markdown, useI18n, TableOfContents, Link, Block } from '@platform-blocks/ui';
 import { BREAKPOINTS } from '@platform-blocks/ui/core/responsive';
 import { GlobalChartsRoot } from '@platform-blocks/charts';
 import { useBrowserTitle, formatPageTitle } from '../hooks/useBrowserTitle';
+import { useFragmentScroll } from '../hooks/useFragmentScroll';
 import { DemoRenderer } from '../components/DemoRenderer';
+import { DemoHeading } from '../components/DemoHeading';
+import { buildDemoAnchors } from '../utils/demoAnchors';
 import { PropTable } from '../components/PropTable';
-import { PageLayout } from '../components/PageLayout';
+import { NARROW_PAGE_GUTTER } from '../components/PageLayout';
+import { DocsPage } from '../components/DocsPage';
+import { DocsPageHeader } from '../components/DocsPageHeader';
 import { CopyPageMenu } from '../components/CopyPageMenu';
+import { ComponentResourceLinks } from '../components/ComponentResourceLinks';
+import { normalizeDescriptionHeadings } from '../config/routeSeo';
+import { TryInExpoGoButton } from '../components/TryInExpoGoButton';
+import { SnackQRCode } from '../components/SnackQRCode';
+import { buildComponentSnackUrl } from '../utils/snackUrl';
 import {
   hasNewDemosArtifacts,
   getNewDemos,
@@ -25,91 +35,50 @@ import { getPlaygroundConfig, type ComponentPlaygroundConfig } from '../componen
 
 interface ComponentDetailScreenProps { component?: string }
 
+/**
+ * On phones the only horizontal breathing room is PageLayout's page gutter —
+ * this screen adds none of its own. Demo cards cancel that gutter to run edge
+ * to edge.
+ */
+const NARROW_GUTTER = NARROW_PAGE_GUTTER;
+
 interface DemoSectionProps {
   demo: any;
   preview: React.ReactNode;
   description?: string;
   hideTitle?: boolean;
+  demoBleed?: number;
+  /** Fragment id that deep-links to this demo. */
+  anchorId: string;
 }
 
-function DemoSection({ demo, preview, description, hideTitle }: DemoSectionProps) {
-  const codeAvailable = Boolean((demo as any).code);
-  const codeEnabled = codeAvailable && demo.showCode !== false;
-  const toggleEnabled = codeEnabled && demo.showCodeToggle !== false;
-  const prefersCode = codeEnabled && demo.codeFirst === true;
-
-  const [mode, setMode] = React.useState<'preview' | 'code'>(prefersCode ? 'code' : 'preview');
-
-  React.useEffect(() => {
-    if (!codeEnabled && mode === 'code') {
-      setMode('preview');
-    }
-  }, [codeEnabled, mode]);
-
-  const effectiveMode: 'preview' | 'code' = toggleEnabled ? mode : (prefersCode ? 'code' : 'preview');
-
-  const toggle = toggleEnabled ? (
-    <Switch
-      checked={mode === 'code'}
-      onChange={(value: boolean) => setMode(value ? 'code' : 'preview')}
-      size="sm"
-      label={<Text variant="small">View code</Text>}
-      labelPosition="left"
-    />
-  ) : undefined;
-
+function DemoSection({ demo, preview, description, hideTitle, demoBleed, anchorId }: DemoSectionProps) {
   const sectionChildren: React.ReactNode[] = [];
 
-  if (hideTitle) {
-    // Chart components hide the per-demo title; keep the code toggle if present.
-    if (toggle) {
-      sectionChildren.push(
-        <Flex key="title" direction="row" justify="flex-end" style={{ marginBottom: 8 }}>
-          {toggle}
-        </Flex>
-      );
-    }
-  } else {
+  if (!hideTitle) {
     sectionChildren.push(
-      <Title
-        key="title"
-        order={3}
-        size={18}
-        weight="semibold"
-        style={{ marginBottom: 8 }}
-        action={toggle}
-      >
+      <DemoHeading key="title" id={anchorId}>
         {demo.title}
-      </Title>
+      </DemoHeading>
     );
   }
 
-  // if (demo.tags && demo.tags.length > 0) {
-  //   sectionChildren.push(
-  //     <Flex key="tags" direction="row" align="center" gap={4} wrap="wrap" style={{ marginBottom: 8 }}>
-  //       {demo.tags.map((tag: string) => (
-  //         <Chip key={tag} size="sm" variant="subtle" color="secondary">{tag}</Chip>
-  //       ))}
-  //     </Flex>
-  //   );
-  // }
-
   if (description) {
     sectionChildren.push(
-      <View key="description" style={{ opacity: 0.5 }}>
+      <View key="description">
         <Markdown>{description}</Markdown>
       </View>
     );
   }
 
   sectionChildren.push(
-    <DemoRenderer key="demo" demo={demo} preview={preview} mode={effectiveMode} />
+    <DemoRenderer key="demo" demo={demo} preview={preview} bleed={demoBleed} />
   );
 
   return (
-    <View>
+    <Block gap="md">
       {sectionChildren}
-    </View>
+    </Block>
   );
 }
 // Extract content rendering into a separate component for reuse
@@ -135,6 +104,10 @@ interface ComponentContentProps {
   playgroundConfig: ComponentPlaygroundConfig | null;
   componentMarkdown: string | null;
   onTabChange?: (tabKey: string) => void;
+  /** Render the inline scrollspy TOC below the header (Examples tab, desktop only). */
+  showToc?: boolean;
+  /** Gutter, in px, that demo cards cancel so they run to the screen edge. */
+  demoBleed?: number;
 }
 
 const ComponentContent = React.memo(function ComponentContent({
@@ -150,7 +123,20 @@ const ComponentContent = React.memo(function ComponentContent({
   playgroundConfig,
   componentMarkdown,
   onTabChange,
+  showToc,
+  demoBleed,
 }: ComponentContentProps) {
+  // Every snack-able demo of the component in one Snack — null when none of them
+  // can run there. Built once here and shared with the resource links row, since
+  // bundling every demo's source is not cheap.
+  const snackUrl = React.useMemo(
+    () => (effectiveDemos.length ? buildComponentSnackUrl(component, effectiveDemos) : null),
+    [component, effectiveDemos]
+  );
+
+  // Fragment id per demo, so every example heading is its own permalink.
+  const demoAnchors = React.useMemo(() => buildDemoAnchors(effectiveDemos), [effectiveDemos]);
+
   const tabItems: Array<{ key: string; label: string; content: React.ReactNode; subLabel?: string }> = [];
   const resourceLinks = Array.isArray(newMeta?.resources)
     ? (newMeta?.resources as Array<{ label?: string; href?: string }>).filter((entry) => typeof entry?.href === 'string')
@@ -197,7 +183,9 @@ const ComponentContent = React.memo(function ComponentContent({
                   preview = newMeta?.category === 'charts'
                     ? (
                       <GlobalChartsRoot
-                        style={{ width: '100%' }}
+                        // Charts declare a fixed width, so the full-width root has to
+                        // centre them or every demo hugs the left edge of the card.
+                        style={{ width: '100%', alignItems: 'center' }}
                         config={DOCS_CHART_INTERACTION_CONFIG}
                       >
                         {rendered}
@@ -229,6 +217,8 @@ const ComponentContent = React.memo(function ComponentContent({
                 preview={preview}
                 description={getLocalizedDescription(demo)}
                 hideTitle={newMeta?.category === 'charts'}
+                demoBleed={demoBleed}
+                anchorId={demoAnchors[demo.id]}
               />
             );
           })}
@@ -283,42 +273,61 @@ const ComponentContent = React.memo(function ComponentContent({
 
   return (
     <>
-      <Title
-        variant="h1"
-        size={48}
-        weight="bold"
-        order={1}
-        afterline
+      <DocsPageHeader
         action={(
-          <CopyPageMenu
-            pageTitle={newMeta?.title || component}
-            targetSelector={`#main-content-${component}`}
-            markdown={componentMarkdown || undefined}
-          />
+          <Flex direction="row" align="center" gap={8} wrap="wrap" justify="flex-end">
+            {/* <TryInExpoGoButton snackUrl={snackUrl} /> */}
+            <CopyPageMenu
+              pageTitle={newMeta?.title || component}
+              targetSelector={`#main-content-${component}`}
+              markdown={componentMarkdown || undefined}
+            />
+          </Flex>
         )}
       >
         {newMeta?.title || component}
-      </Title>
+      </DocsPageHeader>
 
       <View style={{ opacity: 0.7 }}>
         {newMeta?.description && (
           <Markdown mb={16}>
-            {newMeta.description}
+            {normalizeDescriptionHeadings(newMeta.description)}
           </Markdown>
         )}
       </View>
 
-      <Tabs
-        key={`tabs-${component}`}
-        variant="folder"
-        items={tabItems}
-        onTabChange={onTabChange}
-        style={{ flex: 1 }}
-      />
+      <ComponentResourceLinks component={component} meta={newMeta} snackUrl={snackUrl} />
+
+      {/* Tabs on the left, sticky TOC on the right — the TOC column starts
+          below the header instead of alongside it. */}
+      <View style={styles.tabsRow}>
+        <Tabs
+          key={`tabs-${component}`}
+          variant="line"
+          items={tabItems}
+          onTabChange={onTabChange}
+          style={styles.tabsColumn}
+          contentStyle={demoBleed ? { paddingHorizontal: 0 } : undefined}
+        />
+
+        {showToc && (
+          <View style={styles.sidebarContainer}>
+            <View style={styles.stickyToc}>
+              <TableOfContents
+                key={`toc-${component}`}
+                container={`#main-content-${component}`}
+                variant="ghost"
+                size="sm"
+              />
+              <SnackQRCode component={component} snackUrl={snackUrl} />
+            </View>
+          </View>
+        )}
+      </View>
 
       {resourceLinks.length > 0 && (
         <Card style={{ padding: 20, marginTop: 24, gap: 12 }}>
-          <Text variant="h4" weight="semibold">Further reading</Text>
+          <Text variant="h2" weight="semibold">Further reading</Text>
           <Flex direction="column" gap={10}>
             {resourceLinks.map((resource) => (
               <Link
@@ -343,9 +352,17 @@ export default function ComponentDetailScreen({ component = 'Unknown' }: Compone
   const router = useRouter();
   const { locale } = useI18n();
   const [loadedDemoComponents, setLoadedDemoComponents] = useState<Record<string, React.ComponentType>>({});
-  const [newDemos, setNewDemos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  // Track the active tab so the Playground tab can drop the TOC and use the full width.
+  // Derived during render, not loaded in an effect. Demo metadata — title,
+  // description, and source code — is available synchronously from the generated
+  // artifacts, but routing it through an effect meant it was missing during
+  // static rendering: every prerendered component page said "No examples
+  // available for this component" and shipped none of the example prose or code.
+  // Only the interactive preview component is genuinely async (see below).
+  const newDemos = useMemo(
+    () => (component && hasNewDemosArtifacts() ? attachDemoCode(component, getNewDemos(component)) : []),
+    [component]
+  );
+  // Track the active tab so only the Examples tab shows the TOC.
   const [activeTab, setActiveTab] = useState('demos');
   const handleTabChange = useCallback((tabKey: string) => setActiveTab(tabKey), []);
   // Reset to the first tab whenever the viewed component changes (Tabs is re-keyed
@@ -356,11 +373,11 @@ export default function ComponentDetailScreen({ component = 'Unknown' }: Compone
     setPrevComponent(component);
     setActiveTab('demos');
   }
-  const isPlaygroundTab = activeTab === 'playground';
 
   // Determine if we should show side-by-side layout (desktop)
   const { width } = useWindowDimensions();
   const isDesktop = width >= BREAKPOINTS.lg;
+  const isNarrow = width < BREAKPOINTS.md;
 
   // Helper function to get localized description (stable so ComponentContent memo holds)
   const getLocalizedDescription = useCallback((demo: any) => {
@@ -377,30 +394,26 @@ export default function ComponentDetailScreen({ component = 'Unknown' }: Compone
 
   useBrowserTitle(formatPageTitle(component));
 
-  // Genuine demo-loading effect: clears the loading flag then attaches demo code
-  // for the current component.
+  // Hydrate the runnable demo components. This is the only genuinely async part
+  // of a demo, so it is all that remains in an effect — the text and code around
+  // it already rendered server-side. Streams in incrementally rather than
+  // blocking first paint on the whole set.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- demo-loading orchestration
-    setLoading(false);
     if (!component) return;
+    let cancelled = false;
+    newDemos.forEach(async (d: any) => {
+      try {
+        const mod = await loadDemoComponentNew(component, d.id);
+        if (!cancelled && mod) {
+          setLoadedDemoComponents(prev => (prev[d.id] ? prev : { ...prev, [d.id]: mod as React.ComponentType }));
+        }
+      } catch {/* ignore individual demo load errors; already logged in loader */ }
+    });
+    return () => { cancelled = true; };
+  }, [component, newDemos]);
 
-    // Authoritative demos system
-    if (hasNewDemosArtifacts()) {
-      const demos = attachDemoCode(component, getNewDemos(component));
-      setNewDemos(demos);
-      // Incremental streaming load: do not block first paint on all demos
-      let cancelled = false;
-      demos.forEach(async (d: any) => {
-        try {
-          const mod = await loadDemoComponentNew(component, d.id);
-          if (!cancelled && mod) {
-            setLoadedDemoComponents(prev => (prev[d.id] ? prev : { ...prev, [d.id]: mod as React.ComponentType }));
-          }
-        } catch {/* ignore individual demo load errors; already logged in loader */ }
-      });
-      return () => { cancelled = true; };
-    }
-  }, [component]);
+  // Deep links: /components/Button#full-width.
+  useFragmentScroll(component, loadedDemoComponents);
 
   // Only use new demos; legacy unified docs demo list suppressed
   const effectiveDemos = newDemos;
@@ -422,30 +435,19 @@ export default function ComponentDetailScreen({ component = 'Unknown' }: Compone
     [playgroundMeta]
   );
 
-  if (loading) {
-    return (
-      <PageLayout>
-        <View style={styles.container}>
-          <View style={styles.content}>
-            <Loader size="lg" />
-            <Text variant="p" style={{ marginTop: 16 }}>Loading component documentation...</Text>
-          </View>
-        </View>
-      </PageLayout>
-    );
-  }
+  // No loading gate: everything this screen renders except the interactive demo
+  // previews is available synchronously, so the documentation is present in the
+  // first (and prerendered) paint instead of behind a spinner.
 
   if (!newMeta) {
     return (
-      <PageLayout>
-        <View style={styles.container}>
-          <View style={styles.content}>
-            <Text variant="h3" style={{ marginBottom: 16 }}>Component not found</Text>
-            <Text variant="p" style={{ marginBottom: 24 }}>The component "{component}" could not be found in the documentation.</Text>
-            <Button title="Back to Components" onPress={() => router.push('/components')} />
-          </View>
+      <DocsPage>
+        <View style={styles.content}>
+          <Text variant="h1" style={{ marginBottom: 16 }}>Component not found</Text>
+          <Text variant="p" style={{ marginBottom: 24 }}>The component "{component}" could not be found in the documentation.</Text>
+          <Button title="Back to Components" onPress={() => router.push('/components')} />
         </View>
-      </PageLayout>
+      </DocsPage>
     );
   }
 
@@ -463,64 +465,31 @@ export default function ComponentDetailScreen({ component = 'Unknown' }: Compone
     playgroundConfig,
     componentMarkdown,
     onTabChange: handleTabChange,
+    // The TOC lists the example headings, so it only makes sense on that tab.
+    showToc: isDesktop && activeTab === 'demos',
+    // Running text keeps the gutter; demo cards cancel it and run edge to edge.
+    demoBleed: isNarrow ? NARROW_GUTTER : 0,
   };
 
   return (
-    <PageLayout>
-      {isDesktop ? (
-        // Desktop layout: Two columns with sticky TOC on the right.
-        // The Playground tab hides the TOC and widens the content area.
-        <View style={[styles.desktopContainer, isPlaygroundTab && styles.desktopContainerWide]}>
-          <View style={styles.mainContent} id={`main-content-${component}`}>
-            <ComponentContent {...contentProps} />
-          </View>
-          {!isPlaygroundTab && (
-            <View style={styles.sidebarContainer}>
-              <View style={styles.stickyToc}>
-                <TableOfContents
-                  key={`desktop-toc-${component}`}
-                  container={`#main-content-${component}`}
-                  variant="ghost"
-                  size="sm"
-                />
-              </View>
-            </View>
-          )}
-        </View>
-      ) : (
-        // Mobile layout: Full width
-        <View style={styles.container} id={`main-content-${component}`}>
-          <ComponentContent {...contentProps} />
-        </View>
-      )}
-    </PageLayout>
+    <DocsPage id={`main-content-${component}`}>
+      <ComponentContent {...contentProps} />
+    </DocsPage>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16
-  },
   content: {
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1
   },
-  desktopContainer: {
+  tabsRow: {
     flex: 1,
     flexDirection: 'row',
-    padding: 16,
     gap: 24,
-    maxWidth: 1400,
-    alignSelf: 'center',
-    width: '100%',
   },
-  // Playground tab: no TOC column, so allow the content to span a wider canvas.
-  desktopContainerWide: {
-    maxWidth: 1800,
-  },
-  mainContent: {
+  tabsColumn: {
     flex: 1,
     minWidth: 0, // Prevents flex item from overflowing
   },
@@ -532,5 +501,6 @@ const styles = StyleSheet.create({
     position: 'sticky' as any,
     top: 20,
     overflow: 'auto' as any,
+    gap: 16,
   },
 });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Column, Row, Text, Waveform } from '@platform-blocks/ui';
+import { Block, Button, Row, Text, Waveform } from '@platform-blocks/ui';
 
 import { WAVEFORM_DEMO_PEAKS } from '../data';
 
@@ -14,7 +14,7 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="md">
+    <Block>
       <Waveform
         peaks={WAVEFORM_DEMO_PEAKS}
         progress={progress}
@@ -45,7 +45,7 @@ export default function Demo() {
       <Text variant="small">
         {isScrubbing ? 'Scrubbing…' : 'Progress:'} {Math.round(progress * 100)}%
       </Text>
-    </Column>
+    </Block>
   );
 }
 

@@ -1,1 +1,1 @@
-Showcases stacked tick layers with line, dot, and custom renderers alongside split progress for panning scenarios.
+Stacks two tick layers on one dial: labelled lines driven by `marks`, over a finer dot scale from an explicit step list.

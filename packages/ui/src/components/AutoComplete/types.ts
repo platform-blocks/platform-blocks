@@ -122,7 +122,19 @@ export interface AutoCompleteProps extends SpacingProps, LayoutProps {
   
   /** Whether to highlight matching text */
   highlightMatches?: boolean;
-  
+
+  /**
+   * Text color for the matched substring when `highlightMatches` is on.
+   * Defaults to a primary-ramp shade chosen for the active color scheme.
+   */
+  highlightColor?: string;
+
+  /**
+   * Background color painted behind the matched substring
+   * (default: transparent — the match is distinguished by color and weight).
+   */
+  highlightBackgroundColor?: string;
+
   /** Custom styles for suggestions container */
   suggestionsStyle?: any;
   

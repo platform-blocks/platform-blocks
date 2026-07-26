@@ -1,4 +1,5 @@
 import React from 'react';
+import type { View } from 'react-native';
 import { Button as BaseButton } from '../Button';
 import { useButtonFeedback } from '../../core/sound/hooks';
 import type { ButtonProps } from '../Button/types';
@@ -22,7 +23,7 @@ interface SoundButtonProps extends ButtonProps {
 /**
  * Enhanced Button component with integrated sound and haptic feedback
  */
-export const SoundButton: React.FC<SoundButtonProps> = ({
+export const SoundButton = React.forwardRef<View, SoundButtonProps>(({
   onPress,
   enableSoundFeedback = true,
   enableHapticFeedback = true,
@@ -31,7 +32,7 @@ export const SoundButton: React.FC<SoundButtonProps> = ({
   enableHoverSound = false,
   hoverSoundOptions,
   ...props
-}) => {
+}, ref) => {
   const { onPress: playPressSound, onHover: playHoverSound } = useButtonFeedback();
 
   const handlePress = React.useCallback(async () => {
@@ -64,6 +65,7 @@ export const SoundButton: React.FC<SoundButtonProps> = ({
 
   return (
     <BaseButton
+      ref={ref}
       {...props}
       onPress={handlePress}
       // Add hover support for web
@@ -72,4 +74,6 @@ export const SoundButton: React.FC<SoundButtonProps> = ({
       })}
     />
   );
-};
+});
+
+SoundButton.displayName = 'SoundButton';

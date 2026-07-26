@@ -1,4 +1,4 @@
-import { CodeBlock, Column, Text } from '@platform-blocks/ui';
+import { Block, CodeBlock, Text } from '@platform-blocks/ui';
 
 const sample = `// Example showcasing highlighted lines
 import React from 'react';
@@ -28,7 +28,7 @@ export function filterActive(users: User[]) {
 
 export default function Demo() {
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <Text weight="semibold">Highlighted lines</Text>
       <Text size="sm" colorVariant="secondary">
         Combine individual lines and ranges in the highlightLines prop to emphasize key logic.
@@ -36,6 +36,6 @@ export default function Demo() {
   <CodeBlock title="Highlighted lines" showLineNumbers highlightLines={['1', '5-9', '11-14', '20-22']}>
         {sample}
       </CodeBlock>
-    </Column>
+    </Block>
   );
 }

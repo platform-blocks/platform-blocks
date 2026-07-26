@@ -19,7 +19,9 @@ const DATA = [
   { id: 'c', label: 'C', value: 20, color: '#f97316' },
 ];
 
-// 320×320 → center (160,160), outerR = 160 - 36 = 124, innerR 0. Slice A's right point ≈ (222,160).
+// 320×320 with no title/legend → plot box is the whole container, center (160,160). The
+// radius is what's left after the outside-label gutter (160 - 320*0.22 ≈ 90), innerR 0.
+// Slice A's right point ≈ (222,160) still lands well inside it.
 const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionContext>) => void) =>
   render(
     <ChartThemeProvider>
@@ -29,6 +31,35 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );
+
+const renderWithLegend = () =>
+  render(
+    <ChartThemeProvider>
+      <ChartInteractionProvider config={{ liveTooltip: true, pointerRAF: false }}>
+        <PieChart data={DATA} width={320} height={320} legend={{ show: true }} />
+      </ChartInteractionProvider>
+    </ChartThemeProvider>
+  );
+
+describe('PieChart legend toggling', () => {
+  it('restores every slice when the last visible one is switched off', async () => {
+    const { getByText, queryAllByLabelText } = renderWithLegend();
+    // Each rendered wedge carries an accessibility label of the form "A: 50.0%".
+    const sliceCount = () => queryAllByLabelText(/^[ABC]: /).length;
+
+    expect(sliceCount()).toBe(3);
+
+    fireEvent.press(getByText('A'));
+    await waitFor(() => expect(sliceCount()).toBe(2));
+
+    fireEvent.press(getByText('B'));
+    await waitFor(() => expect(sliceCount()).toBe(1));
+
+    // Hiding the last one would empty the chart — all three come back instead.
+    fireEvent.press(getByText('C'));
+    await waitFor(() => expect(sliceCount()).toBe(3));
+  });
+});
 
 describe('PieChart (angular hit-test engine)', () => {
   it('resolves the slice under the pointer; a point outside the radius resolves to nothing', async () => {

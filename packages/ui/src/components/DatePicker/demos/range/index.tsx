@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Column, DatePicker, Text } from '@platform-blocks/ui';
+import { Block, DatePicker, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [value, setValue] = useState<[Date | null, Date | null] | null>(null);
@@ -8,7 +8,7 @@ export default function Demo() {
   const end = value?.[1];
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <DatePicker
         type="range"
         value={value}
@@ -20,6 +20,6 @@ export default function Demo() {
           ? `${start.toLocaleDateString()} – ${end.toLocaleDateString()}`
           : 'Select a start and end date'}
       </Text>
-    </Column>
+    </Block>
   );
 }

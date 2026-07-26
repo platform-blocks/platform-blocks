@@ -1,12 +1,11 @@
 ---
-title: Original Brand Colors
+title: Colors & Mono
 category: theming
 order: 20
-tags: [colors, branding]
+tags: [colors, branding, mono, custom-colors]
 highlightLines: []
 status: stable
 since: 0.3.0
-hidden: false
 ---
 
-Icons displayed in their authentic brand palettes.
+Authentic brand palettes plus custom single-color overrides — passing `color` implies `variant="mono"`, so the two never need to be set together.

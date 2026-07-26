@@ -8,7 +8,8 @@ import { Icon } from '../../Icon';
 const mockTheme = {
   text: {
     primary: '#111111',
-    muted: '#666666',
+    secondary: '#666666',
+    muted: '#999999',
   },
 };
 
@@ -89,7 +90,7 @@ describe('Breadcrumbs - behavior', () => {
     const currentStyles = StyleSheet.flatten(getByText('Current').props.style);
     const previousStyles = StyleSheet.flatten(getByText('Home').props.style);
     expect(currentStyles.color).toBe(mockTheme.text.primary);
-    expect(previousStyles.color).toBe(mockTheme.text.muted);
+    expect(previousStyles.color).toBe(mockTheme.text.secondary);
   });
 
   it('collapses middle items when maxItems is exceeded', () => {

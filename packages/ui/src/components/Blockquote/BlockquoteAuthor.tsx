@@ -1,6 +1,5 @@
 import React from 'react';
 import { View } from 'react-native';
-import { useTheme } from '../../core/theme';
 import { Text } from '../Text';
 import { Avatar } from '../Avatar';
 import { Flex } from '../Flex';
@@ -8,38 +7,38 @@ import type { BlockquoteAuthorProps } from './types';
 
 export function BlockquoteAuthor({
   author,
-  alignment = 'left',
+  alignment = 'right',
 }: BlockquoteAuthorProps) {
-  const theme = useTheme();
+  const isCentered = alignment === 'center';
+  // On the right side the avatar trails the name so the portrait hugs the
+  // outer edge and the text stays flush against the quote it belongs to.
+  const direction = isCentered ? 'column' : alignment === 'right' ? 'row-reverse' : 'row';
 
-  const containerStyle = {
-    flexDirection: alignment === 'center' ? 'column' as const : 'row' as const,
-    alignItems: alignment === 'center' ? 'center' as const : 'flex-start' as const,
-    gap: parseInt(theme.spacing.sm),
-  };
+  const avatar = author.avatar || author.avatarFallback ? (
+    <Avatar
+      src={author.avatar}
+      fallback={author.avatarFallback || author.name.charAt(0)}
+      size="md"
+    />
+  ) : null;
 
   return (
-    <Flex 
-      direction={alignment === 'center' ? 'column' : 'row'} 
-      align={alignment === 'center' ? 'center' : 'flex-start'}
+    <Flex
+      direction={direction}
+      align="center"
       gap="sm"
+      style={{ alignSelf: isCentered ? 'center' : alignment === 'right' ? 'flex-end' : 'flex-start' }}
     >
       {/* Avatar */}
-      {author.avatar && (
-        <Avatar
-          src={author.avatar}
-          fallback={author.avatarFallback || author.name.charAt(0)}
-          size="md"
-        />
-      )}
+      {avatar}
 
       {/* Author Details */}
-      <View style={{ 
-        alignItems: alignment === 'center' ? 'center' : 'flex-start',
-        flex: alignment === 'center' ? 0 : 1,
+      <View style={{
+        alignItems: isCentered ? 'center' : alignment === 'right' ? 'flex-end' : 'flex-start',
+        flexShrink: 1,
       }}>
         {/* Name */}
-        <Text 
+        <Text
           weight="semibold"
           size="sm"
           style={{ textAlign: alignment }}
@@ -48,8 +47,8 @@ export function BlockquoteAuthor({
         </Text>
 
         {/* Title */}
-        {author.title && (
-          <Text 
+        {!!author.title && (
+          <Text
             size="xs"
             colorVariant="secondary"
             style={{ textAlign: alignment }}
@@ -59,8 +58,8 @@ export function BlockquoteAuthor({
         )}
 
         {/* Organization */}
-        {author.organization && (
-          <Text 
+        {!!author.organization && (
+          <Text
             size="xs"
             colorVariant="muted"
             style={{ textAlign: alignment }}

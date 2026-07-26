@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, ViewStyle, Image, StyleSheet } from 'react-native';
+import { View, ViewStyle, Image, StyleSheet, Platform } from 'react-native';
 import { Text } from '../Text';
 import { useTheme } from '../../core/theme';
 import { resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
 import type { AvatarProps } from './types';
 import { Indicator } from '../Indicator';
 import { mergeSlotProps } from '../../core/utils';
+import { resolveImageSource } from '../../utils/imageSource';
 
 type AvatarMetrics = {
   avatar: number;
@@ -109,7 +110,7 @@ export function Avatar({
       <View style={avatarStyle}>
         {src ? (
           <Image
-            source={{ uri: src }}
+            source={resolveImageSource(src)}
             style={{
               width: avatarSize,
               height: avatarSize,
@@ -124,7 +125,11 @@ export function Avatar({
                 size: textSize,
                 color: textColor,
                 weight: 'semibold' as const,
-                style: { textAlign: 'center' as const },
+                selectable: false,
+                style: {
+                  textAlign: 'center' as const,
+                  ...(Platform.OS === 'web' && { userSelect: 'none' as any, cursor: 'default' as any }),
+                },
               },
               fallbackProps,
             )}

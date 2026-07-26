@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
-import { useSharedValue } from 'react-native-reanimated';
 
 export type LayoutState = {
   width: number;
@@ -18,16 +17,6 @@ export const useKnobGeometry = (size: number) => {
     cy: size / 2,
     radius: size / 2,
   }));
-
-  const centerX = useSharedValue(layoutState.cx);
-  const centerY = useSharedValue(layoutState.cy);
-  const radiusValue = useSharedValue(Math.max(0, layoutState.radius));
-  const angle = useSharedValue(0);
-
-  useEffect(() => {
-    centerX.value = layoutState.cx;
-    centerY.value = layoutState.cy;
-  }, [layoutState, centerX, centerY]);
 
   const handleLayout = useCallback(
     (event: LayoutChangeEvent) => {
@@ -47,5 +36,5 @@ export const useKnobGeometry = (size: number) => {
     [size]
   );
 
-  return { layoutState, handleLayout, centerX, centerY, radiusValue, angle };
+  return { layoutState, handleLayout };
 };

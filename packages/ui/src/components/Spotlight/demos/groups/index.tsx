@@ -1,4 +1,4 @@
-import { Button, Card, Column, Spotlight, Text, useSpotlightStoreInstance, type SpotlightProps } from '@platform-blocks/ui';
+import { Block, Button, Card, Spotlight, Text, type SpotlightProps, useSpotlightStoreInstance } from '@platform-blocks/ui';
 
 const actions: SpotlightProps['actions'] = [
   {
@@ -33,18 +33,18 @@ export default function Demo() {
   const [store] = useSpotlightStoreInstance();
 
   return (
-    <Column gap="lg">
+    <Block>
       <Card p="md">
-        <Column gap="md">
+        <Block>
           <Text size="sm" colorVariant="secondary">
             Group actions to create semantic sections inside the results list. Each group renders a header before its nested actions.
           </Text>
           <Button variant="secondary" onPress={() => store.open()}>
             Open spotlight
           </Button>
-        </Column>
+        </Block>
       </Card>
       <Spotlight actions={actions} store={store} />
-    </Column>
+    </Block>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Card, Column, FileInput, Flex, Text } from '@platform-blocks/ui';
+import { Block, Button, Card, FileInput, Flex, Text } from '@platform-blocks/ui';
 import type { FileInputFile } from '@platform-blocks/ui';
 
 export default function Demo() {
@@ -10,7 +10,7 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <FileInput
         label="Upload images"
         accept={['image/*']}
@@ -21,14 +21,14 @@ export default function Demo() {
       />
 
       {images.length > 0 && (
-        <Column gap="xs" fullWidth>
+        <Block fullWidth>
           <Text size="sm" weight="semibold">
             Selected images ({images.length})
           </Text>
           <Flex direction="row" gap={12} wrap="wrap">
             {images.map((file, index) => (
               <Card key={file.id ?? file.name} p={8} variant="outline" style={{ width: 150 }}>
-                <Column gap="xs">
+                <Block>
                   {file.previewUrl && (
                     <img
                       src={file.previewUrl}
@@ -42,12 +42,12 @@ export default function Demo() {
                   <Button size="xs" variant="outline" onPress={() => handleRemoveFile(index)}>
                     Remove
                   </Button>
-                </Column>
+                </Block>
               </Card>
             ))}
           </Flex>
-        </Column>
+        </Block>
       )}
-    </Column>
+    </Block>
   );
 }

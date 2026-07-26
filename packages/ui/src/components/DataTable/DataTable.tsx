@@ -19,12 +19,25 @@ import { ToggleButton, ToggleGroup } from '../Toggle';
 import { Pagination } from '../Pagination';
 import { Table, TableTh, TableTd, TableTr } from '../Table';
 import { Icon } from '../Icon';
-import { Tooltip } from '../Tooltip';
+import { Tooltip, resolveTooltipProps, getTooltipText } from '../Tooltip';
 import { Collapse } from '../Collapse';
 import { useRowSelection } from './hooks/useRowSelection';
 import { useDataTableState } from './hooks/useDataTableState';
-import { useColumnSettings } from './hooks/useColumnSettings';
 import { AdvancedFilterControl } from './AdvancedFilterControl';
+import { ColumnFilterInput } from './ColumnFilterInput';
+import {
+  computeAggregate,
+  DEFAULT_COLUMN_WIDTH,
+  EXPAND_COL_WIDTH,
+  filterData,
+  formatValue,
+  getColumnAlign,
+  getColumnFilterType,
+  getValue,
+  isNumericType,
+  SELECT_COL_WIDTH,
+  sortData,
+} from './utils';
 import type {
   DataTableProps,
   DataTableColumn,
@@ -40,235 +53,6 @@ import { Row } from '../Layout';
 export type { DataTableProps, DataTableColumn, DataTableFilter, DataTableSort, DataTablePagination, SortDirection, FilterType, ColumnDataType } from './types';
 
 // Types moved to separate file (types.ts)
-
-// Utility functions
-const getValue = <T,>(row: T, accessor: keyof T | ((row: T) => any)): any => {
-  if (typeof accessor === 'function') {
-    return accessor(row);
-  }
-  return row[accessor];
-};
-
-const formatValue = (value: any, dataType: ColumnDataType = 'text'): string => {
-  if (value === null || value === undefined) return '';
-  
-  switch (dataType) {
-    case 'number':
-      return typeof value === 'number' ? value.toLocaleString() : String(value);
-    case 'currency':
-      return typeof value === 'number' ? `$${value.toLocaleString()}` : String(value);
-    case 'percentage':
-      return typeof value === 'number' ? `${(value * 100).toFixed(1)}%` : String(value);
-    case 'date':
-      return value instanceof Date ? value.toLocaleDateString() : String(value);
-    case 'boolean':
-      return value ? 'Yes' : 'No';
-    default:
-      return String(value);
-  }
-};
-
-const isNumericType = (dataType?: ColumnDataType): boolean =>
-  dataType === 'number' || dataType === 'currency' || dataType === 'percentage';
-
-// Reduce a column's values over a set of rows per its aggregate spec. Numeric
-// aggregates coerce values to numbers and ignore null/undefined; `count` is the
-// row count; a function receives the rows directly.
-const computeAggregate = <T,>(
-  agg: import('./types').AggregateType<T>,
-  rows: T[],
-  column: DataTableColumn<T>
-): number | string => {
-  if (typeof agg === 'function') return agg(rows);
-  if (agg === 'count') return rows.length;
-  const nums = rows
-    .map(r => getValue(r, column.accessor))
-    .filter(v => v !== null && v !== undefined && v !== '')
-    .map(Number)
-    .filter(n => !Number.isNaN(n));
-  if (nums.length === 0) return agg === 'sum' ? 0 : '';
-  switch (agg) {
-    case 'sum': return nums.reduce((a, b) => a + b, 0);
-    case 'avg': return nums.reduce((a, b) => a + b, 0) / nums.length;
-    case 'min': return Math.min(...nums);
-    case 'max': return Math.max(...nums);
-    default: return '';
-  }
-};
-
-// Fallback width used when a column has no explicit numeric width — also the
-// basis for computing sticky (pinned) column offsets.
-const DEFAULT_COLUMN_WIDTH = 120;
-// Fixed leading/trailing helper-column widths (selection / expand / actions).
-const SELECT_COL_WIDTH = 50;
-const EXPAND_COL_WIDTH = 50;
-
-const getColumnAlign = <T,>(column: DataTableColumn<T>): 'left' | 'center' | 'right' =>
-  column.align ?? (isNumericType(column.dataType) ? 'right' : 'left');
-
-// Resolve the filter UI/operator set for a column. Falls back from an explicit
-// `filterType`, to a `select` when discrete options exist, to the column's
-// `dataType`, and finally to free-text `contains`.
-const getColumnFilterType = <T,>(column: DataTableColumn<T>): FilterType => {
-  if (column.filterType) return column.filterType;
-  if (column.filterOptions) return 'select';
-  switch (column.dataType) {
-    case 'number':
-    case 'currency':
-    case 'percentage':
-      return 'number';
-    case 'date':
-      return 'date';
-    case 'boolean':
-      return 'boolean';
-    default:
-      return 'text';
-  }
-};
-
-const sortData = <T,>(data: T[], sortBy: DataTableSort[], columns: DataTableColumn<T>[]): T[] => {
-  if (!sortBy.length) return data;
-
-  return [...data].sort((a, b) => {
-    for (const sort of sortBy) {
-      const column = columns.find(col => col.key === sort.column);
-      if (!column || !sort.direction) continue;
-
-      const aValue = getValue(a, column.accessor);
-      const bValue = getValue(b, column.accessor);
-
-      let comparison = 0;
-      
-      if (aValue === null || aValue === undefined) comparison = 1;
-      else if (bValue === null || bValue === undefined) comparison = -1;
-      else if (column.compare) {
-        try { comparison = column.compare(aValue, bValue, a, b); } catch { comparison = 0; }
-      } else if (typeof aValue === 'string' && typeof bValue === 'string') comparison = aValue.localeCompare(bValue);
-      else if (typeof aValue === 'number' && typeof bValue === 'number') comparison = aValue - bValue;
-      else if (aValue instanceof Date && bValue instanceof Date) comparison = aValue.getTime() - bValue.getTime();
-      else comparison = String(aValue).localeCompare(String(bValue));
-
-      if (comparison !== 0) {
-        return sort.direction === 'desc' ? -comparison : comparison;
-      }
-    }
-    return 0;
-  });
-};
-
-// Normalize a value (Date, timestamp, ISO or `YYYY-MM-DD` string) to a
-// timezone-safe, comparable day key (e.g. 2024-01-15 -> 20240115). Returns
-// null when the value cannot be parsed as a date. Plain date-only strings are
-// parsed literally to avoid the UTC-midnight shift `new Date('YYYY-MM-DD')`
-// introduces in negative-offset timezones.
-const toDayKey = (value: any): number | null => {
-  const fromDate = (d: Date) =>
-    isNaN(d.getTime())
-      ? null
-      : d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
-
-  if (value instanceof Date) return fromDate(value);
-  if (typeof value === 'number') return fromDate(new Date(value));
-  if (typeof value === 'string') {
-    const m = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (m) return Number(m[1]) * 10000 + Number(m[2]) * 100 + Number(m[3]);
-    return fromDate(new Date(value));
-  }
-  return null;
-};
-
-const filterData = <T,>(
-  data: T[],
-  filters: DataTableFilter[],
-  columns: DataTableColumn<T>[],
-  searchValue?: string,
-  rowFeatureToggle?: DataTableProps<T>['rowFeatureToggle']
-): T[] => {
-  let filteredData = data;
-
-  // Apply column filters
-  if (filters.length > 0) {
-    filteredData = filteredData.filter((row, idx) => {
-      const rowFeatures = rowFeatureToggle?.(row, idx) || {} as any;
-      // If row is marked non-filterable, always keep it
-      if (rowFeatures.filterable === false) return true;
-      return filters.every(filter => {
-        const column = columns.find(col => col.key === filter.column);
-        if (!column) return true;
-
-        const value = getValue(row, column.accessor);
-        const filterValue = filter.value;
-        const op = filter.operator;
-
-        // Date-aware equality/ordering: compare by calendar day so a
-        // `YYYY-MM-DD` filter value matches Date/ISO row values correctly.
-        const isDateColumn =
-          column.dataType === 'date' || column.filterType === 'date' || value instanceof Date;
-        if (
-          isDateColumn &&
-          (op === 'eq' || op === 'ne' || op === 'lt' || op === 'lte' || op === 'gt' || op === 'gte')
-        ) {
-          const rowKey = toDayKey(value);
-          const filterKey = toDayKey(filterValue);
-          if (filterKey === null) return true; // unparseable filter → no-op
-          if (rowKey === null) return op === 'ne'; // undated row only matches "not equals"
-          switch (op) {
-            case 'eq':
-              return rowKey === filterKey;
-            case 'ne':
-              return rowKey !== filterKey;
-            case 'lt':
-              return rowKey < filterKey;
-            case 'lte':
-              return rowKey <= filterKey;
-            case 'gt':
-              return rowKey > filterKey;
-            case 'gte':
-              return rowKey >= filterKey;
-          }
-        }
-
-        switch (op) {
-          case 'eq':
-            return value === filterValue;
-          case 'ne':
-            return value !== filterValue;
-          case 'lt':
-            return value < filterValue;
-          case 'lte':
-            return value <= filterValue;
-          case 'gt':
-            return value > filterValue;
-          case 'gte':
-            return value >= filterValue;
-          case 'contains':
-            return String(value).toLowerCase().includes(String(filterValue).toLowerCase());
-          case 'startsWith':
-            return String(value).toLowerCase().startsWith(String(filterValue).toLowerCase());
-          case 'endsWith':
-            return String(value).toLowerCase().endsWith(String(filterValue).toLowerCase());
-          default:
-            return true;
-        }
-      });
-    });
-  }
-
-  // Apply global search
-  if (searchValue && searchValue.trim()) {
-    const searchTerm = searchValue.toLowerCase().trim();
-    filteredData = filteredData.filter((row, idx) => {
-      const rowFeatures = rowFeatureToggle?.(row, idx) || {} as any;
-      if (rowFeatures.searchable === false) return true; // keep regardless of search
-      return columns.some(column => {
-        const value = getValue(row, column.accessor);
-        return String(value).toLowerCase().includes(searchTerm);
-      });
-    });
-  }
-
-  return filteredData;
-};
 
 // DataTable component
 export const DataTable = <T,>({
@@ -286,6 +70,7 @@ export const DataTable = <T,>({
   onSortChange,
   filters = [],
   onFilterChange,
+  showColumnFilters = false,
   pagination,
   onPaginationChange,
   paginationProps,
@@ -310,7 +95,6 @@ export const DataTable = <T,>({
   rowFeatureToggle,
   initialHiddenColumns = [],
   onColumnVisibilityChange,
-  onColumnSettings,
   showColumnVisibilityManager = true,
   rowsPerPageOptions = [10, 25, 50, 100],
   showRowsPerPageControl = true,
@@ -318,13 +102,14 @@ export const DataTable = <T,>({
   actionsColumnWidth = 100,
   fullWidth = true,
   // Border styling props
+  showRowDividers,
   rowBorderWidth,
   rowBorderColor,
   rowBorderStyle = 'solid',
   columnBorderWidth,
   columnBorderColor,
   columnBorderStyle = 'solid',
-  showOuterBorder = false,
+  showOuterBorder = true,
   outerBorderWidth = 1,
   outerBorderColor,
   // Expandable rows props
@@ -363,7 +148,6 @@ export const DataTable = <T,>({
   // Uncontrolled column filters state (used when onFilterChange not provided)
   const [internalFilters, setInternalFilters] = useState<DataTableFilter[]>([]);
 
-  const [tempHeaderEdits, setTempHeaderEdits] = useState<Record<string, string>>({});
   const [hoveredHeader, setHoveredHeader] = useState<string | null>(null);
   const [openFilterColumn, setOpenFilterColumn] = useState<string | null>(null);
 
@@ -505,6 +289,33 @@ export const DataTable = <T,>({
     () => orderedColumns.filter(c => !hiddenColumns.includes(c.key)),
     [orderedColumns, hiddenColumns]
   );
+
+  /**
+   * Width of the hairline between rows. `showRowDividers` decides when it is
+   * set; otherwise the `bordered` variant implies dividers. `rowBorderWidth`
+   * is the explicit override and is honored even at 0 (to switch them off).
+   */
+  const rowDividerWidth = rowBorderWidth ?? ((showRowDividers ?? variant === 'bordered') ? 1 : 0);
+
+  /**
+   * Vertical rule for a cell, opt-in via `columnBorderWidth`. Drawn on every
+   * section (header, filter row, body, group/footer) so the rule runs the full
+   * height of the table. Skipped on the trailing column, where it would double
+   * up with the outer border — unless an actions column follows it.
+   *
+   * `colIdx` is the index within `visibleColumns`; pass -1 for the leading
+   * helper cells (select / expand), which are never last.
+   */
+  const columnDividerStyle = useCallback((colIdx: number) => {
+    if (!columnBorderWidth) return null;
+    const isTrailing = colIdx === visibleColumns.length - 1 && !rowActions;
+    if (isTrailing) return null;
+    return {
+      borderRightWidth: columnBorderWidth,
+      borderRightColor: columnBorderColor || theme.colors.gray[2],
+      borderRightStyle: columnBorderStyle,
+    };
+  }, [columnBorderWidth, columnBorderColor, columnBorderStyle, rowActions, theme, visibleColumns.length]);
 
   // Move column `fromKey` to `toKey`'s position within the full order.
   const reorderColumn = useCallback((fromKey: string, toKey: string) => {
@@ -888,19 +699,6 @@ export const DataTable = <T,>({
   });
 
   // Portal-based column settings
-  const columnSettings = useColumnSettings({
-    columns,
-    onColumnUpdate: (columnKey, updates) => {
-      // Handle column header updates by updating temp state
-      if (updates.header && typeof updates.header === 'string') {
-        setTempHeaderEdits(prev => ({ ...prev, [columnKey]: updates.header as string }));
-      }
-    },
-    onHideColumn: (columnKey) => {
-      setHiddenColumns(prev => [...prev, columnKey]);
-    }
-  });
-
   const handleCellDoublePress = useCallback((rowIndex: number, columnKey: string) => {
     if (!editMode) return;
     
@@ -1249,7 +1047,7 @@ export const DataTable = <T,>({
                   {columns.map(col => (
                     <Checkbox
                       key={col.key}
-                      label={tempHeaderEdits[col.key] || col.header}
+                      label={col.header}
                       onChange={() => {
                         if (hiddenColumns.includes(col.key)) {
                           setHiddenColumns(prev => prev.filter(h => h !== col.key));
@@ -1325,9 +1123,12 @@ export const DataTable = <T,>({
     );
   }, [editValue, editingCell, handleCellEditSave, theme, cellTextProps]);
 
+  // Sort indicator icon: stacked up/down chevrons when unsorted, a single
+  // directional chevron when actively sorted. Color stays neutral in every
+  // state — only the icon shape (and opacity) signals the sort direction.
   const getSortIcon = (columnKey: string) => {
     const sort = sortBy.find(s => s.column === columnKey);
-    if (!sort?.direction) return undefined;
+    if (!sort?.direction) return 'selector-vertical';
     return sort.direction === 'asc' ? 'chevron-up' : 'chevron-down';
   };
 
@@ -1389,7 +1190,7 @@ export const DataTable = <T,>({
         borderBottomColor: theme.colors.gray[3]
       }}>
       {selectable && (
-        <TableTh w={50} style={{ borderBottomWidth: 0 }} {...(web ? { role: 'columnheader', 'aria-colindex': 1 } : {})}>
+        <TableTh w={50} style={{ borderBottomWidth: 0, ...columnDividerStyle(-1) }} {...(web ? { role: 'columnheader', 'aria-colindex': 1 } : {})}>
           <Checkbox
             size="sm"
             checked={rowSelection.isAllSelected}
@@ -1400,7 +1201,7 @@ export const DataTable = <T,>({
         </TableTh>
       )}
 
-      {expandableRowRender && <TableTh w={50} style={{ borderBottomWidth: 0 }} {...(web ? { role: 'columnheader', 'aria-colindex': (selectable ? 2 : 1) } : {})} />}
+      {expandableRowRender && <TableTh w={50} style={{ borderBottomWidth: 0, ...columnDividerStyle(-1) }} {...(web ? { role: 'columnheader', 'aria-colindex': (selectable ? 2 : 1) } : {})} />}
 
       {visibleColumns.map((column, colIdx) => {
         const width = columnWidths[column.key] || column.width;
@@ -1432,6 +1233,11 @@ export const DataTable = <T,>({
               position: 'relative',
               // paddingVertical: 16,
               borderBottomWidth: 0,
+              // Header content spans the full cell so the sort/filter/menu
+              // controls can sit flush right regardless of the column's
+              // text alignment (which is applied to the label instead).
+              alignItems: 'stretch',
+              ...columnDividerStyle(colIdx),
               backgroundColor: theme.colors.surface[1],
               ...getStickyCellStyle(column, theme.colors.surface[1], true),
               // Drop-target indicator while dragging a column over this header.
@@ -1452,14 +1258,12 @@ export const DataTable = <T,>({
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                justifyContent:
-                  getColumnAlign(column) === 'center'
-                    ? 'center'
-                    : getColumnAlign(column) === 'right'
-                      ? 'flex-end'
-                      : 'flex-start'
+                width: '100%',
+                gap: 2,
               }}
             >
+              {/* Label takes the remaining space (honouring the column's
+                  alignment) so the control cluster stays pinned right. */}
               <Pressable
                 onPress={() => column.sortable && handleSort(column.key)}
                 disabled={!column.sortable}
@@ -1470,7 +1274,19 @@ export const DataTable = <T,>({
                     : undefined
                 }
                 {...(web && column.sortable ? { focusable: true } : {})}
-                style={{ flexDirection: 'row', alignItems: 'center' }}
+                style={{
+                  flexGrow: 1,
+                  flexShrink: 1,
+                  minWidth: 0,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent:
+                    getColumnAlign(column) === 'center'
+                      ? 'center'
+                      : getColumnAlign(column) === 'right'
+                        ? 'flex-end'
+                        : 'flex-start'
+                }}
               >
                 <Text
                   {...mergeSlotProps(
@@ -1489,42 +1305,36 @@ export const DataTable = <T,>({
                 >
                   {column.header}
                 </Text>
-                {getColumnFilter(column.key) && (
-                  <View
+              </Pressable>
+              {/* Sort indicator lives with the right-aligned controls but stays
+                  visible off-hover so the active sort direction is never hidden. */}
+              {column.sortable && (
+                <Pressable
+                  onPress={() => handleSort(column.key)}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    typeof column.header === 'string'
+                      ? `Sort by ${column.header}`
+                      : 'Sort column'
+                  }
+                  {...(web ? { focusable: true } : {})}
+                  style={({ pressed }: { pressed: boolean }) => ({
+                    padding: 2,
+                    borderRadius: 4,
+                    opacity: pressed ? 0.6 : 1
+                  })}
+                >
+                  <Icon
+                    name={getSortIcon(column.key)}
+                    size={18}
+                    stroke={2.75}
+                    color={theme.colors.gray[7]}
                     style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: 3,
-                      backgroundColor: theme.colors.primary[5],
-                      marginLeft: 6
+                      opacity: sortBy.some(s => s.column === column.key && s.direction) ? 1 : 0.5
                     }}
                   />
-                )}
-                {column.sortable && (
-                  <View
-                    style={{
-                      marginLeft: 6,
-                      // padding: 2,
-                      borderRadius: 4,
-                      backgroundColor: getSortIcon(column.key)
-                        ? theme.colors.primary[1]
-                        : 'transparent'
-                    }}
-                  >
-                    <Icon
-                      name={getSortIcon(column.key) || 'chevron-up'}
-                      size={18}
-                      stroke={2.75}
-                      color={
-                        getSortIcon(column.key)
-                          ? theme.colors.primary[7]
-                          : theme.colors.gray[7]
-                      }
-                      style={{ opacity: getSortIcon(column.key) ? 1 : 0.8 }}
-                    />
-                  </View>
-                )}
-              </Pressable>
+                </Pressable>
+              )}
               <View
                 pointerEvents={controlsVisible ? 'auto' : 'none'}
                 style={{ opacity: controlsVisible ? 1 : 0, flexDirection: 'row', alignItems: 'center', gap: 2 }}
@@ -1540,6 +1350,8 @@ export const DataTable = <T,>({
                 >
                   <Popover.Target>
                     <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Filter ${typeof column.header === 'string' ? column.header : 'column'}`}
                       style={{
                         padding: 4,
                         borderRadius: 4,
@@ -1557,13 +1369,6 @@ export const DataTable = <T,>({
                   </Popover.Target>
                   <Popover.Dropdown>
                     <View style={{ gap: DESIGN_TOKENS.spacing.xs }}>
-                      <Text
-                        variant="small"
-                        weight="semibold"
-                        style={{ color: theme.colors.gray[7], paddingHorizontal: 4 }}
-                      >
-                        Filter {typeof column.header === 'string' ? column.header : 'column'}
-                      </Text>
                       {renderFilterControl(column, true, openFilterColumn === column.key)}
                     </View>
                   </Popover.Dropdown>
@@ -1662,26 +1467,11 @@ export const DataTable = <T,>({
                       </MenuItem>
                     </>
                   )}
-
-                  <MenuDivider />
-                  <MenuItem
-                    startSection={<Icon name="knobs" size={14} color={theme.colors.gray[7]} />}
-                    onPress={() => {
-                      if (onColumnSettings) {
-                        onColumnSettings(column.key);
-                      } else {
-                        columnSettings.openColumnSettings(column.key, null);
-                      }
-                    }}
-                  >
-                    Column settings
-                  </MenuItem>
                 </MenuDropdown>
                 <Pressable
                   onPress={() => {}}
                   style={({ pressed }) => ({
                     padding: 4,
-                    marginLeft: 4,
                     borderRadius: 4,
                     opacity: pressed ? 0.6 : 1
                   })}
@@ -1721,6 +1511,59 @@ export const DataTable = <T,>({
       })}
     </TableTr>
   );
+
+  // Optional always-visible filter row rendered directly beneath the header.
+  // Mirrors the header's column layout (helper cells + one cell per visible
+  // column + trailing actions spacer) so the inline controls stay aligned.
+  const filterRow = showColumnFilters ? (
+    <TableTr
+      {...(web ? { role: 'row' } : {})}
+      style={{
+        backgroundColor: theme.colors.surface[1],
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.gray[3],
+      }}
+    >
+      {selectable && <TableTh w={50} style={{ borderBottomWidth: 0, ...columnDividerStyle(-1) }} />}
+      {expandableRowRender && <TableTh w={50} style={{ borderBottomWidth: 0, ...columnDividerStyle(-1) }} />}
+      {visibleColumns.map((column, colIdx) => {
+        const width = columnWidths[column.key] || column.width;
+        return (
+          <TableTh
+            key={column.key}
+            w={width}
+            minWidth={column.minWidth}
+            maxWidth={column.maxWidth}
+            style={{
+              paddingVertical: 6,
+              borderBottomWidth: 0,
+              ...columnDividerStyle(colIdx),
+              backgroundColor: theme.colors.surface[1],
+              ...getStickyCellStyle(column, theme.colors.surface[1], true),
+            }}
+          >
+            {column.filterable ? (
+              <ColumnFilterInput
+                column={column}
+                filterType={getColumnFilterType(column)}
+                currentFilter={getColumnFilter(column.key)}
+                data={data}
+                align={getColumnAlign(column)}
+                onCommit={(value, operator) => {
+                  if (value === undefined) {
+                    clearFilter(column.key);
+                  } else {
+                    updateFilter(column.key, value, operator);
+                  }
+                }}
+              />
+            ) : null}
+          </TableTh>
+        );
+      })}
+      {rowActions && <TableTh style={{ borderBottomWidth: 0, width: actionsColumnWidth }} />}
+    </TableTr>
+  ) : null;
 
   const emptyStateRow = (
     <TableTr>
@@ -1806,14 +1649,14 @@ export const DataTable = <T,>({
           style={{
             borderLeftWidth: 2,
             borderLeftColor: isSelected ? theme.colors.primary[5] : 'transparent',
-            borderBottomWidth: rowBorderWidth || (variant === 'bordered' ? 1 : 0),
+            borderBottomWidth: rowDividerWidth,
             borderBottomColor: rowBorderColor || theme.colors.gray[2],
             borderBottomStyle: rowBorderStyle,
             minHeight: density === 'compact' ? 40 : density === 'comfortable' ? 56 : 48
           }}
         >
           {rowSelectable && (
-            <TableTd style={{ borderBottomWidth: 0 }} {...(web ? { role: 'gridcell', 'aria-colindex': 1 } : {})}>
+            <TableTd style={{ borderBottomWidth: 0, ...columnDividerStyle(-1) }} {...(web ? { role: 'gridcell', 'aria-colindex': 1 } : {})}>
               <Checkbox
                 size="sm"
                 checked={isSelected}
@@ -1824,7 +1667,7 @@ export const DataTable = <T,>({
           )}
 
           {expandableRowRender && (
-            <TableTd style={{ borderBottomWidth: 0 }} {...(web ? { role: 'gridcell', 'aria-colindex': (selectable ? 2 : 1) } : {})}>
+            <TableTd style={{ borderBottomWidth: 0, ...columnDividerStyle(-1) }} {...(web ? { role: 'gridcell', 'aria-colindex': (selectable ? 2 : 1) } : {})}>
               <Pressable
                 onPress={() => handleRowExpand(rowId)}
                 accessibilityRole="button"
@@ -1889,8 +1732,7 @@ export const DataTable = <T,>({
                   // (variant / rowBorderWidth); suppress the cell's default
                   // hairline so it doesn't draw an extra divider on every row.
                   borderBottomWidth: 0,
-                  borderRightWidth: columnBorderWidth || 0,
-                  borderRightColor: columnBorderColor || theme.colors.gray[2]
+                  ...columnDividerStyle(colIdx)
                 }}
               >
                 {renderCell(column, row, rowIndex)}
@@ -1916,7 +1758,7 @@ export const DataTable = <T,>({
                         onPress={() => action.onPress?.(row, rowIndex)}
                         disabled={action.disabled}
                         accessibilityRole="button"
-                        accessibilityLabel={action.label || action.tooltip || action.key}
+                        accessibilityLabel={action.label || getTooltipText(action.tooltip) || action.key}
                         style={({ pressed }) => ({
                           opacity: action.disabled ? 0.4 : pressed ? 0.6 : 1,
                           padding: 8,
@@ -1933,9 +1775,10 @@ export const DataTable = <T,>({
                         )}
                       </Pressable>
                     );
-                    return action.tooltip
+                    const actionTooltip = resolveTooltipProps(action.tooltip);
+                    return actionTooltip
                       ? (
-                        <Tooltip key={action.key} label={action.tooltip}>
+                        <Tooltip key={action.key} {...actionTooltip}>
                           {button}
                         </Tooltip>
                       )
@@ -1952,7 +1795,7 @@ export const DataTable = <T,>({
               colSpan={totalColumns}
               style={{ padding: 0, backgroundColor: theme.colors.gray[0], borderBottomWidth: 0 }}
             >
-              <Collapse isCollapsed={isExpanded} duration={250}>
+              <Collapse isCollapsed={!isExpanded} duration={250}>
                 <View style={{ padding: 16 }}>{expandableRowRender(row, rowIndex)}</View>
               </Collapse>
             </TableTd>
@@ -1962,7 +1805,7 @@ export const DataTable = <T,>({
     );
 
     return { key: String(rowId), element: rowElement };
-  }, [actionsColumnWidth, cellDomId, collapseIcon, columnBorderColor, columnBorderWidth, columnWidths, density, expandableRowRender, expandIcon, expandedRows, focusedCell, getRowId, getStickyCellStyle, handleCellDoublePress, handleRowExpand, helperColsBefore, hoverHighlight, isStriped, keyboardNavEnabled, onRowClick, pageOffset, renderCell, rowActions, rowBorderColor, rowBorderStyle, rowBorderWidth, rowFeatureToggle, rowSelection, selectable, theme, totalColCount, variant, visibleColumns, web]);
+  }, [actionsColumnWidth, cellDomId, collapseIcon, columnDividerStyle, columnWidths, density, expandableRowRender, expandIcon, expandedRows, focusedCell, getRowId, getStickyCellStyle, handleCellDoublePress, handleRowExpand, helperColsBefore, hoverHighlight, isStriped, keyboardNavEnabled, onRowClick, pageOffset, renderCell, rowActions, rowBorderColor, rowBorderStyle, rowDividerWidth, rowFeatureToggle, rowSelection, selectable, theme, totalColCount, visibleColumns, web]);
 
   const nonVirtualRows = useMemo(() => {
     if (virtual) return null;
@@ -2000,8 +1843,8 @@ export const DataTable = <T,>({
           minHeight: density === 'compact' ? 36 : 44,
         }}
       >
-        {selectable && <TableTd style={{ borderBottomWidth: 0 }} />}
-        {expandableRowRender && <TableTd style={{ borderBottomWidth: 0 }} />}
+        {selectable && <TableTd style={{ borderBottomWidth: 0, ...columnDividerStyle(-1) }} />}
+        {expandableRowRender && <TableTd style={{ borderBottomWidth: 0, ...columnDividerStyle(-1) }} />}
         {visibleColumns.map((column, colIdx) => {
           const first = colIdx === 0;
           const aggValue = column.aggregate !== undefined
@@ -2011,7 +1854,7 @@ export const DataTable = <T,>({
             <TableTd
               key={column.key}
               align={getColumnAlign(column)}
-              style={{ borderBottomWidth: 0, backgroundColor: bg }}
+              style={{ borderBottomWidth: 0, ...columnDividerStyle(colIdx), backgroundColor: bg }}
             >
               {first ? (
                 <Pressable
@@ -2043,7 +1886,7 @@ export const DataTable = <T,>({
         {rowActions && <TableTd style={{ borderBottomWidth: 0, width: actionsColumnWidth }} />}
       </TableTr>
     );
-  }, [theme, density, selectable, expandableRowRender, visibleColumns, rowActions, actionsColumnWidth, web, formatAggregate]);
+  }, [theme, density, selectable, expandableRowRender, visibleColumns, rowActions, actionsColumnWidth, columnDividerStyle, web, formatAggregate]);
 
   // Flat list of the data rows currently rendered (group headers excluded), in
   // render order — used to resolve a cell's row from its index for editing.
@@ -2271,6 +2114,7 @@ export const DataTable = <T,>({
                 fullWidth={fullWidth}
               >
                 {headerRow}
+                {filterRow}
               </Table>
 
               {processedData.length === 0 ? (
@@ -2311,7 +2155,7 @@ export const DataTable = <T,>({
                 stretch to fill wider containers when fullWidth. */}
             <View ref={gridRef} style={{ minWidth: scrollMinWidth, flexGrow: fullWidth ? 1 : 0 }} {...gridA11y}>
               {/* Header is its own <Table> so it stays pinned above the body. */}
-              <Table {...tableSectionProps}>{headerRow}</Table>
+              <Table {...tableSectionProps}>{headerRow}{filterRow}</Table>
 
               {processedData.length === 0 ? (
                 <Table {...tableSectionProps}>{emptyStateRow}</Table>

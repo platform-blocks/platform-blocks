@@ -1,1 +1,0 @@
-Customize the badge colors with custom background, text, and border colors to match your brand or design requirements.

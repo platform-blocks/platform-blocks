@@ -10,5 +10,3 @@ hidden: false
 ---
 
 Maps social-style quotes into `Blockquote` with avatars, verification, and network metadata.
-
-```

@@ -45,7 +45,6 @@ examples:
   - loading
   - customIcons
   - allowSelect
-  - label-customization
 ---
 
 The Stepper component provides a step-by-step navigation interface, perfect for multi-step forms, wizards, and progress tracking.

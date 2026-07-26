@@ -9,9 +9,12 @@ export interface PinInputProps extends Omit<BaseInputProps, 'value' | 'onChangeT
   /** Stable id used by KeyboardManager to restore focus */
   keyboardFocusId?: string;
   
-  /** PIN value */
+  /** PIN value (controlled) */
   value?: string;
-  
+
+  /** Uncontrolled initial value (used when `value` is not provided) */
+  defaultValue?: string;
+
   /** Change handler */
   onChange?: (pin: string) => void;
   

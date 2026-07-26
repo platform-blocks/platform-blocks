@@ -1,1 +1,1 @@
-Analog-style time picker that drives a pointer hand, tick labels, and dual readouts using the compound `Knob.Root` API.
+Read-only analog clock face built with the compound `Knob.Root` API: a bezel ring, 60 minute marks with bolder hour marks, hour numerals, and `Knob.Pointer` as the hour hand driven by the value (minutes past 12). The minute and second hands are plain rotated views composed over the same center, synced to the system clock each second.

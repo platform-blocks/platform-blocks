@@ -35,6 +35,13 @@ export interface SwitchProps extends BaseComponentProps, DisclaimerSupport {
 
   /** Switch color theme when on */
   color?: ColorValue;
+
+  /**
+   * Length of the on/off transition in ms. `0` moves the thumb instantly.
+   * When omitted the switch keeps its spring animation; any explicit value
+   * (including 0) swaps it for a timing curve. Always 0 under reduced motion.
+   */
+  transitionDuration?: number;
   
   /** Switch label */
   label?: React.ReactNode;

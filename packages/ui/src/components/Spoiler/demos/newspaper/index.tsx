@@ -1,4 +1,4 @@
-import { Card, Column, Spoiler, Text } from '@platform-blocks/ui';
+import { Card, Spoiler, Text } from '@platform-blocks/ui';
 import { Image, Platform, View } from 'react-native';
 
 const paragraphs = [
@@ -11,26 +11,22 @@ export default function Demo() {
   const isWeb = Platform.OS === 'web';
 
   return (
-    <Column gap="lg">
-      <Card p="md">
-        <Column gap="md">
-          <Spoiler maxHeight={isWeb ? 220 : 260}>
-            <View style={{ flexDirection: isWeb ? 'row' : 'column' }}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=60' }}
-                style={{ width: 180, height: 180, borderRadius: 12, marginRight: isWeb ? 16 : 0, marginBottom: isWeb ? 0 : 12 }}
-              />
-              <View style={{ flex: 1, marginTop: isWeb ? 0 : 8 }}>
-                {paragraphs.map((paragraph) => (
-                  <Text key={paragraph} size="lg" style={{ marginBottom: 12 }}>
-                    {paragraph}
-                  </Text>
-                ))}
-              </View>
-            </View>
-          </Spoiler>
-        </Column>
-      </Card>
-    </Column>
+    <Card p="md">
+      <Spoiler maxHeight={isWeb ? 220 : 260}>
+        <View style={{ flexDirection: isWeb ? 'row' : 'column' }}>
+          <Image
+            source={require('../../../../assets/images/scene-ocean.png')}
+            style={{ width: 180, height: 180, borderRadius: 12, marginRight: isWeb ? 16 : 0, marginBottom: isWeb ? 0 : 12 }}
+          />
+          <View style={{ flex: 1, marginTop: isWeb ? 0 : 8 }}>
+            {paragraphs.map((paragraph) => (
+              <Text key={paragraph} size="lg" style={{ marginBottom: 12 }}>
+                {paragraph}
+              </Text>
+            ))}
+          </View>
+        </View>
+      </Spoiler>
+    </Card>
   );
 }

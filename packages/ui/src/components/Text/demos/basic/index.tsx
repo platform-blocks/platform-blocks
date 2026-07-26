@@ -1,36 +1,36 @@
-import { Card, Column, Text } from '@platform-blocks/ui';
+import { Block, Card, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="lg">
+    <Block>
       <Card p="md">
-        <Column gap="xs">
+        <Block>
           <Text variant="h1">Heading 1</Text>
           <Text variant="h2">Heading 2</Text>
           <Text variant="h3">Heading 3</Text>
           <Text variant="h4">Heading 4</Text>
           <Text variant="h5">Heading 5</Text>
           <Text variant="h6">Heading 6</Text>
-        </Column>
+        </Block>
       </Card>
 
       <Card p="md">
-        <Column gap="xs">
+        <Block>
           <Text variant="p">Body text is the default variant for paragraphs.</Text>
           <Text variant="small">Caption text keeps supporting details readable.</Text>
           <Text variant="small">Small text works well for fine print or metadata.</Text>
-        </Column>
+        </Block>
       </Card>
 
       <Card p="md">
-        <Column gap="xs">
+        <Block>
           <Text>Default text without a variant falls back to body styling.</Text>
           <Text>
             This paragraph shows natural wrapping behavior when the content spans multiple lines in a layout.
           </Text>
-        </Column>
+        </Block>
       </Card>
-    </Column>
+    </Block>
   );
 }
 

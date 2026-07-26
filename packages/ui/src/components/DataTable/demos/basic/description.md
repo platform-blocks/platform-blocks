@@ -3,7 +3,7 @@ title: Getting Started
 category: usage
 order: 10
 tags: [datatable]
-highlightLines: [44-52]
+highlightLines: []
 status: stable
 since: 1.0.0
 hidden: false

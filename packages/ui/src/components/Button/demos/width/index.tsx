@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Column, Row, Text } from '@platform-blocks/ui';
+import { Block, Button, Row, Text } from '@platform-blocks/ui';
 
 const LOADING_DURATION_MS = 2000;
 
@@ -26,26 +26,26 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="xl">
-      <Column gap="sm">
+    <Block>
+      <Block>
 
-        <Column gap="xs">
+        <Block>
           <Button>Default width</Button>
           <Text variant="small" colorVariant="muted">
             Buttons size themselves to the label length by default.
           </Text>
-        </Column>
+        </Block>
 
-        <Column gap="xs">
+        <Block>
           <Button w={200}>Fixed width (200)</Button>
           <Text variant="small" colorVariant="muted">
             Provide an exact `w` value for pixel-perfect toolbars.
           </Text>
-        </Column>
+        </Block>
 
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Row gap="md" wrap="wrap" align="flex-start">
           <Button
             loading={loadingKey === 'long'}
@@ -61,7 +61,7 @@ export default function Demo() {
         <Text variant="small" colorVariant="muted">
           When `loading` is true, the button keeps its original width so layouts stay stable.
         </Text>
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

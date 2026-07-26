@@ -67,22 +67,86 @@ describe('Stepper - rendering', () => {
     expect(labelStyles.fontWeight).toBe('600');
   });
 
-  it('colors connectors for completed segments', () => {
-    const { getByLabelText } = render(
+  it('colors connectors for completed segments and hides the outer edges', () => {
+    const utils = render(
       <Stepper active={1} aria-label="progress-stepper">
         <Stepper.Step label="One" />
+        <Stepper.Step label="Two" />
+        <Stepper.Step label="Three" />
+      </Stepper>
+    );
+
+    // Each step owns the connector half on either side of its indicator, so the
+    // segments read leading/trailing per step, in document order.
+    const segments = utils.UNSAFE_getAllByType(View)
+      .map(getStyle)
+      .filter(style => style.flex === 1 && style.height === 2);
+
+    const accent = mockTheme.colors.primary[5];
+    expect(segments.map(style => style.backgroundColor)).toEqual([
+      'transparent', // step one, leading (first step)
+      accent,        // step one, trailing (completed)
+      accent,        // step two, leading (reaches the active step)
+      expect.not.stringMatching(accent),
+      expect.not.stringMatching(accent),
+      'transparent', // step three, trailing (last step)
+    ]);
+  });
+
+  it('keeps the indicator centered above its label in horizontal orientation', () => {
+    const { getByLabelText } = render(
+      <Stepper active={0} aria-label="centered-stepper">
+        <Stepper.Step label="One" description="First" />
+        <Stepper.Step label="Two" description="Second" />
+      </Stepper>
+    );
+
+    const stepsContainer = getChild(getByLabelText('centered-stepper'), 0);
+    expect(getStyle(stepsContainer).flexDirection).toBe('row');
+
+    // The rail row stretches across the step so the two half-connectors center the indicator.
+    const railRow = getChild(getChild(getByLabelText('One'), 0), 0);
+    expect(getStyle(railRow)).toMatchObject({
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'stretch',
+    });
+  });
+
+  it('stretches the vertical connector so it reaches the next indicator', () => {
+    const { getByLabelText } = render(
+      <Stepper active={1} orientation="vertical">
+        <Stepper.Step label="Top" aria-label="top-step" description="Lots of supporting copy" />
+        <Stepper.Step label="Bottom" aria-label="bottom-step" />
+      </Stepper>
+    );
+
+    const railColumn = getChild(getChild(getByLabelText('top-step'), 0), 0);
+    const connector = getChild(railColumn, 1);
+    const connectorStyles = getStyle(connector);
+
+    expect(connectorStyles.flex).toBe(1);
+    expect(connectorStyles.width).toBe(2);
+    expect(connectorStyles.backgroundColor).toBe(mockTheme.colors.primary[5]);
+
+    // The last step must not draw a trailing line.
+    const lastRailColumn = getChild(getChild(getByLabelText('bottom-step'), 0), 0);
+    expect(getChild(lastRailColumn, 1)).toBeUndefined();
+  });
+
+  it('numbers steps by step order, ignoring completed content and empty children', () => {
+    const showOptional = false;
+    const { getByText } = render(
+      <Stepper active={0}>
+        <Stepper.Completed>Done</Stepper.Completed>
+        <Stepper.Step label="One" />
+        {showOptional && <Stepper.Step label="Optional" />}
         <Stepper.Step label="Two" />
       </Stepper>
     );
 
-    const root = getByLabelText('progress-stepper');
-    const stepsContainer = getChild(root, 0);
-    const firstWrapper = getChild(stepsContainer, 0);
-    const connector = getChild(firstWrapper, 1);
-    const connectorStyles = getStyle(connector);
-
-    expect(connectorStyles.backgroundColor).toBe(mockTheme.colors.primary[5]);
-    expect(connectorStyles.height || connectorStyles.width).toBeDefined();
+    expect(getByText('1')).toBeTruthy();
+    expect(getByText('2')).toBeTruthy();
   });
 
   it('switches to column layout for vertical orientation', () => {

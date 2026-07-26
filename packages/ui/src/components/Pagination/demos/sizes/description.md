@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Use the `size` prop (`xs` through `lg`) to match pagination density to its container without changing behavior.
+Use the `size` prop (`xs` through `3xl`) to match pagination density to its container without changing behavior.

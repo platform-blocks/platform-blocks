@@ -1,11 +1,16 @@
 import React from 'react';
-import { Pressable } from 'react-native';
+import { Pressable, type View } from 'react-native';
 import { Text } from '../Text';
 import { useTheme } from '../../core/theme';
 import { DESIGN_TOKENS } from '../../core';
+import { getCurrentPeriodStyles } from './currentPeriod';
+import { getDaySize } from './utils';
 import type { DayProps } from './types';
 
-export const Day: React.FC<DayProps> = ({
+// `DayProps` carries an index signature, which makes React's `PropsWithoutRef`
+// collapse every prop to `any`. Annotating the render function's parameter
+// directly keeps the real prop types inside the component body.
+const DayBase = ({
   date,
   selected = false,
   inRange = false,
@@ -26,19 +31,11 @@ export const Day: React.FC<DayProps> = ({
   style,
   children,
   ...otherProps
-}) => {
+}: DayProps, ref: React.Ref<View>) => {
   const theme = useTheme();
   
-  const daySize = {
-    xs: 24,
-    sm: 28,
-    md: 32,
-    lg: 36,
-    xl: 40,
-    '2xl': 44,
-    '3xl': 48,
-  }[size] || 32;
-  
+  const daySize = getDaySize(size);
+
   const fontSize = {
     xs: 'xs',
     sm: 'sm',
@@ -55,7 +52,7 @@ export const Day: React.FC<DayProps> = ({
     if (inRange) return theme.colors.primary[1];
     if (previewed && !inRange) return theme.colors.primary[2];
     if (previewedInRange) return theme.colors.primary[1];
-    if (today) return theme.colors.gray[2];
+    // `today` is drawn as a ring, not a fill — see ./currentPeriod.
     return 'transparent';
   };
 
@@ -87,6 +84,10 @@ export const Day: React.FC<DayProps> = ({
     if (selected || (firstInRange && lastInRange)) {
       return { borderRadius: daySize / 2 };
     }
+    // Keep the today ring circular when the day isn't part of a range strip.
+    if (today) {
+      return { borderRadius: daySize / 2 };
+    }
     return {};
   };
 
@@ -105,6 +106,7 @@ export const Day: React.FC<DayProps> = ({
 
   return (
     <Pressable
+      ref={ref}
       onPress={disabled ? undefined : onPress}
       disabled={disabled}
       style={({ pressed }) => [
@@ -115,11 +117,7 @@ export const Day: React.FC<DayProps> = ({
           justifyContent: 'center',
           backgroundColor: getBackgroundColor(),
           opacity: pressed && !disabled ? 0.8 : 1,
-          shadowColor: selected ? theme.colors.primary[5] : 'transparent',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: selected ? 0.2 : 0,
-          shadowRadius: 4,
-          elevation: selected ? 2 : 0,
+          ...getCurrentPeriodStyles(theme, { isCurrent: today && !disabled, isSelected: selected }),
           ...getBorderRadius(),
         },
         style,
@@ -142,3 +140,11 @@ export const Day: React.FC<DayProps> = ({
     </Pressable>
   );
 };
+
+// The same index-signature collapse breaks `forwardRef`'s own inference, so the
+// public type is stated explicitly rather than derived.
+export const Day = React.forwardRef(DayBase as any) as React.ForwardRefExoticComponent<
+  DayProps & React.RefAttributes<View>
+>;
+
+Day.displayName = 'Day';

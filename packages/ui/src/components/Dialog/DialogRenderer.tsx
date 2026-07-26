@@ -26,6 +26,8 @@ export function DialogRenderer() {
       style={topDialog.style}
       showHeader={topDialog.showHeader}
       titleProps={topDialog.titleProps}
+      autoFocus={topDialog.autoFocus}
+      trapFocus={topDialog.trapFocus}
     >
       {topDialog.content}
     </Dialog>

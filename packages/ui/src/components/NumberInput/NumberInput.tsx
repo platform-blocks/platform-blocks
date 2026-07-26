@@ -332,10 +332,10 @@ export const NumberInput = factory<{
   const holdTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stepCountRef = useRef(0);
+  const holdActiveRef = useRef(false);
   const dragStateRef = useRef({
     active: false,
     dragStartValue: typeof value === 'number' ? value : startValue,
-    lastValue: typeof value === 'number' ? value : undefined,
     lastComputedValue: typeof value === 'number' ? value : undefined,
     wasFocused: false,
   });
@@ -691,6 +691,9 @@ export const NumberInput = factory<{
 
   const startHold = useCallback((direction: 'up' | 'down', multiplier = 1) => {
     if (disabled) return;
+    // The pan responder covers the whole field, controls included. Marking the hold keeps a
+    // press on +/- from also arming the drag gesture and double-counting steps.
+    holdActiveRef.current = true;
     clearHoldTimers();
     stepCountRef.current = 0;
     const normalizedMultiplier = Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1;
@@ -705,6 +708,7 @@ export const NumberInput = factory<{
   }, [disabled, clearHoldTimers, handleStep, stepHoldDelay, scheduleNextStep]);
 
   const stopHold = useCallback(() => {
+    holdActiveRef.current = false;
     clearHoldTimers();
     stepCountRef.current = 0;
   }, [clearHoldTimers]);
@@ -717,7 +721,6 @@ export const NumberInput = factory<{
     const state = dragStateRef.current;
     if (state.active) return;
     state.dragStartValue = typeof value === 'number' ? value : startValue;
-    state.lastValue = typeof value === 'number' ? value : undefined;
     state.lastComputedValue = typeof value === 'number' ? value : undefined;
   }, [value, startValue]);
 
@@ -737,20 +740,162 @@ export const NumberInput = factory<{
     dragAxis === 'horizontal' ? gestureState.dx : -gestureState.dy
   ), [dragAxis]);
 
+  // --- Web text-selection guard -------------------------------------------------------------
+  // The gesture starts inside a focused <input>, so the browser is busy running its own
+  // text-selection drag on the same pointer stream. Nothing in the responder system cancels
+  // that, which is why the value ends up highlighted while it is being scrubbed.
+  const selectionGuardRef = useRef({
+    active: false,
+    caret: null as number | null,
+    blurredForDrag: false,
+    prevBodyUserSelect: '',
+    prevBodyCursor: '',
+    prevInputUserSelect: '',
+    prevInputCursor: '',
+  });
+
+  const getWebInputElement = useCallback((): HTMLInputElement | null => {
+    if (Platform.OS !== 'web') return null;
+    const node = inputRef.current as unknown as HTMLInputElement | null;
+    if (!node || typeof node.setSelectionRange !== 'function') return null;
+    return node;
+  }, []);
+
+  // `selectionStart` throws on input types that do not support selection, and this runs inside a
+  // pointer-move handler where a throw would abort the whole gesture.
+  const readSelectionRange = useCallback((element: HTMLInputElement) => {
+    try {
+      const { selectionStart, selectionEnd } = element;
+      if (typeof selectionStart !== 'number' || typeof selectionEnd !== 'number') return null;
+      return { start: selectionStart, end: selectionEnd };
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const collapseSelection = useCallback(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+
+    const element = getWebInputElement();
+    if (element) {
+      const range = readSelectionRange(element);
+      if (range && range.start !== range.end) {
+        const text = element.value ?? '';
+        const caret = selectionGuardRef.current.caret ?? text.length;
+        const bounded = Math.max(0, Math.min(caret, text.length));
+        try {
+          element.setSelectionRange(bounded, bounded);
+        } catch {
+          // Some input modes reject programmatic selection; the highlight is cosmetic here.
+        }
+      }
+    }
+
+    // A drag that started on the label or description selects document text instead, which the
+    // input's own selection API cannot clear.
+    if (element && document.activeElement === element) return;
+    const selection = typeof window !== 'undefined' ? window.getSelection?.() : null;
+    if (selection && !selection.isCollapsed) {
+      selection.removeAllRanges();
+    }
+  }, [getWebInputElement, readSelectionRange]);
+
+  const preventSelectStart = useCallback((event: Event) => {
+    if (selectionGuardRef.current.active) {
+      event.preventDefault();
+    }
+  }, []);
+
+  const beginSelectionGuard = useCallback(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+
+    const guard = selectionGuardRef.current;
+    if (guard.active) return;
+
+    const element = getWebInputElement();
+    const cursor = dragAxis === 'vertical' ? 'ns-resize' : 'ew-resize';
+
+    // Where the pointer went down, so the caret can be parked there instead of jumping once the
+    // browser's half-formed selection is collapsed.
+    const range = element ? readSelectionRange(element) : null;
+
+    guard.active = true;
+    guard.caret = range && range.start === range.end ? range.start : null;
+
+    const body = document.body;
+    if (body) {
+      guard.prevBodyUserSelect = body.style.userSelect;
+      guard.prevBodyCursor = body.style.cursor;
+      body.style.userSelect = 'none';
+      body.style.cursor = cursor;
+    }
+
+    if (element) {
+      // Form controls opt out of an inherited `user-select: none`, so the field needs its own.
+      guard.prevInputUserSelect = element.style.userSelect;
+      guard.prevInputCursor = element.style.cursor;
+      element.style.userSelect = 'none';
+      element.style.cursor = cursor;
+    }
+
+    document.addEventListener('selectstart', preventSelectStart);
+    collapseSelection();
+
+    // `user-select: none` does not apply inside editable elements, so a focused field will still
+    // let the browser drag-select its own text — and the `select` event that produces terminates
+    // the responder outright (react-native-web only lets a responder refuse termination for
+    // contextmenu/scroll/selectionchange). Handing focus back at the end of the gesture is what
+    // keeps the field typeable; holding onto it mid-scrub is what breaks the scrub.
+    if (element && document.activeElement === element) {
+      guard.blurredForDrag = true;
+      element.blur();
+    }
+  }, [dragAxis, getWebInputElement, readSelectionRange, preventSelectStart, collapseSelection]);
+
+  /** Returns whether the field gave up focus for the gesture and should get it back. */
+  const endSelectionGuard = useCallback(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return false;
+
+    const guard = selectionGuardRef.current;
+    if (!guard.active) return false;
+
+    guard.active = false;
+    document.removeEventListener('selectstart', preventSelectStart);
+
+    const body = document.body;
+    if (body) {
+      body.style.userSelect = guard.prevBodyUserSelect;
+      body.style.cursor = guard.prevBodyCursor;
+    }
+
+    const element = getWebInputElement();
+    if (element) {
+      element.style.userSelect = guard.prevInputUserSelect;
+      element.style.cursor = guard.prevInputCursor;
+    }
+
+    collapseSelection();
+    guard.caret = null;
+
+    const blurredForDrag = guard.blurredForDrag;
+    guard.blurredForDrag = false;
+    return blurredForDrag;
+  }, [preventSelectStart, getWebInputElement, collapseSelection]);
+
   const beginDrag = useCallback(() => {
     const state = dragStateRef.current;
-    if (state.active || !withDragGesture || disabled) {
+    if (state.active || !withDragGesture || disabled || holdActiveRef.current) {
       return;
     }
 
     const baseValue = typeof value === 'number' ? value : startValue;
     state.active = true;
     state.dragStartValue = baseValue;
-    state.lastValue = typeof value === 'number' ? value : undefined;
     state.lastComputedValue = typeof value === 'number' ? value : undefined;
     state.wasFocused = focused;
+    beginSelectionGuard();
     onDragStateChange?.(true);
-  }, [withDragGesture, disabled, value, startValue, focused, onDragStateChange]);
+  }, [withDragGesture, disabled, value, startValue, focused, beginSelectionGuard, onDragStateChange]);
 
   const handleDragMove = useCallback((gestureState: PanResponderGestureState) => {
     if (!withDragGesture || disabled) {
@@ -807,27 +952,33 @@ export const NumberInput = factory<{
       return;
     }
 
+    // The browser keeps extending its own selection for as long as the pointer is down, so the
+    // highlight has to be cleared on every move rather than once at activation.
+    collapseSelection();
+
     if (state.lastComputedValue === clamped) {
       return;
     }
 
-    state.lastValue = clamped;
     state.lastComputedValue = clamped;
+    controlledValueRef.current = clamped;
 
     onChange?.(clamped);
 
     if (focused) {
       setInternalValue(formatEditableValue(clamped));
     }
-  }, [withDragGesture, disabled, beginDrag, getDragAxisDelta, effectiveDragStepDistance, dragStepMultiplier, step, allowDecimal, clampValue, allowedChecker, onChange, focused, formatEditableValue]);
+  }, [withDragGesture, disabled, beginDrag, getDragAxisDelta, effectiveDragStepDistance, dragStepMultiplier, step, allowDecimal, clampValue, allowedChecker, collapseSelection, onChange, focused, formatEditableValue]);
 
   const endDrag = useCallback(() => {
     const state = dragStateRef.current;
+    const blurredForDrag = endSelectionGuard();
+
     if (!state.active) {
       return;
     }
 
-    const shouldRestoreFocus = state.wasFocused && !disabled;
+    const shouldRestoreFocus = (state.wasFocused || blurredForDrag) && !disabled;
 
     state.active = false;
     state.wasFocused = false;
@@ -838,42 +989,71 @@ export const NumberInput = factory<{
     if (shouldRestoreFocus) {
       requestFocusRestore();
     }
-  }, [onDragStateChange, requestFocusRestore, disabled]);
+  }, [onDragStateChange, requestFocusRestore, endSelectionGuard, disabled]);
 
   useEffect(() => {
-    if (!withDragGesture) {
+    if (!withDragGesture || disabled) {
       endDrag();
     }
-  }, [withDragGesture, endDrag]);
+  }, [withDragGesture, disabled, endDrag]);
 
+  const onDragStateChangeRef = useRef(onDragStateChange);
   useEffect(() => {
-    if (disabled) {
-      endDrag();
-    }
-  }, [disabled, endDrag]);
+    onDragStateChangeRef.current = onDragStateChange;
+  }, [onDragStateChange]);
 
+  // Unmount only. Keying this on `onDragStateChange` would tear down a live drag every time a
+  // parent re-rendered with an inline callback — which is exactly what happens while dragging.
   useEffect(() => () => {
     if (dragStateRef.current.active) {
       dragStateRef.current.active = false;
       dragStateRef.current.wasFocused = false;
       dragStateRef.current.lastComputedValue = undefined;
-      onDragStateChange?.(false);
+      onDragStateChangeRef.current?.(false);
     }
-  }, [onDragStateChange]);
+    endSelectionGuard();
+  }, [endSelectionGuard]);
 
-  const panResponder = useMemo<PanResponderInstance | null>(() => {
-    if (!withDragGesture || disabled) {
-      return null;
-    }
+  const dragConfigRef = useRef({
+    enabled: withDragGesture,
+    disabled: !!disabled,
+    axis: dragAxis,
+    activationDistance: dragActivationDistance,
+  });
+  const dragHandlersRef = useRef({ begin: beginDrag, move: handleDragMove, end: endDrag });
 
-    return PanResponder.create({
+  useEffect(() => {
+    dragConfigRef.current = {
+      enabled: withDragGesture,
+      disabled: !!disabled,
+      axis: dragAxis,
+      activationDistance: dragActivationDistance,
+    };
+  }, [withDragGesture, disabled, dragAxis, dragActivationDistance]);
+
+  useEffect(() => {
+    dragHandlersRef.current = { begin: beginDrag, move: handleDragMove, end: endDrag };
+  }, [beginDrag, handleDragMove, endDrag]);
+
+  // Created once and driven through refs. A PanResponder accumulates dx/dy inside the instance
+  // it was created with, so rebuilding it mid-gesture — which a controlled `value` update does
+  // on every single step — resets the travel measured since the drag began and snaps the value
+  // back to where the pointer went down.
+  const panResponderRef = useRef<PanResponderInstance | null>(null);
+  if (!panResponderRef.current) {
+    panResponderRef.current = PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onStartShouldSetPanResponderCapture: () => false,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        const primaryDelta = dragAxis === 'horizontal' ? Math.abs(gestureState.dx) : Math.abs(gestureState.dy);
-        const crossDelta = dragAxis === 'horizontal' ? Math.abs(gestureState.dy) : Math.abs(gestureState.dx);
+        const config = dragConfigRef.current;
+        if (!config.enabled || config.disabled || holdActiveRef.current) {
+          return false;
+        }
 
-        if (primaryDelta < dragActivationDistance) {
+        const primaryDelta = config.axis === 'horizontal' ? Math.abs(gestureState.dx) : Math.abs(gestureState.dy);
+        const crossDelta = config.axis === 'horizontal' ? Math.abs(gestureState.dy) : Math.abs(gestureState.dx);
+
+        if (primaryDelta < config.activationDistance) {
           return false;
         }
 
@@ -881,32 +1061,34 @@ export const NumberInput = factory<{
       },
       onMoveShouldSetPanResponderCapture: () => false,
       onPanResponderGrant: () => {
-        beginDrag();
+        dragHandlersRef.current.begin();
       },
       onPanResponderMove: (_, gestureState) => {
-        handleDragMove(gestureState);
+        dragHandlersRef.current.move(gestureState);
       },
       onPanResponderRelease: () => {
-        endDrag();
+        dragHandlersRef.current.end();
       },
       onPanResponderTerminate: () => {
-        endDrag();
+        dragHandlersRef.current.end();
       },
       onPanResponderTerminationRequest: () => false,
       onShouldBlockNativeResponder: () => false,
     });
-  }, [withDragGesture, disabled, dragAxis, dragActivationDistance, beginDrag, handleDragMove, endDrag]);
+  }
+
+  const dragGestureEnabled = withDragGesture && !disabled;
 
   const inputPropsWithGestures = useMemo(() => {
-    if (!panResponder) {
+    if (!dragGestureEnabled) {
       return restInputProps;
     }
 
     return {
       ...restInputProps,
-      ...panResponder.panHandlers,
+      ...(panResponderRef.current as PanResponderInstance).panHandlers,
     };
-  }, [restInputProps, panResponder]);
+  }, [restInputProps, dragGestureEnabled]);
 
   // Controls visibility
   const showControls = useMemo(() => {

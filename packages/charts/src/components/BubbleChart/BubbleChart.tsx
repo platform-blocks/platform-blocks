@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { View, Text, Platform } from 'react-native';
 import { BubbleChartProps, ChartDataPoint, ChartInteractionEvent, ChartGrid as ChartGridConfig, ChartLegendItem } from '../../types';
-import { ChartContainer, ChartTitle, ChartLegend } from '../../ChartBase';
+import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
@@ -191,13 +191,21 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
   const resolvedBubbleOpacity = bubbleOpacityProp ?? 0.85;
 
   const padding = React.useMemo(() => {
-    const baseTop = (title || subtitle) ? 72 : 48;
-    const top = label ? baseTop + 20 : baseTop;
-    const left = yAxis?.show === false ? 48 : 80;
-    const bottom = xAxis?.title ? 72 : 56;
-    const right = 32;
-    return { top, right, bottom, left };
-  }, [title, subtitle, label, xAxis?.title, yAxis?.show]);
+    // The y-axis caption sits in the same top band as the title, so it stacks below it
+    // rather than competing for the space — hence topAllowance rather than a bigger base.
+    const base = {
+      top: label ? 68 : 48,
+      right: 32,
+      bottom: xAxis?.title ? 72 : 56,
+      left: yAxis?.show === false ? 48 : 80,
+    };
+    return withChartBandPadding(base, {
+      title,
+      subtitle,
+      containerWidth: width,
+      topAllowance: label ? 44 : 24,
+    });
+  }, [title, subtitle, label, xAxis?.title, yAxis?.show, width]);
 
   const plotWidth = Math.max(1, width - padding.left - padding.right);
   const plotHeight = Math.max(1, resolvedHeight - padding.top - padding.bottom);

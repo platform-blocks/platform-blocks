@@ -1,10 +1,10 @@
-import { Button, Column, useToast } from '@platform-blocks/ui';
+import { Block, Button, useToast } from '@platform-blocks/ui';
 
 export default function Demo() {
   const toast = useToast();
 
   return (
-    <Column gap="sm">
+    <Block>
       <Button
         onPress={() => {
           toast.show({
@@ -52,6 +52,6 @@ export default function Demo() {
       >
         Custom font on title
       </Button>
-    </Column>
+    </Block>
   );
 }

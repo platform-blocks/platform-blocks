@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Rich content AutoComplete with custom rendering and complex data structures.
+AutoComplete with custom rendering and complex data structures.

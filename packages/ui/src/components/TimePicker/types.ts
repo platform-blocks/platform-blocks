@@ -4,44 +4,30 @@ export interface TimePickerValue {
   seconds?: number; // 0-59
 }
 
-import type { ViewProps } from 'react-native';
-import type { TextProps } from '../Text';
-
+/**
+ * Props for the inline time panel. This is the selection surface only — the
+ * hour / minute / (second) / meridiem columns, with no field and no dialog.
+ * For a form field that opens this panel in a dialog, use `<TimePickerInput/>`.
+ */
 export interface TimePickerProps {
   value?: TimePickerValue | null;
   defaultValue?: TimePickerValue | null;
-  onChange?: (next: TimePickerValue | null) => void;
+  /** Fired on every column selection. */
+  onChange?: (next: TimePickerValue) => void;
+  /**
+   * Fired when the user picks from the last meaningful column — minutes, or
+   * seconds when `withSeconds` is set. `TimePickerInput` uses this to drive
+   * `autoClose`.
+   */
+  onChangeComplete?: (next: TimePickerValue) => void;
   format?: 12 | 24;
   withSeconds?: boolean;
-  allowInput?: boolean;
   minuteStep?: number;
   secondStep?: number;
-  panelWidth?: number | string;
-  /** Width of each scroll column (hours/minutes/seconds) */
+  /** Width of each scroll column (hours/minutes/seconds). */
   columnWidth?: number;
-  inputWidth?: number | string;
+  /** Max height of each scroll column. */
+  columnHeight?: number;
   disabled?: boolean;
-  size?: any;
-  label?: string;
-  description?: string;
-  error?: string;
-  helperText?: string;
   style?: any;
-  onOpen?: () => void;
-  onClose?: () => void;
-  title?: string;
-  autoClose?: boolean;
-  fullWidth?: boolean;
-  clearable?: boolean;
-  clearButtonLabel?: string;
-  /** Override props applied to the field label `<Text>`. */
-  labelProps?: Omit<TextProps, 'children'>;
-  /** Override props applied to the field description `<Text>`. */
-  descriptionProps?: Omit<TextProps, 'children'>;
-  /** Color of the placeholder text. */
-  placeholderTextColor?: string;
-  /** View props applied to the wrapper around startSection. */
-  startSectionProps?: Omit<ViewProps, 'children'>;
-  /** View props applied to the wrapper around endSection (the clock icon by default). */
-  endSectionProps?: Omit<ViewProps, 'children'>;
 }

@@ -1,14 +1,16 @@
 import React from 'react';
+import type { Text as RNText } from 'react-native';
 import { Text } from '../Text';
 import { FormLabelProps } from './types';
 
-export const FormLabel: React.FC<FormLabelProps> = ({ 
+export const FormLabel = React.forwardRef<RNText, FormLabelProps>(({ 
   htmlFor, 
   required, 
   children 
-}) => {
+}, ref) => {
   return (
     <Text 
+      ref={ref}
       style={{ 
         fontSize: 14, 
         fontWeight: '600', 
@@ -23,6 +25,6 @@ export const FormLabel: React.FC<FormLabelProps> = ({
       )}
     </Text>
   );
-};
+});
 
 FormLabel.displayName = 'FormLabel';

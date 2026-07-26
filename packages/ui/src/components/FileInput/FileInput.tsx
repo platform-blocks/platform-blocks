@@ -50,7 +50,7 @@ const getFileMetadata = (file: NativeSelectableFile) => {
   };
 };
 
-export const FileInput: React.FC<FileInputProps> = React.memo(({
+export const FileInput = React.memo(React.forwardRef<View, FileInputProps>(({
   accept = [],
   multiple = false,
   maxSize = 10 * 1024 * 1024, // 10MB
@@ -84,7 +84,7 @@ export const FileInput: React.FC<FileInputProps> = React.memo(({
   labelProps,
   descriptionProps,
   ...props
-}) => {
+}, ref) => {
   const theme = useTheme();
   const [files, setFiles] = useState<FileInputFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -633,7 +633,7 @@ export const FileInput: React.FC<FileInputProps> = React.memo(({
   );
 
   return (
-    <View style={[styles.container, style]}>
+    <View ref={ref} style={[styles.container, style]}>
       {/* Hidden file input for web */}
       {Platform.OS === 'web' && (
         <input
@@ -685,7 +685,7 @@ export const FileInput: React.FC<FileInputProps> = React.memo(({
       )}
     </View>
   );
-});
+}));
 
 const styles = StyleSheet.create({
   container: {

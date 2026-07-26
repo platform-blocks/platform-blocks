@@ -113,10 +113,18 @@ export function useScrollSpy(options?: ScrollSpyOptions, initialData: TocItem[] 
       }));
 
       // Merge with Title registry items, preferring Title registry for duplicates
-      const titleIds = new Set(collectedItems.map(item => item.id));
-      const uniqueDomItems = domItems.filter(item => !titleIds.has(item.id));
-      collectedItems = [...collectedItems, ...uniqueDomItems];
+      collectedItems = [...collectedItems, ...domItems];
     }
+
+    // Ids are used as React keys and to look up elements, so keep the first
+    // occurrence of each id (registry items win over DOM headings, and repeated
+    // heading text on a page collapses to a single entry).
+    const seenIds = new Set<string>();
+    collectedItems = collectedItems.filter(item => {
+      if (seenIds.has(item.id)) return false;
+      seenIds.add(item.id);
+      return true;
+    });
 
     setItems(collectedItems);
 

@@ -1,8 +1,25 @@
 import React from 'react';
 import { ViewStyle } from 'react-native';
 import { SizeValue, ColorValue, SpacingProps } from '../../core/theme/types';
+import type { ComponentSizeValue } from '../../core/theme/componentSize';
 
 import type { ViewProps } from 'react-native';
+
+/** Metrics a single `size` token resolves to. */
+export interface WaveformSizeMetrics {
+  /** Height of the waveform canvas */
+  height: number;
+  /** Width of an individual bar */
+  barWidth: number;
+  /** Gap between bars */
+  barGap: number;
+  /** Stroke width of the `line` variant */
+  strokeWidth: number;
+  /** Floor applied to bar heights so silent passages stay visible */
+  minBarHeight: number;
+  /** Font size for timestamp and marker labels */
+  labelFontSize: number;
+}
 
 export interface WaveformProps extends Omit<ViewProps, 'children'> {
   /** Array of peak values (normalized between -1 and 1) */
@@ -15,6 +32,15 @@ export interface WaveformProps extends Omit<ViewProps, 'children'> {
   color?: string;
   /** Visual variant of the waveform */
   variant?: 'bars' | 'line' | 'rounded' | 'gradient';
+  /**
+   * Size token controlling height, bar width/gap, stroke width, and label type.
+   * Accepts any of the seven component tokens (`xs`–`3xl`) or a number, which
+   * is read as the waveform height and scales the bar metrics proportionally.
+   * Individual props (`h`, `barWidth`, `barGap`, `strokeWidth`, `minBarHeight`)
+   * override the token they derive from.
+   * @default 'md'
+   */
+  size?: ComponentSizeValue;
   /** Width of individual bars (for bar variants) */
   barWidth?: number;
   /** Gap between bars (for bar variants) */

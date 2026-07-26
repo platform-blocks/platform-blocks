@@ -10,5 +10,3 @@ hidden: false
 ---
 
 Endless mode resets the dial each turn while tracking the cumulative rotation value.
-
-```

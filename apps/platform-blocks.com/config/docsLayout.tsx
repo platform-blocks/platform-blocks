@@ -9,7 +9,6 @@ import { AppNavigation } from '../components/layout/Navigation';
 import { MobileBottomBar } from '../components/layout/BottomBar';
 import { GlobalSpotlightLazy, FloatingActionsLazy } from '../components/layout/LazyComponents';
 import { useGlobalHotkeys, useThemeMode } from '@platform-blocks/ui';
-import { Footer } from '../components/layout/FooterApp';
 import { DocsHeaderMobile } from '../components/layout/HeaderMobile';
 import { MobileNavbar } from '../components/layout/MobileNavbar';
 
@@ -102,7 +101,7 @@ export const docsLayout = defineAppLayout({
   main: {
     id: 'main-content',
     role: 'main',
-    maxWidth: 1080,
+    maxWidth: 1800,
     centerContent: true,
     props: (ctx: AppLayoutRuntimeContext) => {
       const baseProps = {
@@ -147,6 +146,8 @@ export const docsLayout = defineAppLayout({
     width: { base: '100%', sm: '100%', md: 220, lg: 260 },
     collapsedWidth: 60,
     expandOnHover: true,
+    expandOnHoverPush: true,
+    autoExpandBreakpoint: 'xl',
     startCollapsedDesktop: true,
   },
   bottomNav: {
@@ -170,13 +171,6 @@ export const docsLayout = defineAppLayout({
       component: DocsFloatingActions,
       target: 'root',
       show: (ctx: AppLayoutRuntimeContext) => !isFullscreenExampleRoute(ctx),
-    },
-    {
-      component: Footer,
-      target: 'root-after',
-      show: (ctx: AppLayoutRuntimeContext) =>
-        ctx.platform === 'web' && !ctx.isMobile && !isFullscreenExampleRoute(ctx),
-      key: 'docs-footer',
     },
   ],
   effects: [applyFocusOnRouteChange],

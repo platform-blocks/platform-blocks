@@ -190,7 +190,7 @@ export const TableTh = React.forwardRef<any, TableCellProps>((allProps, ref) => 
 });
 TableTh.displayName = 'TableTh';
 
-export const TableTd: React.FC<TableCellProps> = (allProps) => {
+export const TableTd = React.forwardRef<View, TableCellProps>((allProps, ref) => {
   const { spacingProps, otherProps } = extractSpacingProps(allProps);
   const { children, w, align = 'left', minW, maxW, flex, widthStrategy = 'auto', style, ...rest } = otherProps;
   const theme = useTheme();
@@ -239,7 +239,7 @@ export const TableTd: React.FC<TableCellProps> = (allProps) => {
   ];
 
   return (
-    <View style={cellStyle} {...rest}>
+    <View ref={ref} style={cellStyle} {...rest}>
       {typeof children === 'string' || typeof children === 'number' ? (
         <Text
           variant="p"
@@ -255,10 +255,11 @@ export const TableTd: React.FC<TableCellProps> = (allProps) => {
       )}
     </View>
   );
-};
+});
+TableTd.displayName = 'TableTd';
 
 // Table Row Component
-export const TableTr: React.FC<TableRowProps> = (allProps) => {
+export const TableTr = React.forwardRef<View, TableRowProps>((allProps, ref) => {
   const { spacingProps, otherProps } = extractSpacingProps(allProps);
   const { children, bg, selected, onPress, style, hoverable, ...rest } = otherProps as any;
   const theme = useTheme();
@@ -295,53 +296,57 @@ export const TableTr: React.FC<TableRowProps> = (allProps) => {
       : {};
 
   return (
-    <View style={rowStyle} {...hoverHandlers} {...rest}>
+    <View ref={ref} style={rowStyle} {...hoverHandlers} {...rest}>
       {children}
     </View>
   );
-};
+});
+TableTr.displayName = 'TableTr';
 
 // Table Section Components
-export const TableThead: React.FC<TableSectionProps> = (allProps) => {
+export const TableThead = React.forwardRef<View, TableSectionProps>((allProps, ref) => {
   const { spacingProps, otherProps } = extractSpacingProps(allProps);
   const { children, style } = otherProps;
 
   return (
-    <View style={[styles.thead, getSpacingStyles(spacingProps), style]}>
+    <View ref={ref} style={[styles.thead, getSpacingStyles(spacingProps), style]}>
       {children}
     </View>
   );
-};
+});
+TableThead.displayName = 'TableThead';
 
-export const TableTbody: React.FC<TableSectionProps> = (allProps) => {
+export const TableTbody = React.forwardRef<View, TableSectionProps>((allProps, ref) => {
   const { spacingProps, otherProps } = extractSpacingProps(allProps);
   const { children, style } = otherProps;
 
   return (
-    <View style={[styles.tbody, getSpacingStyles(spacingProps), style]}>
+    <View ref={ref} style={[styles.tbody, getSpacingStyles(spacingProps), style]}>
       {children}
     </View>
   );
-};
+});
+TableTbody.displayName = 'TableTbody';
 
-export const TableTfoot: React.FC<TableSectionProps> = (allProps) => {
+export const TableTfoot = React.forwardRef<View, TableSectionProps>((allProps, ref) => {
   const { spacingProps, otherProps } = extractSpacingProps(allProps);
   const { children, style } = otherProps;
 
   return (
-    <View style={[styles.tfoot, getSpacingStyles(spacingProps), style]}>
+    <View ref={ref} style={[styles.tfoot, getSpacingStyles(spacingProps), style]}>
       {children}
     </View>
   );
-};
+});
+TableTfoot.displayName = 'TableTfoot';
 
-export const TableCaption: React.FC<TableSectionProps> = (allProps) => {
+export const TableCaption = React.forwardRef<View, TableSectionProps>((allProps, ref) => {
   const { spacingProps, otherProps } = extractSpacingProps(allProps);
   const { children, style } = otherProps;
   const theme = useTheme();
 
   return (
-    <View style={[styles.caption, getSpacingStyles(spacingProps), style]}>
+    <View ref={ref} style={[styles.caption, getSpacingStyles(spacingProps), style]}>
       <Text
         variant="small"
         colorVariant="secondary"
@@ -351,10 +356,11 @@ export const TableCaption: React.FC<TableSectionProps> = (allProps) => {
       </Text>
     </View>
   );
-};
+});
+TableCaption.displayName = 'TableCaption';
 
 // Scroll Container Component
-export const TableScrollContainer: React.FC<TableScrollContainerProps> = (allProps) => {
+export const TableScrollContainer = React.forwardRef<View, TableScrollContainerProps>((allProps, ref) => {
   const { spacingProps, otherProps } = extractSpacingProps(allProps);
   const { children, minW = 500, maxH, type = 'native', style } = otherProps;
 
@@ -370,7 +376,7 @@ export const TableScrollContainer: React.FC<TableScrollContainerProps> = (allPro
   const scrollViewStyle = minW ? { minWidth: minW } : undefined;
 
   return (
-    <View style={containerStyle}>
+    <View ref={ref} style={containerStyle}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={Platform.OS === 'web'}
@@ -385,10 +391,11 @@ export const TableScrollContainer: React.FC<TableScrollContainerProps> = (allPro
       </ScrollView>
     </View>
   );
-};
+});
+TableScrollContainer.displayName = 'TableScrollContainer';
 
 // Main Table Component
-export const Table: React.FC<TableProps> & {
+export const Table: React.ForwardRefExoticComponent<TableProps & React.RefAttributes<View>> & {
   Th: typeof TableTh;
   Td: typeof TableTd;
   Tr: typeof TableTr;
@@ -397,7 +404,7 @@ export const Table: React.FC<TableProps> & {
   Tfoot: typeof TableTfoot;
   Caption: typeof TableCaption;
   ScrollContainer: typeof TableScrollContainer;
-} = (allProps) => {
+} = React.forwardRef<View, TableProps>((allProps, ref) => {
   const { spacingProps, otherProps } = extractSpacingProps(allProps);
   const {
     children,
@@ -442,7 +449,7 @@ export const Table: React.FC<TableProps> & {
     const { head, body, foot, caption } = data;
 
     return (
-      <View style={tableStyle} {...rest}>
+      <View ref={ref} style={tableStyle} {...rest}>
         {caption && captionSide === 'top' && (
           <TableCaption>{caption}</TableCaption>
         )}
@@ -545,11 +552,13 @@ export const Table: React.FC<TableProps> & {
 
   // Render with children
   return (
-    <View style={tableStyle} {...rest}>
+    <View ref={ref} style={tableStyle} {...rest}>
       {children}
     </View>
   );
-};
+}) as typeof Table;
+
+Table.displayName = 'Table';
 
 // Attach sub-components
 Table.Th = TableTh;

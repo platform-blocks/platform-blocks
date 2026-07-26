@@ -115,6 +115,14 @@ export interface TabsProps extends SpacingProps, RadiusProp {
    */
   animationDuration?: number;
   /**
+   * Duration (ms) of the indicator transition. Cross-component spelling that
+   * takes precedence over `animationDuration`; `0` moves the indicator
+   * instantly. Always 0 under reduced motion.
+   *
+   * @default 250
+   */
+  transitionDuration?: number;
+  /**
    * Style overrides for the outer container.
    */
   style?: StyleProp<ViewStyle>;

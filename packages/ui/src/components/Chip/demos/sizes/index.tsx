@@ -1,13 +1,16 @@
-import { Chip, Row } from '@platform-blocks/ui'
+import { Block, Chip, Row, Text } from '@platform-blocks/ui';
+
+const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
 
 export default function Demo() {
   return (
-    <Row>
-      <Chip size="xs">XS</Chip>
-      <Chip size="sm">SM</Chip>
-      <Chip size="md">MD</Chip>
-      <Chip size="lg">LG</Chip>
-      <Chip size="xl">XL</Chip>
+    <Row align="center" gap="lg" wrap="wrap">
+      {SIZES.map((size) => (
+        <Block key={size} align="center">
+          <Chip size={size}>Chip</Chip>
+          <Text variant="small">{size}</Text>
+        </Block>
+      ))}
     </Row>
-  )
+  );
 }

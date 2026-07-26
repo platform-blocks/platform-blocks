@@ -1,167 +1,172 @@
 #!/usr/bin/env tsx
+/**
+ * Validate the static web export (dist/).
+ *
+ * With `web.output: "static"` each route is prerendered to its own HTML file and
+ * SEO tags are injected by scripts/inject-seo-tags.ts. This checker confirms the
+ * export actually produced multiple prerendered pages with real content and that
+ * every indexable page has the SEO essentials (unique <title>, description,
+ * canonical, and JSON-LD). Run it after `npm run build-web`.
+ *
+ * Exits non-zero if any indexable page is missing an essential.
+ */
 import fs from 'fs';
 import path from 'path';
 import { glob } from 'glob';
 
 const distDir = path.join(__dirname, '..', 'dist');
 
-interface CheckResult {
-  file: string;
-  hasRoot: boolean;
-  hasContent: boolean;
-  hasMetaTags: boolean;
-  hasTitle: boolean;
-  titleText?: string;
-  contentLength: number;
-  errors: string[];
-  warnings: string[];
+/** Non-indexable shells: no canonical / structured data expected. */
+const NOINDEX_FILES = new Set(['404.html', '+not-found.html']);
+/** Dynamic-route template artifacts and generated index — not real routes. */
+function isTemplate(file: string): boolean {
+  const base = path.basename(file);
+  return base.includes('[') || base.startsWith('+') || base === '_sitemap.html';
 }
 
-async function checkHtmlFiles(): Promise<void> {
-  console.log('🔍 Checking prerendered HTML files...\n');
+interface Result {
+  file: string;
+  contentLength: number;
+  title: string | null;
+  hasDescription: boolean;
+  hasCanonical: boolean;
+  hasJsonLd: boolean;
+  errors: string[];
+}
 
-  const htmlFiles = await glob('**/*.html', { cwd: distDir });
-  
-  if (htmlFiles.length === 0) {
-    console.error('❌ No HTML files found in dist/ directory.');
-    console.error('   Run "npm run build-web" first.');
+/** Extract the #root markup from a page. */
+function rootMarkup(html: string): string {
+  const start = html.indexOf('<div id="root">');
+  if (start === -1) return '';
+  const scriptAfter = html.indexOf('<script', start);
+  return html.slice(start, scriptAfter === -1 ? undefined : scriptAfter);
+}
+
+/** Visible (crawlable) text rendered inside #root, excluding comment markers. */
+function rootVisibleText(rootHtml: string): number {
+  return rootHtml
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim().length;
+}
+
+/**
+ * Whether #root contains a deferred/errored Suspense boundary (React emits
+ * `<!--$!-->` when a boundary is handed to the client, e.g. a React.lazy
+ * code-split). Informational — a page can be mostly prerendered yet still
+ * client-render one lazy section.
+ */
+function hasClientBoundary(rootHtml: string): boolean {
+  return /<!--\$!-->/.test(rootHtml);
+}
+
+async function main(): Promise<void> {
+  if (!fs.existsSync(distDir)) {
+    console.error('❌ dist/ not found. Run "npm run build-web" first.');
     process.exit(1);
   }
 
-  const results: CheckResult[] = [];
-  let passed = 0;
+  const htmlFiles = (await glob('**/*.html', { cwd: distDir })).sort();
+  if (htmlFiles.length <= 1) {
+    console.error(
+      `❌ Only ${htmlFiles.length} HTML file(s) in dist/. Static rendering is not producing per-route pages — check "web.output: static" in app.json.`,
+    );
+    process.exit(1);
+  }
+
+  const results: Result[] = [];
+  const titles = new Map<string, string[]>();
   let failed = 0;
-  let warnings = 0;
+  let emptyContent = 0;
+  let lazyBoundary = 0;
+  const MIN_CONTENT = 50; // chars of visible text to consider a page "prerendered"
 
   for (const file of htmlFiles) {
-    const filePath = path.join(distDir, file);
-    const html = fs.readFileSync(filePath, 'utf8');
-    
-    const result: CheckResult = {
+    if (isTemplate(file) && !NOINDEX_FILES.has(file)) continue;
+
+    const html = fs.readFileSync(path.join(distDir, file), 'utf8');
+    const noindex = NOINDEX_FILES.has(file);
+    const titleMatch = html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].trim() : null;
+    const root = rootMarkup(html);
+
+    const result: Result = {
       file,
-      hasRoot: html.includes('<div id="root">'),
-      hasContent: false,
-      hasMetaTags: false,
-      hasTitle: false,
-      contentLength: 0,
+      contentLength: rootVisibleText(root),
+      title,
+      hasDescription: /<meta[^>]+name=["']description["'][^>]*>/i.test(html),
+      hasCanonical: /<link[^>]+rel=["']canonical["'][^>]*>/i.test(html),
+      hasJsonLd: /<script[^>]+type=["']application\/ld\+json["']/i.test(html),
       errors: [],
-      warnings: [],
     };
 
-    // Check for root div
-    if (!result.hasRoot) {
-      result.errors.push('Missing <div id="root">');
+    // Hard requirements: the SEO tags crawlers read without executing JS.
+    if (!title) result.errors.push('missing/empty <title>');
+    if (!result.hasDescription) result.errors.push('missing description');
+    if (!noindex) {
+      if (!result.hasCanonical) result.errors.push('missing canonical');
+      if (!result.hasJsonLd) result.errors.push('missing JSON-LD');
+      if (title) titles.set(title, [...(titles.get(title) ?? []), file]);
     }
-
-    // Check if root has content (not empty)
-    const rootMatch = html.match(/<div id="root">([\s\S]*?)<\/div>/);
-    if (rootMatch && rootMatch[1]) {
-      const content = rootMatch[1].trim();
-      result.hasContent = content.length > 0;
-      result.contentLength = content.length;
-      
-      if (!result.hasContent) {
-        result.warnings.push('Root div is empty - no prerendered content');
-      }
-    }
-
-    // Check for meta tags
-    result.hasMetaTags = 
-      html.includes('<meta name="description"') ||
-      html.includes('<meta property="og:') ||
-      html.includes('<meta name="twitter:');
-    
-    if (!result.hasMetaTags) {
-      result.warnings.push('Missing SEO meta tags');
-    }
-
-    // Check for title
-    const titleMatch = html.match(/<title>(.*?)<\/title>/);
-    if (titleMatch) {
-      result.hasTitle = true;
-      result.titleText = titleMatch[1];
-      
-      if (result.titleText === 'Platform Blocks - Documentation' && file !== 'index.html') {
-        result.warnings.push('Using default title instead of page-specific title');
-      }
-    } else {
-      result.errors.push('Missing <title> tag');
-    }
+    // Soft signals (warnings, not failures): body content prerendered into #root,
+    // and whether any section is deferred to the client (React.lazy code-split).
+    if (!noindex && result.contentLength < MIN_CONTENT) emptyContent++;
+    if (!noindex && hasClientBoundary(root)) lazyBoundary++;
 
     results.push(result);
-
-    // Print result for this file
-    const status = result.errors.length > 0 ? '❌' : result.warnings.length > 0 ? '⚠️ ' : '✅';
-    const label = file.length > 50 ? `...${file.slice(-47)}` : file;
-    
-    console.log(`${status} ${label.padEnd(52)} (${result.contentLength.toLocaleString()} chars)`);
-    
-    if (result.titleText && result.titleText !== 'Platform Blocks - Documentation') {
-      console.log(`   📄 Title: ${result.titleText}`);
-    }
-    
-    if (result.errors.length > 0) {
-      result.errors.forEach(err => console.log(`      ❌ ${err}`));
-      failed++;
-    } else if (result.warnings.length > 0) {
-      result.warnings.forEach(warn => console.log(`      ⚠️  ${warn}`));
-      warnings++;
-    } else {
-      passed++;
-    }
+    if (result.errors.length > 0) failed++;
   }
 
-  // Summary
-  console.log('\n' + '─'.repeat(80));
-  console.log('📊 Summary:');
-  console.log(`   Total files:  ${htmlFiles.length}`);
-  console.log(`   ✅ Passed:    ${passed}`);
-  console.log(`   ⚠️  Warnings:  ${warnings}`);
-  console.log(`   ❌ Failed:    ${failed}`);
-  
-  const totalContent = results.reduce((sum, r) => sum + r.contentLength, 0);
-  const avgContent = Math.round(totalContent / results.length);
-  console.log(`   📝 Avg size:  ${avgContent.toLocaleString()} chars`);
+  const indexable = results.filter((r) => !NOINDEX_FILES.has(r.file));
+  const totalContent = results.reduce((s, r) => s + r.contentLength, 0);
+  const avg = Math.round(totalContent / results.length);
+  const dupes = [...titles.entries()].filter(([, files]) => files.length > 1);
 
-  // Files without content
-  const emptyFiles = results.filter(r => !r.hasContent);
-  if (emptyFiles.length > 0) {
-    console.log(`\n⚠️  ${emptyFiles.length} files have no prerendered content:`);
-    emptyFiles.forEach(r => console.log(`   • ${r.file}`));
+  console.log('🔍 Static export validation\n');
+  console.log(`   HTML pages:        ${htmlFiles.length}`);
+  console.log(`   Indexable checked: ${indexable.length}`);
+  console.log(`   Avg root content:  ${avg.toLocaleString()} chars`);
+  console.log(`   With canonical:    ${indexable.filter((r) => r.hasCanonical).length}/${indexable.length}`);
+  console.log(`   With JSON-LD:      ${indexable.filter((r) => r.hasJsonLd).length}/${indexable.length}`);
+  console.log(`   With body content: ${indexable.length - emptyContent}/${indexable.length}`);
+  if (lazyBoundary > 0) {
+    console.log(`   Client-lazy section: ${lazyBoundary} page(s) (intentional React.lazy code-split)`);
   }
 
-  console.log('\n💡 Tips:');
-  console.log('   • Expo Metro bundler does not support true SSG/prerendering');
-  console.log('   • Meta tags from web/index.html are NOT copied to dist/index.html');
-  console.log('   • Content will be rendered client-side via JavaScript');
-  console.log('   • For SEO, ensure robots.txt, sitemap.xml, and structured data are present');
-  console.log('   • Modern crawlers (Google, Bing) execute JavaScript and index content');
-  console.log('   • To serve locally: npm run serve-dist');
-  
-  console.log('\n📋 Current limitations:');
-  console.log('   • No server-side rendering (SSR)');
-  console.log('   • No static site generation (SSG)');
-  console.log('   • Meta tags are hardcoded in generated HTML');
-  console.log('   • Each route uses the same HTML shell');
-  
-  console.log('\n✅ What works for SEO:');
-  console.log('   • Modern search engines execute JS and index dynamic content');
-  console.log('   • sitemap.xml guides crawlers to all pages');
-  console.log('   • robots.txt controls crawler access');
-  console.log('   • llms.txt provides AI-readable documentation');
-  console.log('   • Structured data can be added via Helmet/expo-router Head');
-  
+  if (dupes.length > 0) {
+    console.log(`\n⚠️  ${dupes.length} duplicate title(s):`);
+    dupes.slice(0, 10).forEach(([t, files]) => console.log(`   "${t}" → ${files.join(', ')}`));
+  }
+
+  if (emptyContent > 0) {
+    console.log(
+      `\n⚠️  ${emptyContent}/${indexable.length} indexable pages prerender little/no body content ` +
+        `(client-rendered only). Metadata + JSON-LD are still present, so crawlers that execute\n` +
+        `   JavaScript (Google) index the content, but the raw HTML body is thin. Usually caused\n` +
+        `   by a component that throws during SSR and defers its boundary to the client.`,
+    );
+    results
+      .filter((r) => !NOINDEX_FILES.has(r.file) && r.contentLength < MIN_CONTENT)
+      .slice(0, 15)
+      .forEach((r) => console.log(`   • ${r.file} (${r.contentLength} chars)`));
+  }
+
   if (failed > 0) {
-    console.log('\n❌ Some files have errors. Fix them before deploying.\n');
+    console.log(`\n❌ ${failed} page(s) with errors:`);
+    results
+      .filter((r) => r.errors.length > 0)
+      .slice(0, 25)
+      .forEach((r) => console.log(`   ${r.file}: ${r.errors.join('; ')}`));
+    console.log('');
     process.exit(1);
-  } else if (warnings > 0) {
-    console.log('\n⚠️  Some files have warnings. Review them for better SEO.\n');
-  } else {
-    console.log('\n✅ All HTML files look good!\n');
   }
+
+  const contentNote = emptyContent === 0 ? ' and prerendered content' : '';
+  console.log(`\n✅ All indexable pages have title, description, canonical, JSON-LD${contentNote}.\n`);
 }
 
-checkHtmlFiles().catch(error => {
-  console.error('Error checking HTML files:', error);
+main().catch((error) => {
+  console.error('Error checking prerender output:', error);
   process.exit(1);
 });

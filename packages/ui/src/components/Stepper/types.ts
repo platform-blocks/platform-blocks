@@ -7,6 +7,8 @@ export interface StepperMetrics {
   fontSize: number;
   spacing: number;
   descriptionFontSize: number;
+  /** Thickness of the connector line between steps. */
+  lineWidth: number;
 }
 
 export interface StepperStepProps {
@@ -34,6 +36,10 @@ export interface StepperStepProps {
   ref?: React.Ref<HTMLButtonElement>;
   /** Internal step index (added automatically) */
   stepIndex?: number;
+  /** Internal: true for the first step in the stepper (added automatically) */
+  isFirst?: boolean;
+  /** Internal: true for the last step in the stepper (added automatically) */
+  isLast?: boolean;
   /** Override props applied to the step's label `<Text>` (style, weight, ff, size, colorVariant). */
   labelProps?: Omit<TextProps, 'children'>;
   /** Override props applied to the step's description `<Text>`. */

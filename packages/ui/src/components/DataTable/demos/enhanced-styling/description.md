@@ -3,7 +3,7 @@ title: Rich Cells
 category: appearance
 order: 40
 tags: [datatable, styling]
-highlightLines: [24-59]
+highlightLines: []
 status: stable
 since: 1.0.0
 hidden: false

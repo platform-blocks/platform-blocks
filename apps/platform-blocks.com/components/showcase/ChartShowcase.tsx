@@ -19,13 +19,6 @@ export function ChartShowcase() {
           yAxis={{ show: true, title: 'Y Values' }}
           grid={{ show: true, showMajor: true }}
           onDataPointPress={(point) => console.log('Point pressed:', point)}
-          enablePanZoom
-          zoomMode="both"
-          minZoom={0.1}
-          enableWheelZoom
-          wheelZoomStep={0.15}
-          resetOnDoubleTap
-          clampToInitialDomain
           useOwnInteractionProvider={false}
           suppressPopover
         />
@@ -432,7 +425,6 @@ function RadialBarChartDemo() {
       data={radialData}
       barThickness={14}
       gap={6}
-      minAngle={4}
       showValueLabels
       style={{ marginTop: 12, marginBottom: 12 }}
       legend={{ show: true, position: 'bottom' }}

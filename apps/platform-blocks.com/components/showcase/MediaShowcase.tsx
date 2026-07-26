@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, useWindowDimensions } from 'react-native';
 import { Block, Title } from 'platform-blocks/components';
 import { Waveform, Card, Text, useTheme, Video, Gallery, Slider, Button, Image } from '@platform-blocks/ui';
+import { Asset } from 'expo-asset';
 
 // Stable mock waveform peaks — generated once at module load so the Math.random
 // call stays out of the render path (react-hooks/purity forbids it there, even
@@ -73,7 +74,7 @@ export function MediaShowcase() {
   const galleryImages = React.useMemo(() => ([
     {
       id: 'aurora',
-      uri: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80',
+      uri: require('../../assets/images/scene-aurora.png'),
       title: 'Aurora Over Ridge',
       description: 'Icelandic night sky awash in greens and violets.',
       metadata: {
@@ -86,7 +87,7 @@ export function MediaShowcase() {
     },
     {
       id: 'desert-dunes',
-      uri: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1600&q=80',
+      uri: require('../../assets/images/scene-desert.png'),
       title: 'Desert Dunes',
       description: 'Golden dunes sculpted by wind at sunrise.',
       metadata: {
@@ -99,7 +100,7 @@ export function MediaShowcase() {
     },
     {
       id: 'city-lights',
-      uri: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?auto=format&fit=crop&w=1600&q=80',
+      uri: require('../../assets/images/scene-city.png'),
       title: 'City Lights',
       description: 'Nighttime skyline reflecting across the river.',
       metadata: {
@@ -112,7 +113,7 @@ export function MediaShowcase() {
     },
     {
       id: 'forest-trail',
-      uri: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1600&q=80',
+      uri: require('../../assets/images/scene-forest.png'),
       title: 'Forest Trail',
       description: 'Soft morning light filtering through evergreens.',
       metadata: {
@@ -125,7 +126,7 @@ export function MediaShowcase() {
     },
     {
       id: 'coastline',
-      uri: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80',
+      uri: require('../../assets/images/scene-ocean.png'),
       title: 'Coastal Vista',
       description: 'Crashing turquoise waves along sheer cliffs.',
       metadata: {
@@ -192,10 +193,10 @@ export function MediaShowcase() {
         <Card style={{ flexGrow: 1, minWidth: 320 }} p={16}>
             <Text weight="semibold">Inline MP4 Player</Text>
             <Video
-              source={{ url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4' }}
+              source={{ url: Asset.fromModule(require('../../assets/video/demo-clip.mp4')).uri }}
               w="100%"
               h={isSmall ? 200 : 220}
-              poster="https://images.unsplash.com/photo-1523961131990-5ea7c61b2107?auto=format&fit=crop&w=1200&q=80"
+              poster="/images/scene-lake.png"
               controls
               timeline={videoChapters}
               onTimelineEvent={(event) => setLastTimelineMarker(event.data?.label ?? event.id)}

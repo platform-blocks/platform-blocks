@@ -1,84 +1,41 @@
 import React from 'react';
+import type { Text as RNText } from 'react-native';
 
 import { Text, type TextProps } from './Text';
 
+type TextAliasProps = Omit<TextProps, 'variant'>;
+
+/**
+ * Builds an HTML-like alias of `Text` with `variant` pinned. Each alias
+ * forwards its ref through to the underlying text node so callers can measure
+ * or focus it exactly as they would a plain `Text`.
+ */
+const createTextAlias = (variant: TextProps['variant'], displayName: string) => {
+  const Alias = React.forwardRef<RNText, TextAliasProps>((props, ref) => (
+    <Text ref={ref} variant={variant} {...props} />
+  ));
+  Alias.displayName = displayName;
+  return Alias;
+};
+
 // Create component aliases for HTML-like usage
-export const H1: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="h1" {...props} />
-);
-
-export const H2: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="h2" {...props} />
-);
-
-export const H3: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="h3" {...props} />
-);
-
-export const H4: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="h4" {...props} />
-);
-
-export const H5: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="h5" {...props} />
-);
-
-export const H6: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="h6" {...props} />
-);
-
-export const P: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="p" {...props} />
-);
-
-export const Small: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="small" {...props} />
-);
-
-export const Strong: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="strong" {...props} />
-);
-
-export const Bold: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="b" {...props} />
-);
-
-export const Italic: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="i" {...props} />
-);
-
-export const Emphasis: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="em" {...props} />
-);
-
-export const Underline: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="u" {...props} />
-);
-
-export const Code: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="code" {...props} />
-);
-
-export const Kbd: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="kbd" {...props} />
-);
-
-export const Mark: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="mark" {...props} />
-);
-
-export const Blockquote: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="blockquote" {...props} />
-);
-
-export const Cite: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="cite" {...props} />
-);
-
-export const Sub: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="sub" {...props} />
-);
-
-export const Sup: React.FC<Omit<TextProps, 'variant'>> = (props) => (
-  <Text variant="sup" {...props} />
-);
+export const H1 = createTextAlias('h1', 'H1');
+export const H2 = createTextAlias('h2', 'H2');
+export const H3 = createTextAlias('h3', 'H3');
+export const H4 = createTextAlias('h4', 'H4');
+export const H5 = createTextAlias('h5', 'H5');
+export const H6 = createTextAlias('h6', 'H6');
+export const P = createTextAlias('p', 'P');
+export const Small = createTextAlias('small', 'Small');
+export const Strong = createTextAlias('strong', 'Strong');
+export const Bold = createTextAlias('b', 'Bold');
+export const Italic = createTextAlias('i', 'Italic');
+export const Emphasis = createTextAlias('em', 'Emphasis');
+export const Underline = createTextAlias('u', 'Underline');
+export const Code = createTextAlias('code', 'Code');
+export const Kbd = createTextAlias('kbd', 'Kbd');
+export const Mark = createTextAlias('mark', 'Mark');
+export const Blockquote = createTextAlias('blockquote', 'Blockquote');
+export const Cite = createTextAlias('cite', 'Cite');
+export const Sub = createTextAlias('sub', 'Sub');
+export const Sup = createTextAlias('sup', 'Sup');

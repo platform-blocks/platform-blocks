@@ -74,8 +74,6 @@ export interface RadarChartProps extends BaseChartProps {
   smooth?: boolean | number;
   /** Fill the radar area */
   fill?: boolean;
-  /** Color palette identifier */
-  colorScheme?: string;
   /** Enable radial crosshair highlights */
   enableCrosshair?: boolean;
   /** Enable multi-series tooltip aggregation */
@@ -86,6 +84,4 @@ export interface RadarChartProps extends BaseChartProps {
   legend?: ChartLegend;
   /** Tooltip configuration */
   tooltip?: ChartTooltip<RadarAxisPoint>;
-  /** Additional annotations to render */
-  annotations?: any[];
 }

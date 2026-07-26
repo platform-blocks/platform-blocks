@@ -1,13 +1,16 @@
-import { Badge, Column } from '@platform-blocks/ui'
+import { Badge, Block, Row, Text } from '@platform-blocks/ui';
+
+const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
 
 export default function Demo() {
   return (
-    <Column gap="sm">
-      <Badge size="xs">Extra Small</Badge>
-      <Badge size="sm">Small</Badge>
-      <Badge size="md">Medium</Badge>
-      <Badge size="lg">Large</Badge>
-      <Badge size="xl">Extra Large</Badge>
-    </Column>
-  )
+    <Row align="center" gap="lg" wrap="wrap">
+      {SIZES.map((size) => (
+        <Block key={size} align="center">
+          <Badge size={size}>Badge</Badge>
+          <Text variant="small">{size}</Text>
+        </Block>
+      ))}
+    </Row>
+  );
 }

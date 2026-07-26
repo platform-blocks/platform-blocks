@@ -1,11 +1,11 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect, memo } from 'react';
 import { View, Pressable, ViewStyle, Text as RNText, Platform, Dimensions } from 'react-native';
 import ReanimatedCarousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
-import Animated, { useSharedValue, useAnimatedStyle, interpolateColor, useDerivedValue, withTiming, type SharedValue } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, useAnimatedReaction, interpolateColor, runOnJS, type SharedValue } from 'react-native-reanimated';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { useDirection } from '../../core/providers/DirectionProvider';
 import type { CarouselProps } from './types';
-import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
+import { getSpacingStyles, extractSpacingProps, useMergedRef } from '../../core/utils';
 import { Button } from '../Button';
 import { Icon } from '../Icon';
 import { resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
@@ -166,6 +166,9 @@ function calculateNumericDotMetrics(size: number): CarouselDotMetrics {
   };
 }
 
+// How much wider (or taller) the active dot grows relative to its resting size.
+const DOT_ACTIVE_GROWTH = 1.4;
+
 // Optimized Dot component with memo to prevent unnecessary re-renders
 const CarouselDot = memo(({
   index,
@@ -173,7 +176,8 @@ const CarouselDot = memo(({
   metrics,
   totalPages,
   loop,
-  theme,
+  activeColor,
+  inactiveColor,
   onPress,
   isVertical = false
 }: {
@@ -182,11 +186,16 @@ const CarouselDot = memo(({
   metrics: CarouselDotMetrics;
   totalPages: number;
   loop: boolean;
-  theme: any;
+  activeColor: string;
+  inactiveColor: string;
   onPress: (index: number) => void;
   isVertical?: boolean;
 }) => {
   const baseDotSize = metrics.baseSize;
+  const maxDotSize = baseDotSize * (1 + DOT_ACTIVE_GROWTH);
+  // Drive the dot straight off scroll progress. Progress is already a smooth,
+  // UI-thread value, so wrapping these in withTiming only restarted a fresh
+  // animation on every frame — which is what made the dots lag the slide.
   const animatedStyle = useAnimatedStyle(() => {
     let current = pageProgress.value;
     // Normalize for loop jitter: map absolute progress to logical page index space
@@ -197,26 +206,37 @@ const CarouselDot = memo(({
     const dist = loop ? Math.min(rawDist, totalPages - rawDist) : rawDist;
     const active = 1 - Math.min(dist, 1); // clamp to [0,1]
 
-    // Use withTiming for smoother animations and reduced frame drops
-    const size = withTiming(baseDotSize + (baseDotSize * 1.4) * active, { duration: 100 });
-    const opacity = withTiming(0.4 + 0.6 * active, { duration: 100 });
-    const backgroundColor = interpolateColor(active, [0, 1], [theme.colors.gray[4], theme.colors.primary[6]]);
+    const size = baseDotSize + (baseDotSize * DOT_ACTIVE_GROWTH) * active;
 
     return {
       width: isVertical ? baseDotSize : size,
       height: isVertical ? size : baseDotSize,
-      opacity,
-      backgroundColor
+      opacity: 0.4 + 0.6 * active,
+      backgroundColor: interpolateColor(active, [0, 1], [inactiveColor, activeColor])
     } as any;
-  }, [baseDotSize, isVertical, loop, theme]);
+  }, [baseDotSize, isVertical, loop, totalPages, index, activeColor, inactiveColor]);
 
   const handlePress = useCallback(() => {
     onPress(index);
   }, [index, onPress]);
 
+  // The hit area reserves room for the fully expanded dot so growing the active
+  // one never reflows the rest of the track mid-scroll.
   const containerStyle = isVertical
-    ? { marginVertical: metrics.margin, width: baseDotSize, justifyContent: 'center' as const }
-    : { marginHorizontal: metrics.margin, height: baseDotSize, justifyContent: 'center' as const };
+    ? {
+      marginVertical: metrics.margin,
+      width: baseDotSize,
+      height: maxDotSize,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    }
+    : {
+      marginHorizontal: metrics.margin,
+      width: maxDotSize,
+      height: baseDotSize,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    };
 
   return (
     <Pressable
@@ -225,7 +245,8 @@ const CarouselDot = memo(({
       accessibilityLabel={`Go to slide ${index + 1}`}
       style={containerStyle}
     >
-      <Animated.View style={[{ borderRadius: baseDotSize / 2 }, animatedStyle]} />
+      {/* Absolute so the width/height animation never triggers flow layout. */}
+      <Animated.View style={[{ position: 'absolute', borderRadius: baseDotSize / 2 }, animatedStyle]} />
     </Pressable>
   );
 });
@@ -329,7 +350,7 @@ const mergeBreakpointProps = (baseProps: CarouselProps, breakpointProps?: Record
   return resolvedProps;
 };
 
-export const Carousel: React.FC<CarouselProps> = (incomingProps) => {
+export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, ref) => {
   const { breakpoint, width: viewportWidth } = useOptimizedBreakpoint();
   const mergedProps = useMemo(
     () => mergeBreakpointProps(incomingProps as CarouselProps, incomingProps.breakpoints, viewportWidth),
@@ -356,6 +377,7 @@ export const Carousel: React.FC<CarouselProps> = (incomingProps) => {
     skipSnaps = true,
     dragThreshold,
     duration,
+    transitionDuration,
     breakpoints: _breakpoints,
     onSlideChange,
     style,
@@ -373,14 +395,24 @@ export const Carousel: React.FC<CarouselProps> = (incomingProps) => {
   const theme = useTheme();
   const { isRTL } = useDirection();
 
+  // `transitionDuration` is the cross-component spelling and wins over the
+  // Carousel-specific `duration`; 0 jumps between slides with no animation.
+  const resolvedScrollDuration = Math.max(transitionDuration ?? duration ?? 500, 0);
+
   const containerRef = useRef<View>(null);
+  // Internal measurements need the node too, so compose rather than replace.
+  const mergedContainerRef = useMergedRef<View>(containerRef, ref);
   const carouselRef = useRef<ICarouselInstance>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
   // progress holds absolute item progress (fractional, not modulo) supplied by engine
   const progress = useSharedValue(0);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // Kept in a ref rather than state: nothing renders from it, and re-rendering
+  // the carousel mid-scroll is what dropped frames.
+  const currentIndexRef = useRef(0);
   const hasInitializedRef = useRef(false);
+  const onSlideChangeRef = useRef(onSlideChange);
+  onSlideChangeRef.current = onSlideChange;
 
   const itemsArray = useMemo(() => React.Children.toArray(children), [children]);
   const totalItems = itemsArray.length;
@@ -565,11 +597,11 @@ export const Carousel: React.FC<CarouselProps> = (incomingProps) => {
   const scrollToPage = useCallback((index: number, animated = true) => {
     if (!carouselRef.current || totalPages === 0) return;
     const clamped = ((index % totalPages) + totalPages) % totalPages;
-    const delta = clamped - currentIndex;
+    const delta = clamped - currentIndexRef.current;
     if (delta === 0) {
       if (!animated) {
         progress.value = clamped;
-        setCurrentIndex(clamped);
+        currentIndexRef.current = clamped;
       }
       return;
     }
@@ -583,9 +615,9 @@ export const Carousel: React.FC<CarouselProps> = (incomingProps) => {
     carouselRef.current.scrollTo({ count, animated });
     if (!animated) {
       progress.value = clamped;
-      setCurrentIndex(clamped);
+      currentIndexRef.current = clamped;
     }
-  }, [carouselRef, totalPages, currentIndex, loop, progress]);
+  }, [totalPages, loop, progress]);
 
   const goTo = useCallback((index: number) => {
     scrollToPage(index, true);
@@ -601,10 +633,25 @@ export const Carousel: React.FC<CarouselProps> = (incomingProps) => {
     carouselRef.current.next();
   }, []);
 
-  // Page progress derived directly from absolute item progress
-  const pageProgress = useDerivedValue(() => {
-    return progress.value;
+  // Slide changes are detected on the UI thread and only cross to JS when the
+  // rounded page index actually flips — not once per frame.
+  const notifySlideChange = useCallback((pageIndex: number) => {
+    if (pageIndex === currentIndexRef.current) return;
+    currentIndexRef.current = pageIndex;
+    onSlideChangeRef.current?.(pageIndex);
   }, []);
+
+  useAnimatedReaction(
+    () => {
+      if (totalPages <= 0) return 0;
+      return ((Math.round(progress.value) % totalPages) + totalPages) % totalPages;
+    },
+    (pageIndex, previous) => {
+      if (previous != null && pageIndex === previous) return;
+      runOnJS(notifySlideChange)(pageIndex);
+    },
+    [totalPages, notifySlideChange]
+  );
 
   const arrowMetrics = useMemo(() => resolveCarouselArrowMetrics(arrowSize), [arrowSize]);
   const dotMetrics = useMemo(() => resolveCarouselDotMetrics(dotSize), [dotSize]);
@@ -620,6 +667,8 @@ export const Carousel: React.FC<CarouselProps> = (incomingProps) => {
   }, [align]);
 
   // Memoized render functions to prevent unnecessary re-renders
+  const dotActiveColor = theme.colors.primary[6];
+  const dotInactiveColor = theme.colors.gray[4];
   const renderDots = useMemo(() => {
     if (!showDots || totalPages <= 1) return null;
 
@@ -637,18 +686,19 @@ export const Carousel: React.FC<CarouselProps> = (incomingProps) => {
           <CarouselDot
             key={i}
             index={i}
-            pageProgress={pageProgress}
+            pageProgress={progress}
             metrics={dotMetrics}
             totalPages={totalPages}
             loop={loop}
-            theme={theme}
+            activeColor={dotActiveColor}
+            inactiveColor={dotInactiveColor}
             onPress={goTo}
             isVertical={isVertical}
           />
         ))}
       </View>
     );
-  }, [showDots, totalPages, pageProgress, dotMetrics, loop, theme, goTo, isVertical, isRTL]);
+  }, [showDots, totalPages, progress, dotMetrics, loop, dotActiveColor, dotInactiveColor, goTo, isVertical, isRTL]);
 
   // Arrows
   const renderArrows = () => {
@@ -744,6 +794,64 @@ export const Carousel: React.FC<CarouselProps> = (incomingProps) => {
   // Autoplay: if library autoPlay not sufficient for pause logic, we can just pass through for now.
   const enableAutoPlay = autoPlay && totalPages > 1;
 
+  // A duration-based spring honours `transitionDuration`/`duration` (a stiffness
+  // spring ignores it) and settles without the long overdamped crawl.
+  const carouselAnimation = useMemo(() => {
+    if (reducedMotion || resolvedScrollDuration === 0) {
+      return { type: 'timing' as const, config: { duration: reducedMotion ? 100 : 0 } };
+    }
+    return {
+      type: 'spring' as const,
+      config: { duration: resolvedScrollDuration, dampingRatio: 1 },
+    };
+  }, [reducedMotion, resolvedScrollDuration]);
+
+  const renderItem = useCallback(({ item, index }: { item: React.ReactNode[]; index: number }) => {
+    const pageItems = Array.isArray(item) ? item : [item];
+    const pageWidth = containerWidth;
+    const pageHeight = isVertical ? containerHeight : height;
+    const justify = containMode === 'trimSnaps' ? 'flex-start' : alignJustify;
+
+    return (
+      <View
+        style={[
+          {
+            width: pageWidth,
+            height: pageHeight,
+            justifyContent: 'center',
+          },
+          itemStyle,
+        ]}
+        accessibilityLabel={`Carousel item ${index + 1} of ${totalPages}`}
+      >
+        <View
+          style={{
+            flexDirection: isVertical ? 'column' : 'row',
+            alignItems: 'stretch',
+            justifyContent: justify,
+            flexWrap: 'nowrap',
+            flex: 1,
+          }}
+        >
+          {pageItems.map((child, childIndex) => (
+            <View
+              key={childIndex}
+              style={{
+                width: isVertical ? '100%' : cardSize,
+                height: isVertical ? cardSize : '100%',
+                marginRight: !isVertical && childIndex < pageItems.length - 1 ? resolvedGap : 0,
+                marginBottom: isVertical && childIndex < pageItems.length - 1 ? resolvedGap : 0,
+                flexShrink: 0,
+              }}
+            >
+              {child as any}
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  }, [containerWidth, containerHeight, height, isVertical, containMode, alignJustify, itemStyle, totalPages, cardSize, resolvedGap]);
+
   useEffect(() => {
     if (!carouselRef.current || totalPages === 0 || !hasLayout) return;
     const controlledStart = startIndex != null;
@@ -761,7 +869,7 @@ export const Carousel: React.FC<CarouselProps> = (incomingProps) => {
 
   return (
     <View
-      ref={containerRef}
+      ref={mergedContainerRef}
       style={[
         {
           width: '100%',
@@ -789,73 +897,17 @@ export const Carousel: React.FC<CarouselProps> = (incomingProps) => {
             pagingEnabled={isDragFree ? false : snapToItem}
             snapEnabled={isDragFree ? false : undefined}
             windowSize={windowSize > 0 ? windowSize : undefined}
-            scrollAnimationDuration={duration}
+            scrollAnimationDuration={resolvedScrollDuration}
             // Performance optimizations
             overscrollEnabled={false}
             enabled={!reducedMotion}
-            withAnimation={reducedMotion ?
-              { type: 'timing', config: { duration: 100 } } :
-              { type: 'spring', config: { damping: 60, stiffness: 150 } }
-            }
+            withAnimation={carouselAnimation}
             maxScrollDistancePerSwipe={maxScrollDistancePerSwipe}
             minScrollDistancePerSwipe={dragThresholdValue}
-            onProgressChange={(offset: number, absolute: number) => {
-              // absolute may be undefined in some versions; fallback to offset
-              const val = typeof absolute === 'number' ? absolute : offset;
-              progress.value = val;
-              const ci = totalPages > 0
-                ? ((Math.round(val) % totalPages) + totalPages) % totalPages
-                : 0;
-              if (ci !== currentIndex) {
-                setCurrentIndex(ci);
-                onSlideChange?.(ci);
-              }
-            }}
-            renderItem={({ item, index }) => {
-              const pageItems = Array.isArray(item) ? item : [item];
-              const pageWidth = isVertical ? containerWidth : containerWidth;
-              const pageHeight = isVertical ? containerHeight : height;
-              const justify = containMode === 'trimSnaps' ? 'flex-start' : alignJustify;
-
-              return (
-                <View
-                  style={[
-                    {
-                      width: pageWidth,
-                      height: pageHeight,
-                      justifyContent: 'center',
-                    },
-                    itemStyle,
-                  ]}
-                  accessibilityLabel={`Carousel item ${index + 1} of ${totalPages}`}
-                >
-                  <View
-                    style={{
-                      flexDirection: isVertical ? 'column' : 'row',
-                      alignItems: 'stretch',
-                      justifyContent: justify,
-                      flexWrap: 'nowrap',
-                      flex: 1,
-                    }}
-                  >
-                    {pageItems.map((child, childIndex) => (
-                      <View
-                        key={childIndex}
-                        style={{
-                          width: isVertical ? '100%' : cardSize,
-                          height: isVertical ? cardSize : '100%',
-                          marginRight: !isVertical && childIndex < pageItems.length - 1 ? resolvedGap : 0,
-                          marginBottom: isVertical && childIndex < pageItems.length - 1 ? resolvedGap : 0,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {child as any}
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              );
-            }}
+            // Handing the shared value straight to the engine keeps progress on
+            // the UI thread; a callback here would runOnJS once per frame.
+            onProgressChange={progress}
+            renderItem={renderItem}
           />
         )}
       </View>
@@ -863,6 +915,8 @@ export const Carousel: React.FC<CarouselProps> = (incomingProps) => {
       {renderDots}
     </View>
   );
-};
+});
+
+Carousel.displayName = 'Carousel';
 
 export default Carousel;

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Column, DatePicker, Text } from '@platform-blocks/ui';
+import { Block, DatePicker, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [value, setValue] = useState<Date[]>([]);
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <DatePicker
         type="multiple"
         value={value}
@@ -17,6 +17,6 @@ export default function Demo() {
           ? value.map((date) => date.toLocaleDateString()).join(', ')
           : 'Select one or more dates'}
       </Text>
-    </Column>
+    </Block>
   );
 }

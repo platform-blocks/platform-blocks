@@ -1,21 +1,21 @@
 import React, { useMemo, useEffect, useRef, useCallback } from 'react';
-import { Platform } from 'react-native';
-import Svg, { Rect, Path, G, Circle } from 'react-native-svg';
+import { Platform, View } from 'react-native';
+import Svg, { Path, G, Circle } from 'react-native-svg';
 import Animated, { SharedValue, useSharedValue, useAnimatedProps, withTiming, Easing } from 'react-native-reanimated';
 
 import { ComboChartProps, ComboChartLayer } from './types';
-import { ChartContainer, ChartTitle, ChartLegend } from '../../ChartBase';
+import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
-import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
+import { useChartInteractionContext, usePointer, useActiveTarget } from '../../interaction/ChartInteractionContext';
 import type { ActiveTarget } from '../../core/hittest/types';
 import { ChartInteractionEvent } from '../../types';
 import { linearScale, generateNiceTicks, type Scale } from '../../utils/scales';
 import { createSmoothPath } from '../../utils';
+import { roundedBarPath, barCornerMask } from '../../utils/barPath';
 import { createColorAssigner } from '../../colors';
 
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -152,6 +152,7 @@ const ComboBarSeries: React.FC<{
   onBarPress: (bar: ComputedBarRect, nativeEvent: any) => void;
 }> = React.memo(({ layer, scaleX, scaleY, plotWidth, plotHeight, padding, animationProgress, disabled, onBarHover, onBarHoverEnd, onBarPress }) => {
   const bandwidthFromScale = scaleX.bandwidth?.() ?? 0;
+  const layerOpacity = (layer.raw as Extract<ComboChartLayer, { type: 'bar' | 'histogram' }>).opacity ?? 1;
   const bars = useMemo(() => {
     const defaultWidth = bandwidthFromScale > 0 ? bandwidthFromScale * 0.8 : plotWidth / Math.max(1, layer.points.length) * 0.6;
     return layer.points.map((point, index) => {
@@ -192,27 +193,23 @@ const ComboBarSeries: React.FC<{
     <>
       {bars.map((bar) => {
         if (!bar.visible || bar.height <= 0 || bar.width <= 0) return null;
+        const corners = barCornerMask('vertical', bar.dataY >= 0);
         const animatedProps = useAnimatedProps(() => {
           const progress = animationProgress.value;
           const height = bar.height * progress;
           const y = bar.y + (bar.height - height);
           return {
-            x: bar.x,
-            y,
-            width: bar.width,
-            height,
+            d: roundedBarPath(bar.x, y, bar.width, height, 3, corners.tl, corners.tr, corners.br, corners.bl),
           } as any;
         });
         const isWeb = Platform.OS === 'web';
         return (
-          <AnimatedRect
+          <AnimatedPath
             key={bar.id}
             testID={`combo-bar-${bar.id}`}
             animatedProps={animatedProps}
             fill={bar.color}
-            rx={3}
-            ry={3}
-            opacity={bar.visible ? 1 : 0}
+            opacity={bar.visible ? layerOpacity : 0}
             pointerEvents={bar.visible ? 'auto' : 'none'}
             {...(isWeb
               ? {
@@ -282,18 +279,16 @@ const ComboLineSeries: React.FC<{
         .map((p, index) => `${index === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
         .join(' ');
     }
-    // area
-    const areaPath = layer.points
-      .map((point, index) => {
-        const px = scaleX(point.x);
-        const py = scaleY(point.y);
-        return `${index === 0 ? 'M' : 'L'} ${px} ${py}`;
-      })
-      .join(' ');
+    // area — top edge follows the same smoothing rule as the line layer
+    const topPath = (layer.raw as any).smooth
+      ? createSmoothPath(pixelPoints.map((p) => ({ x: p.x, y: p.y })))
+      : pixelPoints
+          .map((p, index) => `${index === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
+          .join(' ');
     const last = layer.points[layer.points.length - 1];
     const first = layer.points[0];
     const baseline = scaleY(0);
-    return `${areaPath} L ${scaleX(last.x)} ${baseline} L ${scaleX(first.x)} ${baseline} Z`;
+    return `${topPath} L ${scaleX(last.x)} ${baseline} L ${scaleX(first.x)} ${baseline} Z`;
   }, [layer, pixelPoints, scaleX, scaleY]);
 
   const pathLength = useMemo(() => (layer.type === 'line' || layer.type === 'density' ? computePathLength(pixelPoints) : 0), [layer.type, pixelPoints]);
@@ -319,7 +314,7 @@ const ComboLineSeries: React.FC<{
   return (
     <>
       {layer.type === 'area' ? (
-        <AnimatedPath d={pathData} fill={`${layer.color}33`} stroke={layer.color} strokeWidth={1} animatedProps={animatedFillProps} />
+        <AnimatedPath d={pathData} fill={layer.color} fillOpacity={(layer.raw as any).fillOpacity ?? 0.2} stroke={layer.color} strokeWidth={1} animatedProps={animatedFillProps} />
       ) : (
         <AnimatedPath d={pathData} fill="none" stroke={layer.color} strokeWidth={(layer.raw as any).thickness || (layer.type === 'density' ? 1.5 : 2)} animatedProps={animatedStrokeProps} />
       )}
@@ -375,6 +370,11 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
   const setPointer = interaction?.setPointer;
   const setActiveTarget = interaction?.setActiveTarget;
   const setActiveSlice = interaction?.setActiveSlice;
+  // Subscribe to the live pointer + resolved active target so we can draw a crosshair that
+  // tracks the cursor (usePointer re-renders per-frame during hover — acceptable for a
+  // cursor-following visual, and only mounted when a crosshair is actually requested).
+  const pointer = usePointer();
+  const { activeTarget } = useActiveTarget();
   const wantsCrosshairUpdates = (enableCrosshair !== false) || Boolean(multiTooltip);
   const pointerStateAvailable = Boolean(setPointer || (wantsCrosshairUpdates && setActiveSlice));
   const isWeb = Platform.OS === 'web';
@@ -434,12 +434,29 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
 
   const hasRightAxis = resolvedLayers.some((layer) => layer.targetAxis === 'right') || !!yAxisRight;
 
-  const padding = useMemo(() => ({
-    top: 40,
-    right: hasRightAxis ? 72 : 32,
-    bottom: 64,
-    left: 80,
-  }), [hasRightAxis]);
+  // Grown so the plot clears the title and legend overlays. The topmost tick label sits
+  // just below the title band, so it gets an allowance rather than competing for it.
+  const legendLabels = useMemo(
+    () => resolvedLayers.map((layer) => ({ label: layer.name })),
+    [resolvedLayers]
+  );
+  const padding = useMemo(() => withChartBandPadding(
+    {
+      top: 40,
+      right: hasRightAxis ? 72 : 32,
+      bottom: 64,
+      left: 80,
+    },
+    {
+      title,
+      subtitle,
+      legendItems: legend?.show ? legendLabels : undefined,
+      legendPosition: legend?.position,
+      legendFontSize: legend?.fontSize,
+      containerWidth: width,
+      topAllowance: 10,
+    },
+  ), [hasRightAxis, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels, width]);
 
   const plotWidth = Math.max(0, width - padding.left - padding.right);
   const plotHeight = Math.max(0, height - padding.top - padding.bottom);
@@ -757,6 +774,29 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
           ))}
         </G>
       </Svg>
+
+      {/* Crosshair — a vertical guide tracking the cursor x across the plot. Snaps to the
+          resolved active target (the nearest categorical mark) when one exists, otherwise
+          follows the raw pointer x. Positioned in chart-absolute space (padding.left + plotX),
+          matching how pointer.x / activeTarget.pixel.x are stored. */}
+      {enableCrosshair !== false && pointer?.inside && (() => {
+        const rawX = activeTarget?.pixel?.x ?? pointer.x;
+        if (!Number.isFinite(rawX)) return null;
+        const crosshairX = Math.max(padding.left, Math.min(padding.left + plotWidth, rawX));
+        return (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: crosshairX,
+              top: padding.top,
+              height: plotHeight,
+              width: 1,
+              backgroundColor: theme.colors.grid || 'rgba(0,0,0,0.2)',
+            }}
+          />
+        );
+      })()}
 
       {xAxis?.show !== false && (
         <Axis

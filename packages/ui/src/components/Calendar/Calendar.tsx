@@ -6,16 +6,19 @@ import { Icon } from '../Icon';
 import { Month } from './Month';
 import { MonthPicker } from '../MonthPicker';
 import { YearPicker } from '../YearPicker';
-import { dateUtils } from './utils';
+import { dateUtils, getMonthGridWidth } from './utils';
 import { useTheme } from '../../core/theme';
 import { useDirection } from '../../core/providers/DirectionProvider';
 import { useDisclaimer, extractDisclaimerProps } from '../_internal/Disclaimer';
 import type { CalendarProps, CalendarLevel } from './types';
+import { useControllableState } from '../../hooks/useControllableState';
 
-export const Calendar: React.FC<CalendarProps> = (incomingProps) => {
+const MONTH_GAP = 16;
+
+export const Calendar = React.forwardRef<View, CalendarProps>((incomingProps, ref) => {
   const { disclaimerProps: disclaimerData, otherProps: props } = extractDisclaimerProps(incomingProps);
   const {
-    level = 'month',
+    level,
     defaultLevel = 'month',
     onLevelChange,
     
@@ -50,7 +53,8 @@ export const Calendar: React.FC<CalendarProps> = (incomingProps) => {
     getDayProps,
     renderDay,
     size = 'md',
-    
+    fullWidth = false,
+
     // Static mode (non-interactive)
     static: isStatic = false,
   } = props;
@@ -67,17 +71,29 @@ export const Calendar: React.FC<CalendarProps> = (incomingProps) => {
         '3xl': '3xl',
       } as const)[size] ?? 'lg';
   const { isRTL } = useDirection();
+  // A calendar has a natural width — seven day columns. Left to stretch it fans
+  // the days apart and reads as an oddly long block, so size to the grid and
+  // let `fullWidth` opt back into filling the container.
+  const months = Math.max(1, numberOfMonths);
+  const calendarWidth = fullWidth
+    ? '100%'
+    : getMonthGridWidth(size, withCellSpacing) * months + MONTH_GAP * (months - 1);
   const renderDisclaimer = useDisclaimer(disclaimerData.disclaimer, disclaimerData.disclaimerProps);
   
-  // Internal state for date navigation
-  const [internalDate, setInternalDate] = useState(defaultDate || new Date());
-  const currentDate = controlledDate || internalDate;
+  const [currentDate, setCurrentDate] = useControllableState<Date>({
+    value: controlledDate,
+    defaultValue: () => defaultDate || new Date(),
+    onChange: onDateChange,
+  });
 
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
-  
-  // Internal state for level if not controlled
-  const [internalLevel, setInternalLevel] = useState<CalendarLevel>(defaultLevel);
-  const currentLevel = level !== defaultLevel ? level : internalLevel;
+
+  const [currentLevel, setCurrentLevel] = useControllableState<CalendarLevel>({
+    value: level,
+    defaultValue: defaultLevel,
+    finalValue: 'month',
+    onChange: onLevelChange,
+  });
 
   const rangeValue = useMemo(() => (
     Array.isArray(value) && value.length === 2
@@ -107,19 +123,15 @@ export const Calendar: React.FC<CalendarProps> = (incomingProps) => {
 
   const monthNames = useMemo(() => dateUtils.getMonthNames(locale), [locale]);
 
-  const handleDateChange = useCallback((newDate: Date) => {
-    if (!controlledDate) {
-      setInternalDate(newDate);
-    }
-    onDateChange?.(newDate);
-  }, [controlledDate, onDateChange]);
+  const handleDateChange = useCallback(
+    (newDate: Date) => setCurrentDate(newDate),
+    [setCurrentDate],
+  );
 
-  const handleLevelChange = useCallback((newLevel: CalendarLevel) => {
-    if (level === defaultLevel) {
-      setInternalLevel(newLevel);
-    }
-    onLevelChange?.(newLevel);
-  }, [level, defaultLevel, onLevelChange]);
+  const handleLevelChange = useCallback(
+    (newLevel: CalendarLevel) => setCurrentLevel(newLevel),
+    [setCurrentLevel],
+  );
 
   const handlePreviousClick = () => {
     if (isStatic) return;
@@ -196,13 +208,13 @@ export const Calendar: React.FC<CalendarProps> = (incomingProps) => {
     }
 
     // Multiple months
-    const months = Array.from({ length: numberOfMonths }, (_, i) =>
+    const monthDates = Array.from({ length: months }, (_, i) =>
       dateUtils.addMonths(currentDate, i)
     );
 
     return (
-      <Flex direction="row" gap={16} style={{ flexWrap: 'wrap' }}>
-        {months.map((monthDate, index) => (
+      <Flex direction="row" gap={MONTH_GAP} justify="center" style={{ flexWrap: 'wrap' }}>
+        {monthDates.map((monthDate, index) => (
           <View key={index}>
             <Month
               month={monthDate}
@@ -258,6 +270,8 @@ export const Calendar: React.FC<CalendarProps> = (incomingProps) => {
         maxDate={maxDate}
         size={size}
         hideHeader={true}
+        fullWidth
+        monthLabelFormat="short"
       />
     );
   };
@@ -281,6 +295,7 @@ export const Calendar: React.FC<CalendarProps> = (incomingProps) => {
         maxDate={maxDate}
         size={size}
         hideHeader={true}
+        fullWidth
       />
     );
   };
@@ -288,7 +303,7 @@ export const Calendar: React.FC<CalendarProps> = (incomingProps) => {
   const disclaimerNode = renderDisclaimer();
 
   return (
-    <View>
+    <View ref={ref} style={{ width: calendarWidth, maxWidth: '100%' }}>
       <View
         style={{ width: '100%' }}
         {...(type === 'range' ? { onMouseLeave: handleDayHoverEnd } : {})}
@@ -371,4 +386,6 @@ export const Calendar: React.FC<CalendarProps> = (incomingProps) => {
       ) : null}
     </View>
   );
-};
+});
+
+Calendar.displayName = 'Calendar';

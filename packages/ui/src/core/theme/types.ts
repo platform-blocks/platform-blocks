@@ -8,6 +8,38 @@ export type ColorValue = string;
 // Enhanced spacing value that supports CSS values like 'auto'
 export type SpacingValue = SizeToken | 'auto' | '0' | number;
 
+/**
+ * Elevation step. Higher levels sit closer to the viewer.
+ *
+ * - `0` — the page itself; things that should disappear into the background
+ * - `1` — resting content sitting on the page (cards, panels, list groups)
+ * - `2` — transient content floating over content (dropdowns, popovers, menus)
+ * - `3` — content that takes over the screen (dialogs, sheets, toasts)
+ *
+ * A numeric ladder rather than named slots because elevation is inherently
+ * ordered and nestable: a Surface can derive its level from the one it sits
+ * inside. Note that "elevation" is expressed differently per scheme — in light
+ * mode mostly by shadow, in dark mode mostly by a lighter fill, since shadows
+ * are near-invisible on dark backgrounds.
+ */
+export type SurfaceLevel = 0 | 1 | 2 | 3;
+
+/** Shadow tokens available on `theme.shadows`, plus the explicit opt-out. */
+export type SurfaceShadowToken = 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+
+/** The resolved appearance of a single elevation step. */
+export interface SurfaceToken {
+  /** Background fill. */
+  background: string;
+  /** Hairline border color — the primary elevation cue in dark mode. */
+  border: string;
+  /** Default shadow token for this level. */
+  shadow: SurfaceShadowToken;
+}
+
+/** The full elevation ladder, one token per level. */
+export type SurfaceScale = Record<SurfaceLevel, SurfaceToken>;
+
 // Import design tokens type
 import type { DESIGN_TOKENS } from '../design-tokens';
 
@@ -105,6 +137,13 @@ export interface PlatformBlocksTheme {
     /** Border / hairline color for separators */
     border: string;
   };
+
+  /**
+   * Elevation ladder consumed by `Surface` (and, through it, Card, Menu,
+   * Popover, Dialog…). Optional: themes that omit it get a ladder derived
+   * from `backgrounds`, so existing custom themes keep working.
+   */
+  surfaces?: SurfaceScale;
 
   /** Semantic interactive state colors */
   states?: {

@@ -1,26 +1,7 @@
 import { useState } from 'react';
 import { Button, Card, Block, Icon, Row, Stepper, Text } from '@platform-blocks/ui';
 
-const steps = [
-  {
-    label: 'Account',
-    description: 'Create profile',
-    icon: 'user',
-    details: 'Share your contact details to personalize notifications and invites.',
-  },
-  {
-    label: 'Verification',
-    description: 'Confirm email',
-    icon: 'mail',
-    details: 'Open the verification email so the workspace trusts your identity.',
-  },
-  {
-    label: 'Preferences',
-    description: 'Adjust defaults',
-    icon: 'settings',
-    details: 'Configure notifications and theme preferences before launch.',
-  },
-];
+import { onboardingSteps as steps } from '../data';
 
 const totalSteps = steps.length;
 
@@ -38,9 +19,9 @@ export default function Demo() {
   const goNext = () => handleStepChange(activeStep + 1);
 
   return (
-    <Block gap="lg" fullWidth>
+    <Block fullWidth>
       <Card p="md">
-        <Block gap="md">
+        <Block>
           <Text size="sm" colorVariant="secondary">
             Provide `icon` and `completedIcon` overrides to visually align each step with its stage.
           </Text>

@@ -9,7 +9,13 @@ import type { TextProps } from '../Text';
 export interface ChipProps extends SpacingProps, BorderRadiusProps, ShadowProps {
   children: React.ReactNode;
   size?: SizeValue;
-  variant?: 'filled' | 'outline' | 'light' | 'subtle' | 'gradient';
+  /**
+   * Visual style. `surface` is the neutral option — it fills from the theme's
+   * background tokens instead of the `color` palette, sitting one step darker
+   * than the surface behind it (input tokens, filter pills). Ignores `color`.
+   */
+  variant?: 'filled' | 'outline' | 'light' | 'subtle' | 'surface' | 'gradient';
+  /** Theme palette name or CSS color. Not used by the `surface` variant. */
   color?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'gray' | string;
   onPress?: () => void;
   /** Show a small leading status dot. Defaults to the chip's resolved text color. */

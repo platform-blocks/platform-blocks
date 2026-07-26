@@ -9,7 +9,24 @@ import type { KnobAppearance, KnobMark, KnobTickLayer } from '../types';
 import type { LayoutState } from '../hooks/useKnobGeometry';
 import { clamp } from '../utils/math';
 import { knobStyles as styles } from '../styles';
-import { polarToCartesian, getPositionRadius, toRadians } from '../utils/geometry';
+import { polarToCartesian, getPositionRadius, toRadians, angularDistance } from '../utils/geometry';
+
+/**
+ * `count` evenly spaced values across the range, endpoints included. Used for fixed-
+ * resolution rings (an LED collar) where the tick count is a property of the look rather
+ * than of `step`. On a full-circle arc the last value shares an angle with the first, which
+ * simply overlaps.
+ */
+const generateCountValues = (min: number, max: number, count?: number) => {
+  if (!(Number.isFinite(count) && count && count >= 2) || max <= min) {
+    return [] as number[];
+  }
+  const total = Math.min(Math.round(count), 512);
+  const span = max - min;
+  return Array.from({ length: total }, (_, index) =>
+    Number((min + (span * index) / (total - 1)).toFixed(6))
+  );
+};
 
 const generateStepValues = (min: number, max: number, step?: number) => {
   if (!(Number.isFinite(step) && step && step > 0) || max <= min) {
@@ -43,7 +60,7 @@ export type TickLayersProps = {
   boundedRatio: number;
   size: number;
   thumbSize: number;
-  resolvedVariant: string;
+  resolvedBehavior: string;
   displayValue: number;
   activeMark?: KnobMark | null;
   disabled: boolean;
@@ -80,7 +97,7 @@ export const TickLayers: React.FC<TickLayersProps> = ({
   boundedRatio,
   size,
   thumbSize,
-  resolvedVariant,
+  resolvedBehavior,
   displayValue,
   disabled,
   markLabelStyle,
@@ -104,6 +121,8 @@ export const TickLayers: React.FC<TickLayersProps> = ({
         } else if (source === 'values') {
           const rawValues = Array.isArray(layer.values) ? layer.values : [];
           entries = rawValues.map((val: number) => ({ value: val }));
+        } else if (source === 'count') {
+          entries = generateCountValues(min, max, layer.count).map((val: number) => ({ value: val }));
         } else if (source === 'steps') {
           const stepValues =
             Array.isArray(layer.values) && layer.values.length > 0
@@ -149,6 +168,28 @@ export const TickLayers: React.FC<TickLayersProps> = ({
       .filter(Boolean) as DerivedTickLayer[];
   }, [appearanceTicks, marksNormalized, min, max, step, isEndless, valueToAngle]);
 
+  // For `activeMode: 'nearest'`, the one tick each layer's pointer is aimed at. Resolved by
+  // angle rather than value so it holds on endless knobs, where the value keeps climbing past
+  // `max` but the pointer still aims somewhere on the dial.
+  const nearestTickIndexByLayer = useMemo(() => {
+    const result: Record<string, number> = {};
+    const valueAngle = valueToAngle(displayValue);
+    derivedTickLayers.forEach((layerData) => {
+      if ((layerData.config.activeMode ?? 'fill') !== 'nearest') return;
+      let nearestIndex = -1;
+      let nearestDistance = Infinity;
+      layerData.ticks.forEach((tick, index) => {
+        const distance = angularDistance(tick.angle, valueAngle);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = index;
+        }
+      });
+      result[layerData.id] = nearestIndex;
+    });
+    return result;
+  }, [derivedTickLayers, displayValue, valueToAngle]);
+
   const hasTickLayers = derivedTickLayers.length > 0;
 
   const markRadius = Math.max(0, ringRadius);
@@ -173,19 +214,90 @@ export const TickLayers: React.FC<TickLayersProps> = ({
           );
           const tickLength = layerData.config.length ?? Math.max(6, Math.round(ringThickness * 0.9));
           const tickWidth = layerData.config.width ?? Math.max(2, Math.round(ringThickness * 0.25));
-          const activeColor = layerData.config.color ?? theme.text.primary;
-          const inactiveColor =
-            layerData.config.inactiveColor ?? theme.colors.gray?.[4] ?? 'rgba(0,0,0,0.4)';
+          const colorInput = layerData.config.color;
+          const inactiveColorInput = layerData.config.inactiveColor;
           const labelConfig = layerData.config.label;
           const labelPosition = labelConfig?.position ?? 'outer';
           const labelOffset = labelConfig?.offset ?? 12;
+          const activeMode = layerData.config.activeMode ?? 'fill';
+          const nearestTickIndex = nearestTickIndexByLayer[layerData.id] ?? -1;
+          const isTickActive = (tick: DerivedTickItem, tickIndex: number) =>
+            activeMode === 'nearest'
+              ? tickIndex === nearestTickIndex
+              : !isEndless && tick.ratio <= boundedRatio + 0.0001;
+
+          /**
+           * A tick's color, most specific source first: a resolver the caller passed, then
+           * the mark's own accent (which is what lets marks-sourced ticks each carry their
+           * own color without a resolver), then the layer's flat color, then the theme.
+           */
+          const resolveTickColor = (tick: DerivedTickItem, tickIndex: number, isActive: boolean) => {
+            const input = isActive ? colorInput : inactiveColorInput;
+            if (typeof input === 'function') {
+              const resolved = input({
+                value: tick.value,
+                index: tickIndex,
+                angle: tick.angle,
+                isActive,
+                mark: tick.mark,
+              });
+              if (resolved) return resolved;
+            }
+            if (isActive && tick.mark?.accentColor) return tick.mark.accentColor;
+            if (typeof input === 'string') return input;
+            return isActive
+              ? theme.text.primary
+              : theme.colors.gray?.[4] ?? 'rgba(0,0,0,0.4)';
+          };
+
+          // Line ticks share one SVG per layer. An SVG clips to its own viewport, so the
+          // viewport is grown past the knob box by however far the strokes reach — otherwise
+          // `position: 'outer'` ticks get squared off at the edge of the knob.
+          const lineStartRadius =
+            position === 'center' ? baseRadius - tickLength / 2 : baseRadius;
+          const lineEndRadius =
+            position === 'inner'
+              ? Math.max(0, baseRadius - tickLength)
+              : position === 'outer'
+                ? baseRadius + tickLength
+                : baseRadius + tickLength / 2;
+          // Round caps overhang the endpoint by half the stroke width.
+          const lineReach = Math.max(lineStartRadius, lineEndRadius) + tickWidth / 2;
+          const linePad = Math.max(0, Math.ceil(lineReach - layoutState.radius));
+          const lineCx = layoutState.cx + linePad;
+          const lineCy = layoutState.cy + linePad;
 
           return (
             <React.Fragment key={layerData.id}>
+              {shape === 'line' ? (
+                <Svg
+                  pointerEvents="none"
+                  width={layoutState.width + linePad * 2}
+                  height={layoutState.height + linePad * 2}
+                  style={[styles.tickLineSvg, { left: -linePad, top: -linePad }]}
+                >
+                  {layerData.ticks.map((tick, tickIndex) => {
+                    const start = polarToCartesian(lineCx, lineCy, lineStartRadius, tick.angle);
+                    const end = polarToCartesian(lineCx, lineCy, lineEndRadius, tick.angle);
+                    return (
+                      <Line
+                        key={`${layerData.id}-${tickIndex}-line`}
+                        x1={start.x}
+                        y1={start.y}
+                        x2={end.x}
+                        y2={end.y}
+                        stroke={resolveTickColor(tick, tickIndex, isTickActive(tick, tickIndex))}
+                        strokeWidth={tickWidth}
+                        strokeLinecap="round"
+                      />
+                    );
+                  })}
+                </Svg>
+              ) : null}
               {layerData.ticks.map((tick, tickIndex) => {
                 const tickKey = `${layerData.id}-${tickIndex}`;
-                const isActive = !isEndless && tick.ratio <= boundedRatio + 0.0001;
-                const color = isActive ? activeColor : inactiveColor;
+                const isActive = isTickActive(tick, tickIndex);
+                const color = resolveTickColor(tick, tickIndex, isActive);
                 const coords = polarToCartesian(
                   layoutState.cx,
                   layoutState.cy,
@@ -195,44 +307,8 @@ export const TickLayers: React.FC<TickLayersProps> = ({
 
                 let tickNode: React.ReactNode = null;
                 if (shape === 'line') {
-                  const startRadius =
-                    position === 'inner'
-                      ? baseRadius
-                      : position === 'outer'
-                        ? baseRadius
-                        : baseRadius - tickLength / 2;
-                  const endRadius =
-                    position === 'inner'
-                      ? Math.max(0, baseRadius - tickLength)
-                      : position === 'outer'
-                        ? baseRadius + tickLength
-                        : baseRadius + tickLength / 2;
-                  const start = polarToCartesian(
-                    layoutState.cx,
-                    layoutState.cy,
-                    startRadius,
-                    tick.angle
-                  );
-                  const end = polarToCartesian(layoutState.cx, layoutState.cy, endRadius, tick.angle);
-                  tickNode = (
-                    <Svg
-                      key={`${tickKey}-line`}
-                      pointerEvents="none"
-                      width={layoutState.width}
-                      height={layoutState.height}
-                      style={StyleSheet.absoluteFill}
-                    >
-                      <Line
-                        x1={start.x}
-                        y1={start.y}
-                        x2={end.x}
-                        y2={end.y}
-                        stroke={color}
-                        strokeWidth={tickWidth}
-                        strokeLinecap="round"
-                      />
-                    </Svg>
-                  );
+                  // Already drawn in the shared SVG above.
+                  tickNode = null;
                 } else if (shape === 'icon' && layerData.config.iconName) {
                   const iconSize = Math.max(12, tickWidth * 2);
                   tickNode = (
@@ -392,7 +468,7 @@ export const TickLayers: React.FC<TickLayersProps> = ({
         const labelX = layoutState.cx + Math.sin(rad) * markLabelDistance;
         const labelY = layoutState.cy - Math.cos(rad) * markLabelDistance;
         const isActiveMark = activeMark?.value === mark.value;
-        const dotScale = isActiveMark && resolvedVariant !== 'status' ? 1.25 : 1;
+        const dotScale = isActiveMark && resolvedBehavior !== 'status' ? 1.25 : 1;
         const dotAccent =
           !disabled && isActiveMark ? mark.accentColor ?? theme.colors.primary[5] : markColor;
 

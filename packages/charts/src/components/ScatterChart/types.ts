@@ -74,8 +74,6 @@ export interface ScatterChartProps
   pointOpacity?: number;
   /** Allow adding points by tapping */
   allowAddPoints?: boolean;
-  /** Allow dragging points */
-  allowDragPoints?: boolean;
   /** Show trend line. true|'overall' for single combined regression, 'per-series' for one per series */
   showTrendline?: boolean | 'overall' | 'per-series';
   /** Trend line color */

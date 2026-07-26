@@ -1,4 +1,4 @@
-import { Block, Column, Loader, Row, Text } from '@platform-blocks/ui';
+import { Block, Loader, Row, Text } from '@platform-blocks/ui';
 
 // `speed` is the duration of one full animation cycle in milliseconds —
 // lower is faster. Default is 1000ms.
@@ -10,7 +10,7 @@ const SPEEDS = [
 
 export default function Demo() {
   return (
-    <Column gap="lg">
+    <Block>
       {SPEEDS.map(({ label, value }) => (
         <Row key={value} gap="lg" align="center">
           <Block minW={96}>
@@ -26,6 +26,6 @@ export default function Demo() {
           <Loader variant="dots" size="lg" speed={value} />
         </Row>
       ))}
-    </Column>
+    </Block>
   );
 }

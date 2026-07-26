@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Column, DatePickerInput, Text } from '@platform-blocks/ui';
+import { Block, DatePickerInput, Text } from '@platform-blocks/ui';
 
 export default function MultipleDatePickerInputDemo() {
   const [value, setValue] = useState<Date[]>([]);
 
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <DatePickerInput
         type="multiple"
         value={value}
@@ -19,6 +19,6 @@ export default function MultipleDatePickerInputDemo() {
           ? `Selected: ${value.map((date) => date.toLocaleDateString()).join(', ')}`
           : 'Select one or more dates'}
       </Text>
-    </Column>
+    </Block>
   );
 }

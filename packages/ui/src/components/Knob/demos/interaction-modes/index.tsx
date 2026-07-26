@@ -1,6 +1,5 @@
 import { useState } from 'react';
-
-import { Column, Knob, Row, Text } from '@platform-blocks/ui';
+import { Block, DataList, Knob, Row, Text, useTheme } from '@platform-blocks/ui';
 
 const MODES = [
   {
@@ -33,13 +32,14 @@ const MODE_LABELS: Record<ModeName, string> = MODES.reduce((acc, mode) => {
 }, {} as Record<ModeName, string>);
 
 export default function Demo() {
+  const theme = useTheme();
   const [value, setValue] = useState(12);
   const [activeMode, setActiveMode] = useState<ModeName | null>(null);
 
   return (
-    <Column gap="md" fullWidth>
+    <Block fullWidth>
       <Row gap="xl" align="center" wrap="wrap">
-        <Column gap="sm" align="center">
+        <Block align="center">
           <Text size="sm" weight="500">
             Multimodal control
           </Text>
@@ -50,7 +50,7 @@ export default function Demo() {
             max={100}
             step={1}
             size={180}
-            variant="endless"
+            behavior="endless"
             valueLabel={{
               position: 'center',
               formatter: (current) => `${current > 0 ? '+' : ''}${Math.round(current)}`,
@@ -82,28 +82,23 @@ export default function Demo() {
               },
             }}
           />
-        </Column>
-  <Column gap="sm" style={{ minWidth: 240, flex: 1 }}>
-          <Text size="sm" weight="500">
-            Gesture cheat sheet
-          </Text>
-          <Column gap="xs">
+        </Block>
+        <Block style={{ minWidth: 140, flex: 1 }}>
+          <DataList spacing="2xl" labelWidth={140}>
             {MODES.map((mode) => (
-              <Column key={mode.key} gap="xs">
-                <Text size="xs" weight="600" colorVariant={activeMode === mode.key ? 'primary' : 'muted'}>
+              <DataList.Item key={mode.key}>
+                {/* The mode currently driving the knob is pulled up to full-contrast text. */}
+                <DataList.ItemLabel
+                  color={activeMode === mode.key ? theme.text.primary : theme.text.muted}
+                >
                   {mode.name}
-                </Text>
-                <Text size="xs" colorVariant="secondary">
-                  {mode.detail}
-                </Text>
-              </Column>
+                </DataList.ItemLabel>
+                <DataList.ItemValue color={theme.text.secondary}>{mode.detail}</DataList.ItemValue>
+              </DataList.Item>
             ))}
-            <Text size="xs" colorVariant="secondary">
-              Knob slides lock after ~32px of travel, so you can run multiple knobs in parallel just like a mixing board.
-            </Text>
-          </Column>
-        </Column>
+          </DataList>
+        </Block>
       </Row>
-    </Column>
+    </Block>
   );
 }

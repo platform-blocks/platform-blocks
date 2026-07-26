@@ -10,5 +10,3 @@ hidden: false
 ---
 
 Custom mask patterns for international formats and extension fields.
-
-```

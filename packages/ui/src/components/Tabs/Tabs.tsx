@@ -14,6 +14,7 @@ import { useDirection } from '../../core/providers/DirectionProvider';
 
 import type { TabsProps, TabItem } from './types';
 import { Flex } from '../Flex';
+import { useControllableState } from '../../hooks/useControllableState';
 
 
 // Resolve a theme token like "primary.5" or fallback to raw value
@@ -149,7 +150,6 @@ const getTabStyles = (
         borderRadius: 9999,
         top: 4,
         left: 4,
-        boxShadow: '0 0px 2px rgba(0,0,0,0.42)',
         // width/height & transforms animated
       }
     },
@@ -372,7 +372,7 @@ const getTabStyles = (
 };
 
 
-export const Tabs: React.FC<TabsProps> = (props) => {
+export const Tabs = React.forwardRef<View, TabsProps>((props, ref) => {
   const {
     items,
     activeTab: controlledActiveTab,
@@ -385,6 +385,7 @@ export const Tabs: React.FC<TabsProps> = (props) => {
     scrollable = false,
     animated = true,
     animationDuration = 250,
+    transitionDuration,
     style,
     tabStyle,
     contentStyle,
@@ -437,29 +438,32 @@ export const Tabs: React.FC<TabsProps> = (props) => {
   }
   const effectivePersistKey = persistKey || autoKeyRef.current || undefined;
 
-  const [internalActiveTab, setInternalActiveTab] = useState<string>(() => {
-    if (controlledActiveTab !== undefined) return controlledActiveTab;
-    if (effectivePersistKey && persistStoreRef.current?.has(effectivePersistKey)) {
-      return persistStoreRef.current.get(effectivePersistKey)!;
-    }
-    return items[0]?.key || '';
+  const [activeTab, setActiveTab, isControlled] = useControllableState<string>({
+    value: controlledActiveTab,
+    // Restores the persisted tab on first mount, else opens the first item.
+    defaultValue: () => {
+      if (effectivePersistKey && persistStoreRef.current?.has(effectivePersistKey)) {
+        return persistStoreRef.current.get(effectivePersistKey)!;
+      }
+      return items[0]?.key || '';
+    },
+    finalValue: '',
+    onChange: onTabChange,
   });
 
-  // Persist when internal (uncontrolled) active tab changes
+  // Persist when the uncontrolled active tab changes
   useEffect(() => {
-    if (controlledActiveTab === undefined && effectivePersistKey) {
-      persistStoreRef.current?.set(effectivePersistKey, internalActiveTab);
+    if (!isControlled && effectivePersistKey) {
+      persistStoreRef.current?.set(effectivePersistKey, activeTab);
     }
-  }, [internalActiveTab, controlledActiveTab, effectivePersistKey]);
+  }, [activeTab, isControlled, effectivePersistKey]);
 
   // Reanimated shared values
   const indicatorPosition = useSharedValue(0); // primary axis (x for horizontal, y for vertical)
   const indicatorSize = useSharedValue(0); // primary axis size (width or height)
   const indicatorCrossSize = useSharedValue(0); // cross axis size (height or width)
   const indicatorSecondaryPosition = useSharedValue(0); // cross axis position (top or left)
-  const activeTabIndex = useSharedValue(items.findIndex(item => item.key === (controlledActiveTab || internalActiveTab)));
-
-  const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : internalActiveTab;
+  const activeTabIndex = useSharedValue(items.findIndex(item => item.key === activeTab));
   // Memoize style maps so theme pointer swaps do not recreate objects unnecessarily
   const styles = useMemo(() => getTabStyles(
     theme,
@@ -563,6 +567,9 @@ export const Tabs: React.FC<TabsProps> = (props) => {
 
   // Reduced motion preference & re-animation guards
   const reducedMotion = useReducedMotion();
+  // `transitionDuration` is the cross-component name; `animationDuration` stays
+  // supported as the original Tabs-specific spelling.
+  const resolvedDuration = Math.max(transitionDuration ?? animationDuration, 0);
   const lastLayoutSigRef = useRef<string | null>(null);
   const lastActiveTabRef = useRef<string | null>(null);
   const mountedRef = useRef(false);
@@ -585,14 +592,15 @@ export const Tabs: React.FC<TabsProps> = (props) => {
     const layoutUnchanged = lastLayoutSigRef.current === layoutSig;
     const firstMount = !mountedRef.current;
 
-    // Decide animation policy
-    const shouldAnimate = !reducedMotion && animated && !firstMount && !(activeUnchanged && layoutUnchanged);
+    // Decide animation policy. A 0ms duration means "no transition", so skip
+    // the timing entirely rather than running a zero-length one.
+    const shouldAnimate = !reducedMotion && animated && resolvedDuration > 0 && !firstMount && !(activeUnchanged && layoutUnchanged);
 
     const primaryPos = isVertical ? layout.y : layout.x;
     const primarySize = isVertical ? layout.height : layout.width;
     const crossSize = isVertical ? layout.width : layout.height;
     const secondaryPos = isVertical ? layout.x : layout.y;
-    const timing = (val: number) => withTiming(val, { duration: animationDuration });
+    const timing = (val: number) => withTiming(val, { duration: resolvedDuration });
 
     if (variant === 'line' || variant === 'chip') {
       if (shouldAnimate) {
@@ -615,7 +623,7 @@ export const Tabs: React.FC<TabsProps> = (props) => {
     lastLayoutSigRef.current = layoutSig;
     lastActiveTabRef.current = activeTab;
     mountedRef.current = true;
-  }, [activeTab, tabLayouts, variant, animated, animationDuration, isVertical, activeTabIndex, indicatorPosition, indicatorSize, indicatorCrossSize, indicatorSecondaryPosition, reducedMotion, items]);
+  }, [activeTab, tabLayouts, variant, animated, resolvedDuration, isVertical, activeTabIndex, indicatorPosition, indicatorSize, indicatorCrossSize, indicatorSecondaryPosition, reducedMotion, items]);
 
   // Guard against unnecessary re-animation when theme changes but active tab and layout unaffected
   const lastThemeRef = useRef<any>(theme);
@@ -628,14 +636,20 @@ export const Tabs: React.FC<TabsProps> = (props) => {
 
   // Animated indicator style
   const animatedIndicatorStyle = useAnimatedStyle(() => {
+    // Before the first tab layout lands the shared values are still 0, which for
+    // the chip variant would render a zero-size shadowed dot in the top-left
+    // corner for one frame. Keep the indicator hidden until it has real size.
+    const hidden = indicatorSize.value === 0;
     if (variant === 'line') {
       return {
+        opacity: hidden ? 0 : 1,
         [isVertical ? 'top' : 'left']: indicatorPosition.value,
         [isVertical ? 'height' : 'width']: indicatorSize.value,
       } as any;
     }
     if (variant === 'chip') {
       return {
+        opacity: hidden ? 0 : 1,
         [isVertical ? 'top' : 'left']: indicatorPosition.value,
         [isVertical ? 'height' : 'width']: indicatorSize.value,
         [isVertical ? 'left' : 'top']: indicatorSecondaryPosition.value,
@@ -646,20 +660,15 @@ export const Tabs: React.FC<TabsProps> = (props) => {
   }, [isVertical, variant]);
 
   const handleTabPress = (tabKey: string) => {
-    if (controlledActiveTab === undefined) {
-      setInternalActiveTab(tabKey);
-    }
-    onTabChange?.(tabKey);
+    setActiveTab(tabKey);
   };
 
   // If active tab key no longer exists (items changed), fall back gracefully
   useEffect(() => {
     if (!items.find(i => i.key === activeTab)) {
-      const fallback = items[0]?.key || '';
-      if (controlledActiveTab === undefined) setInternalActiveTab(fallback);
-      onTabChange?.(fallback);
+      setActiveTab(items[0]?.key || '');
     }
-  }, [items, activeTab, controlledActiveTab, onTabChange]);
+  }, [items, activeTab, setActiveTab]);
 
   const activeTabItem = items.find(item => item.key === activeTab);
 
@@ -757,6 +766,7 @@ export const Tabs: React.FC<TabsProps> = (props) => {
 
   return (
     <View
+      ref={ref}
       style={[styles.container, spacingStyles, style]}
       onLayout={handleContainerLayout}
       {...otherProps}
@@ -925,4 +935,6 @@ export const Tabs: React.FC<TabsProps> = (props) => {
       {navigationOnly && children}
     </View>
   );
-};
+});
+
+Tabs.displayName = 'Tabs';

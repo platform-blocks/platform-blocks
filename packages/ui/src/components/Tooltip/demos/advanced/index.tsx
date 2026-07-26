@@ -1,37 +1,51 @@
-import { Card, Column, Tooltip, Button, Text } from '@platform-blocks/ui';
+import { Block, Button, Card, Text, Tooltip } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="lg">
-      <Card p="md">
-        <Column gap="md">
-          <Column gap="sm">
-            <Text size="sm" colorVariant="secondary">
-              Add open and close delays to avoid flicker when the pointer briefly leaves the trigger.
-            </Text>
-            <Tooltip label="Opens after 400ms" openDelay={400} closeDelay={200}>
-              <Button size="sm" variant="outline">
-                Delayed tooltip
-              </Button>
-            </Tooltip>
-          </Column>
-          <Column gap="sm">
-            <Text size="sm" colorVariant="secondary">
-              Combine `multiline` and `width` to show longer helper text without stretching the layout.
-            </Text>
-            <Tooltip
-              label="This tooltip wraps across multiple lines so you can surface longer instructions without truncation."
-              multiline
-              width={220}
-              withArrow
-            >
-              <Button size="sm">
-                Multiline tooltip
-              </Button>
-            </Tooltip>
-          </Column>
-        </Column>
-      </Card>
-    </Column>
+    <Card p="md">
+      <Block>
+        <Block>
+          <Text size="sm" colorVariant="secondary">
+            Add open and close delays to avoid flicker when the pointer briefly leaves the trigger.
+          </Text>
+          <Tooltip label="Opens after 400ms" openDelay={400} closeDelay={200}>
+            <Button size="sm" variant="outline">
+              Delayed tooltip
+            </Button>
+          </Tooltip>
+        </Block>
+        <Block>
+          <Text size="sm" colorVariant="secondary">
+            Long labels wrap automatically. Tighten or widen the wrap point with `maxWidth`.
+          </Text>
+          <Tooltip
+            label="This tooltip wraps across multiple lines so you can surface longer instructions without truncation."
+            maxWidth={220}
+            withArrow
+          >
+            <Button size="sm">
+              Wrapped tooltip
+            </Button>
+          </Tooltip>
+        </Block>
+        <Block>
+          <Text size="sm" colorVariant="secondary">
+            Components with a `tooltip` prop take a string, or an object to pass any Tooltip option.
+          </Text>
+          <Button
+            size="sm"
+            variant="outline"
+            tooltip={{
+              label: 'The object form forwards straight to Tooltip, so you can widen the bubble or add an arrow.',
+              maxWidth: 320,
+              position: 'right',
+              withArrow: true
+            }}
+          >
+            Tooltip via prop
+          </Button>
+        </Block>
+      </Block>
+    </Card>
   );
 }

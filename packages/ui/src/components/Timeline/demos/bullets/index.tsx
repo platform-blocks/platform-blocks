@@ -1,4 +1,4 @@
-import { Column, Icon, Text, Timeline } from '@platform-blocks/ui';
+import { Block, Icon, Text, Timeline } from '@platform-blocks/ui';
 
 const bulletContent = [
   {
@@ -29,12 +29,12 @@ const bulletSizes = [
 
 export default function Demo() {
   return (
-    <Column gap="lg">
+    <Block>
       <Text size="sm" colorVariant="secondary">
         Override bullet content or scale it with the `bullet` and `bulletSize` props.
       </Text>
 
-      <Column gap="sm">
+      <Block>
         <Text weight="semibold">Custom bullet content</Text>
         <Timeline bulletSize={22}>
           {bulletContent.map((item) => (
@@ -43,9 +43,9 @@ export default function Demo() {
             </Timeline.Item>
           ))}
         </Timeline>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text weight="semibold">Adjust bullet size</Text>
         {bulletSizes.map((entry) => (
           <Timeline key={entry.label} bulletSize={entry.bulletSize}>
@@ -57,8 +57,8 @@ export default function Demo() {
             </Timeline.Item>
           </Timeline>
         ))}
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }
 

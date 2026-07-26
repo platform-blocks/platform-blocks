@@ -1,20 +1,20 @@
 import { useMemo, useState } from 'react';
 
-import { Column, Knob } from '@platform-blocks/ui';
+import { Block, Knob } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [cutoff, setCutoff] = useState(3200);
   const percent = useMemo(() => Math.round(((cutoff - 200) / (8000 - 200)) * 100), [cutoff]);
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <Knob
         value={cutoff}
         onChange={setCutoff}
         min={200}
         max={8000}
         step={50}
-        variant="dual"
+        behavior="dual"
         size={180}
         valueLabel={{
           position: 'center',
@@ -30,6 +30,6 @@ export default function Demo() {
           { value: 6400, label: 'Bright' },
         ]}
       />
-    </Column>
+    </Block>
   );
 }

@@ -1,16 +1,8 @@
 import { useState } from 'react'
 
-import { AutoComplete, Chip, Column, Icon, Text } from '@platform-blocks/ui'
+import { AutoComplete, Block, Chip, Icon, Text } from '@platform-blocks/ui'
 import type { AutoCompleteOption } from '../../types'
-
-const fruitSuggestions: AutoCompleteOption[] = [
-  { label: 'Apple', value: 'apple' },
-  { label: 'Banana', value: 'banana' },
-  { label: 'Orange', value: 'orange' },
-  { label: 'Grape', value: 'grape' },
-  { label: 'Mango', value: 'mango' },
-  { label: 'Pineapple', value: 'pineapple' },
-]
+import { fruits } from '../data'
 
 export default function Demo() {
   const [inputValue, setInputValue] = useState('')
@@ -27,11 +19,11 @@ export default function Demo() {
   }
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block w={400}>
       <AutoComplete
         label="Favorite fruits"
         placeholder="Type a fruit and press Enter..."
-        data={fruitSuggestions}
+        data={fruits}
         value={inputValue}
         onChangeText={setInputValue}
         onSelect={handleToggle}
@@ -58,6 +50,6 @@ export default function Demo() {
           </Chip>
         )}
       />
-    </Column>
+    </Block>
   )
 }

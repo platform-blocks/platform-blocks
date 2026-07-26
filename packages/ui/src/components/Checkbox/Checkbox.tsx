@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
+import { useControllableState } from '../../hooks/useControllableState';
 import { View, Pressable, Animated, Platform } from 'react-native';
 import { useTheme } from '../../core/theme';
 import { Text } from '../Text';
@@ -8,6 +9,10 @@ import { CheckboxProps } from './types';
 import { useCheckboxStyles } from './styles';
 import { Row, Column } from '../Layout';
 import { useDirection } from '../../core/providers/DirectionProvider';
+import { useTransitionDuration } from '../../core/motion/useTransitionDuration';
+
+/** Length of the default check-on animation; other phases scale against it. */
+const CHECKBOX_BASE_DURATION = 160;
 
 export const Checkbox = React.forwardRef<View, CheckboxProps>((props, ref) => {
   const {
@@ -28,6 +33,7 @@ export const Checkbox = React.forwardRef<View, CheckboxProps>((props, ref) => {
     labelPosition = 'right',
     labelProps,
     descriptionProps,
+    transitionDuration,
     children,
     testID,
     style,
@@ -37,18 +43,12 @@ export const Checkbox = React.forwardRef<View, CheckboxProps>((props, ref) => {
 
   const theme = useTheme();
   const { isRTL } = useDirection();
-  const [internalChecked, setInternalChecked] = useState<boolean>(defaultChecked);
-
-  // Determine if controlled
-  const isControlled = typeof checked === 'boolean';
-  const effectiveChecked = isControlled ? !!checked : internalChecked;
-
-  // Sync internal when switching from uncontrolled to controlled (edge case)
-  useEffect(() => {
-    if (isControlled) {
-      // no-op sync; could add logic if needed
-    }
-  }, [isControlled, checked]);
+  const [effectiveChecked, setChecked] = useControllableState<boolean>({
+    value: checked,
+    defaultValue: defaultChecked,
+    finalValue: false,
+    onChange,
+  });
 
   // Resolve color from colorVariant or direct color prop
   const resolveColor = () => {
@@ -83,10 +83,8 @@ export const Checkbox = React.forwardRef<View, CheckboxProps>((props, ref) => {
 
   const handlePress = useCallback(() => {
     if (disabled) return;
-    const next = indeterminate ? true : !effectiveChecked;
-    if (!isControlled) setInternalChecked(next);
-    onChange?.(next);
-  }, [effectiveChecked, indeterminate, disabled, isControlled, onChange]);
+    setChecked((previous) => (indeterminate ? true : !previous));
+  }, [indeterminate, disabled, setChecked]);
 
   // Whether a glyph (check or minus) should currently be showing
   const active = effectiveChecked || indeterminate;
@@ -110,34 +108,48 @@ export const Checkbox = React.forwardRef<View, CheckboxProps>((props, ref) => {
   // checkmark grows from the center (`mark`). Reversed on uncheck.
   const fill = useRef(new Animated.Value(active ? 1 : 0)).current;
   const mark = useRef(new Animated.Value(active ? 1 : 0)).current;
+  const motionDuration = useTransitionDuration(transitionDuration, CHECKBOX_BASE_DURATION);
 
   useEffect(() => {
     const native = Platform.OS !== 'web';
+    // `transitionDuration={0}` (and reduced motion) land on the end state with
+    // no animation; any other explicit value scales both phases proportionally.
+    if (motionDuration === 0) {
+      fill.setValue(active ? 1 : 0);
+      mark.setValue(active ? 1 : 0);
+      setIconType(active ? (indeterminate ? 'minus' : 'check') : null);
+      return;
+    }
+    const scale = motionDuration / CHECKBOX_BASE_DURATION;
+    const ms = (base: number) => Math.round(base * scale);
     if (active) {
       setIconType(indeterminate ? 'minus' : 'check');
       // Fill rises; the mark starts growing before the fill fully lands so the
       // two phases overlap slightly instead of running strictly back-to-back.
       Animated.parallel([
         // Fill height can't run on the native driver, so keep it on JS.
-        Animated.timing(fill, { toValue: 1, duration: 160, useNativeDriver: false }),
+        Animated.timing(fill, { toValue: 1, duration: ms(160), useNativeDriver: false }),
         Animated.sequence([
-          Animated.delay(110),
-          Animated.spring(mark, { toValue: 1, friction: 5, tension: 200, useNativeDriver: native }),
+          Animated.delay(ms(110)),
+          // A spring can't honor an explicit duration, so opt into timing when one is given.
+          transitionDuration == null
+            ? Animated.spring(mark, { toValue: 1, friction: 5, tension: 200, useNativeDriver: native })
+            : Animated.timing(mark, { toValue: 1, duration: ms(160), useNativeDriver: native }),
         ]),
       ]).start();
     } else {
       // Mark shrinks; the fill starts sliding down before it's fully gone.
       Animated.parallel([
-        Animated.timing(mark, { toValue: 0, duration: 100, useNativeDriver: native }),
+        Animated.timing(mark, { toValue: 0, duration: ms(100), useNativeDriver: native }),
         Animated.sequence([
-          Animated.delay(60),
-          Animated.timing(fill, { toValue: 0, duration: 150, useNativeDriver: false }),
+          Animated.delay(ms(60)),
+          Animated.timing(fill, { toValue: 0, duration: ms(150), useNativeDriver: false }),
         ]),
       ]).start(({ finished }) => {
         if (finished) setIconType(null);
       });
     }
-  }, [active, indeterminate, fill, mark]);
+  }, [active, indeterminate, fill, mark, motionDuration, transitionDuration]);
 
   const glyphColor = disabled ? theme.text.disabled : theme.text.onPrimary || 'white';
 

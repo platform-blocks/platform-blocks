@@ -1,13 +1,13 @@
-import { Blockquote, Column } from '@platform-blocks/ui';
+import { Block, Blockquote } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="lg">
+    <Block>
       <Blockquote
         variant="minimal"
         author={{
           name: '@futureshaper',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Futura',
+          avatar: require('../../../../assets/avatars/avatar-3.png'),
         }}
         source={{
           name: 'X (Twitter)',
@@ -25,7 +25,7 @@ export default function Demo() {
         author={{
           name: 'Jordan Reeves',
           title: 'Developer Advocate',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan',
+          avatar: require('../../../../assets/avatars/avatar-1.png'),
         }}
         source={{
           name: 'LinkedIn',
@@ -51,6 +51,6 @@ export default function Demo() {
       >
         This library has saved us countless hours of development time. Clean API, great documentation, and excellent TypeScript support.
       </Blockquote>
-    </Column>
+    </Block>
   );
 }

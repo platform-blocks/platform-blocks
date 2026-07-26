@@ -118,22 +118,4 @@ export interface BarChartProps
   enableCrosshair?: boolean;
   /** Live pointer-follow tooltip */
   liveTooltip?: boolean;
-  /** Pan & zoom opts parity with other charts */
-  enablePanZoom?: boolean;
-  /** Which axes can zoom */
-  zoomMode?: 'x' | 'y' | 'both';
-  /** Minimum zoom factor relative to original domain (e.g. 0.1 = 10%) */
-  minZoom?: number;
-  /** Enable wheel zoom on web */
-  enableWheelZoom?: boolean;
-  /** Wheel zoom step factor (default 0.1) */
-  wheelZoomStep?: number;
-  /** Double-tap (or double-click on web) resets zoom */
-  resetOnDoubleTap?: boolean;
-  /** Clamp pan/zoom so domains never exceed original data bounds */
-  clampToInitialDomain?: boolean;
-  /** Invert wheel zoom direction */
-  invertWheelZoom?: boolean;
-  /** Invert pinch gesture direction (scale grows when fingers move closer) */
-  invertPinchZoom?: boolean;
 }

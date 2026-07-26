@@ -2,14 +2,14 @@ import React from 'react';
 import Svg, { Path, Defs, LinearGradient, Stop, Circle } from 'react-native-svg';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { getIconSize, SizeValue } from '../../core/theme/sizes';
-import { brandIcons, type BrandName } from './brands';
+import { brandIcons, resolveBrandName, type BrandName, type DeprecatedBrandName } from './brands';
 import { useTheme } from '../../core/theme/ThemeProvider';
 
-export type { BrandName };
+export type { BrandName, DeprecatedBrandName };
 
 export interface BrandIconProps {
-  /** Brand name from the registry */
-  brand: BrandName;
+  /** Brand name from the registry. camelCase names are deprecated aliases. */
+  brand: BrandName | DeprecatedBrandName;
   /** Size of the icon */
   size?: SizeValue;
   /** Override all colors with a single color */
@@ -47,7 +47,7 @@ const transformColorForDarkMode = (
   return originalColor;
 };
 
-export const BrandIcon: React.FC<BrandIconProps> = ({
+export const BrandIcon = React.forwardRef<Svg, BrandIconProps>(({
   brand,
   size = 'md',
   color,
@@ -57,14 +57,14 @@ export const BrandIcon: React.FC<BrandIconProps> = ({
   decorative = false,
   invertInDarkMode = false,
   colorScheme: forcedColorScheme,
-}) => {
+}, ref) => {
   // Use UI package's color scheme detection
   const theme = useTheme();
   const systemColorScheme = theme.colorScheme;
 
-  // Get brand icon definition from registry
-  const brandIconDef = brandIcons[brand];
-  
+  // Get brand icon definition from registry (resolving deprecated camelCase aliases)
+  const brandIconDef = brandIcons[resolveBrandName(brand)];
+
   if (!brandIconDef) {
     console.warn(`Brand icon "${brand}" not found in registry`);
     return null;
@@ -109,6 +109,7 @@ export const BrandIcon: React.FC<BrandIconProps> = ({
   // Render SVG with optional color override
   return (
     <Svg
+      ref={ref}
       width={resolvedSize}
       height={resolvedSize}
       viewBox={(brandIconDef as any).viewBox}
@@ -222,7 +223,7 @@ export const BrandIcon: React.FC<BrandIconProps> = ({
       )}
     </Svg>
   );
-};
+});
 
 BrandIcon.displayName = 'BrandIcon';
 

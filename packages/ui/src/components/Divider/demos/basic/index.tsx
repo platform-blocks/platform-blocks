@@ -1,8 +1,8 @@
-import { Column, Divider, Text } from '@platform-blocks/ui';
+import { Block, Divider, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="md">
+    <Block>
       <Text variant="p" weight="medium">
         Q1 Highlights
       </Text>
@@ -11,7 +11,7 @@ export default function Demo() {
       <Text variant="p">Customer retention improved across every region.</Text>
       <Divider variant="dashed" />
       <Text variant="p">Product roadmap updates will ship next quarter.</Text>
-    </Column>
+    </Block>
   );
 }
 

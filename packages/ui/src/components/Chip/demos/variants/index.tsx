@@ -15,6 +15,9 @@ export default function Demo() {
       <Chip variant="subtle" color="primary">
         Subtle
       </Chip>
+      <Chip variant="surface">
+        Surface
+      </Chip>
       <Chip variant="gradient" color="primary">
         Gradient
       </Chip>

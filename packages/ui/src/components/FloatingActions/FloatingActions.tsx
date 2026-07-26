@@ -8,6 +8,7 @@ import { Icon } from '../Icon';
 import { directSpotlight } from '../Spotlight';
 import { useThemeMode } from 'platform-blocks/core/theme/ThemeModeProvider';
 import { useDisclosure } from '../../hooks';
+import { useMergedRef } from '../../core/utils';
 
 export interface FloatingActionItem {
   key: string;
@@ -38,8 +39,8 @@ export interface FloatingActionsProps {
 
 const DEFAULT_GITHUB_URL = 'https://github.com/joshstovall/platform-blocks';
 
-export const FloatingActions: React.FC<FloatingActionsProps> = React.memo(
-  ({
+export const FloatingActions = React.memo(
+  React.forwardRef<View, FloatingActionsProps>(({
     actions,
     onOpen,
     onClose,
@@ -48,7 +49,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = React.memo(
     style,
     onToggleTheme,
     githubUrl = DEFAULT_GITHUB_URL,
-  }) => {
+  }, ref) => {
     const theme = useTheme();
     // const scheme = useColorScheme();
       const { mode, cycleMode } = useThemeMode();
@@ -148,9 +149,11 @@ export const FloatingActions: React.FC<FloatingActionsProps> = React.memo(
       return () => document.removeEventListener('keydown', keyHandler, true);
     }, [isOpen, closeMenu, resolvedActions.length]);
 
+    const mergedContainerRef = useMergedRef<View>(containerRef, ref);
+
     return (
       <View
-        ref={containerRef}
+        ref={mergedContainerRef}
         style={[
           styles.container,
           { bottom: 24, right: 24, pointerEvents: 'box-none' },
@@ -216,7 +219,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = React.memo(
         </View>
       </View>
     );
-  }
+  })
 );
 
 FloatingActions.displayName = 'FloatingActions';

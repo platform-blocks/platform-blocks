@@ -12,7 +12,7 @@ import { clampComponentSize, resolveComponentSize, type ComponentSize, type Comp
 import { getComponentSize } from '../../core/theme/unified-sizing';
 import { useColorInputStyles, type ColorInputSizeMetrics } from './styles';
 import { ColorInputProps } from './types';
-import { useOverlayMode } from '../../hooks';
+import { useControllableState, useOverlayMode } from '../../hooks';
 
 import { isValidHex, normalizeHex } from './utils';
 import { ColorSwatch } from '../ColorSwatch';
@@ -27,6 +27,9 @@ const DEFAULT_SWATCHES = [
 ];
 
 const DEFAULT_FALLBACK_PLACEMENTS: PlacementType[] = ['bottom-start', 'bottom-end', 'top-start', 'top-end', 'bottom', 'top'];
+
+/** Tallest the swatch dropdown gets, and the height hint the positioner uses to pick a side. */
+const COLOR_INPUT_DROPDOWN_MAX_HEIGHT = 420;
 
 const COLOR_INPUT_ALLOWED_SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
 const COLOR_INPUT_ALLOWED_SIZES_ARRAY: ComponentSize[] = [...COLOR_INPUT_ALLOWED_SIZES];
@@ -132,7 +135,8 @@ const ColorInputBase = forwardRef<View, ColorInputProps>((props, ref) => {
     description,
     size = 'md',
     variant = 'default',
-    radius = 'md',
+    // Undefined by design — the `input` radius token supplies the default.
+    radius,
     showPreview = true,
     showInput = true,
     swatches = DEFAULT_SWATCHES,
@@ -157,14 +161,12 @@ const ColorInputBase = forwardRef<View, ColorInputProps>((props, ref) => {
     ...spacingProps
   } = props;
 
-  // Determine if this is a controlled or uncontrolled component
-  const isControlled = value !== undefined;
-
-  // Internal state for uncontrolled usage
-  const [internalValue, setInternalValue] = useState(defaultValue);
-
-  // Compute the effective value
-  const effectiveValue = isControlled ? value : internalValue;
+  const [effectiveValue, setEffectiveValue] = useControllableState<string>({
+    value,
+    defaultValue,
+    finalValue: '',
+    onChange,
+  });
 
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(effectiveValue);
@@ -207,23 +209,20 @@ const ColorInputBase = forwardRef<View, ColorInputProps>((props, ref) => {
     autoUpdate: autoReposition,
     fallbackPlacements,
     keyboardAvoidance,
+    // The picker's full height, so the side is chosen correctly on the very
+    // first pass instead of being corrected once the dropdown has been measured.
+    desiredHeight: COLOR_INPUT_DROPDOWN_MAX_HEIGHT,
     onClose: () => setIsOpen(false),
   });
 
-  const hasMeasuredDropdownRef = useRef(false);
-
-  useEffect(() => {
-    if (!isOpen) {
-      hasMeasuredDropdownRef.current = false;
-    }
-  }, [isOpen]);
-
+  /**
+   * The dropdown is edge-pinned and height-capped by the positioner, so its own
+   * layout can no longer change where it sits — this just refreshes the reported
+   * size. The `setTimeout(…, 16)` it replaces was there to defer a corrective
+   * reposition until the DOM had settled; there is nothing left to correct.
+   */
   const handleDropdownLayout = useCallback(() => {
-    if (hasMeasuredDropdownRef.current) return;
-    hasMeasuredDropdownRef.current = true;
-    setTimeout(() => {
-      updatePosition();
-    }, 16);
+    updatePosition({ silent: true });
   }, [updatePosition]);
 
   // Sync inputValue when effectiveValue changes (controlled mode or defaultValue changes)
@@ -234,18 +233,12 @@ const ColorInputBase = forwardRef<View, ColorInputProps>((props, ref) => {
   const handleColorSelect = useCallback((color: string) => {
     const normalizedColor = normalizeHex(color);
     setInputValue(normalizedColor);
-
-    // Update internal state for uncontrolled mode
-    if (!isControlled) {
-      setInternalValue(normalizedColor);
-    }
-
-    onChange?.(normalizedColor);
+    setEffectiveValue(normalizedColor);
     setIsOpen(false);
 
     // Close overlay
     hideOverlay();
-  }, [onChange, isControlled, hideOverlay]);
+  }, [setEffectiveValue, hideOverlay]);
 
   const renderDropdownContent = useCallback(() => (
     <>
@@ -275,26 +268,16 @@ const ColorInputBase = forwardRef<View, ColorInputProps>((props, ref) => {
     // Only update the value if it's a complete hex (3 or 6 chars after #)
     // Don't normalize here to allow typing without interference
     if (isValidHex(text)) {
-      // Update internal state for uncontrolled mode without normalizing
-      if (!isControlled) {
-        setInternalValue(text);
-      }
-
-      onChange?.(text);
+      // Deliberately un-normalized, so typing isn't rewritten mid-entry.
+      setEffectiveValue(text);
     }
-  }, [onChange, isControlled]);
+  }, [setEffectiveValue]);
 
   const handleInputSubmit = useCallback(() => {
     if (isValidHex(inputValue)) {
       const normalizedColor = normalizeHex(inputValue);
       setInputValue(normalizedColor);
-
-      // Update internal state for uncontrolled mode
-      if (!isControlled) {
-        setInternalValue(normalizedColor);
-      }
-
-      onChange?.(normalizedColor);
+      setEffectiveValue(normalizedColor);
     } else {
       setInputValue(effectiveValue); // Reset to valid value
     }
@@ -303,7 +286,7 @@ const ColorInputBase = forwardRef<View, ColorInputProps>((props, ref) => {
 
     // Close overlay
     hideOverlay();
-  }, [inputValue, effectiveValue, onChange, isControlled, hideOverlay]);
+  }, [inputValue, effectiveValue, setEffectiveValue, hideOverlay]);
 
   const handleInputBlur = useCallback(() => {
     setFocused(false);
@@ -312,18 +295,12 @@ const ColorInputBase = forwardRef<View, ColorInputProps>((props, ref) => {
     if (isValidHex(inputValue)) {
       const normalizedColor = normalizeHex(inputValue);
       setInputValue(normalizedColor);
-
-      // Update internal state for uncontrolled mode
-      if (!isControlled) {
-        setInternalValue(normalizedColor);
-      }
-
-      onChange?.(normalizedColor);
+      setEffectiveValue(normalizedColor);
     } else if (inputValue !== effectiveValue) {
       // Reset to valid value if invalid
       setInputValue(effectiveValue);
     }
-  }, [inputValue, effectiveValue, onChange, isControlled]);
+  }, [inputValue, effectiveValue, setEffectiveValue]);
 
   const handleToggleDropdown = useCallback(() => {
     if (disabled) return;
@@ -346,15 +323,10 @@ const ColorInputBase = forwardRef<View, ColorInputProps>((props, ref) => {
     if (disabled) return;
 
     setInputValue('');
-
-    if (!isControlled) {
-      setInternalValue('');
-    }
-
-    onChange?.('');
+    setEffectiveValue('');
     hideOverlay();
     setIsOpen(false);
-  }, [disabled, hideOverlay, isControlled, onChange]);
+  }, [disabled, hideOverlay, setEffectiveValue]);
 
   const showClearButton = clearable && showInput && !disabled && (inputValue?.length ?? 0) > 0;
 
@@ -368,7 +340,7 @@ const ColorInputBase = forwardRef<View, ColorInputProps>((props, ref) => {
       ? styles.dropdown.minWidth
       : 320;
     const dropdownWidth = Math.max(position.finalWidth ?? 0, minimumWidth);
-    const dropdownMaxHeight = position.maxHeight ?? 420;
+    const dropdownMaxHeight = position.maxHeight ?? COLOR_INPUT_DROPDOWN_MAX_HEIGHT;
 
     const dropdownContent = (
       <View

@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Column, Switch, Text } from '@platform-blocks/ui';
+import { Block, Switch, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [homeAlerts, setHomeAlerts] = useState(true);
   const [awayAlerts, setAwayAlerts] = useState(false);
 
   return (
-    <Column gap="lg">
-      <Column gap="sm">
+    <Block>
+      <Block>
         <Text variant="small" colorVariant="muted">
           Interactive states
         </Text>
@@ -21,15 +21,15 @@ export default function Demo() {
           onChange={setAwayAlerts}
           label="Away team alerts"
         />
-      </Column>
-      <Column gap="sm">
+      </Block>
+      <Block>
         <Text variant="small" colorVariant="muted">
           Disabled states
         </Text>
         <Switch defaultChecked label="Lineup lock" disabled />
         <Switch label="Sound effects" disabled />
-      </Column>
-      <Column gap="sm">
+      </Block>
+      <Block>
         <Text variant="small" colorVariant="muted">
           Validation helpers
         </Text>
@@ -43,7 +43,7 @@ export default function Demo() {
           label="Send pre-game summary"
           description="Dispatch an email recap to coaches and analysts."
         />
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

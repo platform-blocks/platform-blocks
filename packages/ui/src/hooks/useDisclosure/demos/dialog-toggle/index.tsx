@@ -1,4 +1,4 @@
-import { Button, Column, Dialog, Row, Text, useDisclosure } from '@platform-blocks/ui';
+import { Badge, Block, Button, Dialog, Row, Text, useDisclosure } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [opened, { open, close, toggle }] = useDisclosure(false, {
@@ -7,23 +7,21 @@ export default function Demo() {
   });
 
   return (
-    <Column gap="md">
-      <Text>
-        State: <Text weight="700">{opened ? 'open' : 'closed'}</Text>
-      </Text>
+    <Block align="flex-start">
+      <Badge color={opened ? 'success' : 'gray'}>{opened ? 'Open' : 'Closed'}</Badge>
 
-      <Row gap="sm">
+      <Row gap="sm" wrap="wrap">
         <Button onPress={open}>open</Button>
         <Button variant="outline" onPress={close}>close</Button>
         <Button variant="ghost" onPress={toggle}>toggle</Button>
       </Row>
 
       <Dialog visible={opened} title="Dialog title" onClose={close}>
-        <Column gap="md" p="md">
+        <Block p="md">
           <Text>This dialog's open state is managed by useDisclosure.</Text>
           <Button onPress={close}>Close</Button>
-        </Column>
+        </Block>
       </Dialog>
-    </Column>
+    </Block>
   );
 }

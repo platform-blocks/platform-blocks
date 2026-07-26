@@ -1,10 +1,10 @@
-import { Column, Markdown, Text } from '@platform-blocks/ui';
+import { Block, Markdown, Text } from '@platform-blocks/ui';
 
 const CONTENT = `# Media in Markdown
 
 ## Images
 
-![PlatformBlocks Logo](https://github.com/joshstovall/platform-blocks/raw/main/docs/assets/favicon.png)
+![PlatformBlocks Logo](https://raw.githubusercontent.com/joshstovall/platform-blocks/main/apps/platform-blocks.com/assets/favicon.png)
 
 ## Links
 
@@ -30,11 +30,11 @@ Content below the line.`;
 
 export default function Demo() {
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <Markdown>{CONTENT}</Markdown>
       <Text size="sm" colorVariant="secondary">
         Images, links, tables, and horizontal rules render inline
       </Text>
-    </Column>
+    </Block>
   );
 }

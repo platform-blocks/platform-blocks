@@ -1,75 +1,157 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { View } from 'react-native';
 
-import { Column, Knob, Text } from '@platform-blocks/ui';
+import { Block, Knob, Text, useTheme } from '@platform-blocks/ui';
 
-const HOURS = Array.from({ length: 12 }, (_, index) => index * 60);
+const SIZE = 240;
+const CENTER = SIZE / 2;
+const MINUTES_PER_TURN = 12 * 60;
+
+const HOUR_VALUES = Array.from({ length: 12 }, (_, index) => index * 60);
 const HOUR_LABELS = ['12', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'];
+// 60 minute marks around the dial; hour positions are drawn by the layer above.
+const MINUTE_VALUES = Array.from({ length: 60 }, (_, index) => index * 12).filter(
+  (value) => value % 60 !== 0
+);
 
-const formatTime = (value: number) => {
-  const totalMinutes = Math.round(value);
-  const hour = Math.floor(totalMinutes / 60) % 12;
-  const minute = totalMinutes % 60;
-  const displayHour = hour === 0 ? 12 : hour;
-  const paddedMinutes = minute.toString().padStart(2, '0');
-  return `${displayHour}:${paddedMinutes}`;
+const formatTime = (minutes: number) => {
+  const hour = Math.floor(minutes / 60);
+  return `${hour === 0 ? 12 : hour}:${(minutes % 60).toString().padStart(2, '0')}`;
 };
 
+/** Hand pivoting on the dial center: the wrapper is twice the hand length, so it rotates around it. */
+const Hand = ({
+  angle,
+  length,
+  width,
+  color,
+  tail = 0,
+}: {
+  angle: number;
+  length: number;
+  width: number;
+  color: string;
+  tail?: number;
+}) => (
+  <View
+    pointerEvents="none"
+    style={{
+      position: 'absolute',
+      left: CENTER - width / 2,
+      top: CENTER - length,
+      width,
+      height: length * 2,
+      transform: [{ rotate: `${angle}deg` }],
+    }}
+  >
+    <View
+      style={{
+        width,
+        height: length + tail,
+        borderRadius: width / 2,
+        backgroundColor: color,
+      }}
+    />
+  </View>
+);
+
 export default function Demo() {
-  const [minutes, setMinutes] = useState(150);
-  const clockLabel = useMemo(() => formatTime(minutes), [minutes]);
+  const theme = useTheme();
+  const face = theme.backgrounds.surface;
+  const ink = theme.text.primary;
+  const accent = theme.colors.primary[6];
+
+  // Start on a fixed time so server-rendered and client markup match, then sync on mount.
+  const [time, setTime] = useState({ minutes: 10 * 60 + 10, seconds: 0 });
+
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      setTime({
+        minutes: (now.getHours() % 12) * 60 + now.getMinutes(),
+        seconds: now.getSeconds(),
+      });
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
-    <Column gap="sm" align="center">
-      <Knob.Root
-        min={0}
-        max={720}
-        value={minutes}
-        onChange={setMinutes}
-        step={5}
-        size={240}
-        appearance={{
-          arc: { startAngle: -90, sweepAngle: 360, clampInput: true },
-        }}
-      >
-        <Knob.Fill color="#020617" radiusOffset={-18} borderWidth={2} borderColor="rgba(15, 23, 42, 0.8)" />
-        <Knob.Ring thickness={18} color="#0f172a" trailColor="#1f2937" />
-        <Knob.Progress visible={false} />
-        <Knob.TickLayer
-          source="values"
-          values={HOURS}
-          shape="line"
-          length={18}
-          width={3}
-          position="outer"
-          label={{
-            show: true,
-            formatter: (_, index) => HOUR_LABELS[index],
-            offset: 18,
-            style: { color: '#f8fafc', fontSize: 12, fontWeight: '600' },
+    <Block align="center" gap="sm">
+      <View style={{ width: SIZE, height: SIZE }}>
+        <Knob.Root
+          min={0}
+          max={MINUTES_PER_TURN}
+          value={time.minutes}
+          size={SIZE}
+          readOnly
+          withLabel={false}
+          accessibilityLabel={`Clock showing ${formatTime(time.minutes)}`}
+          appearance={{
+            arc: { startAngle: 0, sweepAngle: 360, clampInput: true },
+          }}
+        >
+          <Knob.Ring thickness={12} color={ink} trailColor={ink} backgroundColor={face} />
+          {/* Chapter ring just inside the minute marks */}
+          <Knob.Fill
+            color={face}
+            radiusOffset={-18}
+            borderWidth={1}
+            borderColor={theme.backgrounds.border}
+          />
+          <Knob.Progress visible={false} />
+          <Knob.Thumb visible={false} />
+          <Knob.TickLayer
+            source="values"
+            values={MINUTE_VALUES}
+            shape="line"
+            length={6}
+            width={1.5}
+            position="inner"
+            color={theme.text.muted}
+            inactiveColor={theme.text.muted}
+          />
+          <Knob.TickLayer
+            source="values"
+            values={HOUR_VALUES}
+            shape="line"
+            length={12}
+            width={3}
+            position="inner"
+            color={ink}
+            inactiveColor={ink}
+            label={{
+              show: true,
+              formatter: (_, index) => HOUR_LABELS[index],
+              position: 'inner',
+              offset: -26,
+              style: { color: ink, fontSize: 15, fontWeight: '600' },
+            }}
+          />
+          {/* Hour hand — the knob value is minutes past 12, so it advances gradually. */}
+          <Knob.Pointer visible length={58} width={6} color={ink} counterweight={{ size: 12, color: ink }} />
+        </Knob.Root>
+
+        <Hand angle={((time.minutes % 60) / 60) * 360} length={88} width={4} color={ink} />
+        <Hand angle={(time.seconds / 60) * 360} length={94} width={1.5} color={accent} tail={18} />
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: CENTER - 4,
+            top: CENTER - 4,
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: accent,
           }}
         />
-        <Knob.Pointer
-          visible
-          length={84}
-          width={3}
-          color="#fde047"
-          counterweight={{ size: 10, color: '#facc15' }}
-        />
-        <Knob.Thumb size={14} color="#fde047" strokeWidth={0} offset={-12} />
-        <Knob.ValueLabel
-          position="bottom"
-          formatter={formatTime}
-          textStyle={{ fontSize: 24, fontWeight: '700', color: '#f8fafc' }}
-          secondary={{
-            formatter: () => 'Analog clock',
-            position: 'bottom',
-            textStyle: { fontSize: 14, color: '#94a3b8', marginTop: 4 },
-          }}
-        />
-      </Knob.Root>
-      <Text size="sm" colorVariant="secondary">
-        Drag to reposition the hour hand ({clockLabel})
+      </View>
+
+      <Text size="xl" weight="700">
+        {formatTime(time.minutes)}
       </Text>
-    </Column>
+    </Block>
   );
 }

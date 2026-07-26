@@ -8,6 +8,8 @@ import { resolveComponentSize, type ComponentSize, type ComponentSizeValue } fro
 import type { ListGroupProps, ListGroupItemProps, ListGroupContextValue, ListGroupMetrics } from './types';
 import { factory } from '../../core/factory';
 import { useHover } from '../../hooks';
+import { surfaceInteractionTint } from '../../core/theme/surfaces';
+import { useSurfaceStyles } from '../Surface/useSurfaceStyles';
 
 // Types moved to ./types
 
@@ -82,23 +84,27 @@ export const ListGroup = factory<{ props: ListGroupProps; ref: View }>((props, r
     dividers,
     insetDividers,
   }), [metrics, dividers, insetDividers]);
-  const r = typeof radius === 'number' ? radius : Number((theme as any).radii?.[radius] ?? 0);
-  const palette = theme.colors;
-  const isDark = theme.colorScheme === 'dark';
+  // Theme radii are CSS strings (e.g. '6px'), so Number() yields NaN — parse the
+  // numeric part so token values actually round the corners.
+  const rawRadius = typeof radius === 'number' ? radius : (theme as any).radii?.[radius];
+  const parsedRadius = typeof rawRadius === 'string' ? parseFloat(rawRadius) : rawRadius;
+  const r = Number.isFinite(parsedRadius) ? parsedRadius : 0;
+
+  // The group paints the surface it sits on rather than a fixed palette shade,
+  // so a list inside a level-2 dropdown matches the dropdown instead of
+  // stamping a grey rectangle onto it. `flush` opts out entirely and lets the
+  // parent surface show through.
+  const surface = useSurfaceStyles({
+    withBorder: variant === 'bordered',
+    shadow: 'none',
+  });
 
   const containerStyle: ViewStyle = {
     borderRadius: r,
     overflow: 'hidden',
-    backgroundColor:
-      variant === 'flush'
-        ? 'transparent'
-        : isDark
-          ? palette.surface[2]
-          : palette.surface[3],
-    borderWidth: variant === 'bordered' ? 1 : 0,
-    borderColor: variant === 'bordered'
-      ? (isDark ? palette.gray[5] : palette.gray[3])
-      : 'transparent',
+    ...surface.style,
+    ...(variant === 'flush' ? { backgroundColor: 'transparent' } : {}),
+    ...(variant === 'bordered' ? {} : { borderWidth: 0, borderColor: 'transparent' }),
   };
 
   return (
@@ -116,6 +122,9 @@ export const ListGroupItem = factory<{ props: ListGroupItemProps; ref: View }>((
   const { isRTL } = useDirection();
   const {
     children,
+    label,
+    description,
+    value,
     onPress,
     disabled,
     active,
@@ -124,6 +133,8 @@ export const ListGroupItem = factory<{ props: ListGroupItemProps; ref: View }>((
     endSection,
     style,
     textStyle,
+    descriptionStyle,
+    numberOfLines,
     ...rest
   } = props;
 
@@ -136,9 +147,11 @@ export const ListGroupItem = factory<{ props: ListGroupItemProps; ref: View }>((
   const baseColor = danger
     ? (isDark ? theme.colors.error[2] : theme.colors.error[0])
     : 'transparent';
+  // Neutral states are translucent overlays so they read correctly at any
+  // elevation — an opaque grey is only ever right on one background.
   const activeBg = danger
     ? (isDark ? theme.colors.error[3] : theme.colors.error[1])
-    : (isDark ? theme.colors.gray[2] : theme.colors.gray[1]);
+    : surfaceInteractionTint(theme, 'pressed');
 
   const itemStyle: ViewStyle = {
     flexDirection: isRTL ? 'row-reverse' : 'row',
@@ -153,12 +166,69 @@ export const ListGroupItem = factory<{ props: ListGroupItemProps; ref: View }>((
 
   const hoverBg = danger
     ? (isDark ? theme.colors.error[2] : theme.colors.error[0])
-    : (isDark ? theme.colors.gray[2] : theme.colors.gray[1]);
+    : surfaceInteractionTint(theme, 'hover');
 
   const [hovered, hoverHandlers] = useHover();
   // Keep the local names so the spread + JSX below stays unchanged.
   const onMouseEnter = hoverHandlers.onMouseEnter;
   const onMouseLeave = hoverHandlers.onMouseLeave;
+
+  const primaryColor = danger ? theme.colors.error[6] : theme.text.primary;
+
+  // `label`/`description` build a stacked block, so they can't share the
+  // single-line path — that one renders straight into a `<Text>` and a nested
+  // layout view inside text lays out unpredictably across platforms.
+  const isTwoLine = label != null || description != null;
+
+  const content = isTwoLine ? (
+    <View style={{ flex: 1, minWidth: 0 }}>
+      {label != null ? (
+        <Text size={textSize} style={[{ color: primaryColor }, textStyle]} numberOfLines={numberOfLines}>
+          {label}
+        </Text>
+      ) : null}
+      {description != null ? (
+        <Text
+          size="sm"
+          style={[{ color: theme.text.muted }, descriptionStyle]}
+          numberOfLines={numberOfLines}
+        >
+          {description}
+        </Text>
+      ) : null}
+    </View>
+  ) : (
+    <Text size={textSize} style={[{ flexShrink: 1, color: primaryColor }, textStyle]} numberOfLines={numberOfLines}>
+      {children}
+    </Text>
+  );
+
+  // A two-line block already claims the free space with `flex: 1`, so the
+  // trailing content needs no push. Single-line content only takes its natural
+  // width, so the first trailing element gets an `auto` margin to right-align
+  // the whole tail — putting it on both would strand `value` next to the label.
+  const push: ViewStyle | undefined = isTwoLine
+    ? undefined
+    : isRTL
+      ? { marginRight: 'auto' }
+      : { marginLeft: 'auto' };
+
+  const valueContent =
+    value != null ? (
+      <Text size="sm" style={[{ color: theme.text.muted }, push]}>
+        {value}
+      </Text>
+    ) : null;
+
+  const startContent = startSection ? (
+    <View style={isRTL ? { marginLeft: sectionSpacing } : { marginRight: sectionSpacing }}>
+      {startSection}
+    </View>
+  ) : null;
+
+  const endContent = endSection ? (
+    <View style={valueContent ? undefined : push}>{endSection}</View>
+  ) : null;
 
   if (isPressable) {
     return (
@@ -177,67 +247,50 @@ export const ListGroupItem = factory<{ props: ListGroupItemProps; ref: View }>((
         ]}
         {...rest as any}
       >
-        {startSection && (
-          <View style={isRTL ? { marginLeft: sectionSpacing } : { marginRight: sectionSpacing }}>
-            {startSection}
-          </View>
-        )}
-        <Text
-          size={textSize}
-          style={[{ flexShrink: 1, color: danger ? theme.colors.error[6] : theme.text.primary }, textStyle]}
-        >
-          {children}
-        </Text>
-        {endSection && (
-          <View style={isRTL ? { marginRight: 'auto' } : { marginLeft: 'auto' }}>
-            {endSection}
-          </View>
-        )}
+        {startContent}
+        {content}
+        {valueContent}
+        {endContent}
       </Pressable>
     );
   }
 
   return (
     <View style={[itemStyle, style]} ref={ref} {...rest}>
-      {startSection && (
-        <View style={isRTL ? { marginLeft: sectionSpacing } : { marginRight: sectionSpacing }}>
-          {startSection}
-        </View>
-      )}
-      <Text
-        size={textSize}
-        style={[{ flexShrink: 1, color: danger ? theme.colors.error[6] : theme.text.primary }, textStyle]}
-      >
-        {children}
-      </Text>
-      {endSection && (
-        <View style={isRTL ? { marginRight: 'auto' } : { marginLeft: 'auto' }}>
-          {endSection}
-        </View>
-      )}
+      {startContent}
+      {content}
+      {valueContent}
+      {endContent}
     </View>
   );
 });
 
-export const ListGroupDivider: React.FC<{ inset?: boolean; style?: ViewStyle }> = ({ inset, style }) => {
+export const ListGroupDivider = React.forwardRef<
+  View,
+  { inset?: boolean; style?: ViewStyle }
+>(({ inset, style }, ref) => {
   const group = useListGroup();
-  const theme = useTheme();
   const { isRTL } = useDirection();
+  const surface = useSurfaceStyles({ shadow: 'none' });
   const useInset = inset ?? group?.insetDividers;
   const metrics = group?.metrics ?? DEFAULT_LIST_GROUP_METRICS;
   const insetOffset = useInset ? metrics.dividerInset : 0;
   return (
     <View
+      ref={ref}
       style={[{
         height: 1,
-        backgroundColor: theme.colorScheme === 'dark' ? theme.colors.gray[4] : theme.colors.gray[2],
+        // Hairline matched to the surface it divides.
+        backgroundColor: surface.token.border,
         ...(isRTL
           ? { marginRight: insetOffset, marginLeft: 0 }
           : { marginLeft: insetOffset, marginRight: 0 }),
       }, style]}
     />
   );
-};
+});
+
+ListGroupDivider.displayName = 'ListGroupDivider';
 
 // Helper to auto-insert dividers between children if dividers enabled
 export const ListGroupBody: React.FC<{ children: React.ReactNode }> = ({ children }) => {

@@ -1,10 +1,11 @@
 import React, { useMemo, useEffect, useCallback, useRef } from 'react';
 import { View } from 'react-native';
-import Svg, { Rect, G, Text as SvgText } from 'react-native-svg';
+import Svg, { Rect, Path, G, Text as SvgText } from 'react-native-svg';
+import { roundedBarPath, barCornerMask } from '../../utils/barPath';
 import Animated, { useSharedValue, useAnimatedProps, withTiming, Easing, SharedValue } from 'react-native-reanimated';
 
 import { GroupedBarChartProps } from './types';
-import { ChartContainer, ChartTitle, ChartLegend } from '../../ChartBase';
+import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
@@ -18,7 +19,7 @@ import { bandScale, linearScale, generateNiceTicks, type Scale } from '../../uti
 import { formatNumber } from '../../utils';
 import { createColorAssigner } from '../../colors';
 
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 type ResolvedSeries = {
   id: string;
@@ -64,23 +65,19 @@ const AnimatedGroupedBar: React.FC<{
   animationProgress: SharedValue<number>;
   borderRadius: number;
 }> = React.memo(({ bar, animationProgress, borderRadius }) => {
+  const corners = useMemo(() => barCornerMask('vertical', bar.isPositive), [bar.isPositive]);
   const animatedProps = useAnimatedProps(() => {
     const progress = animationProgress.value;
     const height = bar.height * progress;
     const y = bar.isPositive ? bar.y + (bar.height - height) : bar.y;
     return {
-      x: bar.x,
-      y,
-      width: bar.width,
-      height,
+      d: roundedBarPath(bar.x, y, bar.width, height, borderRadius, corners.tl, corners.tr, corners.br, corners.bl),
     } as any;
-  }, [bar]);
+  }, [bar, borderRadius, corners]);
 
   return (
-    <AnimatedRect
+    <AnimatedPath
       animatedProps={animatedProps}
-      rx={borderRadius}
-      ry={borderRadius}
       fill={bar.color}
       opacity={bar.visible ? 1 : 0}
       pointerEvents="none"
@@ -102,6 +99,7 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
     legend = { show: true, position: 'bottom', align: 'center' },
     disabled = false,
     animationDuration = 800,
+    animation,
     style,
     xAxis,
     yAxis,
@@ -131,17 +129,23 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
   const interactionSeries = interaction?.series;
 
   const basePadding = { top: 40, right: 24, bottom: 64, left: yAxis?.title ? 104 : 80 };
-  const padding = React.useMemo(() => {
-    if (!legend?.show) return basePadding;
-    const position = legend.position || 'bottom';
-    return {
-      ...basePadding,
-      top: position === 'top' ? basePadding.top + 40 : basePadding.top,
-      bottom: position === 'bottom' ? basePadding.bottom + 40 : basePadding.bottom,
-      left: position === 'left' ? basePadding.left + 120 : basePadding.left,
-      right: position === 'right' ? basePadding.right + 120 : basePadding.right,
-    };
-  }, [legend?.show, legend?.position]);
+  // Grown so the plot clears the title and legend overlays.
+  const legendLabels = React.useMemo(
+    () => (series ?? []).map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
+    [series]
+  );
+  const padding = React.useMemo(
+    () =>
+      withChartBandPadding(basePadding, {
+        title,
+        subtitle,
+        legendItems: legend?.show ? legendLabels : undefined,
+        legendPosition: legend?.position,
+        legendFontSize: legend?.fontSize,
+        containerWidth: width,
+      }),
+    [basePadding.left, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels, width]
+  );
   const plotWidth = Math.max(0, width - padding.left - padding.right);
   const plotHeight = Math.max(0, height - padding.top - padding.bottom);
 
@@ -325,10 +329,10 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
     }
     animationProgress.value = 0;
     animationProgress.value = withTiming(1, {
-      duration: animationDuration,
+      duration: animation?.duration ?? animationDuration ?? 800,
       easing: Easing.out(Easing.cubic),
     });
-  }, [animationProgress, animationDuration, dataSignature, disabled]);
+  }, [animationProgress, animation?.duration, animationDuration, dataSignature, disabled]);
 
   const valueTicks = useMemo(() => {
     if (yAxis?.ticks && yAxis.ticks.length) {

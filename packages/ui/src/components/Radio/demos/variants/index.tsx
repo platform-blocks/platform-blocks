@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Column, RadioGroup, Text } from '@platform-blocks/ui';
+import { Block, RadioGroup, Text } from '@platform-blocks/ui';
 
 const PLAN_OPTIONS = [
   { label: 'Starter', value: 'starter', description: 'Up to 3 projects, community support' },
@@ -27,8 +27,8 @@ export default function Demo() {
   const [filterValue, setFilterValue] = useState('active');
 
   return (
-    <Column gap="lg">
-      <Column gap="sm">
+    <Block>
+      <Block>
         <Text variant="small" colorVariant="muted">default</Text>
         <RadioGroup
           variant="default"
@@ -36,9 +36,9 @@ export default function Demo() {
           onChange={setDefaultValue}
           options={FREQUENCY_OPTIONS}
         />
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text variant="small" colorVariant="muted">card</Text>
         <RadioGroup
           variant="card"
@@ -46,9 +46,9 @@ export default function Demo() {
           onChange={setPlanValue}
           options={PLAN_OPTIONS}
         />
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text variant="small" colorVariant="muted">segmented</Text>
         <RadioGroup
           variant="segmented"
@@ -56,9 +56,9 @@ export default function Demo() {
           onChange={setFrequencyValue}
           options={FREQUENCY_OPTIONS}
         />
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text variant="small" colorVariant="muted">chip</Text>
         <RadioGroup
           variant="chip"
@@ -66,7 +66,7 @@ export default function Demo() {
           onChange={setFilterValue}
           options={FILTER_OPTIONS}
         />
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

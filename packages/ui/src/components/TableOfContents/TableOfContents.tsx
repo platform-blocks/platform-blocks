@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { View, Pressable, Platform } from 'react-native';
 import type { LayoutChangeEvent, LayoutRectangle } from 'react-native';
-import Animated, { useAnimatedStyle, withTiming, useSharedValue } from 'react-native-reanimated';
 // NOTE: Direct imports to prevent circular dependency with root index.ts
 import { Text } from '../Text';
 import { useTheme } from '../../core/theme';
@@ -25,7 +24,7 @@ const pickContrast = (bg: string, light: string, dark: string) => {
   return dark;
 };
 
-export const TableOfContents: React.FC<TableOfContentsProps> = (props) => {
+export const TableOfContents = React.forwardRef<View, TableOfContentsProps>((props, ref) => {
   const {
     variant = 'none',
     color,
@@ -191,9 +190,11 @@ export const TableOfContents: React.FC<TableOfContentsProps> = (props) => {
   };
 
   return (
-    <View style={containerStyle}>
+    <View ref={ref} style={containerStyle}>
       {items.map((item, index) => renderItem(item, index))}
     </View>
   );
-};
+});
+
+TableOfContents.displayName = 'TableOfContents';
 

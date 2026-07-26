@@ -4,12 +4,12 @@ export default function Demo() {
   return (
     <Blockquote
       variant="testimonial"
-      shadow
+      // shadow
       author={{
         name: 'Priya Shah',
         title: 'CTO',
         organization: 'Northwind Labs',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Priya',
+        avatar: require('../../../../assets/avatars/avatar-2.png'),
       }}
       rating={{ value: 5, max: 5, showValue: true }}
       source={{

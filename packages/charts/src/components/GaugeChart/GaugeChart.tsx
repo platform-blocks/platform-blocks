@@ -3,7 +3,7 @@ import { View, Text } from 'react-native';
 import Svg, { G, Path, Line, Circle, Text as SvgText, Defs, LinearGradient, Stop } from 'react-native-svg';
 import Animated, { useSharedValue, useAnimatedProps, withTiming, Easing } from 'react-native-reanimated';
 
-import { ChartContainer, ChartTitle, ChartLegend } from '../../ChartBase';
+import { ChartContainer, ChartTitle, ChartLegend , measureChartLegendBand, measureChartTitleBand } from '../../ChartBase';
 import { colorSchemes, getColorFromScheme } from '../../utils';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import type { GaugeChartProps, GaugeChartMarker } from './types';
@@ -147,11 +147,28 @@ export const GaugeChart: React.FC<GaugeChartProps> = (props) => {
 
   // --- Layout: reserve space for the title (top) and legend so the gauge
   // never collides with them, then fit the arc into what remains -----------
+  // Measured rather than guessed — a wrapping legend or a long side label needs more
+  // room than a fixed constant can know about.
   const hasTitle = Boolean(title || subtitle);
-  const titleReserve = hasTitle ? (subtitle ? 46 : 28) : 6;
-  const legendAtSide = legend?.show && (legend.position === 'left' || legend.position === 'right');
-  const bottomReserve = legend?.show && !legendAtSide ? 40 : 8;
-  const sideReserve = legendAtSide ? 96 : 0;
+  const titleReserve = hasTitle ? measureChartTitleBand(title, subtitle) : 6;
+  // Same entries the legend renders below (labels only — that's all a band needs).
+  const legendLabels = useMemo(
+    () => [
+      ...(ranges ?? []).map((range) => ({ label: range.label ?? `${range.from} – ${range.to}` })),
+      ...(markers ?? [])
+        .filter((marker) => marker.label && marker.showInLegend !== false)
+        .map((marker) => ({ label: marker.label as string })),
+    ],
+    [ranges, markers],
+  );
+  const legendBand = measureChartLegendBand({
+    items: legend?.show ? legendLabels : undefined,
+    containerWidth: width,
+    position: legend?.position,
+    fontSize: legend?.fontSize,
+  });
+  const bottomReserve = Math.max(legendBand.bottom, 8);
+  const sideReserve = legendBand.left + legendBand.right;
 
   const labelCfg = labels ?? {};
   const willShowLabels = labelCfg.show !== false && (labelCfg.positions?.length || ticks?.show !== false);

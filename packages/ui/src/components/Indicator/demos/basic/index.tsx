@@ -1,9 +1,9 @@
-import { Avatar, Block, Column, Indicator, Text } from '@platform-blocks/ui';
+import { Avatar, Block, Indicator, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="lg">
-      <Column gap="xs">
+    <Block>
+      <Block>
         <Text size="sm" weight="medium">
           Corner indicator
         </Text>
@@ -14,9 +14,9 @@ export default function Demo() {
           </Text>
           <Indicator placement="top-right" />
         </Block>
-      </Column>
+      </Block>
 
-      <Column gap="xs">
+      <Block>
         <Text size="sm" weight="medium">
           Avatar status
         </Text>
@@ -25,9 +25,9 @@ export default function Demo() {
           <Avatar size="lg" fallback="JS" backgroundColor="#6366F1" />
           <Indicator placement="bottom-right" size="md" color="#22c55e" offset={2} />
         </Block>
-      </Column>
+      </Block>
 
-      <Column gap="xs">
+      <Block>
         <Text size="sm" weight="medium">
           Numeric counter
         </Text>
@@ -50,7 +50,7 @@ export default function Demo() {
             </Text>
           </Indicator>
         </Block>
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

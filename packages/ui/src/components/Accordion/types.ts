@@ -91,8 +91,10 @@ export interface AccordionProps extends SpacingProps, BorderRadiusProps {
    */
   size?: SizeValue;
   /**
-   * Color theme accent applied to active headers & focus states.
-   * @default 'primary'
+   * Brand accent applied to the expanded item (title, chevron, and a subtle
+   * surface tint). Opt-in — when unset, the open state stays neutral and reads
+   * from the bolded title and rotated chevron alone.
+   * @default undefined
    */
   color?: AccordionColor;
   /**
@@ -145,6 +147,13 @@ export interface AccordionProps extends SpacingProps, BorderRadiusProps {
    * @default true
    */
   animated?: AccordionAnimationProp;
+  /**
+   * Length of the expand/collapse transition (chevron spin + panel height) in ms.
+   * Takes precedence over `animated`; `0` renders state changes instantly.
+   * Always 0 when the user prefers reduced motion.
+   * @default 220
+   */
+  transitionDuration?: number;
 }
 
 // Internal styling contract (not exported from barrel by default)

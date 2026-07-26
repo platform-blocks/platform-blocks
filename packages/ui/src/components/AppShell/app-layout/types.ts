@@ -36,6 +36,16 @@ export interface LayoutNavbarConfig extends LayoutComponentEntry {
   width?: ResponsiveSize;
   collapsedWidth?: number;
   expandOnHover?: boolean;
+  /**
+   * When paired with `expandOnHover`, hover-expansion pushes the main content
+   * to the side (flexing the page) instead of overlaying it. Defaults to false.
+   */
+  expandOnHoverPush?: boolean;
+  /**
+   * Auto-expand the navbar once the viewport reaches this breakpoint or wider
+   * (e.g. `'xl'`), overriding `startCollapsedDesktop` at/above that width.
+   */
+  autoExpandBreakpoint?: Breakpoint;
   startCollapsedDesktop?: boolean;
 }
 

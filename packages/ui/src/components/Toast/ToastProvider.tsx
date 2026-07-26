@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState, useCallback, useMemo, useEf
 import { View, ViewStyle, Platform, Dimensions } from 'react-native';
 import { Toast } from './Toast';
 import { ToastProps, ToastVariant } from './types';
+import type { ComponentSizeValue } from '../../core/theme/componentSize';
 import { Icon } from '../Icon';
+import { semanticIcons } from '../../core/theme/semanticIcons';
 
 type ToastRequestListener = () => void;
 
@@ -177,11 +179,13 @@ let toastsStateRef: ToastItem[] = [];
 const pendingToastOperations: Array<(api: ToastContextValue) => void> = [];
 let pendingToastIdCounter = 0;
 
+// Filled: a toast is a brief, glanceable interruption, so the severity mark
+// needs to read as a solid shape rather than a hairline outline.
 const severityIconProps = {
-  info: { name: 'info', size: 'md' },
-  success: { name: 'check', size: 'md' },
-  warning: { name: 'indicator', size: 'md' },
-  error: { name: 'exclamation', size: 'md' }
+  info: { name: semanticIcons.info, size: 'md', variant: 'filled' },
+  success: { name: semanticIcons.success, size: 'md', variant: 'filled' },
+  warning: { name: semanticIcons.warning, size: 'md', variant: 'filled' },
+  error: { name: semanticIcons.error, size: 'md', variant: 'filled' }
 } as const;
 
 function enqueueToastOperation(operation: (api: ToastContextValue) => void) {
@@ -264,6 +268,8 @@ interface ToastProviderProps {
   autoHide?: number;
   /** Default visual variant applied to toasts that don't specify their own */
   defaultVariant?: ToastVariant;
+  /** Default size token applied to toasts that don't specify their own */
+  defaultSize?: ComponentSizeValue;
   /**
    * Static viewport offset (px) reserved for app chrome. A dynamic offset
    * published via `useToastViewportOffset` / `setToastViewportOffset` takes
@@ -280,6 +286,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
   limit = 5,
   autoHide = 4000,
   defaultVariant,
+  defaultSize,
   offset,
   queueOptions
 }) => {
@@ -317,6 +324,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
       id,
       position,
       variant: options.variant ?? defaultVariant,
+      size: options.size ?? defaultSize,
       visible: true,
       children: options.message || options.children,
       timestamp: Date.now(),
@@ -344,7 +352,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
     }
     
     return id;
-  }, [defaultPosition, limit, autoHide, defaultVariant]);
+  }, [defaultPosition, limit, autoHide, defaultVariant, defaultSize]);
 
   const hide = useCallback((id: string) => {
     setToast(prev => prev.map(toast => 

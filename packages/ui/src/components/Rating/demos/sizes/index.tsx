@@ -1,13 +1,21 @@
-import { Rating, Block } from '@platform-blocks/ui';
+import { Block, Rating, Row, Text } from '@platform-blocks/ui';
+
+const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
 
 export default function Demo() {
   return (
-    <Block gap={16}>
-      <Rating value={4} readOnly size="xs" label="Extra Small" />
-      <Rating value={4} readOnly size="sm" label="Small" />
-      <Rating value={4} readOnly size="md" label="Medium" />
-      <Rating value={4} readOnly size="lg" label="Large" />
-      <Rating value={4} readOnly size="xl" label="Extra Large" />
+    <Block fullWidth direction="row" align="center" justify="space-evenly">
+      {SIZES.map((size) => (
+        <Rating
+          key={size}
+          size={size}
+          value={1}
+          readOnly
+          count={1}
+          label={size}
+          labelPosition="left"
+        />
+      ))}
     </Block>
-  )
+  );
 }

@@ -39,6 +39,12 @@ export interface CarouselProps extends SpacingProps {
   dragThreshold?: number;
   /** Duration (ms) for programmatic scroll animations */
   duration?: number;
+  /**
+   * Slide transition length in ms. Cross-component spelling that takes
+   * precedence over `duration`; `0` jumps between slides with no animation
+   * (and also stills the pagination dots).
+   */
+  transitionDuration?: number;
   /** Embla-style breakpoint overrides applied via media queries */
   breakpoints?: Record<string, Partial<CarouselProps>>;
   /**

@@ -1,22 +1,10 @@
 import { View, Text } from 'react-native';
-
 import { DonutChart } from '../../';
-import type { DonutChartDataPoint } from '../../';
 
-const REGION_HEADCOUNT: DonutChartDataPoint[] = [
-  { id: 'na', label: 'North America', value: 1820, color: '#4263EB' },
-  { id: 'emea', label: 'EMEA', value: 1240, color: '#4C6EF5' },
-  { id: 'apac', label: 'APAC', value: 860, color: '#1E9D8B' },
-  { id: 'latam', label: 'LATAM', value: 480, color: '#FF922B' },
-];
-
-const WORK_STYLE: DonutChartDataPoint[] = [
-  { id: 'remote', label: 'Remote', value: 2760, color: '#845EF7', data: { kind: 'work-style' } },
-  { id: 'onsite', label: 'Onsite', value: 1640, color: '#FCC419', data: { kind: 'work-style' } },
-];
+import { REGION_HEADCOUNT, WORK_STYLE, remoteRatio } from './data';
 
 const formatHeadcount = (value: number) => Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
-const remoteRatio = WORK_STYLE[0].value / (WORK_STYLE[0].value + WORK_STYLE[1].value);
+
 export default function Demo() {
   return (
     <DonutChart

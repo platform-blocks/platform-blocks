@@ -1,8 +1,8 @@
-import { Button, Column, Icon, Row } from '@platform-blocks/ui';
+import { Block, Button, Icon, Row } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="lg">
+    <Block>
       <Row gap="md" wrap="wrap" align="flex-start">
         <Button tooltip="Save your current work.">Save</Button>
         <Button
@@ -30,6 +30,6 @@ export default function Demo() {
           Upload
         </Button>
       </Row>
-    </Column>
+    </Block>
   );
 }

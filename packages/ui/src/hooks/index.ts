@@ -16,6 +16,12 @@ export {
   type UseDisclosureHandlers,
   type UseDisclosureReturn,
 } from './useDisclosure';
+export {
+  useControllableState,
+  type ControllableStateAction,
+  type UseControllableStateOptions,
+  type UseControllableStateReturn,
+} from './useControllableState';
 export { useDebouncedValue, type UseDebouncedValueOptions } from './useDebouncedValue';
 export { useDebouncedCallback, type UseDebouncedCallbackReturn } from './useDebouncedCallback';
 export { useMediaQuery } from './useMediaQuery';

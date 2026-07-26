@@ -2,10 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, Pressable, Modal } from 'react-native';
 import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme';
+import { resolveSurface } from '../../core/theme/surfaces';
 import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
 import { useDropdownPositioning } from '../../core/hooks/useDropdownPositioning';
 import type { PlacementType } from '../../core/utils/positioning-enhanced';
-import { useOverlayMode } from '../../hooks';
+import { useControllableState, useOverlayMode } from '../../hooks';
 import { ColorSwatch } from '../ColorSwatch';
 import { normalizeHex } from '../ColorInput/utils';
 import type { ColorPickerProps } from './types';
@@ -37,11 +38,20 @@ export const ColorPicker = factory<{ props: ColorPickerProps; ref: View }>((prop
   const spacingStyles = getSpacingStyles(extractSpacingProps(spacing).spacingProps);
   const { shouldUseModal, shouldUseOverlay } = useOverlayMode();
 
-  const isControlled = value !== undefined;
-  const [internalValue, setInternalValue] = useState(defaultValue);
-  const effectiveValue = isControlled ? value : internalValue;
+  const [effectiveValue, setEffectiveValue] = useControllableState<string>({
+    value,
+    defaultValue,
+    finalValue: '',
+    onChange,
+  });
 
   const [isOpen, setIsOpen] = useState(false);
+
+  const swatchGap = Math.max(4, Math.round(size * 0.25));
+  const swatchRadius = Math.max(4, Math.round(size * 0.25));
+  const popoverWidth = columns * size + (columns - 1) * swatchGap + swatchGap * 2;
+  const swatchRows = Math.max(1, Math.ceil(swatches.length / columns));
+  const popoverHeight = swatchRows * size + (swatchRows - 1) * swatchGap + swatchGap * 2;
 
   // Portals the swatch grid through the app-level OverlayProvider so it escapes
   // any `overflow: hidden` ancestor and repositions at viewport edges — the same
@@ -61,22 +71,17 @@ export const ColorPicker = factory<{ props: ColorPickerProps; ref: View }>((prop
     offset: 6,
     autoUpdate: true,
     fallbackPlacements: DEFAULT_FALLBACK_PLACEMENTS,
+    // The grid's height is fully determined by the swatch count, so the side can
+    // be chosen correctly before the popover ever mounts.
+    desiredHeight: popoverHeight,
     onClose: () => setIsOpen(false),
   });
 
-  const swatchGap = Math.max(4, Math.round(size * 0.25));
-  const swatchRadius = Math.max(4, Math.round(size * 0.25));
-  const popoverWidth = columns * size + (columns - 1) * swatchGap + swatchGap * 2;
-
   const handleSelect = useCallback((color: string) => {
-    const normalized = normalizeHex(color);
-    if (!isControlled) {
-      setInternalValue(normalized);
-    }
-    onChange?.(normalized);
+    setEffectiveValue(normalizeHex(color));
     setIsOpen(false);
     hideOverlay();
-  }, [isControlled, onChange, hideOverlay]);
+  }, [setEffectiveValue, hideOverlay]);
 
   const toggleOpen = useCallback(() => {
     if (disabled) return;
@@ -91,15 +96,13 @@ export const ColorPicker = factory<{ props: ColorPickerProps; ref: View }>((prop
     hideOverlay();
   }, [hideOverlay]);
 
-  const hasMeasuredRef = useRef(false);
-  useEffect(() => {
-    if (!isOpen) hasMeasuredRef.current = false;
-  }, [isOpen]);
-
+  /**
+   * Edge-pinned and height-capped by the positioner, so a layout pass can't move
+   * the popover any more — this only refreshes the reported size. Replaces a
+   * `setTimeout(…, 16)` that deferred a corrective reposition.
+   */
   const handlePopoverLayout = useCallback(() => {
-    if (hasMeasuredRef.current) return;
-    hasMeasuredRef.current = true;
-    setTimeout(() => updatePosition(), 16);
+    updatePosition({ silent: true });
   }, [updatePosition]);
 
   const renderSwatches = useCallback(() => (
@@ -121,9 +124,10 @@ export const ColorPicker = factory<{ props: ColorPickerProps; ref: View }>((prop
     flexDirection: 'row' as const,
     flexWrap: 'wrap' as const,
     gap: swatchGap,
-    backgroundColor: theme.backgrounds.elevated,
+    // Level 2 — matches menus, select dropdowns and popovers.
+    backgroundColor: resolveSurface(theme, 2).background,
     borderWidth: 1,
-    borderColor: theme.colors.gray[3],
+    borderColor: resolveSurface(theme, 2).border,
     borderRadius: Math.max(6, Math.round(size * 0.3)),
     boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
     elevation: 8,

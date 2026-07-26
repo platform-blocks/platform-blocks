@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Button, Column, PinInput, Row, Text } from '@platform-blocks/ui';
+import { Block, Button, PinInput, Row, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [maskedValue, setMaskedValue] = useState('');
@@ -41,10 +41,10 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="lg">
+    <Block>
       <Text weight="semibold">Security-focused PIN inputs</Text>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" weight="semibold">
           Masked PIN input
         </Text>
@@ -57,9 +57,9 @@ export default function Demo() {
           mask
           label="Secure PIN"
         />
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" weight="semibold">
           OTP with auto-complete
         </Text>
@@ -82,9 +82,9 @@ export default function Demo() {
             {otpStatus}
           </Text>
         ) : null}
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" weight="semibold">
           PIN validation state
         </Text>
@@ -125,8 +125,8 @@ export default function Demo() {
             {validationMessage}
           </Text>
         ) : null}
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }
 

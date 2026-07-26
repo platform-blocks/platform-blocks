@@ -10,5 +10,3 @@ hidden: false
 ---
 
 Full-fidelity testimonial with avatar, organization, rating, verified badge, and shadow.
-
-```

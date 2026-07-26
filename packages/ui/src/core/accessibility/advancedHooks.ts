@@ -59,6 +59,25 @@ export const useAnnouncementQueue = () => {
 };
 
 /**
+ * Elements that can receive keyboard focus, used for focus trapping and for
+ * resolving the "first focusable child" of a container on web.
+ */
+export const FOCUSABLE_SELECTOR =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Unwraps a ref value to the underlying DOM node on web. Refs handed back by
+ * `Animated.View` and other wrappers are not always the host node itself, so
+ * fall back to the shapes those wrappers expose.
+ */
+export const resolveDomNode = (ref: any): any => {
+  if (!ref || Platform.OS !== 'web') return null;
+  if (typeof ref.querySelectorAll === 'function') return ref;
+  const node = ref.getNode?.() ?? ref._node ?? ref.node;
+  return typeof node?.querySelectorAll === 'function' ? node : null;
+};
+
+/**
  * Hook for managing focus trapping within a component
  * Gracefully handles cases where AccessibilityProvider is not available (e.g., in overlays)
  */
@@ -74,17 +93,17 @@ export const useFocusTrap = (isActive: boolean = false) => {
       previousActiveElement.current = document.activeElement;
     }
 
-    const container = containerRef.current;
+    const container = Platform.OS === 'web'
+      ? resolveDomNode(containerRef.current)
+      : containerRef.current;
     if (!container) return;
 
     const handleKeyDown = (event: any) => {
       if (event.key !== 'Tab') return;
 
       if (Platform.OS === 'web') {
-        const focusableElements = container.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        
+        const focusableElements = container.querySelectorAll(FOCUSABLE_SELECTOR);
+
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];
 

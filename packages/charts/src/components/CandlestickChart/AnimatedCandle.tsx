@@ -33,6 +33,8 @@ export interface AnimatedCandleProps {
   index: number;
   disabled?: boolean;
   theme: ReturnType<typeof useChartTheme>;
+  /** Draw duration (ms) for the candle body grow-in animation */
+  duration?: number;
 }
 
 export const AnimatedCandle: React.FC<AnimatedCandleProps> = React.memo(({
@@ -44,6 +46,7 @@ export const AnimatedCandle: React.FC<AnimatedCandleProps> = React.memo(({
   index,
   disabled = false,
   theme,
+  duration = 420,
 }) => {
   const bodyHeight = useSharedValue(Math.max(1, candle.bodyHeight));
   const bodyTop = useSharedValue(candle.bodyTop);
@@ -75,14 +78,14 @@ export const AnimatedCandle: React.FC<AnimatedCandleProps> = React.memo(({
     bodyHeight.value = withDelay(
       delay,
       withTiming(Math.max(1, candle.bodyHeight), {
-        duration: 420,
+        duration,
         easing: Easing.out(Easing.cubic),
       })
     );
     bodyTop.value = withDelay(
       delay,
       withTiming(candle.bodyTop, {
-        duration: 420,
+        duration,
         easing: Easing.out(Easing.cubic),
       })
     );
@@ -108,7 +111,7 @@ export const AnimatedCandle: React.FC<AnimatedCandleProps> = React.memo(({
         easing: Easing.out(Easing.quad),
       })
     );
-  }, [disabled, index, candle.bodyHeight, candle.bodyTop, candle.wickY1, candle.wickY2]);
+  }, [disabled, index, duration, candle.bodyHeight, candle.bodyTop, candle.wickY1, candle.wickY2]);
 
   useEffect(() => {
     selectionScale.value = withTiming(isSelected ? 1.08 : 1, {

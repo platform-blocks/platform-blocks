@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, ScrollView, StyleSheet, Linking } from 'react-native';
 import { PageLayout } from '../components/PageLayout';
+import { RouteLink } from '../components/RouteLink';
 import { Text, Card, Chip, Flex, Loader, Tabs, H3, Button, Icon, Link } from '@platform-blocks/ui';
 import type { TabItem } from '@platform-blocks/ui';
 import { GlobalChartsRoot } from '@platform-blocks/charts';
@@ -18,13 +19,18 @@ interface ChartDetailScreenProps { chart?: string | string[] }
 export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScreenProps) {
   const router = useRouter();
   const [loadedDemoComponents, setLoadedDemoComponents] = useState<Record<string, React.ComponentType>>({});
-  const [newDemos, setNewDemos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const chartSlug = useMemo(() => {
     if (Array.isArray(chart)) return chart[chart.length - 1] ?? 'Unknown';
     return chart ?? 'Unknown';
   }, [chart]);
+
+  // Derived, not effect-loaded — see ComponentDetailScreen. Demo titles,
+  // descriptions, and source are synchronous; only the runnable preview is not.
+  const newDemos = useMemo(
+    () => (chartSlug && hasNewDemosArtifacts() ? attachDemoCode(chartSlug, getNewDemos(chartSlug)) : []),
+    [chartSlug]
+  );
 
   const chartDoc = useMemo(() => getChartDoc(chartSlug), [chartSlug]);
   const relatedCharts = useMemo(() => (chartDoc ? getRelatedCharts(chartDoc.slug) : []), [chartDoc]);
@@ -36,46 +42,31 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
     return `import { ${chartDoc?.slug ?? chartSlug} } from '${pkg}';`;
   }, [chartDoc, chartSlug]);
 
-  // Genuine demo-loading effect: flips the loading flag and asynchronously
-  // attaches demo code when the chart changes.
+  // Hydrate the runnable demo components — the only genuinely async part. All
+  // the surrounding documentation (title, summary, quick facts, related charts,
+  // demo prose and code) is already in the static/SSR HTML for crawlers.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- demo-loading orchestration
-    setLoading(true);
-    if (chartSlug && hasNewDemosArtifacts()) {
-      const demos = attachDemoCode(chartSlug, getNewDemos(chartSlug));
-      setNewDemos(demos);
-      let cancelled = false;
-      demos.forEach(async d => {
-        try {
-          const mod = await loadDemoComponentNew(chartSlug, d.id);
-          if (!cancelled && mod) {
-            setLoadedDemoComponents(prev => (prev[d.id] ? prev : { ...prev, [d.id]: mod as React.ComponentType }));
-          }
-        } catch {/* ignore */}
-      });
-      setLoading(false);
-      return () => { cancelled = true; };
-    } else {
-      setLoading(false);
-    }
-  }, [chartSlug]);
+    if (!chartSlug) return;
+    let cancelled = false;
+    newDemos.forEach(async (d: any) => {
+      try {
+        const mod = await loadDemoComponentNew(chartSlug, d.id);
+        if (!cancelled && mod) {
+          setLoadedDemoComponents(prev => (prev[d.id] ? prev : { ...prev, [d.id]: mod as React.ComponentType }));
+        }
+      } catch {/* ignore */}
+    });
+    return () => { cancelled = true; };
+  }, [chartSlug, newDemos]);
 
   const hasDemos = newDemos.length > 0;
-
-  if (loading) {
-    return (
-      <PageLayout>
-        <View style={styles.container}><Loader size="lg" /><Text variant="p" style={{ marginTop: 16 }}>Loading chart docs…</Text></View>
-      </PageLayout>
-    );
-  }
 
   if (!chartDoc) {
     return (
       <PageLayout>
         <View style={styles.container}>
           <Card variant="outline" style={{ padding: 24, gap: 12 }}>
-            <Text variant="h3" weight="semibold">We couldn&apos;t find docs for “{chartSlug}”.</Text>
+            <Text variant="h1" weight="semibold">We couldn&apos;t find docs for “{chartSlug}”.</Text>
             <Text colorVariant="muted">
               The chart may be in development or renamed. Check the charts catalog for the full list of supported visualisations.
             </Text>
@@ -88,25 +79,31 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
     );
   }
 
+  // Sits above the tabs, not inside the Overview panel: the page's <h1> and its
+  // summary should survive a switch to the Examples tab, and every chart page
+  // was previously shipping with no <h1> at all because this block lived in a
+  // tab panel that the Examples view unmounts.
+  const pageHeader = (
+    <Card style={{ padding: 20, gap: 12 }}>
+      <Text variant="h1" weight="bold">{chartDoc.title}</Text>
+      {chartDoc.summary && (
+        <Text colorVariant="muted">{chartDoc.summary}</Text>
+      )}
+      {chartDoc.tags.length > 0 && (
+        <Flex direction="row" gap={8} wrap="wrap">
+          {chartDoc.tags.map((tag) => (
+            <Chip key={tag} size="xs" variant="light">{tag}</Chip>
+          ))}
+        </Flex>
+      )}
+    </Card>
+  );
+
   const overviewTab = (
     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       <View style={{ gap: 16 }}>
-        <Card style={{ padding: 20, gap: 12 }}>
-          <Text variant="h2" weight="bold">{chartDoc.title}</Text>
-          {chartDoc.summary && (
-            <Text colorVariant="muted">{chartDoc.summary}</Text>
-          )}
-          {chartDoc.tags.length > 0 && (
-            <Flex direction="row" gap={8} wrap="wrap">
-              {chartDoc.tags.map((tag) => (
-                <Chip key={tag} size="xs" variant="light">{tag}</Chip>
-              ))}
-            </Flex>
-          )}
-        </Card>
-
         <Card style={{ padding: 20, gap: 16 }}>
-          <Text variant="h4" weight="semibold">Quick facts</Text>
+          <Text variant="h2" weight="semibold">Quick facts</Text>
           <Flex direction="column" gap={12}>
             <InfoRow label="Category" value={categoryMeta?.label ?? 'Charts'} icon="chart-bar" />
             <InfoRow label="Package" value={chartDoc.packageName ?? '@platform-blocks/charts'} icon="database" />
@@ -129,17 +126,21 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
 
         {relatedCharts.length > 0 && (
           <Card style={{ padding: 20, gap: 12 }}>
-            <Text variant="h4" weight="semibold">Related charts</Text>
+            <Text variant="h2" weight="semibold">Related charts</Text>
             <Flex direction="row" gap={8} wrap="wrap">
+              {/* Anchors, not press handlers: the charts index renders one tab panel
+                  at a time, so these related-chart links are what connect the other
+                  22 chart pages to the rest of the site. */}
               {relatedCharts.map((related) => (
-                <Chip
+                <RouteLink
                   key={related.slug}
-                  size="sm"
-                  variant="outline"
-                  onPress={() => router.push(`/charts/${related.slug}`)}
+                  href={`/charts/${related.slug}`}
+                  accessibilityLabel={related.title}
                 >
-                  {related.title}
-                </Chip>
+                  <Chip size="sm" variant="outline">
+                    {related.title}
+                  </Chip>
+                </RouteLink>
               ))}
             </Flex>
           </Card>
@@ -147,7 +148,7 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
 
         {chartDoc.resources && chartDoc.resources.length > 0 && (
           <Card style={{ padding: 20, gap: 12 }}>
-            <Text variant="h4" weight="semibold">Further reading</Text>
+            <Text variant="h2" weight="semibold">Further reading</Text>
             <Flex direction="column" gap={10}>
               {chartDoc.resources.map((resource) => (
                 <Link
@@ -188,7 +189,9 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
                 try {
                   preview = (
                     <GlobalChartsRoot
-                      style={{ width: '100%' }}
+                      // Charts declare a fixed width, so the full-width root has to
+                      // centre them or every demo hugs the left edge of the card.
+                      style={{ width: '100%', alignItems: 'center' }}
                       config={DOCS_CHART_INTERACTION_CONFIG}
                     >
                       <DemoComp />
@@ -208,7 +211,7 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
               return (
                 <View key={demo.id}>
                   <Flex direction="row" justify="space-between" align="center" style={{ marginBottom: 8 }}>
-                    <Text variant="h4" weight="semibold">{demo.title}</Text>
+                    <Text variant="h2" weight="semibold">{demo.title}</Text>
                     {demo.category && (<Chip size="sm" variant="filled">{demo.category}</Chip>)}
                   </Flex>
                   {/* <Card style={{ padding: 16 }}> */}
@@ -235,6 +238,7 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
   return (
     <PageLayout>
       <View style={styles.container}>
+        {pageHeader}
         <Tabs items={tabs} color="secondary"/>
       </View>
     </PageLayout>

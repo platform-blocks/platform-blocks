@@ -12,6 +12,12 @@ export interface SelectOption<T = any> {
   label: string;
   /** Value returned when the option is chosen. */
   value: T;
+  /**
+   * Secondary line rendered under the label inside the dropdown. The trigger
+   * still shows the label alone, so this is for disambiguating options, not for
+   * copy the user needs after choosing.
+   */
+  description?: string;
   /** When true, the option renders but cannot be selected. */
   disabled?: boolean;
 }

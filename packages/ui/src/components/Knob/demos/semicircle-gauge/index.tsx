@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { Column, Knob, Text } from '@platform-blocks/ui';
+import { Block, Knob, Text } from '@platform-blocks/ui';
 
 const TEMPERATURE_STOPS = [0, 25, 50, 75, 100];
 
@@ -15,7 +15,7 @@ export default function Demo() {
   }, [level]);
 
   return (
-    <Column gap="sm" align="center">
+    <Block align="center">
       <Knob.Root
         min={0}
         max={100}
@@ -30,9 +30,13 @@ export default function Demo() {
       >
         <Knob.Fill visible={false} />
         <Knob.Ring thickness={30} color="#0f172a" trailColor="#1f2937" radiusOffset={-4} />
+        <Knob.RingSegment value={35} color="#1e3a8a" />
+        <Knob.RingSegment value={25} color="#155e75" />
+        <Knob.RingSegment value={25} color="#854d0e" />
+        <Knob.RingSegment value={15} color="#7f1d1d" />
         <Knob.Progress
           mode="contiguous"
-          thickness={30}
+          thickness={14}
           color="#22d3ee"
           roundedCaps
         />
@@ -67,6 +71,6 @@ export default function Demo() {
       <Text size="sm" colorVariant="secondary">
         Thermal headroom · {status}
       </Text>
-    </Column>
+    </Block>
   );
 }

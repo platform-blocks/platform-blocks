@@ -6,7 +6,8 @@
     "scheme": "platform-blocks-docs",
     "web": {
       "favicon": "./assets/favicon.png",
-      "bundler": "metro"
+      "bundler": "metro",
+      "output": "static"
     },
     "extra": {
       "router": {},

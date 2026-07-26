@@ -4,7 +4,8 @@ import React, {
   useCallback,
 } from 'react';
 import { View } from 'react-native';
-import Svg, { Rect, G } from 'react-native-svg';
+import Svg, { Path, G } from 'react-native-svg';
+import { roundedBarPath } from '../../utils/barPath';
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -15,7 +16,7 @@ import Animated, {
 
 import { StackedBarChartProps } from './types';
 import { BarChartDataPoint } from '../BarChart/types';
-import { ChartContainer, ChartTitle, ChartLegend } from '../../ChartBase';
+import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
@@ -28,7 +29,7 @@ import { bandScale, linearScale, generateNiceTicks } from '../../utils/scales';
 import type { Scale } from '../../utils/scales';
 import { getColorFromScheme, colorSchemes, formatNumber } from '../../utils';
 
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 type ResolvedSeries = {
   id: string;
@@ -61,6 +62,8 @@ type ComputedSegment = RawSegment & {
   baseY: number;
   height: number;
   isPositive: boolean;
+  /** Corner-rounding mask — only the outermost segment of a stack rounds its data end. */
+  corners: { tl: number; tr: number; br: number; bl: number };
 };
 
 interface CategoryLayout {
@@ -89,19 +92,15 @@ const AnimatedStackedSegment: React.FC<{
     const progress = animationProgress.value;
     const height = segment.height * progress;
     const y = segment.isPositive ? segment.baseY - height : segment.baseY;
+    const c = segment.corners;
     return {
-      x: segment.x,
-      y,
-      width: segment.width,
-      height,
+      d: roundedBarPath(segment.x, y, segment.width, height, borderRadius, c.tl, c.tr, c.br, c.bl),
     } as any;
-  }, [segment]);
+  }, [segment, borderRadius]);
 
   return (
-    <AnimatedRect
+    <AnimatedPath
       animatedProps={animatedProps}
-      rx={borderRadius}
-      ry={borderRadius}
       fill={segment.color}
       opacity={segment.visible ? 1 : 0}
       pointerEvents="none"
@@ -121,6 +120,7 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
     subtitle,
     legend = { show: true, position: 'bottom', align: 'center' },
     animationDuration = 800,
+    animation,
     disabled = false,
     style,
     xAxis,
@@ -142,17 +142,23 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
   const interactionSeries = interaction?.series;
 
   const basePadding = { top: 40, right: 24, bottom: 64, left: yAxis?.title ? 104 : 80 };
-  const padding = React.useMemo(() => {
-    if (!legend?.show) return basePadding;
-    const position = legend.position || 'bottom';
-    return {
-      ...basePadding,
-      top: position === 'top' ? basePadding.top + 40 : basePadding.top,
-      bottom: position === 'bottom' ? basePadding.bottom + 40 : basePadding.bottom,
-      left: position === 'left' ? basePadding.left + 120 : basePadding.left,
-      right: position === 'right' ? basePadding.right + 120 : basePadding.right,
-    };
-  }, [legend?.show, legend?.position]);
+  // Grown so the plot clears the title and legend overlays.
+  const legendLabels = React.useMemo(
+    () => (series ?? []).map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
+    [series]
+  );
+  const padding = React.useMemo(
+    () =>
+      withChartBandPadding(basePadding, {
+        title,
+        subtitle,
+        legendItems: legend?.show ? legendLabels : undefined,
+        legendPosition: legend?.position,
+        legendFontSize: legend?.fontSize,
+        containerWidth: width,
+      }),
+    [basePadding.left, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels, width]
+  );
   const plotWidth = Math.max(0, width - padding.left - padding.right);
   const plotHeight = Math.max(0, height - padding.top - padding.bottom);
 
@@ -255,7 +261,7 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
     const bandwidth = xScale.bandwidth ? xScale.bandwidth() : categories.length ? plotWidth / categories.length : 0;
     return layoutResult.categories.map((layout) => {
       const x = xScale(layout.category) ?? 0;
-      const segments: ComputedSegment[] = layout.segments.map((segment) => {
+      const rawSegments = layout.segments.map((segment) => {
         const y0Px = valueScale(segment.y0);
         const y1Px = valueScale(segment.y1);
         const top = Math.min(y0Px, y1Px);
@@ -273,6 +279,29 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
           isPositive,
         };
       });
+      // Round only the outermost data end of each stack: the top of the highest
+      // positive segment and the bottom of the lowest negative segment. Interior
+      // boundaries stay square (separated by the surface gap).
+      let topIdx = -1;
+      let botIdx = -1;
+      rawSegments.forEach((s, i) => {
+        if (s.height <= 0) return;
+        if (s.isPositive) {
+          if (topIdx < 0 || s.y < rawSegments[topIdx].y) topIdx = i;
+        } else {
+          const segBottom = s.y + s.height;
+          if (botIdx < 0 || segBottom > rawSegments[botIdx].y + rawSegments[botIdx].height) botIdx = i;
+        }
+      });
+      const segments: ComputedSegment[] = rawSegments.map((s, i) => ({
+        ...s,
+        corners:
+          i === topIdx
+            ? { tl: 1, tr: 1, br: 0, bl: 0 }
+            : i === botIdx
+              ? { tl: 0, tr: 0, br: 1, bl: 1 }
+              : { tl: 0, tr: 0, br: 0, bl: 0 },
+      }));
       return { layout, x, segments };
     });
   }, [layoutResult.categories, xScale, valueScale, categories.length, plotWidth]);
@@ -301,10 +330,10 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
     }
     animationProgress.value = 0;
     animationProgress.value = withTiming(1, {
-      duration: animationDuration,
+      duration: animation?.duration ?? animationDuration ?? 800,
       easing: Easing.out(Easing.cubic),
     });
-  }, [animationProgress, animationDuration, dataSignature, disabled]);
+  }, [animationProgress, animation?.duration, animationDuration, dataSignature, disabled]);
 
   const valueTicks = useMemo(() => {
     if (yAxis?.ticks && yAxis.ticks.length) {

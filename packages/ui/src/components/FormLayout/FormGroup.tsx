@@ -3,13 +3,13 @@ import { View } from 'react-native';
 import { DESIGN_TOKENS } from '../../core';
 import type { FormGroupProps } from './types';
 
-export const FormGroup: React.FC<FormGroupProps> = ({
+export const FormGroup = React.forwardRef<View, FormGroupProps>(({
   children,
   direction = 'column',
   columns = 2,
   spacing = 'md',
   align = 'stretch',
-}) => {
+}, ref) => {
   const getSpacing = () => {
     switch (spacing) {
       case 'xs': return DESIGN_TOKENS.spacing.xs;
@@ -70,6 +70,7 @@ export const FormGroup: React.FC<FormGroupProps> = ({
   // Column layout
   return (
     <View
+      ref={ref}
       style={{
         gap: getSpacing(),
         alignItems: getAlignItems(),
@@ -78,4 +79,6 @@ export const FormGroup: React.FC<FormGroupProps> = ({
       {children}
     </View>
   );
-};
+});
+
+FormGroup.displayName = 'FormGroup';

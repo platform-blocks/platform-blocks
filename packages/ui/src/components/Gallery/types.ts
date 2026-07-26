@@ -1,6 +1,9 @@
+import type { ImageSourcePropType } from 'react-native';
+
 export interface GalleryItem {
   id: string;
-  uri: string;
+  /** Remote image URI, or a bundled asset from `require('./photo.png')` */
+  uri: string | ImageSourcePropType;
   title?: string;
   description?: string;
   metadata?: {

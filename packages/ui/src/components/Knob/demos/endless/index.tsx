@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
-
-import { Column, Knob, Text } from '@platform-blocks/ui';
+import { Block, Knob } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [value, setValue] = useState(0);
@@ -8,32 +7,18 @@ export default function Demo() {
   const rotations = useMemo(() => value / 360, [value]);
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <Knob
         value={value}
         onChange={setValue}
-        min={0}
-        max={360}
-        step={5}
-        variant="endless"
-        size={170}
+        behavior="endless"
         valueLabel={{
-          position: 'center',
           formatter: () => `${Math.round(normalizedAngle)}°`,
           secondary: {
-            position: 'bottom',
             formatter: () => `${rotations.toFixed(2)} turns`,
           },
         }}
       />
-      <Column gap="xs">
-        <Text size="xs" colorVariant="secondary">
-          Normalized angle: {Math.round(normalizedAngle)}°
-        </Text>
-        <Text size="xs" colorVariant="secondary">
-          Total turns: {rotations.toFixed(2)}
-        </Text>
-      </Column>
-    </Column>
+    </Block>
   );
 }

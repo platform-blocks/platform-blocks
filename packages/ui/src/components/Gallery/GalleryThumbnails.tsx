@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, TouchableOpacity, Image, ScrollView, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { Text } from '../Text';
 import type { GalleryThumbnailProps } from './types';
+import { resolveImageSource } from '../../utils/imageSource';
 
 const SCROLL_PADDING = 8;
 const THUMBNAIL_MARGIN = 4;
@@ -61,7 +62,7 @@ export const GalleryThumbnails: React.FC<GalleryThumbnailProps> = ({
             onPress={() => onThumbnailPress(index)}
           >
             <Image
-              source={{ uri: image.uri }}
+              source={resolveImageSource(image.uri)}
               style={[styles.thumbnailImage, { borderRadius: 8 }]}
               resizeMode="cover"
             />

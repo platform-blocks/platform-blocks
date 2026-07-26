@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { Calendar } from '../Calendar/Calendar';
 import { extractFirstDate } from './utils';
 import type { DatePickerProps, CalendarLevel, CalendarValue } from './types';
+import { useControllableState } from '../../hooks/useControllableState';
 
 export const DatePicker = forwardRef<View, DatePickerProps>(({
   value,
@@ -28,9 +29,13 @@ export const DatePicker = forwardRef<View, DatePickerProps>(({
     ...calendarRest
   } = calendarOverrides;
 
-  const isControlled = value !== undefined;
-  const [internalValue, setInternalValue] = useState<CalendarValue>(defaultValue ?? null);
-  const currentValue: CalendarValue = (isControlled ? value : internalValue) ?? null;
+  const [selectedValue, setValue] = useControllableState<CalendarValue>({
+    value,
+    defaultValue: defaultValue ?? null,
+    finalValue: null,
+    onChange: (next) => onChange?.(next ?? null),
+  });
+  const currentValue: CalendarValue = selectedValue ?? null;
 
   const initialDate = calendarDateProp
     ?? calendarDefaultDateProp
@@ -74,13 +79,6 @@ export const DatePicker = forwardRef<View, DatePickerProps>(({
       setViewDate(candidate);
     }
   }, [calendarDateProp, currentValue, defaultValue]);
-
-  const setValue = useCallback((next: CalendarValue) => {
-    if (!isControlled) {
-      setInternalValue(next);
-    }
-    onChange?.(next ?? null);
-  }, [isControlled, onChange]);
 
   const handleDateChange = (next: Date) => {
     if (!calendarDateProp) {

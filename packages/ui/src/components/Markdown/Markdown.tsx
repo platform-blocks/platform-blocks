@@ -1,13 +1,13 @@
 import React, { useMemo, useCallback, useRef } from 'react';
-import { View, Image, Pressable, Linking } from 'react-native';
+import { View, Image, Linking, Platform } from 'react-native';
 import { Text } from '../Text';
 import { CodeBlock } from '../CodeBlock';
-import { useTheme } from '../../core/theme';
+import { useTheme, withAlpha } from '../../core/theme';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
 import { extractSpacingProps, getSpacingStyles, SpacingProps } from '../../core/utils';
 
 // Lightweight markdown renderer without external deps.
-// Supports: headings (#..######), bold ** **, italic _ _, inline code `code`, code fences ```lang, blockquote >, lists -, *, ordered lists 1., images ![alt](src), links [text](url) (as plain text for now)
+// Supports: headings (#..######), bold ** **, italic _ _, inline code `code`, code fences ```lang, blockquote >, lists -, *, ordered lists 1., images ![alt](src), links [text](url)
 
 export interface MarkdownProps extends SpacingProps {
   children: string;
@@ -82,9 +82,14 @@ const createDefaultComponents = (
     <Text
       variant="code"
       style={{
-        paddingHorizontal: 4,
+        paddingHorizontal: 5,
         paddingVertical: 2,
-        backgroundColor: 'rgba(0,0,0,0.06)',
+        // A wash of the theme's primary rather than a palette index: the light
+        // and dark scales invert, but an alpha tint over the live surface reads
+        // the same in both. Text stays `theme.text.primary` (the `code` variant's
+        // default) — tinting it to the primary hue drops below 4.5:1 on light
+        // backgrounds, where the brand blue is only ~3.5:1.
+        backgroundColor: withAlpha(theme.colors.secondary[5], theme.colorScheme === 'dark' ? 0.24 : 0.12),
         borderRadius: 4,
       }}
     >
@@ -136,13 +141,35 @@ const createDefaultComponents = (
       {children}
     </Text>
   ),
-  link: ({ href, children }) => (
-    <Pressable onPress={() => handleLinkPress(href)}>
-      <Text variant="u" style={{ color: theme.text.link }} ff={fontFamily}>
-        {children}
-      </Text>
-    </Pressable>
-  ),
+  // A link has to stay in the paragraph's inline flow. Wrapping it in a
+  // Pressable rendered a block-level box (View → div), which broke the line
+  // before and after every link. Web gets a real <a> — inline, focusable, and
+  // hoverable; native uses Text's own onPress, which nests inside the parent
+  // Text without introducing a view.
+  link: ({ href, children }) =>
+    Platform.OS === 'web'
+      ? React.createElement(
+          'a',
+          {
+            href,
+            style: { color: theme.text.link, textDecoration: 'underline', cursor: 'pointer' },
+            onClick: (event: any) => {
+              event?.preventDefault?.();
+              handleLinkPress(href);
+            },
+          },
+          children
+        )
+      : (
+        <Text
+          variant="u"
+          style={{ color: theme.text.link }}
+          ff={fontFamily}
+          onPress={() => handleLinkPress(href)}
+        >
+          {children}
+        </Text>
+      ),
   image: ({ src, alt }) => (
     <Image
       source={{ uri: src }}
@@ -626,9 +653,12 @@ const renderInlineNodes = (nodes: InlineNode[], components: MarkdownComponentMap
 };
 
 const getThemeSignature = (theme: PlatformBlocksTheme): string => {
-  const { primaryColor, colorScheme, fontFamily, text, backgrounds } = theme;
+  const { primaryColor, colorScheme, fontFamily, text, backgrounds, colors } = theme;
   return [
     primaryColor,
+    // The inline-code tint reads this directly, so a palette override without a
+    // matching `primaryColor` change still busts the cache.
+    colors?.primary?.[5],
     colorScheme,
     fontFamily,
     text?.primary,
@@ -647,7 +677,7 @@ const getOverrideFingerprint = (overrides?: Partial<MarkdownComponentMap>): stri
     .join('|');
 };
 
-export const Markdown: React.FC<MarkdownProps> = (allProps) => {
+export const Markdown = React.forwardRef<View, MarkdownProps>((allProps, ref) => {
   const { spacingProps, otherProps } = extractSpacingProps(allProps);
   const { children, defaultCodeLanguage='tsx', maxHeadingLevel=6, allowHtml=false, components, onLinkPress, fontFamily, ff } = otherProps;
   const customFontFamily = ff ?? fontFamily;
@@ -782,10 +812,12 @@ export const Markdown: React.FC<MarkdownProps> = (allProps) => {
   };
 
   return (
-    <View style={spacingStyles}>
+    <View ref={ref} style={spacingStyles}>
       {tokens.map(token => renderToken(token, getKeyForToken(token)))}
     </View>
   );
-};
+});
+
+Markdown.displayName = 'Markdown';
 
 export default Markdown;

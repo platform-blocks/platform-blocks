@@ -61,10 +61,13 @@ props:
     description: Override props applied to default-rendered cell text (cells without a custom `cell` renderer)
 examples:
   - basic
-  - comprehensive
-  - server-side
+  - advanced-filtering
+  - row-selection
+  - enhanced-styling
+  - expandable-rows
+  - grouping
   - fixed-height
-  - text-customization
+  - server-side
 ---
 
 The DataTable component provides a feature-rich interface for displaying tabular data with sorting, pagination, row selection, and customizable columns.

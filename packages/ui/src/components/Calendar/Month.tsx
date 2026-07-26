@@ -3,11 +3,11 @@ import { View } from 'react-native';
 import { Text } from '../Text';
 import { Flex } from '../Flex';
 import { Day } from './Day';
-import { dateUtils } from './utils';
+import { dateUtils, getDaySize, getMonthGridWidth } from './utils';
 import { DESIGN_TOKENS } from '../../core';
 import type { MonthProps } from './types';
 
-export const Month: React.FC<MonthProps> = ({
+export const Month = React.forwardRef<View, MonthProps>(({
   month,
   value,
   onChange,
@@ -28,11 +28,16 @@ export const Month: React.FC<MonthProps> = ({
   excludeDate,
   getDayProps,
   renderDay,
-}) => {
-  const calendar = useMemo(() => 
-    dateUtils.getMonthCalendar(month, firstDayOfWeek), 
+}, ref) => {
+  const calendar = useMemo(() =>
+    dateUtils.getMonthCalendar(month, firstDayOfWeek),
     [month, firstDayOfWeek]
   );
+
+  const daySize = getDaySize(size);
+  // Pin the grid to the width its seven cells actually need — without this the
+  // rows stretch to the container and `space-between` fans the days apart.
+  const gridWidth = getMonthGridWidth(size, withCellSpacing);
 
   const rangeValue = useMemo<[Date | null, Date | null]>(() => {
     if (Array.isArray(value) && value.length === 2) {
@@ -153,23 +158,26 @@ export const Month: React.FC<MonthProps> = ({
   };
 
   return (
-    <View {...(onDayHoverEnd ? { onMouseLeave: handleMonthMouseLeave } : {})}>
+    <View
+      ref={ref}
+      style={{ width: gridWidth }}
+      {...(onDayHoverEnd ? { onMouseLeave: handleMonthMouseLeave } : {})}
+    >
       {/* Weekday headers */}
       {!hideWeekdays && (
-        <Flex 
-          direction="row" 
-          justify="space-between" 
-          style={{ 
+        <Flex
+          direction="row"
+          justify="space-between"
+          style={{
             marginBottom: withCellSpacing ? DESIGN_TOKENS.spacing.sm : 0,
-            paddingHorizontal: withCellSpacing ? 0 : DESIGN_TOKENS.spacing.xs,
           }}
         >
           {weekdayNames.map((weekday, index) => (
             <View
               key={index}
               style={{
-                height: size === 'xs' ? 24 : size === 'sm' ? 28 : size === 'md' ? 32 : size === 'lg' ? 36 : 40,
-                width: size === 'xs' ? 24 : size === 'sm' ? 28 : size === 'md' ? 32 : size === 'lg' ? 36 : 40,
+                height: daySize,
+                width: daySize,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
@@ -250,10 +258,7 @@ export const Month: React.FC<MonthProps> = ({
                 return (
                   <View
                     key={date.toISOString()}
-                    style={{
-                      width: size === 'xs' ? 24 : size === 'sm' ? 28 : size === 'md' ? 32 : size === 'lg' ? 36 : 40,
-                      height: size === 'xs' ? 24 : size === 'sm' ? 28 : size === 'md' ? 32 : size === 'lg' ? 36 : 40,
-                    }}
+                    style={{ width: daySize, height: daySize }}
                   />
                 );
               }
@@ -296,4 +301,6 @@ export const Month: React.FC<MonthProps> = ({
       </View>
     </View>
   );
-};
+});
+
+Month.displayName = 'Month';

@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { factory } from '../../core/factory';
+import { useControllableState } from '../../hooks/useControllableState';
 import { useTheme } from '../../core/theme';
 import { useReducedMotion } from '../../core/motion/ReducedMotionProvider';
 import { useDirection } from '../../core/providers/DirectionProvider';
@@ -184,6 +185,12 @@ export const SegmentedControl = factory<{
   const spacingStyles = useMemo(() => getSpacingStyles(spacingProps), [spacingProps]);
   const layoutStyles = useMemo(() => getLayoutStyles(layoutProps), [layoutProps]);
   const isFullWidth = layoutProps.fullWidth ?? false;
+  // The container is a plain View, so a column parent (`Block`, `View`, most
+  // demo shells) stretches it edge to edge via the inherited
+  // `alignItems: 'stretch'` — the segments stay content-sized and the rest of
+  // the track runs off to the right. Hug the content unless the caller asked
+  // for a width, which is also what makes `fullWidth` visibly different.
+  const shouldHugContent = !isFullWidth && layoutProps.w === undefined;
 
   const theme = useTheme();
   const reducedMotion = useReducedMotion();
@@ -196,33 +203,21 @@ export const SegmentedControl = factory<{
     return firstEnabled?.value ?? items[0]?.value ?? '';
   }, [items]);
 
-  const isControlled = controlledValue !== undefined;
-  const [internalValue, setInternalValue] = useState<string>(() => {
-    if (isControlled) {
-      return controlledValue ?? '';
-    }
-    if (defaultValue !== undefined) {
-      return defaultValue;
-    }
-    return initialFallback;
+  const [selectedValue, setSelectedValue, isControlled] = useControllableState<string>({
+    value: controlledValue,
+    defaultValue,
+    finalValue: initialFallback,
+    onChange,
   });
 
-  useEffect(() => {
-    if (!isControlled) return;
-    setInternalValue(controlledValue ?? '');
-  }, [controlledValue, isControlled]);
-
-  useEffect(() => {
-    if (isControlled) return;
-    setInternalValue((current) => {
-      if (items.some((item) => item.value === current)) {
-        return current;
-      }
-      return initialFallback;
-    });
-  }, [initialFallback, isControlled, items]);
-
-  const currentValue = isControlled ? controlledValue ?? initialFallback : internalValue;
+  // If `data` changes out from under an uncontrolled control, the stored value
+  // can name a segment that no longer exists. Correct it by derivation rather
+  // than by writing state in an effect — no extra render, and no `onChange`
+  // fired for a change the user never made.
+  const currentValue =
+    isControlled || items.some((item) => item.value === selectedValue)
+      ? selectedValue
+      : initialFallback;
 
   const indicatorColor = useMemo(() => resolveColor(theme, color), [color, theme]);
   const activeTextColor = useMemo(() => {
@@ -256,6 +251,10 @@ export const SegmentedControl = factory<{
   const indicatorHeight = useSharedValue(0);
 
   const itemLayouts = useRef<Record<string, LayoutRectangle>>({});
+  // Tracks whether the indicator has been placed at least once. The very first
+  // placement should snap (no slide from the top-left/zero-size origin); only
+  // subsequent value changes should animate between positions.
+  const hasPositioned = useRef(false);
 
   const easingFunction = useMemo(
     () => parseTimingFunction(transitionTimingFunction),
@@ -269,7 +268,10 @@ export const SegmentedControl = factory<{
         return;
       }
 
-      const duration = reducedMotion ? 0 : Math.max(transitionDuration, 0);
+      const duration = reducedMotion || !hasPositioned.current
+        ? 0
+        : Math.max(transitionDuration, 0);
+      hasPositioned.current = true;
 
       const applyTiming = (shared: typeof indicatorX, target: number) => {
         if (duration === 0) {
@@ -313,21 +315,13 @@ export const SegmentedControl = factory<{
       if (disabled || readOnly) {
         return;
       }
-      if (isControlled) {
-        if (valueKey !== controlledValue) {
-          onChange?.(valueKey);
-        }
+      // Re-selecting the active segment is a no-op, in both modes.
+      if (valueKey === currentValue) {
         return;
       }
-      setInternalValue((prev) => {
-        if (prev === valueKey) {
-          return prev;
-        }
-        onChange?.(valueKey);
-        return valueKey;
-      });
+      setSelectedValue(valueKey);
     },
-    [controlledValue, disabled, isControlled, onChange, readOnly]
+    [currentValue, disabled, readOnly, setSelectedValue]
   );
 
   const animatedIndicatorStyle = useAnimatedStyle(() => ({
@@ -428,10 +422,10 @@ export const SegmentedControl = factory<{
         radiusStyles,
         ...(hasLabelContent
           ? [
-              { alignSelf: 'stretch' },
+              { alignSelf: isVerticalLabel && shouldHugContent ? 'flex-start' as const : 'stretch' as const },
               ...(!isVerticalLabel && isFullWidth ? [{ flexGrow: 1, flexShrink: 1, flexBasis: 0 }] : []),
             ]
-          : [layoutStyles, spacingStyles]),
+          : [layoutStyles, spacingStyles, shouldHugContent && { alignSelf: 'flex-start' as const }]),
         style,
       ]}
       testID={testID}

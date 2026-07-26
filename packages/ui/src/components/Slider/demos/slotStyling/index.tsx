@@ -32,10 +32,10 @@ export default function Demo() {
   const [d, setD] = useState<[number, number]>([20, 80]);
 
   return (
-    <Block gap="lg">
+    <Block>
       <Text weight="semibold">Slot styling</Text>
 
-      <Block gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">
           Track + thumb overrides — taller track, square thumb
         </Text>
@@ -48,7 +48,7 @@ export default function Demo() {
         />
       </Block>
 
-      <Block gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">
           Branded thumb — gradient-style fill via solid color + shadow
         </Text>
@@ -68,7 +68,7 @@ export default function Demo() {
         />
       </Block>
 
-      <Block gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">
           Tick + label styling (`tickStyle`, `activeTickStyle`, `tickLabelProps`)
         </Text>
@@ -82,7 +82,7 @@ export default function Demo() {
         />
       </Block>
 
-      <Block gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">
           Per-tick override — the tick at 50 is taller and yellow
         </Text>
@@ -96,7 +96,7 @@ export default function Demo() {
         />
       </Block>
 
-      <Block gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">
           RangeSlider — same slot props work on both thumbs and the active band
         </Text>

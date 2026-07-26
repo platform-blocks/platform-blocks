@@ -1,25 +1,27 @@
-import { Column, QRCode, Row, Text } from '@platform-blocks/ui';
-
-const SIZES = [128, 152, 176, 200] as const;
+import { Block, QRCode, Row } from '@platform-blocks/ui';
+import { SIZES } from './data';
 
 export default function Demo() {
   return (
-    <Column gap="sm">
-      <Text variant="small" colorVariant="muted">
-        Available size presets
-      </Text>
-      <Row gap="lg" align="center" wrap="wrap" justify="center">
+    <Block>
+      <Row align="flex-end" gap="lg" wrap="wrap">
         {SIZES.map((size) => (
-          <Column key={size} gap="xs" align="center">
-            <QRCode value="https://platform-blocks.com" size={size} quietZone={2} />
-            <Text variant="small" colorVariant="muted">
-              {size}px
-            </Text>
-          </Column>
+          <QRCode
+            key={size}
+            value="https://platform-blocks.com"
+            size={size}
+            quietZone={2}
+            label={size}
+          />
         ))}
       </Row>
-    </Column>
+
+      <QRCode
+        value="https://platform-blocks.com"
+        size={144}
+        quietZone={2}
+        label="144 (numeric)"
+      />
+    </Block>
   );
 }
-
-

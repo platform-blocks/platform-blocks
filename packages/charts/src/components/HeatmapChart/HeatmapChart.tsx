@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, PanResponder, GestureResponderEvent, PanResponderGestureState, Platform } from 'react-native';
+import { View } from 'react-native';
 import Svg, { Defs, G, LinearGradient, Rect as SvgRect, Stop, Text as SvgText } from 'react-native-svg';
 import {
   HeatmapChartProps,
@@ -9,8 +9,9 @@ import {
   HeatmapDataTablePayload,
   HeatmapValueFormatter,
   HeatmapLabelDisplayRule,
+  ChartInteractionEvent,
 } from '../../types';
-import { ChartContainer, ChartTitle, ChartLegend } from '../../ChartBase';
+import { ChartContainer, ChartTitle, estimateChartTextWidth, measureChartTitleBand } from '../../ChartBase';
 import { useChartInteractionContext, usePointer } from '../../interaction/ChartInteractionContext';
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { CellGridHitTester } from '../../core/hittest/grid';
@@ -71,9 +72,6 @@ function getContrastColor(hexColor: string): string {
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return luminance > 0.5 ? '#111827' : '#ffffff';
 }
-
-const DEFAULT_MAX_ZOOM = 6;
-const LEGEND_HOVER_THROTTLE = 45;
 
 type ValueFormatterLike = HeatmapChartProps['valueFormatter'];
 
@@ -165,6 +163,7 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
     yAxis,
     grid,
     legend,
+    gradientLegend,
     tooltip,
     multiTooltip = true,
     liveTooltip = false,
@@ -175,9 +174,19 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
     hoverHighlight,
     maxAnimatedCells = 400,
     disableAnimation = false,
+    onPress,
+    onDataPointPress,
+    ...rest
   } = props;
 
   const theme = useChartTheme();
+
+  // Only the chart-level tooltip `formatter` and `show` flag are honored here.
+  // All other tooltip styling (background, text color, padding, font) is owned
+  // by the shared ChartActiveTooltip renderer and applied globally.
+  const tooltipFormatter =
+    tooltip && 'formatter' in tooltip ? tooltip.formatter : undefined;
+  const tooltipShow = tooltip?.show;
 
   let interaction: ReturnType<typeof useChartInteractionContext> | null = null;
   try {
@@ -271,6 +280,46 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
 
   const nullFill = scale.nullColor ?? 'rgba(148, 163, 184, 0.2)';
 
+  // --- Gradient (color-scale) legend --------------------------------------
+  // A heatmap's natural legend is a min→max color-scale bar, not a categorical
+  // list. It renders when `gradientLegend` is provided (and not show:false) or,
+  // failing that, when a `legend` prop is provided (and not show:false).
+  const gradientLegendEnabled =
+    gradientLegend != null
+      ? gradientLegend.show !== false
+      : legend != null
+        ? legend.show !== false
+        : false;
+
+  const legendBarThickness = gradientLegend?.height ?? 10;
+
+  // SVG gradient ids are document-global: a shared id makes every heatmap on the
+  // page paint the first chart's legend colors.
+  const gradientInstanceIdRef = React.useRef<string>('');
+  if (!gradientInstanceIdRef.current) {
+    gradientInstanceIdRef.current = `heatmap-legend-gradient-${Math.random().toString(36).slice(2, 10)}`;
+  }
+  const gradientInstanceId = gradientInstanceIdRef.current;
+
+  const legendStops = React.useMemo<HeatmapColorStop[]>(() => {
+    if (!gradientLegendEnabled) return [];
+    if (gradientLegend?.stops && gradientLegend.stops.length) {
+      return [...gradientLegend.stops].sort((a, b) => a.value - b.value);
+    }
+    return deriveLegendStops(scale, colors, minVal, maxVal);
+    // `scale`/`colors` are derived from `colorScale` each render; depend on the source.
+  }, [gradientLegendEnabled, gradientLegend?.stops, colorScale, colors, minVal, maxVal]);
+
+  const formatLegendValue = React.useCallback(
+    (value: number, percent: number) => {
+      if (gradientLegend?.formatter) return gradientLegend.formatter({ value, percent });
+      const range = Math.abs(maxVal - minVal);
+      const decimals = range > 0 && range < 10 ? 1 : 0;
+      return formatNumber(value, decimals);
+    },
+    [gradientLegend, maxVal, minVal]
+  );
+
   const normalizeValue = React.useCallback((value: number) => {
     if (!Number.isFinite(value)) return 0;
     if (maxVal === minVal) return 0.5;
@@ -342,9 +391,60 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
     return buildGradient(colors, norm);
   }, [colors, normalizeValue, nullFill, scale.type, sortedStops]);
 
-  const padding = React.useMemo(() => ({ top: 40, left: 80, right: 20, bottom: 60 }), []);
-  const availablePlotWidth = Math.max(0, width - padding.left - padding.right);
-  const availablePlotHeight = Math.max(0, height - padding.top - padding.bottom);
+  const formatXTick = React.useCallback((value: number) => {
+    if (Number.isNaN(value)) return '';
+    if (xAxis?.labelFormatter) return xAxis.labelFormatter(value);
+    if (columnLabels && columnLabels[value] != null) return String(columnLabels[value]);
+    return String(value);
+  }, [columnLabels, xAxis]);
+
+  const formatYTick = React.useCallback((value: number) => {
+    if (Number.isNaN(value)) return '';
+    if (yAxis?.labelFormatter) return yAxis.labelFormatter(value);
+    if (rowLabels && rowLabels[value] != null) return String(rowLabels[value]);
+    return String(value);
+  }, [rowLabels, yAxis]);
+
+  // --- Layout bands ---------------------------------------------------------
+  // Every overlay the chart draws outside the plot (title, axis labels, axis
+  // titles, legend) reserves its own band up front. Anything drawn from a band
+  // that was not reserved lands on top of the cells.
+  const showXAxis = xAxis?.show !== false;
+  const showYAxis = yAxis?.show !== false;
+  const yTickLabelFontSize = yAxis?.labelFontSize ?? 11;
+
+  // Row labels are laid out in a fixed-width box, so the gutter has to be wide
+  // enough for the longest one or every label wraps mid-word.
+  const yTickLabelWidth = React.useMemo(() => {
+    if (!showYAxis || yAxis?.showLabels === false || uniqueY === 0) return 0;
+    const widest = Array.from({ length: uniqueY }, (_, index) =>
+      estimateChartTextWidth(formatYTick(index), yTickLabelFontSize)
+    ).reduce((max, value) => Math.max(max, value), 0);
+    // The estimate runs on an average glyph advance; short labels beat it, and a
+    // label wider than its box bleeds past the chart's left edge.
+    return clamp(Math.ceil(widest * 1.18) + 8, 30, Math.max(30, width * 0.4));
+  }, [formatYTick, showYAxis, uniqueY, width, yAxis?.showLabels, yTickLabelFontSize]);
+
+  const Y_TICK_GAP = 8; // Axis tickSize + tickPadding
+  const Y_TITLE_BAND = 22; // rotated axis title + its gap
+  const X_TICK_BAND = 24; // tick mark + one line of tick label
+  const X_TITLE_OFFSET = X_TICK_BAND + 2; // where the bottom axis title starts
+  const LEGEND_GAP = 12; // between the axis band and the legend bar
+
+  const xTitleBand = showXAxis && xAxis?.title ? (xAxis?.titleFontSize ?? 12) + 10 : 0;
+  const xAxisBand = showXAxis ? X_TICK_BAND + xTitleBand : 0;
+  const legendBand = gradientLegendEnabled ? LEGEND_GAP + legendBarThickness + 20 : 0;
+  const titleBand = measureChartTitleBand(title, subtitle);
+
+  const basePadding = React.useMemo(() => ({
+    top: Math.max(16, titleBand),
+    left: (showYAxis ? Y_TICK_GAP + yTickLabelWidth : 12) + (showYAxis && yAxis?.title ? Y_TITLE_BAND : 0),
+    right: 20,
+    bottom: xAxisBand + legendBand + 8,
+  }), [legendBand, showYAxis, titleBand, xAxisBand, yAxis?.title, yTickLabelWidth]);
+
+  const availablePlotWidth = Math.max(0, width - basePadding.left - basePadding.right);
+  const availablePlotHeight = Math.max(0, height - basePadding.top - basePadding.bottom);
 
   const fallbackCellWidth = React.useMemo(() => {
     if (!uniqueX) return 0;
@@ -396,6 +496,20 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
     if (!uniqueY) return 0;
     return Math.max(0, cellH * uniqueY + gap * Math.max(uniqueY - 1, 0));
   }, [cellH, gap, uniqueY]);
+
+  // An explicit `cellSize` can ask for more room than `width`/`height` allow.
+  // Grow the box to fit rather than letting the axes and legend spill past it.
+  const contentWidth = basePadding.left + plotWidth + basePadding.right;
+  const contentHeight = basePadding.top + plotHeight + basePadding.bottom;
+  const boxWidth = Math.max(width, contentWidth);
+  const boxHeight = Math.max(height, contentHeight);
+
+  // A fixed `cellSize` narrower than the box leaves slack on one side; split it so
+  // the plot sits under the (centered) title instead of hugging the left edge.
+  const padding = React.useMemo(() => ({
+    ...basePadding,
+    left: basePadding.left + Math.max(0, (boxWidth - contentWidth) / 2),
+  }), [basePadding, boxWidth, contentWidth]);
 
   const hoverOverlay = React.useMemo(() => ({
     showRow: hoverHighlight?.showRow ?? true,
@@ -535,6 +649,10 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
       const rectX = cell.pixelX + padding.left;
       const rectY = cell.pixelY + padding.top;
       const raw = cell.formattedValue ?? cell.displayValue ?? cell.value;
+      const baseFormatted = raw == null ? undefined : String(raw);
+      // Chart-level tooltip.formatter wins over the derived cell text: a string
+      // becomes formattedValue; a ReactNode becomes a customTooltip body.
+      const tf = tooltipFormatter?.(cell);
       return {
         id: cell.index,
         pixel: { x: rectX + cell.width / 2, y: rectY + cell.height / 2 },
@@ -545,11 +663,12 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
           rect: { x: rectX, y: rectY, width: cell.width, height: cell.height },
           cell: { row: cell.y, col: cell.x },
         },
-        formattedValue: raw == null ? undefined : String(raw),
+        formattedValue: typeof tf === 'string' ? tf : baseFormatted,
+        ...(tf != null && typeof tf !== 'string' ? { customTooltip: tf } : {}),
       };
     });
     return [{ id: 'heatmap', name: title || 'Heatmap', color: theme.colors.accentPalette?.[0], visible: true, marks }];
-  }, [processedCells, padding.left, padding.top, title, theme.colors.accentPalette]);
+  }, [processedCells, padding.left, padding.top, title, theme.colors.accentPalette, tooltipFormatter]);
 
   const tester = React.useMemo(() => new CellGridHitTester(hitSeries), [hitSeries]);
 
@@ -565,8 +684,23 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
     plotHeight,
     enabled: Boolean(interaction) && totalCells > 0,
     hover: true,
-    press: false,
+    press: Boolean(onDataPointPress || onPress),
     tester,
+    onPress: (e, target) => {
+      if (!target) return;
+      const datum = target.datum as ProcessedHeatmapCell;
+      const event: ChartInteractionEvent<HeatmapCell> = {
+        nativeEvent: e.raw,
+        chartX: plotWidth > 0 ? e.plotX / plotWidth : 0,
+        chartY: plotHeight > 0 ? e.plotY / plotHeight : 0,
+        dataX: target.dataX,
+        dataY: target.dataY,
+        dataPoint: datum,
+        distance: target.distance,
+      };
+      onDataPointPress?.(datum, event);
+      onPress?.(event);
+    },
   });
 
   const pointer = usePointer();
@@ -603,12 +737,63 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
     };
   }, [gap, hoverCell, plotHeight]);
 
+  const legendLayout = React.useMemo(() => {
+    if (!gradientLegendEnabled || legendStops.length === 0) return null;
+    const areaLeft = padding.left;
+    const areaWidth = plotWidth > 0 ? plotWidth : Math.max(0, boxWidth - padding.left - padding.right);
+    const barWidth = Math.max(0, Math.min(areaWidth, 240));
+    const align = gradientLegend?.align ?? legend?.align ?? 'center';
+    let x = areaLeft;
+    if (align === 'center') x = areaLeft + (areaWidth - barWidth) / 2;
+    else if (align === 'end') x = areaLeft + (areaWidth - barWidth);
+    // Sits below the axis band, not at a fixed distance from the bottom edge:
+    // the plot can be taller than `height` when `cellSize` is explicit.
+    const barY = padding.top + plotHeight + xAxisBand + LEGEND_GAP;
+    const minValue = legendStops[0].value;
+    const maxValue = legendStops[legendStops.length - 1].value;
+    const span = maxValue - minValue;
+    const gradientStops = legendStops.map((stop) => ({
+      offset: span === 0 ? 0 : clamp((stop.value - minValue) / span, 0, 1),
+      color: stop.color,
+    }));
+    return {
+      x,
+      barY,
+      barWidth,
+      minValue,
+      maxValue,
+      gradId: gradientInstanceId,
+      gradientStops,
+      label: gradientLegend?.label,
+    };
+  }, [
+    gradientInstanceId,
+    gradientLegendEnabled,
+    legendStops,
+    padding.left,
+    padding.right,
+    padding.top,
+    plotWidth,
+    plotHeight,
+    boxWidth,
+    xAxisBand,
+    gradientLegend?.align,
+    gradientLegend?.label,
+    legend?.align,
+  ]);
+
   return (
     <ChartContainer
-      width={width}
-      height={height}
+      {...rest}
+      width={boxWidth}
+      height={boxHeight}
       style={style}
-      interactionConfig={{ multiTooltip, liveTooltip, enableCrosshair }}
+      interactionConfig={{
+        multiTooltip,
+        // tooltip.show === false hides the shared tooltip (liveTooltip gates it).
+        liveTooltip: tooltipShow === false ? false : liveTooltip,
+        enableCrosshair,
+      }}
     >
       {(title || subtitle) && <ChartTitle title={title} subtitle={subtitle} />}
       {grid && plotWidth > 0 && plotHeight > 0 && (
@@ -622,7 +807,7 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
           useSVG={true}
         />
       )}
-      <Svg width={width} height={height} style={{ position: 'absolute' }}>
+      <Svg width={boxWidth} height={boxHeight} style={{ position: 'absolute' }}>
         <G x={padding.left} y={padding.top}>
           {hoverCell && hoverOverlay.showColumn && columnHighlight && (
             <SvgRect
@@ -687,19 +872,14 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
           tickCount={axisXTicks.length}
           tickSize={xAxis?.tickLength ?? 4}
           tickPadding={4}
-          tickFormat={(value) => {
-            const numeric = typeof value === 'number' ? value : Number(value);
-            if (Number.isNaN(numeric)) return String(value ?? '');
-            if (xAxis?.labelFormatter) return xAxis.labelFormatter(numeric);
-            if (columnLabels && columnLabels[numeric] != null) return String(columnLabels[numeric]);
-            return String(numeric);
-          }}
+          tickFormat={(value) => formatXTick(typeof value === 'number' ? value : Number(value))}
           showLabels={xAxis?.showLabels !== false}
           showTicks={xAxis?.showTicks !== false}
           stroke={xAxis?.color || theme.colors.grid}
           strokeWidth={xAxis?.thickness ?? 1}
           label={xAxis?.title}
-          labelOffset={xAxis?.title ? (xAxis?.titleFontSize ?? 12) + 20 : 40}
+          labelOffset={X_TITLE_OFFSET}
+          labelWidth={Math.max(100, Math.min(plotWidth, 260))}
           tickLabelColor={xAxis?.labelColor || theme.colors.textSecondary}
           tickLabelFontSize={xAxis?.labelFontSize}
           labelColor={xAxis?.titleColor || theme.colors.textPrimary}
@@ -716,25 +896,84 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
           tickCount={axisYTicks.length}
           tickSize={yAxis?.tickLength ?? 4}
           tickPadding={4}
-          tickFormat={(value) => {
-            const numeric = typeof value === 'number' ? value : Number(value);
-            if (Number.isNaN(numeric)) return String(value ?? '');
-            if (yAxis?.labelFormatter) return yAxis.labelFormatter(numeric);
-            if (rowLabels && rowLabels[numeric] != null) return String(rowLabels[numeric]);
-            return String(numeric);
-          }}
+          tickFormat={(value) => formatYTick(typeof value === 'number' ? value : Number(value))}
           showLabels={yAxis?.showLabels !== false}
           showTicks={yAxis?.showTicks !== false}
           stroke={yAxis?.color || theme.colors.grid}
           strokeWidth={yAxis?.thickness ?? 1}
           label={yAxis?.title}
           labelOffset={yAxis?.title ? (yAxis?.titleFontSize ?? 12) + 20 : 30}
+          labelWidth={Math.max(100, Math.min(plotHeight, 260))}
           tickLabelColor={yAxis?.labelColor || theme.colors.textSecondary}
-          tickLabelFontSize={yAxis?.labelFontSize}
+          tickLabelFontSize={yTickLabelFontSize}
+          tickLabelWidth={yTickLabelWidth}
           labelColor={yAxis?.titleColor || theme.colors.textPrimary}
           labelFontSize={yAxis?.titleFontSize}
           style={{ width: padding.left, height: plotHeight }}
         />
+      )}
+
+      {/* Gradient color-scale legend: min→max swatch bar with value labels. */}
+      {legendLayout && (
+        <Svg width={boxWidth} height={boxHeight} style={{ position: 'absolute' }} pointerEvents="none">
+          <Defs>
+            <LinearGradient id={legendLayout.gradId} x1="0" y1="0" x2="1" y2="0">
+              {legendLayout.gradientStops.map((stop, index) => (
+                <Stop key={index} offset={stop.offset} stopColor={stop.color} stopOpacity={1} />
+              ))}
+            </LinearGradient>
+          </Defs>
+          {legendLayout.label ? (
+            <SvgText
+              x={legendLayout.x}
+              y={legendLayout.barY - 4}
+              fontSize={11}
+              fill={theme.colors.textSecondary}
+              textAnchor="start"
+              fontFamily="System"
+            >
+              {legendLayout.label}
+            </SvgText>
+          ) : null}
+          <SvgRect
+            x={legendLayout.x}
+            y={legendLayout.barY}
+            width={legendLayout.barWidth}
+            height={legendBarThickness}
+            rx={2}
+            fill={`url(#${legendLayout.gradId})`}
+          />
+          <SvgText
+            x={legendLayout.x}
+            y={legendLayout.barY + legendBarThickness + 12}
+            fontSize={10}
+            fill={theme.colors.textSecondary}
+            textAnchor="start"
+            fontFamily="System"
+          >
+            {formatLegendValue(legendLayout.minValue, 0)}
+          </SvgText>
+          <SvgText
+            x={legendLayout.x + legendLayout.barWidth / 2}
+            y={legendLayout.barY + legendBarThickness + 12}
+            fontSize={10}
+            fill={theme.colors.textSecondary}
+            textAnchor="middle"
+            fontFamily="System"
+          >
+            {formatLegendValue((legendLayout.minValue + legendLayout.maxValue) / 2, 0.5)}
+          </SvgText>
+          <SvgText
+            x={legendLayout.x + legendLayout.barWidth}
+            y={legendLayout.barY + legendBarThickness + 12}
+            fontSize={10}
+            fill={theme.colors.textSecondary}
+            textAnchor="end"
+            fontFamily="System"
+          >
+            {formatLegendValue(legendLayout.maxValue, 1)}
+          </SvgText>
+        </Svg>
       )}
 
       {/* Gesture surface driven by useChartPointer + the cell hit-tester. Full-chart
@@ -745,7 +984,7 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
           ref={surfaceRef}
           onLayout={surfaceOnLayout}
           testID="heatmap-gesture-surface"
-          style={{ position: 'absolute', left: 0, top: 0, width, height }}
+          style={{ position: 'absolute', left: 0, top: 0, width: boxWidth, height: boxHeight }}
           {...pointerHandlers}
         />
       )}

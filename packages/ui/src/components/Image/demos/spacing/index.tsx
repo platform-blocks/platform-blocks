@@ -1,18 +1,18 @@
 import { View } from 'react-native';
-import { Card, Text, Column, Image } from '@platform-blocks/ui';
+import { Block, Card, Image, Text } from '@platform-blocks/ui';
 
 export default function UniversalSpacingDemo() {
   return (
     <Card>
       <Text size="lg" weight="semibold" mb={16}>Universal Spacing Props</Text>
-      <Column gap={24}>
+      <Block>
         
         {/* Auto margin example */}
         <View>
           <Text size="md" weight="medium" mb={8}>Auto Margin Example</Text>
           <View style={{ backgroundColor: '#f0f0f0', padding: 16 }}>
             <Image 
-              src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=100&h=100&fit=crop" 
+              src={require('../../../../assets/images/scene-meadow.png')}
               alt="Centered image"
               w={100}
               h={100}
@@ -29,7 +29,7 @@ export default function UniversalSpacingDemo() {
           <Text size="md" weight="medium" mb={8}>Theme Spacing Values</Text>
           <View style={{ backgroundColor: '#f0f0f0', padding: 16 }}>
             <Image 
-              src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=80&h=80&fit=crop" 
+              src={require('../../../../assets/images/scene-meadow.png')}
               alt="Image with theme spacing"
               w={80}
               h={80}
@@ -46,7 +46,7 @@ export default function UniversalSpacingDemo() {
           <Text size="md" weight="medium" mb={8}>Numeric Spacing Values</Text>
           <View style={{ backgroundColor: '#f0f0f0', padding: 16 }}>
             <Image 
-              src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=60&h=60&fit=crop" 
+              src={require('../../../../assets/images/scene-meadow.png')}
               alt="Image with numeric spacing"
               w={60}
               h={60}
@@ -63,7 +63,7 @@ export default function UniversalSpacingDemo() {
           <Text size="md" weight="medium" mb={8}>Zero Margin Example</Text>
           <View style={{ backgroundColor: '#f0f0f0', padding: 16 }}>
             <Image 
-              src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=60&h=60&fit=crop" 
+              src={require('../../../../assets/images/scene-meadow.png')}
               alt="Image with zero margin"
               w={60}
               h={60}
@@ -80,7 +80,7 @@ export default function UniversalSpacingDemo() {
           <Text size="md" weight="medium" mb={8}>Mixed Spacing Props</Text>
           <View style={{ backgroundColor: '#f0f0f0', padding: 16 }}>
             <Image 
-              src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=80&h=80&fit=crop" 
+              src={require('../../../../assets/images/scene-meadow.png')}
               alt="Image with mixed spacing"
               w={80}
               h={80}
@@ -94,7 +94,7 @@ export default function UniversalSpacingDemo() {
           </Text>
         </View>
         
-      </Column>
+      </Block>
     </Card>
   );
 }

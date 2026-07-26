@@ -1,10 +1,10 @@
-import { Grid, GridItem, Card, Column, Text } from '@platform-blocks/ui';
+import { Block, Card, Grid, GridItem, Text } from '@platform-blocks/ui';
 
 // Responsive props match the breakpoint configuration used in Grid
 
 export default function ResponsiveGridDemo() {
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <Grid columns={{ base: 4, md: 8, lg: 12 }} gap={12}>
         <GridItem span={{ base: 4, md: 4, lg: 6 }}>
           <Card p={12}>
@@ -35,6 +35,6 @@ export default function ResponsiveGridDemo() {
       <Text size="sm" colorVariant="secondary">
         Column and span props adapt at base, md, and lg breakpoints
       </Text>
-    </Column>
+    </Block>
   );
 }

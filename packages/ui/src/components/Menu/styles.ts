@@ -1,43 +1,32 @@
 import { ViewStyle } from 'react-native';
-import { useTheme } from '../../core/theme';
 
+import { useTheme } from '../../core/theme';
+import { surfaceInteractionTint } from '../../core/theme/surfaces';
+import { useSurfaceStyles } from '../Surface/useSurfaceStyles';
+
+/**
+ * Styles for menu/dropdown surfaces.
+ *
+ * The dropdown sits at level 2 — floating over content — and takes its
+ * background, border and shadow from the theme's elevation ladder. It used to
+ * index `theme.colors.surface[4]`, which is a mid-grey step of a 10-shade
+ * *palette* rather than a semantic background, so light-mode dropdowns rendered
+ * grey while popovers next to them rendered white.
+ */
 export function useMenuStyles() {
   const theme = useTheme();
 
-  const getPaletteColor = (palette: unknown, index: number) => {
-    if (Array.isArray(palette)) {
-      return palette[index] as string | undefined;
-    }
-    return undefined;
-  };
-
-  const surfacePalette = theme.colors?.surface;
-  const grayPalette = theme.colors?.gray;
-
-  const lightSurfaceColor =
-    getPaletteColor(surfacePalette, 4) ??
-    (typeof theme.backgrounds?.surface === 'string' ? theme.backgrounds.surface : undefined) ??
-    (typeof theme.backgrounds?.base === 'string' ? theme.backgrounds.base : undefined) ??
-    getPaletteColor(grayPalette, 0) ??
-    '#ffffff';
-
-  const darkSurfaceColor =
-    getPaletteColor(surfacePalette, 3) ??
-    (typeof theme.backgrounds?.elevated === 'string' ? theme.backgrounds.elevated : undefined) ??
-    lightSurfaceColor;
-
-  const fallbackRadius = theme.radii?.md ?? theme.radii?.sm ?? '8';
-  const parsedRadius = typeof fallbackRadius === 'number'
-    ? fallbackRadius
-    : parseInt(`${fallbackRadius}`, 10) || 8;
+  const surface = useSurfaceStyles({
+    level: 2,
+    radius: 'md',
+    // Overlays always take the hairline, in both schemes: they float over
+    // arbitrary content, so they need a defined edge even in light mode.
+    withBorder: true,
+  });
 
   const dropdown: ViewStyle = {
-    backgroundColor: theme.colorScheme === 'dark' ? darkSurfaceColor : lightSurfaceColor,
-    borderRadius: parsedRadius,
-    // borderWidth: 3, // Temporarily increased for debugging
-    // borderColor: '#ff0000', // Temporarily red for debugging
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-    elevation: 8,
+    ...surface.style,
+    ...surface.shadowStyle,
     minWidth: 180,
     maxWidth: 320,
     overflow: 'hidden',
@@ -51,8 +40,16 @@ export function useMenuStyles() {
     minHeight: 36,
   };
 
+  const itemHovered: ViewStyle = {
+    backgroundColor: surfaceInteractionTint(theme, 'hover'),
+  };
+
   const itemPressed: ViewStyle = {
-    backgroundColor: theme.colors.gray[1],
+    backgroundColor: surfaceInteractionTint(theme, 'pressed'),
+  };
+
+  const itemSelected: ViewStyle = {
+    backgroundColor: surfaceInteractionTint(theme, 'selected'),
   };
 
   const itemDisabled: ViewStyle = {
@@ -74,8 +71,7 @@ export function useMenuStyles() {
 
   const divider: ViewStyle = {
     height: 1,
-    // backgroundColor: theme.colors.gray[2],
-    // marginVertical: 4,
+    backgroundColor: surface.token.border,
   };
 
   const startSection: ViewStyle = {
@@ -90,7 +86,9 @@ export function useMenuStyles() {
   return {
     dropdown,
     item,
+    itemHovered,
     itemPressed,
+    itemSelected,
     itemDisabled,
     itemDanger,
     itemDangerPressed,
@@ -98,5 +96,7 @@ export function useMenuStyles() {
     divider,
     startSection,
     endSection,
+    /** The resolved level-2 token, for callers that need the raw colors. */
+    surfaceToken: surface.token,
   };
 }

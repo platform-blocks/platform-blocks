@@ -1,1 +1,0 @@
-export { FinderExample } from './FinderExample';

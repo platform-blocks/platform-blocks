@@ -9,7 +9,7 @@ import type { BlockquoteSourceProps } from './types';
 
 export function BlockquoteSource({
   source,
-  alignment = 'left',
+  alignment = 'right',
 }: BlockquoteSourceProps) {
   const theme = useTheme();
 
@@ -20,11 +20,13 @@ export function BlockquoteSource({
   };
 
   const content = (
-    <Flex 
-      direction="row" 
+    <Flex
+      // Right-aligned attribution keeps its marks on the outer edge, so the
+      // brand icon trails the name instead of leading it.
+      direction={alignment === 'right' ? 'row-reverse' : 'row'}
       align="center"
       gap="xs"
-      style={{ 
+      style={{
         alignSelf: alignment === 'center' ? 'center' : alignment === 'right' ? 'flex-end' : 'flex-start',
       }}
     >

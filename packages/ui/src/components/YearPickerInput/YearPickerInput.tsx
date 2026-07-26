@@ -7,6 +7,7 @@ import { YearPicker } from '../YearPicker';
 import { DESIGN_TOKENS } from '../../core';
 import type { YearPickerInputProps } from './types';
 import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
+import { useControllableState } from '../../hooks/useControllableState';
 
 const defaultFormat = (date: Date) => date.getFullYear().toString();
 
@@ -31,9 +32,13 @@ export const YearPickerInput = forwardRef<View, YearPickerInputProps>(function Y
   ref
 ) {
   const [opened, setOpened] = useState(false);
-  const isControlled = value !== undefined;
-  const [internalValue, setInternalValue] = useState<Date | null>(defaultValue ?? null);
-  const currentValue = (isControlled ? value : internalValue) ?? null;
+  const [selectedValue, setValue] = useControllableState<Date | null>({
+    value,
+    defaultValue: defaultValue ?? null,
+    finalValue: null,
+    onChange,
+  });
+  const currentValue = selectedValue ?? null;
   const keyboardManager = useKeyboardManagerOptional();
 
   const {
@@ -49,16 +54,6 @@ export const YearPickerInput = forwardRef<View, YearPickerInputProps>(function Y
   const inputOnClear = (inputProps as { onClear?: () => void }).onClear;
 
   const format = useMemo(() => formatValue ?? defaultFormat, [formatValue]);
-
-  const setValue = useCallback(
-    (next: Date | null) => {
-      if (!isControlled) {
-        setInternalValue(next);
-      }
-      onChange?.(next);
-    },
-    [isControlled, onChange]
-  );
 
   const handleOpen = useCallback(() => {
     if (disabled) return;

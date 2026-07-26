@@ -5,7 +5,7 @@ import { Icon } from '../Icon/Icon';
 import { useClipboard } from '../../hooks';
 import { useToast } from '../Toast/ToastProvider';
 import type { CopyButtonProps } from './types';
-import { Tooltip } from '../Tooltip';
+import { Tooltip, resolveTooltipProps } from '../Tooltip';
 import { DEFAULT_COMPONENT_SIZE, clampComponentSize, type ComponentSize } from '../../core/theme/componentSize';
 import { getHeight, getIconSize } from '../../core/theme/sizes';
 import { useTheme } from '../../core/theme';
@@ -62,7 +62,7 @@ export function CopyButton({
 
   const effectiveMessage = toastMessage || truncate(value);
   const accLabel = copied ? 'Copied' : label;
-  const tooltipLabel = tooltip || accLabel;
+  const tooltipProps = resolveTooltipProps(tooltip ?? accLabel, { position: tooltipPosition });
   const iconGlyph = copied ? copiedIconName : iconName;
   const baseIconColor = iconColor ?? theme.text.primary;
   const successPalette = theme.colors.success ?? [];
@@ -89,7 +89,7 @@ export function CopyButton({
 
   if (isIconMode) {
     return (
-      <Tooltip label={tooltipLabel} position={tooltipPosition}>
+      <Tooltip label={accLabel} {...(tooltipProps ?? {})}>
         <Pressable
           onPress={handleCopy}
           style={[{ width: dims.box, height: dims.box, alignItems: 'center', justifyContent: 'center' }, style]}

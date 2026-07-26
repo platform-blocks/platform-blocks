@@ -1,13 +1,4 @@
-import type {
-  BaseChartProps,
-  ChartAnimation,
-  ChartAxis,
-  ChartDataPoint,
-  ChartGrid,
-  ChartInteractionCallbacks,
-  ChartLegend,
-  ChartTooltip,
-} from '../../types/base';
+import type { LineChartProps, LineChartSeries } from '../LineChart/types';
 
 export interface SeriesPoint {
   /** X-axis value */
@@ -27,29 +18,25 @@ export interface StackedAreaSeries {
   visible?: boolean;
 }
 
+/**
+ * Props for {@link StackedAreaChart}. Extends {@link LineChartProps} (minus the
+ * single-series `data`/`fill`/`smooth` fields it replaces) so it inherits the
+ * axes, grid, legend, tooltip, crosshair, scale-type and interaction props, plus
+ * the stacking-specific options below. This is the single source of truth — the
+ * component consumes this exact interface.
+ */
 export interface StackedAreaChartProps
-  extends BaseChartProps,
-    ChartInteractionCallbacks<ChartDataPoint> {
-  /** Array of data series for the stacked area chart */
-  series?: StackedAreaSeries[];
-  /** X-axis configuration */
-  xAxis?: ChartAxis;
-  /** Y-axis configuration */
-  yAxis?: ChartAxis;
-  /** Grid configuration */
-  grid?: ChartGrid;
-  /** Legend configuration */
-  legend?: ChartLegend;
-  /** Tooltip configuration */
-  tooltip?: ChartTooltip<ChartDataPoint>;
-  /** Animation configuration */
-  animation?: ChartAnimation;
-  /** Enable crosshair */
-  enableCrosshair?: boolean;
-  /** Shared tooltip per stack */
-  multiTooltip?: boolean;
-  /** Live tooltip follow */
-  liveTooltip?: boolean;
+  extends Omit<LineChartProps, 'data' | 'fill' | 'smooth'> {
+  /** Data series to stack */
+  series: LineChartSeries[];
+  /** Order layers are stacked in */
+  stackOrder?: 'normal' | 'reverse';
+  /** Smooth (curved) area tops */
+  smooth?: boolean;
+  /** Base opacity for the stacked layers */
+  opacity?: number;
+  /** Stack values as absolute totals or normalized to 100% */
+  stackMode?: 'absolute' | 'percentage';
 }
 
 export type SimpleStackedAreaChartProps = StackedAreaChartProps;

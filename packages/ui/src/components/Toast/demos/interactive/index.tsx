@@ -1,4 +1,4 @@
-import { Button, Column, useToast } from '@platform-blocks/ui';
+import { Block, Button, useToast } from '@platform-blocks/ui';
 
 export default function Demo() {
   const toast = useToast();
@@ -40,7 +40,7 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="sm">
+    <Block>
       <Button onPress={showActionToast}>Toast with action</Button>
       <Button variant="outline" onPress={showPersistentToast}>
         Persistent toast
@@ -48,7 +48,7 @@ export default function Demo() {
       <Button variant="outline" onPress={showTimedToast}>
         Quick toast (2s)
       </Button>
-    </Column>
+    </Block>
   );
 }
 

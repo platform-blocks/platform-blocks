@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Column, Row, Text, ToggleButton, ToggleGroup } from '@platform-blocks/ui';
+import { Block, Row, Text, ToggleButton, ToggleGroup } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [view, setView] = useState('list');
@@ -12,16 +12,16 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="md">
-      <Column gap="xs">
+    <Block>
+      <Block>
         <Text weight="semibold">Toggle orientations</Text>
         <Text size="xs" colorVariant="secondary">
           Swap the `orientation` prop to lay buttons out horizontally or vertically.
         </Text>
-      </Column>
+      </Block>
 
       <Row gap="lg" align="flex-start" wrap="wrap">
-        <Column gap="xs">
+        <Block>
           <Text size="sm" weight="semibold">
             Horizontal (default)
           </Text>
@@ -30,9 +30,9 @@ export default function Demo() {
             <ToggleButton value="grid">Grid</ToggleButton>
             <ToggleButton value="card">Card</ToggleButton>
           </ToggleGroup>
-        </Column>
+        </Block>
 
-        <Column gap="xs">
+        <Block>
           <Text size="sm" weight="semibold">
             Vertical
           </Text>
@@ -41,12 +41,12 @@ export default function Demo() {
             <ToggleButton value="grid">Grid</ToggleButton>
             <ToggleButton value="card">Card</ToggleButton>
           </ToggleGroup>
-        </Column>
+        </Block>
       </Row>
 
       <Text size="xs" colorVariant="secondary">
         Selected view: {view}
       </Text>
-    </Column>
+    </Block>
   );
 }

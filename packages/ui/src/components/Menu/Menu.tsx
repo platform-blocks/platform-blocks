@@ -17,7 +17,7 @@ import { ListGroup, ListGroupBody, ListGroupDivider } from '../ListGroup';
 import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme';
 import { useOverlayApi } from '../../core/providers/OverlayProvider';
-import { measureElement, calculateOverlayPositionEnhanced } from '../../core/utils/positioning-enhanced';
+import { measureElement, calculateOverlayPositionEnhanced, type PlacementType } from '../../core/utils/positioning-enhanced';
 import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
 import { MenuItemButton } from '../MenuItemButton';
 import {
@@ -29,6 +29,7 @@ import {
   MenuSubProps,
 } from './types';
 import { useMenuStyles } from './styles';
+import { useControllableState } from '../../hooks/useControllableState';
 
 interface MenuContextValue {
   closeMenu: () => void;
@@ -36,6 +37,42 @@ interface MenuContextValue {
 }
 
 const MenuContext = createContext<MenuContextValue | null>(null);
+
+/**
+ * Approximate rendered heights of the rows a menu is built from, at the `sm`
+ * size the dropdown uses.
+ *
+ * These only feed the positioner's pre-mount height hint, so a few pixels either
+ * way is harmless: they shift the point at which the menu decides to open upward
+ * rather than downward, never the final layout — that comes from the `maxHeight`
+ * the positioner returns.
+ */
+const MENU_ITEM_HEIGHT = 34;
+const MENU_LABEL_HEIGHT = 30;
+const MENU_DIVIDER_HEIGHT = 9;
+/** Padding and border the dropdown surface adds around the rows. */
+const MENU_CHROME_HEIGHT = 10;
+
+/**
+ * How tall the menu will be once mounted, capped at its `maxH`.
+ *
+ * Supplying this is what lets the menu pick its side correctly on the first and
+ * only positioning pass. It previously used a flat `120` — "typical menu with
+ * 3-4 items" — so a longer menu near the bottom of the window concluded it fitted
+ * below and rendered its remaining items off-screen. Unlike Select, the menu is
+ * positioned once at open and never re-measured, so nothing corrected it after.
+ */
+function estimateMenuHeight(items: ReactNode, maxHeight: number): number {
+  const content = React.Children.toArray(items).reduce<number>((total, child) => {
+    if (isValidElement(child)) {
+      if (child.type === MenuDivider) return total + MENU_DIVIDER_HEIGHT;
+      if (child.type === MenuLabel) return total + MENU_LABEL_HEIGHT;
+    }
+    return total + MENU_ITEM_HEIGHT;
+  }, 0);
+
+  return Math.min(maxHeight, content + MENU_CHROME_HEIGHT);
+}
 
 export function useMenuContext() {
   const context = useContext(MenuContext);
@@ -71,7 +108,10 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
     ...spacingProps
   } = props;
 
-  const [internalOpened, setInternalOpened] = useState(false);
+  const [isOpened, setOpened] = useControllableState<boolean>({
+    value: controlledOpened,
+    defaultValue: false,
+  });
   // Derive menu dropdown items from children each render for reactivity
   const { menuItems, menuDropdownProps } = useMemo(() => {
     const childArray = React.Children.toArray(children);
@@ -114,6 +154,7 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
   const { openOverlay, closeOverlay, updateOverlay } = useOverlayApi();
   const overlayIdRef = useRef<string | null>(null);
   const lastResolvedWidthRef = useRef<number | undefined>(undefined);
+  const lastResolvedMaxHeightRef = useRef<number | undefined>(undefined);
   const theme = useTheme();
   const styles = useMenuStyles();
   const dropdownSpacingStyles = useMemo(() => {
@@ -121,7 +162,6 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
     return getSpacingStyles(extractSpacingProps(menuDropdownProps as any).spacingProps);
   }, [menuDropdownProps]);
 
-  const isOpened = controlledOpened !== undefined ? controlledOpened : internalOpened;
   isOpenedRef.current = isOpened;
 
   // Overlay content update effect moved below handleClose definition
@@ -137,20 +177,26 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
       overlayIdRef.current = null;
     }
     // Ensure state sync even if overlay already closing
-    setInternalOpened(false);
+    setOpened(false);
     isOpenedRef.current = false;
     // onClose is invoked in overlay onClose; avoid double-calling
   }, [closeOverlay]);
 
   const menuContextValueOpened = useMemo(() => ({ closeMenu: handleClose, opened: true }), [handleClose]);
 
-  const buildMenuDropdown = useCallback((resolvedWidth: number | undefined) => {
+  /**
+   * `resolvedMaxHeight` is the smaller of the caller's `maxH` and the space the
+   * positioner found on the side it chose. Applying it is what keeps a long menu
+   * on screen: it scrolls within the available space instead of running off the
+   * bottom edge.
+   */
+  const buildMenuDropdown = useCallback((resolvedWidth: number | undefined, resolvedMaxHeight: number = maxH) => {
     if (!menuItems) return null;
     const scrollable = menuDropdownProps?.scrollable !== false;
     const listGroupStyle: ViewStyle = {
       ...(styles.dropdown as any),
       ...(dropdownSpacingStyles || {}),
-      maxHeight: maxH,
+      maxHeight: resolvedMaxHeight,
       width: resolvedWidth,
     };
 
@@ -165,12 +211,12 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
             <ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              style={{ maxHeight: maxH }}
+              style={{ maxHeight: resolvedMaxHeight }}
             >
               <ListGroupBody>{menuItems}</ListGroupBody>
             </ScrollView>
           ) : (
-            <View style={{ maxHeight: maxH, overflow: 'hidden' }}>
+            <View style={{ maxHeight: resolvedMaxHeight, overflow: 'hidden' }}>
               <ListGroupBody>{menuItems}</ListGroupBody>
             </View>
           )}
@@ -179,113 +225,180 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
     );
   }, [menuItems, menuDropdownProps, styles.dropdown, dropdownSpacingStyles, maxH, menuContextValueOpened]);
 
+  /**
+   * Measure the trigger and work out where the menu belongs.
+   *
+   * Split out of `handleOpen` so the same computation can run again while the
+   * menu is open — the menu is anchored to a trigger that scrolls with the page,
+   * so its viewport coordinates go stale the moment anything scrolls.
+   *
+   * `retryOnEmpty` is wanted only on open, where a zero measurement means the
+   * trigger hasn't laid out yet and is worth waiting for. On a reposition a zero
+   * measurement means the trigger has been scrolled out of existence, and
+   * blocking a scroll frame on a 100ms sleep would be the wrong answer.
+   */
+  const computeMenuGeometry = useCallback(async (
+    opts?: { clientX?: number; clientY?: number; retryOnEmpty?: boolean }
+  ) => {
+    if (!menuItems) return null;
+
+    const anchorRef = containerRef.current ? containerRef : triggerRef;
+    const triggerRect = await measureElement(anchorRef);
+
+    if (triggerRect.width === 0 && triggerRect.height === 0) {
+      if (!opts?.retryOnEmpty) return null;
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const retryRect = await measureElement(anchorRef);
+      if (retryRect.width > 0 || retryRect.height > 0) {
+        Object.assign(triggerRect, retryRect);
+      }
+    }
+
+    // Height is derived from the actual items rather than assumed, so the side
+    // choice is right the first time rather than being corrected after paint.
+    const menuHeight = estimateMenuHeight(menuItems, maxH);
+    const resolvedWidth = w === 'target' ? triggerRect.width : (typeof w === 'number' ? w : (w === 'auto' ? 200 : 200));
+    const overlaySize = { width: resolvedWidth, height: menuHeight };
+
+    // If contextmenu trigger, prefer cursor coordinates
+    let positionResult: { x: number; y: number; placement?: PlacementType; maxHeight?: number; anchorEdge?: 'top' | 'bottom'; anchorOffset?: number };
+    if (trigger === 'contextmenu') {
+      const cursorX = opts?.clientX ?? lastPointerPosRef.current?.x ?? 0;
+      const cursorY = opts?.clientY ?? lastPointerPosRef.current?.y ?? 0;
+      // Basic viewport clamping (assume available via window for web)
+      if (typeof window !== 'undefined') {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        positionResult = {
+          x: Math.min(cursorX, vw - (overlaySize.width || 200) - 4),
+          y: Math.min(cursorY, vh - overlaySize.height - 4),
+        };
+      } else {
+        positionResult = { x: cursorX, y: cursorY };
+      }
+    } else {
+      positionResult = calculateOverlayPositionEnhanced(triggerRect, overlaySize, {
+        placement: position,
+        offset,
+        strategy: strategy === 'portal' ? 'fixed' : strategy,
+        // Both the side choice and the height cap come from this.
+        desiredHeight: menuHeight,
+      });
+    }
+
+    // Never taller than the space the positioner found on the side it picked.
+    const resolvedMaxHeight = typeof positionResult.maxHeight === 'number'
+      ? Math.min(maxH, positionResult.maxHeight)
+      : maxH;
+
+    return { positionResult, overlaySize, resolvedWidth, resolvedMaxHeight };
+  }, [menuItems, maxH, w, trigger, position, offset, strategy]);
+
   const handleOpen = useCallback(async (opts?: { clientX?: number; clientY?: number }) => {
     // Use ref to avoid stale isOpened value after async close from backdrop click
     if (disabled || isOpenedRef.current || !menuItems) return;
 
     try {
-      console.log('Opening menu overlay...');
-      console.log('containerRef:', containerRef);
-      console.log('containerRef.current:', containerRef.current);
-      console.log('triggerRef:', triggerRef);
-      console.log('triggerRef.current:', triggerRef.current);
-      
       // Add a small delay to ensure element is mounted
       await new Promise(resolve => setTimeout(resolve, 10));
-      
-      // Try to measure the container first, then fallback to trigger
-  let anchorRef = containerRef.current ? containerRef : triggerRef;
-      console.log('Using anchor ref:', anchorRef === containerRef ? 'container' : 'trigger');
-      
-      // Measure anchor element
-      const triggerRect = await measureElement(anchorRef);
-      console.log('Anchor rect:', triggerRect);
-      
-      // If we got zero dimensions, try again after a longer delay
-      if (triggerRect.width === 0 && triggerRect.height === 0) {
-        console.log('Zero dimensions detected, retrying measurement...');
-        await new Promise(resolve => setTimeout(resolve, 100));
-        const retryRect = await measureElement(anchorRef);
-        console.log('Retry rect:', retryRect);
-        if (retryRect.width > 0 || retryRect.height > 0) {
-          Object.assign(triggerRect, retryRect);
-        }
-      }
-      
-      // Calculate base overlay size
-      const estimatedMenuHeight = 120; // Estimate for typical menu with 3-4 items
-      const resolvedWidth = w === 'target' ? triggerRect.width : (typeof w === 'number' ? w : (w === 'auto' ? 200 : 200));
-      const overlaySize = {
-        width: resolvedWidth,
-        height: estimatedMenuHeight,
-      };
-      lastResolvedWidthRef.current = resolvedWidth;
 
-      // If contextmenu trigger, prefer cursor coordinates
-      let positionResult: { x: number; y: number };
-      if (trigger === 'contextmenu') {
-        const cursorX = opts?.clientX ?? lastPointerPosRef.current?.x ?? 0;
-        const cursorY = opts?.clientY ?? lastPointerPosRef.current?.y ?? 0;
-        // Basic viewport clamping (assume available via window for web)
-        if (typeof window !== 'undefined') {
-          const vw = window.innerWidth;
-            const vh = window.innerHeight;
-            positionResult = {
-              x: Math.min(cursorX, vw - (overlaySize.width || 200) - 4),
-              y: Math.min(cursorY, vh - overlaySize.height - 4),
-            };
-        } else {
-          positionResult = { x: cursorX, y: cursorY };
-        }
-      } else {
-        const calc = calculateOverlayPositionEnhanced(triggerRect, overlaySize, {
-          placement: position,
-          offset,
-          strategy: strategy === 'portal' ? 'fixed' : strategy,
-        });
-        positionResult = calc;
-      }
-      
-      console.log('Position result:', positionResult, 'overlaySize:', overlaySize);
+      const geometry = await computeMenuGeometry({ ...opts, retryOnEmpty: true });
+      if (!geometry) return;
+
+      const { positionResult, overlaySize, resolvedWidth, resolvedMaxHeight } = geometry;
+
+      lastResolvedWidthRef.current = resolvedWidth;
+      lastResolvedMaxHeightRef.current = resolvedMaxHeight;
 
       // Create menu dropdown content
-      const menuDropdown = buildMenuDropdown(resolvedWidth);
+      const menuDropdown = buildMenuDropdown(resolvedWidth, resolvedMaxHeight);
       if (!menuDropdown) return;
 
-      // Open overlay
-      console.log('Opening menu overlay with config:', {
-        anchor: { x: positionResult.x, y: positionResult.y, width: overlaySize.width, height: overlaySize.height },
-        strategy,
-        closeOnClickOutside,
-        closeOnEscape,
-        trigger,
-      });
-      
       const overlayId = openOverlay({
         content: menuDropdown,
         anchor: { x: positionResult.x, y: positionResult.y, width: overlaySize.width, height: overlaySize.height },
+        // Pin to the trigger-adjacent edge when the positioner supplied one, so
+        // an upward-opening menu grows away from the trigger instead of having
+        // its top edge computed from an assumed height.
+        pinEdge: positionResult.anchorEdge,
+        pinOffset: positionResult.anchorOffset,
         anchorNode: containerRef.current ?? triggerRef.current,
-        placement: (positionResult as any).placement || position,
+        placement: positionResult.placement || position,
         closeOnClickOutside,
         closeOnEscape,
         strategy,
         // Provide lightweight onClose that only resets state; actual closing is already in progress
         onClose: () => {
           overlayIdRef.current = null;
-          setInternalOpened(false);
+          setOpened(false);
           isOpenedRef.current = false;
           onClose?.();
         },
       });
 
       overlayIdRef.current = overlayId;
-    setInternalOpened(true);
+    setOpened(true);
     isOpenedRef.current = true;
       onOpen?.();
     } catch (error) {
       console.warn('Failed to open menu:', error);
     }
-  }, [disabled, w, position, offset, strategy, closeOnClickOutside, closeOnEscape, onOpen, menuItems, trigger, buildMenuDropdown, onClose]);
+  }, [disabled, position, strategy, closeOnClickOutside, closeOnEscape, onOpen, menuItems, buildMenuDropdown, onClose, computeMenuGeometry, openOverlay]);
+
+  /**
+   * Keep an open menu docked to its trigger.
+   *
+   * Without this the menu is positioned once, at open, and holds those viewport
+   * coordinates forever — scrolling the page slides the trigger away and leaves
+   * the menu floating where the trigger used to be. Every other overlay in the
+   * library tracks; this was the last one that didn't.
+   *
+   * Context menus are excluded on purpose: they are anchored to the point where
+   * the pointer was, not to an element, so there is nothing to track them to.
+   */
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !isOpened || trigger === 'contextmenu') return;
+
+    let frame: number | null = null;
+    let cancelled = false;
+
+    const reposition = async () => {
+      const geometry = await computeMenuGeometry();
+      if (cancelled || !geometry || !overlayIdRef.current) return;
+
+      const { positionResult, overlaySize, resolvedWidth, resolvedMaxHeight } = geometry;
+      lastResolvedWidthRef.current = resolvedWidth;
+      lastResolvedMaxHeightRef.current = resolvedMaxHeight;
+
+      // `updateOverlay` diffs before committing, so a scroll that doesn't move
+      // the trigger costs a measurement and nothing more.
+      updateOverlay(overlayIdRef.current, {
+        anchor: { x: positionResult.x, y: positionResult.y, width: overlaySize.width, height: overlaySize.height },
+        pinEdge: positionResult.anchorEdge,
+        pinOffset: positionResult.anchorOffset,
+      });
+    };
+
+    // Coalesced to one reposition per frame: the scroll listener is registered
+    // in the capture phase so it fires for every scrolling ancestor.
+    const handleUpdate = () => {
+      if (frame !== null) return;
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        reposition();
+      });
+    };
+
+    window.addEventListener('scroll', handleUpdate, true);
+    window.addEventListener('resize', handleUpdate);
+
+    return () => {
+      cancelled = true;
+      if (frame !== null) cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', handleUpdate, true);
+      window.removeEventListener('resize', handleUpdate);
+    };
+  }, [isOpened, trigger, computeMenuGeometry, updateOverlay]);
 
   // When menu content changes while open, update overlay content in place
   useEffect(() => {
@@ -295,7 +408,7 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
     lastSignatureRef.current = menuItemsSignature;
     const currentId = overlayIdRef.current;
     const resolvedWidth = lastResolvedWidthRef.current ?? (typeof w === 'number' ? w : undefined);
-    const menuDropdown = buildMenuDropdown(resolvedWidth);
+    const menuDropdown = buildMenuDropdown(resolvedWidth, lastResolvedMaxHeightRef.current);
     if (!menuDropdown) return;
     updateOverlay(currentId, {
       content: menuDropdown,
@@ -576,12 +689,14 @@ function MenuSubBase(props: MenuSubProps, ref: React.Ref<View>) {
 
     const resolvedWidth = typeof w === 'number' ? w : 200;
     const triggerRect = await measureElement(itemRef);
-    const overlaySize = { width: resolvedWidth, height: Math.min(maxH, 240) };
+    const subHeight = estimateMenuHeight(children, maxH);
+    const overlaySize = { width: resolvedWidth, height: subHeight };
     const positionResult = calculateOverlayPositionEnhanced(triggerRect, overlaySize, {
       placement: 'right-start',
       offset: 2,
       strategy: Platform.OS === 'web' ? 'fixed' : 'absolute',
       fallbackPlacements: ['right-start', 'left-start', 'right', 'left'],
+      desiredHeight: subHeight,
     });
 
     const overlayId = openOverlay({

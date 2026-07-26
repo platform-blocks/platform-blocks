@@ -1,35 +1,6 @@
 import { BarChart } from '../../';
 
-const REGIONAL_REVENUE = [
-  {
-    id: 'na',
-    category: 'North America',
-    value: 5.84,
-    color: '#2563eb',
-    data: { goal: 5.6, focus: 'Enterprise upsell momentum' },
-  },
-  {
-    id: 'emea',
-    category: 'EMEA',
-    value: 4.35,
-    color: '#22c55e',
-    data: { goal: 4.1, focus: 'Channel partner acceleration' },
-  },
-  {
-    id: 'apac',
-    category: 'APAC',
-    value: 3.92,
-    color: '#f97316',
-    data: { goal: 4.0, focus: 'Pipeline impacted by onboarding capacity' },
-  },
-  {
-    id: 'latam',
-    category: 'LATAM',
-    value: 2.48,
-    color: '#a855f7',
-    data: { goal: 2.2, focus: 'New reseller footprint' },
-  },
-];
+import { REGIONAL_REVENUE } from './data';
 
 const formatMillions = (value: number) => `$${value.toFixed(2)}M`;
 
@@ -70,7 +41,7 @@ export default function Demo() {
         labelFormatter: (value) => `$${value.toFixed(1)}M`,
       }}
       xAxis={{ show: true }}
-      grid={{ show: true, color: '#E5E7EB' }}
+      grid={{ show: true }}
       tooltip={{
         formatter: (datum) => {
           const goal = datum.data?.goal ?? 0;

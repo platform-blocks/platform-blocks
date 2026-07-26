@@ -1,9 +1,9 @@
-import { Avatar, Column, Row, Icon, Text } from '@platform-blocks/ui';
+import { Avatar, Block, Icon, Row, Text } from '@platform-blocks/ui';
 
 export default function IconAvatarDemo() {
   return (
-    <Column gap="lg">
-      <Column gap="sm">
+    <Block>
+      <Block>
         <Text size="sm" colorVariant="muted">
           Render an icon inside the avatar via the `fallback` prop
         </Text>
@@ -25,9 +25,9 @@ export default function IconAvatarDemo() {
             backgroundColor="#ef4444"
           />
         </Row>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">
           Scales with the avatar size
         </Text>
@@ -53,9 +53,9 @@ export default function IconAvatarDemo() {
             backgroundColor="#6366f1"
           />
         </Row>
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">
           Icon avatar with label and online status
         </Text>
@@ -66,7 +66,7 @@ export default function IconAvatarDemo() {
           description="Product Designer"
           online
         />
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

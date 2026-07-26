@@ -1,7 +1,5 @@
 import { View } from 'react-native';
-import { Card, Column, Text } from '@platform-blocks/ui';
-import { useTitleRegistration } from '../..';
-import { TitleRegistryProvider, useTitleRegistry } from '../../contexts';
+import { Block, DataList, Text, TitleRegistryProvider, useTitleRegistration, useTitleRegistry } from '@platform-blocks/ui';
 
 const SECTIONS = [
   { title: 'Why it matters', order: 1, description: 'Explain how the registry keeps navigation UI in sync with content.' },
@@ -13,11 +11,9 @@ function Section({ title, order, description }: { title: string; order: number; 
   const { elementRef, id } = useTitleRegistration({ text: title, order });
 
   return (
-    <View ref={elementRef} nativeID={id} style={{ gap: 6 }}>
+    <View ref={elementRef} nativeID={id}>
       <Text weight="semibold">{title}</Text>
-      <Text size="sm" colorVariant="secondary">
-        {description}
-      </Text>
+      <Text size="sm" colorVariant="secondary">{description}</Text>
     </View>
   );
 }
@@ -26,46 +22,31 @@ function RegistryPreview() {
   const { titles } = useTitleRegistry();
 
   if (!titles.length) {
-    return (
-      <Text size="sm" colorVariant="muted">
-        No titles registered yet.
-      </Text>
-    );
+    return <Text size="sm" colorVariant="muted">No titles registered yet.</Text>;
   }
 
   return (
-    <Column gap="xs">
-      {titles.map(title => (
-        <Text key={title.id} size="sm">
-          {title.text} (level {title.order})
-        </Text>
-      ))}
-    </Column>
+    <DataList
+      labelWidth={180}
+      data={titles.map(title => ({ label: title.text, value: `level ${title.order}` }))}
+    />
   );
 }
 
 export default function Demo() {
   return (
     <TitleRegistryProvider>
-      <Column gap="md" fullWidth>
-        <Text weight="semibold">Register titles for shared navigation</Text>
-        <Text size="sm" colorVariant="secondary">
-          Sections call the hook once and the registry keeps downstream components in sync.
-        </Text>
-        <Card variant="outline" style={{ padding: 16, gap: 16 }}>
-          <Column gap="sm">
-            <Text size="sm" weight="semibold">
-              Registered titles
-            </Text>
-            <RegistryPreview />
-          </Column>
-          <Column gap="lg">
-            {SECTIONS.map(section => (
-              <Section key={section.title} {...section} />
-            ))}
-          </Column>
-        </Card>
-      </Column>
+      <Block gap="lg">
+        <Block gap="xs">
+          <Text size="sm" weight="semibold">Registered titles</Text>
+          <RegistryPreview />
+        </Block>
+        <Block gap="lg">
+          {SECTIONS.map(section => (
+            <Section key={section.title} {...section} />
+          ))}
+        </Block>
+      </Block>
     </TitleRegistryProvider>
   );
 }

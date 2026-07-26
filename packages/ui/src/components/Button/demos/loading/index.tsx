@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Column, Row } from '@platform-blocks/ui';
+import { Button, Row } from '@platform-blocks/ui';
 
 const LOADING_DURATION_MS = 2000;
 
@@ -26,27 +26,25 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="sm">
-      <Row gap="md" wrap="wrap" align="flex-start">
-        <Button loading={activeKey === 'default'} onPress={() => triggerLoading('default')}>
-          Submit application
-        </Button>
-        <Button
-          loading={activeKey === 'custom'}
-          loadingTitle="Submitting…"
-          onPress={() => triggerLoading('custom')}
-        >
-          Submit application
-        </Button>
-        <Button
-          loading={activeKey === 'disabled'}
-          disabled={activeKey === 'disabled'}
-          loadingTitle="Disabled while loading"
-          onPress={() => triggerLoading('disabled')}
-        >
-          Submit application
-        </Button>
-      </Row>
-    </Column>
+    <Row gap="md" wrap="wrap" align="flex-start">
+      <Button loading={activeKey === 'default'} onPress={() => triggerLoading('default')}>
+        Submit application
+      </Button>
+      <Button
+        loading={activeKey === 'custom'}
+        loadingTitle="Submitting…"
+        onPress={() => triggerLoading('custom')}
+      >
+        Submit application
+      </Button>
+      <Button
+        loading={activeKey === 'disabled'}
+        disabled={activeKey === 'disabled'}
+        loadingTitle="Loading"
+        onPress={() => triggerLoading('disabled')}
+      >
+        Submit application
+      </Button>
+    </Row>
   );
 }

@@ -34,7 +34,9 @@ describe('Indicator - behavior', () => {
     expect(styles.backgroundColor).toBe(mockTheme.colors.success[5]);
     expect(styles.borderColor).toBe(mockTheme.colors.surface[0]);
     expect(styles.borderWidth).toBe(1);
-    expect(styles.boxShadow).toBe(mockTheme.shadows.xs);
+    // Indicators render flat — the ring, not a drop shadow, separates them from
+    // whatever they sit on.
+    expect(styles.boxShadow).toBeUndefined();
   });
 
   it('supports numeric sizes, custom colors, and merges style overrides', () => {

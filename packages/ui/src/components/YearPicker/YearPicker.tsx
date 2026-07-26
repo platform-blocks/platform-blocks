@@ -3,14 +3,17 @@ import { View, Pressable, useWindowDimensions } from 'react-native';
 import { Text } from '../Text';
 import { Flex } from '../Flex';
 import { Icon } from '../Icon';
+import { getCurrentPeriodStyles, getCurrentPeriodTextColor } from '../Calendar/currentPeriod';
+import { getMonthGridWidth } from '../Calendar/utils';
 import { useTheme } from '../../core/theme';
 import { DESIGN_TOKENS } from '../../core';
 import { resolveResponsiveProp, type ResponsiveProp } from '../../core/theme/breakpoints';
 import type { YearPickerProps } from './types';
+import { useControllableState } from '../../hooks/useControllableState';
 
 const DEFAULT_YEARS_PER_ROW: ResponsiveProp<number> = { base: 3, md: 4 };
 
-export const YearPicker: React.FC<YearPickerProps> = ({
+export const YearPicker = React.forwardRef<View, YearPickerProps>(({
   value,
   onChange,
   decade: controlledDecade,
@@ -21,16 +24,19 @@ export const YearPicker: React.FC<YearPickerProps> = ({
   yearsPerRow,
   hideHeader = false,
   totalYears = 20,
-}) => {
+  fullWidth = false,
+}, ref) => {
   const theme = useTheme();
   const { width } = useWindowDimensions();
 
-  const currentYear = value?.getFullYear() || new Date().getFullYear();
-  const [internalDecade, setInternalDecade] = useState(
-    controlledDecade || Math.floor(currentYear / 10) * 10
-  );
-
-  const currentDecade = controlledDecade || internalDecade;
+  const [currentDecade, setCurrentDecade] = useControllableState<number>({
+    value: controlledDecade,
+    defaultValue: () => {
+      const year = value?.getFullYear() ?? new Date().getFullYear();
+      return Math.floor(year / 10) * 10;
+    },
+    onChange: onDecadeChange,
+  });
 
   const resolvedYearsPerRow = useMemo(() => {
     const fallback = size === 'xs' || size === 'sm' ? 3 : 4;
@@ -47,13 +53,8 @@ export const YearPicker: React.FC<YearPickerProps> = ({
   }, [currentDecade, totalYears, resolvedYearsPerRow]);
 
   const handleDecadeChange = useCallback(
-    (newDecade: number) => {
-      if (!controlledDecade) {
-        setInternalDecade(newDecade);
-      }
-      onDecadeChange?.(newDecade);
-    },
-    [controlledDecade, onDecadeChange]
+    (newDecade: number) => setCurrentDecade(newDecade),
+    [setCurrentDecade]
   );
 
   const handlePreviousDecade = () => {
@@ -98,8 +99,12 @@ export const YearPicker: React.FC<YearPickerProps> = ({
 
   const rows = Math.ceil(years.length / resolvedYearsPerRow);
 
+  // Year tiles are flex-sized, so an unconstrained picker balloons to fill its
+  // container. Default to the same natural width as a calendar's day grid.
+  const pickerWidth = fullWidth ? undefined : getMonthGridWidth(size);
+
   return (
-    <View>
+    <View ref={ref} style={pickerWidth === undefined ? undefined : { width: pickerWidth, maxWidth: '100%' }}>
       {!hideHeader && (
         <Flex
           direction="row"
@@ -167,6 +172,11 @@ export const YearPicker: React.FC<YearPickerProps> = ({
               const year = years[yearIndex];
               const disabled = isYearDisabled(year);
               const isSelected = isYearSelected(year);
+              // Mark the year we're actually in, so the grid shows where "now" sits.
+              const currentPeriod = {
+                isCurrent: year === new Date().getFullYear() && !disabled,
+                isSelected,
+              };
 
               return (
                 <Pressable
@@ -189,24 +199,20 @@ export const YearPicker: React.FC<YearPickerProps> = ({
                         ? theme.colors.gray[2]
                         : 'transparent',
                       borderRadius: DESIGN_TOKENS.radius.md,
+                      ...getCurrentPeriodStyles(theme, currentPeriod),
                       opacity: disabled ? 0.5 : 1,
-                      shadowColor: isSelected ? theme.colors.primary[5] : 'transparent',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: isSelected ? 0.2 : 0,
-                      shadowRadius: 4,
-                      elevation: isSelected ? 2 : 0,
                     },
                   ]}
                 >
                   <Text
                     size={size === 'xs' ? 'sm' : size === 'sm' ? 'md' : 'lg'}
-                    weight={isSelected ? 'semibold' : 'medium'}
+                    weight={isSelected || currentPeriod.isCurrent ? 'semibold' : 'medium'}
                     style={{
                       color: isSelected
                         ? 'white'
                         : disabled
                         ? theme.colors.gray[4]
-                        : theme.colors.gray[9],
+                        : getCurrentPeriodTextColor(theme, currentPeriod) ?? theme.colors.gray[9],
                       textAlign: 'center',
                     }}
                   >
@@ -220,4 +226,6 @@ export const YearPicker: React.FC<YearPickerProps> = ({
       </View>
     </View>
   );
-};
+});
+
+YearPicker.displayName = 'YearPicker';

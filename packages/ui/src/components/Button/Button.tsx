@@ -1,109 +1,37 @@
-import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { Pressable, View, Animated, Easing, Platform, LayoutChangeEvent, StyleSheet } from 'react-native';
+import React, { useMemo, useState, useCallback } from 'react';
+import { Pressable, View, Animated, LayoutChangeEvent } from 'react-native';
 import { useTheme } from '../../core/theme';
-import { normalizeHex, adjustHexColor } from '../../core/theme/colorUtils';
-import { resolveVariantRoles, CORE_COLORS, type VariantRole, type VariantRoles } from '../../core/theme/variantRoles';
-import { SizeValue, getFontSize, getSpacing, getHeight } from '../../core/theme/sizes';
+import { resolveGradientStops, type VariantRoles } from '../../core/theme/variantRoles';
+import { getHeight } from '../../core/theme/sizes';
 import { createRadiusStyles } from '../../core/theme/radius';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
-import { getSpacingStyles, extractSpacingProps, extractShadowProps, getShadowStyles, getLayoutStyles, extractLayoutProps, mergeSlotProps } from '../../core/utils';
+import { getSpacingStyles, extractSpacingProps, extractShadowProps, getShadowStyles, getLayoutStyles, extractLayoutProps, mergeSlotProps, useMergedRef } from '../../core/utils';
 import { Loader } from '../Loader';
 import { Text } from '../Text';
-import { Tooltip } from '../Tooltip';
+import { Tooltip, resolveTooltipProps, getTooltipText } from '../Tooltip';
 import { ButtonProps } from './types';
 import { useHaptics } from '../../hooks/useHaptics';
-import { DESIGN_TOKENS, getUnifiedComponentSize } from '../../core/unified-styles';
-import { useFocus, useReducedMotion, useAnnouncer } from '../../core/accessibility/hooks';
+import { useFocus, useAnnouncer } from '../../core/accessibility/hooks';
 import { createAccessibilityProps } from '../../core/accessibility/utils';
 import { resolveLinearGradient } from '../../utils/optionalDependencies';
+import { useButtonAnimation } from './animation';
+import {
+  getButtonFillStyle,
+  getButtonIconSpacing,
+  getButtonLabelStyle,
+  getButtonStyles,
+  getButtonPressedStyle,
+  getCanonicalVariant,
+  resolveAccentTextColor,
+  resolveButtonRoles,
+  resolveButtonTextColor,
+  resolveRoleColor,
+  resolveTokenColor,
+  splitButtonLayoutStyles,
+} from './styles';
 
 const { LinearGradient: OptionalLinearGradient, hasLinearGradient } = resolveLinearGradient();
 
-const getButtonStyles = (
-  theme: PlatformBlocksTheme,
-  variant: ButtonProps['variant'] = 'filled',
-  size: SizeValue = 'md',
-  disabled: boolean = false,
-  loading: boolean = false,
-  height: number,
-  radiusStyles: any,
-  shadowStyles: any,
-  roles: VariantRoles | null,
-  isIconButton: boolean = false,
-  fullWidth: boolean = false
-): any => {
-  const sizeConfig = getUnifiedComponentSize(size as any);
-  const horizontalSpacing = isIconButton ? 0 : sizeConfig.padding;
-
-  const baseStyles = {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    height: sizeConfig.height,
-    minHeight: sizeConfig.height,
-    minWidth: isIconButton ? sizeConfig.height : sizeConfig.height,
-    // For icon buttons, make width equal to height (square), otherwise use horizontal padding
-    ...(isIconButton ? { width: sizeConfig.height } : { paddingHorizontal: horizontalSpacing }),
-    // NOTE: fullWidth/flex are applied to the OUTER wrapper (see render), not
-    // here — the Pressable is nested two Views deep, so width/flex on it can't
-    // grow the button within a flex row. The Pressable stretches to fill the
-    // wrapper via the default column + alignItems:stretch.
-    paddingVertical: Math.round(sizeConfig.padding * 0.25), // Consistent vertical padding
-    borderWidth: 1,
-    opacity: disabled ? DESIGN_TOKENS.opacity.disabled : loading ? DESIGN_TOKENS.opacity.pressed : 1,
-    ...radiusStyles,
-    // Add consistent transitions
-    ...(typeof window !== 'undefined' && {
-      transition: `all ${DESIGN_TOKENS.motion.duration.fast}ms ${DESIGN_TOKENS.motion.easing.easeOut}`,
-    }),
-  };
-
-  // Color-bearing variants (filled / light / subtle / outline / gradient) resolve
-  // fill + border through the shared, theme-independent variant model.
-  if (roles) {
-    const styled = { ...baseStyles, backgroundColor: roles.fill, borderColor: roles.border };
-    // Solid variants carry the button's shadow; tinted / outline stay flat.
-    return variant === 'filled' || variant === 'gradient'
-      ? { ...styled, ...shadowStyles }
-      : styled;
-  }
-
-  // Neutral / special variants keep their bespoke styling and ignore `color`.
-  const isDark = theme.colorScheme === 'dark';
-  switch (variant) {
-    case 'secondary':
-      return {
-        ...baseStyles,
-        // gray[1] equals the surface in dark mode, so lift the fill a step there.
-        backgroundColor: isDark ? theme.colors.gray[3] : theme.colors.gray[1],
-        borderColor: isDark ? theme.colors.gray[4] : theme.colors.gray[3],
-        ...shadowStyles,
-      };
-    case 'link':
-      return {
-        ...baseStyles,
-        backgroundColor: 'transparent',
-        borderColor: 'transparent',
-        textDecorationLine: 'underline' as const,
-        paddingHorizontal: 0,
-        paddingVertical: 0,
-      };
-    case 'none':
-      return {
-        ...baseStyles,
-        backgroundColor: 'transparent',
-        borderColor: 'transparent',
-        height: 'auto' as const,
-        paddingHorizontal: 0,
-        paddingVertical: 0,
-      };
-    case 'ghost':
-    default:
-      return { ...baseStyles, backgroundColor: 'transparent', borderColor: 'transparent' };
-  }
-};
-
-export const Button: React.FC<ButtonProps> = (allProps) => {
+export const Button = React.forwardRef<View, ButtonProps>((allProps, ref) => {
   const { spacingProps, otherProps: propsAfterSpacing } = extractSpacingProps(allProps);
   const { shadowProps, otherProps: propsAfterShadow } = extractShadowProps(propsAfterSpacing);
   const { layoutProps, otherProps } = extractLayoutProps(propsAfterShadow);
@@ -117,7 +45,7 @@ export const Button: React.FC<ButtonProps> = (allProps) => {
     onHoverOut,
     onLongPress,
     onLayout,
-    variant = 'filled',
+    variant = 'default',
     size = 'md',
     disabled = false,
     loading = false,
@@ -130,6 +58,7 @@ export const Button: React.FC<ButtonProps> = (allProps) => {
     endIcon,
     tooltip,
     tooltipPosition = 'top',
+    transitionDuration,
     radius,
     style,
     testID,
@@ -142,29 +71,29 @@ export const Button: React.FC<ButtonProps> = (allProps) => {
   const effectiveVariant = variant === 'gradient' && !hasLinearGradient ? 'filled' : variant;
 
   // Accessibility hooks
-  const { getDuration } = useReducedMotion();
   const { announce } = useAnnouncer();
   const { ref: focusRef, focus, isFocused } = useFocus(`button-${title || 'button'}`);
 
-  // Track measured width for loading state preservation
+  // Last width the button occupied with its real content, so the loading state
+  // can hold that width instead of collapsing around the loader.
   const [measuredWidth, setMeasuredWidth] = useState<number | null>(null);
-  const wasLoadingRef = useRef(loading);
 
-  // When loading starts, we want to preserve the current measured width
-  // When loading ends, clear the preserved width so it can resize naturally
-  useEffect(() => {
-    if (!loading && wasLoadingRef.current) {
-      // Loading just ended, allow width to be recalculated
-      setMeasuredWidth(null);
-    }
-    wasLoadingRef.current = loading;
-  }, [loading]);
+  // `tooltip` accepts a string shorthand or a full Tooltip config; `tooltipPosition`
+  // is the legacy default and yields to an explicit `position` in the object form.
+  const tooltipProps = resolveTooltipProps(tooltip, { position: tooltipPosition });
+  const tooltipText = getTooltipText(tooltip);
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
-    // Only update measured width when not loading, so we capture the natural content width
+    // Only record width while not loading, so we keep the natural content width.
+    // It is deliberately never cleared: layout only fires when the size actually
+    // changes, so dropping it when loading ends would leave nothing to freeze on
+    // the next loading cycle (the content width is usually unchanged, so no new
+    // layout event arrives).
     if (!loading) {
       const { width } = event.nativeEvent.layout;
-      setMeasuredWidth(width);
+      if (width > 0) {
+        setMeasuredWidth(prev => (prev === width ? prev : width));
+      }
     }
     // Call user's onLayout if provided
     onLayout?.(event);
@@ -213,46 +142,19 @@ export const Button: React.FC<ButtonProps> = (allProps) => {
   const height = getHeight(size);
   const radiusStyles = createRadiusStyles(radius, height, 'button');
 
-  // Handle shadow prop - use default 'sm' for primary/filled/secondary/gradient variants if no shadow specified
-  const effectiveShadow = shadowProps.shadow ?? ((effectiveVariant === 'filled' || effectiveVariant === 'secondary' || effectiveVariant === 'gradient') ? 'sm' : 'none');
+  // Buttons are flat by default on every variant; opt in with the `shadow` prop.
+  const effectiveShadow = shadowProps.shadow ?? 'none';
   const shadowStyles = getShadowStyles({ shadow: effectiveShadow }, theme, 'button');
 
   const spacingStyles = getSpacingStyles(spacingProps);
-  const baseLayoutStyles = getLayoutStyles(layoutProps);
-
-  // The Button nests its Pressable inside wrapper Views, so width/flex applied
-  // to the Pressable can't size the button within a flex row. Split styles by
-  // who they belong to:
-  //   • width-family layout (fullWidth/w/maxW/minW) + flex → OUTER wrapper, so
-  //     the button's footprint grows/shrinks correctly in any container.
-  //   • height-family layout (h/maxH/minH) + visual style → the Pressable.
   const {
-    width: layoutWidth,
-    maxWidth: layoutMaxWidth,
-    minWidth: layoutMinWidth,
-    ...heightLayoutStyles
-  } = baseLayoutStyles as Record<string, unknown>;
+    outer: outerLayoutStyles,
+    pressableLayout: heightLayoutStyles,
+    pressableStyle: pressableStyleRest,
+  } = splitButtonLayoutStyles(getLayoutStyles(layoutProps) as Record<string, unknown>, style);
 
-  const outerWidthStyles: Record<string, unknown> = {};
-  if (layoutWidth !== undefined) outerWidthStyles.width = layoutWidth;
-  if (layoutMaxWidth !== undefined) outerWidthStyles.maxWidth = layoutMaxWidth;
-  if (layoutMinWidth !== undefined) outerWidthStyles.minWidth = layoutMinWidth;
-
-  // Hoist flex-footprint props out of the consumer `style` onto the wrapper.
-  // (Visual style — bg, border, radius, etc. — stays on the Pressable.)
-  const flatStyle = (StyleSheet.flatten(style) || {}) as Record<string, unknown>;
-  const {
-    flex: styleFlex,
-    flexGrow: styleFlexGrow,
-    flexShrink: styleFlexShrink,
-    flexBasis: styleFlexBasis,
-    ...pressableStyleRest
-  } = flatStyle;
-  const hoistedFlexStyles: Record<string, unknown> = {};
-  if (styleFlex !== undefined) hoistedFlexStyles.flex = styleFlex;
-  if (styleFlexGrow !== undefined) hoistedFlexStyles.flexGrow = styleFlexGrow;
-  if (styleFlexShrink !== undefined) hoistedFlexStyles.flexShrink = styleFlexShrink;
-  if (styleFlexBasis !== undefined) hoistedFlexStyles.flexBasis = styleFlexBasis;
+  // Hug the content unless the button was asked to fill its container.
+  const fillStyle = getButtonFillStyle(outerLayoutStyles);
 
   // Freeze the measured width on the Pressable while loading to avoid jumps.
   const loadingFreezeStyle =
@@ -260,82 +162,58 @@ export const Button: React.FC<ButtonProps> = (allProps) => {
       ? { width: measuredWidth, minWidth: measuredWidth }
       : null;
 
-  const iconSpacing = getSpacing(size) / 2;
+  const iconSpacing = getButtonIconSpacing(size);
 
-  const resolveTokenColor = (token?: string): string | undefined => {
-    if (!token) return undefined;
-    // palette.shade format
-    const m = token.match(/^([a-zA-Z0-9_-]+)\.([0-9]{1,2})$/);
-    if (m) {
-      const [, palette, shadeStr] = m;
-      const shade = parseInt(shadeStr, 10);
-      const pal = (theme.colors as any)[palette];
-      if (pal && Array.isArray(pal) && pal[shade] != null) return pal[shade];
-    }
-    // palette only
-    const pal = (theme.colors as any)[token];
-    if (pal) {
-      if (Array.isArray(pal)) return pal[5] || pal[0];
-      return pal;
-    }
-    return token; // raw css color
-  };
-
-  // Resolve the tint color for the color-bearing variants. Explicit `color` wins,
-  // then legacy `colorVariant`, else `primary`. Core palette tokens pass through as
-  // tokens (the shared resolver does its own palette lookup); `palette.shade` and
-  // raw CSS/hex colors are pre-resolved to a concrete value.
+  // Explicit `color` wins, then legacy `colorVariant`, else `primary`.
   const roleColorToken = color ?? colorVariant;
   const hasExplicitColor = roleColorToken != null;
-  const resolvedRoleColor = !roleColorToken
-    ? 'primary'
-    : (CORE_COLORS as readonly string[]).includes(roleColorToken)
-      ? roleColorToken
-      : (resolveTokenColor(roleColorToken) ?? roleColorToken);
+  const resolvedRoleColor = resolveRoleColor(theme, roleColorToken);
 
   // Gradient stops — also used to render the LinearGradient overlay so it honors `color`.
-  const gradientStops = useMemo<[string, string]>(() => {
-    if ((CORE_COLORS as readonly string[]).includes(resolvedRoleColor)) {
-      const pal = ((theme.colors as any)[resolvedRoleColor] as string[]) ?? theme.colors.primary;
-      return [pal[3] ?? pal[0], pal[7] ?? pal[pal.length - 1] ?? pal[8]];
-    }
-    const n = normalizeHex(resolvedRoleColor);
-    return n ? [n, adjustHexColor(n, -30)] : [resolvedRoleColor, resolvedRoleColor];
-  }, [resolvedRoleColor, theme.colors]);
+  // Shared helper keeps a tasteful, tight same-hue range consistent with Badge/Chip/Card.
+  const gradientStops = useMemo<[string, string]>(
+    () => resolveGradientStops(theme, resolvedRoleColor),
+    [resolvedRoleColor, theme],
+  );
 
-  // Map Button variants onto the canonical color-bearing set. Neutral / special
-  // variants (secondary, ghost, link, none) resolve to null and keep bespoke styling.
-  const canonicalVariant: VariantRole | undefined = (
-    { filled: 'filled', light: 'light', subtle: 'subtle', outline: 'outline', gradient: 'gradient' } as
-      Record<string, VariantRole | undefined>
-  )[effectiveVariant as string];
+  const canonicalVariant = getCanonicalVariant(effectiveVariant as string);
 
-  const roles = useMemo<VariantRoles | null>(() => (
-    canonicalVariant
-      ? resolveVariantRoles(theme, { variant: canonicalVariant, color: resolvedRoleColor, gradientStops })
-      : null
-  ), [canonicalVariant, theme, resolvedRoleColor, gradientStops]);
+  const roles = useMemo<VariantRoles | null>(
+    () => resolveButtonRoles(theme, canonicalVariant, resolvedRoleColor, gradientStops),
+    [canonicalVariant, theme, resolvedRoleColor, gradientStops],
+  );
 
   // Accent text for ghost/link when a color is explicitly requested (else they keep
   // their neutral defaults, so existing call sites are unchanged).
   const accentText = useMemo(
-    () => resolveVariantRoles(theme, { variant: 'outline', color: resolvedRoleColor }).text,
+    () => resolveAccentTextColor(theme, resolvedRoleColor),
     [theme, resolvedRoleColor],
   );
 
-  const buttonStyles = getButtonStyles(theme, effectiveVariant, size, disabled, loading, height, radiusStyles, shadowStyles, roles, isIconButton, layoutProps.fullWidth || false);
+  const buttonStyles = getButtonStyles({
+    theme,
+    variant: effectiveVariant,
+    size,
+    disabled,
+    loading,
+    radiusStyles,
+    shadowStyles,
+    roles,
+    isIconButton,
+  });
 
-  const textColor = useMemo(() => {
-    if (textColorProp) return resolveTokenColor(textColorProp) || textColorProp;
-    if (roles) return roles.text;
-    switch (effectiveVariant) {
-      case 'secondary': return theme.colors.gray[7];
-      case 'ghost': return hasExplicitColor ? accentText : theme.colors.gray[7];
-      case 'link': return hasExplicitColor ? accentText : theme.colors.primary[5];
-      case 'none': return 'currentColor';
-      default: return theme.text.primary;
-    }
-  }, [textColorProp, roles, effectiveVariant, hasExplicitColor, accentText, theme]);
+  const textColor = useMemo(
+    () =>
+      resolveButtonTextColor({
+        theme,
+        variant: effectiveVariant,
+        roles,
+        textColorProp,
+        hasExplicitColor,
+        accentText,
+      }),
+    [textColorProp, roles, effectiveVariant, hasExplicitColor, accentText, theme],
+  );
 
   // Memoize text props. The base styling is the Button's defaults; if the
   // consumer passes `labelProps`, those win (weight/ff/colorVariant/style)
@@ -349,10 +227,7 @@ export const Button: React.FC<ButtonProps> = (allProps) => {
           align: 'center' as const,
           color: textColor,
           selectable: false,
-          style: {
-            lineHeight: getFontSize(size) * 1.3,
-            textAlignVertical: 'center' as const,
-          },
+          style: getButtonLabelStyle(size),
         },
         labelProps,
       ),
@@ -392,65 +267,21 @@ export const Button: React.FC<ButtonProps> = (allProps) => {
   // Get loader color based on variant and custom color
   const getLoaderColor = () => loaderColor;
 
-  // Press animation (scale) - stays outside style calc so parent re-renders unaffected
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const animateTo = (to: number) => {
-    Animated.timing(scaleAnim, {
-      toValue: to,
-      duration: getDuration(110), // Respect reduced motion preference
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true
-    }).start();
-  };
+  const { wrapperStyle: animatedWrapperStyle, gradientDrift, isPressing, pressIn, pressOut, hover, pulse } =
+    useButtonAnimation({ transitionDuration });
 
-  const [isPressing, setIsPressing] = useState(false);
-  // Drives the gradient variant's sideways drift on hover (web). Animated so the
-  // shift eases in/out instead of relying on CSS `transition`, which RN-web drops.
-  const hoverAnim = useRef(new Animated.Value(0)).current;
-  const animateHover = useCallback((toValue: number) => {
-    Animated.timing(hoverAnim, {
-      toValue,
-      duration: 320,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: Platform.OS !== 'web',
-    }).start();
-  }, [hoverAnim]);
-  const gradientDrift = useMemo(
-    () => hoverAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 44] }),
-    [hoverAnim]
-  );
   const { impactPressIn, impactPressOut } = useHaptics();
   const handlePressIn = () => {
     if (!isInteractionDisabled) {
-      setIsPressing(true);
       impactPressIn();
-      animateTo(0.96);
+      pressIn();
     }
     onPressIn?.();
   };
   const handlePressOut = () => {
-    setIsPressing(false);
     impactPressOut();
-    animateTo(1);
+    pressOut();
     onPressOut?.();
-  };
-
-  // Pulse animation for clicks that do not produce a pressIn (e.g., keyboard activation)
-  const pulse = () => {
-    Animated.sequence([
-      Animated.timing(scaleAnim, { 
-        toValue: 0.95, 
-        duration: getDuration(90), 
-        easing: Easing.out(Easing.quad), 
-        useNativeDriver: true 
-      }),
-      Animated.timing(scaleAnim, { 
-        toValue: 1, 
-        duration: getDuration(140), 
-        easing: Easing.out(Easing.quad), 
-        useNativeDriver: true 
-      })
-    ]).start();
   };
 
   const handleInternalPress = () => {
@@ -461,15 +292,15 @@ export const Button: React.FC<ButtonProps> = (allProps) => {
     }
     
     // Announce action for screen readers if tooltip is provided
-    if (tooltip) {
-      announce(`${tooltip} button activated`);
+    if (tooltipText) {
+      announce(`${tooltipText} button activated`);
     }
     
     onPress?.();
   };
 
   // Generate accessibility props
-  const accessibilityLabel = accessibilityLabelProp || tooltip || (typeof buttonContent === 'string' ? buttonContent : 'Button');
+  const accessibilityLabel = accessibilityLabelProp || tooltipText || (typeof buttonContent === 'string' ? buttonContent : 'Button');
   const accessibilityHint = accessibilityHintProp || (loading ? 'Loading' : undefined);
   const accessibilityProps = createAccessibilityProps({
     role: 'button',
@@ -479,16 +310,16 @@ export const Button: React.FC<ButtonProps> = (allProps) => {
     selected: false,
   });
 
-  // For web we also want mouse down/up to reflect; Pressable already fires these.
-  const animatedWrapperStyle = useMemo(() => ({ transform: [{ scale: scaleAnim }] }), [scaleAnim]);
+  // Consumers get the underlying Pressable; internal focus management keeps
+  // its own handle on the same node.
+  const pressableRef = useMergedRef<View>(focusRef, ref);
 
-  const buttonElement = (
-    <View style={[spacingStyles, outerWidthStyles, hoistedFlexStyles]}>
+  const pressableElement = (
       <Animated.View style={animatedWrapperStyle} collapsable={false}
 
       >
         <Pressable
-          ref={focusRef}
+          ref={pressableRef}
           testID={testID}
           {...accessibilityProps}
           style={({ pressed }) => [
@@ -496,18 +327,15 @@ export const Button: React.FC<ButtonProps> = (allProps) => {
             heightLayoutStyles,
             loadingFreezeStyle,
             // subtle visual feedback beyond scale on supported platforms
-            pressed && !isInteractionDisabled ? {
-              opacity: effectiveVariant === 'ghost' || effectiveVariant === 'none' ? 0.6 : 0.9,
-              ...(Platform.OS !== 'web' ? { transform: [{ translateY: 1 }] } : {})
-            } : null,
+            pressed && !isInteractionDisabled ? getButtonPressedStyle(effectiveVariant) : null,
             pressableStyleRest,
           ]}
           onPress={handleInternalPress}
           onLayout={handleLayout}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
-          onHoverIn={() => { animateHover(1); onHoverIn?.(); }}
-          onHoverOut={() => { animateHover(0); onHoverOut?.(); }}
+          onHoverIn={() => { hover(1); onHoverIn?.(); }}
+          onHoverOut={() => { hover(0); onHoverOut?.(); }}
           onLongPress={onLongPress}
           disabled={isInteractionDisabled}
         >
@@ -533,7 +361,7 @@ export const Button: React.FC<ButtonProps> = (allProps) => {
                 <OptionalLinearGradient
                   colors={gradientStops}
                   start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+                  end={{ x: 1, y: 1 }}
                   style={{ flex: 1 }}
                 />
               </Animated.View>
@@ -572,17 +400,21 @@ export const Button: React.FC<ButtonProps> = (allProps) => {
           )}
         </Pressable>
       </Animated.View>
-    </View>
   );
 
-  // Conditionally wrap with Tooltip if tooltip prop is provided
-  if (tooltip) {
-    return (
-      <Tooltip label={tooltip} position={tooltipPosition}>
-        {buttonElement}
-      </Tooltip>
-    );
-  }
+  // The tooltip wraps the pressable rather than the outer box on purpose: the
+  // outer View is a layout box that stretches to its parent's cross axis (the
+  // button itself hugs, via `fillStyle`), and anchoring a tooltip to it would
+  // park the bubble beside the *row* instead of beside the button.
+  return (
+    <View style={[spacingStyles, fillStyle, outerLayoutStyles]}>
+      {tooltipProps ? (
+        <Tooltip {...tooltipProps}>{pressableElement}</Tooltip>
+      ) : (
+        pressableElement
+      )}
+    </View>
+  );
+});
 
-  return buttonElement;
-};
+Button.displayName = 'Button';

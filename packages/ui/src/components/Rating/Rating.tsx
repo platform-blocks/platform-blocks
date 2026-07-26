@@ -2,14 +2,29 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { View, Platform, PanResponder, GestureResponderHandlers } from 'react-native';
 
 import { factory } from '../../core/factory';
+import { useControllableState } from '../../hooks/useControllableState';
 import { SizeValue, getIconSize } from '../../core/theme/sizes';
 import { useTheme } from '../../core/theme/ThemeProvider';
+import { createFocusStyles } from '../../core/interactive-states';
 import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
+import { useDirection } from '../../core/providers/DirectionProvider';
 import { useDisclaimer, extractDisclaimerProps } from '../_internal/Disclaimer';
 import { Icon } from '../Icon';
 import { Text } from '../Text';
 import { Tooltip } from '../Tooltip';
-import { RatingProps, RatingFactoryPayload } from './types';
+import { RatingProps, RatingFactoryPayload, RatingIcon } from './types';
+import type { ExternalIconComponent } from '../Icon/types';
+
+// Non-breaking spaces around the slash: the tooltip bubble is anchored to a
+// single star, so a narrow computed width would otherwise break "2 / 5" across
+// two lines at the ordinary spaces.
+const VALUE_SEPARATOR = '\u00A0/\u00A0';
+
+// The default `character`/`emptyCharacter` values are sentinels for "no custom
+// glyph was passed" \u2014 they render the built-in star icon rather than the raw
+// text character, which is what the component has always drawn.
+const DEFAULT_CHARACTER = '\u2605';
+const DEFAULT_EMPTY_CHARACTER = '\u2606';
 
 function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
   const { disclaimerProps: disclaimerData, otherProps: propsAfterDisclaimer } = extractDisclaimerProps(rawProps);
@@ -19,6 +34,7 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
     defaultValue = 0,
     count = 5,
     readOnly = false,
+    disabled = false,
     allowFraction = false,
     precision = allowFraction ? 0.1 : 1,
     size = 'md',
@@ -27,7 +43,14 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
     hoverColor,
     onChange,
     onHover,
+    clearable = false,
+    required = false,
+    error,
+    description,
     showTooltip = false,
+    getTooltipLabel,
+    icon,
+    emptyIcon,
     character = '★',
     emptyCharacter = '☆',
     gap = 'xs',
@@ -41,37 +64,87 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
   } = props as RatingProps;
 
   const theme = useTheme();
+  const { isRTL } = useDirection();
   const spacingStyles = getSpacingStyles(spacingProps);
   const renderDisclaimer = useDisclaimer(disclaimerData.disclaimer, disclaimerData.disclaimerProps);
 
   const fractionalEnabled = allowFraction;
   const actualPrecision = Math.max(0.01, Math.min(1, precision));
+  // `readOnly` and `disabled` both lock input; only `disabled` dims the control.
+  const inputLocked = readOnly || disabled;
 
-  const [internalValue, setInternalValue] = useState(defaultValue);
   const [hoverValue, setHoverValue] = useState<number | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
   const [containerWidth, setContainerWidth] = useState<number | null>(null);
   const containerMetricsRef = useRef<{ width: number; left: number }>({ width: 0, left: 0 });
   const [tooltipIndex, setTooltipIndex] = useState<number | null>(null);
 
-  const isControlled = controlledValue !== undefined;
-  const currentValue = isControlled ? controlledValue! : internalValue;
+  const [currentValue, setCurrentValue] = useControllableState<number>({
+    value: controlledValue,
+    defaultValue,
+    finalValue: 0,
+    onChange,
+  });
   const displayValue = hoverValue ?? currentValue;
 
   const roundToPrecision = useCallback((value: number) => {
     const rounded = Math.round(value / actualPrecision) * actualPrecision;
-    const decimalPlaces = Math.max(0, -Math.floor(Math.log10(actualPrecision)));
+    // Take the decimal count from `precision` itself: deriving it from log10
+    // truncates values a step can legitimately land on (0.25 → 0.3).
+    const decimalPlaces = (String(actualPrecision).split('.')[1] || '').length;
     return parseFloat(rounded.toFixed(decimalPlaces));
   }, [actualPrecision]);
 
-  const calculateRatingFromPosition = useCallback((starIndex: number, positionRatio: number) => {
-    if (!fractionalEnabled) {
-      return starIndex + 1;
+  // Keyboard and assistive-technology adjustments move by the same increment the
+  // pointer can produce: a whole item, or `precision` when fractions are allowed.
+  const keyboardStep = fractionalEnabled ? actualPrecision : 1;
+
+  const commitValue = useCallback((next: number) => {
+    if (inputLocked) return;
+    const clamped = Math.min(count, Math.max(0, next));
+    setCurrentValue(roundToPrecision(clamped));
+  }, [inputLocked, count, roundToPrecision, setCurrentValue]);
+
+  const stepValue = useCallback((direction: number) => {
+    commitValue(currentValue + direction * keyboardStep);
+  }, [commitValue, currentValue, keyboardStep]);
+
+  const handleKeyDown = useCallback((event: any) => {
+    if (inputLocked) return;
+    const key = event?.key;
+    if (!key) return;
+
+    // Arrow keys follow reading order, so they swap under RTL.
+    const forwardKey = isRTL ? 'ArrowLeft' : 'ArrowRight';
+    const backwardKey = isRTL ? 'ArrowRight' : 'ArrowLeft';
+
+    if (key === forwardKey || key === 'ArrowUp') {
+      stepValue(1);
+    } else if (key === backwardKey || key === 'ArrowDown') {
+      stepValue(-1);
+    } else if (key === 'Home') {
+      commitValue(0);
+    } else if (key === 'End') {
+      commitValue(count);
+    } else if (key === 'Backspace' || key === 'Delete') {
+      commitValue(0);
+    } else if (/^[0-9]$/.test(key)) {
+      const digit = Number(key);
+      // Digits are a shortcut to an exact value; ignore ones out of range.
+      if (digit > count) return;
+      commitValue(digit);
+    } else {
+      return;
     }
 
-    const rawValue = starIndex + positionRatio;
-    const clampedValue = Math.min(count, Math.max(0, rawValue));
-    return roundToPrecision(clampedValue);
-  }, [count, fractionalEnabled, roundToPrecision]);
+    event.preventDefault?.();
+  }, [inputLocked, isRTL, stepValue, commitValue, count]);
+
+  const handleAccessibilityAction = useCallback((event: any) => {
+    const actionName = event?.nativeEvent?.actionName;
+    if (actionName === 'increment') stepValue(1);
+    else if (actionName === 'decrement') stepValue(-1);
+  }, [stepValue]);
 
   const filledColor = color || theme.colors.warning[5] || '#FFA500';
   const unfilledColor = emptyColor || theme.colors.gray[4] || '#D1D5DB';
@@ -83,24 +156,37 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
 
   const labelNode = useMemo(() => {
     if (!label) return null;
+    const asterisk = required ? (
+      <Text variant="small" style={{ color: theme.colors.error?.[5] || '#FA5252' }}>{' *'}</Text>
+    ) : null;
+
     if (typeof label === 'string') {
       return (
         <Text variant="small" colorVariant="secondary">
           {label}
+          {asterisk}
         </Text>
       );
     }
-    return label;
-  }, [label]);
+
+    // A node label is rendered as-is; the asterisk trails it so custom labels
+    // still show the required marker.
+    return asterisk ? (
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        {label}
+        {asterisk}
+      </View>
+    ) : label;
+  }, [label, required, theme.colors.error]);
 
   const handleHoverLeave = useCallback(() => {
     if (Platform.OS !== 'web') return;
     setHoverValue(null);
     setTooltipIndex(null);
-    if (!readOnly) {
+    if (!inputLocked) {
       onHover?.(currentValue);
     }
-  }, [onHover, currentValue, readOnly]);
+  }, [onHover, currentValue, inputLocked]);
 
   const tooltipDecimalPlaces = useMemo(() => {
     if (!fractionalEnabled) return 0;
@@ -153,88 +239,121 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
     const clampedValue = Math.max(0, Math.min(tooltipValue, count));
     if (!fractionalEnabled) {
       const integerValue = Math.round(clampedValue);
-      return `${integerValue} / ${count}`;
+      return getTooltipLabel
+        ? getTooltipLabel(integerValue, count)
+        : `${integerValue}${VALUE_SEPARATOR}${count}`;
     }
 
     const normalizedValue = roundToPrecision(clampedValue);
+    if (getTooltipLabel) {
+      return getTooltipLabel(normalizedValue, count);
+    }
+
     const decimals = Math.min(tooltipDecimalPlaces, 6);
     const formattedValue = tooltipNumberFormatter
       ? tooltipNumberFormatter.format(normalizedValue)
       : normalizedValue.toFixed(decimals);
 
-    return `${formattedValue} / ${count}`;
-  }, [showTooltip, tooltipValue, fractionalEnabled, tooltipDecimalPlaces, tooltipNumberFormatter, count, roundToPrecision]);
+    return `${formattedValue}${VALUE_SEPARATOR}${count}`;
+  }, [showTooltip, tooltipValue, fractionalEnabled, tooltipDecimalPlaces, tooltipNumberFormatter, count, roundToPrecision, getTooltipLabel]);
+
+  // What a single item draws for a given fill state. `icon`/`emptyIcon` win over
+  // `character`/`emptyCharacter`, and `emptyIcon` falls back to `icon` so one
+  // custom icon covers both states (drawn in `emptyColor` when empty).
+  const resolveGlyphSource = useCallback((filled: boolean): { isIcon: boolean; value: RatingIcon | React.ReactNode } => {
+    if (filled) {
+      if (icon != null) return { isIcon: true, value: icon };
+      return { isIcon: false, value: character };
+    }
+
+    const emptySource = emptyIcon ?? icon;
+    if (emptySource != null) return { isIcon: true, value: emptySource };
+    return { isIcon: false, value: emptyCharacter };
+  }, [icon, emptyIcon, character, emptyCharacter]);
+
+  const renderGlyph = useCallback((filled: boolean, glyphColor: string) => {
+    const { isIcon, value } = resolveGlyphSource(filled);
+
+    // Elements are cloned rather than wrapped so icon libraries pick up the
+    // resolved size and the current fill color.
+    if (React.isValidElement(value)) {
+      return React.cloneElement(value as React.ReactElement<any>, {
+        size: iconSize,
+        color: glyphColor,
+      });
+    }
+
+    if (typeof value === 'string') {
+      // Strings from `icon`/`emptyIcon` are registry names; the default star
+      // characters keep rendering the built-in icon, and any other character
+      // renders as literal text.
+      if (isIcon) {
+        return <Icon name={value} size={iconSize} color={glyphColor} variant="filled" />;
+      }
+
+      if (value === DEFAULT_CHARACTER || value === DEFAULT_EMPTY_CHARACTER) {
+        return <Icon name="star" size={iconSize} color={glyphColor} variant="filled" />;
+      }
+
+      return (
+        <Text
+          style={{
+            fontSize: iconSize,
+            lineHeight: iconSize * 1.15,
+            color: glyphColor,
+            textAlign: 'center',
+          }}
+        >
+          {value}
+        </Text>
+      );
+    }
+
+    if (typeof value === 'function') {
+      return <Icon icon={value as ExternalIconComponent} size={iconSize} color={glyphColor} />;
+    }
+
+    // Any remaining node (fragments, arbitrary children) renders untouched.
+    if (value != null && typeof value !== 'boolean') {
+      return <>{value}</>;
+    }
+
+    return <Icon name="star" size={iconSize} color={glyphColor} variant="filled" />;
+  }, [resolveGlyphSource, iconSize]);
 
   const renderStar = useCallback((starIndex: number) => {
     const starValue = starIndex + 1;
     const fractionalPart = displayValue - starIndex;
     const isFilled = displayValue >= starValue;
-    const isPartiallyFilled = fractionalEnabled && fractionalPart > 0 && fractionalPart < 1;
+    // Partial fill follows the value itself: `allowFraction` governs what a user
+    // can set, not what a read-only `value={4.5}` is allowed to display.
+    const isPartiallyFilled = fractionalPart > 0 && fractionalPart < 1;
     const isHovered = hoverValue !== null && hoverValue >= starIndex + actualPrecision;
 
     const activeFillColor = hoverValue !== null ? highlightColor : filledColor;
     const starColor = isHovered ? activeFillColor : (isFilled || isPartiallyFilled ? activeFillColor : unfilledColor);
 
-    const StarComponent = () => {
-      if (typeof character === 'string' && typeof emptyCharacter === 'string') {
-        if (isPartiallyFilled) {
-          return (
-            <View style={{ position: 'relative' }}>
-              <Icon
-                name="star"
-                size={iconSize}
-                color={unfilledColor}
-                variant="filled"
-              />
-              <View
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  width: iconSize * fractionalPart,
-                  height: iconSize,
-                  overflow: 'hidden',
-                }}
-              >
-                <Icon
-                  name="star"
-                  size={iconSize}
-                  color={activeFillColor}
-                  variant="filled"
-                />
-              </View>
-            </View>
-          );
-        }
-
-        return (
-          <Icon
-            name="star"
-            size={iconSize}
-            color={starColor}
-            variant="filled"
-          />
-        );
-      }
-
-      const StarChar = isFilled || isPartiallyFilled ? character : emptyCharacter;
-      if (React.isValidElement(StarChar)) {
-        return React.cloneElement(StarChar as React.ReactElement<any>, {
-          size: iconSize,
-          color: starColor,
-        });
-      }
-
-      return (
-        <Icon
-          name="star"
-          size={iconSize}
-          color={starColor}
-        />
-      );
-    };
-
-    const baseStar = <StarComponent />;
+    // Partial fill stacks a clipped filled glyph over the empty one, so it works
+    // the same for stars, custom icons and text characters. The clip is anchored
+    // to the edge the value grows from, which flips under RTL.
+    const baseStar = isPartiallyFilled ? (
+      <View style={{ position: 'relative' }}>
+        {renderGlyph(false, unfilledColor)}
+        <View
+          style={{
+            position: 'absolute',
+            [isRTL ? 'right' : 'left']: 0,
+            top: 0,
+            width: iconSize * fractionalPart,
+            height: iconSize,
+            overflow: 'hidden',
+            alignItems: isRTL ? 'flex-end' : 'flex-start',
+          }}
+        >
+          {renderGlyph(true, activeFillColor)}
+        </View>
+      </View>
+    ) : renderGlyph(isFilled || isHovered, starColor);
 
     const starWithTooltip = showTooltip ? (
       <Tooltip
@@ -248,20 +367,21 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
     ) : baseStar;
 
     return (
-      <View key={starIndex} style={{ marginRight: starIndex < count - 1 ? gapSize : 0 }}>
+      // `marginEnd` rather than `marginRight` so the trailing item stays flush
+      // with the end of the row in both directions.
+      <View key={starIndex} style={{ marginEnd: starIndex < count - 1 ? gapSize : 0 }}>
         {starWithTooltip}
       </View>
     );
   }, [
     displayValue,
-    fractionalEnabled,
     hoverValue,
     actualPrecision,
     highlightColor,
     filledColor,
     unfilledColor,
-    character,
-    emptyCharacter,
+    renderGlyph,
+    isRTL,
     iconSize,
     gapSize,
     count,
@@ -273,15 +393,38 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
   const stars = useMemo(() => Array.from({ length: count }, (_, index) => renderStar(index)), [count, renderStar]);
 
   const accessibilityProps = {
-    accessibilityRole: (readOnly ? 'text' : 'adjustable') as any,
+    accessibilityRole: (inputLocked ? 'text' : 'adjustable') as any,
     accessibilityLabel: accessibilityLabel || `Rating: ${currentValue} out of ${count} stars`,
-    accessibilityHint: accessibilityHint || (readOnly ? undefined : 'Double tap to adjust rating'),
+    accessibilityHint: accessibilityHint || (inputLocked ? undefined : 'Swipe up or down to adjust rating'),
+    accessibilityState: { disabled },
     accessibilityValue: {
       min: 0,
       max: count,
       now: currentValue,
     },
+    // Lets VoiceOver/TalkBack adjust the value without a pointer.
+    ...(inputLocked ? {} : {
+      accessibilityActions: [
+        { name: 'increment', label: 'Increase rating' },
+        { name: 'decrement', label: 'Decrease rating' },
+      ],
+      onAccessibilityAction: handleAccessibilityAction,
+    }),
+    ...(Platform.OS === 'web' && {
+      'aria-required': required || undefined,
+      'aria-invalid': error ? true : undefined,
+    }),
   };
+
+  // Keyboard support is web-only; native uses the accessibility actions above.
+  const keyboardProps: Record<string, unknown> = Platform.OS === 'web' && !inputLocked
+    ? {
+      tabIndex: 0,
+      onKeyDown: handleKeyDown,
+      onFocus: () => setIsFocused(true),
+      onBlur: () => setIsFocused(false),
+    }
+    : {};
 
   const isVertical = labelPosition === 'above' || labelPosition === 'below';
 
@@ -289,9 +432,40 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
 
   const containerRef = useRef<any>(null);
 
+  // `getBoundingClientRect` forces a synchronous layout flush, and mousemove can
+  // fire several times per frame on a high-polling pointer — so the rect is read
+  // at most once per frame and shared by every handler. One frame of staleness
+  // is imperceptible, and the cache self-corrects if the page scrolls.
+  const webRectRef = useRef<{ left: number; width: number } | null>(null);
+  const webRectFrameRef = useRef<number | null>(null);
+
+  const readWebRect = useCallback(() => {
+    if (webRectRef.current) return webRectRef.current;
+
+    const rect = containerRef.current?.getBoundingClientRect?.();
+    if (!rect) return null;
+
+    webRectRef.current = { left: rect.left, width: rect.width };
+
+    if (typeof requestAnimationFrame === 'function' && webRectFrameRef.current == null) {
+      webRectFrameRef.current = requestAnimationFrame(() => {
+        webRectFrameRef.current = null;
+        webRectRef.current = null;
+      });
+    }
+
+    return webRectRef.current;
+  }, []);
+
+  useEffect(() => () => {
+    if (webRectFrameRef.current != null && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(webRectFrameRef.current);
+    }
+  }, []);
+
   const getOffsetXFromEventWeb = useCallback((e: any) => {
     const nativeEvent = e?.nativeEvent ?? e;
-    const rect = containerRef.current?.getBoundingClientRect?.();
+    const rect = readWebRect();
 
     const clientXCandidate = e?.clientX
       ?? nativeEvent?.clientX
@@ -314,23 +488,23 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
     }
 
     return 0;
-  }, []);
+  }, [readWebRect]);
 
   const resolveValueDetails = useCallback((x: number, widthOverride?: number) => {
     const width = widthOverride && widthOverride > 0 ? widthOverride : totalWidth;
     const clampedX = Math.max(0, Math.min(width, x));
-    const rawUnits = width > 0 ? (clampedX / width) * count : 0;
+    // Pointer offsets are always measured from the physical left edge, while an
+    // RTL row renders the first item on the right — mirror before mapping to
+    // item indexes.
+    const distanceFromStart = isRTL ? width - clampedX : clampedX;
+    const rawUnits = width > 0 ? (distanceFromStart / width) * count : 0;
 
     const ratingValue = fractionalEnabled
       ? roundToPrecision(rawUnits)
       : Math.min(count, Math.max(1, Math.ceil(rawUnits)));
 
-    if (__DEV__) {
-      console.log('[Rating] resolveValueDetails', { x, widthOverride, resolvedWidth: width, clampedX, rawUnits, ratingValue, count, fractionalEnabled });
-    }
-
     return { ratingValue, rawUnits };
-  }, [totalWidth, count, fractionalEnabled, roundToPrecision]);
+  }, [totalWidth, count, fractionalEnabled, roundToPrecision, isRTL]);
 
   const resolveTooltipIndexFromRaw = useCallback((rawUnits: number | null | undefined) => {
     if (!showTooltip || rawUnits == null || Number.isNaN(rawUnits)) {
@@ -343,26 +517,27 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
 
   const handlePointerMove = useCallback((x: number, widthOverride?: number) => {
     const { ratingValue, rawUnits } = resolveValueDetails(x, widthOverride);
-    setHoverValue(ratingValue);
+    // Anchor the tooltip even when read-only — it reports the current value and
+    // is a display affordance, not input.
     setTooltipIndex(resolveTooltipIndexFromRaw(rawUnits));
-    if (!readOnly) {
-      onHover?.(ratingValue);
-    }
-  }, [resolveValueDetails, resolveTooltipIndexFromRaw, onHover, readOnly]);
+    if (inputLocked) return;
+    // hoverValue drives displayValue and the highlight color, so setting it on a
+    // read-only rating repaints the stars to follow the cursor.
+    setHoverValue(ratingValue);
+    onHover?.(ratingValue);
+  }, [resolveValueDetails, resolveTooltipIndexFromRaw, onHover, inputLocked]);
 
   const commitAtOffsetX = useCallback((x: number, widthOverride?: number) => {
-    if (readOnly) return;
+    if (inputLocked) return;
     const { ratingValue, rawUnits } = resolveValueDetails(x, widthOverride);
-    if (!isControlled) {
-      setInternalValue(ratingValue);
-    }
-    onChange?.(ratingValue);
+    // Selecting the value that is already set clears the rating when `clearable`.
+    setCurrentValue(clearable && ratingValue === currentValue ? 0 : ratingValue);
     setTooltipIndex(resolveTooltipIndexFromRaw(rawUnits));
-  }, [readOnly, resolveValueDetails, resolveTooltipIndexFromRaw, isControlled, onChange]);
+  }, [inputLocked, resolveValueDetails, resolveTooltipIndexFromRaw, setCurrentValue, clearable, currentValue]);
 
   const resolveRelativePosition = useCallback((evt: any) => {
     if (Platform.OS === 'web') {
-      const measuredWidth = containerRef.current?.getBoundingClientRect?.().width;
+      const measuredWidth = readWebRect()?.width;
       const width = (typeof measuredWidth === 'number' && measuredWidth > 0)
         ? measuredWidth
         : (containerWidth ?? containerMetricsRef.current.width ?? totalWidth);
@@ -383,7 +558,7 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
       x: relativeX,
       width: fallbackWidth,
     };
-  }, [containerWidth, getOffsetXFromEventWeb, totalWidth]);
+  }, [containerWidth, getOffsetXFromEventWeb, totalWidth, readWebRect]);
 
   useEffect(() => () => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -399,10 +574,10 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
 
   const panHandlers: GestureResponderHandlers = useMemo(() => {
     const responder = PanResponder.create({
-      onStartShouldSetPanResponder: () => !readOnly,
-      onMoveShouldSetPanResponder: () => !readOnly,
+      onStartShouldSetPanResponder: () => !inputLocked,
+      onMoveShouldSetPanResponder: () => !inputLocked,
       onPanResponderGrant: (evt) => {
-        if (readOnly) return;
+        if (inputLocked) return;
         if (Platform.OS === 'web') {
           (evt as any).preventDefault?.();
           if (typeof document !== 'undefined') {
@@ -413,7 +588,7 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
         handlePointerMove(x, width);
       },
       onPanResponderMove: (evt) => {
-        if (readOnly) return;
+        if (inputLocked) return;
         if (Platform.OS === 'web') {
           (evt as any).preventDefault?.();
         }
@@ -422,7 +597,7 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
       },
       onPanResponderTerminationRequest: () => false,
       onPanResponderRelease: (evt) => {
-        if (readOnly) return;
+        if (inputLocked) return;
         if (Platform.OS === 'web' && typeof document !== 'undefined') {
           document.body.style.userSelect = '';
         }
@@ -441,12 +616,17 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
     });
 
     return responder.panHandlers;
-  }, [readOnly, resolveRelativePosition, handlePointerMove, commitAtOffsetX]);
+  }, [inputLocked, resolveRelativePosition, handlePointerMove, commitAtOffsetX]);
 
   const ratingContent = (
     <View
       ref={containerRef}
-      style={{ flexDirection: 'row', position: 'relative' }}
+      style={[
+        { flexDirection: 'row', position: 'relative', borderRadius: 4 },
+        // Keyboard focus needs a visible target since the stars themselves are
+        // not individually focusable.
+        createFocusStyles(theme, isFocused),
+      ]}
       onLayout={(event) => {
         const layoutWidth = event.nativeEvent.layout?.width;
         if (typeof layoutWidth === 'number' && layoutWidth > 0) {
@@ -488,12 +668,11 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
       }}
       {...panHandlers}
       {...(Platform.OS === 'web' && {
-        onMouseMove: (e: any) => handlePointerMove(getOffsetXFromEventWeb(e), containerRef.current?.getBoundingClientRect?.().width),
-        onMouseDown: (e: any) => handlePointerMove(getOffsetXFromEventWeb(e), containerRef.current?.getBoundingClientRect?.().width),
+        onMouseMove: (e: any) => handlePointerMove(getOffsetXFromEventWeb(e), readWebRect()?.width),
+        onMouseDown: (e: any) => handlePointerMove(getOffsetXFromEventWeb(e), readWebRect()?.width),
         onMouseUp: (e: any) => {
-          const rect = containerRef.current?.getBoundingClientRect?.();
           const x = getOffsetXFromEventWeb(e);
-          commitAtOffsetX(x, rect?.width);
+          commitAtOffsetX(x, readWebRect()?.width);
           setHoverValue(null);
           setTooltipIndex(null);
         },
@@ -514,24 +693,36 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
           flexDirection: isVertical ? 'column' : 'row',
           alignItems: isVertical ? 'flex-start' : 'center',
           flexWrap: 'wrap',
+          opacity: disabled ? 0.5 : 1,
         },
         spacingStyles,
         style,
       ]}
       testID={testID}
       {...accessibilityProps}
+      {...keyboardProps}
     >
       {labelNode && (labelPosition === 'left' || labelPosition === 'above') && (
-        <View style={{ marginRight: !isVertical && labelPosition === 'left' ? labelGapSize : 0, marginBottom: isVertical && labelPosition === 'above' ? labelGapSize : 0 }}>
+        <View style={{ marginEnd: !isVertical && labelPosition === 'left' ? labelGapSize : 0, marginBottom: isVertical && labelPosition === 'above' ? labelGapSize : 0 }}>
           {labelNode}
         </View>
       )}
       {ratingContent}
       {labelNode && (labelPosition === 'right' || labelPosition === 'below') && (
-        <View style={{ marginLeft: !isVertical && labelPosition === 'right' ? labelGapSize : 0, marginTop: isVertical && labelPosition === 'below' ? labelGapSize : 0 }}>
+        <View style={{ marginStart: !isVertical && labelPosition === 'right' ? labelGapSize : 0, marginTop: isVertical && labelPosition === 'below' ? labelGapSize : 0 }}>
           {labelNode}
         </View>
       )}
+      {description && !error ? (
+        <View style={{ width: '100%', marginTop: 4 }}>
+          <Text variant="small" colorVariant="muted">{description}</Text>
+        </View>
+      ) : null}
+      {error ? (
+        <View style={{ width: '100%', marginTop: 4 }}>
+          <Text variant="small" style={{ color: theme.colors.error?.[6] || '#E03131' }}>{error}</Text>
+        </View>
+      ) : null}
       {disclaimerNode ? (
         <View style={{ width: '100%' }}>
           {disclaimerNode}

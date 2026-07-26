@@ -29,7 +29,14 @@ import Svg, {
   TSpan,
 } from 'react-native-svg';
 
-import { ChartContainer, ChartLegend, ChartTitle } from '../../ChartBase';
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartTitle,
+  estimateChartTextWidth,
+  measureChartLegendBand,
+  measureChartTitleBand,
+} from '../../ChartBase';
 import { ChartInteractionEvent } from '../../types';
 import type { ChartAnimation } from '../../types/base';
 import { useChartTheme } from '../../theme/ChartThemeContext';
@@ -37,7 +44,7 @@ import { useChartInteractionContext, usePointer } from '../../interaction/ChartI
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { AngularSliceHitTester } from '../../core/hittest/angular';
 import type { HitSeries, Mark } from '../../core/hittest/types';
-import { colorSchemes, formatPercentage, getColorFromScheme, getPointOnCircle } from '../../utils';
+import { colorSchemes, formatPercentage, getColorFromScheme } from '../../utils';
 import { platformShadow } from '../../utils/platformShadow';
 import type {
   PieChartDataPoint,
@@ -48,12 +55,23 @@ import type {
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
+/** How long a slice takes to grow/shrink into its new share of the circle. */
+const GEOMETRY_TRANSITION_DURATION = 420;
+
 const DEG_TO_RAD = Math.PI / 180;
 const EPSILON = 1e-6;
+const FULL_CIRCLE_DEG = 360;
+/** Sweeps within this many degrees of a full turn are drawn as a closed ring. */
+const FULL_CIRCLE_TOLERANCE = 0.01;
 const DEFAULT_LABEL_THRESHOLD = 18;
 const DEFAULT_LABEL_WRAP = 18;
 const DEFAULT_LABEL_LINES = 2;
-const LABEL_VERTICAL_SPACING = 16;
+/** Horizontal run of the leader line from the arc edge out to the label text. */
+const LEADER_LENGTH = 28;
+/** Keeps text off the very edge of the SVG viewport, which clips its overflow. */
+const BOUNDS_PADDING = 2;
+/** Minimum breathing room between the arcs and the plot box when no labels need a gutter. */
+const PLOT_MARGIN = 8;
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 const toRadians = (degrees: number) => degrees * DEG_TO_RAD;
@@ -187,6 +205,34 @@ const createSlicePath = ({
     return '';
   }
 
+  // A single SVG arc whose start and end coincide draws nothing, so a slice that owns the
+  // whole circle (the last one left enabled in the legend) has to be stitched from two
+  // half-circle arcs. An inner radius becomes a counter-directional sub-path — the
+  // nonzero fill rule then punches it out as a hole.
+  if (Math.abs(angleDelta) >= FULL_CIRCLE_DEG - FULL_CIRCLE_TOLERANCE) {
+    const outerHead = polarToCartesian(centerX, centerY, outerRadius, startAngle);
+    const outerTail = polarToCartesian(centerX, centerY, outerRadius, startAngle + 180);
+    const ring = [
+      `M ${outerHead.x} ${outerHead.y}`,
+      `A ${outerRadius} ${outerRadius} 0 0 1 ${outerTail.x} ${outerTail.y}`,
+      `A ${outerRadius} ${outerRadius} 0 0 1 ${outerHead.x} ${outerHead.y}`,
+      'Z',
+    ];
+
+    if (innerRadius > EPSILON) {
+      const innerHead = polarToCartesian(centerX, centerY, innerRadius, startAngle);
+      const innerTail = polarToCartesian(centerX, centerY, innerRadius, startAngle + 180);
+      ring.push(
+        `M ${innerHead.x} ${innerHead.y}`,
+        `A ${innerRadius} ${innerRadius} 0 0 0 ${innerTail.x} ${innerTail.y}`,
+        `A ${innerRadius} ${innerRadius} 0 0 0 ${innerHead.x} ${innerHead.y}`,
+        'Z',
+      );
+    }
+
+    return ring.join(' ');
+  }
+
   const sweepFlag = angleDelta > 180 ? 1 : 0;
   const outerCorner = cornerRadius > 0
     ? Math.min(cornerRadius, outerRadius * Math.abs(angleDelta) * DEG_TO_RAD)
@@ -247,7 +293,6 @@ interface AnimatedPieSliceProps {
   animationStagger: number;
   totalSlices: number;
   disabled: boolean;
-  dataSignature: string;
   fill: string;
   stroke: string;
   strokeWidth: number;
@@ -277,7 +322,6 @@ export const AnimatedPieSlice: React.FC<AnimatedPieSliceProps> = React.memo((pro
     animationStagger,
     totalSlices,
     disabled,
-    dataSignature,
     fill,
     stroke,
     strokeWidth,
@@ -294,6 +338,8 @@ export const AnimatedPieSlice: React.FC<AnimatedPieSliceProps> = React.memo((pro
   const scale = useSharedValue<number>(1);
   const isWeb = Platform.OS === 'web';
 
+  // Entrance spring runs once per mounted slice. Slices keep a stable key across
+  // legend toggles, so re-flowing the pie must not re-trigger it.
   useEffect(() => {
     if (disabled) {
       scale.value = 1;
@@ -318,7 +364,37 @@ export const AnimatedPieSlice: React.FC<AnimatedPieSliceProps> = React.memo((pro
     } else {
       scale.value = 1;
     }
-  }, [animationDelay, animationStagger, animationType, dataSignature, disabled, slice.index, scale]);
+  }, [disabled]);
+
+  // Angles live on the UI thread so a legend toggle (or any value change) tweens the
+  // wedge to its new share of the circle instead of snapping — or replaying the intro.
+  const startAngle = useSharedValue(slice.startAngle);
+  const endAngle = useSharedValue(slice.endAngle);
+  const hasMeasured = useRef(false);
+
+  useEffect(() => {
+    const config = { duration: GEOMETRY_TRANSITION_DURATION, easing: Easing.inOut(Easing.cubic) };
+
+    if (!hasMeasured.current) {
+      hasMeasured.current = true;
+      startAngle.value = slice.startAngle;
+      // A slice that mounts after the intro finished is one the legend just re-enabled:
+      // sweep it open so it doesn't overlap the neighbours still tweening closed.
+      const mountedMidFlight = !disabled && animationProgress.value >= 1;
+      endAngle.value = mountedMidFlight ? slice.startAngle : slice.endAngle;
+      if (mountedMidFlight) endAngle.value = withTiming(slice.endAngle, config);
+      return;
+    }
+
+    if (disabled) {
+      startAngle.value = slice.startAngle;
+      endAngle.value = slice.endAngle;
+      return;
+    }
+
+    startAngle.value = withTiming(slice.startAngle, config);
+    endAngle.value = withTiming(slice.endAngle, config);
+  }, [slice.startAngle, slice.endAngle, disabled, startAngle, endAngle, animationProgress]);
 
   const animatedProps = useAnimatedProps(() => {
     const progress = animationProgress.value;
@@ -344,8 +420,8 @@ export const AnimatedPieSlice: React.FC<AnimatedPieSliceProps> = React.memo((pro
         centerY,
         innerRadius,
         outerRadius,
-        startAngle: slice.startAngle,
-        endAngle: slice.endAngle,
+        startAngle: startAngle.value,
+        endAngle: endAngle.value,
         cornerRadius: slice.style.cornerRadius,
       }),
       opacity: visibilityProgress * highlightOpacity,
@@ -555,6 +631,10 @@ const computeLabelLayouts = (
     showLeaderLines: boolean;
     autoSwitchAngle: number;
     innerRadius: number;
+    /** Box outside labels may not leave — the SVG clips anything past it. */
+    bounds: { left: number; right: number; top: number; bottom: number };
+    fontSize: number;
+    lineHeight: number;
   },
 ): LabelLayout[] => {
   const {
@@ -575,6 +655,9 @@ const computeLabelLayouts = (
     showLeaderLines,
     autoSwitchAngle,
     innerRadius,
+    bounds,
+    fontSize,
+    lineHeight,
   } = options;
 
   const labels: LabelLayout[] = [];
@@ -587,7 +670,11 @@ const computeLabelLayouts = (
     const angle = slice.endAngle - slice.startAngle;
     let position: 'inside' | 'outside' | 'center' = defaultPosition;
     if (strategy === 'auto') {
+      // A sliver has no room for text inside it, so it always gets a leader line.
+      // Everything else honours `labelPosition`; 'outside' as the base position only
+      // means "no preference", which resolves to the arc's mid-radius.
       if (angle < autoSwitchAngle || slice.valueRatio < 0.05) position = 'outside';
+      else if (defaultPosition !== 'outside') position = defaultPosition;
       else if (innerRadius <= EPSILON) position = 'center';
       else position = 'inside';
     } else {
@@ -600,29 +687,52 @@ const computeLabelLayouts = (
       ? (labelFormatter ? `${baseLabel} ${formattedValue}` : `${slice.label} ${formattedValue}`)
       : baseLabel;
 
-    const lines = wrap ? wrapLabelText(displayText, maxChars, maxLines) : [displayText];
-
     if (position === 'inside' || position === 'center') {
+      const lines = wrap ? wrapLabelText(displayText, maxChars, maxLines) : [displayText];
       const labelRadius =
         position === 'center'
-          ? (innerRadius + outerRadius) / 2.2
+          ? innerRadius + (outerRadius - innerRadius) * 0.62
           : (slice.innerRadius + slice.outerRadius) / 2;
 
-      const point = getPointOnCircle(centerX, centerY, labelRadius, slice.centerAngle);
-      labels.push({
-        key: slice.key,
-        lines,
-        x: point.x,
-        y: point.y,
-        anchor: 'middle',
-        isOutside: false,
-      });
-      return;
+      // Angle alone doesn't say whether the text fits — a long label in a medium wedge
+      // still spills over its neighbours. Compare it against the chord actually
+      // available at the label radius and demote it to a leader line if it can't fit.
+      const chord = 2 * labelRadius * Math.sin(toRadians(Math.min(angle, 180)) / 2);
+      const widest = lines.reduce((max, line) => Math.max(max, estimateChartTextWidth(line, fontSize)), 0);
+      const fits = strategy !== 'auto' || widest <= chord;
+
+      if (fits) {
+        const point = polarToCartesian(centerX, centerY, labelRadius, slice.centerAngle);
+        labels.push({
+          key: slice.key,
+          lines,
+          x: point.x,
+          y: point.y,
+          anchor: 'middle',
+          isOutside: false,
+        });
+        return;
+      }
     }
 
     const isRight = Math.cos(toRadians(slice.centerAngle)) >= 0;
-    const elbow = getPointOnCircle(centerX, centerY, slice.outerRadius + 6, slice.centerAngle);
-    const targetX = centerX + (isRight ? outerRadius + 36 : -(outerRadius + 36));
+    const elbow = polarToCartesian(centerX, centerY, slice.outerRadius + 6, slice.centerAngle);
+    // The text hangs off `targetX` away from the pie, so pin the anchor inside the
+    // bounds and then wrap to whatever width is actually left before the edge.
+    const targetX = clamp(
+      centerX + (isRight ? outerRadius + LEADER_LENGTH : -(outerRadius + LEADER_LENGTH)),
+      bounds.left,
+      bounds.right,
+    );
+    const available = isRight ? bounds.right - targetX : targetX - bounds.left;
+    const charBudget = Math.max(4, Math.floor(available / (fontSize * 0.58)));
+    // A narrow gutter forces narrow lines, so let a demoted label spend an extra line
+    // rather than ellipsise the value away.
+    const outsideMaxLines = charBudget < maxChars ? Math.max(maxLines, 3) : maxLines;
+    const lines = wrap
+      ? wrapLabelText(displayText, Math.min(maxChars, charBudget), outsideMaxLines)
+      : [displayText];
+
     const candidate: LeaderCandidate = {
       key: slice.key,
       lines,
@@ -640,17 +750,22 @@ const computeLabelLayouts = (
     if (!group.length) return;
     group.sort((a, b) => a.y - b.y);
 
-    const minY = centerY - (outerRadius + 36);
-    const maxY = centerY + (outerRadius + 36);
+    // `y` is the middle of the first line; the remaining lines stack downwards, so a
+    // multi-line label needs both extra clearance below it and a higher bottom limit.
+    const spacingAfter = (candidate: LeaderCandidate) => candidate.lines.length * lineHeight + 2;
+    const minY = bounds.top + lineHeight / 2;
+    const maxYFor = (candidate: LeaderCandidate) =>
+      bounds.bottom - ((candidate.lines.length - 1) * lineHeight + lineHeight / 2);
 
-    group[0].y = clamp(group[0].y, minY, maxY);
+    group[0].y = Math.max(group[0].y, minY);
     for (let i = 1; i < group.length; i += 1) {
-      group[i].y = Math.max(group[i].y, group[i - 1].y + LABEL_VERTICAL_SPACING);
+      group[i].y = Math.max(group[i].y, group[i - 1].y + spacingAfter(group[i - 1]));
     }
 
-    let overflow = group[group.length - 1].y - maxY;
+    const last = group[group.length - 1];
+    let overflow = last.y - maxYFor(last);
     for (let i = group.length - 1; overflow > 0 && i >= 0; i -= 1) {
-      const prev = i === 0 ? minY : group[i - 1].y + LABEL_VERTICAL_SPACING;
+      const prev = i === 0 ? minY : group[i - 1].y + spacingAfter(group[i - 1]);
       const delta = Math.min(overflow, group[i].y - prev);
       group[i].y -= delta;
       overflow -= delta;
@@ -662,8 +777,17 @@ const computeLabelLayouts = (
 
   const appendGroup = (group: LeaderCandidate[]) => {
     group.forEach((candidate) => {
-      const elbowTargetX = centerX + (candidate.side === 'right' ? candidate.slice.outerRadius + 8 : -(candidate.slice.outerRadius + 8));
-      const leaderPath = `M ${candidate.elbow.x} ${candidate.elbow.y} L ${elbowTargetX} ${candidate.y} L ${candidate.x} ${candidate.y}`;
+      // Radial stub off the arc, then a straight run to the label. Bending at a point
+      // still on the slice's own angle keeps the line legibly attached to its wedge;
+      // dropping to the label's x first drew a bare horizontal across the whole chart.
+      const kink = polarToCartesian(
+        centerX,
+        centerY,
+        candidate.slice.outerRadius + LEADER_LENGTH * 0.55,
+        candidate.slice.centerAngle,
+      );
+      const textGap = candidate.side === 'right' ? -6 : 6;
+      const leaderPath = `M ${candidate.elbow.x} ${candidate.elbow.y} L ${kink.x} ${kink.y} L ${candidate.x + textGap} ${candidate.y}`;
 
       labels.push({
         key: candidate.key,
@@ -776,10 +900,78 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
     [normalisedData, hiddenKeys],
   );
 
-  const effectiveOuterRadius = outerRadius ?? Math.min(width, height) / 2 - 36;
-  const effectiveInnerRadius = innerRadius;
-
   const palette = theme.colors.accentPalette ?? colorSchemes.default;
+
+  const legendItems = useMemo(() => {
+    if (legend?.items && legend.items.length > 0) {
+      return legend.items;
+    }
+    // Resolve the swatch the same way the arcs do — by slice index into the
+    // palette — so legend and arc always agree. (Previously this hashed the
+    // slice id by string length, which diverged from the arcs whenever a slice
+    // had no explicit color.)
+    return normalisedData.map((slice, index) => ({
+      label: slice.label,
+      color: slice.color || getColorFromScheme(index, palette),
+      visible: !hiddenKeys.has(String(slice.id)),
+    }));
+  }, [legend, normalisedData, palette, hiddenKeys]);
+
+  // ChartTitle and ChartLegend are absolutely positioned overlays on the container,
+  // so the pie has to reserve their bands itself or it draws straight underneath them.
+  const titleBand = useMemo(
+    () => measureChartTitleBand(props.title, props.subtitle),
+    [props.title, props.subtitle],
+  );
+
+  const legendPosition = legend?.position ?? 'bottom';
+  const legendFontSize = legend?.fontSize ?? 12;
+  const legendBand = useMemo(
+    () =>
+      measureChartLegendBand({
+        items: legend?.show ? legendItems : undefined,
+        containerWidth: width,
+        position: legendPosition,
+        fontSize: legendFontSize,
+      }),
+    [legend?.show, legendItems, legendPosition, legendFontSize, width],
+  );
+
+  const plotLeft = legendBand.left;
+  const plotTop = titleBand + legendBand.top;
+  const plotWidth = Math.max(width - legendBand.left - legendBand.right, 1);
+  const plotHeight = Math.max(height - plotTop - legendBand.bottom, 1);
+  const centerX = plotLeft + plotWidth / 2;
+  const centerY = plotTop + plotHeight / 2;
+
+  const labelBounds = useMemo(
+    () => ({
+      left: plotLeft + BOUNDS_PADDING,
+      right: plotLeft + plotWidth - BOUNDS_PADDING,
+      top: plotTop + BOUNDS_PADDING,
+      bottom: plotTop + plotHeight - BOUNDS_PADDING,
+    }),
+    [plotLeft, plotTop, plotWidth, plotHeight],
+  );
+
+  // Slivers get leader lines whenever the strategy allows outside placement, and those
+  // need a gutter between the arc and the edge of the plot box. Leader text runs
+  // sideways, so the horizontal gutter carries nearly all of it.
+  const outsideLabelsPossible =
+    showLabels && (labelStrategy === 'auto' || labelStrategy === 'outside');
+  const labelGutterX = outsideLabelsPossible ? clamp(plotWidth * 0.22, 32, 110) : PLOT_MARGIN;
+  const labelGutterY = outsideLabelsPossible ? clamp(plotHeight * 0.08, 12, 32) : PLOT_MARGIN;
+  const radiusBudget = Math.max(
+    Math.min(plotWidth / 2 - labelGutterX, plotHeight / 2 - labelGutterY),
+    8,
+  );
+  const requestedOuterRadius = outerRadius ?? radiusBudget;
+  // An explicit radius that no longer fits the reserved plot box is scaled down rather
+  // than allowed to overflow — the donut hole is scaled with it to keep the proportion.
+  const radiusScale = requestedOuterRadius > radiusBudget ? radiusBudget / requestedOuterRadius : 1;
+  const effectiveOuterRadius = requestedOuterRadius * radiusScale;
+  const effectiveInnerRadius = clamp(innerRadius * radiusScale, 0, effectiveOuterRadius * 0.92);
+
   const layoutLayers = useMemo<ComputedLayer[]>(() => {
     const baseLayer = computeLayerSlices(
       {
@@ -802,8 +994,10 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
         {
           id: layer.id ?? `overlay-${index}`,
           data: layer.data,
-          innerRadius: layer.innerRadius,
-          outerRadius: layer.outerRadius,
+          // Overlay rings ride the same scale as the base layer so a clamped chart
+          // keeps its concentric spacing instead of overlapping.
+          innerRadius: layer.innerRadius * radiusScale,
+          outerRadius: layer.outerRadius * radiusScale,
           startAngle: layer.startAngle ?? startAngle,
           endAngle: layer.endAngle ?? endAngle,
           padAngle: layer.padAngle ?? padAngle,
@@ -821,6 +1015,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
     layers,
     effectiveInnerRadius,
     effectiveOuterRadius,
+    radiusScale,
     startAngle,
     endAngle,
     padAngle,
@@ -870,8 +1065,8 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
   const labelLayouts = useMemo(() => {
     if (!showLabels || !baseLayer) return [];
     return computeLabelLayouts(baseLayer.slices, {
-      centerX: width / 2,
-      centerY: height / 2,
+      centerX,
+      centerY,
       outerRadius: effectiveOuterRadius,
       defaultPosition: labelPosition,
       strategy: labelStrategy,
@@ -887,12 +1082,18 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
       showLeaderLines,
       autoSwitchAngle: labelAutoSwitchAngle,
       innerRadius: effectiveInnerRadius,
+      bounds: labelBounds,
+      fontSize: labelFontSize,
+      lineHeight: labelLineHeight,
     });
   }, [
     showLabels,
     baseLayer,
-    width,
-    height,
+    centerX,
+    centerY,
+    labelBounds,
+    labelFontSize,
+    labelLineHeight,
     effectiveOuterRadius,
     labelPosition,
     labelStrategy,
@@ -922,20 +1123,21 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
   const animationType = animation?.type;
   const resolvedDuration = animation?.duration ?? animationDuration;
 
-  const dataSignature = useMemo(
-    () =>
-      JSON.stringify({
-        data: visibleData.map((slice) => ({ id: slice.id, value: slice.value })),
-        hidden: Array.from(hiddenKeys),
-      }),
-    [visibleData, hiddenKeys],
-  );
+  // The grow-and-fade intro is a mount effect only. Legend toggles and data updates
+  // re-flow slice geometry instead of replaying it — see the angle tween in AnimatedPieSlice.
+  const hasPlayedIntro = useRef(false);
 
   useEffect(() => {
     if (disabled) {
       animationProgress.value = 1;
+      hasPlayedIntro.current = true;
       return;
     }
+    if (hasPlayedIntro.current) {
+      animationProgress.value = 1;
+      return;
+    }
+    hasPlayedIntro.current = true;
     animationProgress.value = 0;
     animationProgress.value = withDelay(
       animationDelay,
@@ -944,16 +1146,16 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
         easing: Easing.out(Easing.cubic),
       }),
     );
-  }, [animationProgress, animationDelay, resolvedDuration, disabled, dataSignature]);
+  }, [animationProgress, animationDelay, resolvedDuration, disabled]);
 
   const highlightEnabled = highlightOnHover !== false;
 
   const computeSliceAnchor = useCallback(
     (slice: ComputedSlice, radius?: number) => {
       const targetRadius = radius ?? (slice.innerRadius + slice.outerRadius) / 2;
-      return getPointOnCircle(width / 2, height / 2, Math.max(targetRadius, 0), slice.centerAngle);
+      return polarToCartesian(centerX, centerY, Math.max(targetRadius, 0), slice.centerAngle);
     },
-    [width, height],
+    [centerX, centerY],
   );
 
   const announceSlice = useCallback(
@@ -1021,7 +1223,12 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
         const next = new Set(prev);
         if (next.has(key)) next.delete(key);
         else next.add(key);
-        return next;
+        // Hiding the last slice would leave an empty chart with no way back except
+        // the legend it just emptied, so fall back to showing everything again.
+        const anyVisible = normalisedData.some(
+          (item) => item.value > 0 && !next.has(String(item.id)),
+        );
+        return anyVisible ? next : new Set<string>();
       });
       if (hoveredKey === key) {
         handleHover(null);
@@ -1035,8 +1242,8 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
   // hover state (highlight + tooltip) from it. feedStore is off so we don't also
   // populate the store's activeTarget — PieChart renders its own tooltip, and a
   // second ChartActiveTooltip would double up.
-  const pieCx = width / 2;
-  const pieCy = height / 2;
+  const pieCx = centerX;
+  const pieCy = centerY;
   const hitSeries: HitSeries[] = useMemo(() => {
     const marks: Mark[] = layoutLayers
       .flatMap((layer) => layer.slices)
@@ -1154,21 +1361,6 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
       announceSlice,
     ],
   );
-
-  const legendItems = useMemo(() => {
-    if (legend?.items && legend.items.length > 0) {
-      return legend.items;
-    }
-    return normalisedData.map((slice) => ({
-      label: slice.label,
-      color: slice.color || palette[slice.id
-        ? Math.abs(
-            typeof slice.id === 'number' ? slice.id : slice.id.toString().length,
-          ) % palette.length
-        : 0],
-      visible: !hiddenKeys.has(String(slice.id)),
-    }));
-  }, [legend, normalisedData, palette, hiddenKeys]);
 
   const tooltipEnabled = tooltip?.show !== false;
   const tooltipBackground = tooltip?.backgroundColor ?? theme.colors.background;
@@ -1317,15 +1509,14 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
                   <AnimatedPieSlice
                     key={`${layer.id}-${slice.key}`}
                     slice={slice}
-                    centerX={width / 2}
-                    centerY={height / 2}
+                    centerX={centerX}
+                    centerY={centerY}
                     animationProgress={animationProgress}
                     animationType={animationType}
                     animationDelay={animationDelay}
                     animationStagger={animationStagger}
                     totalSlices={layer.slices.length}
                     disabled={disabled}
-                    dataSignature={dataSignature}
                     fill={fill}
                     stroke={stroke}
                     strokeWidth={strokeWidth}
@@ -1433,6 +1624,13 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
           textColor={legend.textColor}
           fontSize={legend.fontSize}
           onItemPress={legendToggleEnabled ? handleLegendPress : undefined}
+          // Pin the legend to the band the plot box was shrunk by, and start it below
+          // the title so a side legend centres against the arcs rather than the container.
+          style={
+            legendPosition === 'left' || legendPosition === 'right'
+              ? { maxWidth: legendBand[legendPosition], top: titleBand }
+              : { maxHeight: legendBand[legendPosition], ...(legendPosition === 'top' ? { top: titleBand } : null) }
+          }
         />
       )}
 

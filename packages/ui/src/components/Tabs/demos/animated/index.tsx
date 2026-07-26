@@ -1,47 +1,47 @@
-import { Column, Tabs, Text } from '@platform-blocks/ui';
+import { Block, Tabs, Text } from '@platform-blocks/ui';
 
 const ITEMS = [
   {
     key: 'home',
     label: 'Home',
     content: (
-      <Column gap="xs">
+      <Block>
         <Text weight="medium">Welcome back</Text>
         <Text colorVariant="muted">
           Animated transitions ease between dashboard sections and reinforce context shifts.
         </Text>
-      </Column>
+      </Block>
     )
   },
   {
     key: 'analytics',
     label: 'Analytics',
     content: (
-      <Column gap="xs">
+      <Block>
         <Text weight="medium">Analytics overview</Text>
         <Text colorVariant="muted">
           Surface key charts and KPIs while the motion guides attention to new content.
         </Text>
-      </Column>
+      </Block>
     )
   },
   {
     key: 'settings',
     label: 'Settings',
     content: (
-      <Column gap="xs">
+      <Block>
         <Text weight="medium">Account settings</Text>
         <Text colorVariant="muted">
           Manage notifications, billing, and other preferences without abrupt content swaps.
         </Text>
-      </Column>
+      </Block>
     )
   }
 ];
 
 export default function Demo() {
   return (
-    <Column gap="sm">
+    <Block>
       <Tabs
         variant="line"
         animated
@@ -51,6 +51,6 @@ export default function Demo() {
       <Text variant="small" colorVariant="muted">
         Enable `animated` to add motion and use `animationDuration` to moderate the easing speed.
       </Text>
-    </Column>
+    </Block>
   );
 }

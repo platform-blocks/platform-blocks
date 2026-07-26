@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Platform } from 'react-native';
 
-import { Column, FileInput, Text } from '@platform-blocks/ui';
+import { Block, FileInput, Text } from '@platform-blocks/ui';
 import type { FileInputFile } from '@platform-blocks/ui';
 
 export default function Demo() {
@@ -13,7 +13,7 @@ export default function Demo() {
       : 'Tap the dropzone to open the native file picker on touch devices.';
 
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <Text size="sm" colorVariant="secondary">
         {instructions}
       </Text>
@@ -27,19 +27,19 @@ export default function Demo() {
         fullWidth
       />
       {files.length > 0 && (
-        <Column gap="xs">
+        <Block>
           <Text size="xs" weight="semibold">
             Selected files ({files.length})
           </Text>
-          <Column gap="xs">
+          <Block>
             {files.map((file) => (
               <Text key={file.id} size="xs" colorVariant="secondary">
                 {file.name}
               </Text>
             ))}
-          </Column>
-        </Column>
+          </Block>
+        </Block>
       )}
-    </Column>
+    </Block>
   );
 }

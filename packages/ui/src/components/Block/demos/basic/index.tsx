@@ -1,20 +1,20 @@
-import { Block, Column, Text } from '@platform-blocks/ui';
+import { Block, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="lg" w="100%" maxW={420}>
+    <Block w="100%" maxW={420}>
       <Block bg="#111827" radius="lg" p="lg">
-        <Column gap="sm">
+        <Block>
           <Text weight="semibold" color="white">
             Release summary
           </Text>
           <Text size="sm" color="rgba(255,255,255,0.75)">
             Apply `bg`, `p`, and `radius` props on `Block` to build a card without custom stylesheets.
           </Text>
-        </Column>
+        </Block>
       </Block>
 
-      <Block direction="row" gap="sm">
+      <Block direction="row">
         <Block grow bg="#2563eb" radius="md" p="md">
           <Text weight="semibold" color="white">
             Velocity
@@ -31,7 +31,7 @@ export default function Demo() {
         </Block>
       </Block>
 
-      <Block direction="row" gap="sm">
+      <Block direction="row">
         <Block component="button" bg="#2563eb" radius="md" px="lg" py="sm">
           <Text color="white" weight="semibold">
             Create project
@@ -50,6 +50,6 @@ export default function Demo() {
           </Text>
         </Block>
       </Block>
-    </Column>
+    </Block>
   );
 }

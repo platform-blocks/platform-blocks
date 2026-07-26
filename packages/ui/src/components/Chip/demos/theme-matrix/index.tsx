@@ -1,12 +1,12 @@
 import {
-  Chip,
+  Block,
   Card,
-  Row,
-  Column,
-  Text,
-  PlatformBlocksThemeProvider,
-  DEFAULT_THEME,
+  Chip,
   DARK_THEME,
+  DEFAULT_THEME,
+  PlatformBlocksThemeProvider,
+  Row,
+  Text,
 } from '@platform-blocks/ui'
 import type { ChipProps } from '@platform-blocks/ui'
 
@@ -47,7 +47,7 @@ function ChipCell({ variant, color, label }: { variant: NonNullable<ChipProps['v
 
 function Matrix() {
   return (
-    <Column gap="xs" fullWidth={false}>
+    <Block fullWidth={false}>
       {/* Column headers */}
       <Row gap="xs" align="center">
         <Text style={{ width: LABEL_W }}> </Text>
@@ -74,7 +74,7 @@ function Matrix() {
           ))}
         </Row>
       ))}
-    </Column>
+    </Block>
   )
 }
 
@@ -95,7 +95,7 @@ function Panel({
         radius="lg"
         style={{ flexGrow: 1, flexShrink: 1, flexBasis: 380, minWidth: 300 }}
       >
-        <Column gap="md" fullWidth>
+        <Block fullWidth>
           <Row justify="space-between" align="baseline">
             <Text weight="600">{title}</Text>
             <Text size="xs" colorVariant="muted">
@@ -103,7 +103,7 @@ function Panel({
             </Text>
           </Row>
           <Matrix />
-        </Column>
+        </Block>
       </Card>
     </PlatformBlocksThemeProvider>
   )

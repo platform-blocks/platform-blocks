@@ -6,7 +6,7 @@ tags: [avatar, profile, user, image, initials]
 playground: true
 props:
   size: Size token (xs–3xl) controlling diameter
-  src: Image source URL
+  src: Remote image URL or a bundled asset (`require('./avatar.png')`)
   fallback: Initials shown when no image is provided
   backgroundColor: Background color for the fallback initials
   textColor: Text color for the fallback initials

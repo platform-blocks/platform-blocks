@@ -1,15 +1,15 @@
-import { Card, Column, Text, Button } from '@platform-blocks/ui';
+import { Block, Button, Card, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
     <Card p="lg" radius="lg" shadow="md" maxW={320}>
-      <Column gap="md">
-        <Column gap="xs">
+      <Block>
+        <Block>
           <Text variant="small" colorVariant="muted">
             Upcoming match
           </Text>
           <Text variant="h6">Falcons at Bears</Text>
-        </Column>
+        </Block>
         <Text colorVariant="muted">
           Kickoff is set for 7:30 PM with rain in the forecast. Review the lineup and
           travel logistics before departure.
@@ -17,7 +17,7 @@ export default function Demo() {
   <Button size="sm" variant="filled" onPress={() => {}}>
           View itinerary
         </Button>
-      </Column>
+      </Block>
     </Card>
   );
 }

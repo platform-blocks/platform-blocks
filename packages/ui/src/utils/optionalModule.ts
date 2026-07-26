@@ -33,6 +33,7 @@ const optionalModuleLoaders: Record<string, OptionalModuleLoader> = {
   'react-native-gesture-handler': () => require('react-native-gesture-handler'),
   'expo-status-bar': () => require('expo-status-bar'),
   'expo-navigation-bar': () => require('expo-navigation-bar'),
+  '@shopify/flash-list': () => require('@shopify/flash-list'),
 };
 
 /**

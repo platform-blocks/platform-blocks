@@ -1,12 +1,12 @@
 import { useState } from 'react';
 
-import { Column, Text, TextArea } from '@platform-blocks/ui';
+import { Block, Text, TextArea } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [value, setValue] = useState('');
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <TextArea
         label="Message"
         placeholder="Enter your message"
@@ -22,6 +22,6 @@ export default function Demo() {
           Character count: {value.length}
         </Text>
       ) : null}
-    </Column>
+    </Block>
   );
 }

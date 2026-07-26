@@ -1,458 +1,37 @@
 import React from 'react';
 import type { CSSProperties } from 'react';
-import { View, ViewStyle, TextStyle, StyleProp, Platform, FlatList, ListRenderItemInfo, Linking, ScrollView, StyleSheet } from 'react-native';
+import { View, TextStyle, Platform, FlatList, ListRenderItemInfo, ScrollView, StyleSheet } from 'react-native';
 
 import { useTheme } from '../../core/theme';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import { surfaceInteractionTint } from '../../core/theme/surfaces';
 import { extractSpacingProps, getSpacingStyles } from '../../core/utils';
 import { useHover } from '../../hooks';
 import { Text } from '../Text';
-import { CopyButton } from '../CopyButton/CopyButton';
 import { Spoiler } from '../Spoiler';
-import { normalizeLanguage, parseHighlightLines, createNativeHighlighter, getSyntaxColors, buildPrismTheme } from './utils';
-import { resolveOptionalModule } from '../../utils/optionalModule';
-import type {
-  CodeBlockColorOverrides,
-  CodeBlockProps,
-  CodeBlockToken,
-  CodeBlockTextPalette,
-} from './types';
-
-// Syntax highlighter - only loaded on web, native uses built-in tokenizer
-// These are initialized lazily on first use to avoid Metro bundling issues.
-// Token colors come from a theme-derived Prism theme (buildPrismTheme), not a
-// prebuilt Prism stylesheet, so the highlighting follows the app color theme.
-let PrismSyntaxHighlighter: any = null;
-let syntaxHighlighterInitialized = false;
-
-// Use indirect require via new Function to prevent Metro from statically analyzing imports
-// Metro bundles ALL require() calls it finds, even in try-catch blocks
-// new Function() creates a runtime-evaluated require that Metro can't see
-const safeRequire: ((name: string) => any) | null = (() => {
-  try {
-    // This creates: function(moduleName) { return require(moduleName); }
-    // The string 'require' is not statically analyzable by Metro
-    return new Function('moduleName', 'return require(moduleName)') as (name: string) => any;
-  } catch {
-    return null;
-  }
-})();
-
-function initSyntaxHighlighter() {
-  if (syntaxHighlighterInitialized) return;
-  syntaxHighlighterInitialized = true;
-
-  // Only attempt to load on web
-  if (Platform.OS !== 'web') return;
-  if (!safeRequire) return;
-
-  try {
-    const rsh = safeRequire('react-syntax-highlighter');
-    PrismSyntaxHighlighter = rsh.PrismLight;
-
-    if (PrismSyntaxHighlighter) {
-      // Register languages
-      try {
-        const jsx = safeRequire('react-syntax-highlighter/dist/esm/languages/prism/jsx').default;
-        PrismSyntaxHighlighter.registerLanguage('jsx', jsx);
-      } catch {
-        // Language not available
-      }
-      try {
-        const tsx = safeRequire('react-syntax-highlighter/dist/esm/languages/prism/tsx').default;
-        PrismSyntaxHighlighter.registerLanguage('tsx', tsx);
-      } catch {
-        // Language not available
-      }
-      try {
-        const ts = safeRequire('react-syntax-highlighter/dist/esm/languages/prism/typescript').default;
-        PrismSyntaxHighlighter.registerLanguage('typescript', ts);
-      } catch {
-        // Language not available
-      }
-      try {
-        const js = safeRequire('react-syntax-highlighter/dist/esm/languages/prism/javascript').default;
-        PrismSyntaxHighlighter.registerLanguage('javascript', js);
-      } catch {
-        // Language not available
-      }
-      try {
-        const json = safeRequire('react-syntax-highlighter/dist/esm/languages/prism/json').default;
-        PrismSyntaxHighlighter.registerLanguage('json', json);
-      } catch {
-        // Language not available
-      }
-      try {
-        const bash = safeRequire('react-syntax-highlighter/dist/esm/languages/prism/bash').default;
-        PrismSyntaxHighlighter.registerLanguage('bash', bash);
-      } catch {
-        // Language not available
-      }
-    }
-  } catch {
-    // react-syntax-highlighter not installed, will use native fallback
-    if (__DEV__) {
-      console.warn('[platform-blocks] react-syntax-highlighter not found, CodeBlock will use basic formatting');
-    }
-  }
-}
+import { FileHeaderBar, FileTabsRow, FloatingCopyControls, InlineTitleRow } from './header';
+import { getPrismHighlighter, initSyntaxHighlighter } from './prism';
+import {
+  DEFAULT_CODE_RADIUS,
+  getCodeBlockStyles,
+  resolveCodeBlockColors,
+  resolveCodeSurface,
+} from './styles';
+import type { CodeBlockFile, CodeBlockProps } from './types';
+import {
+  buildPrismTheme,
+  createNativeHighlighter,
+  getSyntaxColors,
+  languageFromFileName,
+  normalizeLanguage,
+  parseHighlightLines,
+  toOpaqueHex,
+} from './utils';
 
 const NO_HIGHLIGHTS = new Set<number>();
+/** Above this many lines, native switches from one <Text> to a virtualized list. */
 const LONG_LIST_THRESHOLD = 80;
 
-const TOKEN_SEQUENCE: CodeBlockToken[] = [
-  'keyword',
-  'string',
-  'comment',
-  'number',
-  'function',
-  'operator',
-  'punctuation',
-  'tag',
-  'attribute',
-  'className',
-];
-
-type ResolvedCodeBlockColors = {
-  background?: string;
-  border?: string;
-  text?: string;
-  highlightBackground?: string;
-  highlightAccent?: string;
-  tokenOverrides?: Partial<Record<CodeBlockToken, string>>;
-};
-
-const resolveThemeColor = (theme: PlatformBlocksTheme, token?: string): string | undefined => {
-  if (!token) return undefined;
-  if (token.includes('.')) {
-    const [scale, shade] = token.split('.');
-    const shadeNum = Number(shade);
-    const scaleObj: any = (theme.colors as any)[scale];
-    if (scaleObj && !Number.isNaN(shadeNum) && scaleObj[shadeNum]) {
-      return scaleObj[shadeNum];
-    }
-  }
-  if ((theme.text as any)[token]) {
-    return (theme.text as any)[token];
-  }
-  return token;
-};
-
-const resolveTextColors = (theme: PlatformBlocksTheme, palette?: CodeBlockTextPalette) => {
-  if (!palette) return {};
-  let baseColor: string | undefined;
-  const tokenOverrides: Partial<Record<CodeBlockToken, string>> = {};
-
-  const assign = (token: CodeBlockToken, value: string) => {
-    const resolved = resolveThemeColor(theme, value) ?? value;
-    tokenOverrides[token] = resolved;
-    if (!baseColor) {
-      baseColor = resolved;
-    }
-  };
-
-  if (typeof palette === 'string') {
-    const resolved = resolveThemeColor(theme, palette);
-    if (resolved) {
-      TOKEN_SEQUENCE.forEach((token) => {
-        tokenOverrides[token] = resolved;
-      });
-      baseColor = resolved;
-    }
-    return { baseColor, tokenOverrides };
-  }
-
-  if (Array.isArray(palette)) {
-    palette.forEach((value, index) => {
-      if (!value) return;
-      const token = TOKEN_SEQUENCE[index % TOKEN_SEQUENCE.length];
-      assign(token, value);
-    });
-    return {
-      baseColor,
-      tokenOverrides: Object.keys(tokenOverrides).length ? tokenOverrides : undefined,
-    };
-  }
-
-  TOKEN_SEQUENCE.forEach((token) => {
-    const value = palette[token];
-    if (value) assign(token, value);
-  });
-
-  return {
-    baseColor,
-    tokenOverrides: Object.keys(tokenOverrides).length ? tokenOverrides : undefined,
-  };
-};
-
-const resolveCodeBlockColors = (theme: PlatformBlocksTheme, overrides?: CodeBlockColorOverrides) => {
-  if (!overrides) return {};
-  const resolved: ResolvedCodeBlockColors = {};
-
-  if (overrides.background) {
-    resolved.background = resolveThemeColor(theme, overrides.background);
-  }
-
-  if (overrides.border) {
-    resolved.border = resolveThemeColor(theme, overrides.border);
-  }
-
-  if (overrides.highlight?.background) {
-    resolved.highlightBackground = resolveThemeColor(theme, overrides.highlight.background);
-  }
-
-  if (overrides.highlight?.accent) {
-    resolved.highlightAccent = resolveThemeColor(theme, overrides.highlight.accent);
-  }
-
-  const textConfig = resolveTextColors(theme, overrides.text);
-  if (textConfig.baseColor) {
-    resolved.text = textConfig.baseColor;
-  }
-  if (textConfig.tokenOverrides) {
-    resolved.tokenOverrides = textConfig.tokenOverrides;
-  }
-
-  return resolved;
-};
-
-const getCodeBlockStyles = (
-  theme: PlatformBlocksTheme,
-  isDark: boolean,
-  fullWidth: boolean,
-  variant: 'code' | 'terminal' | 'hacker',
-  overrides: ResolvedCodeBlockColors = {}
-) => {
-  const backgroundColor =
-    overrides.background ??
-    (variant === 'terminal'
-      ? isDark
-        ? '#0f1524'
-        : '#f7f9fc'
-      : isDark
-      ? 'rgba(9,13,23,0.94)'
-      : '#f8fafc');
-  const borderColor = overrides.border ?? (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.12)');
-  const textColor = overrides.text ?? (isDark ? theme.text.primary : theme.text.secondary);
-  const monoFont = Platform.select({ ios: 'SFMono-Regular', android: 'monospace', default: 'Menlo, monospace' });
-
-  return {
-    container: {
-      marginBottom: 20,
-      alignSelf: fullWidth ? 'stretch' : 'flex-start',
-      width: fullWidth ? '100%' : undefined,
-    } as ViewStyle,
-    codeBlock: {
-      width: '100%',
-      position: 'relative',
-      padding: variant === 'terminal' ? 14 : 16,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor,
-      backgroundColor,
-      overflow: 'hidden',
-      paddingRight: 0,
-    } as ViewStyle,
-    codeBlockWithCopyButton: {
-      // paddingRight: 48,
-      paddingRight: 0,
-    } as ViewStyle,
-    title: {
-      fontSize: 12,
-      letterSpacing: 0.5,
-      textTransform: 'uppercase' as const,
-      marginBottom: 8,
-      color: isDark ? theme.text.secondary : theme.text.primary,
-    } as TextStyle,
-    codeText: {
-      fontFamily: monoFont,
-      fontSize: 13,
-      lineHeight: 18,
-      color: textColor,
-    } as TextStyle,
-    highlightedLine: (_isDark: boolean, highlightColors: { background: string; accent: string }) => ({
-      backgroundColor: highlightColors.background,
-      borderLeftWidth: 3,
-      borderLeftColor: highlightColors.accent,
-      borderRadius: 4,
-      marginVertical: 1,
-      paddingLeft: 8,
-    }),
-    headerBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      backgroundColor: isDark ? '#2a303b' : '#eceef1',
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      borderTopLeftRadius: 8,
-      borderTopRightRadius: 8,
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-      marginBottom: 4,
-    } as ViewStyle,
-    inlineTitleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingBottom: 8,
-      marginBottom: 8,
-      borderBottomWidth: 1,
-      borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-    } as ViewStyle,
-  };
-};
-
-type FileHeaderBarProps = {
-  fileName: string;
-  isDark: boolean;
-  titleBaseStyle: TextStyle;
-  titleStyle?: StyleProp<TextStyle>;
-  showCopyButton: boolean;
-  code: string;
-  onCopy?: (code: string) => void;
-  githubUrl?: string;
-};
-
-const FileHeaderBar: React.FC<FileHeaderBarProps> = ({
-  fileName,
-  isDark,
-  titleBaseStyle,
-  titleStyle,
-  showCopyButton,
-  code,
-  onCopy,
-  githubUrl,
-}) => {
-  const openGithub = React.useCallback(() => {
-    if (githubUrl) {
-      Linking.openURL(githubUrl).catch(() => undefined);
-    }
-  }, [githubUrl]);
-
-  return (
-    <View style={{
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      backgroundColor: isDark ? '#2a303b' : '#eceef1',
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      borderTopLeftRadius: 8,
-      borderTopRightRadius: 8,
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-      marginBottom: 4,
-    }}>
-      <Text variant="small" colorVariant="secondary" style={[titleBaseStyle, titleStyle, { marginBottom: 0 }]}>
-        {fileName}
-      </Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        {githubUrl ? (
-          <Text
-            variant="small"
-            colorVariant="secondary"
-            onPress={openGithub}
-            style={{ textDecorationLine: 'underline' }}
-          >
-            GitHub
-          </Text>
-        ) : null}
-        {showCopyButton ? (
-          <CopyButton
-            value={code}
-            onCopy={onCopy}
-            iconOnly
-            size="xs"
-            style={{ minHeight: 24, minWidth: 24 }}
-          />
-        ) : null}
-      </View>
-    </View>
-  );
-};
-
-type InlineTitleRowProps = {
-  label: string;
-  fileIcon?: React.ReactNode;
-  isDark: boolean;
-  theme: PlatformBlocksTheme;
-  titleBaseStyle: TextStyle;
-  titleStyle?: StyleProp<TextStyle>;
-  showCopyButton: boolean;
-  code: string;
-  onCopy?: (code: string) => void;
-};
-
-const InlineTitleRow: React.FC<InlineTitleRowProps> = ({
-  label,
-  fileIcon,
-  isDark,
-  theme,
-  titleBaseStyle,
-  titleStyle,
-  showCopyButton,
-  code,
-  onCopy,
-}) => (
-  <View style={{ flexDirection: 'row', alignItems: 'center',  marginBottom: 8, borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
-    {fileIcon ? <View style={{ marginRight: 8 }}>{fileIcon}</View> : null}
-    <Text
-      variant="small"
-      style={[
-        titleBaseStyle,
-        titleStyle,
-        {
-          marginBottom: 0,
-          color: isDark ? theme.text.primary : theme.text.secondary,
-          fontWeight: '500',
-        },
-      ]}
-    >
-      {label}
-    </Text>
-    {showCopyButton ? (
-      <View style={{ marginLeft: 'auto' , marginRight: 12}}>
-        <CopyButton
-          value={code}
-          onCopy={onCopy}
-          iconOnly
-          size="xs"
-          style={{ minHeight: 20, minWidth: 20 }}
-          iconColor={isDark ? theme.text.primary : theme.text.secondary}
-        />
-      </View>
-    ) : null}
-  </View>
-);
-
-type FloatingCopyControlsProps = {
-  visible: boolean;
-  code: string;
-  onCopy?: (code: string) => void;
-  topOffset: number;
-  isWeb: boolean;
-};
-
-const FloatingCopyControls: React.FC<FloatingCopyControlsProps> = ({ visible, code, onCopy, topOffset, isWeb }) => (
-  <View
-    style={{
-      position: 'absolute',
-      top: topOffset,
-      right: 8,
-      zIndex: 10,
-      opacity: visible ? 1 : 0,
-      gap: 4,
-      pointerEvents: visible ? 'auto' : 'none',
-      ...(isWeb
-        ? { transition: 'opacity 120ms ease, transform 120ms ease', transform: `translateY(${visible ? 0 : -2}px)` }
-        : {}),
-    }}
-  >
-    <CopyButton value={code} onCopy={onCopy} iconOnly size="sm" tooltip="Copy code" tooltipPosition="left" style={{ minHeight: 32, minWidth: 32 }} />
-  </View>
-);
-
-export const CodeBlock: React.FC<CodeBlockProps> = (props) => {
+export const CodeBlock = React.forwardRef<View, CodeBlockProps>((props, ref) => {
   // Initialize syntax highlighter on first render (web only)
   React.useMemo(() => initSyntaxHighlighter(), []);
 
@@ -461,10 +40,16 @@ export const CodeBlock: React.FC<CodeBlockProps> = (props) => {
     title,
     fileName,
     fileIcon,
+    files,
+    defaultFile,
+    activeFile,
+    onFileChange,
     language = 'tsx',
     showLineNumbers = false,
     highlight = true,
     fullWidth = true,
+    radius = DEFAULT_CODE_RADIUS,
+    withBorder = true,
     showCopyButton = true,
     onCopy,
     style,
@@ -486,24 +71,78 @@ export const CodeBlock: React.FC<CodeBlockProps> = (props) => {
 
   const customCodeFontFamily = ff ?? fontFamily;
 
+  // Files drive the header and, past the first one, what gets rendered: the
+  // active file's own code, language and highlight lines win over the top-level
+  // props. `fileName`/`fileIcon` are the pre-`files` spelling of a single file,
+  // normalized here so there is exactly one header code path.
+  const fileList = React.useMemo<CodeBlockFile[]>(() => {
+    if (Array.isArray(files)) {
+      return files.filter(f => f && typeof f.name === 'string');
+    }
+    if (fileName) {
+      return [{ name: fileName, icon: fileIcon, language }];
+    }
+    return [];
+  }, [files, fileName, fileIcon, language]);
+
+  const [selectedFile, setSelectedFile] = React.useState<string | undefined>(defaultFile);
+  const requestedFile = activeFile ?? selectedFile;
+  const activeFileEntry = fileList.find(f => f.name === requestedFile) ?? fileList[0];
+  const handleFileChange = React.useCallback((name: string) => {
+    if (activeFile === undefined) setSelectedFile(name);
+    onFileChange?.(name);
+  }, [activeFile, onFileChange]);
+
+  const activeCode = activeFileEntry?.code ?? children;
+  // The edit button follows the visible tab: a file's own URL wins, and the
+  // block-level one covers single-file blocks and any tab that omits it.
+  const activeGithubUrl = activeFileEntry?.githubUrl ?? githubUrl;
+  const activeLanguage = activeFileEntry
+    ? activeFileEntry.language ?? languageFromFileName(activeFileEntry.name)
+    : language;
+  const activeHighlightLines = activeFileEntry?.highlightLines ?? highlightLines;
+
   const { spacingProps, otherProps } = extractSpacingProps(rest);
   const spacingStyles = getSpacingStyles(spacingProps);
   const theme = useTheme();
   const isDark = theme.colorScheme === 'dark';
   const resolvedColors = React.useMemo(() => resolveCodeBlockColors(theme, colors), [theme, colors]);
   const styles = React.useMemo(() => {
-    const base = getCodeBlockStyles(theme, isDark, fullWidth, variant, resolvedColors);
+    const base = getCodeBlockStyles(theme, fullWidth, variant, resolvedColors, radius, withBorder);
     if (!customCodeFontFamily) return base;
     return {
       ...base,
       codeText: { ...base.codeText, fontFamily: customCodeFontFamily },
     };
-  }, [theme, isDark, fullWidth, variant, resolvedColors, customCodeFontFamily]);
-  const highlightBackgroundColor = React.useMemo(() => resolvedColors.highlightBackground ?? (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'), [resolvedColors.highlightBackground, isDark]);
+  }, [theme, fullWidth, variant, resolvedColors, customCodeFontFamily, radius, withBorder]);
+  const highlightBackgroundColor = React.useMemo(
+    () => resolvedColors.highlightBackground ?? surfaceInteractionTint(theme, 'selected'),
+    [resolvedColors.highlightBackground, theme]
+  );
   const highlightAccentColor = resolvedColors.highlightAccent ?? theme.colors.primary[5];
-  const highlightColors = React.useMemo(() => ({ background: highlightBackgroundColor, accent: highlightAccentColor }), [highlightAccentColor, highlightBackgroundColor]);
-  const syntaxColors = React.useMemo(() => getSyntaxColors(theme, isDark, variant, resolvedColors.tokenOverrides), [theme, isDark, variant, resolvedColors.tokenOverrides]);
-  const nativeHighlighter = React.useMemo(() => createNativeHighlighter(theme, isDark, variant, resolvedColors.tokenOverrides), [theme, isDark, variant, resolvedColors.tokenOverrides]);
+  const highlightColors = React.useMemo(
+    () => ({ background: highlightBackgroundColor, accent: highlightAccentColor }),
+    [highlightAccentColor, highlightBackgroundColor]
+  );
+  // Token shades are picked for contrast against the surface they land on, so a
+  // themed (or `colors.background`-overridden) panel stays legible without a
+  // hand-tuned palette per variant.
+  const codeSurface = React.useMemo(
+    () => toOpaqueHex(resolveCodeSurface(theme, variant, resolvedColors), theme.backgrounds.base),
+    [theme, variant, resolvedColors]
+  );
+  const baseTextColor = (styles.codeText.color as string) ?? theme.text.primary;
+  const syntaxColors = React.useMemo(
+    () => getSyntaxColors(theme, isDark, variant, resolvedColors.tokenOverrides, { surface: codeSurface }),
+    [theme, isDark, variant, resolvedColors.tokenOverrides, codeSurface]
+  );
+  const nativeHighlighter = React.useMemo(
+    () => createNativeHighlighter(theme, isDark, variant, resolvedColors.tokenOverrides, {
+      surface: codeSurface,
+      baseColor: baseTextColor,
+    }),
+    [theme, isDark, variant, resolvedColors.tokenOverrides, codeSurface, baseTextColor]
+  );
 
   const [hovered, hoverHandlers] = useHover();
   const [codeHeight, setCodeHeight] = React.useState<number | null>(null);
@@ -511,11 +150,19 @@ export const CodeBlock: React.FC<CodeBlockProps> = (props) => {
   const webWhitespaceStyle = React.useMemo(() => (
     isWeb ? { whiteSpace: wrap ? 'pre-wrap' : 'pre', display: 'block' } : null
   ), [isWeb, wrap]);
-  const showFloatingCopy = showCopyButton && !title && !fileName;
+  // File names always render as chips in the strip — one file or ten, they look
+  // the same, so a single-file block and the active tab of a multi-file one are
+  // not two different treatments. `title` (a heading, not a file) keeps the
+  // plain label row.
+  const showFileStrip = fileList.length > 0;
+  const soloFile = fileList.length === 1 ? fileList[0] : undefined;
+  // A headerless block still needs somewhere to hang the edit button, so the
+  // floating layer appears for either control — not for copy alone.
+  const showFloatingCopy = (showCopyButton || Boolean(activeGithubUrl)) && !title && !showFileStrip;
   const showCopyVisible = !isWeb ? showFloatingCopy : showFloatingCopy && hovered;
 
   const codeData = React.useMemo(() => {
-    const rawInput = typeof children === 'string' ? children : String(children || '');
+    const rawInput = typeof activeCode === 'string' ? activeCode : String(activeCode || '');
     const processed = rawInput.trim();
     const transformed =
       variant !== 'terminal'
@@ -531,16 +178,16 @@ export const CodeBlock: React.FC<CodeBlockProps> = (props) => {
       lines,
       lineCount: lines.length,
     };
-  }, [children, promptSymbol, variant]);
+  }, [activeCode, promptSymbol, variant]);
 
   const highlightSet = React.useMemo(() => {
-    if (!highlight || !highlightLines?.length) return NO_HIGHLIGHTS;
-    return parseHighlightLines(highlightLines, codeData.lineCount);
-  }, [highlight, highlightLines, codeData.lineCount]);
+    if (!highlight || !activeHighlightLines?.length) return NO_HIGHLIGHTS;
+    return parseHighlightLines(activeHighlightLines, codeData.lineCount);
+  }, [highlight, activeHighlightLines, codeData.lineCount]);
 
   const hideLineNumbersVisually = highlight && !showLineNumbers && highlightSet.size > 0;
   const prismShowLineNumbers = showLineNumbers || hideLineNumbersVisually;
-  const normalizedLang = normalizeLanguage(language);
+  const normalizedLang = normalizeLanguage(activeLanguage);
 
   const baseLineStyle = React.useMemo<CSSProperties>(() => ({
     display: 'block',
@@ -556,18 +203,39 @@ export const CodeBlock: React.FC<CodeBlockProps> = (props) => {
     boxShadow: `inset 3px 0 0 0 ${highlightAccentColor}`,
   }), [highlightBackgroundColor, highlightAccentColor]);
 
-  const fallbackColor = (styles.codeText.color as string) ?? theme.text.primary;
-  const lineNumberColor = isDark ? theme.colors.gray[5] : theme.colors.gray[6];
-  const lineNumberWidth = React.useMemo(() => Math.max(2, String(Math.max(1, codeData.lineCount)).length), [codeData.lineCount]);
+  const fallbackColor = baseTextColor;
+  // Gutter recedes exactly as far as comments do — same contrast floor, so it
+  // tracks the theme instead of a fixed gray shade.
+  const lineNumberColor = syntaxColors.comment;
+  const lineNumberWidth = React.useMemo(
+    () => Math.max(2, String(Math.max(1, codeData.lineCount)).length),
+    [codeData.lineCount]
+  );
 
-  const tokenLines = React.useMemo(() => (highlight ? nativeHighlighter(codeData.transformed) : null), [highlight, nativeHighlighter, codeData.transformed]);
+  const tokenLines = React.useMemo(
+    () => (highlight ? nativeHighlighter(codeData.transformed) : null),
+    [highlight, nativeHighlighter, codeData.transformed]
+  );
 
   const shouldVirtualizeNative = !isWeb && codeData.lineCount >= LONG_LIST_THRESHOLD;
   const lineHeight = styles.codeText.lineHeight ?? 18;
 
+  // <Text> resolves its own typography rather than inheriting it: with no
+  // `variant`/`size` it falls back to the `p` defaults (16px / 1.4 line-height)
+  // and `theme.fontFamily`. Nested token spans therefore override the parent
+  // line's mono font and code font size unless we re-assert them explicitly.
+  const codeTypography = React.useMemo(() => {
+    const flat = (StyleSheet.flatten([styles.codeText, textStyle]) ?? {}) as TextStyle;
+    return {
+      fontFamily: flat.fontFamily,
+      fontSize: flat.fontSize,
+      lineHeight: flat.lineHeight,
+    };
+  }, [styles.codeText, textStyle]);
+
   const normalizeTokenText = React.useCallback((text: string, tokenIndex: number) => {
     if (!isWeb || !text) return text;
-    const replaceSpaces = (value: string) => value.replace(/\t/g, '  ').replace(/ /g, '\u00A0');
+    const replaceSpaces = (value: string) => value.replace(/\t/g, '  ').replace(/ /g, ' ');
     if (tokenIndex === 0) {
       return text.replace(/^[\t ]+/, (match) => replaceSpaces(match));
     }
@@ -590,18 +258,26 @@ export const CodeBlock: React.FC<CodeBlockProps> = (props) => {
         wrap ? { flexWrap: 'wrap' as const } : { flexWrap: 'nowrap' as const, width: 'auto' as const },
       ];
       if (isLineHighlighted) {
-        lineStyles.push(styles.highlightedLine(isDark, highlightColors));
+        lineStyles.push(styles.highlightedLine(highlightColors));
       }
 
       return (
         <Text key={includeKey ? `line-${lineNumber}` : undefined} selectable style={lineStyles}>
           {showLineNumbers ? (
-            <Text style={{ color: lineNumberColor, opacity: 0.7 }}>
+            <Text style={{ ...codeTypography, color: lineNumberColor, opacity: 0.7 }}>
               {`${String(lineNumber).padStart(lineNumberWidth, ' ')} | `}
             </Text>
           ) : null}
           {tokens.map((token, tokenIdx) => (
-            <Text key={`${lineNumber}-${tokenIdx}`} style={{ color: token.color }}>
+            <Text
+              key={`${lineNumber}-${tokenIdx}`}
+              style={{
+                ...codeTypography,
+                color: token.color,
+                ...(token.fontStyle ? { fontStyle: token.fontStyle } : null),
+                ...(token.fontWeight ? { fontWeight: token.fontWeight } : null),
+              }}
+            >
               {normalizeTokenText(token.text || ' ', tokenIdx)}
             </Text>
           ))}
@@ -609,10 +285,11 @@ export const CodeBlock: React.FC<CodeBlockProps> = (props) => {
         </Text>
       );
     },
-    [fallbackColor, highlightColors, highlightSet, isDark, lineNumberColor, lineNumberWidth, normalizeTokenText, showLineNumbers, styles.codeText, styles.highlightedLine, textStyle, tokenLines, webWhitespaceStyle, wrap]
+    [codeTypography, fallbackColor, highlightColors, highlightSet, lineNumberColor, lineNumberWidth, normalizeTokenText, showLineNumbers, styles.codeText, styles.highlightedLine, textStyle, tokenLines, webWhitespaceStyle, wrap]
   );
 
   const renderWebCode = React.useMemo(() => {
+    const PrismSyntaxHighlighter = getPrismHighlighter();
     if (!(isWeb && highlight && PrismSyntaxHighlighter)) {
       return null;
     }
@@ -643,8 +320,8 @@ export const CodeBlock: React.FC<CodeBlockProps> = (props) => {
             whiteSpace: wrap ? 'pre-wrap' : 'pre',
           },
         }}
-  wrapLongLines={wrap}
-  wrapLines={wrap}
+        wrapLongLines={wrap}
+        wrapLines={wrap}
         showLineNumbers={prismShowLineNumbers}
         lineNumberStyle={
           hideLineNumbersVisually
@@ -677,7 +354,6 @@ export const CodeBlock: React.FC<CodeBlockProps> = (props) => {
     highlightSet,
     highlightedLineStyle,
     hideLineNumbersVisually,
-    isDark,
     isWeb,
     normalizedLang,
     prismShowLineNumbers,
@@ -736,39 +412,35 @@ export const CodeBlock: React.FC<CodeBlockProps> = (props) => {
     </ScrollView>
   );
 
-  let wrappedCodeContent: React.ReactNode = scrollableCodeContent;
-  if (spoiler) {
-    wrappedCodeContent = (
-      <Spoiler maxHeight={spoilerMaxHeight}>
-        {scrollableCodeContent}
-      </Spoiler>
-    );
-  }
+  const wrappedCodeContent: React.ReactNode = spoiler
+    ? <Spoiler maxHeight={spoilerMaxHeight}>{scrollableCodeContent}</Spoiler>
+    : scrollableCodeContent;
 
   const flatStyle = StyleSheet.flatten(style);
   const userHasWidth = Boolean(flatStyle && (flatStyle.width !== undefined || flatStyle.flex !== undefined));
   const containerStyle = userHasWidth ? [{ marginBottom: 20 }, style, spacingStyles] : [styles.container, spacingStyles, style];
-  const showHeaderBar = fileHeader && fileName && variant !== 'terminal';
-  const inlineTitleVisible = variant === 'code' && (title || fileName);
-  const inlineTitleLabel = fileName || title || '';
+  // `fileHeader` lifts a single file's name out of the panel into its own bar.
+  const showHeaderBar = Boolean(fileHeader && soloFile && variant !== 'terminal');
+  const showFileChips = showFileStrip && !showHeaderBar;
+  const inlineTitleVisible = variant === 'code' && !showFileChips && !showHeaderBar && Boolean(title);
   const floatingTop = codeHeight && codeHeight < 40 ? 4 : 8;
 
   return (
-    <View style={containerStyle} {...otherProps}>
-      {showHeaderBar && fileName ? (
+    <View ref={ref} style={containerStyle} {...otherProps}>
+      {showHeaderBar && soloFile ? (
         <FileHeaderBar
-          fileName={fileName}
-          isDark={isDark}
+          fileName={soloFile.name}
+          barStyle={styles.headerBar}
           titleBaseStyle={styles.title}
           titleStyle={titleStyle}
           showCopyButton={showCopyButton}
           code={codeData.processed}
           onCopy={onCopy}
-          githubUrl={githubUrl}
+          githubUrl={activeGithubUrl}
         />
       ) : null}
       <View
-        style={[styles.codeBlock, showFloatingCopy && styles.codeBlockWithCopyButton]}
+        style={styles.codeBlock}
         onLayout={(event) => {
           if (showFloatingCopy) setCodeHeight(event.nativeEvent.layout.height);
         }}
@@ -779,26 +451,49 @@ export const CodeBlock: React.FC<CodeBlockProps> = (props) => {
             }
           : {})}
       >
+        {showFileChips ? (
+          <FileTabsRow
+            files={fileList}
+            activeName={activeFileEntry?.name ?? fileList[0].name}
+            onSelect={handleFileChange}
+            theme={theme}
+            showCopyButton={showCopyButton}
+            code={codeData.processed}
+            onCopy={onCopy}
+            githubUrl={activeGithubUrl}
+          />
+        ) : null}
         {inlineTitleVisible ? (
           <InlineTitleRow
-            label={inlineTitleLabel}
+            label={title ?? ''}
             fileIcon={fileIcon}
-            isDark={isDark}
             theme={theme}
+            rowStyle={styles.inlineTitleRow}
             titleBaseStyle={styles.title}
             titleStyle={titleStyle}
             showCopyButton={showCopyButton}
             code={codeData.processed}
             onCopy={onCopy}
+            githubUrl={activeGithubUrl}
           />
         ) : null}
         {wrappedCodeContent}
         {showFloatingCopy ? (
-          <FloatingCopyControls visible={showCopyVisible} code={codeData.processed} onCopy={onCopy} topOffset={floatingTop} isWeb={isWeb} />
+          <FloatingCopyControls
+            visible={showCopyVisible}
+            code={codeData.processed}
+            onCopy={onCopy}
+            topOffset={floatingTop}
+            isWeb={isWeb}
+            githubUrl={activeGithubUrl}
+            showCopyButton={showCopyButton}
+          />
         ) : null}
       </View>
     </View>
   );
-};
+});
+
+CodeBlock.displayName = 'CodeBlock';
 
 export default CodeBlock;

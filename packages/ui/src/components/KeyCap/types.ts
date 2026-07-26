@@ -37,6 +37,12 @@ export interface KeyCapProps extends SpacingProps, LayoutProps, BorderRadiusProp
    * Only works on web platforms
    */
   animateOnPress?: boolean;
+  /**
+   * Length of the press-down/up animation in ms; both legs scale against a
+   * 250ms baseline. `0` leaves the cap at rest. Always 0 under reduced motion.
+   * @default 250
+   */
+  transitionDuration?: number;
   
   /**
    * The actual key code to listen for (e.g., 'Enter', 'Space', 'Escape')

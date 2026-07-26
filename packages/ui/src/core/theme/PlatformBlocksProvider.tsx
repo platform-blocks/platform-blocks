@@ -29,6 +29,22 @@ interface ThemeBoundaryProps {
   children: React.ReactNode;
 }
 
+/**
+ * The dark theme used when the app doesn't supply one of its own.
+ *
+ * `DARK_THEME` is a complete theme, so it's spread wholesale rather than
+ * cherry-picked. Copying individual keys silently left every scheme-dependent
+ * group it forgot — `surfaces`, `states`, `semantic`, `shadows` — on their light
+ * values, which is how dark-mode overlays ended up painting a white level-2
+ * background under near-white text. `DEFAULT_THEME` still supplies anything the
+ * dark theme doesn't define (e.g. `designTokens`).
+ */
+export const BUILT_IN_DARK_THEME = {
+  ...DEFAULT_THEME,
+  ...DARK_THEME,
+  colorScheme: 'dark' as const,
+};
+
 const ThemeBoundary = React.memo<ThemeBoundaryProps>(function ThemeBoundary({
   theme,
   inherit,
@@ -161,16 +177,7 @@ function PlatformBlocksContent({
   // Cache light & dark theme objects once. If custom theme provided, bypass cache.
   const cachedThemesRef = useRef<{ light: any; dark: any } | null>(null);
   if (!cachedThemesRef.current && !theme) {
-    cachedThemesRef.current = {
-      light: DEFAULT_THEME,
-      dark: {
-        ...DEFAULT_THEME,
-        colorScheme: 'dark' as const,
-        colors: DARK_THEME.colors,
-        text: DARK_THEME.text,
-        backgrounds: DARK_THEME.backgrounds,
-      }
-    };
+    cachedThemesRef.current = { light: DEFAULT_THEME, dark: BUILT_IN_DARK_THEME };
   }
 
   const resolvedTheme = useMemo(() => {

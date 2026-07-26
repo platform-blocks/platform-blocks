@@ -1,11 +1,10 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, Pressable, I18nManager } from 'react-native';
 import { useChartTheme } from './theme/ChartThemeContext';
 import { BaseChartProps } from './types';
 import { ChartInteractionProvider, useOptionalChartInteraction } from './interaction/ChartInteractionContext';
 import { ChartActiveTooltip } from './interaction/ChartActiveTooltip';
 import { useElementOffset } from './interaction/useElementOffset';
-import { calculateChartDimensions } from './utils';
 import { isWeb } from './utils/platform';
 
 // Lightweight spacing props (decoupled from ui). Extend later if needed.
@@ -43,27 +42,6 @@ const spacingToStyle = (s: SpacingProps) => {
   return style;
 };
 
-// Chart Context for sharing configuration
-interface ChartContextValue {
-  width: number;
-  height: number;
-  padding: { top: number; right: number; bottom: number; left: number };
-  plotArea: { x: number; y: number; width: number; height: number };
-  disabled: boolean;
-  animationDuration: number;
-  animationEasing: string;
-}
-
-const ChartContext = createContext<ChartContextValue | null>(null);
-
-export const useChartContext = () => {
-  const context = useContext(ChartContext);
-  if (!context) {
-    throw new Error('Chart compound components must be used within a Chart component');
-  }
-  return context;
-};
-
 // Base Chart Container Component
 export const ChartContainer: React.FC<BaseChartProps & {
   children: React.ReactNode;
@@ -93,18 +71,6 @@ export const ChartContainer: React.FC<BaseChartProps & {
   const { spacing, rest: otherProps } = extractSpacing(rest);
   const spacingStyles = spacingToStyle(spacing);
 
-  const dimensions = calculateChartDimensions(width, height, padding);
-
-  const contextValue: ChartContextValue = {
-    width,
-    height,
-    padding,
-    plotArea: dimensions.plotArea,
-    disabled,
-    animationDuration,
-    animationEasing,
-  };
-
   // If a parent ChartsProvider supplies interaction context (useOwnInteractionProvider=false) we default to suppressing
   const effectiveSuppressPopover = suppressPopover ?? !useOwnInteractionProvider;
 
@@ -130,19 +96,13 @@ export const ChartContainer: React.FC<BaseChartProps & {
   );
 
   if (!useOwnInteractionProvider) {
-    return (
-      <ChartContext.Provider value={contextValue}>
-        {content}
-      </ChartContext.Provider>
-    );
+    return content;
   }
 
   return (
-    <ChartContext.Provider value={contextValue}>
-      <ChartInteractionProvider config={interactionConfig}>
-        <RootOffsetCapture>{content}</RootOffsetCapture>
-      </ChartInteractionProvider>
-    </ChartContext.Provider>
+    <ChartInteractionProvider config={interactionConfig}>
+      <RootOffsetCapture>{content}</RootOffsetCapture>
+    </ChartInteractionProvider>
   );
 };
 
@@ -164,6 +124,144 @@ const RootOffsetCapture: React.FC<{ children: React.ReactNode }> = ({ children }
   );
 };
 
+// ChartTitle and ChartLegend are absolutely-positioned overlays on the container, so a
+// chart that draws into the full box — every radial one — lands underneath them unless it
+// reserves their bands first. These metrics live next to the components that render them
+// so the two can't drift apart.
+export const CHART_TITLE_FONT_SIZE = 18;
+export const CHART_SUBTITLE_FONT_SIZE = 14;
+const TITLE_PADDING_VERTICAL = 5;
+const TITLE_SUBTITLE_GAP = 4;
+
+export const CHART_LEGEND_PADDING = 10;
+const LEGEND_SWATCH_SIZE = 12;
+const LEGEND_SWATCH_GAP = 6;
+const LEGEND_ITEM_MARGIN_H = 8;
+const LEGEND_ITEM_MARGIN_V = 4;
+const LEGEND_FONT_SIZE = 12;
+
+/** Average glyph advance for the chart sans stack — close enough to reserve space by. */
+export const estimateChartTextWidth = (text: string, fontSize: number) =>
+  text.length * fontSize * 0.58;
+
+/** Height ChartTitle occupies, including a gap before whatever is drawn below it. */
+export const measureChartTitleBand = (
+  title?: string,
+  subtitle?: string,
+  options?: { titleSize?: number; subtitleSize?: number; gap?: number },
+): number => {
+  if (!title && !subtitle) return 0;
+  const titleSize = options?.titleSize ?? CHART_TITLE_FONT_SIZE;
+  const subtitleSize = options?.subtitleSize ?? CHART_SUBTITLE_FONT_SIZE;
+  let band = TITLE_PADDING_VERTICAL * 2;
+  if (title) band += Math.round(titleSize * 1.35);
+  if (subtitle) band += (title ? TITLE_SUBTITLE_GAP : 0) + Math.round(subtitleSize * 1.35);
+  return band + (options?.gap ?? 8);
+};
+
+export interface ChartLegendBand {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/**
+ * Space ChartLegend occupies on the edge it is pinned to. Horizontal legends are packed
+ * into rows against the container width, so a legend that wraps reserves every row it needs
+ * rather than only the first.
+ */
+export const measureChartLegendBand = (options: {
+  items: Array<{ label: string }> | undefined;
+  containerWidth: number;
+  position?: 'top' | 'right' | 'bottom' | 'left';
+  fontSize?: number;
+}): ChartLegendBand => {
+  const empty: ChartLegendBand = { top: 0, right: 0, bottom: 0, left: 0 };
+  const { items, containerWidth } = options;
+  if (!items || items.length === 0) return empty;
+
+  const position = options.position ?? 'bottom';
+  const fontSize = options.fontSize ?? LEGEND_FONT_SIZE;
+  const itemWidths = items.map(
+    (item) => LEGEND_SWATCH_SIZE + LEGEND_SWATCH_GAP + estimateChartTextWidth(item.label, fontSize),
+  );
+
+  if (position === 'left' || position === 'right') {
+    const widest = itemWidths.reduce((max, value) => Math.max(max, value), 0);
+    // Never let a long series name eat more than a third of the chart.
+    const band = Math.min(
+      widest + CHART_LEGEND_PADDING * 2,
+      Math.round(containerWidth / 3),
+    );
+    return { ...empty, [position]: band };
+  }
+
+  const rowHeight = Math.max(LEGEND_SWATCH_SIZE, Math.round(fontSize * 1.35)) + LEGEND_ITEM_MARGIN_V;
+  const available = Math.max(containerWidth - CHART_LEGEND_PADDING * 2, 1);
+  let rows = 1;
+  let used = 0;
+  itemWidths.forEach((itemWidth) => {
+    const total = itemWidth + LEGEND_ITEM_MARGIN_H * 2;
+    if (used > 0 && used + total > available) {
+      rows += 1;
+      used = total;
+    } else {
+      used += total;
+    }
+  });
+  return { ...empty, [position]: rows * rowHeight + CHART_LEGEND_PADDING * 2 };
+};
+
+export interface ChartPadding {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/**
+ * Grows a chart's axis padding so the plot clears the ChartTitle and ChartLegend overlays.
+ *
+ * The title shares the top padding region — nothing else is drawn up there — so the two take
+ * whichever is larger. A legend stacks beyond the axis labels rather than overlapping them,
+ * so its band is added on. Pass `legendItems` only when the legend is actually rendered;
+ * charts disagree on whether `legend.show` defaults to true, and that stays their business.
+ *
+ * Charts with neither a title nor a legend keep their padding untouched.
+ */
+export const withChartBandPadding = (
+  basePadding: ChartPadding,
+  options: {
+    title?: string;
+    subtitle?: string;
+    legendItems?: Array<{ label: string }>;
+    legendPosition?: 'top' | 'right' | 'bottom' | 'left';
+    legendFontSize?: number;
+    containerWidth: number;
+    /**
+     * Space above the plot that is *not* the title — an axis title or a top tick label that
+     * shares the band. Stacks below the title instead of competing with it.
+     */
+    topAllowance?: number;
+  },
+): ChartPadding => {
+  const titleBand = measureChartTitleBand(options.title, options.subtitle);
+  const legendBand = measureChartLegendBand({
+    items: options.legendItems,
+    containerWidth: options.containerWidth,
+    position: options.legendPosition,
+    fontSize: options.legendFontSize,
+  });
+
+  return {
+    top: Math.max(basePadding.top, titleBand + (options.topAllowance ?? 0)) + legendBand.top,
+    right: basePadding.right + legendBand.right,
+    bottom: basePadding.bottom + legendBand.bottom,
+    left: basePadding.left + legendBand.left,
+  };
+};
+
 // Chart Title Component
 export const ChartTitle: React.FC<{
   title?: string;
@@ -180,15 +278,13 @@ export const ChartTitle: React.FC<{
     subtitle,
     titleColor,
     subtitleColor,
-    titleSize = 18,
-    subtitleSize = 14,
+    titleSize = CHART_TITLE_FONT_SIZE,
+    subtitleSize = CHART_SUBTITLE_FONT_SIZE,
     align = 'center',
     style,
   } = props;
 
   const theme = useChartTheme();
-  const context = useChartContext();
-  // (Title component) no legend adjustments needed here
 
   if (!title && !subtitle) return null;
 
@@ -208,7 +304,7 @@ export const ChartTitle: React.FC<{
           right: 0,
           alignItems: alignStyle,
           paddingHorizontal: 10,
-          paddingVertical: 5,
+          paddingVertical: TITLE_PADDING_VERTICAL,
           zIndex: 10,
         },
         style,
@@ -233,7 +329,7 @@ export const ChartTitle: React.FC<{
             fontWeight: '400',
             color: subtitleColor || theme.colors.textSecondary,
             textAlign: align,
-            marginTop: title ? 4 : 0,
+            marginTop: title ? TITLE_SUBTITLE_GAP : 0,
           }}
         >
           {subtitle}
@@ -259,13 +355,12 @@ export const ChartLegend: React.FC<{
     position = 'bottom',
     align = 'center',
     textColor,
-    fontSize = 12,
+    fontSize = LEGEND_FONT_SIZE,
     onItemPress,
     style,
   } = props;
 
   const theme = useChartTheme();
-  const context = useChartContext();
   // Pressable's onPress event (RN / RN Web) often omits modifier keys; capture last pointerdown globally (web only)
   const lastMods = React.useRef<{ altKey: boolean; metaKey: boolean; shiftKey: boolean; ctrlKey: boolean }>({ altKey: false, metaKey: false, shiftKey: false, ctrlKey: false });
   React.useEffect(() => {
@@ -330,7 +425,7 @@ export const ChartLegend: React.FC<{
           alignItems: alignStyle,
           justifyContent: 'center',
           flexWrap: 'wrap',
-          padding: 10,
+          padding: CHART_LEGEND_PADDING,
           zIndex: 10,
         },
         style,
@@ -347,18 +442,18 @@ export const ChartLegend: React.FC<{
           style={{
             flexDirection: isRTL ? 'row-reverse' : 'row',
             alignItems: 'center',
-            marginHorizontal: isHorizontal ? 8 : 0,
-            marginVertical: isHorizontal ? 0 : 4,
+            marginHorizontal: isHorizontal ? LEGEND_ITEM_MARGIN_H : 0,
+            marginVertical: isHorizontal ? 0 : LEGEND_ITEM_MARGIN_V,
             opacity: item.visible !== false ? 1 : 0.5,
           }}
         >
           <View
             style={{
-              width: 12,
-              height: 12,
+              width: LEGEND_SWATCH_SIZE,
+              height: LEGEND_SWATCH_SIZE,
               backgroundColor: item.color,
               borderRadius: 2,
-              ...(isRTL ? { marginLeft: 6 } : { marginRight: 6 }),
+              ...(isRTL ? { marginLeft: LEGEND_SWATCH_GAP } : { marginRight: LEGEND_SWATCH_GAP }),
             }}
           />
           <Text

@@ -11,7 +11,7 @@ export type TooltipPositionType =
 
 export interface TooltipProps {
   /** Tooltip label */
-  label: string;
+  label: React.ReactNode;
   /** Position of the tooltip */
   position?: TooltipPositionType;
   /** Whether to show an arrow */
@@ -22,10 +22,22 @@ export interface TooltipProps {
   radius?: SizeValue;
   /** Offset from target */
   offset?: number;
-  /** Whether tooltip is multiline */
+  /**
+   * Kept for backwards compatibility — labels wrap by default now, so this only
+   * matters together with `width` (fixed-width bubble).
+   * @deprecated Use `width` for a fixed bubble or `maxWidth` to change the cap.
+   */
   multiline?: boolean;
-  /** Width for multiline tooltip */
+  /** Fixed bubble width. Omit to size to content (capped by `maxWidth`). */
   width?: number;
+  /**
+   * Largest width the bubble may grow to before the label wraps. Also clamped by
+   * the available viewport space.
+   * @default 280
+   */
+  maxWidth?: number;
+  /** Clamp the label to N lines with an ellipsis. Unset = wrap freely. */
+  lineClamp?: number;
   /** Whether tooltip is controlled */
   opened?: boolean;
   /** Open delay in ms */
@@ -52,3 +64,13 @@ export interface TooltipFactoryPayload {
   props: TooltipProps;
   ref: View;
 }
+
+/** Everything a host component may forward to `Tooltip`, minus the wrapped child. */
+export type TooltipConfig = Omit<TooltipProps, 'children'>;
+
+/**
+ * Shape of a `tooltip` prop on a host component (Button, IconButton, …):
+ * a plain string for the common case, or a full config object to tune
+ * position/width/delays. `false | null | undefined` renders no tooltip.
+ */
+export type TooltipPropValue = string | TooltipConfig | false | null;

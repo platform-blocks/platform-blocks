@@ -7,30 +7,17 @@ import { useTheme } from '../../core/theme/ThemeProvider';
 // Avoid CSS variable colors on native; prefer theme colors directly
 import { getSpacingStyles } from '../../core/utils/spacing';
 import { iconRegistry, registerIcons } from './registry';
-import { navigationIcons } from './icons/navigation';
-import { actionIcons } from './icons/actions';
-import { uiIcons } from './icons/ui';
-import { statusIcons } from './icons/status';
-import { platformIcons } from './icons/platforms';
-import { multimediaIcons } from './icons/multimedia';
-import {dataIcons} from './icons/data';
+import { tablerIcons } from './icons/tabler';
 import type { IconProps } from './types';
 import { useDirection } from '../../core/providers/DirectionProvider';
 import { shouldMirrorIcon } from '../../core/utils/rtl';
 
-// Initialize icons on first import
+// Initialize icons on first import. The default set is backed by
+// `@tabler/icons-react-native`; consumers can add more via `registerIcon(s)`.
 let iconsInitialized = false;
 const initializeIcons = () => {
   if (!iconsInitialized) {
-    registerIcons({
-      ...navigationIcons,
-      ...actionIcons,
-      ...uiIcons,
-      ...statusIcons,
-      ...dataIcons,
-      ...platformIcons,
-      ...multimediaIcons,
-    });
+    registerIcons(tablerIcons);
     iconsInitialized = true;
   }
 };
@@ -41,6 +28,7 @@ export const Icon = factory<{
 }>((props, ref) => {
   const {
     name,
+    icon,
     size = 'md',
     color,
     stroke = 1.5,
@@ -71,14 +59,42 @@ export const Icon = factory<{
   const spacingStyle = getSpacingStyles(spacingProps);
   
   // Determine if icon should be mirrored
-  const shouldMirror = mirrorInRTL !== undefined 
-    ? mirrorInRTL 
-    : shouldMirrorIcon(name, isRTL);
+  const shouldMirror = mirrorInRTL !== undefined
+    ? mirrorInRTL
+    : shouldMirrorIcon(name ?? '', isRTL);
   const applyMirror = isRTL && shouldMirror;
-  
+
+  // Shared wrapper style for component-based icons (external libs + Tabler).
+  const wrapperStyle = [
+    applyMirror && { transform: [{ scaleX: -1 }] },
+    spacingStyle,
+    style,
+  ];
+
+  // Render a component-based icon (Tabler / external lib) with resolved props.
+  const renderComponentIcon = (Cmp: React.ComponentType<any>) => (
+    <View ref={ref} style={wrapperStyle}>
+      <Cmp
+        size={resolvedSize}
+        color={resolvedColor}
+        strokeWidth={stroke}
+        accessibilityLabel={decorative ? undefined : label || `${name ?? 'icon'} icon`}
+        accessibilityRole={decorative ? 'none' : 'image'}
+      />
+    </View>
+  );
+
+  // 1) Explicit external icon via `icon` prop takes precedence over `name`.
+  if (icon) {
+    if (React.isValidElement(icon)) {
+      return <View ref={ref} style={wrapperStyle}>{icon}</View>;
+    }
+    return renderComponentIcon(icon as React.ComponentType<any>);
+  }
+
   // Get icon from registry
-  const iconDef = iconRegistry[name];
-  
+  const iconDef = name ? iconRegistry[name] : undefined;
+
   if (!iconDef) {
     // Return empty view for missing icons in production
     if (process.env.NODE_ENV === 'production') {
@@ -105,14 +121,24 @@ export const Icon = factory<{
 
   const {
     content,
+    outlined,
+    filled,
     viewBox = '0 0 24 24',
     variant: defaultVariant = 'outlined',
     preserveStrokeOnFill = false,
   } = iconDef;
-  
+
   // Use provided variant or fall back to icon's default variant
   const resolvedVariant = variant || defaultVariant;
-  
+
+  // Component-based registry entry (Tabler): pick filled/outlined variant.
+  if (outlined || filled) {
+    const Cmp = resolvedVariant === 'filled' ? (filled ?? outlined) : (outlined ?? filled);
+    if (Cmp) {
+      return renderComponentIcon(Cmp);
+    }
+  }
+
   // Handle string content (SVG path)
   if (typeof content === 'string') {
     const isFilled = resolvedVariant === 'filled';
@@ -158,6 +184,9 @@ export const Icon = factory<{
   }
   
   // Handle component content
+  if (typeof content !== 'function') {
+    return <View ref={ref} style={[{ width: resolvedSize, height: resolvedSize }, spacingStyle, style]} />;
+  }
   const IconComponent = content;
   const componentStyle = [
     applyMirror && { transform: [{ scaleX: -1 }] },

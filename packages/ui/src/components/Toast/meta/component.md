@@ -5,6 +5,7 @@ tags: [toast, notification, alert, message, feedback]
 playground: true
 props:
   variant: 'light' | 'filled' | 'outline'
+  size: Size token — xs | sm | md | lg | xl | 2xl | 3xl (or a number)
   color: Theme color token or custom string
   sev: Severity helper — info | success | warning | error
   title: Toast title rendered above the body
@@ -20,6 +21,7 @@ props:
 examples:
   - basic
   - visual-variants
+  - sizes
   - variants
   - interactive
   - positions

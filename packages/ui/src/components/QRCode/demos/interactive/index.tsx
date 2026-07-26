@@ -1,15 +1,6 @@
 import { useState } from 'react';
-import { Block, Button, Column, Input, QRCode, Row, Text } from '@platform-blocks/ui';
-
-const PRESETS = [
-  { label: 'Docs', value: 'https://platform-blocks.com' },
-  { label: 'Support', value: 'mailto:support@platform-blocks.com' },
-  { label: 'SMS', value: 'sms:+1234567890?body=Go Blocks!' }
-] as const;
-
-const SIZES = [144, 168, 192] as const;
-const ERROR_LEVELS = ['L', 'M', 'Q', 'H'] as const;
-const MODULE_SHAPES = ['square', 'rounded', 'diamond'] as const;
+import { Block, Button, Input, QRCode, Row, Text } from '@platform-blocks/ui';
+import { ERROR_LEVELS, MODULE_SHAPES, PRESETS, SIZES } from './data';
 
 export default function Demo() {
   const [value, setValue] = useState<string>(PRESETS[0].value);
@@ -18,8 +9,8 @@ export default function Demo() {
   const [moduleShape, setModuleShape] = useState<(typeof MODULE_SHAPES)[number]>('square');
 
   return (
-    <Column gap="lg">
-      <Column gap="sm">
+    <Block>
+      <Block>
         <Text variant="small" colorVariant="muted">
           Source content
         </Text>
@@ -46,11 +37,11 @@ export default function Demo() {
         <Text variant="small" colorVariant="muted">
           {value.length} characters
         </Text>
-      </Column>
+      </Block>
       <Row gap="lg" wrap="wrap" align="flex-start">
         <Block maxW={320} w="full">
-          <Column gap="md">
-            <Column gap="xs">
+          <Block>
+            <Block>
               <Text variant="small" colorVariant="muted">
                 Size
               </Text>
@@ -66,8 +57,8 @@ export default function Demo() {
                   </Button>
                 ))}
               </Row>
-            </Column>
-            <Column gap="xs">
+            </Block>
+            <Block>
               <Text variant="small" colorVariant="muted">
                 Error correction
               </Text>
@@ -86,8 +77,8 @@ export default function Demo() {
               <Text variant="small" colorVariant="muted">
                 L≈7% • M≈15% • Q≈25% • H≈30% recovery
               </Text>
-            </Column>
-            <Column gap="xs">
+            </Block>
+            <Block>
               <Text variant="small" colorVariant="muted">
                 Module shape
               </Text>
@@ -103,25 +94,22 @@ export default function Demo() {
                   </Button>
                 ))}
               </Row>
-            </Column>
-          </Column>
+            </Block>
+          </Block>
         </Block>
-        <Column gap="xs" align="center">
-          <QRCode
-            value={value || 'Platform Blocks'}
-            size={size}
-            quietZone={2}
-            errorCorrectionLevel={errorLevel}
-            moduleShape={moduleShape}
-            cornerRadius={moduleShape === 'rounded' ? 0.4 : undefined}
-            copyOnPress={{ value }}
-          />
-          <Text variant="small" colorVariant="muted" style={{ textAlign: 'center' }}>
-            {size}px • Level {errorLevel} • {moduleShape} modules
-          </Text>
-        </Column>
+        <QRCode
+          value={value || 'Platform Blocks'}
+          size={size}
+          quietZone={2}
+          errorCorrectionLevel={errorLevel}
+          moduleShape={moduleShape}
+          cornerRadius={moduleShape === 'rounded' ? 0.4 : undefined}
+          copyOnPress={{ value }}
+          label={`${size}px • Level ${errorLevel} • ${moduleShape} modules`}
+          labelProps={{ style: { textAlign: 'center' } }}
+        />
       </Row>
-    </Column>
+    </Block>
   );
 }
 

@@ -8,7 +8,8 @@ import { Icon } from '../../Icon';
 const mockTheme = {
   text: {
     primary: '#111111',
-    muted: '#666666',
+    secondary: '#666666',
+    muted: '#999999',
   },
 };
 

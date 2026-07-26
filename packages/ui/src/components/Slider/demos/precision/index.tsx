@@ -7,8 +7,8 @@ export default function Demo() {
   const [ratio, setRatio] = useState(0.5);
 
   return (
-    <Block gap="lg">
-      <Block gap="sm">
+    <Block>
+      <Block>
         <Text size="sm" colorVariant="muted">
           Fractional `step={0.01}` — decimals are inferred from the step
         </Text>
@@ -22,7 +22,7 @@ export default function Demo() {
         />
       </Block>
 
-      <Block gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">
           `step={0.5}` — half steps
         </Text>
@@ -36,7 +36,7 @@ export default function Demo() {
         />
       </Block>
 
-      <Block gap="sm">
+      <Block>
         <Text size="sm" colorVariant="muted">
           Force decimals with `precision={2}` (independent of step)
         </Text>

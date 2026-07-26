@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { TextInput, View, Text, TextInputProps as RNTextInputProps, StyleSheet, Platform } from 'react-native';
+import { TextInput, View, Text, TextInputProps as RNTextInputProps, StyleSheet, Platform, ViewStyle } from 'react-native';
 import { useTheme } from '../../core/theme';
 import { createRadiusStyles } from '../../core/theme/radius';
 import { getSpacingStyles, extractSpacingProps, getLayoutStyles, extractLayoutProps, mergeSlotProps } from '../../core/utils';
@@ -13,6 +13,7 @@ import { ClearButton } from '../../core/components/ClearButton';
 import { useAnnouncer } from '../../core/accessibility/hooks';
 import { createAccessibilityProps } from '../../core/accessibility/utils';
 import { useDirection } from '../../core/providers/DirectionProvider';
+import { useIsMobile } from '../../core/responsive';
 import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
 
 interface InputLabelProps {
@@ -100,6 +101,7 @@ export const TextInputBase = factory<{
   const [focused, setFocused] = useState(false);
   const theme = useTheme();
   const { isRTL } = useDirection();
+  const isMobile = useIsMobile();
   const internalInputRef = useRef<TextInput | null>(null);
 
   // Accessibility hooks
@@ -123,8 +125,9 @@ export const TextInputBase = factory<{
 
   const keyboardManager = useKeyboardManagerOptional();
 
-  // Handle radius prop with 'md' as default for inputs
-  const radiusStyles = createRadiusStyles(radius || 'md');
+  // Falls back to the shared `input` radius token so Input, AutoComplete, Select,
+  // and TextArea round identically instead of each hardcoding a default.
+  const radiusStyles = createRadiusStyles(radius, undefined, 'input');
 
   const isFocused = focusedProp !== undefined ? focusedProp : focused;
 
@@ -159,10 +162,23 @@ export const TextInputBase = factory<{
     hasRightSection: !!endSection || showClearButton
   }), [error, disabled, isFocused, size, variant, startSection, endSection, showClearButton]);
 
-  const { getInputStyles } = createInputStyles(theme, isRTL);
+  const { getInputStyles } = createInputStyles(theme, isRTL, isMobile);
   const styles = getInputStyles(styleProps, radiusStyles);
   const spacingStyles = getSpacingStyles(spacingProps);
   const layoutStyles = getLayoutStyles(layoutProps);
+
+  // A caller who sizes the field explicitly outranks the desktop width floor —
+  // `minWidth` beats both `width` and `maxWidth`, so it has to be dropped rather
+  // than merely overridden.
+  const containerWidthFloorReset = useMemo(() => {
+    const explicitStyle = StyleSheet.flatten(style) as ViewStyle | undefined;
+    const sized =
+      layoutProps.w !== undefined ||
+      layoutProps.maxW !== undefined ||
+      explicitStyle?.width !== undefined ||
+      explicitStyle?.maxWidth !== undefined;
+    return sized ? { minWidth: 0 } : null;
+  }, [layoutProps.w, layoutProps.maxW, style]);
 
   const flattenedInputStyle = useMemo(
     () => (textInputStyleProp ? StyleSheet.flatten(textInputStyleProp) : undefined),
@@ -279,7 +295,7 @@ export const TextInputBase = factory<{
   const disclaimerNode = renderDisclaimer();
 
   return (
-    <View style={[styles.container, spacingStyles, layoutStyles, style]} {...rest}>
+    <View style={[styles.container, containerWidthFloorReset, spacingStyles, layoutStyles, style]} {...rest}>
       <FieldHeader
         label={label}
         description={description}

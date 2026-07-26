@@ -7,6 +7,44 @@ import { resolveLinearGradient } from '../../utils/optionalDependencies';
 
 const { LinearGradient: OptionalLinearGradient, hasLinearGradient } = resolveLinearGradient();
 
+// Keyframes for animated sweeps are injected once per unique shape and shared by
+// every instance, so N gradient texts cost one stylesheet rule rather than N.
+const injectedKeyframes = new Set<string>();
+let keyframeStyleEl: HTMLStyleElement | null = null;
+
+/**
+ * Name for a sweep of `background-position` from `fromPercent` to `toPercent`
+ * that holds at the end for `holdRatio` of the timeline. Pure — two sweeps with
+ * the same shape share one keyframes rule.
+ */
+function sweepKeyframeName(fromPercent: number, toPercent: number, holdRatio: number): string {
+  // Names must be valid CSS identifiers, so encode the (possibly negative,
+  // possibly fractional) percentages rather than interpolating them raw.
+  const encode = (n: number) => Math.round(n * 100).toString().replace('-', 'n');
+  return `pb-gradient-sweep-${encode(fromPercent)}-${encode(toPercent)}-${encode(holdRatio)}`;
+}
+
+/** Insert the rule for {@link sweepKeyframeName} if it isn't already present. */
+function injectSweepKeyframes(name: string, fromPercent: number, toPercent: number, holdRatio: number) {
+  if (typeof document === 'undefined' || injectedKeyframes.has(name)) return;
+
+  if (!keyframeStyleEl) {
+    keyframeStyleEl = document.createElement('style');
+    keyframeStyleEl.setAttribute('data-platform-blocks', 'gradient-text');
+    document.head.appendChild(keyframeStyleEl);
+  }
+
+  const sweepEnd = Math.max(0, Math.min(100, (1 - holdRatio) * 100));
+  const rule = sweepEnd >= 100
+    ? `@keyframes ${name}{from{background-position:${fromPercent}% 0}to{background-position:${toPercent}% 0}}`
+    : `@keyframes ${name}{0%{background-position:${fromPercent}% 0}`
+      + `${sweepEnd}%{background-position:${toPercent}% 0}`
+      + `100%{background-position:${toPercent}% 0}}`;
+
+  keyframeStyleEl.sheet?.insertRule(rule, keyframeStyleEl.sheet.cssRules.length);
+  injectedKeyframes.add(name);
+}
+
 /**
  * GradientText Component
  * 
@@ -50,6 +88,7 @@ export const GradientText = React.forwardRef<View, GradientTextProps>(
       start,
       end,
       position: controlledPosition,
+      animation,
       testID,
       ...textProps
     },
@@ -144,23 +183,50 @@ export const GradientText = React.forwardRef<View, GradientTextProps>(
       .join(', ');
     const positionPercent = (1 - currentPosition) * 100;
 
+    // A CSS animation outranks the inline `background-position` below while it
+    // runs, so the sweep needs no per-frame JavaScript and no re-render.
+    const sweep = useMemo(() => {
+      if (!isWeb || !animation) return null;
+
+      const { from, to, duration, delay = 0, repeat = false, repeatDelay = 0 } = animation;
+      const sweepSeconds = Math.max(0.001, duration);
+      const total = sweepSeconds + Math.max(0, repeat ? repeatDelay : 0);
+      const fromPercent = (1 - from) * 100;
+      const toPercent = (1 - to) * 100;
+      const holdRatio = 1 - sweepSeconds / total;
+
+      return {
+        name: sweepKeyframeName(fromPercent, toPercent, holdRatio),
+        fromPercent,
+        toPercent,
+        holdRatio,
+        css: `${sweepKeyframeName(fromPercent, toPercent, holdRatio)} ${total}s linear ${delay}s ${repeat ? 'infinite' : '1'} both`,
+      };
+    }, [isWeb, animation]);
+
     useEffect(() => {
       if (!isWeb || !hasValidColors) return;
       if (!containerRef.current) return;
 
+      if (sweep) {
+        injectSweepKeyframes(sweep.name, sweep.fromPercent, sweep.toPercent, sweep.holdRatio);
+      }
+
       const container = containerRef.current as any;
       const allElements = [container, ...Array.from(container.querySelectorAll('*'))];
+      const animationCss = sweep?.css ?? '';
 
       allElements.forEach((element: HTMLElement) => {
         element.style.background = `linear-gradient(${cssAngle}deg, ${colorStops})`;
-  element.style.backgroundSize = '200% 200%';
+        element.style.backgroundSize = '200% 200%';
         element.style.backgroundPosition = `${positionPercent}% 0`;
         element.style.webkitBackgroundClip = 'text';
         element.style.webkitTextFillColor = 'transparent';
         element.style.backgroundClip = 'text';
         element.style.color = 'transparent';
+        element.style.animation = animationCss;
       });
-    }, [isWeb, hasValidColors, cssAngle, colorStops, positionPercent]);
+    }, [isWeb, hasValidColors, cssAngle, colorStops, positionPercent, sweep]);
 
     if (!hasValidColors) {
       return (

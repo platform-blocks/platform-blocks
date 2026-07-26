@@ -2,7 +2,7 @@ import { PlatformBlocksTheme } from './types';
 import { DESIGN_TOKENS } from '../design-tokens';
 
 export const DEFAULT_THEME: PlatformBlocksTheme = {
-  primaryColor: '#007AFF',
+  primaryColor: '#3B82F6',
   colorScheme: 'light',
 
   // Integration with design tokens
@@ -10,28 +10,28 @@ export const DEFAULT_THEME: PlatformBlocksTheme = {
 
   colors: {
     primary: [
-      '#E6F3FF',
-      '#CCE7FF',
-      '#99CFFF',
-      '#66B7FF',
-      '#339FFF',
-      '#007AFF', // Base color
-      '#0066CC',
-      '#004D99',
-      '#003366',
-      '#001A33'
+      '#EFF6FF',
+      '#DBEAFE',
+      '#BFDBFE',
+      '#93C5FD',
+      '#60A5FA',
+      '#3B82F6', // Base color — unified brand blue
+      '#2563EB',
+      '#1D4ED8',
+      '#1E40AF',
+      '#1E3A8A'
     ],
     secondary: [
-      '#F5F5F7',
-      '#EBEBEF',
-      '#D7D7E7',
-      '#C3C3DF',
-      '#AFAFD7',
-      '#9B9BCF',
-      '#8787C7',
-      '#7373BF',
-      '#5F5FB7',
-      '#4B4BAF'
+      '#F8FAFC',
+      '#F1F5F9',
+      '#E2E8F0',
+      '#CBD5E1',
+      '#94A3B8',
+      '#64748B', // neutral slate — a true secondary, not lavender
+      '#475569',
+      '#334155',
+      '#1E293B',
+      '#0F172A'
     ],
     tertiary: [
            '#FDF2F8', '#FCE7F3', '#FBCFE8', '#F9A8D4', '#F472B6',
@@ -51,40 +51,40 @@ export const DEFAULT_THEME: PlatformBlocksTheme = {
       '#B7B7B9'
     ],
     success: [
-      '#E8F5E8',
-      '#D1EBD1',
-      '#A3D7A3',
-      '#75C375',
-      '#47AF47',
-      '#34C759',
-      '#2DA146',
-      '#267B33',
-      '#1F5520',
-      '#182F0D'
+      '#F0FDF4',
+      '#DCFCE7',
+      '#BBF7D0',
+      '#86EFAC',
+      '#4ADE80',
+      '#22C55E',
+      '#16A34A',
+      '#15803D',
+      '#166534',
+      '#14532D'
     ],
     warning: [
-      '#FFF8E6',
-      '#FFF1CC',
-      '#FFE399',
-      '#FFD566',
-      '#FFC733',
-      '#FFB800',
-      '#CC9300',
-      '#996E00',
-      '#664A00',
-      '#332500'
+      '#FFFBEB',
+      '#FEF3C7',
+      '#FDE68A',
+      '#FCD34D',
+      '#FBBF24',
+      '#F59E0B',
+      '#D97706',
+      '#B45309',
+      '#92400E',
+      '#78350F'
     ],
     error: [
-      '#FFE6E6',
-      '#FFCCCC',
-      '#FF9999',
-      '#FF6666',
-      '#FF3333',
-      '#FF3B30',
-      '#CC2F26',
-      '#99231D',
-      '#661713',
-      '#330B0A'
+      '#FEF2F2',
+      '#FEE2E2',
+      '#FECACA',
+      '#FCA5A5',
+      '#F87171',
+      '#EF4444',
+      '#DC2626',
+      '#B91C1C',
+      '#991B1B',
+      '#7F1D1D'
     ],
     gray: [
       '#F2F2F7',
@@ -150,23 +150,34 @@ export const DEFAULT_THEME: PlatformBlocksTheme = {
 
   text: {
     primary: '#1C1C1E',
-    secondary: '#8E8E93',
-    muted: '#AEAEB2',
+    // Secondary carries real copy (subtitles, breadcrumb trail), so it clears
+    // 4.5:1 on both the white surface and the gray page background.
+    secondary: '#6E6E73',
+    muted: '#8E8E93',
     disabled: '#C7C7CC',
-  link: '#007AFF',
+  link: '#3B82F6',
   onPrimary: '#FFFFFF'
   },
 
   backgrounds: {
-    base: '#FFFFFF',
-    subtle: '#F7F8FA',
+    base: '#F7F8FA',    // faint gray page so white cards read as elevated
+    subtle: '#EDEFF3',  // one step darker so subtle/ghost surfaces stay distinct from the page
     surface: '#FFFFFF',
     elevated: '#FFFFFF',
-    border: '#E5E5EA'
+    border: '#E5E7EB'
+  },
+
+  // Light mode reads elevation mainly through shadow — the fill stays white
+  // from level 1 up, so a dropdown over a card doesn't turn grey.
+  surfaces: {
+    0: { background: '#F7F8FA', border: '#F0F1F4', shadow: 'none' },
+    1: { background: '#FFFFFF', border: '#E5E7EB', shadow: 'xs' },
+    2: { background: '#FFFFFF', border: '#E5E7EB', shadow: 'md' },
+    3: { background: '#FFFFFF', border: '#E5E7EB', shadow: 'xl' },
   },
 
   states: {
-    focusRing: 'rgba(0,122,255,0.45)',
+    focusRing: 'rgba(59,130,246,0.45)',
     textSelection: 'rgba(251, 191, 36, 0.3)', // Semi-transparent highlight[5]
     highlightText: '#B45309', // highlight[8] for good contrast
     highlightBackground: 'rgba(253, 230, 138, 0.6)' // Semi-transparent highlight[3]
@@ -237,12 +248,12 @@ export const DEFAULT_THEME: PlatformBlocksTheme = {
   },
 
   semantic: {
-    accent: '#007AFF', // primary[5]
+    accent: '#3B82F6', // primary[5] — unified brand blue
     borderDefault: '#E7E7E9', // surface[3]
     borderSubtle: '#F7F8FA', // surface[1]
     surfaceElevated: '#FFFFFF', // surface[0]
     surfaceCard: '#F7F8FA', // surface[1]
-    focusRing: '#339FFF' // primary[4] with some transparency
+    focusRing: '#60A5FA' // primary[4]
   },
 
   components: {},

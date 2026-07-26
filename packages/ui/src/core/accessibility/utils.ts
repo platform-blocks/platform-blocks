@@ -1,4 +1,4 @@
-import { AccessibilityRole, AccessibilityState } from 'react-native';
+import { AccessibilityRole, AccessibilityState, Platform } from 'react-native';
 import { ACCESSIBILITY_LABELS, ACCESSIBILITY_ROLES } from './constants';
 
 /**
@@ -37,6 +37,36 @@ export const createAccessibleLabel = (
   }
 
   return accessibleLabel;
+};
+
+export type AccessibilityValue = {
+  min?: number;
+  max?: number;
+  now?: number;
+  text?: string;
+};
+
+/**
+ * Props that publish a control's current value to assistive technology.
+ *
+ * `accessibilityValue` is the React Native prop and is all native needs, but
+ * react-native-web (0.21) does not map the object — it only forwards the flattened
+ * `aria-value*` props. Passing the object alone therefore lands a `role="slider"` or
+ * `role="progressbar"` in the DOM with no value for a screen reader to read, silently.
+ * Emitting both covers either platform.
+ *
+ * Note that `aria-value*` is meaningless without a value-bearing role, so callers must
+ * also set an `accessibilityRole` such as `progressbar`, `slider`, or `adjustable`.
+ */
+export const getAccessibilityValueProps = (value?: AccessibilityValue) => {
+  if (!value) return {};
+  const props: Record<string, unknown> = { accessibilityValue: value };
+  if (Platform.OS !== 'web') return props;
+  if (value.min !== undefined) props['aria-valuemin'] = value.min;
+  if (value.max !== undefined) props['aria-valuemax'] = value.max;
+  if (value.now !== undefined) props['aria-valuenow'] = value.now;
+  if (value.text !== undefined) props['aria-valuetext'] = value.text;
+  return props;
 };
 
 /**
@@ -88,7 +118,7 @@ export const createAccessibilityProps = (options: {
   }
 
   if (value) {
-    accessibilityProps.accessibilityValue = value;
+    Object.assign(accessibilityProps, getAccessibilityValueProps(value));
   }
 
   if (actions) {

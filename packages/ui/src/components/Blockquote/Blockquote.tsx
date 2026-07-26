@@ -23,12 +23,21 @@ export function Blockquote({
   verified,
   verifiedTooltip,
   alignment = 'left',
+  attributionAlignment,
   border = false,
   shadow = false,
   style,
   onPress,
 }: BlockquoteProps) {
   const theme = useTheme();
+  const resolvedQuoteIconSize =
+    typeof quoteIconSize === 'number' ? quoteIconSize :
+    quoteIconSize === 'xs' ? 12 :
+    quoteIconSize === 'sm' ? 16 :
+    quoteIconSize === 'md' ? 24 :
+    quoteIconSize === 'lg' ? 32 :
+    quoteIconSize === 'xl' ? 40 :
+    24;
   const styles = createBlockquoteStyles(theme, {
     variant,
     size,
@@ -36,9 +45,15 @@ export function Blockquote({
     border,
     shadow,
     color,
+    quoteIconSize: resolvedQuoteIconSize,
+    quoteIconPosition,
   });
 
-  const hasAttribution = author || date || rating || source || verified;
+  const hasAttribution = Boolean(author || date || rating || source || verified);
+  // Attribution reads as a signature: it hugs the right edge unless the quote
+  // itself is centered (featured hero), where a centered signature balances it.
+  const resolvedAttributionAlignment =
+    attributionAlignment ?? (alignment === 'center' ? 'center' : 'right');
   const showQuoteIcon = quoteIconPosition !== 'none';
 
   const renderQuoteIcon = () => {
@@ -64,14 +79,10 @@ export function Blockquote({
     ) : (
       <Icon
         name={quoteIcon as string}
-        size={
-          quoteIconSize === 'sm' ? 16 :
-          quoteIconSize === 'md' ? 24 :
-          quoteIconSize === 'lg' ? 32 :
-          typeof quoteIconSize === 'number' ? quoteIconSize :
-          24 // default size
-        }
-        color={theme.colors.gray[4]}
+        size={resolvedQuoteIconSize}
+        // The glyph is the default variant's only accent, so it carries the
+        // primary tint instead of receding to gray like the other variants.
+        color={variant === 'default' ? theme.colors.primary[5] : theme.colors.gray[4]}
         style={styles.quoteIcon}
         variant="filled"
       />
@@ -109,7 +120,7 @@ export function Blockquote({
           links={links}
           verified={verified}
           verifiedTooltip={verifiedTooltip}
-          alignment={alignment}
+          alignment={resolvedAttributionAlignment}
         />
       )}
     </View>

@@ -1,8 +1,6 @@
 import { useState } from 'react';
 
-import { Column, NumberInput, Text } from '@platform-blocks/ui';
-
-const DragNumberInput = NumberInput as any;
+import { Block, NumberInput, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [horizontalValue, setHorizontalValue] = useState<number | undefined>(32);
@@ -14,7 +12,7 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="lg">
+    <Block>
       <Text weight="semibold">Press-and-drag adjustment</Text>
       <Text size="sm" colorVariant="secondary">
         Drag across the input to nudge values without lifting your pointer. The status below reflects the current drag state.
@@ -23,15 +21,15 @@ export default function Demo() {
         Dragging: {dragging ? 'active' : 'idle'}
       </Text>
 
-      <Column gap="md">
-        <Column gap="sm">
+      <Block>
+        <Block>
           <Text size="sm" weight="semibold">
             Horizontal drag
           </Text>
           <Text size="sm" colorVariant="secondary">
             Step every 14px drag movement with a multiplier for faster adjustments.
           </Text>
-          <DragNumberInput
+          <NumberInput
             label="Temperature"
             value={horizontalValue}
             onChange={setHorizontalValue}
@@ -45,16 +43,16 @@ export default function Demo() {
             suffix=" °C"
             onDragStateChange={handleDragStateChange}
           />
-        </Column>
+        </Block>
 
-        <Column gap="sm">
+        <Block>
           <Text size="sm" weight="semibold">
             Vertical drag
           </Text>
           <Text size="sm" colorVariant="secondary">
             Drag up or down to adjust between 0 and 200 with built-in controls.
           </Text>
-          <DragNumberInput
+          <NumberInput
             label="Light intensity"
             value={verticalValue}
             onChange={setVerticalValue}
@@ -69,8 +67,8 @@ export default function Demo() {
             hideControlsOnMobile={false}
             onDragStateChange={handleDragStateChange}
           />
-        </Column>
-      </Column>
-    </Column>
+        </Block>
+      </Block>
+    </Block>
   );
 }

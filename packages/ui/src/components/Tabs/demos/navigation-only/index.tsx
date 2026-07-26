@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Block, Column, Tabs, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Tabs, Text, useTheme } from '@platform-blocks/ui';
 
 const NAV_ITEMS = [
   { key: 'home', label: 'Home' },
@@ -25,7 +25,7 @@ export default function Demo() {
   );
 
   return (
-    <Column gap="sm">
+    <Block>
       <Tabs
         items={items}
         activeTab={activeTab}
@@ -39,6 +39,6 @@ export default function Demo() {
       <Text variant="small" colorVariant="muted">
         `navigationOnly` renders just the triggers so you can manage layout and transitions for the content area yourself.
       </Text>
-    </Column>
+    </Block>
   );
 }

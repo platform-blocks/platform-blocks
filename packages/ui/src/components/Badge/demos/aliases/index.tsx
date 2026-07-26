@@ -1,4 +1,4 @@
-import { Badge, Column, Row } from '@platform-blocks/ui'
+import { Badge, Block, Row } from '@platform-blocks/ui'
 
 const badges = [
   { label: 'Primary Filled', variant: 'filled', color: 'primary' },
@@ -9,7 +9,7 @@ const badges = [
 
 export default function Demo() {
   return (
-    <Column gap="lg">
+    <Block>
       <Row gap="sm" wrap="wrap">
         {badges.map((badge) => (
           <Badge
@@ -29,6 +29,6 @@ export default function Demo() {
           </Badge>
         ))}
       </Row>
-    </Column>
+    </Block>
   )
 }

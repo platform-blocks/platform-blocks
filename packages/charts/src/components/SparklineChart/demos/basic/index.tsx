@@ -1,8 +1,6 @@
 import { SparklineChart } from '../../';
 
-const DAILY_SIGNUPS = [
-  32, 36, 31, 40, 44, 47, 46, 52, 58, 60, 64, 67, 70, 72,
-];
+import { DAILY_SIGNUPS } from './data';
 
 export default function Demo() {
   return (
@@ -11,7 +9,6 @@ export default function Demo() {
       width={180}
       height={72}
       data={DAILY_SIGNUPS}
-      color="#4C6EF5"
       fill
       fillOpacity={0.18}
       smooth

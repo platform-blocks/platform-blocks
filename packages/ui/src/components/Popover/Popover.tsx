@@ -13,6 +13,7 @@ import { Platform, View } from 'react-native';
 
 import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme';
+import { resolveSurface } from '../../core/theme/surfaces';
 import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
 import { measureElement } from '../../core/utils/positioning-enhanced';
 import { useDropdownPositioning } from '../../core/hooks/useDropdownPositioning';
@@ -27,6 +28,7 @@ import type {
   ArrowPosition,
 } from './types';
 import { PlatformBlocksThemeProvider } from '../../core/theme/ThemeProvider';
+import { useControllableState } from '../../hooks/useControllableState';
 
 interface PopoverContextValue {
   opened: boolean;
@@ -121,11 +123,13 @@ const PopoverBase = (props: PopoverProps, ref: React.Ref<View>) => {
   void hideDetached;
   const spacingStyles = getSpacingStyles(spacingProps);
 
-  const isControlled = controlledOpened !== undefined;
-  const [internalOpened, setInternalOpened] = useState(defaultOpened);
+  const [opened, setOpened] = useControllableState<boolean>({
+    value: controlledOpened,
+    defaultValue: defaultOpened,
+    finalValue: false,
+    onChange,
+  });
   const [dropdownState, setDropdownState] = useState<RegisteredDropdown | null>(null);
-
-  const opened = isControlled ? !!controlledOpened : internalOpened;
   const openedRef = useRef(opened);
   const closingReasonRef = useRef<CloseReason | null>(null);
   const anchorMeasurementsRef = useRef<{ width: number; height: number } | null>(null);
@@ -248,26 +252,20 @@ const PopoverBase = (props: PopoverProps, ref: React.Ref<View>) => {
 
   const commitOpen = useCallback(() => {
     if (openedRef.current || disabled) return;
-    if (!isControlled) {
-      setInternalOpened(true);
-    }
-    onChange?.(true);
+    setOpened(true);
     onOpen?.();
     openedRef.current = true;
-  }, [disabled, isControlled, onChange, onOpen]);
+  }, [disabled, setOpened, onOpen]);
 
   const commitClose = useCallback((reason: CloseReason) => {
     if (!openedRef.current) return;
-    if (!isControlled) {
-      setInternalOpened(false);
-    }
-    onChange?.(false);
+    setOpened(false);
     onClose?.();
     if (reason === 'dismiss') {
       onDismiss?.();
     }
     openedRef.current = false;
-  }, [isControlled, onChange, onClose, onDismiss]);
+  }, [setOpened, onClose, onDismiss]);
 
   const handleOverlayClose = useCallback((reason: CloseReason) => {
     const closingReason = closingReasonRef.current ?? reason;
@@ -664,14 +662,17 @@ function getArrowStyle(
       opacity: 0,
     };
   }
+  // Same level-2 token the dropdown uses — the arrow is a continuation of that
+  // surface, so it has to resolve identically.
+  const arrowSurface = resolveSurface(theme, 2);
   const base = {
     position: 'absolute' as const,
     width: arrowSize * 2,
     height: arrowSize * 2,
-    backgroundColor: theme.backgrounds.surface,
+    backgroundColor: arrowSurface.background,
     transform: [{ rotate: '45deg' }] as const,
     borderRadius: arrowRadius,
-    borderColor: theme.backgrounds.border,
+    borderColor: arrowSurface.border,
     borderWidth: 1,
   };
 

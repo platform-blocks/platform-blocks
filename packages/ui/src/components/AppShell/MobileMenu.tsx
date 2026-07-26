@@ -27,16 +27,19 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
     type = 'fullscreen',
     animationType = 'slide',
     showBackdrop = true,
-    closeOnOutsidePress = true
+    closeOnOutsidePress = true,
+    transitionDuration = 300
   } = config;
 
   const progress = useSharedValue(0);
 
   React.useEffect(() => {
-    progress.value = withTiming(visible ? 1 : 0, {
-      duration: 300
-    });
-  }, [visible]);
+    const target = visible ? 1 : 0;
+    // `transitionDuration={0}` means no transition — jump straight there.
+    progress.value = transitionDuration > 0
+      ? withTiming(target, { duration: transitionDuration })
+      : target;
+  }, [visible, transitionDuration, progress]);
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 1], [0, 0.5])

@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import Svg, { G, Line, Circle, Text as SvgText } from 'react-native-svg';
 import { RidgeChartProps } from './types';
 import type { RidgeTooltipContext } from './types';
-import { ChartContainer, ChartTitle } from '../../ChartBase';
+import { ChartContainer, ChartTitle, estimateChartTextWidth } from '../../ChartBase';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
@@ -45,6 +45,10 @@ const STAT_LABELS: Record<'mean' | 'median' | 'p90', string> = {
   median: 'Median',
   p90: 'P90',
 };
+
+/** Stat marker label type size, and the clearance two need to share a row. */
+const STAT_LABEL_FONT_SIZE = 10;
+const STAT_LABEL_GAP = 6;
 
 // RidgeChart: vertically stacked kernel density curves (normalized) with baseline fill.
 export const RidgeChart: React.FC<RidgeChartProps> = ({ 
@@ -376,17 +380,18 @@ export const RidgeChart: React.FC<RidgeChartProps> = ({
               const formatValue = r.valueFormatter;
               const suffix = r.unitSuffix ?? '';
 
-              const pushMarker = (stat: 'mean' | 'median' | 'p90', enabled: boolean, value?: number | null) => {
+              type StatKey = 'mean' | 'median' | 'p90';
+              const marks: Array<{ stat: StatKey; x: number; topY: number; label: string | null }> = [];
+
+              const collectMarker = (stat: StatKey, enabled: boolean, value?: number | null) => {
                 if (!enabled || value == null) return;
                 const xPos = scaleX(value);
                 if (!Number.isFinite(xPos)) return;
                 const clampedX = Math.min(Math.max(xPos, 0), plotWidth);
-                const topY = baseY - lineHeight;
                 let label: string | null = null;
-                let formattedValue = '';
                 if (markerSettings.showLabels || markerSettings.labelFormatter) {
                   const formattedRaw = formatValue(value);
-                  formattedValue = typeof formattedRaw === 'number' ? String(formattedRaw) : formattedRaw;
+                  const formattedValue = typeof formattedRaw === 'number' ? String(formattedRaw) : formattedRaw;
                   const defaultLabel = `${STAT_LABELS[stat]} ${formattedValue}${suffix}`;
                   label = markerSettings.showLabels
                     ? markerSettings.labelFormatter
@@ -394,25 +399,52 @@ export const RidgeChart: React.FC<RidgeChartProps> = ({
                       : defaultLabel
                     : null;
                 }
+                marks.push({ stat, x: clampedX, topY: baseY - lineHeight, label });
+              };
 
+              collectMarker('mean', markerSettings.showMean, r.stats.mean);
+              collectMarker('median', markerSettings.showMedian, r.stats.median);
+              collectMarker('p90', markerSettings.showP90, r.stats.p90);
+
+              // Mean and median usually land close together, and every label was drawn at
+              // the same y centred on its own marker — so they overprinted each other.
+              // Walk them left to right and bump any that collides onto a row above.
+              const rowRightEdge: number[] = [];
+              const labelRow = new Map<StatKey, number>();
+              marks
+                .filter((m) => m.label)
+                .slice()
+                .sort((a, b) => a.x - b.x)
+                .forEach((m) => {
+                  const halfWidth = estimateChartTextWidth(m.label as string, STAT_LABEL_FONT_SIZE) / 2;
+                  let row = 0;
+                  while (rowRightEdge[row] != null && m.x - halfWidth < rowRightEdge[row] + STAT_LABEL_GAP) {
+                    row += 1;
+                  }
+                  rowRightEdge[row] = m.x + halfWidth;
+                  labelRow.set(m.stat, row);
+                });
+
+              marks.forEach(({ stat, x, topY, label }) => {
+                const row = labelRow.get(stat) ?? 0;
                 markerElements.push(
                   <React.Fragment key={`${r.id}-${stat}`}>
                     <Line
-                      x1={clampedX}
+                      x1={x}
                       y1={baseY}
-                      x2={clampedX}
+                      x2={x}
                       y2={topY}
                       stroke={colorFor(stat)}
                       strokeWidth={markerStrokeWidth}
                       strokeLinecap="round"
                     />
-                    <Circle cx={clampedX} cy={topY} r={radius} fill={colorFor(stat)} />
+                    <Circle cx={x} cy={topY} r={radius} fill={colorFor(stat)} />
                     {markerSettings.showLabels && label ? (
                       <SvgText
-                        x={clampedX}
-                        y={topY - markerSettings.labelOffset}
+                        x={x}
+                        y={topY - markerSettings.labelOffset - row * (STAT_LABEL_FONT_SIZE + 2)}
                         fill={theme.colors.textSecondary}
-                        fontSize={10}
+                        fontSize={STAT_LABEL_FONT_SIZE}
                         textAnchor="middle"
                       >
                         {label}
@@ -420,11 +452,7 @@ export const RidgeChart: React.FC<RidgeChartProps> = ({
                     ) : null}
                   </React.Fragment>
                 );
-              };
-
-              pushMarker('mean', markerSettings.showMean, r.stats.mean);
-              pushMarker('median', markerSettings.showMedian, r.stats.median);
-              pushMarker('p90', markerSettings.showP90, r.stats.p90);
+              });
             }
 
             return (

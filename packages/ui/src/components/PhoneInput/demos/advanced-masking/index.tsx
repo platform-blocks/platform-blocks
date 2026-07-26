@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Column, PhoneInput, Text } from '@platform-blocks/ui';
+import { Block, PhoneInput, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [intlRaw, setIntlRaw] = useState('');
@@ -9,13 +9,13 @@ export default function Demo() {
   const [extensionFormatted, setExtensionFormatted] = useState('');
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <Text weight="semibold">Advanced masking</Text>
       <Text size="sm" colorVariant="secondary">
         Apply custom mask patterns to control formatting for international numbers and extension fields.
       </Text>
 
-      <Column gap="xs">
+      <Block>
         <PhoneInput
           label="International format"
           value={intlRaw}
@@ -34,9 +34,9 @@ export default function Demo() {
         <Text size="xs" colorVariant="secondary">
           Formatted: {intlFormatted || '—'}
         </Text>
-      </Column>
+      </Block>
 
-      <Column gap="xs">
+      <Block>
         <PhoneInput
           label="North America with extension"
           value={extensionRaw}
@@ -55,7 +55,7 @@ export default function Demo() {
         <Text size="xs" colorVariant="secondary">
           Formatted: {extensionFormatted || '—'}
         </Text>
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

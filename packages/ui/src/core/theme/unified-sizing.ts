@@ -104,10 +104,8 @@ export function createInteractiveStyles(
       opacity: 0.9,
     },
     focus: {
+      // Focus is a primary-colored border, not an outer ring/glow.
       borderColor: theme.colors.primary[5],
-      ...(theme.states?.focusRing && {
-        boxShadow: `0 0 0 2px ${theme.states.focusRing}`,
-      }),
     },
     disabled: {
       opacity: 0.5,

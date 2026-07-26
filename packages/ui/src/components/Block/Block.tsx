@@ -42,6 +42,9 @@ const BLOCK_STYLE_PROP_KEYS: Array<keyof BlockStyleProps> = [
 
 const BLOCK_STYLE_PROP_SET = new Set(BLOCK_STYLE_PROP_KEYS);
 
+/** Spacing applied between children when no `gap` prop is supplied. */
+const DEFAULT_BLOCK_GAP: BlockStyleProps['gap'] = 'sm';
+
 type BlockStyleKey = keyof BlockStyleProps;
 
 const partitionBlockProps = (source: Record<string, any>) => {
@@ -126,16 +129,16 @@ export const Block = forwardRef<any, BlockProps>((props, ref) => {
     ? { ...layoutPropsRaw, bg: resolveBg(theme, layoutPropsRaw.bg) ?? layoutPropsRaw.bg }
     : layoutPropsRaw;
 
-  const hasLayoutValues = fullWidth || Object.keys(layoutProps).length > 0;
-  const blockStyles = hasLayoutValues
-    ? getBlockStyles(
-        {
-          ...layoutProps,
-          ...(fullWidth ? { w: 'full' as BlockStyleProps['w'] } : {}),
-        } as BlockStyleProps,
-        isRTL,
-      )
-    : undefined;
+  const blockStyles = getBlockStyles(
+    {
+      // Block stacks its children, so it carries a default gap. Pass an
+      // explicit `gap` (including `0`) to override it.
+      gap: DEFAULT_BLOCK_GAP,
+      ...layoutProps,
+      ...(fullWidth ? { w: 'full' as BlockStyleProps['w'] } : {}),
+    } as BlockStyleProps,
+    isRTL,
+  );
 
   // Generate styles from props
   const spacingStyles = getSpacingStyles(spacingProps);

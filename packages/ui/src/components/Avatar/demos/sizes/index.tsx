@@ -1,13 +1,13 @@
-import { Avatar, Block } from '@platform-blocks/ui'
+import { Avatar, Row } from '@platform-blocks/ui';
+
+const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
 
 export default function Demo() {
   return (
-    <Block align="center" direction="row" gap="sm">
-      <Avatar size="xs" fallback="XS" />
-      <Avatar size="sm" fallback="SM" />
-      <Avatar size="md" fallback="MD" />
-      <Avatar size="lg" fallback="LG" />
-      <Avatar size="xl" fallback="XL" />
-    </Block>
-  )
+    <Row align="center" gap="lg" wrap="wrap">
+      {SIZES.map((size) => (
+        <Avatar key={size} size={size} fallback={size} />
+      ))}
+    </Row>
+  );
 }

@@ -116,7 +116,9 @@ export const Breadcrumbs = factory<{
       opacity: item.disabled ? 0.5 : 1,
     };
 
-    const textColor = isLast ? theme.text.primary : theme.text.muted;
+    // Trail items are de-emphasized against the current page, but only by one
+    // step: `muted` at a light weight is under 3:1 on light backgrounds.
+    const textColor = isLast ? theme.text.primary : theme.text.secondary;
 
     const content = (
       <View style={itemStyle}>
@@ -133,8 +135,8 @@ export const Breadcrumbs = factory<{
           {...mergeSlotProps(
             {
               size: sizeMetrics.fontSize,
-              colorVariant: isLast ? 'primary' as const : 'muted' as const,
-              weight: isLast ? ('600' as const) : ('200' as const),
+              colorVariant: isLast ? 'primary' as const : 'secondary' as const,
+              weight: isLast ? ('600' as const) : ('500' as const),
               style: textStyle,
             },
             labelProps

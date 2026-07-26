@@ -2,6 +2,7 @@
 
 See all versions and their changes on the [releases page](https://github.com/joshstovall/platform-blocks/releases).
 
+- [1.0.0](changelog/1.0.0.md)
 - [0.11.0](changelog/0.11.0.md)
 - [0.10.1](changelog/0.10.1.md)
 - [0.10.0](changelog/0.10.0.md)

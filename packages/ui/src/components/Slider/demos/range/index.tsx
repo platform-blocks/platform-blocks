@@ -7,11 +7,11 @@ export default function Demo() {
   const [scoreRange, setScoreRange] = useState<[number, number]>([60, 90]);
 
   return (
-    <Block gap={16} fullWidth>
+    <Block fullWidth>
        <Card>
-        <Block gap={16}>
+        <Block>
           <Text size="lg" weight="semibold">Price Range</Text>
-          <Block gap={8}>
+          <Block>
             <Flex justify="space-between">
               <Text size="sm">Min: ${priceRange[0]}</Text>
               <Text size="sm">Max: ${priceRange[1]}</Text>
@@ -33,9 +33,9 @@ export default function Demo() {
         </Card>
 
       <Card>
-        <Block gap={16}>
+        <Block>
           <Text size="lg" weight="semibold">Temperature Range</Text>
-          <Block gap={8}>
+          <Block>
             <RangeSlider
               value={temperatureRange}
               onChange={setTemperatureRange}
@@ -53,26 +53,6 @@ export default function Demo() {
         </Block>
       </Card>
 
-      <Card>
-        <Block gap={16}>
-          <Text size="lg" weight="semibold">Score Range</Text>
-          <Block gap={8}>
-            <RangeSlider
-              value={scoreRange}
-              onChange={setScoreRange}
-              min={0}
-              max={100}
-              step={1}
-              label="Acceptable Score Range"
-              minRange={10}
-              showMarks
-            />
-            <Text size="sm" style={{ color: '#666' }}>
-              Score range: {scoreRange[0]} - {scoreRange[1]} (span: {scoreRange[1] - scoreRange[0]})
-            </Text>
-          </Block>
-        </Block>
-      </Card>
     </Block>
   );
 }

@@ -1,10 +1,10 @@
-import { Grid, GridItem, Card, Column, Text } from '@platform-blocks/ui';
+import { Block, Card, Grid, GridItem, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const spans = [6, 6, 4, 4, 4, 3, 3, 3, 3];
 
   return (
-    <Column gap="xs" fullWidth>
+    <Block fullWidth>
       <Grid columns={12} gap={12}>
         {spans.map((span, index) => (
           <GridItem key={`${span}-${index}`} span={span}>
@@ -17,6 +17,6 @@ export default function Demo() {
       <Text size="sm" colorVariant="secondary">
         Mix spans within a 12-column grid to create varied layouts
       </Text>
-    </Column>
+    </Block>
   );
 }

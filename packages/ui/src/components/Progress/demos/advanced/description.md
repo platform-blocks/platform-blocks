@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Showcase eased transitions, striped indeterminate states, and compact sizing for nuanced status updates.
+Combine `striped` and `animate` to represent indeterminate work.

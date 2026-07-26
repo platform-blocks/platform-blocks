@@ -1,10 +1,10 @@
-import { Card, Column, Text } from '@platform-blocks/ui';
+import { Block, Card, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="lg">
+    <Block>
       <Card p="md">
-        <Column gap="xs">
+        <Block>
           <Text variant="p" weight="medium">
             Semantic colors
           </Text>
@@ -13,11 +13,11 @@ export default function Demo() {
           <Text colorVariant="muted">Muted color text</Text>
           <Text colorVariant="disabled">Disabled color text</Text>
           <Text colorVariant="link">Link color text</Text>
-        </Column>
+        </Block>
       </Card>
 
       <Card p="md">
-        <Column gap="xs">
+        <Block>
           <Text variant="p" weight="medium">
             Custom palette
           </Text>
@@ -26,9 +26,9 @@ export default function Demo() {
           <Text color="#45b7d1">Custom blue text</Text>
           <Text color="#96ceb4">Custom green text</Text>
           <Text color="#feca57">Custom yellow text</Text>
-        </Column>
+        </Block>
       </Card>
-    </Column>
+    </Block>
   );
 }
 

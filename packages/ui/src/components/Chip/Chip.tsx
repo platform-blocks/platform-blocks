@@ -5,8 +5,8 @@ import { Text } from '../Text';
 import { useTheme } from '../../core/theme';
 import { SizeValue, getFontSize, getSpacing, getHeight } from '../../core/theme/sizes';
 import { createRadiusStyles } from '../../core/theme/radius';
-import { normalizeHex, adjustHexColor, hexToRgb } from '../../core/theme/colorUtils';
-import { resolveVariantRoles } from '../../core/theme/variantRoles';
+import { hexToRgb } from '../../core/theme/colorUtils';
+import { resolveVariantRoles, resolveGradientStops } from '../../core/theme/variantRoles';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
 import { getSpacingStyles, extractSpacingProps, extractShadowProps, getShadowStyles, mergeSlotProps } from '../../core/utils';
 import type { ChipProps } from './types';
@@ -20,7 +20,13 @@ const { LinearGradient: OptionalLinearGradient, hasLinearGradient } = resolveLin
  * chip's resolved label color so it stays legible on every variant, and a
  * translucent scrim of that same color fades in on hover / press to give the
  * control a clear, tappable affordance.
+ *
+ * It's drawn deliberately light — a hairline stroke at partial opacity — so the
+ * chip reads as its label first and the affordance second. Hover / press bring
+ * it to full strength, so the control still announces itself when aimed at.
  */
+const CLOSE_ICON_STROKE = 1.75;
+const CLOSE_ICON_REST_OPACITY = 0.55;
 const ChipCloseButton: React.FC<{
   size: SizeValue;
   color: string;
@@ -29,8 +35,10 @@ const ChipCloseButton: React.FC<{
   position: 'left' | 'right';
   label?: string;
 }> = ({ size, color, onPress, disabled, position, label }) => {
-  const iconSize = Math.max(18, Math.round(getFontSize(size) ));
-  const buttonSize = iconSize + 4;
+  // Track just above the label rather than a fixed 18px floor, which made the ×
+  // larger than the text it sat next to on sm/xs chips.
+  const iconSize = Math.max(12, Math.round(getFontSize(size) * 1.15));
+  const buttonSize = iconSize + 6;
   const rgb = hexToRgb(color);
   const scrim = (alpha: number) => (rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})` : `rgba(128, 128, 128, ${alpha})`);
 
@@ -51,46 +59,35 @@ const ChipCloseButton: React.FC<{
           marginLeft: position === 'right' ? 1 : 0,
           marginRight: position === 'left' ? 1 : 0,
           opacity: disabled ? 0.5 : 1,
-          backgroundColor: pressed ? scrim(0.28) : hovered ? scrim(0.16) : 'transparent',
+          backgroundColor: pressed ? scrim(0.18) : hovered ? scrim(0.1) : 'transparent',
           ...(Platform.OS === 'web'
             ? ({ cursor: disabled ? 'not-allowed' : 'pointer', transition: 'background-color 0.12s ease' } as any)
             : {}),
         },
       ]}
     >
-      <Icon name="close" size={iconSize} stroke={3.5} color={color} />
+      {/*
+        Function children give the icon the same interaction state the scrim uses.
+        `hovered` is web-only (undefined on native), so the rest → press step
+        still works everywhere.
+      */}
+      {({ hovered, pressed }: any) => (
+        <Icon
+          name="close"
+          size={iconSize}
+          stroke={CLOSE_ICON_STROKE}
+          color={color}
+          style={{
+            opacity: hovered || pressed ? 1 : CLOSE_ICON_REST_OPACITY,
+            ...(Platform.OS === 'web' ? ({ transition: 'opacity 0.12s ease' } as any) : {}),
+          }}
+        />
+      )}
     </Pressable>
   );
 };
 
 type ChipVariant = NonNullable<ChipProps['variant']>;
-
-const buildGradientStops = (
-  theme: PlatformBlocksTheme,
-  color: ChipProps['color'],
-  isCustomColor: boolean
-): [string, string] => {
-  if (isCustomColor && typeof color === 'string') {
-    const normalized = normalizeHex(color);
-    if (normalized) {
-      return [normalized, adjustHexColor(normalized, -30)];
-    }
-    return [color, color];
-  }
-
-  const palette = color ? (theme.colors as any)[color as string] : undefined;
-  if (palette && Array.isArray(palette)) {
-    const start = palette[Math.min(5, palette.length - 1)] ?? palette[0];
-    const end = palette[Math.min(7, palette.length - 1)] ?? palette[palette.length - 1] ?? start;
-    return [start, end];
-  }
-
-  const primary = theme.colors.primary;
-  const start = primary[5] ?? primary[4] ?? primary[0];
-  const end = primary[7] ?? primary[6] ?? primary[5] ?? start;
-  return [start, end];
-};
-
 
 const getChipStyles = (
   theme: PlatformBlocksTheme,
@@ -126,10 +123,9 @@ const getChipStyles = (
     ...(variant === 'gradient' ? { overflow: 'hidden' as const } : {})
   };
 
-  // Solid variants carry a shadow; tinted / outline variants stay flat.
-  return variant === 'filled' || variant === 'gradient'
-    ? { ...styleForVariant, ...shadowStyles }
-    : styleForVariant;
+  // Chips are flat unless the consumer opts in via `shadow`, in which case every
+  // variant honors it.
+  return { ...styleForVariant, ...shadowStyles };
 };
 
 const getChipTextStyles = (
@@ -149,7 +145,7 @@ const getChipTextStyles = (
   };
 };
 
-export const Chip: React.FC<ChipProps> = (props) => {
+export const Chip = React.forwardRef<View, ChipProps>((props, ref) => {
   const {
     children,
     size = 'md',
@@ -186,13 +182,13 @@ export const Chip: React.FC<ChipProps> = (props) => {
   // Handle radius prop with 'chip' as default
   const radiusStyles = createRadiusStyles(radius || 'chip');
 
-  // Handle shadow prop - use default 'sm' for filled/gradient variant if no shadow specified
-  const effectiveShadow = shadowProps.shadow ?? ((effectiveVariant === 'filled' || effectiveVariant === 'gradient') ? 'sm' : 'none');
+  // Chips are flat by default on every variant; opt in with the `shadow` prop.
+  const effectiveShadow = shadowProps.shadow ?? 'none';
   const shadowStyles = getShadowStyles({ shadow: effectiveShadow }, theme, 'chip');
 
   const height = getHeight(size);
   const gradientStops = React.useMemo(() => (
-    shouldUseGradient ? buildGradientStops(theme, resolvedColor, isCustomColor) : undefined
+    shouldUseGradient ? resolveGradientStops(theme, resolvedColor as string) : undefined
   ), [shouldUseGradient, theme, resolvedColor, isCustomColor]);
 
   const chipStyles = getChipStyles(theme, effectiveVariant, resolvedColor, size, disabled, height - 10, radiusStyles, shadowStyles, gradientStops);
@@ -245,6 +241,7 @@ export const Chip: React.FC<ChipProps> = (props) => {
 
   return (
     <Component
+      ref={ref as any}
       style={[chipStyles, removeEdgeStyle, spacingStyles, style]}
       onPress={disabled ? undefined : onPress}
       disabled={disabled}
@@ -301,6 +298,8 @@ export const Chip: React.FC<ChipProps> = (props) => {
       </View>
     </Component>
   );
-};
+});
+
+Chip.displayName = 'Chip';
 
 export default Chip;

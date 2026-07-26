@@ -1,8 +1,8 @@
-import { Column, KeyCap, Row } from '@platform-blocks/ui';
+import { Block, KeyCap, Row } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
-    <Column gap="sm" align="flex-start">
+    <Block align="flex-start">
       <Row gap="sm" align="center" wrap="wrap">
         <KeyCap size="xs">XS</KeyCap>
         <KeyCap size="sm">SM</KeyCap>
@@ -10,7 +10,7 @@ export default function Demo() {
         <KeyCap size="lg">LG</KeyCap>
         <KeyCap size="xl">XL</KeyCap>
       </Row>
-    </Column>
+    </Block>
   );
 }
 

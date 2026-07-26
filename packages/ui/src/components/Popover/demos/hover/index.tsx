@@ -1,4 +1,4 @@
-import { Button, Column, Popover, Text } from '@platform-blocks/ui';
+import { Block, Button, Popover, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   return (
@@ -9,12 +9,12 @@ export default function Demo() {
         </Button>
       </Popover.Target>
       <Popover.Dropdown>
-        <Column gap="xs" p="sm" style={{ maxWidth: 240 }}>
+        <Block p="sm" style={{ maxWidth: 240 }}>
           <Text weight="semibold">Hover popover</Text>
           <Text variant="small" colorVariant="secondary">
             This popover opens on hover, ideal for mouse users who want quick access to additional content.
           </Text>
-        </Column>
+        </Block>
       </Popover.Dropdown>
     </Popover>
   );

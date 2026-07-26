@@ -380,15 +380,17 @@ export function createSmoothPath(points: { x: number; y: number }[]): string {
 /**
  * Default color schemes
  */
+// Validated categorical palette (light surface). The slot order is the CVD-safety
+// mechanism — see colors.ts `paletteDefaultLight`. Keep in sync with that export.
 const FALLBACK_DEFAULT_SCHEME = [
-  '#3b82f6', // blue
-  '#ef4444', // red
-  '#10b981', // green
-  '#f59e0b', // amber
-  '#8b5cf6', // violet
-  '#f97316', // orange
-  '#06b6d4', // cyan
-  '#ec4899', // pink
+  '#2a78d6', // blue
+  '#eb6834', // orange
+  '#1baf7a', // aqua
+  '#eda100', // yellow
+  '#e87ba4', // magenta
+  '#008300', // green
+  '#4a3aa7', // violet
+  '#e34948', // red
 ] as const;
 
 export const colorSchemes: { default: string[]; pastel: string[] } = {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
+import { useMergedRef } from '../../core/utils';
 import { Text, type TextProps } from '../Text';
 import type { TitleProps } from './types';
 import { useTheme } from '../../core/theme';
@@ -16,7 +17,7 @@ const levelToVariant: Record<number, TextProps['variant']> = {
   6: 'h6',
 };
 
-export const Title: React.FC<TitleProps> = ({
+export const Title = React.forwardRef<View, TitleProps>(({
   text,
   order = 2,
   underline = false,
@@ -42,17 +43,20 @@ export const Title: React.FC<TitleProps> = ({
   subtitleProps,
   subtitleSpacing = 8,
   ...textProps
-}) => {
+}, ref) => {
   const theme = useTheme();
   const { isRTL } = useDirection();
   const color = underlineColor || theme.colors.primary?.[5] || theme.text.primary;
   const variant = levelToVariant[order] || 'h2';
 
-  // Auto-register this title with the registry for TableOfContents
+  // Auto-register this title with the registry for TableOfContents. An explicit
+  // `id` becomes both the heading's element id and its registry id, so a link
+  // target and its table-of-contents entry can't drift apart.
   const titleText = text || (typeof children === 'string' ? children : '');
   const { elementRef } = useTitleRegistration({
     text: titleText,
     order,
+    id: (textProps as { id?: string }).id,
     autoRegister: !!titleText, // Only register if we have text content
   });
 
@@ -144,11 +148,15 @@ export const Title: React.FC<TitleProps> = ({
   };
 
   return (
-    <View ref={elementRef} style={[{ width: '100%' }, containerStyle]}>
+    <View ref={useMergedRef(elementRef, ref)} style={[{ width: '100%' }, containerStyle]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* shrinkable so a title longer than its container wraps instead of
+            running off the edge — narrow screens hit this with any long heading */}
         <View style={{
           flexDirection: 'row',
-          alignItems: 'center'
+          alignItems: 'center',
+          flexShrink: 1,
+          minWidth: 0,
           // flex: action ? 1 : undefined
         }}>
           {startIcon && <Block mr={8}>{startIcon}</Block>}
@@ -181,15 +189,27 @@ export const Title: React.FC<TitleProps> = ({
       {renderSubtitle()}
     </View>
   );
-};
+});
+
+Title.displayName = 'Title';
 
 export default Title;
 
 // Convenience heading aliases that inherit all Title decorative props.
 // These mirror the simple Text aliases but allow underline/afterline/prefix usage directly.
-export const Heading1: React.FC<Omit<TitleProps, 'order'>> = (props) => <Title order={1} {...props} />;
-export const Heading2: React.FC<Omit<TitleProps, 'order'>> = (props) => <Title order={2} {...props} />;
-export const Heading3: React.FC<Omit<TitleProps, 'order'>> = (props) => <Title order={3} {...props} />;
-export const Heading4: React.FC<Omit<TitleProps, 'order'>> = (props) => <Title order={4} {...props} />;
-export const Heading5: React.FC<Omit<TitleProps, 'order'>> = (props) => <Title order={5} {...props} />;
-export const Heading6: React.FC<Omit<TitleProps, 'order'>> = (props) => <Title order={6} {...props} />;
+type HeadingProps = Omit<TitleProps, 'order'>;
+
+const createHeading = (order: TitleProps['order'], displayName: string) => {
+  const Heading = React.forwardRef<View, HeadingProps>((props, ref) => (
+    <Title ref={ref} order={order} {...props} />
+  ));
+  Heading.displayName = displayName;
+  return Heading;
+};
+
+export const Heading1 = createHeading(1, 'Heading1');
+export const Heading2 = createHeading(2, 'Heading2');
+export const Heading3 = createHeading(3, 'Heading3');
+export const Heading4 = createHeading(4, 'Heading4');
+export const Heading5 = createHeading(5, 'Heading5');
+export const Heading6 = createHeading(6, 'Heading6');

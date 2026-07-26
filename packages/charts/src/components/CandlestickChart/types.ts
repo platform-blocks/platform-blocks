@@ -51,10 +51,6 @@ export interface CandlestickChartProps
     ChartInteractionCallbacks<CandlestickDataPoint> {
   /** One or more candlestick series to render */
   series: CandlestickSeries[];
-  /** Width of each candle body in pixels */
-  barWidth?: number;
-  /** Fractional gap between candles (0-1) */
-  gap?: number;
   /** Periods for moving average overlay lines (e.g. [20,50]) */
   movingAveragePeriods?: number[];
   /** Colors for moving average overlays (falls back to series palette) */

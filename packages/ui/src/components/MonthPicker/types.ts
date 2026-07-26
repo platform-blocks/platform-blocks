@@ -24,4 +24,6 @@ export interface MonthPickerProps {
   hideHeader?: boolean;
   /** Responsive override for the number of months rendered per row */
   monthsPerRow?: ResponsiveProp<number>;
+  /** Stretch to fill the container instead of sizing to the natural grid width. Default `false`. */
+  fullWidth?: boolean;
 }

@@ -172,6 +172,68 @@ describe('Toast Component - Rendering & Behavior', () => {
     });
   });
 
+  describe('Size Tokens', () => {
+    const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
+
+    const titleFontSize = (utils: any, text: string) =>
+      StyleSheet.flatten((utils.getByText(text) as any).props.style)?.fontSize;
+
+    const containerPadding = (utils: any) =>
+      StyleSheet.flatten((utils.getByTestId('sized-toast') as any).props.style)?.padding;
+
+    it.each(SIZES)('renders the %s size token', (size) => {
+      const utils = render(
+        <Toast title="Sized" size={size} visible testID="sized-toast" />
+      );
+      expect(utils.getByText('Sized')).toBeTruthy();
+      expect(typeof containerPadding(utils)).toBe('number');
+    });
+
+    it('scales padding and title type monotonically across tokens', () => {
+      const paddings: number[] = [];
+      const fontSizes: number[] = [];
+
+      SIZES.forEach((size) => {
+        const utils = render(
+          <Toast title="Sized" size={size} visible testID="sized-toast" />
+        );
+        paddings.push(containerPadding(utils));
+        fontSizes.push(titleFontSize(utils, 'Sized'));
+        utils.unmount();
+      });
+
+      paddings.forEach((value, index) => {
+        if (index > 0) expect(value).toBeGreaterThan(paddings[index - 1]);
+      });
+      fontSizes.forEach((value, index) => {
+        if (index > 0) expect(value).toBeGreaterThan(fontSizes[index - 1]);
+      });
+    });
+
+    it('defaults to the md metrics when size is omitted', () => {
+      const omitted = render(<Toast title="Sized" visible testID="sized-toast" />);
+      const explicit = render(
+        <Toast title="Sized" size="md" visible testID="sized-toast" />
+      );
+      expect(containerPadding(omitted)).toBe(containerPadding(explicit));
+    });
+
+    it('treats a numeric size as the title font size', () => {
+      const utils = render(
+        <Toast title="Sized" size={32} visible testID="sized-toast" />
+      );
+      expect(titleFontSize(utils, 'Sized')).toBe(32);
+      expect(containerPadding(utils)).toBe(24);
+    });
+
+    it('lets titleProps override the size-derived font size', () => {
+      const utils = render(
+        <Toast title="Sized" size="3xl" visible titleProps={{ size: 11 }} testID="sized-toast" />
+      );
+      expect(titleFontSize(utils, 'Sized')).toBe(11);
+    });
+  });
+
   describe('Severity Rendering', () => {
     it('should render info severity', () => {
       const { getByText } = render(

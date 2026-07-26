@@ -1,15 +1,6 @@
 import { ParetoChart } from '../../';
 
-const DEFECT_BREAKDOWN = [
-  { label: 'Authentication', value: 118 },
-  { label: 'Checkout', value: 96 },
-  { label: 'Notifications', value: 64 },
-  { label: 'Analytics', value: 42 },
-  { label: 'Billing', value: 31 },
-  { label: 'Integrations', value: 27 },
-  { label: 'Mobile', value: 19 },
-  { label: 'Reporting', value: 17 },
-];
+import { DEFECT_BREAKDOWN } from './data';
 
 export default function Demo() {
   return (
@@ -21,7 +12,7 @@ export default function Demo() {
       data={DEFECT_BREAKDOWN}
       valueSeriesLabel="Defects"
       cumulativeSeriesLabel="Cumulative impact"
-      grid={{ show: true, style: 'dotted', color: '#D7DCED' }}
+      grid={{ show: true, style: 'dotted' }}
       legend={{ show: true, position: 'bottom' }}
       yAxis={{ title: 'Defects reported' }}
       yAxisRight={{ title: 'Cumulative share' }}

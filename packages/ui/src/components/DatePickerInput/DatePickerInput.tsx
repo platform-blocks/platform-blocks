@@ -5,6 +5,7 @@ import { Input } from '../Input';
 import { Flex } from '../Flex';
 import { Icon } from '../Icon';
 import { Dialog } from '../Dialog';
+import { useControllableState } from '../../hooks/useControllableState';
 import { Calendar } from '../Calendar/Calendar';
 import { dateUtils, extractFirstDate } from '../DatePicker/utils';
 import { useTheme } from '../../core/theme';
@@ -66,9 +67,13 @@ export const DatePickerInput = forwardRef(function DatePickerInputInner(
 
   const shouldCloseOnSelect = closeOnSelect ?? type === 'single';
 
-  const isControlled = value !== undefined;
-  const [internalValue, setInternalValue] = useState<CalendarValue>(defaultValue ?? null);
-  const currentValue: CalendarValue = (isControlled ? value : internalValue) ?? null;
+  const [selectedValue, setValue] = useControllableState<CalendarValue>({
+    value,
+    defaultValue: defaultValue ?? null,
+    finalValue: null,
+    onChange: (next) => onChange?.(next ?? null),
+  });
+  const currentValue: CalendarValue = selectedValue ?? null;
 
   const initialDate = calendarDateProp
     ?? calendarDefaultDateProp
@@ -106,13 +111,6 @@ export const DatePickerInput = forwardRef(function DatePickerInputInner(
       setViewLevel(calendarDefaultLevelProp as CalendarLevel);
     }
   }, [calendarLevelProp, calendarDefaultLevelProp]);
-
-  const setValue = useCallback((next: CalendarValue) => {
-    if (!isControlled) {
-      setInternalValue(next);
-    }
-    onChange?.(next ?? null);
-  }, [isControlled, onChange]);
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -334,7 +332,8 @@ export const DatePickerInput = forwardRef(function DatePickerInputInner(
                 : 'Date picker dialog'
             }
           >
-            {renderCalendar()}
+            {/* The calendar sizes to its day grid, so center it in the wider dialog. */}
+            <View style={{ alignItems: 'center' }}>{renderCalendar()}</View>
 
             {(type === 'multiple' || type === 'range') && (
               <View
@@ -412,7 +411,7 @@ export const DatePickerInput = forwardRef(function DatePickerInputInner(
               : 'Date picker dialog'
           }
         >
-          {renderCalendar()}
+          <View style={{ alignItems: 'center' }}>{renderCalendar()}</View>
 
           {(type === 'multiple' || type === 'range') && (
             <View

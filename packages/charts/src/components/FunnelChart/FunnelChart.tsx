@@ -20,6 +20,7 @@ import {
   FunnelConversionLabelFormatter,
   FunnelDataTablePayload,
 } from './types';
+import { ChartInteractionEvent } from '../../types';
 import { ChartContainer, ChartTitle, ChartLegend } from '../../ChartBase';
 import { useChartInteractionContext, usePointer } from '../../interaction/ChartInteractionContext';
 import type { ActiveTarget } from '../../core/hittest/types';
@@ -59,7 +60,6 @@ type ComputedSegment = {
   xTop: number;
   xBottom: number;
   height: number;
-  trend?: number[];
   trendLabel?: string;
   trendDelta?: number;
   firstValue: number;
@@ -258,7 +258,6 @@ function useFunnelGeometry(
           xTop,
           xBottom,
           height: segmentHeight,
-          trend: step.trend,
           trendLabel: step.trendLabel,
           trendDelta: step.trendDelta,
           firstValue,
@@ -283,8 +282,9 @@ const AnimatedFunnelSegment: React.FC<{
   disabled: boolean;
   onHover?: (event?: any) => void;
   onHoverOut?: () => void;
+  onPress?: (event?: any) => void;
   theme: ReturnType<typeof useChartTheme>;
-}> = React.memo(({ segment, animationProgress, showConversion, valueFormatter, steps, disabled, onHover, onHoverOut, theme }) => {
+}> = React.memo(({ segment, animationProgress, showConversion, valueFormatter, steps, disabled, onHover, onHoverOut, onPress, theme }) => {
   const scale = useSharedValue(disabled ? 1 : 0);
 
   useEffect(() => {
@@ -383,9 +383,11 @@ const AnimatedFunnelSegment: React.FC<{
         onMouseEnter: onHover,
         onMouseMove: onHover,
         onMouseLeave: onHoverOut,
+        onClick: onPress,
       } : {
         onPressIn: onHover,
         onPressOut: onHoverOut,
+        onPress,
       }) as Record<string, any>)}
     >
       <AnimatedPath
@@ -433,6 +435,7 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
     valueFormatter,
     legend,
     style,
+    tooltip,
     multiTooltip = true,
     liveTooltip = false,
     enableCrosshair = true,
@@ -440,6 +443,9 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
     animationDuration = 800,
     accessibilityTable,
     onDataTable,
+    onPress,
+    onDataPointPress,
+    ...rest
   } = props;
 
   let interaction: ReturnType<typeof useChartInteractionContext> | null = null;
@@ -643,6 +649,10 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
       const name = seriesArr.length > 1
         ? `${segment.step.label} (${segment.seriesName ?? `Series ${segment.seriesIndex + 1}`})`
         : segment.step.label;
+      // Only tooltip.formatter + tooltip.show are honored per-chart; styling props
+      // (backgroundColor/textColor/etc.) are resolved globally by ChartActiveTooltip.
+      const tf = tooltip?.formatter?.(segment.step);
+      const defaultTooltip = `${name} · ${segment.value} · ${(segment.cumulativeConversion * 100).toFixed(1)}% of first step`;
       const target: ActiveTarget = {
         seriesId: segment.seriesId ?? segment.seriesIndex,
         markId: segment.id,
@@ -653,17 +663,38 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
         distance: 0,
         label: name,
         color: segment.color,
-        formattedValue: `${segment.value}`,
-        customTooltip: `${name} · ${segment.value} · ${(segment.cumulativeConversion * 100).toFixed(1)}% of first step`,
+        formattedValue: typeof tf === 'string' ? tf : `${segment.value}`,
+        customTooltip: tf != null ? tf : defaultTooltip,
         categoryIndex: segment.stepIndex,
       };
       setActiveTarget?.(target);
       setActiveSlice?.([target]);
     },
-    [pointer, setPointer, setActiveTarget, setActiveSlice, seriesArr.length]
+    [pointer, setPointer, setActiveTarget, setActiveSlice, seriesArr.length, tooltip]
   );
 
   const handleSegmentHoverOut = useCallback(() => handleSegmentHover(null), [handleSegmentHover]);
+
+  const handleSegmentPress = useCallback(
+    (segment: ComputedSegment, nativeEvent?: any) => {
+      if (!onPress && !onDataPointPress) return;
+      // Normalized 0-1 center of the segment (container-origin geometry / chart size).
+      const chartX = width > 0 ? segment.center.x / width : 0;
+      const chartY = height > 0 ? segment.center.y / height : 0;
+      const event: ChartInteractionEvent<FunnelStep> = {
+        nativeEvent: (nativeEvent?.nativeEvent ?? nativeEvent) as any,
+        chartX,
+        chartY,
+        dataX: segment.stepIndex,
+        dataY: segment.value,
+        dataPoint: segment.step,
+        distance: 0,
+      };
+      onDataPointPress?.(segment.step, event);
+      onPress?.(event);
+    },
+    [onPress, onDataPointPress, width, height]
+  );
 
   const connectorVisibility = useMemo(() => {
     if (!interaction?.series) return new Set<string>();
@@ -720,10 +751,11 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
 
   return (
     <ChartContainer
+      {...rest}
       width={width}
       height={height}
       style={style}
-      interactionConfig={{ multiTooltip, liveTooltip, enableCrosshair }}
+      interactionConfig={{ multiTooltip, liveTooltip: tooltip?.show === false ? false : liveTooltip, enableCrosshair }}
     >
       {(title || subtitle) && <ChartTitle title={title} subtitle={subtitle} />}
 
@@ -797,6 +829,7 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
                 disabled={disabled}
                 onHover={(e?: any) => handleSegmentHover(segment, e)}
                 onHoverOut={handleSegmentHoverOut}
+                onPress={(e?: any) => handleSegmentPress(segment, e)}
                 theme={theme}
               />
             );

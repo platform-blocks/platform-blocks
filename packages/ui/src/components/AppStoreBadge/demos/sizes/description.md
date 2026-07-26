@@ -1,1 +1,0 @@
-Different sizes available for app store badges: small (sm), medium (md), large (lg), and extra large (xl).

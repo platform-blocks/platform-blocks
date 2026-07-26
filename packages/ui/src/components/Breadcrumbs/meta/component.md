@@ -18,6 +18,5 @@ examples:
   - basic
   - separators
   - sizes
-  - label-customization
 ---
 The Breadcrumbs component displays hierarchical navigation links to help users understand their current location within the application. Item labels and string separators each accept the full `<Text>` API via `labelProps` / `separatorProps`.

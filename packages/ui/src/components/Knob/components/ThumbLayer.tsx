@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
-import Animated, { type AnimatedStyle } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import type { KnobAppearance } from '../types';
 import { knobStyles as styles } from '../styles';
@@ -10,10 +10,12 @@ export type ThumbLayerProps = {
   thumbSize: number;
   thumbColor: string;
   disabled: boolean;
-  thumbAnimatedStyle: AnimatedStyle<ViewStyle>;
+  thumbTransformStyle: ViewStyle;
   thumbStyle?: StyleProp<ViewStyle>;
   displayValue: number;
   displayAngle: number;
+  /** True while the knob is being dragged, which is when the thumb wears its press size. */
+  isScrubbing?: boolean;
 };
 
 export const ThumbLayer: React.FC<ThumbLayerProps> = ({
@@ -21,10 +23,11 @@ export const ThumbLayer: React.FC<ThumbLayerProps> = ({
   thumbSize,
   thumbColor,
   disabled,
-  thumbAnimatedStyle,
+  thumbTransformStyle,
   thumbStyle,
   displayValue,
   displayAngle,
+  isScrubbing = false,
 }) => {
   const normalizedThumb = typeof thumbConfig === 'object' && thumbConfig !== null ? thumbConfig : null;
   const thumbShape = normalizedThumb?.shape ?? 'circle';
@@ -75,13 +78,14 @@ export const ThumbLayer: React.FC<ThumbLayerProps> = ({
         normalizedThumb.style,
         thumbGlowStyle ?? undefined,
         thumbStyle,
-        thumbAnimatedStyle,
+        thumbTransformStyle,
       ]}
     >
       {normalizedThumb.renderThumb?.({
         value: displayValue,
         angle: displayAngle,
         size: thumbSize,
+        isScrubbing,
       })}
     </Animated.View>
   );

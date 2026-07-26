@@ -188,24 +188,6 @@ export interface HeatmapChartProps
   yAxis?: ChartAxis;
   /** Grid line configuration */
   grid?: ChartGrid;
-  /** Enable pan/zoom interaction */
-  enablePanZoom?: boolean;
-  /** Which axes can be zoomed */
-  zoomMode?: 'both' | 'x' | 'y';
-  /** Minimum zoom factor relative to original domain */
-  minZoom?: number;
-  /** Enable wheel-based zooming */
-  enableWheelZoom?: boolean;
-  /** Step factor applied to wheel zoom */
-  wheelZoomStep?: number;
-  /** Clamp navigation to initial domain */
-  clampToInitialDomain?: boolean;
-  /** Invert wheel zoom direction */
-  invertWheelZoom?: boolean;
-  /** Invert pinch zoom direction */
-  invertPinchZoom?: boolean;
-  /** Reset zoom when double-tapped */
-  resetOnDoubleTap?: boolean;
   /** Legend configuration (often used for color scales) */
   legend?: ChartLegend;
   /** Tooltip configuration or simplified toggle */
@@ -232,8 +214,6 @@ export interface HeatmapChartProps
   hoverHighlight?: HeatmapHoverHighlightConfig;
   /** Enable and customize gradient legend display */
   gradientLegend?: HeatmapGradientLegendConfig;
-  /** Maximum zoom multiplier for pan/zoom interactions */
-  maxZoom?: number;
   /** Render hidden accessible table representation */
   accessibilityTable?: HeatmapAccessibilityTableOptions;
   /** Callback invoked with flattened data table payload */

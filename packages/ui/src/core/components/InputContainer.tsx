@@ -56,17 +56,14 @@ export function InputContainer({
         : disabled
           ? theme.backgrounds.border
           : 'transparent',
-    borderWidth: 2, // Reserve space to prevent layout shift
+    borderWidth: 1, // Constant in every state — focus/error only change borderColor
     ...radiusStyles,
     // Override base container styles but preserve border behavior
     minHeight: containerStyles.minHeight,
     paddingHorizontal: containerStyles.paddingHorizontal,
     paddingVertical: containerStyles.paddingVertical,
     fontSize: containerStyles.fontSize,
-    // Optional focus shadow without affecting layout
-    ...(focused && !disabled && typeof window !== 'undefined' && theme.states?.focusRing && {
-      boxShadow: `0 0 0 2px ${theme.states.focusRing}`,
-    }),
+    // No focus ring/glow — focus is carried by `borderColor` above.
     // Add subtle shadow for depth
     ...(!disabled && theme.colorScheme === 'light' && {
       boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',

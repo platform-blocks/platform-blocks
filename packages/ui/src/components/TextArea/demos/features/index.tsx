@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Column, Text, TextArea } from '@platform-blocks/ui';
+import { Block, Text, TextArea } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [autoResizeValue, setAutoResizeValue] = useState(
@@ -10,7 +10,7 @@ export default function Demo() {
   const [errorValue, setErrorValue] = useState('');
 
   return (
-    <Column gap="lg" fullWidth>
+    <Block fullWidth>
         <TextArea
           label="Auto-resize message"
           placeholder="Adjusts height between two and six rows based on content."
@@ -22,7 +22,7 @@ export default function Demo() {
           fullWidth
         />
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" weight="semibold">
           Character counter
         </Text>
@@ -40,9 +40,9 @@ export default function Demo() {
           helperText="Helpful for concise feedback or short-form inputs."
           fullWidth
         />
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" weight="semibold">
           Error and required states
         </Text>
@@ -59,9 +59,9 @@ export default function Demo() {
           rows={3}
           fullWidth
         />
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" weight="semibold">
           Disabled field
         </Text>
@@ -76,9 +76,9 @@ export default function Demo() {
           rows={2}
           fullWidth
         />
-      </Column>
+      </Block>
 
-      <Column gap="sm">
+      <Block>
         <Text size="sm" weight="semibold">
           Required helper copy
         </Text>
@@ -93,7 +93,7 @@ export default function Demo() {
           helperText="Required fields display an asterisk and supporting guidance."
           fullWidth
         />
-      </Column>
-    </Column>
+      </Block>
+    </Block>
   );
 }

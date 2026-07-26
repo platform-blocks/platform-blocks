@@ -1,4 +1,3 @@
-description: Demonstrates the fullWidth prop for responsive waveform display.
 ---
 title: Full Width
 category: layout

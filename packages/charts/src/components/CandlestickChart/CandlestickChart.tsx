@@ -1,8 +1,11 @@
 import React from 'react';
 import { View, Text } from 'react-native';
+import type { GestureResponderEvent } from 'react-native';
 import Svg, { G, Path, Rect } from 'react-native-svg';
 import { CandlestickChartProps } from './types';
-import { ChartContainer, ChartTitle, ChartLegend } from '../../ChartBase';
+import type { CandlestickDataPoint } from './types';
+import type { ChartInteractionEvent } from '../../types';
+import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
 import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
@@ -39,6 +42,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
     height = 300,
     title, subtitle,
     xAxis, yAxis, grid, legend,
+    animation,
     animationDuration,
     style,
     enableCrosshair,
@@ -63,10 +67,13 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
     showVolume = false,
     volumeHeightRatio = 0.22,
     tooltip,
+    onPress,
+    onDataPointPress,
     ...rest
   } = props;
 
   const theme = useChartTheme();
+  const candleDrawDuration = animation?.duration ?? animationDuration ?? 420;
   const flattened = React.useMemo(() => series.flatMap((s) => s.data), [series]);
   const volumeEnabled = React.useMemo(
     () => !!showVolume && flattened.some((point) => Number.isFinite(point.volume ?? NaN) && (point.volume ?? 0) > 0),
@@ -139,17 +146,23 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
   }, [flattened]);
 
   const basePadding = { top: 40, right: 20, bottom: volumeEnabled ? 72 : 60, left: yAxis?.title ? 104 : 80 };
-  const padding = React.useMemo(() => {
-    if (!legend?.show) return basePadding;
-    const position = legend.position || 'bottom';
-    return {
-      ...basePadding,
-      top: position === 'top' ? basePadding.top + 40 : basePadding.top,
-      bottom: position === 'bottom' ? basePadding.bottom + 40 : basePadding.bottom,
-      left: position === 'left' ? basePadding.left + 120 : basePadding.left,
-      right: position === 'right' ? basePadding.right + 120 : basePadding.right,
-    };
-  }, [legend?.show, legend?.position, volumeEnabled]);
+  // Grown so the plot clears the title and legend overlays.
+  const legendLabels = React.useMemo(
+    () => series.map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
+    [series]
+  );
+  const padding = React.useMemo(
+    () =>
+      withChartBandPadding(basePadding, {
+        title,
+        subtitle,
+        legendItems: legend?.show ? legendLabels : undefined,
+        legendPosition: legend?.position,
+        legendFontSize: legend?.fontSize,
+        containerWidth: width,
+      }),
+    [basePadding.left, basePadding.bottom, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels, width, volumeEnabled]
+  );
   const volumeGap = volumeEnabled ? 16 : 0;
   const plotWidth = Math.max(0, width - padding.left - padding.right);
   const availableHeight = Math.max(0, height - padding.top - padding.bottom - volumeGap);
@@ -497,6 +510,28 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
     setActiveSlice?.([]);
   }, [setPointer, setActiveTarget, setActiveSlice]);
 
+  // Fire press callbacks on tap: resolve the nearest candle at the pressed x and
+  // emit a ChartInteractionEvent so onDataPointPress/onPress consumers are wired.
+  const handlePress = React.useCallback((px: number, py: number, nativeEvent: GestureResponderEvent) => {
+    if (disabled || plotWidth <= 0 || plotHeight <= 0) return;
+    if (!onDataPointPress && !onPress) return;
+    const payload = resolvePointerPayload(px);
+    const entry = payload?.candles?.[0];
+    if (!entry) return;
+    const datum = entry.datum as CandlestickDataPoint;
+    const event: ChartInteractionEvent<CandlestickDataPoint> = {
+      nativeEvent,
+      chartX: plotWidth > 0 ? px / plotWidth : 0,
+      chartY: plotHeight > 0 ? py / plotHeight : 0,
+      dataX: toNumeric(datum.x),
+      dataY: datum.close,
+      dataPoint: datum,
+      distance: Math.abs(px - entry.candle.chartX),
+    };
+    onDataPointPress?.(datum, event);
+    onPress?.(event);
+  }, [disabled, plotWidth, plotHeight, onDataPointPress, onPress, resolvePointerPayload]);
+
   // Build MA SVG paths (after scale helpers) for smoother rendering
   // Moving averages per series (only first series currently used if multiple) – could extend to all later
   const maLines = React.useMemo(() => {
@@ -570,6 +605,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
           onResponderGrant={(e) => {
             const { locationX, locationY, pageX, pageY } = e.nativeEvent || {};
             handlePointerUpdate(locationX ?? 0, locationY ?? 0, { pageX, pageY });
+            handlePress(locationX ?? 0, locationY ?? 0, e);
           }}
           onResponderMove={(e) => {
             const { locationX, locationY, pageX, pageY } = e.nativeEvent || {};
@@ -601,6 +637,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
                   index={index}
                   disabled={disabled}
                   theme={theme}
+                  duration={candleDrawDuration}
                 />
               );
             })}

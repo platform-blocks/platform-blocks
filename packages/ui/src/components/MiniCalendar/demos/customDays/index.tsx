@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Column, MiniCalendar, Row, Text } from '@platform-blocks/ui';
+import { Block, Button, MiniCalendar, Row, Text } from '@platform-blocks/ui';
 
 const DAY_OPTIONS = [3, 5, 7];
 
@@ -8,7 +8,7 @@ export default function Demo() {
   const [numberOfDays, setNumberOfDays] = useState(5);
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <Row gap="xs">
         {DAY_OPTIONS.map((days) => (
           <Button
@@ -29,6 +29,6 @@ export default function Demo() {
       <Text size="sm" colorVariant="secondary">
         {selectedDate ? `Selected: ${selectedDate.toLocaleDateString()}` : 'No date selected'}
       </Text>
-    </Column>
+    </Block>
   );
 }

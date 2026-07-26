@@ -1,4 +1,4 @@
-import { CodeBlock, Column, Text } from '@platform-blocks/ui';
+import { Block, CodeBlock, Text } from '@platform-blocks/ui';
 
 const componentExample = `import { View, Text } from 'react-native';
 
@@ -26,13 +26,13 @@ export function FloatingExample() {
 
 export default function Demo() {
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <Text weight="semibold">GitHub actions</Text>
       <Text size="sm" colorVariant="secondary">
         Provide a GitHub URL to render quick links beside copy controls across any CodeBlock variant.
       </Text>
-      <Column gap="lg">
-        <Column gap="xs">
+      <Block>
+        <Block>
           <Text size="sm" weight="semibold">
             Basic component
           </Text>
@@ -42,22 +42,21 @@ export default function Demo() {
           >
             {componentExample}
           </CodeBlock>
-        </Column>
+        </Block>
 
-        <Column gap="xs">
+        <Block>
           <Text size="sm" weight="semibold">
             File name and language
           </Text>
           <CodeBlock
-            fileName="example.tsx"
+            files={[{ name: 'example.tsx' }]}
             githubUrl="https://github.com/joshstovall/platform-blocks/blob/main/ui/src/components/Text/Text.tsx"
-            language="tsx"
           >
             {inlineExample}
           </CodeBlock>
-        </Column>
+        </Block>
 
-        <Column gap="xs">
+        <Block>
           <Text size="sm" weight="semibold">
             Terminal variant
           </Text>
@@ -68,17 +67,17 @@ export default function Demo() {
           >
             {terminalExample}
           </CodeBlock>
-        </Column>
+        </Block>
 
-        <Column gap="xs">
+        <Block>
           <Text size="sm" weight="semibold">
             Floating controls
           </Text>
           <CodeBlock githubUrl="https://github.com/joshstovall/platform-blocks/blob/main/ui/src/components/CodeBlock/CodeBlock.tsx">
             {floatingExample}
           </CodeBlock>
-        </Column>
-      </Column>
-    </Column>
+        </Block>
+      </Block>
+    </Block>
   );
 }

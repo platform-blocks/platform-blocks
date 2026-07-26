@@ -3,18 +3,64 @@ import { View, Pressable, Text as RNText } from 'react-native';
 import Svg, { Path, Rect, LinearGradient, Stop, Defs, Line, G, Text as SvgText } from 'react-native-svg';
 
 import { useTheme } from '../../core/theme';
-import { WaveformProps, PerformanceMetrics } from './types';
+import { WaveformProps, PerformanceMetrics, WaveformSizeMetrics } from './types';
 import { WaveformSkeleton } from './WaveformSkeleton';
+import { useMergedRef } from '../../core/utils';
+import {
+  resolveComponentSize,
+  type ComponentSize,
+  type ComponentSizeValue,
+} from '../../core/theme/componentSize';
 
-export const Waveform: React.FC<WaveformProps> = React.memo(({
+const WAVEFORM_ALLOWED_SIZES: ComponentSize[] = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+
+// Full seven-token scale. `md` reproduces the historical prop defaults exactly,
+// so adding the prop is a no-op for existing usage.
+const WAVEFORM_SIZE_SCALE: Record<ComponentSize, WaveformSizeMetrics> = {
+  xs: { height: 24, barWidth: 1, barGap: 1, strokeWidth: 1, minBarHeight: 1, labelFontSize: 8 },
+  sm: { height: 40, barWidth: 2, barGap: 1, strokeWidth: 1.5, minBarHeight: 1, labelFontSize: 9 },
+  md: { height: 60, barWidth: 2, barGap: 1, strokeWidth: 2, minBarHeight: 1, labelFontSize: 10 },
+  lg: { height: 80, barWidth: 3, barGap: 2, strokeWidth: 2.5, minBarHeight: 2, labelFontSize: 11 },
+  xl: { height: 104, barWidth: 4, barGap: 2, strokeWidth: 3, minBarHeight: 2, labelFontSize: 12 },
+  '2xl': { height: 132, barWidth: 5, barGap: 3, strokeWidth: 4, minBarHeight: 3, labelFontSize: 14 },
+  '3xl': { height: 160, barWidth: 6, barGap: 3, strokeWidth: 5, minBarHeight: 3, labelFontSize: 16 },
+};
+
+const BASE_WAVEFORM_METRICS = WAVEFORM_SIZE_SCALE.md;
+
+const resolveWaveformMetrics = (value: ComponentSizeValue | undefined): WaveformSizeMetrics => {
+  // A numeric size is read as the waveform height; the bar metrics scale with it
+  // so a custom value stays proportional instead of snapping to the nearest token.
+  if (typeof value === 'number') {
+    const ratio = value / BASE_WAVEFORM_METRICS.height;
+    return {
+      height: value,
+      barWidth: Math.max(1, Math.round(BASE_WAVEFORM_METRICS.barWidth * ratio)),
+      barGap: Math.max(1, Math.round(BASE_WAVEFORM_METRICS.barGap * ratio)),
+      strokeWidth: Math.max(1, Math.round(BASE_WAVEFORM_METRICS.strokeWidth * ratio * 2) / 2),
+      minBarHeight: Math.max(1, Math.round(BASE_WAVEFORM_METRICS.minBarHeight * ratio)),
+      labelFontSize: Math.max(8, Math.round(BASE_WAVEFORM_METRICS.labelFontSize * ratio)),
+    };
+  }
+
+  const resolved = resolveComponentSize(value, WAVEFORM_SIZE_SCALE, {
+    allowedSizes: WAVEFORM_ALLOWED_SIZES,
+    fallback: 'md',
+  });
+
+  return typeof resolved === 'number' ? resolveWaveformMetrics(resolved) : resolved;
+};
+
+export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
   peaks,
   w = 300,
-  h = 60,
+  h: hProp,
   color = 'primary',
-  barWidth = 2,
-  barGap = 1,
-  strokeWidth = 2,
-  minBarHeight = 1,
+  size,
+  barWidth: barWidthProp,
+  barGap: barGapProp,
+  strokeWidth: strokeWidthProp,
+  minBarHeight: minBarHeightProp,
   variant = 'bars',
   gradientColors,
   progress = 0,
@@ -51,9 +97,22 @@ export const Waveform: React.FC<WaveformProps> = React.memo(({
   enablePerformanceMonitoring = false,
   onPerformanceMetrics,
   ...restProps
-}) => {
+}, ref) => {
   const theme = useTheme();
+
+  // Size token supplies the defaults; an explicit prop always wins over the
+  // value its token would have contributed.
+  const metrics = useMemo(() => resolveWaveformMetrics(size), [size]);
+  const h = hProp ?? metrics.height;
+  const barWidth = barWidthProp ?? metrics.barWidth;
+  const barGap = barGapProp ?? metrics.barGap;
+  const strokeWidth = strokeWidthProp ?? metrics.strokeWidth;
+  const minBarHeight = minBarHeightProp ?? metrics.minBarHeight;
+  const labelFontSize = metrics.labelFontSize;
+
   const containerRef = useRef<View>(null);
+  // Layout measurement keeps its own handle; the consumer's ref is composed in.
+  const mergedContainerRef = useMergedRef<View>(containerRef, ref);
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -121,10 +180,21 @@ export const Waveform: React.FC<WaveformProps> = React.memo(({
   const waveformColor = resolveColor(color as string, '#6366f1');
   const actualProgressColor = resolveColor(progressColor as string, '#22c55e');
 
-  // Normalize gradient colors (allow semantic keys inside gradientColors too)
+  // Normalize gradient colors (allow semantic keys inside gradientColors too).
+  // Without an explicit list the `gradient` variant would have no stops and
+  // render nothing, so derive a two-stop ramp from `color` instead.
   const resolvedGradientColors = useMemo(() => {
-    return (gradientColors || []).map(c => resolveColor(c, c));
-  }, [gradientColors, resolveColor]);
+    if (gradientColors && gradientColors.length > 0) {
+      return gradientColors.map(c => resolveColor(c, c));
+    }
+
+    const palette = (theme.colors as any)[color as string];
+    if (Array.isArray(palette)) {
+      return [palette[3] ?? waveformColor, palette[7] ?? waveformColor];
+    }
+
+    return [waveformColor, waveformColor];
+  }, [gradientColors, resolveColor, theme.colors, color, waveformColor]);
 
   // Process peaks data for rendering with virtual windowing
   const processedPeaks = useMemo(() => {
@@ -488,7 +558,7 @@ export const Waveform: React.FC<WaveformProps> = React.memo(({
             x={x}
             y={h + 15}
             fill={theme.colors.gray[6]}
-            fontSize={10}
+            fontSize={labelFontSize}
             textAnchor="middle"
             opacity={0.8}
           >
@@ -499,7 +569,7 @@ export const Waveform: React.FC<WaveformProps> = React.memo(({
     }
 
     return <G>{timestamps}</G>;
-  }, [showTimeStamps, duration, timeStampInterval, actualWaveformWidth, h, theme.colors]);
+  }, [showTimeStamps, duration, timeStampInterval, actualWaveformWidth, h, labelFontSize, theme.colors]);
 
   // Selection overlay component
   const SelectionOverlay = useMemo(() => {
@@ -553,7 +623,7 @@ export const Waveform: React.FC<WaveformProps> = React.memo(({
                       x={x}
                       y={-5}
                       fill={markerColor}
-                      fontSize={10}
+                      fontSize={labelFontSize}
                       textAnchor="middle"
                       fontWeight="bold"
                     >
@@ -587,7 +657,7 @@ export const Waveform: React.FC<WaveformProps> = React.memo(({
                       x={x + 4}
                       y={12}
                       fill="white"
-                      fontSize={9}
+                      fontSize={Math.max(8, labelFontSize - 1)}
                       fontWeight="bold"
                     >
                       {marker.label}
@@ -611,7 +681,7 @@ export const Waveform: React.FC<WaveformProps> = React.memo(({
                       x={x}
                       y={h / 2 + 20}
                       fill={markerColor}
-                      fontSize={10}
+                      fontSize={labelFontSize}
                       textAnchor="middle"
                       fontWeight="bold"
                     >
@@ -626,7 +696,7 @@ export const Waveform: React.FC<WaveformProps> = React.memo(({
         })}
       </G>
     );
-  }, [markers, actualWaveformWidth, h, theme.colors.warning]);
+  }, [markers, actualWaveformWidth, h, labelFontSize, theme.colors.warning]);
 
   // RMS visualization component
   const RMSBars = useMemo(() => {
@@ -757,7 +827,7 @@ export const Waveform: React.FC<WaveformProps> = React.memo(({
 
   return (
     <WrapperComponent
-      ref={containerRef}
+      ref={mergedContainerRef}
       style={[style, fullWidth ? { width: '100%' } : { width: w }]}
       accessible={true}
       focusable={interactive}
@@ -776,6 +846,6 @@ export const Waveform: React.FC<WaveformProps> = React.memo(({
       </Svg>
     </WrapperComponent>
   );
-});
+}));
 
 Waveform.displayName = 'Waveform';

@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
+import { resolveSurface, surfaceInteractionTint } from '../../core/theme/surfaces';
 
 interface StyleConfig {
   variant: 'default' | 'testimonial' | 'featured' | 'minimal';
@@ -9,11 +10,20 @@ interface StyleConfig {
   border: boolean;
   shadow: boolean;
   color?: string;
+  /** Resolved pixel size of the quote glyph — decides how much room it needs. */
+  quoteIconSize: number;
+  quoteIconPosition: 'top-left' | 'top-center' | 'bottom-right' | 'none';
 }
 
 export const createBlockquoteStyles = (theme: PlatformBlocksTheme, config: StyleConfig) => {
-  const { variant, size, alignment, border, shadow, color } = config;
-  
+  const { variant, size, alignment, border, shadow, color, quoteIconSize, quoteIconPosition } = config;
+
+  const isDefault = variant === 'default';
+  // The default variant keeps its glyph inside the padding box rather than
+  // stuck to the outer corner, so these double as the glyph's origin.
+  const padY = parseInt(theme.spacing.lg);
+  const padX = parseInt(theme.spacing.xl);
+
   // Size mappings
   const sizeMap: Partial<Record<ComponentSize, { fontSize: number; lineHeight: number; iconSize: number }>> = {
     xs: { fontSize: 14, lineHeight: 20, iconSize: 20 },
@@ -34,13 +44,16 @@ export const createBlockquoteStyles = (theme: PlatformBlocksTheme, config: Style
   // Variant-specific styles
   const variantStyles = {
     default: {
-      backgroundColor: theme.colors.gray[0],
-      borderLeftWidth: 4,
-      borderLeftColor: theme.colors.primary[5],
-      padding: parseInt(theme.spacing.lg),
+      // A tinted band on whatever it's quoted within. `gray[0]` was the page
+      // background itself in dark mode, so the quote had no visible body.
+      backgroundColor: surfaceInteractionTint(theme, 'band'),
+      borderRadius: parseInt(theme.radii.lg),
+      paddingVertical: padY,
+      paddingHorizontal: padX,
     },
     testimonial: {
-      backgroundColor: theme.colors.surface[0],
+      // Card-like — resting content, level 1.
+      backgroundColor: resolveSurface(theme, 1).background,
       borderRadius: 8,
       padding: parseInt(theme.spacing.xl),
       ...(shadow && {
@@ -68,12 +81,17 @@ export const createBlockquoteStyles = (theme: PlatformBlocksTheme, config: Style
       }),
       alignItems: alignment === 'center' ? 'center' : alignment === 'right' ? 'flex-end' : 'flex-start',
     },
-    
+
     content: {
       position: 'relative',
       width: '100%',
+      // The glyph leads the quote instead of sitting behind it, so the text
+      // starts below the space it occupies.
+      ...(isDefault && quoteIconPosition === 'top-left' && {
+        paddingTop: quoteIconSize + parseInt(theme.spacing.xs),
+      }),
     },
-    
+
     pressed: {
       opacity: 0.7,
     },
@@ -96,13 +114,16 @@ export const createBlockquoteStyles = (theme: PlatformBlocksTheme, config: Style
       alignSelf: 'center',
       left: '50%',
       top: -12,
-      transform: [{ translateX: -sizeTokens.iconSize / 2 }],
+      // Centred on the glyph's own width — `sizeTokens.iconSize` tracks the
+      // quote's text size, not the glyph, and pulled it off-centre.
+      transform: [{ translateX: -quoteIconSize / 2 }],
     },
-    
-    quoteIconTopLeft: {
-      left: -8,
-      top: -8,
-    },
+
+    quoteIconTopLeft: isDefault
+      // Absolute children resolve against the padding box, so the padding
+      // values put the glyph exactly where the first line would have started.
+      ? { left: padX, top: padY }
+      : { left: -8, top: -8 },
     
     quoteText: {
       color: color || theme.text.primary,

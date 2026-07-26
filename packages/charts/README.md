@@ -124,7 +124,6 @@ export function Dashboard() {
 Full documentation, interactive examples, and API reference are available at [platform-blocks.com](https://platform-blocks.com).
 
 - [Getting started](https://platform-blocks.com/getting-started)
-- [Interactive examples](https://platform-blocks.com/examples)
 - [Charts](https://platform-blocks.com/charts)
 - [llms.txt](https://platform-blocks.com/llms.txt) — Full API reference for LLMs and AI assistants
 

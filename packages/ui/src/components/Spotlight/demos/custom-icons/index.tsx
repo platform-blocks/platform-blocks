@@ -1,4 +1,4 @@
-import { Button, Card, Column, Icon, Spotlight, Text, useSpotlightStoreInstance, type SpotlightProps } from '@platform-blocks/ui';
+import { Block, Button, Card, Icon, Spotlight, Text, type SpotlightProps, useSpotlightStoreInstance } from '@platform-blocks/ui';
 
 const actions: SpotlightProps['actions'] = [
   {
@@ -28,18 +28,18 @@ export default function Demo() {
   const [store] = useSpotlightStoreInstance();
 
   return (
-    <Column gap="lg">
+    <Block>
       <Card p="md">
-        <Column gap="md">
+        <Block>
           <Text size="sm" colorVariant="secondary">
             Icons accept full React nodes, so you can swap in composable UI like `Icon`, avatars, or status badges for richer visuals.
           </Text>
           <Button variant="outline" onPress={() => store.open()}>
             Open spotlight
           </Button>
-        </Column>
+        </Block>
       </Card>
       <Spotlight actions={actions} store={store} />
-    </Column>
+    </Block>
   );
 }

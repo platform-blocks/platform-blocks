@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { View, Text } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import Animated, { 
@@ -21,6 +21,7 @@ import {
   GaugeContextValue,
 } from './types';
 import { useGaugeStyles } from './styles';
+import { getAccessibilityValueProps } from '../../core/accessibility/utils';
 import {
   valueToAngle,
   getPointOnCircle,
@@ -141,7 +142,9 @@ export const Gauge = factory<{
         style={[styles.container, spacingStyles, style]}
         testID={testID}
         accessibilityLabel={ariaLabel || `Gauge value ${clampedValue}`}
-        accessibilityValue={{ min, max, now: clampedValue }}
+        // Without a value-bearing role the value has nowhere to land, on either platform.
+        accessibilityRole="progressbar"
+        {...getAccessibilityValueProps({ min, max, now: clampedValue })}
         {...otherProps}
       >
         {/* Render children or default components */}
@@ -451,14 +454,12 @@ export const GaugeNeedle = factory<{
   
   const context = useGaugeContext();
   const theme = useTheme();
-  const animatedAngle = useSharedValue(0);
-  const [currentAngle, setCurrentAngle] = useState(0);
 
   const needleConfig = config || {};
   const needleColor = color || needleConfig.color || theme.colors.primary[5];
   const needleWidth = needleConfig.width || width;
   const needleLength = needleConfig.length || length;
-  
+
   // Calculate needle angle
   let needleAngle: number;
   if (angle !== undefined) {
@@ -469,31 +470,35 @@ export const GaugeNeedle = factory<{
     needleAngle = valueToAngle(context.value, context.min, context.max, context.startAngle, context.endAngle);
   }
 
-  const duration = animationDuration || context.animationDuration;
+  // `?? ` rather than `||` so an explicit 0 survives: it means "no transition".
+  const duration = Math.max(animationDuration ?? context.animationDuration ?? 0, 0);
 
-  // Animate to new angle using shortest path
+  // Seed both the shared value and the tracked angle to the correct initial
+  // position so the needle renders in place on mount instead of flashing at
+  // 0deg (straight up) and jumping. Only subsequent value changes animate.
+  const animatedAngle = useSharedValue(normalizeAngle(needleAngle));
+  const [currentAngle, setCurrentAngle] = useState(() => normalizeAngle(needleAngle));
+  const isFirstRender = useRef(true);
+
+  // Animate to new angle using shortest path (skips the initial placement).
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return; // already seeded to the correct angle — don't animate on mount
+    }
+
     const normalizedTarget = normalizeAngle(needleAngle);
     const normalizedCurrent = normalizeAngle(currentAngle);
-    
+
     // Calculate the shortest angle difference
     const diff = angleDifference(normalizedCurrent, normalizedTarget);
     const targetAngle = currentAngle + diff;
-    
-    animatedAngle.value = withTiming(targetAngle, { duration });
-    
+
+    animatedAngle.value = duration === 0 ? targetAngle : withTiming(targetAngle, { duration });
+
     // Update current angle after animation completes
     setCurrentAngle(targetAngle);
   }, [needleAngle, duration, animatedAngle, currentAngle]);
-
-  // Initialize current angle on first render
-  useEffect(() => {
-    if (currentAngle === 0) {
-      const initialAngle = normalizeAngle(needleAngle);
-      setCurrentAngle(initialAngle);
-      animatedAngle.value = initialAngle;
-    }
-  }, [needleAngle, animatedAngle, currentAngle]);
 
   const needleRadius = context.radius * needleLength;
 

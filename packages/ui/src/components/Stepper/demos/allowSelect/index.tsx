@@ -1,23 +1,7 @@
 import { useState } from 'react';
 import { Button, Card, Block, Row, Stepper, Text } from '@platform-blocks/ui';
 
-const steps = [
-  {
-    label: 'Account',
-    description: 'Create credentials',
-    details: 'Provide your name, email, and a secure password to get started.',
-  },
-  {
-    label: 'Verification',
-    description: 'Confirm ownership',
-    details: 'We email a confirmation link that needs to be opened before continuing.',
-  },
-  {
-    label: 'Preferences',
-    description: 'Adjust settings',
-    details: 'Choose notification and privacy defaults for your workspace.',
-  },
-];
+import { onboardingSteps as steps } from '../data';
 
 const totalSteps = steps.length;
 
@@ -40,9 +24,9 @@ export default function Demo() {
   const goNext = () => handleStepChange(activeStep + 1);
 
   return (
-    <Block gap="lg" fullWidth>
+    <Block fullWidth>
       <Card p="md">
-        <Block gap="md">
+        <Block>
           <Text size="sm" colorVariant="secondary">
             Gate step selection with `allowStepSelect` so people can revisit completed steps without skipping ahead.
           </Text>

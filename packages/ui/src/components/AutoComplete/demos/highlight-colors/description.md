@@ -9,4 +9,8 @@ since: 1.0.0
 hidden: false
 ---
 
-Shows `highlightMatches` in action and previews the themed highlight palette.
+`highlightMatches` bolds and tints the part of each suggestion that matches what
+you typed. That tint is derived from `theme.colors.primary` by default; pass
+`highlightColor` (and optionally `highlightBackgroundColor`) to override it —
+here with shades from `theme.colors.highlight`. Pick a swatch while the menu is
+open to see the match repaint.

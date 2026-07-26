@@ -1,4 +1,4 @@
-import { Card, Column, Spoiler, Text } from '@platform-blocks/ui';
+import { Block, Card, Spoiler, Text } from '@platform-blocks/ui';
 
 const examples = [
   {
@@ -22,29 +22,27 @@ const bodyCopy =
 
 export default function Demo() {
   return (
-    <Column gap="lg">
-      <Card p="md">
-        <Column gap="md">
-          <Text size="sm" colorVariant="secondary">
-            Control whether the content renders expanded on mount or waits for user input. Both states remain accessible to assistive tech.
-          </Text>
-          <Column gap="sm">
-            {examples.map((example) => (
-              <Column key={example.key} gap="xs">
-                <Text size="xs" colorVariant="secondary">
-                  {example.label}
-                </Text>
-                <Spoiler maxHeight={72} {...example.props}>
-                  <Text size="sm">{bodyCopy}</Text>
-                </Spoiler>
-                <Text size="xs" colorVariant="muted">
-                  {example.description}
-                </Text>
-              </Column>
-            ))}
-          </Column>
-        </Column>
-      </Card>
-    </Column>
+    <Card p="md">
+      <Block>
+        <Text size="sm" colorVariant="secondary">
+          Control whether the content renders expanded on mount or waits for user input. Both states remain accessible to assistive tech.
+        </Text>
+        <Block>
+          {examples.map((example) => (
+            <Block key={example.key}>
+              <Text size="xs" colorVariant="secondary">
+                {example.label}
+              </Text>
+              <Spoiler maxHeight={72} {...example.props}>
+                <Text size="sm">{bodyCopy}</Text>
+              </Spoiler>
+              <Text size="xs" colorVariant="muted">
+                {example.description}
+              </Text>
+            </Block>
+          ))}
+        </Block>
+      </Block>
+    </Card>
   );
 }

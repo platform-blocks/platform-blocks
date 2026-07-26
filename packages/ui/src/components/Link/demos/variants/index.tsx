@@ -1,4 +1,4 @@
-import { Card, Column, Link, Text } from '@platform-blocks/ui';
+import { Block, Card, Link, Text } from '@platform-blocks/ui';
 
 const linkVariants = [
   { label: 'Default underline', variant: 'default' as const, description: 'Underline is always visible for maximum affordance.' },
@@ -9,21 +9,19 @@ const linkVariants = [
 
 export default function Demo() {
   return (
-    <Column gap="lg">
-      <Card p="md">
-        <Column gap="md">
-          <Text size="sm" colorVariant="secondary">
-            Choose a `variant` that matches the surrounding density while keeping the link discoverable.
-          </Text>
-          {linkVariants.map((entry) => (
-            <Column key={entry.label} gap="xs">
-              <Link href="#" variant={entry.variant} color={entry.color}>{entry.label}</Link>
-              <Text size="xs" colorVariant="secondary">{entry.description}</Text>
-            </Column>
-          ))}
-        </Column>
-      </Card>
-    </Column>
+    <Card p="md">
+      <Block>
+        <Text size="sm" colorVariant="secondary">
+          Choose a `variant` that matches the surrounding density while keeping the link discoverable.
+        </Text>
+        {linkVariants.map((entry) => (
+          <Block key={entry.label}>
+            <Link href="#" variant={entry.variant} color={entry.color}>{entry.label}</Link>
+            <Text size="xs" colorVariant="secondary">{entry.description}</Text>
+          </Block>
+        ))}
+      </Block>
+    </Card>
   );
 }
 

@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import { 
-  IconButton,
-  Column,
-  Row,
-  Card,
-  Text,
-  Divider,
-  Switch,
-} from '@platform-blocks/ui';
+import { Block, Card, Divider, IconButton, Row, Switch, Text } from '@platform-blocks/ui';
 
 export default function IconButtonDemo() {
   const [loading, setLoading] = useState(false);
@@ -18,7 +10,7 @@ export default function IconButtonDemo() {
   };
 
   return (
-    <Column gap="xl" p="lg">
+    <Block p="lg">
       <Text variant="h4">IconButton Component Demo</Text>
       <Text colorVariant="muted">
         IconButton is designed specifically for displaying icons in square or circular shapes.
@@ -27,7 +19,7 @@ export default function IconButtonDemo() {
 
       {/* Controls */}
       <Card p="lg" variant="outline">
-        <Column gap="md">
+        <Block>
           <Text variant="h6">Controls</Text>
           <Row gap="lg">
             <Switch
@@ -41,16 +33,24 @@ export default function IconButtonDemo() {
               onChange={setDisabled}
             />
           </Row>
-        </Column>
+        </Block>
       </Card>
 
       {/* Variants */}
       <Card p="lg" variant="outline">
-        <Column gap="md">
+        <Block>
           <Text variant="h6">Variants</Text>
           <Row gap="md" align="center" wrap="wrap">
             <IconButton
               icon="home"
+              variant="default"
+              onPress={() => handlePress('default')}
+              loading={loading}
+              disabled={disabled}
+              tooltip="Home (Default)"
+            />
+            <IconButton
+              icon="bell"
               variant="filled"
               onPress={() => handlePress('filled')}
               loading={loading}
@@ -90,12 +90,12 @@ export default function IconButtonDemo() {
               tooltip="Star (Gradient)"
             />
           </Row>
-        </Column>
+        </Block>
       </Card>
 
       {/* Sizes */}
       <Card p="lg" variant="outline">
-        <Column gap="md">
+        <Block>
           <Text variant="h6">Sizes</Text>
           <Row gap="md" align="center" wrap="wrap">
             <IconButton
@@ -129,15 +129,15 @@ export default function IconButtonDemo() {
               tooltip="Extra Large"
             />
           </Row>
-        </Column>
+        </Block>
       </Card>
 
       {/* Shape: Square vs Circular */}
       <Card p="lg" variant="outline">
-        <Column gap="md">
+        <Block>
           <Text variant="h6">Shape: Square vs Circular</Text>
           <Row gap="md" align="center" wrap="wrap">
-            <Column gap="xs" align="center">
+            <Block align="center">
               <IconButton
                 icon="download"
                 radius="sm"
@@ -145,8 +145,8 @@ export default function IconButtonDemo() {
                 tooltip="Small Radius (Square-ish)"
               />
               <Text size="xs" colorVariant="muted">radius="sm"</Text>
-            </Column>
-            <Column gap="xs" align="center">
+            </Block>
+            <Block align="center">
               <IconButton
                 icon="download"
                 radius="md"
@@ -154,8 +154,8 @@ export default function IconButtonDemo() {
                 tooltip="Medium Radius"
               />
               <Text size="xs" colorVariant="muted">radius="md"</Text>
-            </Column>
-            <Column gap="xs" align="center">
+            </Block>
+            <Block align="center">
               <IconButton
                 icon="download"
                 radius="lg"
@@ -163,8 +163,8 @@ export default function IconButtonDemo() {
                 tooltip="Large Radius"
               />
               <Text size="xs" colorVariant="muted">radius="lg"</Text>
-            </Column>
-            <Column gap="xs" align="center">
+            </Block>
+            <Block align="center">
               <IconButton
                 icon="download"
                 radius="xl"
@@ -172,14 +172,14 @@ export default function IconButtonDemo() {
                 tooltip="Circular (XL Radius)"
               />
               <Text size="xs" colorVariant="muted">radius="xl" (circular)</Text>
-            </Column>
+            </Block>
           </Row>
-        </Column>
+        </Block>
       </Card>
 
       {/* Custom Colors */}
       <Card p="lg" variant="outline">
-        <Column gap="md">
+        <Block>
           <Text variant="h6">Custom Colors</Text>
           <Row gap="md" align="center" wrap="wrap">
             <IconButton
@@ -214,16 +214,16 @@ export default function IconButtonDemo() {
               tooltip="Purple Star (Circular)"
             />
           </Row>
-        </Column>
+        </Block>
       </Card>
 
       {/* Common Use Cases */}
       <Card p="lg" variant="outline">
-        <Column gap="md">
+        <Block>
           <Text variant="h6">Common Use Cases</Text>
           
           {/* Toolbar */}
-          <Column gap="sm">
+          <Block>
             <Text size="sm" weight="medium">Toolbar Actions</Text>
             <Row gap="xs" align="center">
               <IconButton icon="undo" variant="ghost" size="sm" tooltip="Undo" />
@@ -236,10 +236,10 @@ export default function IconButtonDemo() {
               <IconButton icon="link" variant="ghost" size="sm" tooltip="Add Link" />
               <IconButton icon="image" variant="ghost" size="sm" tooltip="Add Image" />
             </Row>
-          </Column>
+          </Block>
 
           {/* Social Actions */}
-          <Column gap="sm">
+          <Block>
             <Text size="sm" weight="medium">Social Actions (Circular)</Text>
             <Row gap="xs" align="center">
               <IconButton 
@@ -270,10 +270,10 @@ export default function IconButtonDemo() {
                 tooltip="Bookmark" 
               />
             </Row>
-          </Column>
+          </Block>
 
           {/* Navigation */}
-          <Column gap="sm">
+          <Block>
             <Text size="sm" weight="medium">Navigation</Text>
             <Row gap="xs" align="center">
               <IconButton icon="chevron-left" variant="secondary" tooltip="Previous" />
@@ -282,9 +282,9 @@ export default function IconButtonDemo() {
               <IconButton icon="chevron-down" variant="secondary" tooltip="Down" />
               <IconButton icon="external-link" variant="secondary" tooltip="Open External" />
             </Row>
-          </Column>
-        </Column>
+          </Block>
+        </Block>
       </Card>
-    </Column>
+    </Block>
   );
 }

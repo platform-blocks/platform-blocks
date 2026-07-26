@@ -1,12 +1,6 @@
 import { PieChart, type PieChartDataPoint } from '../../';
 
-const BROWSER_USAGE = [
-  { id: 'chrome', label: 'Chrome', value: 52, color: '#5C7CFA' },
-  { id: 'safari', label: 'Safari', value: 28, color: '#38D9A9' },
-  { id: 'edge', label: 'Edge', value: 11, color: '#FF922B' },
-  { id: 'firefox', label: 'Firefox', value: 6, color: '#BE4BDB' },
-  { id: 'other', label: 'Other', value: 3, color: '#ADB5BD' },
-];
+import { BROWSER_USAGE } from './data';
 
 const formatLabel = (slice: PieChartDataPoint) => `${slice.label} ${slice.value}%`;
 
@@ -17,8 +11,8 @@ export default function Demo() {
     <PieChart
       title="Browser usage share"
       subtitle="Active sessions"
-      width={400}
-      height={320}
+      width={520}
+      height={420}
       data={BROWSER_USAGE}
       outerRadius={150}
       showLabels

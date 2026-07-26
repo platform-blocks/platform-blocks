@@ -10,5 +10,3 @@ hidden: false
 ---
 
 Frames a simple pull quote with author details.
-
-```

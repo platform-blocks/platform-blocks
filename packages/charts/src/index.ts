@@ -90,6 +90,7 @@ export * from './utils/scales';
 export * from './utils/geometry';
 export * from './types';
 export * from './utils';
+export * from './colors';
 // Canonical tick generators live in ./utils/scales; disambiguate the duplicate
 // names still present in ./utils (removed once all charts migrate off them).
 export { generateLogTicks, generateTimeTicks } from './utils/scales';

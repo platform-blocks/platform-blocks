@@ -108,14 +108,8 @@ export interface ChartInteractionEvent<TData = ChartDataPoint> {
 export interface ChartInteractionCallbacks<TData = ChartDataPoint> {
   /** Called when chart is tapped/clicked */
   onPress?: (event: ChartInteractionEvent<TData>) => void;
-  /** Called when chart is long pressed */
-  onLongPress?: (event: ChartInteractionEvent<TData>) => void;
   /** Called when data point is selected */
   onDataPointPress?: (dataPoint: TData, event: ChartInteractionEvent<TData>) => void;
-  /** Called when dragging on chart */
-  onPan?: (event: ChartInteractionEvent<TData>) => void;
-  /** Called when pan gesture ends */
-  onPanEnd?: (event: ChartInteractionEvent<TData>) => void;
 }
 
 // Axis configuration

@@ -74,6 +74,30 @@ const getArcProgressDegrees = (arc: NormalizedArcConfig, angle: number) => {
   return delta;
 };
 
+// True when an angle falls in the wedge an arc shorter than a full circle leaves uncovered.
+// Dragging through the dead zone should clamp to the nearer end, but a *tap* there has no
+// meaningful value to jump to, so callers can opt out of acting on it entirely.
+export const isAngleInArcDeadZone = (arc: NormalizedArcConfig, angle: number) => {
+  if (arc.sweepAngle >= 359.999) return false;
+  return getArcProgressDegrees(arc, angle) > arc.sweepAngle;
+};
+
+// Signed degrees to travel *along the arc* between two ratios, for arcs drawn from a pivot
+// rather than from the start (split/panning progress). This deliberately works in ratio
+// space: `getArcAngleFromRatio` wraps into [0,360), so subtracting two of its results can
+// run the long way around the circle -- a pivot at 0deg and a value at 292.5deg read as
+// +292.5 when the arc actually runs -67.5 the other way. Ratios have no such ambiguity,
+// and sweeps wider than 180 degrees survive (a shortest-path fix would collapse them).
+export const getSignedArcSweepBetweenRatios = (
+  arc: NormalizedArcConfig,
+  fromRatio: number,
+  toRatio: number
+) => {
+  if (!Number.isFinite(fromRatio) || !Number.isFinite(toRatio)) return 0;
+  const multiplier = arc.direction === 'cw' ? 1 : -1;
+  return multiplier * arc.sweepAngle * (toRatio - fromRatio);
+};
+
 export const getArcRatioFromAngle = (
   arc: NormalizedArcConfig,
   angle: number,
@@ -81,9 +105,18 @@ export const getArcRatioFromAngle = (
 ) => {
   const clampProgress = options?.clamp ?? arc.clampInput;
   const degrees = getArcProgressDegrees(arc, angle);
-  const limitedDegrees = clampProgress ? clampNumber(degrees, 0, arc.sweepAngle) : degrees;
   if (!arc.sweepAngle) return 0;
-  return limitedDegrees / arc.sweepAngle;
+  if (!clampProgress || degrees <= arc.sweepAngle) {
+    return degrees / arc.sweepAngle;
+  }
+
+  // The pointer is in the dead zone -- the wedge an arc shorter than a full circle leaves
+  // uncovered, which sits *between* the two ends. Progress is measured from the start and
+  // wraps, so every angle in that wedge reads as just-short-of-360 and a plain clamp sends
+  // all of it to the far end: one degree past the min end snapped the value to max.
+  // Resolve to whichever end is actually nearer, splitting the wedge down the middle.
+  const deadZoneMidpoint = arc.sweepAngle + (360 - arc.sweepAngle) / 2;
+  return degrees <= deadZoneMidpoint ? 1 : 0;
 };
 
 const toRadians = (deg: number) => (deg * Math.PI) / 180;
@@ -160,6 +193,26 @@ export const buildArcPathBetweenAngles = (
   }
 
   return path;
+};
+
+// Path for a band between two ratios of the arc. Angles are derived unwrapped (as in
+// `buildArcPathForSweep`) rather than via `getArcAngleFromRatio`, whose [0,360) wrap would
+// make a band that crosses 0deg render the long way round.
+export const buildArcPathBetweenRatios = (
+  arc: NormalizedArcConfig,
+  radius: number,
+  fromRatio: number,
+  toRatio: number,
+  center: { cx: number; cy: number }
+) => {
+  if (radius <= 0) return '';
+  const from = clampNumber(fromRatio, 0, 1);
+  const to = clampNumber(toRatio, 0, 1);
+  if (Math.abs(to - from) < 0.0001) return '';
+  const multiplier = arc.direction === 'cw' ? 1 : -1;
+  const startAngle = arc.startAngle + multiplier * arc.sweepAngle * from;
+  const endAngle = arc.startAngle + multiplier * arc.sweepAngle * to;
+  return buildArcPathBetweenAngles(center.cx, center.cy, radius, startAngle, endAngle);
 };
 
 export const buildArcPathForSweep = (

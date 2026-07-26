@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, type Text as RNText } from 'react-native';
 
 import { Text } from '../Text';
 import type { TextProps } from '../Text/Text';
@@ -179,7 +179,7 @@ const createBaseHighlightStyle = (
   paddingVertical: Platform.OS === 'web' ? 0 : 2,
 });
 
-export const Highlight: React.FC<HighlightProps> = ({
+export const Highlight = React.forwardRef<RNText, HighlightProps>(({
   children,
   highlight,
   highlightStyles,
@@ -189,7 +189,7 @@ export const Highlight: React.FC<HighlightProps> = ({
   highlightProps,
   variant,
   ...rest
-}) => {
+}, ref) => {
   const theme = useTheme();
 
   const outerVariant = variant ?? 'span';
@@ -389,11 +389,11 @@ export const Highlight: React.FC<HighlightProps> = ({
   ]);
 
   return (
-    <Text variant={outerVariant} {...rest}>
+    <Text ref={ref} variant={outerVariant} {...rest}>
       {renderedChildren}
     </Text>
   );
-};
+});
 
 Highlight.displayName = 'Highlight';
 

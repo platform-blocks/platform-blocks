@@ -225,6 +225,8 @@ export const AppLayoutRenderer: React.FC<AppLayoutRendererProps> = ({ children }
       width: navbarEntry?.width ?? blueprint.breakpoints?.navbarWidth ?? DEFAULT_NAVBAR_WIDTH,
       collapsedWidth: navbarEntry?.collapsedWidth ?? 72,
       expandOnHover: navbarEntry?.expandOnHover ?? true,
+      expandOnHoverPush: navbarEntry?.expandOnHoverPush ?? false,
+      autoExpandBreakpoint: navbarEntry?.autoExpandBreakpoint,
       startCollapsedDesktop: navbarEntry?.startCollapsedDesktop ?? true,
     }
     : undefined;

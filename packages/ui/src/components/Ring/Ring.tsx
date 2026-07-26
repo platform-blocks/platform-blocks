@@ -7,6 +7,7 @@ import { useTheme } from '../../core/theme/ThemeProvider';
 import { extractSpacingProps, getSpacingStyles } from '../../core/utils';
 import { Text } from '../Text';
 import type { RingProps, RingRenderContext } from './types';
+import { getAccessibilityValueProps } from '../../core/accessibility/utils';
 
 interface RingFactoryPayload {
   props: RingProps;
@@ -210,7 +211,7 @@ export const Ring = factory<RingFactoryPayload>((props, ref) => {
       testID={testID}
       accessibilityLabel={accessibilityLabel ?? `Ring value ${Math.round(percent)} percent`}
       accessibilityRole="progressbar"
-      accessibilityValue={{ min, max, now: Math.round(clampedValue) }}
+      {...getAccessibilityValueProps({ min, max, now: Math.round(clampedValue) })}
       {...otherProps}
     >
       <View style={[styles.ringWrapper, { width: size, height: size }, ringStyle]}>

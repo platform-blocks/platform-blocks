@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, Pressable } from 'react-native';
-import { Text } from '../Text';
 import { Input } from '../Input';
 import { Select } from '../Select';
 import { Button } from '../Button';
@@ -381,26 +380,6 @@ export function AdvancedFilterControl<T = any>({
           </Pressable>
         )}
       </View>
-
-      {/* Active filter indicator */}
-      {currentFilter && (
-        <View style={{
-          paddingHorizontal: 6,
-          paddingVertical: 2,
-          backgroundColor: theme.colors.primary[1],
-          borderRadius: 3,
-          alignSelf: 'flex-start'
-        }}>
-          <Text style={{
-            fontSize: 10,
-            color: theme.colors.primary[8],
-            fontWeight: '500'
-          }}>
-            {getAvailableOperators(column.filterType)
-              .find(op => op.value === currentFilter.operator)?.label || currentFilter.operator} {String(currentFilter.value)}
-          </Text>
-        </View>
-      )}
     </View>
   );
 }

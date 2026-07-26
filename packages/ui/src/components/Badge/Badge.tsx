@@ -5,6 +5,7 @@ import { useTheme } from '../../core/theme';
 import { getFontSize, getSpacing, getHeight } from '../../core/theme/sizes';
 import { clampComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
 import { createRadiusStyles } from '../../core/theme/radius';
+import { resolveVariantRoles, resolveGradientStops } from '../../core/theme/variantRoles';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
 import { getSpacingStyles, extractSpacingProps, extractShadowProps, getShadowStyles, mergeSlotProps } from '../../core/utils';
 import type { BadgeProps } from './types';
@@ -14,56 +15,6 @@ import { DESIGN_TOKENS } from '../../core/unified-styles';
 import { resolveLinearGradient } from '../../utils/optionalDependencies';
 
 const { LinearGradient: OptionalLinearGradient, hasLinearGradient } = resolveLinearGradient();
-
-const normalizeHex = (input: string): string | null => {
-  if (!input) return null;
-  let hex = input.trim();
-  if (hex.startsWith('#')) hex = hex.slice(1);
-  if (hex.length === 3) {
-    hex = hex.split('').map(ch => ch + ch).join('');
-  }
-  if (hex.length !== 6 || /[^0-9a-fA-F]/.test(hex)) {
-    return null;
-  }
-  return `#${hex.toLowerCase()}`;
-};
-
-const adjustHexColor = (input: string, amount: number): string => {
-  const normalized = normalizeHex(input);
-  if (!normalized) return input;
-  const hex = normalized.slice(1);
-  const r = Math.max(0, Math.min(255, parseInt(hex.slice(0, 2), 16) + amount));
-  const g = Math.max(0, Math.min(255, parseInt(hex.slice(2, 4), 16) + amount));
-  const b = Math.max(0, Math.min(255, parseInt(hex.slice(4, 6), 16) + amount));
-  const toHex = (value: number) => value.toString(16).padStart(2, '0');
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-};
-
-const buildGradientStops = (
-  theme: PlatformBlocksTheme,
-  color: BadgeProps['color'],
-  isCustomColor: boolean
-): [string, string] => {
-  if (isCustomColor && typeof color === 'string') {
-    const normalized = normalizeHex(color);
-    if (normalized) {
-      return [normalized, adjustHexColor(normalized, -30)];
-    }
-    return [color, color];
-  }
-
-  const palette = color ? (theme.colors as any)[color as string] : undefined;
-  if (palette && Array.isArray(palette)) {
-    const start = palette[Math.min(5, palette.length - 1)] ?? palette[0];
-    const end = palette[Math.min(7, palette.length - 1)] ?? palette[palette.length - 1] ?? start;
-    return [start, end];
-  }
-
-  const primary = theme.colors.primary;
-  const start = primary[5] ?? primary[4] ?? primary[0];
-  const end = primary[7] ?? primary[6] ?? primary[5] ?? start;
-  return [start, end];
-};
 
 
 const BADGE_ALLOWED_SIZES: ComponentSize[] = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
@@ -95,78 +46,14 @@ const getBadgeStyles = (
     ...radiusStyles
   };
 
-  // Check if color is a custom color string or theme color
-  const isCustomColor = color && !['primary', 'secondary', 'success', 'warning', 'error', 'gray'].includes(color as string);
-  
-  if (isCustomColor) {
-    const customColor = color as string;
-    const variantStyles = {
-      filled: {
-        backgroundColor: customColor,
-        borderColor: customColor
-      },
-      outline: {
-        backgroundColor: 'transparent',
-        borderColor: customColor
-      },
-      light: {
-        backgroundColor: customColor + '20', // Add transparency
-        borderColor: customColor + '40'
-      },
-      subtle: {
-        backgroundColor: customColor + '10', // Even lighter transparency
-        borderColor: 'transparent'
-      },
-      gradient: {
-        backgroundColor: gradientStops?.[0] ?? customColor,
-        borderColor: gradientStops?.[1] ?? customColor
-      }
-    };
-    const styleForVariant = {
-      ...baseStyles,
-      ...variantStyles[variant],
-      ...(variant === 'gradient' ? { overflow: 'hidden' as const } : {})
-    };
-    return variant === 'gradient'
-      ? { ...styleForVariant, ...shadowStyles }
-      : styleForVariant;
-  }
-
-  // Use theme colors
-  const colorPalette = theme.colors[color as keyof typeof theme.colors];
-  if (!colorPalette) {
-    return {
-      ...baseStyles,
-      backgroundColor: theme.colors.primary[5],
-      borderColor: theme.colors.primary[5]
-    };
-  }
-  const variantStyles = {
-    filled: {
-      backgroundColor: colorPalette[5],
-      borderColor: colorPalette[5]
-    },
-    outline: {
-      backgroundColor: 'transparent',
-      borderColor: colorPalette[5]
-    },
-    light: {
-      backgroundColor: colorPalette[0],
-      borderColor: colorPalette[1]
-    },
-    subtle: {
-      backgroundColor: colorPalette[0] || (colorPalette[1] + '40'),
-      borderColor: 'transparent'
-    },
-    gradient: {
-      backgroundColor: gradientStops?.[0] ?? colorPalette[5],
-      borderColor: gradientStops?.[1] ?? colorPalette[6] ?? colorPalette[5]
-    }
-  };
+  // Fill + border come from the shared variant system so a Badge matches Alert,
+  // Chip, and Button for the same variant+color on every theme and color scheme.
+  const roles = resolveVariantRoles(theme, { variant, color, gradientStops });
 
   return {
     ...baseStyles,
-    ...variantStyles[variant],
+    backgroundColor: roles.fill,
+    borderColor: roles.border,
     ...(variant === 'gradient' ? { overflow: 'hidden' as const } : {}),
     ...shadowStyles
   };
@@ -180,69 +67,18 @@ const getBadgeTextStyles = (
 ) => {
   const fontSize = getFontSize(size);
 
-  const baseStyles = {
-    fontSize,
-    textAlign: 'center' as const
-  };
-
-  // Check if color is a custom color string or theme color
-  const isCustomColor = color && !['primary', 'secondary', 'success', 'warning', 'error', 'gray'].includes(color as string);
-  
-  if (isCustomColor) {
-    const customColor = color as string;
-    const variantStyles = {
-      filled: {
-        color: '#FFFFFF'
-      },
-      outline: {
-        color: customColor
-      },
-      light: {
-        color: customColor
-      },
-      subtle: {
-        color: customColor
-      },
-      gradient: {
-        color: '#FFFFFF'
-      }
-    };
-    return {
-      ...baseStyles,
-      ...variantStyles[variant]
-    };
-  }
-
-  // Use theme colors
-  const colorPalette = theme.colors[color as keyof typeof theme.colors];
-  if (!colorPalette) {
-    return { ...baseStyles, color: '#FFFFFF' };
-  }
-  const variantStyles = {
-    filled: {
-      color: '#FFFFFF'
-    },
-    outline: {
-      color: colorPalette[6]
-    },
-    light: {
-      color: colorPalette[7]
-    },
-    subtle: {
-      color: colorPalette[6] || colorPalette[7]
-    },
-    gradient: {
-      color: '#FFFFFF'
-    }
-  };
+  // Legible label color via the same shared system (measured contrast for
+  // filled/gradient, surface-readable tint for light/outline/subtle).
+  const roles = resolveVariantRoles(theme, { variant, color });
 
   return {
-    ...baseStyles,
-    ...variantStyles[variant]
+    fontSize,
+    textAlign: 'center' as const,
+    color: roles.text,
   };
 };
 
-export const Badge: React.FC<BadgeProps> = (props) => {
+export const Badge = React.forwardRef<View, BadgeProps>((props, ref) => {
   const {
     children,
     size = 'md',
@@ -266,7 +102,6 @@ export const Badge: React.FC<BadgeProps> = (props) => {
 
   const requestedVariant = v || variant || 'subtle';
   const resolvedColor = c || color || 'primary';
-  const isCustomColor = typeof resolvedColor === 'string' && !['primary', 'secondary', 'success', 'warning', 'error', 'gray'].includes(resolvedColor as string);
   const shouldUseGradient = requestedVariant === 'gradient' && hasLinearGradient;
   const effectiveVariant = shouldUseGradient ? 'gradient' : (requestedVariant === 'gradient' ? 'filled' : requestedVariant);
 
@@ -281,15 +116,15 @@ export const Badge: React.FC<BadgeProps> = (props) => {
   // Handle radius prop with 'chip' as default
   const radiusStyles = createRadiusStyles(radius || 'badge');
 
-  // Handle shadow prop - use default 'sm' for filled/gradient variant if no shadow specified
-  const effectiveShadow = shadowProps.shadow ?? ((effectiveVariant === 'filled' || effectiveVariant === 'gradient') ? 'sm' : 'none');
+  // Badges are flat by default on every variant; opt in with the `shadow` prop.
+  const effectiveShadow = shadowProps.shadow ?? 'none';
   const shadowStyles = getShadowStyles({ shadow: effectiveShadow }, theme, 'badge');
 
   const height = getHeight(clampedSize);
 
   const gradientStops = React.useMemo(() => (
-    shouldUseGradient ? buildGradientStops(theme, resolvedColor, isCustomColor) : undefined
-  ), [shouldUseGradient, theme, resolvedColor, isCustomColor]);
+    shouldUseGradient ? resolveGradientStops(theme, resolvedColor as string) : undefined
+  ), [shouldUseGradient, theme, resolvedColor]);
 
   const badgeStyles = getBadgeStyles(theme, effectiveVariant, resolvedColor, disabled, height - 10, radiusStyles, shadowStyles, gradientStops);
   const badgeTextStyles = getBadgeTextStyles(theme, effectiveVariant, resolvedColor, clampedSize);
@@ -330,6 +165,7 @@ export const Badge: React.FC<BadgeProps> = (props) => {
 
   return (
     <Component
+      ref={ref as any}
       style={[badgeStyles, spacingStyles, style]}
       onPress={disabled ? undefined : onPress}
       disabled={disabled}
@@ -366,6 +202,8 @@ export const Badge: React.FC<BadgeProps> = (props) => {
       </View>
     </Component>
   );
-};
+});
+
+Badge.displayName = 'Badge';
 
 export default Badge;

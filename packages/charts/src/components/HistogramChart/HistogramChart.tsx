@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text } from 'react-native';
 import Svg, { Rect, Path, G } from 'react-native-svg';
+import { roundedBarPath } from '../../utils/barPath';
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -10,7 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { HistogramChartProps, HistogramBin, HistogramBinSummary } from './types';
-import { ChartContainer, ChartTitle } from '../../ChartBase';
+import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
 import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { BandCategoryHitTester } from '../../core/hittest/band';
@@ -22,7 +23,6 @@ import { linearScale, generateNiceTicks } from '../../utils/scales';
 import type { Scale } from '../../utils/scales';
 import { getColorFromScheme, colorSchemes } from '../../utils';
 
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 // Gaussian kernel density estimation
@@ -125,22 +125,18 @@ const AnimatedHistogramBar: React.FC<{
 }> = React.memo(({ bin, index, x, y, width, height, animationProgress, fill, opacity, radius, disabled }) => {
   const animatedProps = useAnimatedProps(() => {
     const progress = animationProgress.value;
-    const animatedHeight = height * progress;
+    const animatedHeight = Math.max(0, height * progress);
     const animatedY = y + (height - animatedHeight);
-    
+
+    // Histogram counts are non-negative — round the top, keep the baseline flat.
     return {
-      x,
-      y: animatedY,
-      width,
-      height: Math.max(0, animatedHeight),
+      d: roundedBarPath(x, animatedY, width, animatedHeight, radius, 1, 1, 0, 0),
     } as any;
-  }, [x, y, width, height]);
+  }, [x, y, width, height, radius]);
 
   return (
-    <AnimatedRect
+    <AnimatedPath
       animatedProps={animatedProps}
-      rx={radius}
-      ry={radius}
       fill={fill}
       fillOpacity={opacity}
     />
@@ -201,6 +197,7 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
     multiTooltip = true,
     liveTooltip = true,
     enableCrosshair = true,
+    tooltip,
     disabled = false,
     animationDuration = 800,
     style,
@@ -212,6 +209,11 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
     rangeHighlights,
     onBinFocus,
     onBinBlur,
+    // Generic press/pan callbacks are excluded from `...rest` so they are not
+    // spread onto ChartContainer; Histogram does not wire them.
+    onPress,
+    onDataPointPress,
+    ...rest
   } = props;
 
   const theme = useChartTheme();
@@ -232,17 +234,27 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
 
   // Layout constants - adjust padding based on legend position to prevent overlap
   const basePadding = { top: 40, right: 20, bottom: 60, left: yAxis?.title ? 104 : 80 };
-  const padding = useMemo(() => {
-    if (!legend?.show) return basePadding;
-    const position = legend.position || 'bottom';
-    return {
-      ...basePadding,
-      top: position === 'top' ? basePadding.top + 40 : basePadding.top,
-      bottom: position === 'bottom' ? basePadding.bottom + 40 : basePadding.bottom,
-      left: position === 'left' ? basePadding.left + 120 : basePadding.left,
-      right: position === 'right' ? basePadding.right + 120 : basePadding.right,
-    };
-  }, [legend?.show, legend?.position]);
+  // Grown so the plot clears the title and legend overlays. Mirrors the fixed pair of
+  // entries the legend renders below.
+  const legendLabels = useMemo(
+    () => [
+      { label: density ? 'Density' : 'Count' },
+      ...(showDensity ? [{ label: 'KDE' }] : []),
+    ],
+    [density, showDensity]
+  );
+  const padding = useMemo(
+    () =>
+      withChartBandPadding(basePadding, {
+        title,
+        subtitle,
+        legendItems: legend?.show ? legendLabels : undefined,
+        legendPosition: legend?.position,
+        legendFontSize: legend?.fontSize,
+        containerWidth: width,
+      }),
+    [basePadding.left, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels, width]
+  );
   const plotWidth = Math.max(0, width - padding.left - padding.right);
   const plotHeight = Math.max(0, height - padding.top - padding.bottom);
 
@@ -413,19 +425,24 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
       const height = Math.max(0, plotHeight - y);
       const summary = binSummaries[i];
       const rangeLabel = `${Number(bin.start).toFixed(2)} – ${Number(bin.end).toFixed(2)}`;
+      const defaultFormatted = valueFormatter && summary
+        ? valueFormatter(bin.count, summary)
+        : `${rangeLabel} · ${density ? bin.density.toFixed(3) : bin.count}`;
+      // Only the `formatter` + `show` fields of the `tooltip` prop are honored here;
+      // tooltip styling is applied globally by the shared ChartActiveTooltip.
+      const tf = tooltip?.formatter?.(summary ?? bin);
       return {
         id: i,
         pixel: { x: rectX + effectiveW / 2, y: rectY },
         value,
         datum: summary ?? bin,
         extent: { rect: { x: rectX, y: rectY, width: effectiveW, height } },
-        formattedValue: valueFormatter && summary
-          ? valueFormatter(bin.count, summary)
-          : `${rangeLabel} · ${density ? bin.density.toFixed(3) : bin.count}`,
+        formattedValue: typeof tf === 'string' ? tf : defaultFormatted,
+        ...(tf != null && typeof tf !== 'string' ? { customTooltip: tf } : {}),
       };
     });
     return [{ id: 'hist-bins', name: 'Count', color: histColor, visible: true, marks }];
-  }, [bins, binSummaries, xScale, yScale, padding.left, padding.top, plotHeight, barGap, density, valueFormatter, histColor]);
+  }, [bins, binSummaries, xScale, yScale, padding.left, padding.top, plotHeight, barGap, density, valueFormatter, histColor, tooltip]);
 
   const tester = useMemo(() => new BandCategoryHitTester(hitSeries, { orientation: 'x' }), [hitSeries]);
 
@@ -507,12 +524,24 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
 
   return (
     <ChartContainer
+      {...rest}
       width={width}
       height={height}
       style={style}
-      interactionConfig={{ multiTooltip, liveTooltip, enableCrosshair }}
+      interactionConfig={{ multiTooltip, liveTooltip: tooltip?.show === false ? false : liveTooltip, enableCrosshair }}
     >
       {(title || subtitle) && <ChartTitle title={title} subtitle={subtitle} />}
+
+      {legend?.show && (
+        <ChartLegend
+          items={[
+            { label: density ? 'Density' : 'Count', color: barFill, visible: true },
+            ...(showDensity ? [{ label: 'KDE', color: densityColor, visible: true }] : []),
+          ]}
+          position={legend?.position}
+          align={legend?.align}
+        />
+      )}
 
       {grid?.show !== false && (
         <ChartGrid

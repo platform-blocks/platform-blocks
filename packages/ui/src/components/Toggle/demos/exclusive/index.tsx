@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Column, Text, ToggleButton, ToggleGroup } from '@platform-blocks/ui';
+import { Block, Text, ToggleButton, ToggleGroup } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [alignment, setAlignment] = useState('center');
@@ -13,13 +13,13 @@ export default function Demo() {
   };
 
   return (
-    <Column gap="sm">
-      <Column gap="xs">
+    <Block>
+      <Block>
         <Text weight="semibold">Exclusive selection</Text>
         <Text size="xs" colorVariant="secondary">
           Set `exclusive` to enforce a single active value at a time.
         </Text>
-      </Column>
+      </Block>
 
       <ToggleGroup value={alignment} exclusive onChange={handleChange}>
         <ToggleButton value="left">Left</ToggleButton>
@@ -31,6 +31,6 @@ export default function Demo() {
       <Text size="xs" colorVariant="secondary">
         Active option: {alignment}
       </Text>
-    </Column>
+    </Block>
   );
 }

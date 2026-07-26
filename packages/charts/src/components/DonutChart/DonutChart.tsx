@@ -193,6 +193,7 @@ export const DonutChart: React.FC<DonutChartProps> = (props) => {
     onDataPointPress,
     isolateOnClick = false,
     labels: labelsConfigProp,
+    tooltip,
     ...rest
   } = props;
 
@@ -448,14 +449,6 @@ export const DonutChart: React.FC<DonutChartProps> = (props) => {
     [ringStates]
   );
   const totalSlicesCount = Math.max(flatSlices.length, 1);
-  const dataSignature = useMemo(
-    () =>
-      flatSlices
-        .map((slice) => `${slice.id}:${slice.value}:${slice.visible ? 1 : 0}:${slice.ringIndex}`)
-        .join('|'),
-    [flatSlices]
-  );
-
   const hasRenderableSlices = flatSlices.some((slice) => slice.visible && slice.anglePercentage > 0);
 
   const animationProgress = useSharedValue(disabled ? 1 : 0);
@@ -464,12 +457,21 @@ export const DonutChart: React.FC<DonutChartProps> = (props) => {
   const animationStagger = animation?.stagger ?? 110;
   const resolvedAnimationDuration = animation?.duration ?? animationDuration;
 
+  // Mount-only intro: legend toggles re-flow the rings (AnimatedPieSlice tweens the
+  // angles) rather than replaying the grow-and-fade.
+  const hasPlayedIntro = useRef(false);
+
   useEffect(() => {
     if (disabled) {
       animationProgress.value = 1;
+      hasPlayedIntro.current = true;
       return;
     }
-
+    if (hasPlayedIntro.current) {
+      animationProgress.value = 1;
+      return;
+    }
+    hasPlayedIntro.current = true;
     animationProgress.value = 0;
     animationProgress.value = withDelay(
       animationDelay,
@@ -478,7 +480,7 @@ export const DonutChart: React.FC<DonutChartProps> = (props) => {
         easing: Easing.out(Easing.cubic),
       })
     );
-  }, [animationDelay, animationProgress, resolvedAnimationDuration, disabled, dataSignature]);
+  }, [animationDelay, animationProgress, resolvedAnimationDuration, disabled]);
 
   const [focusedSliceId, setFocusedSliceId] = useState<string | null>(null);
   const focusedSlice = useMemo(
@@ -513,6 +515,19 @@ export const DonutChart: React.FC<DonutChartProps> = (props) => {
       .map((slice) => {
         const midRadius = (slice.innerRadius + slice.outerRadius) / 2;
         const rad = ((slice.centerAngle - 90) * Math.PI) / 180;
+        // Only tooltip.formatter and tooltip.show are honored; per-chart tooltip styling
+        // (backgroundColor/textColor/fontSize/…) is not, because the tooltip is rendered by
+        // the shared/global ChartActiveTooltip. Pass the slice's own DonutChartDataPoint so
+        // the formatter matches ChartTooltip<DonutChartDataPoint>. String -> formattedValue,
+        // ReactNode -> customTooltip; falls back to defaultValueFormatter.
+        const datum: DonutChartDataPoint = {
+          id: slice.baseId ?? slice.id,
+          label: slice.label,
+          value: slice.value,
+          color: slice.color,
+          data: slice.data,
+        };
+        const tf = tooltip?.formatter?.(datum);
         return {
           id: slice.globalIndex,
           pixel: { x: hitCx + midRadius * Math.cos(rad), y: hitCy + midRadius * Math.sin(rad) },
@@ -532,11 +547,12 @@ export const DonutChart: React.FC<DonutChartProps> = (props) => {
               outerRadius: slice.outerRadius,
             },
           },
-          formattedValue: defaultValueFormatter(slice.value),
+          formattedValue: typeof tf === 'string' ? tf : defaultValueFormatter(slice.value),
+          ...(tf != null && typeof tf !== 'string' ? { customTooltip: tf } : {}),
         };
       });
     return [{ id: 'donut', name: 'Donut', color: theme.colors.accentPalette[0], visible: true, marks }];
-  }, [flatSlices, hitCx, hitCy, defaultValueFormatter, theme.colors.accentPalette]);
+  }, [flatSlices, hitCx, hitCy, defaultValueFormatter, theme.colors.accentPalette, tooltip]);
 
   const tester = useMemo(() => new AngularSliceHitTester(hitCx, hitCy, hitSeries), [hitCx, hitCy, hitSeries]);
 
@@ -895,6 +911,7 @@ export const DonutChart: React.FC<DonutChartProps> = (props) => {
       style={style}
       title={title}
       subtitle={subtitle}
+      interactionConfig={{ liveTooltip: tooltip?.show === false ? false : true }}
       {...rest}
     >
       {(title || subtitle) && <ChartTitle title={title} subtitle={subtitle} />}
@@ -999,7 +1016,6 @@ export const DonutChart: React.FC<DonutChartProps> = (props) => {
                   radiusOffset={4}
                   strokeWidth={1}
                   disabled={disabled}
-                  dataSignature={dataSignature}
                   onPress={(event: any) => {
                     const nativeEvent = event?.nativeEvent ?? event;
                     handleSlicePress(slice, nativeEvent);

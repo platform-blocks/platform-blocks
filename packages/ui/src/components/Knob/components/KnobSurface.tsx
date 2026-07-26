@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { View, ViewProps, PanResponderInstance, LayoutChangeEvent } from 'react-native';
 
+import { getAccessibilityValueProps } from '../../../core/accessibility/utils';
 import { knobStyles as styles } from '../styles';
 import { SurfaceLayers, type SurfaceLayersProps } from './SurfaceLayers';
 import { TickLayers, type TickLayersProps } from './TickLayers';
@@ -23,6 +24,9 @@ export type KnobSurfaceProps = Omit<ViewProps, 'onLayout' | 'children'> & {
   panHandlers?: PanResponderInstance['panHandlers'];
   handleLayout?: (event: LayoutChangeEvent) => void;
   keyboardHandlers?: Partial<ViewProps>;
+  /** Increment/decrement actions so VoiceOver and TalkBack can adjust without a pointer. */
+  accessibilityActions?: ViewProps['accessibilityActions'];
+  onAccessibilityAction?: ViewProps['onAccessibilityAction'];
   surfaceLayersProps: SurfaceLayersProps;
   tickLayersProps: TickLayersProps;
   pointerLayerProps: PointerLayerProps;
@@ -43,6 +47,8 @@ export const KnobSurface: React.FC<KnobSurfaceProps> = ({
   panHandlers,
   handleLayout,
   keyboardHandlers,
+  accessibilityActions,
+  onAccessibilityAction,
   surfaceLayersProps,
   tickLayersProps,
   pointerLayerProps,
@@ -74,7 +80,13 @@ export const KnobSurface: React.FC<KnobSurfaceProps> = ({
       accessibilityRole="adjustable"
       accessibilityLabel={accessibilityLabel ?? 'Knob'}
       accessibilityState={{ disabled }}
-      accessibilityValue={{ min: accessibilityMin, max: accessibilityMax, now: accessibilityNow }}
+      {...getAccessibilityValueProps({
+        min: accessibilityMin,
+        max: accessibilityMax,
+        now: accessibilityNow,
+      })}
+      accessibilityActions={accessibilityActions}
+      onAccessibilityAction={onAccessibilityAction}
       focusable={computedFocusable}
       {...keyboardHandlers}
       style={[
@@ -93,8 +105,10 @@ export const KnobSurface: React.FC<KnobSurfaceProps> = ({
     >
       <SurfaceLayers {...surfaceLayersProps} />
       <TickLayers {...tickLayersProps} />
-      {centerSlot}
+      {/* The pointer reaches the centre, so it draws *under* the centre slot — otherwise an
+          arm would run straight through a centred value label or status icon. */}
       <PointerLayer {...pointerLayerProps} />
+      {centerSlot}
       <ThumbLayer {...thumbLayerProps} />
     </View>
   );

@@ -70,7 +70,7 @@ export interface BlockStyleProps {
   /** Flex wrap */
   wrap?: boolean | 'nowrap' | 'wrap' | 'wrap-reverse';
   
-  /** Gap between children */
+  /** Gap between children. Defaults to `'sm'`; pass `0` to remove it. */
   gap?: number | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   
   /** Position type */

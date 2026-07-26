@@ -3,7 +3,7 @@ import { DEFAULT_THEME } from '../../../core/theme/defaultTheme';
 
 const baseOptions = {
   theme: DEFAULT_THEME,
-  variant: 'level' as const,
+  behavior: 'level' as const,
   disabled: false,
   size: 140,
 };
@@ -71,5 +71,89 @@ describe('resolveKnobAppearance - ticks', () => {
     });
 
     expect(resolved.ticks).toEqual(tickLayers);
+  });
+});
+
+describe('resolveKnobAppearance - pointer', () => {
+  it('leaves the arm off until something asks for one', () => {
+    expect(resolveKnobAppearance(baseOptions).pointer).toBeNull();
+  });
+
+  it('draws the arm as soon as a config is present, however empty', () => {
+    const resolved = resolveKnobAppearance({ appearance: { pointer: {} }, ...baseOptions });
+
+    expect(resolved.pointer).toMatchObject({ visible: true });
+  });
+
+  it('defaults the arm to the accent color so it reads as one needle with the thumb', () => {
+    const resolved = resolveKnobAppearance({ appearance: { pointer: {} }, ...baseOptions });
+
+    expect(resolved.pointer?.color).toBe(resolved.thumb?.color);
+  });
+
+  it.each([[false], [null]])('drops the arm when pointer is %p', (pointerInput: false | null) => {
+    const resolved = resolveKnobAppearance({
+      appearance: { pointer: pointerInput as false | undefined },
+      ...baseOptions,
+    });
+
+    expect(resolved.pointer).toBeNull();
+  });
+
+  it('keeps visible:false so the layer can opt out without dropping its config', () => {
+    const resolved = resolveKnobAppearance({
+      appearance: { pointer: { visible: false, length: 40 } },
+      ...baseOptions,
+    });
+
+    expect(resolved.pointer).toMatchObject({ visible: false, length: 40 });
+  });
+
+  it('lets explicit pointer props win over the defaults', () => {
+    const resolved = resolveKnobAppearance({
+      appearance: { pointer: { color: '#ff0000', length: 12, width: 9 } },
+      ...baseOptions,
+    });
+
+    expect(resolved.pointer).toMatchObject({ color: '#ff0000', length: 12, width: 9, visible: true });
+  });
+});
+
+describe('resolveKnobAppearance - ring segments', () => {
+  it('defaults to no segments', () => {
+    expect(resolveKnobAppearance(baseOptions).ring.segments).toEqual([]);
+  });
+
+  it('passes segments through in order', () => {
+    const segments = [
+      { value: 35, color: '#22c55e' },
+      { value: 25, color: '#f59e0b' },
+      { value: 40, color: '#ef4444' },
+    ];
+
+    const resolved = resolveKnobAppearance({
+      appearance: { ring: { segments } },
+      ...baseOptions,
+    });
+
+    expect(resolved.ring.segments).toEqual(segments);
+  });
+
+  it('drops segments that cannot be drawn', () => {
+    const resolved = resolveKnobAppearance({
+      appearance: {
+        ring: {
+          segments: [
+            { value: 10 },
+            { value: 0 },
+            { value: -5 },
+            { value: Number.NaN },
+          ],
+        },
+      },
+      ...baseOptions,
+    });
+
+    expect(resolved.ring.segments).toEqual([{ value: 10 }]);
   });
 });

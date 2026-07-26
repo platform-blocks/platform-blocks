@@ -1,31 +1,37 @@
 import { useState } from 'react';
 
-import { Card, Code, Column, PhoneInput, Text } from '@platform-blocks/ui';
+import { Block, Card, Code, PhoneInput, Text } from '@platform-blocks/ui';
 
 export default function Demo() {
   const [autoDetectValue, setAutoDetectValue] = useState('');
-  const [autoDetectFormatted, setAutoDetectFormatted] = useState('');
+  const [autoDetectE164, setAutoDetectE164] = useState('');
+  const [autoDetectCountry, setAutoDetectCountry] = useState('US');
   const [intlValue, setIntlValue] = useState('');
   const [intlFormatted, setIntlFormatted] = useState('');
 
   return (
-    <Column gap="sm" fullWidth>
+    <Block fullWidth>
       <Text weight="semibold">International detection</Text>
       <Text size="sm" colorVariant="secondary">
-        Compare auto-detected formats against a fully manual international mask.
+        With autoDetect, an explicit + prefix picks the country: type or paste
+        +447911123456 and the mask, dial code and E.164 output follow along. A
+        recognized dial code is stripped on paste either way, so a full international
+        number never overflows the national mask.
       </Text>
 
-      <Column gap="sm">
+      <Block>
         <PhoneInput
-          label="Auto-detect format"
+          label="Auto-detect from a + prefix"
           value={autoDetectValue}
-          onChange={(raw, formatted) => {
+          onChange={(raw, _formatted, meta) => {
             setAutoDetectValue(raw);
-            setAutoDetectFormatted(formatted);
+            setAutoDetectE164(meta.e164);
           }}
+          defaultCountry="US"
+          onCountryChange={setAutoDetectCountry}
           autoDetect
           showCountryCode
-          placeholder="Try 5551234567, 447911123456, or 33123456789"
+          placeholder="Try +447911123456 or +33123456789"
         />
 
         <PhoneInput
@@ -36,29 +42,32 @@ export default function Demo() {
             setIntlValue(raw);
             setIntlFormatted(formatted);
           }}
-          autoDetect={false}
           showCountryCode={false}
           placeholder="Enter any international number"
         />
-      </Column>
+      </Block>
 
       <Card variant="outline" p="sm">
-        <Column gap="xs">
+        <Block>
           <Text size="xs" colorVariant="secondary">
             Values
           </Text>
           <Code size="sm">
             {JSON.stringify(
               {
-                autoDetect: { raw: autoDetectValue, formatted: autoDetectFormatted },
+                autoDetect: {
+                  country: autoDetectCountry,
+                  raw: autoDetectValue,
+                  e164: autoDetectE164
+                },
                 international: { raw: intlValue, formatted: intlFormatted }
               },
               null,
               2
             )}
           </Code>
-        </Column>
+        </Block>
       </Card>
-    </Column>
+    </Block>
   );
 }
