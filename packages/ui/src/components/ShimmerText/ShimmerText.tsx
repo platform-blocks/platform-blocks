@@ -1,6 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ColorValue, LayoutChangeEvent, Platform, StyleSheet, View } from 'react-native';
-import MaskedView from '@react-native-masked-view/masked-view';
+import { resolveOptionalModule } from '../../utils/optionalModule';
+
+/**
+ * Resolved lazily so apps that never render a ShimmerText neither bundle
+ * @react-native-masked-view/masked-view nor need it installed. Without it, the
+ * text renders without the shimmer overlay.
+ */
+const resolveMaskedView = () =>
+  resolveOptionalModule<any>('@react-native-masked-view/masked-view', {
+    accessor: (mod) => mod?.default ?? mod,
+    devWarning:
+      '@react-native-masked-view/masked-view is not installed; <ShimmerText> renders static text without the shimmer effect.',
+  });
 import { resolveLinearGradient } from '../../utils/optionalDependencies';
 import Animated, {
   Easing,
@@ -299,6 +311,21 @@ export function ShimmerText(props: ShimmerTextProps) {
     }
 
     if (layout.width === 0 || layout.height === 0) {
+      return (
+        <Text
+          {...textProps}
+          color={baseColor}
+          onLayout={handleLayout}
+          style={style}
+        >
+          {content}
+        </Text>
+      );
+    }
+
+    const MaskedView = resolveMaskedView();
+
+    if (!MaskedView) {
       return (
         <Text
           {...textProps}

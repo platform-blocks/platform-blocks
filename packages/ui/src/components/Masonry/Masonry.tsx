@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, ViewStyle, StyleSheet } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import { View, ViewStyle, StyleSheet, ScrollView } from 'react-native';
 import { factory, Factory } from '../../core/factory';
+import { resolveOptionalModule } from '../../utils/optionalModule';
 import { getSpacingStyles, extractSpacingProps } from '../../core/utils/spacing';
 import { getSpacing } from '../../core/theme/sizes';
 import { Text } from '../Text';
@@ -10,6 +10,18 @@ import type { MasonryProps, MasonryItem } from './types';
 import { Block } from '../Block';
 
 export type { MasonryProps, MasonryItem } from './types';
+
+/**
+ * Resolved lazily so apps that never render a Masonry neither bundle
+ * @shopify/flash-list nor need it installed. Without it, the fallback below
+ * still lays items out in columns — just without virtualization.
+ */
+const resolveFlashList = () =>
+  resolveOptionalModule<any>('@shopify/flash-list', {
+    accessor: (mod) => mod?.FlashList,
+    devWarning:
+      '@shopify/flash-list is not installed; <Masonry> renders all items in a ScrollView instead of a virtualized list.',
+  });
 
 const DefaultItemRenderer: React.FC<{ item: MasonryItem; index: number; gap: number }> = ({
   item,
@@ -121,6 +133,45 @@ export const Masonry = factory<Factory<{ props: MasonryProps; ref: View }>>(
       return (
         <View ref={ref} style={containerStyle} testID={testID}>
           {emptyContent || defaultEmptyContent}
+        </View>
+      );
+    }
+
+    const FlashList = resolveFlashList();
+
+    if (!FlashList) {
+      // Non-virtualized fallback: round-robin the items into columns. Keeps
+      // content visible (and roughly masonry-shaped) when the optional
+      // dependency is absent.
+      const columns: { item: MasonryItem; index: number }[][] = Array.from(
+        { length: Math.max(1, numColumns) },
+        () => []
+      );
+      data.forEach((item, index) => {
+        columns[index % columns.length].push({ item, index });
+      });
+
+      return (
+        <View ref={ref} style={[masonryStyle, containerStyle]} testID={testID}>
+          <ScrollView
+            scrollEnabled={scrollEnabled}
+            contentContainerStyle={contentContainerStyle as any}
+            refreshControl={refreshControl as any}
+            onScroll={onScroll}
+            scrollEventThrottle={scrollEventThrottle}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+              {columns.map((column, columnIndex) => (
+                <View key={`masonry-column-${columnIndex}`} style={{ flex: 1 }}>
+                  {column.map(({ item, index }) => (
+                    <React.Fragment key={item.id}>
+                      {renderMasonryItem({ item, index })}
+                    </React.Fragment>
+                  ))}
+                </View>
+              ))}
+            </View>
+          </ScrollView>
         </View>
       );
     }

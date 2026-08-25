@@ -2,7 +2,19 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Platform, StyleSheet } from 'react-native';
 import { Text } from '../Text';
 import { GradientTextProps } from './types';
-import MaskedView from '@react-native-masked-view/masked-view';
+import { resolveOptionalModule } from '../../utils/optionalModule';
+
+/**
+ * Resolved lazily so apps that never render a GradientText neither bundle
+ * @react-native-masked-view/masked-view nor need it installed. Without it, the
+ * native branch falls back to plain text in the first gradient color.
+ */
+const resolveMaskedView = () =>
+  resolveOptionalModule<any>('@react-native-masked-view/masked-view', {
+    accessor: (mod) => mod?.default ?? mod,
+    devWarning:
+      '@react-native-masked-view/masked-view is not installed; <GradientText> renders plain colored text on native instead of a gradient.',
+  });
 import { resolveLinearGradient } from '../../utils/optionalDependencies';
 
 const { LinearGradient: OptionalLinearGradient, hasLinearGradient } = resolveLinearGradient();
@@ -273,6 +285,20 @@ export const GradientText = React.forwardRef<View, GradientTextProps>(
     const gradientLocations = colorLocations.length >= 2
       ? colorLocations as [number, number, ...number[]]
       : [0, 1] as [number, number];
+
+    const MaskedView = resolveMaskedView();
+
+    if (!MaskedView) {
+      return (
+        <Text
+          ref={ref as any}
+          {...textProps}
+          style={[textProps.style, { color: resolvedColors[0] || undefined }]}
+        >
+          {children}
+        </Text>
+      );
+    }
 
     return (
       <MaskedView

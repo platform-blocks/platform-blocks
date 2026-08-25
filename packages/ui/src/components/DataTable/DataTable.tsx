@@ -1,7 +1,19 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { View, ScrollView, Pressable, TextInput as RNTextInput, Platform } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
 import type { ListRenderItemInfo } from '@shopify/flash-list';
+import { resolveOptionalModule } from '../../utils/optionalModule';
+
+/**
+ * Resolved lazily so apps that never render a virtual DataTable neither bundle
+ * @shopify/flash-list nor need it installed. Without it, `virtual` quietly
+ * downgrades to the plain (non-virtualized) table rendering below.
+ */
+const resolveFlashList = () =>
+  resolveOptionalModule<any>('@shopify/flash-list', {
+    accessor: (mod) => mod?.FlashList,
+    devWarning:
+      '@shopify/flash-list is not installed; <DataTable virtual> renders every row without virtualization instead.',
+  });
 
 import { useTheme } from '../../core';
 import { useDirection } from '../../core/providers/DirectionProvider';
@@ -2092,11 +2104,13 @@ export const DataTable = <T,>({
     );
   }
 
+  const FlashList = virtual ? resolveFlashList() : null;
+
   return (
     <View style={[{ overflow: 'hidden' }, fullWidth && { width: '100%' }, getSpacingStyles(spacingProps), style]} {...otherProps}>
       {renderHeader()}
 
-      {virtual ? (
+      {virtual && FlashList ? (
         <View style={[{ width: '100%', overflow: 'hidden' }, tableBorderStyle]}>
           <ScrollView
             horizontal
@@ -2132,7 +2146,7 @@ export const DataTable = <T,>({
               ) : (
                 <FlashList
                   data={processedData}
-                  keyExtractor={(item, index) => String(getRowId(item, index))}
+                  keyExtractor={(item: T, index: number) => String(getRowId(item, index))}
                   renderItem={renderVirtualRow}
                   {...(flashListSizingProps as Record<string, unknown>)}
                   extraData={flashListExtraData}

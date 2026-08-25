@@ -1,6 +1,19 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect, memo } from 'react';
 import { View, Pressable, ViewStyle, Text as RNText, Platform, Dimensions } from 'react-native';
-import ReanimatedCarousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
+import type { ICarouselInstance } from 'react-native-reanimated-carousel';
+import { resolveOptionalModule } from '../../utils/optionalModule';
+
+/**
+ * The carousel engine, resolved lazily so apps that never render a Carousel
+ * neither bundle react-native-reanimated-carousel nor need it installed.
+ * Without it the component warns in dev and renders nothing.
+ */
+const resolveCarouselEngine = () =>
+  resolveOptionalModule<any>('react-native-reanimated-carousel', {
+    accessor: (mod) => mod?.default ?? mod,
+    devWarning:
+      'react-native-reanimated-carousel is not installed; <Carousel> has no engine to render with. Install it to use this component.',
+  });
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedReaction, interpolateColor, runOnJS, type SharedValue } from 'react-native-reanimated';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { useDirection } from '../../core/providers/DirectionProvider';
@@ -403,6 +416,7 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
   // Internal measurements need the node too, so compose rather than replace.
   const mergedContainerRef = useMergedRef<View>(containerRef, ref);
   const carouselRef = useRef<ICarouselInstance>(null);
+  const ReanimatedCarousel = resolveCarouselEngine();
   const [containerWidth, setContainerWidth] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
   // progress holds absolute item progress (fractional, not modulo) supplied by engine
@@ -883,7 +897,7 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
       {...otherProps}
     >
       <View style={{ flex: 1 }}>
-        {hasLayout && pagedItems.length > 0 && cardSize > 0 && (
+        {hasLayout && pagedItems.length > 0 && cardSize > 0 && ReanimatedCarousel && (
           <ReanimatedCarousel
             ref={carouselRef}
             width={isVertical ? containerWidth : containerWidth}

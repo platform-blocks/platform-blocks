@@ -21,19 +21,29 @@ type OptionalModuleLoader = () => any;
 // Metro bundler requires static string literals for require; keep all optional modules here.
 // NOTE: Do NOT add react-syntax-highlighter here - it causes Metro to fail on native
 // when the package isn't installed. Instead, pass the loader dynamically from web-only code.
+//
+// Every require below sits lexically inside its own try/catch. Metro's
+// `allowOptionalDependencies` (on by default in Expo and RN CLI metro configs)
+// only treats a require as optional when the call site is wrapped this way —
+// a bare `() => require('x')` makes Metro fail the whole app bundle when `x`
+// isn't installed, which silently turned all of these into hard dependencies
+// for consumers. The runtime try/catch in resolveOptionalModule is not enough;
+// the wrapping has to be visible to the bundler at each require site.
 const optionalModuleLoaders: Record<string, OptionalModuleLoader> = {
-  'react-native': () => require('react-native'),
-  'expo-clipboard': () => require('expo-clipboard'),
-  'expo-haptics': () => require('expo-haptics'),
-  'expo-linear-gradient': () => require('expo-linear-gradient'),
-  'expo-document-picker': () => require('expo-document-picker'),
-  'react-native-webview': () => require('react-native-webview'),
-  'lodash.debounce': () => require('lodash.debounce'),
-  'expo-audio': () => require('expo-audio'),
-  'react-native-gesture-handler': () => require('react-native-gesture-handler'),
-  'expo-status-bar': () => require('expo-status-bar'),
-  'expo-navigation-bar': () => require('expo-navigation-bar'),
-  '@shopify/flash-list': () => require('@shopify/flash-list'),
+  'react-native': () => { try { return require('react-native'); } catch { return null; } },
+  'expo-clipboard': () => { try { return require('expo-clipboard'); } catch { return null; } },
+  'expo-haptics': () => { try { return require('expo-haptics'); } catch { return null; } },
+  'expo-linear-gradient': () => { try { return require('expo-linear-gradient'); } catch { return null; } },
+  'expo-document-picker': () => { try { return require('expo-document-picker'); } catch { return null; } },
+  'react-native-webview': () => { try { return require('react-native-webview'); } catch { return null; } },
+  'lodash.debounce': () => { try { return require('lodash.debounce'); } catch { return null; } },
+  'expo-audio': () => { try { return require('expo-audio'); } catch { return null; } },
+  'react-native-gesture-handler': () => { try { return require('react-native-gesture-handler'); } catch { return null; } },
+  'expo-status-bar': () => { try { return require('expo-status-bar'); } catch { return null; } },
+  'expo-navigation-bar': () => { try { return require('expo-navigation-bar'); } catch { return null; } },
+  '@shopify/flash-list': () => { try { return require('@shopify/flash-list'); } catch { return null; } },
+  'react-native-reanimated-carousel': () => { try { return require('react-native-reanimated-carousel'); } catch { return null; } },
+  '@react-native-masked-view/masked-view': () => { try { return require('@react-native-masked-view/masked-view'); } catch { return null; } },
 };
 
 /**
@@ -77,6 +87,14 @@ export function resolveOptionalModule<T = any>(moduleId: string, options: Resolv
     entry.value = required;
   } catch (error) {
     entry.error = error instanceof Error ? error : new Error(String(error));
+    entry.value = null;
+  }
+
+  // The registered loaders swallow their own require failure and return null
+  // (the try/catch has to be lexical at the require site for Metro), so a null
+  // module here means "not installed" whichever path reported it.
+  if (entry.value == null) {
+    entry.error = entry.error ?? new Error(`Optional module "${moduleId}" could not be loaded.`);
     if (isDev && devWarning) {
       entry.logged = true;
       const prefix = Platform.OS === 'web' ? '[platform-blocks]' : '[platform-blocks/native]';
