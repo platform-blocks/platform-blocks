@@ -1,5 +1,5 @@
 // Size system for Platform Blocks - supports both string tokens and numeric values
-// Inspired by Mantine's size system
+// Token scale: xs | sm | md | lg | xl | 2xl | 3xl, with numeric values accepted anywhere a token is.
 
 import { DESIGN_TOKENS } from '../design-tokens';
 import type { ComponentSize } from './componentSize';

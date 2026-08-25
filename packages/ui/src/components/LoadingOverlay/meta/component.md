@@ -4,7 +4,7 @@ title: LoadingOverlay
 description: Overlay helper that blocks a section with a centered loader while background work completes.
 source: "@platform-blocks/ui"
 status: "beta"
-category: "Feedback"
+category: feedback
 accessibility: "Non-modal overlay; disable or trap focus manually when blocking interactive regions."
 variants:
   - name: "basic"

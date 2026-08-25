@@ -214,10 +214,10 @@ export const Card: CardComponent = React.forwardRef<View, CardProps>((allProps, 
   ];
 
   // Walk children to identify Card.Section instances and inject position
-  // metadata (`_isFirst` / `_isLast`). Mantine uses the same approach so
-  // the section can negate the parent's padding only on the relevant edges.
+  // metadata (`_isFirst` / `_isLast`), so a section can negate the parent's
+  // padding only on the edges it actually touches.
   // Note: this only inspects DIRECT children — Sections wrapped in fragments
-  // or extra Views won't be recognized (matches Mantine's behaviour).
+  // or extra Views won't be recognized.
   const childArray = React.Children.toArray(children);
   const sectionIndices: number[] = [];
   childArray.forEach((child, i) => {
@@ -297,7 +297,7 @@ export const Card: CardComponent = React.forwardRef<View, CardProps>((allProps, 
 
 Card.displayName = 'Card';
 
-// Attach Section as a static property so consumers can write `<Card.Section>`
-// (matches Mantine's API). The component is also exported on its own from the
-// barrel for users who prefer named imports.
+// Attach Section as a static property so consumers can write `<Card.Section>`.
+// The component is also exported on its own from the barrel for users who
+// prefer named imports.
 Card.Section = CardSection;

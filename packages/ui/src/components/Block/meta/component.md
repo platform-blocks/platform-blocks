@@ -24,4 +24,4 @@ examples:
   - bg-shorthand
 ---
 
-A polymorphic building block component that serves as a foundational element to replace View components throughout the application. Similar to a `<div>` in web development. The `bg` prop resolves through the theme — same Mantine-style lookup rules as `<Card bg=...>`.
+A polymorphic building block component that serves as a foundational element to replace View components throughout the application. Similar to a `<div>` in web development. The `bg` prop resolves through the theme — same lookup rules as `<Card bg=...>`.

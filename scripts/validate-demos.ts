@@ -6,6 +6,8 @@
 import fs from 'fs';
 import path from 'path';
 
+import { CORE_COMPONENTS } from '../apps/platform-blocks.com/config/coreComponents';
+
 // Optional zod import for component meta validation
 let z: any; try { z = require('zod'); } catch { z = null; }
 
@@ -46,7 +48,51 @@ function main() {
       if (!r.success) fail(`Component meta invalid for ${comp}`);
     }
   }
+  validateCategories(componentsMeta);
   console.log(`✔ validate-demos: ${demos.length} demos OK (${Object.keys(componentsMeta).length} components meta)`);
+}
+
+/**
+ * CORE_COMPONENTS is the single source of truth for a component's category — it
+ * drives the /components filter chips, the sidebar, and the llms.txt grouping.
+ * Each component's `meta/component.md` repeats the value so the generated
+ * Markdown page can print it, and the two drifted badly once already (six
+ * spellings of "input", components with docs pages missing from the list). This
+ * keeps them locked together.
+ */
+function validateCategories(componentsMeta: Record<string, any>): void {
+  const core = new Map(CORE_COMPONENTS.map(c => [c.name, c.category as string]));
+  const documented = Object.keys(componentsMeta);
+  const problems: string[] = [];
+
+  const duplicates = CORE_COMPONENTS
+    .map(c => c.name)
+    .filter((name, index, all) => all.indexOf(name) !== index);
+  for (const name of new Set(duplicates)) {
+    problems.push(`${name}: listed more than once in CORE_COMPONENTS`);
+  }
+
+  for (const name of documented) {
+    const expected = core.get(name);
+    if (!expected) {
+      problems.push(`${name}: has a docs page but is missing from CORE_COMPONENTS`);
+      continue;
+    }
+    const actual = componentsMeta[name]?.category;
+    if (actual !== expected) {
+      problems.push(`${name}: meta/component.md says category "${actual ?? '(none)'}", CORE_COMPONENTS says "${expected}"`);
+    }
+  }
+
+  for (const name of core.keys()) {
+    if (!documented.includes(name)) {
+      problems.push(`${name}: listed in CORE_COMPONENTS but has no docs page`);
+    }
+  }
+
+  if (problems.length) {
+    fail(`Component category mismatches (${problems.length}):\n  - ${problems.join('\n  - ')}`);
+  }
 }
 
 main();

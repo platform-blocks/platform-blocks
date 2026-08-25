@@ -11,17 +11,16 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
-import { GITHUB_REPO } from '../apps/platform-blocks.com/config/urls';
+import { GITHUB_REPO, SITE_URL } from '../apps/platform-blocks.com/config/urls';
 
 const ROOT = path.resolve(__dirname, '..');
 const UI_COMPONENTS_DIR = path.join(ROOT, 'packages', 'ui', 'src', 'components');
 const UI_HOOKS_DIR = path.join(ROOT, 'packages', 'ui', 'src', 'hooks');
 const CHARTS_COMPONENTS_DIR = path.join(ROOT, 'packages', 'charts', 'src', 'components'); // charts components directory
 const OUTPUT_DIR = path.join(ROOT, 'apps', 'platform-blocks.com', 'data', 'generated');
+// Per-component markdown consumed by the docs app (CopyPageMenu) and by
+// scripts/generate-llms.ts, which publishes it under public/llms/.
 const COMPONENT_MARKDOWN_DIR = path.join(OUTPUT_DIR, 'component-markdown');
-// Publicly served copy of the per-component markdown, linked from each docs page
-// as "LLM docs" so agents can fetch the raw page source.
-const PUBLIC_COMPONENT_MARKDOWN_DIR = path.join(ROOT, 'apps', 'platform-blocks.com', 'public', 'llms', 'components');
 
 interface DemoMeta {
   id: string; // Component.demoId
@@ -120,6 +119,11 @@ function parseFrontmatter(raw: string): { frontmatter: any; body: string } {
       if (structured !== value) {
         value = structured;
       }
+    }
+    // Quoted scalars are YAML strings, not part of the value — several meta
+    // files quote category/status and were publishing `Category: "Input"`.
+    if (typeof value === 'string' && /^(".*"|'.*')$/.test(value)) {
+      value = value.slice(1, -1);
     }
     if (typeof value === 'string' && /^\d+$/.test(value)) value = parseInt(value, 10);
     if (value === 'true') value = true; else if (value === 'false') value = false;
@@ -1068,6 +1072,24 @@ function compactParagraph(text?: string): string {
     .trim();
 }
 
+/**
+ * Component descriptions are authored as Markdown, and a handful carry real
+ * structure — their own headings and bullet lists. Flattening those to one line
+ * (as compactParagraph does for the short one-liners) turned AppShell's page
+ * into a single unreadable paragraph, so the body is kept verbatim; only the
+ * leading noise is trimmed: a frontmatter rule left behind by the meta parser,
+ * and a heading that just repeats the title the page already prints.
+ */
+function normalizeComponentDescription(text: string | undefined, title: string): string {
+  if (!text) return '';
+  const withoutRule = text.trim().replace(/^-{3,}\s*/, '');
+  const withoutTitle = withoutRule.replace(
+    new RegExp(`^#{1,6}\\s+${title.replace(/[.*+?^$()|[\]\\]/g, '\\$&')}\\s*\n+`),
+    '',
+  );
+  return withoutTitle.replace(/\n{3,}/g, '\n\n').trim();
+}
+
 function formatTagList(tags: unknown): string | null {
   if (!tags) return null;
   if (Array.isArray(tags)) {
@@ -1145,16 +1167,24 @@ function buildComponentMarkdown(
   lines.push(`# ${title}`);
   if (componentMeta.description) {
     lines.push('');
-    lines.push(compactParagraph(componentMeta.description));
+    lines.push(normalizeComponentDescription(componentMeta.description, title));
   }
 
+  const packageName = componentMeta.packageName
+    || (componentMeta.category === 'charts' ? '@platform-blocks/charts' : '@platform-blocks/ui');
   const metaList: string[] = [];
   metaList.push(`- Canonical name: \`${name}\``);
+  metaList.push(`- Package: \`${packageName}\``);
+  metaList.push(`- Import: \`import { ${name} } from '${packageName}';\``);
   if (componentMeta.status) metaList.push(`- Status: ${componentMeta.status}`);
   if (componentMeta.since) metaList.push(`- Since: ${componentMeta.since}`);
   if (componentMeta.category) metaList.push(`- Category: ${componentMeta.category}`);
   const componentTags = formatTagList(componentMeta.tags);
   if (componentTags) metaList.push(`- Tags: ${componentTags}`);
+  metaList.push(`- Docs: ${SITE_URL}/components/${name}`);
+  if (componentMeta.sourcePath) {
+    metaList.push(`- Source: ${GITHUB_REPO}/tree/${GITHUB_BRANCH}/${componentMeta.sourcePath}`);
+  }
   if (metaList.length) {
     lines.push('');
     lines.push('## Metadata');
@@ -1185,7 +1215,6 @@ function buildComponentMarkdown(
 function generate() {
   ensureDir(OUTPUT_DIR);
   ensureDir(COMPONENT_MARKDOWN_DIR);
-  ensureDir(PUBLIC_COMPONENT_MARKDOWN_DIR);
   const { demos, codeByComponent, componentMeta, propsMeta, componentSourceDir, warningCounts, componentWarnings } = collectDemos();
   const { hooks, codeByHook, hookMeta } = collectHooks();
 
@@ -1269,8 +1298,6 @@ function generate() {
     markdownIndex[name] = markdown;
     const filePath = path.join(COMPONENT_MARKDOWN_DIR, `${name}.md`);
     writeTextFile(filePath, markdown);
-    // Served verbatim at /llms/components/<Name>.md for the "LLM docs" link.
-    writeTextFile(path.join(PUBLIC_COMPONENT_MARKDOWN_DIR, `${name}.md`), markdown);
   }
   writeJsonPretty(path.join(OUTPUT_DIR, 'component-markdown.json'), markdownIndex);
 

@@ -11,7 +11,7 @@
     "docs:generate": "node -e \"console.log('docs:generate skipped (legacy unified removed)')\"",
     "demos:generate": "npx --yes tsx ../../scripts/generate-demos.ts",
     "demos:validate": "npx --yes tsx ../../scripts/validate-demos.ts",
-    "postinstall": "npm run demos:generate && (npm run demos:validate || true) && npm run snack:exports && npm run generate-code-map",
+    "postinstall": "npm run demos:generate && (npm run demos:validate || true) && npm run snack:exports && npm run generate-code-map && npm run generate-llms",
     "snack:exports": "npx --yes tsx ../../scripts/generate-snack-exports.ts",
     "create-demo": "tsx scripts/create-demo.ts",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",

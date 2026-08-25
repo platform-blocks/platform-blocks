@@ -1,7 +1,7 @@
 ---
 name: YearPicker
 playground: true
-category: input
+category: dates
 status: beta
 since: 0.1.0
 ---

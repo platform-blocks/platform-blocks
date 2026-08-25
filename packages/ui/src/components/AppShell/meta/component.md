@@ -1,3 +1,8 @@
+---
+title: AppShell
+category: layout
+---
+
 # AppShell
 
 High-level layout container orchestrating header, navigation rail/drawer, aside panel, footer, and optional mobile bottom navigation. Provides consistent responsive behavior and safe-area handling across platforms.

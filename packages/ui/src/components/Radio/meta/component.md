@@ -1,7 +1,7 @@
 ---
 name: Radio
 description: A radio button component for single-choice selection from a group of options
-category: Input System
+category: input
 subcategory: Form Controls
 tags: [input, form, selection, choice]
 status: stable

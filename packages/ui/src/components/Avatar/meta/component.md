@@ -1,7 +1,7 @@
 ---
 name: Avatar
 title: Avatar
-category: data-display
+category: display
 tags: [avatar, profile, user, image, initials]
 playground: true
 props:

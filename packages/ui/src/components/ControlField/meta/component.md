@@ -1,7 +1,7 @@
 ---
 name: ControlField
 title: ControlField
-category: inputs
+category: input
 tags: [control, field, checkbox, switch, radio, toggle, form, selection, row]
 playground: true
 props:

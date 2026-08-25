@@ -1,7 +1,7 @@
 ---
 name: SegmentedControl
 description: Toggle between preset options with an animated pill indicator
-category: Input System
+category: input
 subcategory: Selection Controls
 tags: [input, segmentation, toggle, selection]
 status: beta

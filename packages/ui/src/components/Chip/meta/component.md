@@ -1,7 +1,7 @@
 ---
 name: Chip
 title: Chip
-category: data-display
+category: data
 tags: [chip, tag, badge, label, removable]
 playground: true
 props:

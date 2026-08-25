@@ -3,7 +3,7 @@ title: Tabs
 description: A tab navigation component for organizing content into switchable sections with support for multiple variants and orientations.
 source: "@platform-blocks/ui"
 status: "stable"
-category: "Navigation"
+category: navigation
 playground: true
 accessibility: "Supports keyboard navigation, ARIA attributes, and screen readers with proper tab management"
 variants:

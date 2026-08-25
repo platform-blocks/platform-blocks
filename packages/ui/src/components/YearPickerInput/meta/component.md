@@ -1,7 +1,7 @@
 ---
 name: YearPickerInput
 playground: true
-category: input
+category: dates
 status: beta
 since: 0.1.0
 inherits: All `<Input>` slot props pass through (labelProps, descriptionProps, placeholderTextColor, startSectionProps, endSectionProps, variant)

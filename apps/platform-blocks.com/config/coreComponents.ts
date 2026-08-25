@@ -6,7 +6,7 @@
 
 export interface CoreComponentConfig {
   name: string;
-  category: 'input' | 'display' | 'layout' | 'typography' | 'feedback' | 'navigation' | 'form' | 'data' | 'charts' | 'media' | 'dates' | 'others';
+  category: 'input' | 'display' | 'layout' | 'typography' | 'feedback' | 'navigation' | 'overlay' | 'form' | 'data' | 'charts' | 'media' | 'dates' | 'others';
   // Internal Icon name from @platform-blocks/ui Icon registry
   icon: string;
   description?: string;
@@ -25,6 +25,8 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Toggle', category: 'input', icon: 'toggle', description: 'Toggle button group for single or multiple selection' },
   { name: 'BrandButton', category: 'input', icon: 'bolt', description: 'Branded action button and store badge for every brand in the icon registry' },
   { name: 'Radio', category: 'input', icon: 'radio' },
+  { name: 'IconButton', category: 'input', icon: 'button', description: 'Icon-only button with the Button variant and size API' },
+  { name: 'Rating', category: 'input', icon: 'rating' },
 
   // Input Components
   { name: 'Input', category: 'input', icon: 'input', description: 'Base text field surface with keyboard-manager integration' },
@@ -42,6 +44,9 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'ColorPicker', category: 'input', icon: 'colors', description: 'Color selection input with swatches' },
   { name: 'ControlField', category: 'input', icon: 'check', description: 'Pressable row combining a label, description, and a switch/checkbox/radio control' },
   { name: 'EmojiPicker', category: 'input', icon: 'emoji', description: 'Emoji selection panel with categories, search, and skin tone support' },
+  { name: 'Form', category: 'input', icon: 'form', description: 'Manages values, validation, and submission state for a group of inputs' },
+  { name: 'SegmentedControl', category: 'input', icon: 'splitTrack' },
+  { name: 'CopyButton', category: 'input', icon: 'copy', description: 'Utility to copy content to clipboard with feedback' },
 
   // Date Components
   { name: 'Calendar', category: 'dates', icon: 'calendar', description: 'A versatile calendar component for selecting dates, months, and years with customizable styles and behaviors.' },
@@ -58,12 +63,11 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   // Display Components
   { name: 'Avatar', category: 'display', icon: 'avatar' },
   { name: 'Collapse', category: 'display', icon: 'accordion', description: 'Animated height collapse/expand container for showing/hiding content' },
-  { name: 'Badge', category: 'display', icon: 'badge', description: 'Small status or counter indicator positioned on a parent element' },
-  { name: 'Tooltip', category: 'display', icon: 'tooltip' },
-  { name: 'Popover', category: 'display', icon: 'popover' },
   { name: 'Carousel', category: 'display', icon: 'carousel' },
   { name: 'Spoiler', category: 'display', icon: 'spoiler', description: 'Hides content until clicked' },
   { name: 'ColorSwatch', category: 'display', icon: 'colors', description: 'Individual color swatch for use in color palettes and pickers' },
+  { name: 'Accordion', category: 'display', icon: 'accordion' },
+  { name: 'ListGroup', category: 'display', icon: 'list', description: 'Grouped list rows with headers, dividers, and pressable items' },
 
 
   // Typography Components
@@ -71,7 +75,6 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Title', category: 'typography', icon: 'title', description: 'Semantic heading component with size & level mapping' },
   { name: 'Highlight', category: 'typography', icon: 'highlight', description: 'Highlight text with background color for emphasis' },
   { name: 'CodeBlock', category: 'typography', icon: 'code' },
-  { name: 'CopyButton', category: 'typography', icon: 'copy', description: 'Utility to copy content to clipboard with feedback' },
   { name: 'KeyCap', category: 'typography', icon: 'keycap', description: 'Display keyboard shortcuts with press animations' },
   { name: 'GradientText', category: 'typography', icon: 'text', description: 'Text component with gradient color support' },
   { name: 'ShimmerText', category: 'typography', icon: 'text', description: 'Animated shimmering text placeholder for loading states' },
@@ -82,15 +85,15 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Indicator', category: 'data', icon: 'indicator', description: 'Status indicator dot with color and size options' },
   { name: 'Chip', category: 'data', icon: 'chip' },
   { name: 'Badge', category: 'data', icon: 'badge', description: 'Small status or counter indicator positioned on a parent element' },
-  { name: 'Table', category: 'display', icon: 'table' },
+  { name: 'Table', category: 'data', icon: 'table' },
   { name: 'DataTable', category: 'data', icon: 'datatable', description: 'Data grid with sorting, filtering, and pagination' },
   { name: 'DataList', category: 'data', icon: 'list', description: 'Display label/value pairs in a semantic description list' },
   { name: 'QRCode', category: 'data', icon: 'qrcode' },
   { name: 'Markdown', category: 'data', icon: 'markdown' },
-  { name: 'Rating', category: 'data', icon: 'rating' },
   { name: 'Timeline', category: 'data', icon: 'timeline', description: 'Display sequence of events in chronological order' },
 
   // Layout Components
+  { name: 'AppShell', category: 'layout', icon: 'paddingFrame', description: 'Application frame with header, navbar, aside, footer, and mobile bottom navigation' },
   { name: 'Block', category: 'layout', icon: 'block' },
   { name: 'Surface', category: 'layout', icon: 'layers', description: 'Elevation primitive Card, Menu, Popover and Dialog are built on' },
   { name: 'Card', category: 'display', icon: 'card' },
@@ -99,24 +102,20 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Masonry', category: 'layout', icon: 'masonry', description: 'Pinterest-style masonry layout with FlashList performance' },
   { name: 'Divider', category: 'layout', icon: 'divider' },
   { name: 'Space', category: 'layout', icon: 'paddingFrame' },
-  { name: 'Tabs', category: 'layout', icon: 'tabs' },
   { name: 'TableOfContents', category: 'navigation', icon: 'tableofcontents', description: 'Auto-generated document outline with anchor navigation' },
-  { name: 'SegmentedControl', category: 'layout', icon: 'splitTrack' },
 
   // Feedback Components
   { name: 'Alert', category: 'feedback', icon: 'info', description: 'Prominent inline message tied to a semantic status' },
   { name: 'Blockquote', category: 'typography', icon: 'quote', description: 'Stylized blockquote for highlighting quotes or important text' },
-  { name: 'Dialog', category: 'feedback', icon: 'dialog' },
   { name: 'Toast', category: 'feedback', icon: 'toast' },
   { name: 'Progress', category: 'feedback', icon: 'progress' },
   { name: 'Ring', category: 'feedback', icon: 'chart-donut', description: 'Circular progress indicator with configurable labels, color stops, and custom center content.' },
   { name: 'Loader', category: 'feedback', icon: 'loader' },
   { name: 'Skeleton', category: 'feedback', icon: 'bone' },
-  { name: 'Overlay', category: 'feedback', icon: 'layer-mask', description: 'Dimmed overlay backdrop for modals and popups' },
   { name: 'LoadingOverlay', category: 'feedback', icon: 'progress-shield', description: 'Overlay with centered loader for pending operations' },
 
   // Navigation Components
-  { name: 'Accordion', category: 'navigation', icon: 'accordion' },
+  { name: 'Tabs', category: 'navigation', icon: 'tabs' },
   { name: 'Link', category: 'navigation', icon: 'link' },
   { name: 'Menu', category: 'navigation', icon: 'menu' },
   { name: 'MenuItemButton', category: 'navigation', icon: 'menu', description: 'Actionable menu list item with consistent styling' },
@@ -125,6 +124,13 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Stepper', category: 'navigation', icon: 'stepper', description: 'Step-by-step navigation component for multi-step processes' },
   { name: 'Spotlight', category: 'navigation', icon: 'spotlight', description: 'Command palette / global action search interface' },
   { name: 'Tree', category: 'navigation', icon: 'tree', description: 'Hierarchical tree view with expansion, selection, checkboxes, and filtering' },
+
+  // Overlay Components
+  { name: 'Dialog', category: 'overlay', icon: 'dialog' },
+  { name: 'Overlay', category: 'overlay', icon: 'layer-mask', description: 'Dimmed overlay backdrop for modals and popups' },
+  { name: 'Popover', category: 'overlay', icon: 'popover' },
+  { name: 'Tooltip', category: 'overlay', icon: 'tooltip' },
+  { name: 'ContextMenu', category: 'overlay', icon: 'menu', description: 'Menu opened by right-click on web or long-press on native' },
 
   // Chart Components
   { name: 'AreaChart', category: 'charts', icon: 'chart-area' },
@@ -158,6 +164,7 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Gallery', category: 'media', icon: 'gallery', description: 'A fullscreen image viewer with navigation, thumbnails, and metadata display' },
   { name: 'Video', category: 'media', icon: 'play', description: 'Video player for YouTube, MP4, and other formats with timeline synchronization' },
   { name: 'Waveform', category: 'media', icon: 'waveform', description: 'Audio waveform visualization component' },
+  { name: 'AudioPlayer', category: 'media', icon: 'music', description: 'Audio player with a seekable waveform, transport controls, and progress callbacks' },
 
 ];
 
@@ -200,7 +207,7 @@ export function getCoreComponentsByCategory(): Record<string, CoreComponentConfi
  */
 export function getCoreCategories(): string[] {
   // Define the desired order of categories
-  const categoryOrder: CoreComponentConfig['category'][] = ['charts', 'data', 'input', 'display', 'feedback', 'layout', 'navigation', 'typography', 'media', 'dates', 'others'];
+  const categoryOrder: CoreComponentConfig['category'][] = ['charts', 'data', 'input', 'display', 'feedback', 'layout', 'navigation', 'overlay', 'typography', 'media', 'dates', 'others'];
 
   // Get all categories that actually exist in the components
   const existingCategories = new Set(CORE_COMPONENTS.map(component => component.category));
@@ -210,9 +217,13 @@ export function getCoreCategories(): string[] {
 }
 
 /**
- * Map component categories to colors
+ * Map component categories to colors.
+ *
+ * Typed against the category union rather than `string`, so adding a category
+ * without a color here is a compile error — `dates` silently had no color or
+ * icon for its ten components until the categories were reconciled.
  */
-export const CATEGORY_COLORS: Record<string, 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'gray'> = {
+export const CATEGORY_COLORS: Record<CoreComponentConfig['category'], 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'gray'> = {
   charts: 'primary',
   data: 'secondary',
   input: 'success',
@@ -220,16 +231,19 @@ export const CATEGORY_COLORS: Record<string, 'primary' | 'secondary' | 'success'
   feedback: 'error',
   layout: 'gray',
   navigation: 'primary',
+  overlay: 'secondary',
   typography: 'secondary',
   form: 'success',
   media: 'warning',
+  dates: 'primary',
   others: 'gray',
 };
 
 /**
- * Map component categories to fallback icons
+ * Map component categories to fallback icons. Exhaustive for the same reason as
+ * CATEGORY_COLORS.
  */
-export const CATEGORY_ICONS: Record<string, string> = {
+export const CATEGORY_ICONS: Record<CoreComponentConfig['category'], string> = {
   charts: 'chart-bar',
   data: 'database',
   input: 'plus',
@@ -237,8 +251,10 @@ export const CATEGORY_ICONS: Record<string, string> = {
   feedback: 'bell',
   layout: 'menu',
   navigation: 'arrow-right',
+  overlay: 'layers',
   typography: 'font',
   form: 'search',
   media: 'image',
+  dates: 'calendar',
   others: 'ellipsis-h',
 };

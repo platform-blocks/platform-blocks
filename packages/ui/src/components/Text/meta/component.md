@@ -1,7 +1,7 @@
 ---
 name: Text
 description: A versatile text component with typography variants, colors, and styling options
-category: Data Display
+category: typography
 subcategory: Typography
 tags: [text, typography, content, display]
 status: stable
@@ -26,7 +26,7 @@ examples:
   weights: Font weight options
   heights: Line height testing
   ff: Font family override (ff shorthand or fontFamily long form)
-  c-shorthand: Mantine-style color shorthand (`c="dimmed"`, `c="primary.6"`, `c="#a855f7"`)
+  c-shorthand: Theme color shorthand (`c="dimmed"`, `c="primary.6"`, `c="#a855f7"`)
 ---
 
 Text component provides consistent typography with various variants, colors, and styling options for displaying content.

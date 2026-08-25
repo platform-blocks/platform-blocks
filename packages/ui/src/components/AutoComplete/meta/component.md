@@ -1,7 +1,7 @@
 ---
 name: AutoComplete
 title: AutoComplete
-category: inputs
+category: input
 tags: [input, search, typeahead, autocomplete, suggestions]
 playground: true
 props:

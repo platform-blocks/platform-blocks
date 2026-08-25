@@ -4,7 +4,7 @@ title: Spotlight
 description: Global command palette for fuzzy searching and executing actions.
 source: ui/src/components/Spotlight
 status: experimental
-category: Navigation
+category: navigation
 tags: [command-palette, search, quick actions]
 examples: []
 ---

@@ -1,398 +1,636 @@
-import { promises as fs } from 'node:fs';
+/**
+ * llms.txt generator.
+ *
+ * Follows the https://llmstxt.org convention: instead of one enormous
+ * truncated file, the site publishes
+ *
+ *   /llms.txt                    a compact index — one link + summary per page
+ *   /llms-full.txt               every page concatenated, nothing truncated
+ *   /llms/<section>/<page>.md    each page as a standalone Markdown file
+ *
+ * An agent reads the index, then fetches only the handful of pages it needs.
+ *
+ * Inputs are the artifacts written by scripts/generate-demos.ts plus the
+ * JSX-free content modules under apps/platform-blocks.com/config/. Run
+ * `npm run demos:generate` first — without the generated data this emits an
+ * index of whatever it can find and warns about the rest.
+ */
+
+import { promises as fs, type Dirent } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-type JSONObject = Record<string, unknown>;
-type ComponentMeta = Record<string, JSONObject>;
-type ComponentPropsMap = Record<string, Array<Record<string, any>>>;
+import { CORE_COMPONENTS, type CoreComponentConfig } from '../apps/platform-blocks.com/config/coreComponents';
+import { FAQ_ITEMS } from '../apps/platform-blocks.com/config/faq';
+import { GITHUB_REPO, NPM_PACKAGE, SITE_URL } from '../apps/platform-blocks.com/config/urls';
+import {
+  GETTING_STARTED_PREREQUISITES,
+  GETTING_STARTED_STEPS,
+  GETTING_STARTED_SUBTITLE,
+} from '../apps/platform-blocks.com/config/gettingStarted';
+import {
+  ACCESSIBILITY_EXAMPLE_LEAD,
+  ACCESSIBILITY_EXAMPLE_SNIPPET,
+  ACCESSIBILITY_EXAMPLE_TITLE,
+  ACCESSIBILITY_INTRO,
+  ACCESSIBILITY_OUTRO,
+  ACCESSIBILITY_SECTIONS,
+  ACCESSIBILITY_TITLE,
+} from '../apps/platform-blocks.com/config/accessibility';
+import {
+  LOCALIZATION_NOTE_KEYS,
+  LOCALIZATION_STEPS,
+} from '../apps/platform-blocks.com/config/localization';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
-const uiDir = path.join(repoRoot, 'packages', 'ui');
 const docsDir = path.join(repoRoot, 'apps', 'platform-blocks.com');
 const generatedDir = path.join(docsDir, 'data', 'generated');
 const publicDir = path.join(docsDir, 'public');
-const outputPathTxt = path.join(publicDir, 'llms.txt');
+const llmsDir = path.join(publicDir, 'llms');
+const uiDir = path.join(repoRoot, 'packages', 'ui');
 
-const allowedDocExtensions = new Set(['.md', '.mdx', '.ts', '.tsx', '.json']);
-const ignoredDirectories = new Set(['node_modules', '.expo', '.next', 'dist', 'build', 'lib', '.turbo', '.git', 'generated']);
+const GITHUB_BRANCH = 'main';
+const GITHUB_TREE = `${GITHUB_REPO}/tree/${GITHUB_BRANCH}`;
 
-// Set to false to generate full llms.txt without limits
-const USE_LIMITS = true;
+type JSONObject = Record<string, unknown>;
 
-const MAX_LIST_ITEMS = 12;
-const MAX_DEMO_ENTRIES = 2;
-const MAX_PROP_ENTRIES = 12;
-const MAX_DOC_FILES = 10;
-const SUMMARY_CHAR_LIMIT = 240;
+/** One published page: a Markdown file plus its row in the index. */
+interface LlmsPage {
+  /** Path under /llms, e.g. `components/Button.md`. */
+  slug: string;
+  /** Link text in the index. */
+  title: string;
+  /** Trailing summary in the index. Omitted when there is nothing useful to say. */
+  summary?: string;
+  /** Full Markdown body of the page. */
+  body: string;
+}
+
+/** An `## Heading` group of pages in llms.txt. */
+interface LlmsSection {
+  heading: string;
+  pages: LlmsPage[];
+}
+
+// ---------------------------------------------------------------------------
+// IO helpers
+// ---------------------------------------------------------------------------
 
 async function readTextIfExists(filePath: string): Promise<string | null> {
-	try {
-		const raw = await fs.readFile(filePath, 'utf8');
-		return raw.replace(/\r\n/g, '\n');
-	} catch {
-		return null;
-	}
+  try {
+    return (await fs.readFile(filePath, 'utf8')).replace(/\r\n/g, '\n');
+  } catch {
+    return null;
+  }
 }
 
 async function readJSONIfExists<T = any>(filePath: string): Promise<T | null> {
-	const raw = await readTextIfExists(filePath);
-	if (!raw) return null;
-	try {
-		return JSON.parse(raw) as T;
-	} catch {
-		return null;
-	}
+  const raw = await readTextIfExists(filePath);
+  if (raw === null) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
 }
 
-function formatKeyValueBlock(title: string, record: Record<string, string> | undefined, limit: number = MAX_LIST_ITEMS): string | null {
-	if (!record || Object.keys(record).length === 0) {
-		return null;
-	}
-	const sorted = Object.entries(record).sort(([a], [b]) => a.localeCompare(b));
-	const trimmed = USE_LIMITS ? sorted.slice(0, limit) : sorted;
-	const lines = trimmed.map(([key, value]) => `- ${key}: ${value}`);
-	if (USE_LIMITS && sorted.length > trimmed.length) {
-		lines.push(`- … ${sorted.length - trimmed.length} more`);
-	}
-	return `### ${title}\n${lines.join('\n')}`;
-}
+/**
+ * Writes every page and removes any `.md` left over from a previous run, so a
+ * renamed or deleted component never lingers as a stale URL the index no longer
+ * links to.
+ */
+async function writePages(pages: LlmsPage[]): Promise<void> {
+  const expected = new Set(pages.map(page => path.join(llmsDir, page.slug)));
 
-function indentBlock(text: string, spaces = 2): string {
-	const prefix = ' '.repeat(spaces);
-	return text
-		.split('\n')
-		.map(line => (line.length ? `${prefix}${line}` : line))
-		.join('\n');
-}
+  const stale: string[] = [];
+  async function walk(dir: string): Promise<void> {
+    let entries: Dirent[];
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(full);
+      } else if (entry.name.endsWith('.md') && !expected.has(full)) {
+        stale.push(full);
+      }
+    }
+  }
+  await walk(llmsDir);
+  await Promise.all(stale.map(file => fs.rm(file, { force: true })));
 
-async function collectFiles(baseDir: string, relativeRoot: string): Promise<Array<{ relative: string; content: string }>> {
-	const collected: Array<{ relative: string; content: string }> = [];
-
-	async function walk(currentDir: string) {
-		let entries: Array<import('node:fs').Dirent> = [];
-		try {
-			entries = await fs.readdir(currentDir, { withFileTypes: true });
-		} catch {
-			return;
-		}
-
-		for (const entry of entries) {
-			if (entry.name.startsWith('.')) continue;
-			if (ignoredDirectories.has(entry.name)) continue;
-			const fullPath = path.join(currentDir, entry.name);
-			if (entry.isDirectory()) {
-				await walk(fullPath);
-				continue;
-			}
-			const ext = path.extname(entry.name).toLowerCase();
-			if (!allowedDocExtensions.has(ext)) continue;
-			const content = await readTextIfExists(fullPath);
-			if (!content) continue;
-			const relative = path.relative(relativeRoot, fullPath);
-			collected.push({ relative, content });
-		}
-	}
-
-	await walk(baseDir);
-	collected.sort((a, b) => a.relative.localeCompare(b.relative));
-	return collected;
-}
-
-function formatMetaSection(name: string, meta: JSONObject | undefined): string {
-	if (!meta) {
-		return `## Component: ${name}\n(No metadata available.)`;
-	}
-
-	const lines: string[] = [`## Component: <${name}>`];
-	const basicFields: Array<[string, unknown]> = [
-		// ['Title', meta.title],
-		// ['Status', meta.status],
-		// ['Since', meta.since],
-		// ['Category', meta.category],
-		// ['Subcategories', Array.isArray(meta.subcategories) ? (meta.subcategories as string[]).join(', ') : undefined],
-		// ['Tags', Array.isArray(meta.tags) ? (meta.tags as string[]).join(', ') : undefined]
-	];
-	for (const [label, value] of basicFields) {
-		if (value) {
-			lines.push(`${label}: ${value}`);
-		}
-	}
-
-	// if (meta.a11yKeyboard || meta.a11yRoles) {
-	// 	lines.push('### Accessibility');
-	// 	if (meta.a11yKeyboard) lines.push(`- Keyboard: ${meta.a11yKeyboard}`);
-	// 	if (meta.a11yRoles) lines.push(`- Roles: ${meta.a11yRoles}`);
-	// }
-
-	// if (Array.isArray(meta.theming) && meta.theming.length) {
-	// 	lines.push('### Theming Hooks');
-	// 	lines.push(...(meta.theming as string[]).map(item => `- ${item}`));
-	// }
-
-	// if (meta.performanceNotes) {
-	// 	lines.push('### Performance Notes');
-	// 	lines.push(meta.performanceNotes as string);
-	// }
-
-	if (meta.description) {
-		const rawDescription = String(meta.description);
-		const primaryParagraph = rawDescription.split(/\n\n+/)[0]?.trim() ?? rawDescription.trim();
-		const snippet = USE_LIMITS && primaryParagraph.length > SUMMARY_CHAR_LIMIT
-			? `${primaryParagraph.slice(0, SUMMARY_CHAR_LIMIT - 1)}…`
-			: primaryParagraph;
-		// lines.push('### Description');
-		lines.push(snippet);
-	}
-
-	return lines.join('\n');
-}
-
-function formatPropsSection(props: Array<Record<string, any>>): string | null {
-	if (!props || props.length === 0) return null;
-	const lines: string[] = ['### Props'];
-	const limitedProps = USE_LIMITS ? props.slice(0, MAX_PROP_ENTRIES) : props;
-	for (const prop of limitedProps) {
-		const type = prop.type ? ` (${prop.type})` : '';
-		const requirement = prop.required ? 'required' : 'optional';
-		const defaultValue = prop.defaultValue ? `, default: ${prop.defaultValue}` : '';
-		const header = `\`${prop.name}\`${type} [${requirement}${defaultValue}]`;
-    const description = prop.description ? String(prop.description).trim() : '';
-		
-    lines.push(header)
-	if (description) {
-		lines.push(indentBlock(description));
-	}
-	}
-	if (USE_LIMITS && props.length > limitedProps.length) {
-		lines.push(`- … ${props.length - limitedProps.length} more props documented`);
-	}
-	return lines.join('\n');
-}
-
-
-function withCodeBlock(code: string, language = 'tsx'): string {
-	const cleaned = code.replace(/\r\n/g, '\n').trimEnd();
-	return `\`\`\`${language}\n${cleaned}\n\`\`\``;
-}
-
-function sanitizeDemoCode(code: string): string {
-	const normalized = code.replace(/\r\n/g, '\n');
-	const withoutImports = normalized
-		// .replace(/import[\s\S]*?from\s+['"][^'"]+['"];?\s*/g, '')
-		// .replace(/import\s+['"][^'"]+['"];?\s*/g, '');
-
-	const lines = withoutImports.split('\n');
-	const filtered = lines.filter(line => {
-		const trimmed = line.trim();
-		if (!trimmed) return false;
-		return !trimmed.startsWith('export');
-	});
-	return filtered.join('\n');
-}
-
-async function loadDemoCode(component: string): Promise<Record<string, { code?: string; importPath?: string }>> {
-	const fileName = `demo-code-${component}.json`;
-	const filePath = path.join(generatedDir, fileName);
-	const data = await readJSONIfExists<Record<string, { code?: string; importPath?: string }>>(filePath);
-	return data ?? {};
-}
-
-
-async function buildComponentSection(
-	name: string,
-	metaMap: ComponentMeta,
-	propsMap: ComponentPropsMap,
-	demosByComponent: Map<string, Array<Record<string, any>>>
-): Promise<string> {
-	const parts: string[] = [];
-	parts.push(formatMetaSection(name, metaMap[name] as JSONObject | undefined));
-
-	const propsSection = formatPropsSection(propsMap[name] || []);
-	if (propsSection) parts.push(propsSection);
-
-	const demos = demosByComponent.get(name) || [];
-  if (USE_LIMITS) {
-    demos.splice(MAX_DEMO_ENTRIES);
+  for (const page of pages) {
+    const target = path.join(llmsDir, page.slug);
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(target, `${page.body.trimEnd()}\n`, 'utf8');
   }
 
-		if (demos.length) {
-		parts.push('### Demos');
-		const codeMap = await loadDemoCode(name);
-		for (const demo of demos) {
-			const codeEntry = codeMap[demo.id as string] || null;
-			const headerParts: string[] = [];
-			headerParts.push(`- ${demo.title || demo.demo || demo.id}`);
-			headerParts.push(`(id: ${demo.id})`);
-			// if (demo.category) headerParts.push(`category: ${demo.category}`);
-			// if (demo.status) headerParts.push(`status: ${demo.status}`);
-			// if (demo.since) headerParts.push(`since: ${demo.since}`);
-			if (Array.isArray(demo.tags) && demo.tags.length) headerParts.push(`tags: ${(demo.tags as string[]).join(', ')}`);
-			const demoLines: string[] = [headerParts.join(' | ')];
-			if (demo.description) demoLines.push(indentBlock(String(demo.description).trim()));
-					// if (codeEntry?.importPath) demoLines.push(indentBlock(`importPath: ${codeEntry.importPath}`));
-					if (codeEntry?.code) {
-						const sanitizedCode = sanitizeDemoCode(codeEntry.code);
-						if (sanitizedCode) {
-							demoLines.push('');
-							demoLines.push(withCodeBlock(sanitizedCode));
-						}
-					}
-			parts.push(demoLines.join('\n'));
-		}
-	}
-
-
-	return parts.filter(Boolean).join('\n\n');
+  if (stale.length) {
+    console.log(`   Removed ${stale.length} stale page(s)`);
+  }
 }
 
-async function gatherDocsSections(): Promise<string[]> {
-	const docSections: string[] = [];
-	const targets = [
-		['Docs App Source', path.join(docsDir, 'app')],
-		['Docs Config', path.join(docsDir, 'config')],
-		['Docs Hooks', path.join(docsDir, 'hooks')],
-		['Docs Providers', path.join(docsDir, 'providers')],
-		['Docs Screens', path.join(docsDir, 'screens')],
-		['Docs Utilities', path.join(docsDir, 'utils')]
-	];
+// ---------------------------------------------------------------------------
+// Markdown helpers
+// ---------------------------------------------------------------------------
 
-	for (const [label, dir] of targets) {
-		try {
-			const stats = await fs.stat(dir);
-			if (!stats.isDirectory()) continue;
-		} catch {
-			continue;
-		}
-		const files = await collectFiles(dir, docsDir);
-		if (!files.length) continue;
-		const limitedFiles = USE_LIMITS ? files.slice(0, MAX_DOC_FILES) : files;
-		const lines: string[] = [`## ${label}`];
-		for (const file of limitedFiles) {
-			const ext = path.extname(file.relative).toLowerCase();
-			const summary = summarizeContent(file.content, ext);
-			lines.push(`- ${file.relative}: ${summary}`);
-		}
-		if (USE_LIMITS && files.length > limitedFiles.length) {
-			lines.push(`- … ${files.length - limitedFiles.length} more files`);
-		}
-		docSections.push(lines.join('\n'));
-	}
-
-	return docSections;
+/**
+ * Collapses a multi-paragraph description to the one line the index shows.
+ *
+ * Some component descriptions open with their own `# Heading` or a stray `---`
+ * left over from frontmatter, so leading non-prose is skipped rather than
+ * published as the summary.
+ */
+function toSummary(text: unknown): string | undefined {
+  if (typeof text !== 'string') return undefined;
+  const paragraphs = text
+    .split(/\n\s*\n/)
+    .map(paragraph => paragraph.trim())
+    .filter(paragraph => paragraph && !/^#{1,6}\s/.test(paragraph) && !/^-{3,}$/.test(paragraph));
+  const firstParagraph = paragraphs[0] ?? '';
+  const flat = firstParagraph
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!flat) return undefined;
+  // One sentence is enough for an index row; the page itself carries the rest.
+  const sentenceEnd = flat.search(/\.\s/);
+  const sentence = sentenceEnd > 40 ? flat.slice(0, sentenceEnd + 1) : flat;
+  return sentence.replace(/\s*\.$/, '');
 }
 
-function summarizeContent(content: string, ext: string): string {
-  const trimmed = content.trim();
-  if (!trimmed) return 'No content';
+function codeBlock(code: string, language = 'tsx'): string {
+  return `\`\`\`${language}\n${code.replace(/\r\n/g, '\n').trim()}\n\`\`\``;
+}
 
-  if (ext === '.json') {
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (Array.isArray(parsed)) {
-        return `JSON array with ${parsed.length} entries`;
-      }
-      if (parsed && typeof parsed === 'object') {
-        const keys = Object.keys(parsed as Record<string, unknown>);
-        const displayKeys = USE_LIMITS ? keys.slice(0, MAX_LIST_ITEMS) : keys;
-        return `JSON object with keys: ${displayKeys.join(', ')}${USE_LIMITS && keys.length > MAX_LIST_ITEMS ? ', …' : ''}`;
-      }
-    } catch {
-      /* ignore parse errors */
+function joinLines(lines: Array<string | null | undefined>): string {
+  return lines.filter(line => line !== null && line !== undefined).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+// ---------------------------------------------------------------------------
+// Sections
+// ---------------------------------------------------------------------------
+
+/**
+ * Guides — rendered from the same JSX-free config modules the pages import, so
+ * the Markdown cannot drift from what the site shows.
+ */
+async function buildGuidePages(): Promise<LlmsPage[]> {
+  const pages: LlmsPage[] = [];
+
+  // Getting started
+  pages.push({
+    slug: 'guides/getting-started.md',
+    title: 'Getting started',
+    summary: GETTING_STARTED_SUBTITLE.replace(/\.$/, ''),
+    body: joinLines([
+      '# Getting started',
+      '',
+      GETTING_STARTED_SUBTITLE,
+      '',
+      `Docs: ${SITE_URL}/getting-started`,
+      '',
+      `**Prerequisites:** ${GETTING_STARTED_PREREQUISITES}`,
+      '',
+      ...GETTING_STARTED_STEPS.flatMap(step => [
+        `## ${step.title}`,
+        '',
+        step.lead,
+        '',
+        step.fileName ? `\`${step.fileName}\`` : null,
+        step.fileName ? '' : null,
+        codeBlock(step.code, step.variant === 'terminal' ? 'bash' : 'tsx'),
+        '',
+        step.note ?? null,
+        step.note ? '' : null,
+      ]),
+    ]),
+  });
+
+  // Accessibility
+  pages.push({
+    slug: 'guides/accessibility.md',
+    title: 'Accessibility',
+    summary: 'How Platform Blocks meets WCAG 2.1 AA for keyboard, screen reader, low-vision, and motion-sensitive users',
+    body: joinLines([
+      `# ${ACCESSIBILITY_TITLE}`,
+      '',
+      ACCESSIBILITY_INTRO,
+      '',
+      `Docs: ${SITE_URL}/accessibility`,
+      '',
+      ...ACCESSIBILITY_SECTIONS.flatMap(section => [
+        `## ${section.title}`,
+        '',
+        section.lead,
+        '',
+        ...section.items.map(item => `- ${item}`),
+        '',
+      ]),
+      `## ${ACCESSIBILITY_EXAMPLE_TITLE}`,
+      '',
+      ACCESSIBILITY_EXAMPLE_LEAD,
+      '',
+      codeBlock(ACCESSIBILITY_EXAMPLE_SNIPPET),
+      '',
+      ACCESSIBILITY_OUTRO,
+    ]),
+  });
+
+  // Localization — prose lives in the English i18n bundle the page renders.
+  const enBundle = await readJSONIfExists<JSONObject>(
+    path.join(docsDir, 'i18n', 'locales', 'en', 'common.json'),
+  );
+  const localization = (enBundle?.localization ?? {}) as JSONObject;
+  const steps = (localization.steps ?? {}) as Record<string, string>;
+  if (localization.intro) {
+    pages.push({
+      slug: 'guides/localization.md',
+      title: 'Localization',
+      summary: toSummary(localization.intro),
+      body: joinLines([
+        `# ${localization.title ?? 'Localization'}`,
+        '',
+        String(localization.intro),
+        '',
+        `Docs: ${SITE_URL}/localization`,
+        '',
+        ...LOCALIZATION_STEPS.flatMap(step => [
+          `## ${step.title}`,
+          '',
+          steps[step.key]?.trim() ?? null,
+          steps[step.key] ? '' : null,
+          `\`${step.fileName}\``,
+          '',
+          codeBlock(step.snippet),
+          '',
+        ]),
+        '## Notes',
+        '',
+        ...LOCALIZATION_NOTE_KEYS.map(key => (steps[key] ? `- ${steps[key]}` : null)),
+      ]),
+    });
+  }
+
+  return pages;
+}
+
+/** One file per question, so an agent can fetch a single answer. */
+function buildFaqPages(): LlmsPage[] {
+  return FAQ_ITEMS.map(item => ({
+    slug: `faq/${item.key}.md`,
+    title: item.question,
+    summary: toSummary(item.answer),
+    body: joinLines([
+      `# ${item.question}`,
+      '',
+      item.answer,
+      '',
+      `Docs: ${SITE_URL}/faq`,
+    ]),
+  }));
+}
+
+/**
+ * Components and charts, sourced from the per-component Markdown
+ * generate-demos.ts already builds for the docs app's "Copy Markdown" action.
+ */
+async function buildComponentPages(): Promise<{ components: LlmsPage[]; charts: LlmsPage[] }> {
+  const markdownIndex = await readJSONIfExists<Record<string, string>>(
+    path.join(generatedDir, 'component-markdown.json'),
+  );
+  const meta = (await readJSONIfExists<Record<string, JSONObject>>(
+    path.join(generatedDir, 'components-meta.json'),
+  )) ?? {};
+
+  if (!markdownIndex) {
+    console.warn('⚠️  component-markdown.json not found — run `npm run demos:generate` first.');
+    return { components: [], charts: [] };
+  }
+
+  // CORE_COMPONENTS is what the site's nav and /components page are built from,
+  // so it decides both which components are published and how they are grouped.
+  const configByName = new Map<string, CoreComponentConfig>(
+    CORE_COMPONENTS.map(entry => [entry.name, entry]),
+  );
+
+  const components: LlmsPage[] = [];
+  const charts: LlmsPage[] = [];
+
+  for (const name of Object.keys(markdownIndex).sort((a, b) => a.localeCompare(b))) {
+    const config = configByName.get(name);
+    const componentMeta = meta[name] ?? {};
+    const isChart = config?.category === 'charts' || componentMeta.category === 'charts';
+    const page: LlmsPage = {
+      slug: `components/${name}.md`,
+      title: String(componentMeta.title || name),
+      summary: toSummary(componentMeta.description) ?? config?.description,
+      body: markdownIndex[name],
+    };
+    (isChart ? charts : components).push(page);
+  }
+
+  return { components, charts };
+}
+
+/**
+ * Resolves the file that actually declares a hook.
+ *
+ * Most hook folders are a barrel: `index.ts` re-exports from a sibling file
+ * (`./useHover`) or, for the hotkey family, from another hook's folder
+ * (`../useHotkeys`). Follows those one hop at a time until a file declares the
+ * hook, so the Definition block is never empty just because of indirection.
+ */
+async function resolveHookSource(name: string): Promise<string | null> {
+  const hooksRoot = path.join(uiDir, 'src', 'hooks');
+  const declares = (source: string) =>
+    new RegExp(`^export\\s+(?:function|const)\\s+${name}\\b`, 'm').test(source);
+
+  let current = path.join(hooksRoot, name, 'index.ts');
+  const seen = new Set<string>();
+
+  while (!seen.has(current)) {
+    seen.add(current);
+    const source = await readTextIfExists(current);
+    if (!source) return null;
+    if (declares(source)) return source;
+
+    // `export { name, type Foo } from './somewhere';` — follow the one that
+    // re-exports this hook.
+    const reExport = [...source.matchAll(/export\s*\{([^}]*)\}\s*from\s*'([^']+)'/g)]
+      .find(match => match[1].split(',').some(part => part.trim().replace(/^type\s+/, '') === name));
+    if (!reExport) return null;
+
+    const specifier = path.resolve(path.dirname(current), reExport[2]);
+    current = (await readTextIfExists(`${specifier}.ts`)) !== null
+      ? `${specifier}.ts`
+      : path.join(specifier, 'index.ts');
+  }
+
+  return null;
+}
+
+/**
+ * Pulls a hook's public surface out of its source: its signature plus the
+ * exported types that signature names. This is the part an agent needs most —
+ * hooks have no equivalent of the components' generated props tables.
+ *
+ * Scoped to the types the signature actually references, because several hooks
+ * are declared alongside unrelated siblings in useHotkeys/index.ts.
+ */
+function extractHookDefinition(source: string, name: string): string | null {
+  const signatureMatch =
+    source.match(new RegExp(`^export\\s+function\\s+${name}\\b[\\s\\S]*?\\)\\s*(?::\\s*[^{]+?)?\\s*\\{`, 'm'))
+    ?? source.match(new RegExp(`^export\\s+const\\s+${name}\\b[^=]*=\\s*[\\s\\S]*?\\)\\s*(?::\\s*[^=]+?)?\\s*=>`, 'm'));
+  if (!signatureMatch) return null;
+
+  // Flattened to one line: a multi-line parameter list reads worse than a
+  // single signature once the body is gone.
+  const signature = `${signatureMatch[0]
+    .replace(/\s*(?:\{|=>)$/, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\(\s+/g, '(')
+    .replace(/,?\s+\)/g, ')')
+    .trim()};`;
+
+  // Exported interfaces and type aliases, kept whole so the member JSDoc
+  // travels with them. Braced forms are matched before the `= ...;` form so a
+  // one-line alias never swallows the file down to the next column-0 `}`.
+  const declarations = new Map<string, string>();
+  const patterns = [
+    /^export\s+interface\s+(\w+)(?:<[^>]*>)?[^{]*\{[\s\S]*?^\}/gm,
+    /^export\s+type\s+(\w+)(?:<[^>]*>)?\s*=\s*\{[\s\S]*?^\}/gm,
+    /^export\s+type\s+(\w+)(?:<[^>]*>)?\s*=[^;]*?;$/gm,
+  ];
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) {
+      if (!declarations.has(match[1])) declarations.set(match[1], match[0].trim());
     }
   }
 
-  if (ext === '.md' || ext === '.mdx') {
-    const paragraph = trimmed.split(/\n\s*\n/)[0] ?? trimmed;
-    return truncate(paragraph.replace(/[#>*`]/g, '').replace(/\s+/g, ' ').trim());
+  // Follow references transitively: a hook returning `UseDisclosureReturn` is
+  // only readable if the alias it points at comes along too.
+  const included: string[] = [];
+  const pending = [signature];
+  while (pending.length) {
+    const text = pending.shift()!;
+    for (const [typeName, declaration] of declarations) {
+      if (included.includes(typeName)) continue;
+      if (!new RegExp(`\\b${typeName}\\b`).test(text)) continue;
+      included.push(typeName);
+      pending.push(declaration);
+    }
   }
 
-  if (ext === '.ts' || ext === '.tsx') {
-    const withoutImports = trimmed.replace(/(^import[^;]+;\s*)+/gm, '').trim();
-    const firstLines = withoutImports.split('\n').slice(0, 8).join(' ');
-    return truncate(firstLines.replace(/\s+/g, ' '));
+  return [...included.map(typeName => declarations.get(typeName)!), signature].join('\n\n');
+}
+
+async function buildHookPages(): Promise<LlmsPage[]> {
+  const hooksMeta = (await readJSONIfExists<Record<string, JSONObject>>(
+    path.join(generatedDir, 'hooks-meta.json'),
+  )) ?? {};
+  const hooksJson = (await readJSONIfExists<{ hooks: Array<Record<string, any>> }>(
+    path.join(generatedDir, 'hooks.json'),
+  )) ?? { hooks: [] };
+
+  const names = Object.keys(hooksMeta).sort((a, b) => a.localeCompare(b));
+  if (!names.length) {
+    console.warn('⚠️  hooks-meta.json not found or empty — run `npm run demos:generate` first.');
+    return [];
   }
 
-  return truncate(trimmed.replace(/\s+/g, ' '));
+  const demosByHook = new Map<string, Array<Record<string, any>>>();
+  for (const demo of hooksJson.hooks) {
+    if (demo.hidden) continue;
+    const hook = demo.component as string | undefined;
+    if (!hook) continue;
+    if (!demosByHook.has(hook)) demosByHook.set(hook, []);
+    demosByHook.get(hook)!.push(demo);
+  }
+
+  const pages: LlmsPage[] = [];
+  const missingDefinitions: string[] = [];
+  for (const name of names) {
+    const meta = hooksMeta[name];
+    if (meta.hidden === true) continue;
+
+    const sourcePath = `packages/ui/src/hooks/${name}`;
+    const source = await resolveHookSource(name);
+    const definition = source ? extractHookDefinition(source, name) : null;
+    if (!definition) missingDefinitions.push(name);
+
+    const metaList: string[] = [
+      `- Canonical name: \`${name}\``,
+      '- Package: `@platform-blocks/ui`',
+      `- Import: \`import { ${name} } from '@platform-blocks/ui';\``,
+    ];
+    if (meta.status) metaList.push(`- Status: ${meta.status}`);
+    if (meta.since) metaList.push(`- Since: ${meta.since}`);
+    if (meta.category) metaList.push(`- Category: ${meta.category}`);
+    if (Array.isArray(meta.tags) && meta.tags.length) {
+      metaList.push(`- Tags: ${(meta.tags as string[]).join(', ')}`);
+    }
+    metaList.push(`- Docs: ${SITE_URL}/hooks/${name}`);
+    metaList.push(`- Source: ${GITHUB_TREE}/${sourcePath}`);
+
+    const demos = (demosByHook.get(name) ?? []).sort(
+      (a, b) => (a.order ?? 0) - (b.order ?? 0),
+    );
+
+    pages.push({
+      slug: `hooks/${name}.md`,
+      title: String(meta.title || name),
+      summary: toSummary(meta.description),
+      body: joinLines([
+        `# ${meta.title || name}`,
+        '',
+        meta.description ? String(meta.description) : null,
+        '',
+        '## Metadata',
+        '',
+        ...metaList,
+        '',
+        definition ? '## Definition' : null,
+        definition ? '' : null,
+        definition ? codeBlock(definition, 'ts') : null,
+        definition ? '' : null,
+        demos.length ? '## Examples' : null,
+        demos.length ? '' : null,
+        ...demos.flatMap(demo => [
+          `### ${demo.title || demo.demo}`,
+          '',
+          demo.description ? String(demo.description) : null,
+          demo.description ? '' : null,
+          demo.code ? codeBlock(demo.code) : null,
+          '',
+        ]),
+      ]),
+    });
+  }
+
+  if (missingDefinitions.length) {
+    console.warn(`⚠️  No type definition found for: ${missingDefinitions.join(', ')}`);
+  }
+
+  return pages;
 }
 
-function truncate(value: string): string {
-  if (!USE_LIMITS || value.length <= SUMMARY_CHAR_LIMIT) return value;
-  return `${value.slice(0, SUMMARY_CHAR_LIMIT - 1)}…`;
+// ---------------------------------------------------------------------------
+// Index + full text
+// ---------------------------------------------------------------------------
+
+function pageUrl(page: LlmsPage): string {
+  return `${SITE_URL}/llms/${page.slug}`;
 }
 
-async function main() {
-	const sections: string[] = [];
+function buildIndex(sections: LlmsSection[], counts: Record<string, number>): string {
+  const lines: string[] = [
+    '# Platform Blocks',
+    '',
+    `> A cross-platform React Native UI library — ${counts.components} components, ${counts.charts} charts,`,
+    `> and ${counts.hooks} hooks that render natively on iOS and Android and as real DOM on the web,`,
+    '> from one themeable component model.',
+    '',
+    'This index lists Platform Blocks documentation pages formatted for LLMs.',
+    'Each link points to a standalone Markdown file under the /llms path.',
+    '',
+    'For a single consolidated file with all content, use:',
+    `- ${SITE_URL}/llms-full.txt`,
+    '',
+    'Install: `npm install @platform-blocks/ui`',
+    `Website: ${SITE_URL} • GitHub: ${GITHUB_REPO} • npm: ${NPM_PACKAGE}`,
+    '',
+  ];
 
-	const uiPackage = (await readJSONIfExists<JSONObject>(path.join(uiDir, 'package.json'))) || {};
-	sections.push('# Platform Blocks UI Knowledge Base');
-	sections.push(`Generated: ${new Date().toISOString()}`);
+  for (const section of sections) {
+    if (!section.pages.length) continue;
+    lines.push(`## ${section.heading}`, '');
+    for (const page of section.pages) {
+      const summary = page.summary ? `: ${page.summary}` : '';
+      lines.push(`- [${page.title}](${pageUrl(page)})${summary}`);
+    }
+    lines.push('');
+  }
 
-	const overviewLines: string[] = ['## Package Overview'];
-	const overviewFields: Array<[string, unknown]> = [
-		['Name', uiPackage.name],
-		['Version', uiPackage.version],
-		['Description', uiPackage.description],
-		['Main', uiPackage.main],
-		['Module', uiPackage.module],
-		['Types', uiPackage.types],
-		['React Native Entry', uiPackage['react-native']]
-	];
-	for (const [label, value] of overviewFields) {
-		if (value) overviewLines.push(`- ${label}: ${value}`);
-	}
-	sections.push(overviewLines.join('\n'));
+  return `${lines.join('\n').trimEnd()}\n`;
+}
 
-	const scriptsBlock = formatKeyValueBlock('Scripts (top commands)', uiPackage.scripts as Record<string, string> | undefined);
-	if (scriptsBlock) sections.push(scriptsBlock);
-	const depsBlock = formatKeyValueBlock('Runtime Dependencies', uiPackage.dependencies as Record<string, string> | undefined);
-	if (depsBlock) sections.push(depsBlock);
-	const peerBlock = formatKeyValueBlock('Peer Dependencies', uiPackage.peerDependencies as Record<string, string> | undefined);
-	if (peerBlock) sections.push(peerBlock);
-	const devDepsBlock = formatKeyValueBlock('Dev Dependencies (not exhaustive)', uiPackage.devDependencies as Record<string, string> | undefined);
-	if (devDepsBlock) sections.push(devDepsBlock);
+function buildFullText(sections: LlmsSection[]): string {
+  const parts: string[] = [
+    '# Platform Blocks — Complete Documentation',
+    '',
+    'Every documentation page concatenated in full: component and chart pages with',
+    'their props tables and every demo, hook pages with their type definitions,',
+    'the guides, and the FAQ. Nothing here is truncated.',
+    '',
+    `For an index of the same content as individually fetchable pages, use ${SITE_URL}/llms.txt`,
+    '',
+    'All code examples use the published package imports (@platform-blocks/ui, @platform-blocks/charts).',
+    '',
+    '='.repeat(80),
+    '',
+  ];
 
-	const uiReadme = await readTextIfExists(path.join(uiDir, 'README.md'));
-	if (uiReadme) {
-		sections.push('## UI README');
-		sections.push(uiReadme.trim());
-	}
+  for (const section of sections) {
+    if (!section.pages.length) continue;
+    parts.push(`# ${section.heading.toUpperCase()}`, '');
+    for (const page of section.pages) {
+      parts.push(`<!-- source: ${pageUrl(page)} -->`, '', page.body.trim(), '', '-'.repeat(80), '');
+    }
+  }
 
-	const componentsMeta = (await readJSONIfExists<ComponentMeta>(path.join(generatedDir, 'components-meta.json'))) || {};
-	const componentsProps = (await readJSONIfExists<ComponentPropsMap>(path.join(generatedDir, 'components-props.json'))) || {};
-	const demosJson = (await readJSONIfExists<{ demos: Array<Record<string, any>> }>(path.join(generatedDir, 'demos.json'))) || { demos: [] };
-	const demosByComponent = new Map<string, Array<Record<string, any>>>();
-	for (const demo of demosJson.demos) {
-		const componentName = demo.component as string | undefined;
-		if (!componentName) continue;
-		if (!demosByComponent.has(componentName)) {
-			demosByComponent.set(componentName, []);
-		}
-		demosByComponent.get(componentName)!.push(demo);
-	}
+  return `${parts.join('\n').trimEnd()}\n`;
+}
 
-	const componentNames = new Set<string>([
-		...Object.keys(componentsMeta),
-		...Object.keys(componentsProps),
-		...Array.from(demosByComponent.keys())
-	]);
-	const sortedComponentNames = Array.from(componentNames).sort((a, b) => a.localeCompare(b));
+// ---------------------------------------------------------------------------
 
-	for (const name of sortedComponentNames) {
-		const section = await buildComponentSection(name, componentsMeta, componentsProps, demosByComponent);
-		sections.push(section);
-	}
+async function main(): Promise<void> {
+  const [guides, faq, { components, charts }, hooks] = await Promise.all([
+    buildGuidePages(),
+    Promise.resolve(buildFaqPages()),
+    buildComponentPages(),
+    buildHookPages(),
+  ]);
 
-	const docSections = await gatherDocsSections();
-	sections.push(...docSections);
+  const sections: LlmsSection[] = [
+    { heading: 'Guides', pages: guides },
+    { heading: 'Components', pages: components },
+    { heading: 'Charts', pages: charts },
+    { heading: 'Hooks', pages: hooks },
+    { heading: 'FAQ', pages: faq },
+  ];
 
-	await fs.mkdir(publicDir, { recursive: true });
-	await fs.writeFile(outputPathTxt, sections.join('\n\n') + '\n', 'utf8');
-	console.log(`llms.txt updated at ${outputPathTxt}`);
+  const pages = sections.flatMap(section => section.pages);
+
+  await fs.mkdir(llmsDir, { recursive: true });
+  await writePages(pages);
+
+  const index = buildIndex(sections, {
+    components: components.length,
+    charts: charts.length,
+    hooks: hooks.length,
+  });
+  await fs.writeFile(path.join(publicDir, 'llms.txt'), index, 'utf8');
+
+  const full = buildFullText(sections);
+  await fs.writeFile(path.join(publicDir, 'llms-full.txt'), full, 'utf8');
+
+  console.log('✅ llms.txt generated');
+  for (const section of sections) {
+    if (section.pages.length) console.log(`   ${section.heading}: ${section.pages.length} pages`);
+  }
+  console.log(`   Index: ${(index.length / 1024).toFixed(1)} KB → public/llms.txt`);
+  console.log(`   Full:  ${(full.length / 1024).toFixed(1)} KB → public/llms-full.txt`);
+  console.log(`   Pages: ${pages.length} files → public/llms/`);
 }
 
 main().catch(error => {
-	console.error('Failed to generate llms.txt', error);
-	process.exitCode = 1;
+  console.error('❌ Failed to generate llms.txt', error);
+  process.exitCode = 1;
 });

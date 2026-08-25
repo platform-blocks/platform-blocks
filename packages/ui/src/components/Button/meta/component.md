@@ -1,7 +1,7 @@
 ---
 name: Button
 title: Button
-category: inputs
+category: input
 tags: [action, pressable, interactive]
 playground: true
 resources: [{"label":"Apple HIG – Buttons","href":"https://developer.apple.com/design/human-interface-guidelines/buttons"},{"label":"Material 3 Buttons","href":"https://m3.material.io/components/buttons/overview"}]

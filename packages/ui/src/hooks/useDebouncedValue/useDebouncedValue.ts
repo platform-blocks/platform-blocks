@@ -10,7 +10,7 @@ export interface UseDebouncedValueOptions {
  * after `value` stops changing for `wait` ms. `cancel()` clears any pending
  * timeout so the latest committed `debouncedValue` sticks.
  *
- * Mantine API. Useful for search inputs, filter triggers, autosave, etc.
+ * Useful for search inputs, filter triggers, autosave, etc.
  *
  * @example
  * const [query, setQuery] = useState('');
@@ -46,7 +46,7 @@ export function useDebouncedValue<T>(
 
     if (leading && !cooldownRef.current) {
       // Fire immediately on the first change after a quiet period, then start
-      // the cooldown — this matches Mantine's default behaviour.
+      // the cooldown.
       setDebouncedValue(value);
       cooldownRef.current = true;
       timeoutRef.current = setTimeout(() => {

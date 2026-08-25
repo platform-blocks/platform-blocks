@@ -1,7 +1,7 @@
 ---
 name: Card
 title: Card
-category: layout
+category: display
 tags: [card, container, content, layout]
 playground: true
 props:
@@ -30,4 +30,4 @@ subComponents:
       py: Vertical padding inside the section (size token or px)
       px: Horizontal padding inside the section (overrides `inheritPadding`)
 ---
-The Card component provides a flexible container for displaying content. Six variants (`filled`, `outline`, `elevated`, `subtle`, `ghost`, `gradient`) each set their own background + default shadow. `withBorder`, `borderColor`, `borderWidth`, and `bg` compose on top of any variant — Mantine-style — so you can mix and match (`<Card variant="elevated" withBorder bg="primary" />`) without forking a new variant for every combination.
+The Card component provides a flexible container for displaying content. Six variants (`filled`, `outline`, `elevated`, `subtle`, `ghost`, `gradient`) each set their own background + default shadow. `withBorder`, `borderColor`, `borderWidth`, and `bg` compose on top of any variant, so you can mix and match (`<Card variant="elevated" withBorder bg="primary" />`) without forking a new variant for every combination.

@@ -1,7 +1,7 @@
 ---
 name: Timeline
 description: A timeline component for displaying chronological sequences of events or steps
-category: Data Display
+category: data
 subcategory: Navigation
 tags: [timeline, chronological, events, history, steps]
 status: stable

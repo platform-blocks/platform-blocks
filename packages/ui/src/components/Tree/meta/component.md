@@ -1,7 +1,7 @@
 ---
 playground: true
 title: Tree
-category: Navigation
+category: navigation
 description: A hierarchical tree component for displaying nested data structures with expand/collapse functionality, selection, and filtering capabilities.
 package: platform-blocks
 since: 1.0.0

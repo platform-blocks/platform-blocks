@@ -3,7 +3,7 @@ title: Select
 description: A dropdown component for selecting from a list of options with support for disabled states, custom styling, and multi-value selection.
 source: "@platform-blocks/ui"
 status: "stable"
-category: "Input"
+category: input
 playground: true
 accessibility: "Supports keyboard navigation, ARIA attributes, and screen readers"
 variants:

@@ -1223,7 +1223,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
         placeholder: '#0f172a',
         colorPresets: ['#0f172a', '#475569', '#f8fafc', '#14b8a6']
       },
-      // Mantine-style `c` shorthand — accepts 'dimmed', palette names, palette.shade
+      // `c` shorthand — accepts 'dimmed', palette names, palette.shade
       // (e.g. 'primary.6'), or any CSS color string.
       c: {
         controlType: 'select',

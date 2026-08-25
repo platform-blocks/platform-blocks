@@ -1,7 +1,7 @@
 ---
 name: Switch
 description: A toggle switch component for binary on/off states
-category: Input System
+category: input
 subcategory: Form Controls
 tags: [input, form, toggle, switch, boolean]
 status: stable

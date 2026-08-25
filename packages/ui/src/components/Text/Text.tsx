@@ -28,7 +28,7 @@ export interface TextProps extends SpacingProps {
   size?: SizeValue;
   /** Text color (overrides theme text color) */
   color?: string;
-  /** Mantine-style shorthand alias for `color`. Accepts `'dimmed'`, theme palette names, `'primary.6'` syntax, or any CSS color string. */
+  /** Shorthand alias for `color`. Accepts `'dimmed'`, theme palette names, `'primary.6'` syntax, or any CSS color string. */
   c?: string;
   /** Semantic color variant (overrides color prop). Supports text palette plus status colors */
   colorVariant?: 'primary' | 'secondary' | 'muted' | 'disabled' | 'link' | 'success' | 'warning' | 'error' | 'info';
@@ -396,7 +396,7 @@ export const Text = React.forwardRef<RNText, TextProps>((allProps, ref) => {
   //   console.warn('I18n not available for Text component, using children prop');
   // }
 
-  // Mantine-style `c` shorthand: resolve through shared theme helper so
+  // `c` shorthand: resolve through shared theme helper so
   // values like 'dimmed', 'primary', 'primary.6' work identically across
   // Text, Block, Card, etc. `c` wins over `color` if both are passed.
   const resolvedColor = c

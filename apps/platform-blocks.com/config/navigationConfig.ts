@@ -16,10 +16,6 @@ export interface NavSection {
   items: NavItem[];
 }
 
-const UNIQUE_CORE_COMPONENTS = CORE_COMPONENTS.filter(
-  (component, index, array) => array.findIndex(item => item.name === component.name) === index,
-);
-
 const toNavItems = (
   components: typeof CORE_COMPONENTS,
   baseRoute: string,
@@ -33,13 +29,15 @@ const toNavItems = (
     description: component.description,
   }));
 
+// Uniqueness is enforced by scripts/validate-demos.ts, which fails the build on
+// a duplicate entry — Badge was listed twice and shipped a duplicate nav row.
 const UI_COMPONENT_NAV_ITEMS: NavItem[] = toNavItems(
-  UNIQUE_CORE_COMPONENTS.filter(component => component.category !== 'charts'),
+  CORE_COMPONENTS.filter(component => component.category !== 'charts'),
   'components',
 );
 
 const CHART_COMPONENT_NAV_ITEMS: NavItem[] = toNavItems(
-  UNIQUE_CORE_COMPONENTS.filter(component => component.category === 'charts'),
+  CORE_COMPONENTS.filter(component => component.category === 'charts'),
   // Chart docs are served by ComponentDetailScreen under /components/<Name>
   // (it handles the `charts` category), so keep the sidebar links consistent.
   'components',
@@ -76,6 +74,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Getting Started', route: '/getting-started', icon: 'home', bottom: true, searchable: true, description: 'Install, set up the provider, and render your first component' },
       { label: 'Localization', route: '/localization', icon: 'globe', searchable: true },
       { label: 'FAQ', route: '/faq', icon: 'question', bottom: true, searchable: true },
+      { label: 'LLM docs', route: '/llms', icon: 'markdown', searchable: true, description: 'Documentation as Markdown for language models — llms.txt, llms-full.txt, and per-page files' },
     ]
   },
   {

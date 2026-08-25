@@ -16,66 +16,12 @@ import {
 } from '@platform-blocks/ui';
 import { DocsPageHeader } from '../../components/DocsPageHeader';
 import { PLATFORMS, getTagConfig, type TagType } from '../../config/platforms';
+import {
+  GETTING_STARTED_PREREQUISITES,
+  GETTING_STARTED_STEPS,
+  GETTING_STARTED_SUBTITLE,
+} from '../../config/gettingStarted';
 import { useBrowserTitle, formatPageTitle } from 'hooks/useBrowserTitle';
-
-/** Install → provider → first render. Each step is one command or one file. */
-const STEPS = [
-  {
-    title: 'Install with npm',
-    lead: 'Add Platform Blocks to your React Native or Expo project:',
-    code: 'npm install @platform-blocks/ui',
-    variant: 'terminal' as const,
-    note: 'This installs the core library — every component, hook, and utility.',
-  },
-  {
-    title: 'Install the peer dependencies',
-    lead: 'Platform Blocks builds on a handful of packages your app provides. On Expo, install them with expo install so the versions match your SDK:',
-    code: `npx expo install react-native-reanimated react-native-safe-area-context react-native-svg @tabler/icons-react-native
-
-# without Expo
-npm install react-native-reanimated react-native-safe-area-context react-native-svg @tabler/icons-react-native`,
-    variant: 'terminal' as const,
-    note: '@tabler/icons-react-native backs the Icon registry, which is imported from the package root — without it, Icon and every component that renders one will fail to resolve. Optional integrations (expo-audio, expo-haptics, expo-linear-gradient, @shopify/flash-list, and others) are loaded lazily and only needed for the features that use them.',
-  },
-  {
-    title: 'Set up the provider',
-    lead: 'Wrap your root component with PlatformBlocksProvider to enable theming:',
-    fileName: 'App.tsx',
-    code: `import React from 'react';
-import { PlatformBlocksProvider } from '@platform-blocks/ui';
-import { YourApp } from './YourApp';
-
-export default function App() {
-  return (
-    <PlatformBlocksProvider>
-      <YourApp />
-    </PlatformBlocksProvider>
-  );
-}`,
-  },
-  {
-    title: 'Verify the install',
-    lead: 'Render a component to confirm everything is wired up:',
-    fileName: 'TestComponent.tsx',
-    code: `import React from 'react';
-import { Text, Button, Card } from '@platform-blocks/ui';
-
-export function TestComponent() {
-  return (
-    <Card variant='outline'>
-      <Text variant='h2'>
-        Welcome to PlatformBlocks! 🎉
-      </Text>
-      <Button
-        title='It works!'
-        variant='filled'
-        onPress={() => console.log('Success!')}
-      />
-    </Card>
-  );
-}`,
-  },
-];
 
 const renderTagChip = (tag: TagType) => {
   const config = getTagConfig(tag);
@@ -101,7 +47,7 @@ export default function GettingStartedScreen() {
           same geometry component detail pages use. */}
       <Column gap="xl">
         <DocsPageHeader
-          subtitle="Install Platform Blocks, wire up the provider, and render your first component."
+          subtitle={GETTING_STARTED_SUBTITLE}
           action={
             <BrandButton
               title="View on NPM"
@@ -115,10 +61,10 @@ export default function GettingStartedScreen() {
         </DocsPageHeader>
 
         <Alert sev="info" variant="light" title="Prerequisites" fullWidth>
-          Node.js and npm installed.
+          {GETTING_STARTED_PREREQUISITES}
         </Alert>
 
-        {STEPS.map(({ title, lead, code, fileName, variant, note }) => (
+        {GETTING_STARTED_STEPS.map(({ title, lead, code, fileName, variant, note }) => (
           <Column key={title} gap="md">
             <Title order={2} size={28} weight="bold">{title}</Title>
             <Text variant="p" colorVariant="secondary">{lead}</Text>

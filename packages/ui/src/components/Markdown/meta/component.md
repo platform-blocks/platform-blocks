@@ -4,7 +4,7 @@ description: Render Markdown content with custom styling and components
 source: ui/src/components/Markdown
 status: stable
 version: 1.0.0
-category: Data Display
+category: data
 subcategory: Content
 dependencies: ["react-markdown", "Text", "CodeBlock"]
 aria: "Renders markdown content with proper semantic HTML structure"

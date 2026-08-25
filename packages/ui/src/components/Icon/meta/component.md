@@ -1,5 +1,6 @@
 ---
 title: Icon
+category: typography
 group: Media
 status: beta
 description: Displays icons

@@ -6,7 +6,10 @@ Sitemap: https://platform-blocks.com/sitemap.xml
 
 # LLM-friendly documentation
 # See https://llmstxt.org for more info
+# /llms.txt indexes per-page Markdown under /llms/; /llms-full.txt is everything in one file.
 Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /llms/
 
 # Specific rules for search engines
 User-agent: Googlebot

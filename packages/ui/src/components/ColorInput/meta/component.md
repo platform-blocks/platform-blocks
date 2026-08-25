@@ -4,7 +4,7 @@ title: ColorInput
 description: A color selection component with various input methods and preset swatches
 source: ui/src/components/ColorInput
 status: stable
-category: Input
+category: input
 props:
   - name: value
     type: string

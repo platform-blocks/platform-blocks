@@ -10,6 +10,7 @@ import {
   searchNewDocs
 } from './demosLoader';
 import { getCoreComponentConfig } from '../config/coreComponents';
+import { useThemeMode } from '@platform-blocks/ui';
 import { GITHUB_REPO } from 'config/urls';
 
 // Define additional interfaces for Spotlight
@@ -69,10 +70,7 @@ function createComponentActions(components: NewComponentIndexEntry[], router: an
         'component'
       ],
       category: 'Components',
-      onPress: () => {
-        console.log('Component action pressed:', component.name);
-        router.push(`/components/${component.name}`);
-      }
+      onPress: () => router.push(`/components/${component.name}`)
     };
   });
 }
@@ -86,7 +84,7 @@ function createSearchActions(): SpotlightAction[] { return []; }
 /**
  * Create navigation actions from NAV_SECTIONS config
  */
-function createNavigationActions(router: any): SpotlightAction[] {
+function createNavigationActions(router: any, cycleColorScheme: () => void): SpotlightAction[] {
   const navActions: SpotlightAction[] = [];
 
   // Extract all searchable items from NAV_SECTIONS
@@ -104,10 +102,7 @@ function createNavigationActions(router: any): SpotlightAction[] {
             ...(item.description ? item.description.toLowerCase().split(' ') : [])
           ],
           category: 'Navigation',
-          onPress: () => {
-            console.log('Navigation action pressed:', item.label, 'route:', item.route);
-            router.push(item.route);
-          }
+          onPress: () => router.push(item.route)
         });
       }
     });
@@ -116,32 +111,13 @@ function createNavigationActions(router: any): SpotlightAction[] {
   // Add quick actions (non-navigation items)
   navActions.push(
     {
-      id: 'action-test-navigation',
-      label: 'Test Navigation (Go Home)',
-      description: 'Test router navigation to home',
-      icon: 'home',
-      keywords: ['test', 'navigate', 'home'],
-      category: 'Debug',
-      onPress: () => {
-        console.log('Test navigation action called');
-        console.log('Router object:', router);
-        console.log('Attempting to navigate to /getting-started');
-        router.push('/getting-started');
-        console.log('router.push called');
-      }
-    },
-    {
       id: 'action-theme-toggle',
       label: 'Toggle Color Scheme',
       description: 'Switch between light and dark mode',
       icon: 'eye',
       keywords: ['theme', 'dark', 'light', 'color', 'mode', 'toggle'],
       category: 'Quick Actions',
-      onPress: () => {
-        console.log('Toggle color scheme');
-        // This would trigger the color scheme toggle
-        // Implementation depends on theme provider setup
-      }
+      onPress: cycleColorScheme,
     },
     {
       id: 'action-github',
@@ -175,18 +151,17 @@ function createNavigationActions(router: any): SpotlightAction[] {
  * Hook for Spotlight integration with unified docs
  */
 export function useSpotlightData(router: any) {
+  // The palette's "Toggle Color Scheme" entry used to only log — wire it to the
+  // theme context so selecting it actually cycles light/dark/auto.
+  const { cycleMode } = useThemeMode();
 
   const getSpotlightActions = React.useCallback((query: string = ''): (SpotlightAction | SpotlightActionGroup)[] => {
-    // console.log('getSpotlightActions called with query:', query);
-
     // Get base navigation actions
-    const navActions = createNavigationActions(router);
-    // console.log('Created navigation actions:', navActions.length);
+    const navActions = createNavigationActions(router, cycleMode);
 
     // Get all components for component actions
     const allComponents = getAllNewComponents();
     const componentActions = createComponentActions(allComponents, router);
-    // console.log('Created component actions:', componentActions.length);
 
     // If no query, return basic navigation and popular components
     if (!query.trim()) {
@@ -213,7 +188,6 @@ export function useSpotlightData(router: any) {
       keywords: r.keywords,
       category: r.type === 'demo' ? 'Examples' : 'Components',
       onPress: () => {
-        console.log('Search result selected:', r);
         if (r.type === 'demo') {
           const parts = r.id.replace(/^demo:/, '').split('.');
           const comp = parts[0];
@@ -278,39 +252,11 @@ export function useSpotlightData(router: any) {
     }
 
     return results;
-  }, [router]);
+  }, [router, cycleMode]);
 
   return {
     getSpotlightActions
   };
-}
-
-/**
- * Get quick actions for empty state
- */
-export function getQuickActions(router: any): SpotlightActionGroup[] {
-  const popularComponents = (getAllNewComponents() || [])
-    .filter((comp: any) => ['Button', 'Text', 'Card', 'Input', 'Icon', 'Flex', 'Dialog'].includes(comp.name))
-    .slice(0, 6);
-
-  const navActions = createNavigationActions(router);
-  const navigationActions = navActions.filter(action => action.category === 'Navigation');
-  const quickActionsList = navActions.filter(action => action.category === 'Quick Actions');
-
-  return [
-    {
-      group: 'Navigation',
-      actions: navigationActions
-    },
-    {
-      group: 'Quick Actions',
-      actions: quickActionsList
-    },
-    {
-      group: 'Popular Components',
-      actions: createComponentActions(popularComponents, router)
-    }
-  ];
 }
 
 /**

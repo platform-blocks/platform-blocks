@@ -4,7 +4,7 @@ title: Menu
 description: A dropdown menu component for navigation and actions
 source: ui/src/components/Menu
 status: stable
-category: Navigation
+category: navigation
 props:
   - name: children
     type: ReactNode

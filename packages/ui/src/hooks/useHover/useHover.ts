@@ -14,9 +14,9 @@ export interface UseHoverHandlers {
 export type UseHoverReturn = readonly [boolean, UseHoverHandlers];
 
 /**
- * Returns hover state + handlers to spread onto a Pressable / View. Mirrors
- * Mantine's `useHover` but cross-platform: handlers work for both RN's
- * `onHoverIn`/`onHoverOut` and DOM's `onMouseEnter`/`onMouseLeave`.
+ * Returns hover state + handlers to spread onto a Pressable / View.
+ * Cross-platform: handlers work for both RN's `onHoverIn`/`onHoverOut` and
+ * DOM's `onMouseEnter`/`onMouseLeave`.
  *
  * @example
  * const [hovered, hoverHandlers] = useHover();

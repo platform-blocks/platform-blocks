@@ -6,7 +6,7 @@ import { PlatformBlocksTheme } from '../../core/theme/types';
 
 /**
  * Ring thickness of an unselected radio, and the inset the ring closes in from.
- * Hairline, matching Mantine — an off radio should read as an outline, not as a
+ * Hairline — an off radio should read as an outline, not as a
  * donut competing with the selected state.
  */
 const BORDER_WIDTH = 1;
@@ -35,7 +35,7 @@ export const getRadioMetrics = (props: RadioStyleProps & { theme: PlatformBlocks
   const { disabled, error, size, color, theme } = props;
 
   const radioSize = resolveComponentSize(size, SIZE_MAP, { fallback: 'md' }) as number;
-  // The dot sits at ~40% of the control — the ratio Mantine and HeroUI both
+  // The dot sits at ~40% of the control — the ratio most design systems
   // land on (8px inside 20px).
   const dotSize = Math.max(Math.round(radioSize * 0.4), 4);
   // Interior the hole covers when unselected — everything inside the rim.

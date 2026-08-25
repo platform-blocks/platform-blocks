@@ -4,7 +4,7 @@ title: Spoiler
 description: A component that collapses overflowing content beyond a specified height
 source: ui/src/components/Spoiler
 status: stable
-category: Utilities
+category: display
 props:
   - name: children
     type: ReactNode

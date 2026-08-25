@@ -1,7 +1,7 @@
 ---
 name: Waveform
 description: A waveform visualization component for audio data representation and interaction
-category: Data Display
+category: media
 subcategory: Visualization
 tags: [audio, waveform, visualization, media, interactive]
 status: stable

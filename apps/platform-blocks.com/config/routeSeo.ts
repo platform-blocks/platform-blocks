@@ -1,10 +1,10 @@
 import componentsMeta from '../data/generated/components-meta.json';
 import hooksMeta from '../data/generated/hooks-meta.json';
 import { CHART_DOCS } from './charts';
-import { GITHUB_REPO, TWITTER_PROFILE, NPM_PACKAGE, DISCORD_INVITE } from './urls';
+import { GITHUB_REPO, TWITTER_PROFILE, NPM_PACKAGE, DISCORD_INVITE, SITE_URL } from './urls';
 import { FAQ_ITEMS } from './faq';
 
-export const SITE_URL = 'https://platform-blocks.com';
+export { SITE_URL };
 export const SITE_NAME = 'Platform Blocks';
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.jpg`;
 export const SITE_LOGO = `${SITE_URL}/icon-512.png`;
@@ -52,6 +52,11 @@ const STATIC_ROUTES: Record<string, RouteMeta> = {
     title: 'Localization',
     description:
       'Internationalize your app with Platform Blocks — RTL support, locale-aware formatting, and translatable component copy.',
+  },
+  '/llms': {
+    title: 'LLM Documentation',
+    description:
+      'Platform Blocks documentation as Markdown for language models — an llms.txt index, a full-text bundle, and a standalone Markdown file for every component, chart, hook, and guide.',
   },
   '/faq': {
     title: 'FAQ',

@@ -52,8 +52,6 @@ export const useButtonFeedback = (soundIds?: {
 
     const promises: Promise<void>[] = [];
 
-    console.log('Button press feedback:', { shouldPlaySound, shouldPlayHaptic });
-
     if (shouldPlaySound) {
       promises.push(playSound(soundIds?.press || DEFAULT_SOUND_IDS.BUTTON_PRESS, sound));
     }

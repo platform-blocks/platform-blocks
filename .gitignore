@@ -3,6 +3,12 @@ node_modules/
 ui/node_modules/
 docs/node_modules/
 
+# Generated LLM documentation (rebuilt by scripts/generate-llms.ts on every
+# build). The llms.txt index is committed like sitemap.xml; the per-page
+# Markdown and the ~1.2MB full text are not.
+apps/platform-blocks.com/public/llms/
+apps/platform-blocks.com/public/llms-full.txt
+
 # Build outputs
 ui/lib/
 charts/lib/

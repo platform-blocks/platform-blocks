@@ -35,7 +35,7 @@ interface ResourceRow {
 
 /**
  * Source / LLM docs / package links shown under the page title, mirroring the
- * reference table Mantine puts at the top of each component page.
+ * reference table shown at the top of each component page.
  */
 export const ComponentResourceLinks: React.FC<ComponentResourceLinksProps> = ({
   component,

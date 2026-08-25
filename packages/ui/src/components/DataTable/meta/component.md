@@ -4,7 +4,7 @@ title: DataTable
 description: A powerful data table component with sorting, pagination, and selection
 source: ui/src/components/DataTable
 status: stable
-category: Data Display
+category: data
 props:
   - name: data
     type: any[]

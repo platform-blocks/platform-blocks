@@ -1,7 +1,7 @@
 import type { PlatformBlocksTheme } from './types';
 
 /**
- * Resolve a `bg` (background) prop to a CSS color string. Mantine-style:
+ * Resolve a `bg` (background) prop to a CSS color string:
  *
  *   • `'primary'`, `'gray'`, `'success'`, `'warning'`, `'error'`, `'secondary'`
  *     → that palette's shade-1 (subtle tint, the conventional "background" shade)
@@ -10,9 +10,9 @@ import type { PlatformBlocksTheme } from './types';
  *     → `theme.backgrounds.<key>`
  *   • Any other CSS color string passes through unchanged.
  *
- * Used by Card, Block, and any other Box-rendering component that wants the
- * Mantine-style `bg` shorthand. Centralized so the lookup rules stay
- * consistent across components.
+ * Used by Card, Block, and any other Box-rendering component that accepts the
+ * `bg` shorthand. Centralized so the lookup rules stay consistent across
+ * components.
  */
 export function resolveBg(theme: PlatformBlocksTheme, value?: string): string | undefined {
   if (!value) return undefined;
@@ -40,7 +40,7 @@ export function resolveBg(theme: PlatformBlocksTheme, value?: string): string | 
 }
 
 /**
- * Resolve a `c` / `color` text-color prop. Mantine-style:
+ * Resolve a `c` / `color` text-color prop:
  *
  *   • `'dimmed'` → `theme.text.muted`
  *   • `'primary' | 'secondary' | 'muted' | 'disabled' | 'link'` → `theme.text.<key>`
@@ -51,7 +51,7 @@ export function resolveBg(theme: PlatformBlocksTheme, value?: string): string | 
 export function resolveTextColor(theme: PlatformBlocksTheme, value?: string): string | undefined {
   if (!value) return undefined;
 
-  // Mantine compatibility — 'dimmed' maps to muted
+  // 'dimmed' is an alias for the muted text token
   if (value === 'dimmed') return theme.text?.muted ?? value;
 
   // Theme text keys (theme.text.muted etc.)

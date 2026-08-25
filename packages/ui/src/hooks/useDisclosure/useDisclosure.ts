@@ -20,7 +20,7 @@ export type UseDisclosureReturn = readonly [boolean, UseDisclosureHandlers];
 
 /**
  * Boolean-state hook with `open` / `close` / `toggle` handlers — the canonical
- * Mantine API. Optional `onOpen` / `onClose` callbacks fire only on actual
+ * Optional `onOpen` / `onClose` callbacks fire only on actual
  * transitions, never on no-op calls.
  *
  * @example

@@ -6,13 +6,13 @@ const FRACTION_SETTINGS = [
     key: 'match',
     label: 'Match excitement',
     precision: 0.1,
-    // helper: 'Set scores in 0.1 increments to capture precise fan sentiment.'
+    helper: 'Set scores in 0.1 increments to capture precise fan sentiment.'
   },
   {
     key: 'broadcast',
     label: 'Broadcast quality',
     precision: 0.5,
-    // helper: 'Use half-star increments when quick feedback is enough.'
+    helper: 'Use half-star increments when quick feedback is enough.'
   }
 ] as const;
 

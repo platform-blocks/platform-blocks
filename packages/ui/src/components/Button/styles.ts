@@ -84,8 +84,8 @@ export const getButtonStyles = ({
   const isDark = theme.colorScheme === 'dark';
   switch (variant) {
     case 'default':
-      // Mirrors Mantine's `default` button: a neutral chrome fill plus a
-      // hairline, so it reads as a button without claiming the accent color.
+      // A neutral chrome fill plus a hairline, so it reads as a button
+      // without claiming the accent color.
       // Dark mode sits one step above the page background, which is what makes
       // it look raised. Light mode takes the recessed gray instead and leaves
       // the surface white to `secondary`, so the selected/emphasised state is
@@ -198,7 +198,7 @@ export const resolveButtonTextColor = ({
 
   switch (variant) {
     case 'default':
-      // Neutral chrome: normal body text, like Mantine's `default`.
+      // Neutral chrome: normal body text.
       return theme.text.primary;
     case 'secondary':
       return theme.colors.gray[7];

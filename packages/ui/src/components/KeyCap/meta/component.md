@@ -1,7 +1,7 @@
 ---
 title: KeyCap
 description: A visual representation of keyboard keys for displaying shortcuts and key combinations.
-category: data-display
+category: typography
 tags: [keycap, keyboard, shortcut, key, hotkey]
 playground: true
 ---

@@ -1,7 +1,7 @@
 ---
 name: MonthPicker
 title: MonthPicker
-category: inputs
+category: dates
 tags: [date, month, picker, calendar]
 playground: true
 ---

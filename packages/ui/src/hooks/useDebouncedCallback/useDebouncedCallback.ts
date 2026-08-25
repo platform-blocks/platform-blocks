@@ -10,7 +10,7 @@ export interface UseDebouncedCallbackReturn<F extends (...args: any[]) => any> {
 }
 
 /**
- * Returns a stable debounced wrapper around `callback`. Mantine API.
+ * Returns a stable debounced wrapper around `callback`.
  *
  * Differs from `useDebouncedValue`: this debounces the *call*, useful for
  * imperative side-effects driven by event handlers (search inputs, autosave,

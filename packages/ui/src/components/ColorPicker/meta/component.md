@@ -4,7 +4,7 @@ title: ColorPicker
 description: A compact swatch-only color picker — a single preview trigger that opens a small preset palette.
 source: ui/src/components/ColorPicker
 status: stable
-category: Input
+category: input
 props:
   - name: value
     type: string

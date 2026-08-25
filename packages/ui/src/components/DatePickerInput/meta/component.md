@@ -4,7 +4,7 @@ title: DatePickerInput
 description: Input-based date picker that opens a modal calendar for selecting single dates, ranges, or multiple values.
 source: "@platform-blocks/ui"
 status: "stable"
-category: "Input"
+category: dates
 accessibility: "Provides labeled button, focus trap, and keyboard navigation within the modal calendar."
 variants:
   - name: "single"

@@ -1,4 +1,10 @@
 /**
+ * Canonical origin of the docs site. Node-safe: the SEO and llms.txt
+ * generators import it without pulling in the generated data or React.
+ */
+export const SITE_URL = 'https://platform-blocks.com';
+
+/**
  * GitHub repository link
  */
 export const GITHUB_REPO = 'https://github.com/joshstovall/platform-blocks';

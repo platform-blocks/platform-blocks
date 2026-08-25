@@ -1,7 +1,7 @@
 ---
 name: DataList
 description: Display label/value pairs in a semantic description list with horizontal or vertical layout
-category: Data Display
+category: data
 subcategory: Data
 tags: [datalist, description, definition, key-value, label, value, details]
 status: stable

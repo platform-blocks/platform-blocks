@@ -1,7 +1,7 @@
 ---
 name: Indicator
 title: Indicator
-category: data-display
+category: data
 tags: [indicator, badge, status, count, dot]
 playground: true
 props:

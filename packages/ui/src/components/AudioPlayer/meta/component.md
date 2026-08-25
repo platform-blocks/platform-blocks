@@ -2,7 +2,7 @@
 name: AudioPlayer
 title: AudioPlayer
 description: Audio playback with a seekable waveform, transport controls and progress callbacks
-category: Data Display
+category: media
 subcategory: Media
 tags: [audio, player, waveform, media, playback]
 status: beta

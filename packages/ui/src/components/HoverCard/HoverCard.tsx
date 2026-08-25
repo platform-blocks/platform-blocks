@@ -6,7 +6,7 @@ import { getRadius, getSpacing } from '../../core/theme/sizes';
 import { useDropdownPositioning } from '../../core/hooks/useDropdownPositioning';
 import type { HoverCardProps, HoverCardFactoryPayload } from './types';
 
-// A lightweight hover-activated floating panel similar to Mantine HoverCard
+// A lightweight hover-activated floating panel
 function HoverCardBase(props: HoverCardProps, ref: React.Ref<View>) {
   const {
     children,

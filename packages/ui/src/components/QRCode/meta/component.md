@@ -1,7 +1,7 @@
 ---
 playground: true
 title: QRCode
-category: data-display
+category: data
 tags: [qrcode, barcode, scan, data, encoding]
 ---
 

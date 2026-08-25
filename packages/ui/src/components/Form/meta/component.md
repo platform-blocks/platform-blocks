@@ -1,7 +1,7 @@
 ---
 name: Form
 title: Form
-category: inputs
+category: input
 tags: [form, fields, validation, submit]
 playground: true
 source: "@platform-blocks/ui"

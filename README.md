@@ -54,7 +54,10 @@ Full documentation and examples are available at [platform-blocks.com](https://p
 - [Component gallery](https://platform-blocks.com/components)
 - [Theming](https://platform-blocks.com/theming)
 - [Accessibility](https://platform-blocks.com/accessibility)
-- [llms.txt](https://platform-blocks.com/llms.txt) — Full API reference for LLMs and AI assistants
+- [llms.txt](https://platform-blocks.com/llms.txt) — Documentation index for LLMs and AI assistants,
+  linking a standalone Markdown page per component, chart, hook, guide, and FAQ entry.
+  [llms-full.txt](https://platform-blocks.com/llms-full.txt) is the same content in one file;
+  [platform-blocks.com/llms](https://platform-blocks.com/llms) explains the layout.
 
 ## Contributing
 

@@ -3,8 +3,7 @@ import { Dimensions, Platform } from 'react-native';
 
 /**
  * Subscribes to a CSS media query (web) or Dimensions changes (native) and
- * returns whether the query currently matches. Cross-platform replacement for
- * Mantine's `useMediaQuery`.
+ * returns whether the query currently matches.
  *
  * On web: uses `window.matchMedia(query)`.
  * On native: parses `(min-width: Npx)` / `(max-width: Npx)` and watches

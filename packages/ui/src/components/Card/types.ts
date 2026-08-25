@@ -19,7 +19,7 @@ export interface CardProps extends SpacingProps, LayoutProps, BorderRadiusProps,
    */
   variant?: 'outline' | 'filled' | 'elevated' | 'subtle' | 'ghost' | 'gradient';
   /**
-   * Add a 1px border on top of *any* variant. Mantine-style — composes with
+   * Add a 1px border on top of *any* variant. Composes with
    * `variant="elevated"` etc. without forcing you into the `outline` variant.
    */
   withBorder?: boolean;

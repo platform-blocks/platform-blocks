@@ -3,7 +3,7 @@ title: Tooltip
 description: A contextual information overlay that appears on hover, focus, or press to provide additional details without cluttering the interface.
 source: "@platform-blocks/ui"
 status: "stable"
-category: "Overlay"
+category: overlay
 playground: true
 accessibility: "Supports keyboard navigation, ARIA attributes, focus management, and screen readers"
 variants:

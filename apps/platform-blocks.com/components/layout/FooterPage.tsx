@@ -80,7 +80,7 @@ export function FooterContent() {
               <Flex direction="column" gap="xs">
                 <Link {...routeLink('/getting-started')} variant="hover-underline" size="sm" color="gray">Getting Started</Link>
                 <Link {...routeLink('/localization')} variant="hover-underline" size="sm" color="gray">Localization</Link>
-                <Link href="/llms.txt" target="_blank" variant="hover-underline" size="sm" color="gray">llms.txt</Link>
+                <Link href="/llms" variant="hover-underline" size="sm" color="gray">llms.txt</Link>
               </Flex>
             </Flex>
           </GridItem>

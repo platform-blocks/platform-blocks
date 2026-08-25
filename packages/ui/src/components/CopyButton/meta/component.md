@@ -1,7 +1,7 @@
 ---
 name: CopyButton
 playground: true
-category: utility
+category: input
 status: beta
 since: 0.1.0
 ---

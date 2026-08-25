@@ -124,7 +124,7 @@ export const Block = forwardRef<any, BlockProps>((props, ref) => {
 
   // Resolve `bg` through the shared theme resolver so palette names + theme
   // background keys (`'primary'`, `'success'`, `'surface'`, `'subtle'`, …)
-  // work the same way as on `<Card bg=...>` — Mantine-style.
+  // work the same way as on `<Card bg=...>`.
   const layoutProps = layoutPropsRaw.bg
     ? { ...layoutPropsRaw, bg: resolveBg(theme, layoutPropsRaw.bg) ?? layoutPropsRaw.bg }
     : layoutPropsRaw;

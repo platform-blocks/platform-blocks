@@ -1,7 +1,7 @@
 ---
 name: Checkbox
 title: Checkbox
-category: inputs
+category: input
 tags: [checkbox, input, form, selection, toggle]
 playground: true
 props:

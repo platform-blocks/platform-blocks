@@ -4,7 +4,7 @@ title: Gallery
 description: Responsive media gallery with thumbnails, navigation, and modal viewing.
 source: ui/src/components/Gallery
 status: experimental
-category: Media
+category: media
 tags: [gallery, images, thumbnails, media]
 examples:
   - basic
