@@ -6,7 +6,7 @@
 
 <div align="center">
 
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/joshstovall/platform-blocks/blob/HEAD/LICENSE)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/platform-blocks/platform-blocks/blob/HEAD/LICENSE)
 [![Discord](https://img.shields.io/badge/Chat%20on-Discord-%235865f2)](https://discord.gg/kbHjwzgXbc)
 [![X](https://img.shields.io/badge/Follow-%40platform__blocks-000000?logo=x&logoColor=white)](https://x.com/platform_blocks)
 

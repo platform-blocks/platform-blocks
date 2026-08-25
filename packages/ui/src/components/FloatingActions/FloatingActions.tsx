@@ -37,7 +37,7 @@ export interface FloatingActionsProps {
   githubUrl?: string;
 }
 
-const DEFAULT_GITHUB_URL = 'https://github.com/joshstovall/platform-blocks';
+const DEFAULT_GITHUB_URL = 'https://github.com/platform-blocks/platform-blocks';
 
 export const FloatingActions = React.memo(
   React.forwardRef<View, FloatingActionsProps>(({

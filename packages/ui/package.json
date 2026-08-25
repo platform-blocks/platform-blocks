@@ -794,11 +794,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/joshstovall/platform-blocks.git",
+    "url": "https://github.com/platform-blocks/platform-blocks.git",
     "directory": "packages/ui"
   },
   "bugs": {
-    "url": "https://github.com/joshstovall/platform-blocks/issues"
+    "url": "https://github.com/platform-blocks/platform-blocks/issues"
   },
   "homepage": "https://platform-blocks.com",
   "devDependencies": {

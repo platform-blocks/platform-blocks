@@ -1,12 +1,12 @@
 <p align="center">
-  <a href="https://platform-blocks.com/" rel="noopener" target="_blank"><img width="75" height="75" src="https://raw.githubusercontent.com/joshstovall/platform-blocks/refs/heads/main/apps/platform-blocks.com/assets/favicon.png" alt="Platform Blocks logo"/></a>
+  <a href="https://platform-blocks.com/" rel="noopener" target="_blank"><img width="75" height="75" src="https://raw.githubusercontent.com/platform-blocks/platform-blocks/refs/heads/main/apps/platform-blocks.com/assets/favicon.png" alt="Platform Blocks logo"/></a>
 </p>
 
 <h1 align="center">@platform-blocks/ui</h1>
 
 <div align="center">
 
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/joshstovall/platform-blocks/blob/HEAD/LICENSE)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/platform-blocks/platform-blocks/blob/HEAD/LICENSE)
 [![npm](https://img.shields.io/npm/v/@platform-blocks/ui)](https://www.npmjs.com/package/@platform-blocks/ui)
 [![Discord](https://img.shields.io/badge/Chat%20on-Discord-%235865f2)](https://discord.gg/kbHjwzgXbc)
 
@@ -174,8 +174,8 @@ Full documentation, interactive examples, and component playground are available
 
 ## Contributing
 
-See the [contributing guide](https://github.com/joshstovall/platform-blocks/blob/main/CONTRIBUTING.md) for setup instructions.
+See the [contributing guide](https://github.com/platform-blocks/platform-blocks/blob/main/CONTRIBUTING.md) for setup instructions.
 
 ## License
 
-[MIT](https://github.com/joshstovall/platform-blocks/blob/main/LICENSE) © [Josh Stovall](https://github.com/joshstovall)
+[MIT](https://github.com/platform-blocks/platform-blocks/blob/main/LICENSE) © [Josh Stovall](https://github.com/joshstovall)

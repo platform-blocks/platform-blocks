@@ -7,7 +7,7 @@ export const SITE_URL = 'https://platform-blocks.com';
 /**
  * GitHub repository link
  */
-export const GITHUB_REPO = 'https://github.com/joshstovall/platform-blocks';
+export const GITHUB_REPO = 'https://github.com/platform-blocks/platform-blocks';
 
 /**
  * Figma design link

@@ -38,7 +38,7 @@ export default function Demo() {
           </Text>
           <CodeBlock
             title="Basic component"
-            githubUrl="https://github.com/joshstovall/platform-blocks/blob/main/ui/src/components/Button/Button.tsx"
+            githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/packages/ui/src/components/Button/Button.tsx"
           >
             {componentExample}
           </CodeBlock>
@@ -50,7 +50,7 @@ export default function Demo() {
           </Text>
           <CodeBlock
             files={[{ name: 'example.tsx' }]}
-            githubUrl="https://github.com/joshstovall/platform-blocks/blob/main/ui/src/components/Text/Text.tsx"
+            githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/packages/ui/src/components/Text/Text.tsx"
           >
             {inlineExample}
           </CodeBlock>
@@ -63,7 +63,7 @@ export default function Demo() {
           <CodeBlock
             variant="terminal"
             title="Terminal example"
-            githubUrl="https://github.com/joshstovall/platform-blocks/blob/main/docs/scripts/build.sh"
+            githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/apps/platform-blocks.com/eas-build-post-install.sh"
           >
             {terminalExample}
           </CodeBlock>
@@ -73,7 +73,7 @@ export default function Demo() {
           <Text size="sm" weight="semibold">
             Floating controls
           </Text>
-          <CodeBlock githubUrl="https://github.com/joshstovall/platform-blocks/blob/main/ui/src/components/CodeBlock/CodeBlock.tsx">
+          <CodeBlock githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/packages/ui/src/components/CodeBlock/CodeBlock.tsx">
             {floatingExample}
           </CodeBlock>
         </Block>

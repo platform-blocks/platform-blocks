@@ -4,8 +4,7 @@
   "workspaces": [
     "packages/ui",
     "packages/charts",
-    "apps/platform-blocks.com",
-    "packages/create-platform-blocks"
+    "apps/platform-blocks.com"
   ],
   "scripts": {
     "build": "npm --prefix packages/ui run build",

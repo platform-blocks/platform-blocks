@@ -25,7 +25,7 @@ interface CopyPageMenuProps {
 const CHAT_GPT_BASE_URL = 'https://chatgpt.com/';
 const CLAUDE_BASE_URL = 'https://claude.ai/new';
 const SITE_URL = 'https://platform-blocks.com';
-const GITHUB_URL = 'https://github.com/joshstovall/platform-blocks';
+const GITHUB_URL = 'https://github.com/platform-blocks/platform-blocks';
 const NPM_URL = 'https://www.npmjs.com/package/@platform-blocks/ui';
 const isWeb = Platform.OS === 'web';
 
@@ -39,7 +39,7 @@ const buildContextHeader = (pageTitle: string, pageUrl: string) => {
     '> component library for React Native (iOS, Android) and the web.',
     '>',
     `> - Website: [platform-blocks.com](${SITE_URL})`,
-    `> - GitHub: [joshstovall/platform-blocks](${GITHUB_URL})`,
+    `> - GitHub: [platform-blocks/platform-blocks](${GITHUB_URL})`,
     `> - NPM Package: [@platform-blocks/ui](${NPM_URL})`,
   ];
 

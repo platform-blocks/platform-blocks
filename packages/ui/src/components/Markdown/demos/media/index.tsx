@@ -4,7 +4,7 @@ const CONTENT = `# Media in Markdown
 
 ## Images
 
-![PlatformBlocks Logo](https://raw.githubusercontent.com/joshstovall/platform-blocks/main/apps/platform-blocks.com/assets/favicon.png)
+![PlatformBlocks Logo](https://raw.githubusercontent.com/platform-blocks/platform-blocks/main/apps/platform-blocks.com/assets/favicon.png)
 
 ## Links
 

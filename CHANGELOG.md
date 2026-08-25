@@ -1,6 +1,6 @@
 # Changelog
 
-See all versions and their changes on the [releases page](https://github.com/joshstovall/platform-blocks/releases).
+See all versions and their changes on the [releases page](https://github.com/platform-blocks/platform-blocks/releases).
 
 - [1.0.0](changelog/1.0.0.md)
 - [0.11.0](changelog/0.11.0.md)
