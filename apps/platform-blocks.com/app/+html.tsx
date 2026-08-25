@@ -40,10 +40,12 @@ export default function Root({ children }: PropsWithChildren) {
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
         
         {/*
-          Paints the correct page backdrop before first paint. This only covers
-          the backdrop — the prerendered markup itself carries light-theme colors
-          in inline styles, so dark-theme readers still see the content repaint
-          on hydration. Fixing that needs class-based theming in the UI package.
+          Paints the correct page backdrop before first paint. The prerendered
+          markup itself carries light-theme colors in inline styles, so for
+          dark-theme readers the script below also holds the content invisible
+          (dark backdrop only) until hydration has restyled it — see
+          `platform-blocks-content-pending` and the reveal in
+          components/layout/Providers.tsx.
         */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
@@ -89,6 +91,16 @@ html.platform-blocks-dark body {
   flex: 1;
   height: 100vh;
   width: 100vw;
+}
+
+/* The prerendered markup carries light-theme colors in inline styles, so for
+   dark-theme readers the pre-hydration script below stamps this class to hold
+   the content invisible (dark backdrop only) until React has restyled it.
+   Removed by ContentReveal in components/layout/Providers.tsx, or by the
+   script's own fallback timer if hydration never completes. Readers without
+   JS never get the class, so prerendered content stays visible to them. */
+html.platform-blocks-content-pending #root {
+  visibility: hidden;
 }
 
 /* Demo headings on component pages are permalinks (see components/DemoHeading).
@@ -152,6 +164,16 @@ const themeScript = `
     root.classList.add('platform-blocks-' + scheme);
     root.style.colorScheme = scheme;
     root.style.backgroundColor = scheme === 'dark' ? '#000000' : '#ffffff';
+
+    if (scheme === 'dark') {
+      // The prerendered content is styled for light mode; hold it invisible
+      // until hydration restyles it (ContentReveal lifts this), with a timer
+      // fallback so the page is never lost if hydration fails.
+      root.classList.add('platform-blocks-content-pending');
+      setTimeout(function () {
+        root.classList.remove('platform-blocks-content-pending');
+      }, 4000);
+    }
   } catch (e) {
     // Leave whatever resolved above in place; never downgrade to light here.
   }

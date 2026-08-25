@@ -222,6 +222,7 @@ export const AppProviders: React.FC<Props> = React.memo(({ children }) => {
             i18nResources={docsI18nResources}
           >
             <ThemeModeHydrator />
+            <ContentReveal />
             <ChartThemeBridge>
               <KeyboardManagerProvider disabled={!keyboardManagerEnabled}>
                 {content}
@@ -363,3 +364,37 @@ const ThemeModeHydrator: React.FC = () => {
 };
 
 ThemeModeHydrator.displayName = 'ThemeModeHydrator';
+
+/**
+ * Lifts the `platform-blocks-content-pending` class that the pre-hydration
+ * script in app/+html.tsx stamps on <html> for dark-theme readers. By the time
+ * this effect's animation frame fires, the theme provider has re-rendered the
+ * tree with the resolved (dark) theme, so revealing here is what turns
+ * "light content flashes, then darkens" into "dark backdrop, then dark
+ * content". The script's own timer remains the fallback if this never runs.
+ */
+const ContentReveal: React.FC = () => {
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') {
+      return;
+    }
+
+    const reveal = () => {
+      document.documentElement.classList.remove('platform-blocks-content-pending');
+    };
+
+    if (typeof requestAnimationFrame === 'function') {
+      const frame = requestAnimationFrame(reveal);
+      return () => {
+        cancelAnimationFrame(frame);
+        reveal();
+      };
+    }
+
+    reveal();
+  }, []);
+
+  return null;
+};
+
+ContentReveal.displayName = 'ContentReveal';

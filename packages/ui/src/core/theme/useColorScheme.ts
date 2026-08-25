@@ -1,81 +1,62 @@
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
 import { resolveOptionalModule } from '../../utils/optionalModule';
 
 export type ColorScheme = 'light' | 'dark';
 
-/**
- * Synchronously get the current color scheme to avoid flash
- * This runs before the first render to prevent light mode flash
- */
-function getInitialColorScheme(): ColorScheme {
+function getAppearance() {
+  return resolveOptionalModule<any>('react-native', {
+    accessor: mod => mod.Appearance,
+    devWarning: 'Appearance API not available',
+  });
+}
+
+function subscribeToSystemColorScheme(callback: () => void): () => void {
   if (Platform.OS === 'web') {
-    // Check if we're in a browser environment
+    if (typeof window === 'undefined' || !window.matchMedia) {
+      return () => {};
+    }
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', callback);
+    return () => mediaQuery.removeEventListener('change', callback);
+  }
+
+  const Appearance = getAppearance();
+  if (Appearance?.addChangeListener) {
+    const subscription = Appearance.addChangeListener(callback);
+    return () => subscription?.remove?.();
+  }
+  return () => {};
+}
+
+function getSystemColorSchemeSnapshot(): ColorScheme {
+  if (Platform.OS === 'web') {
     if (typeof window !== 'undefined' && window.matchMedia) {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-  } else {
-    // For React Native, try to get the current scheme synchronously
-    const Appearance = resolveOptionalModule<any>('react-native', {
-      accessor: mod => mod.Appearance,
-      devWarning: 'Appearance API not available',
-    });
-
-    const currentScheme = Appearance?.getColorScheme?.();
-    if (currentScheme) {
-      return currentScheme;
-    }
+    return 'light';
   }
-  // Default to light mode
+
+  const Appearance = getAppearance();
+  return Appearance?.getColorScheme?.() === 'dark' ? 'dark' : 'light';
+}
+
+/* Static rendering has no OS preference to read, so the server always renders
+   light. useSyncExternalStore hydrates against this snapshot and then
+   re-renders synchronously — before the browser paints — with the real value
+   from getSystemColorSchemeSnapshot, so dark-mode readers never see a light
+   frame and the hydration pass still matches the server HTML. */
+function getServerColorSchemeSnapshot(): ColorScheme {
   return 'light';
 }
 
 /**
- * Hook that detects and responds to OS color scheme changes
- * Works on web and React Native
+ * Hook that reads and follows the OS color scheme on web and React Native.
  */
 export function useColorScheme(): ColorScheme {
-  const [colorScheme, setColorScheme] = useState<ColorScheme>(getInitialColorScheme);
-
-  useEffect(() => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.matchMedia) {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-      const handleChange = (e: MediaQueryListEvent) => {
-        setColorScheme(e.matches ? 'dark' : 'light');
-      };
-
-      // Listen for changes
-      mediaQuery.addEventListener('change', handleChange);
-
-      // Clean up
-      return () => {
-        mediaQuery.removeEventListener('change', handleChange);
-      };
-    }
-
-    // For React Native, you would use Appearance API
-    if (Platform.OS !== 'web') {
-      const Appearance = resolveOptionalModule<any>('react-native', {
-        accessor: mod => mod.Appearance,
-        devWarning: 'Appearance API not available',
-      });
-
-      if (Appearance?.addChangeListener) {
-        const subscription = Appearance.addChangeListener(({ colorScheme: newColorScheme }: { colorScheme: ColorScheme | null }) => {
-          setColorScheme(newColorScheme || 'light');
-        });
-
-        // Set initial value
-        const currentScheme = Appearance.getColorScheme?.();
-        if (currentScheme) {
-          setColorScheme(currentScheme);
-        }
-
-        return () => subscription?.remove?.();
-      }
-    }
-  }, []);
-
-  return colorScheme;
+  return useSyncExternalStore(
+    subscribeToSystemColorScheme,
+    getSystemColorSchemeSnapshot,
+    getServerColorSchemeSnapshot
+  );
 }

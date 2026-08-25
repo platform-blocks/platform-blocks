@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useMemo, useEffect } from 'react';
-import { Platform, Appearance } from 'react-native';
+import React, { createContext, useContext, useMemo, useEffect, useSyncExternalStore } from 'react';
+import { Platform } from 'react-native';
 import { PlatformBlocksTheme, PlatformBlocksThemeOverride } from './types';
+import { useColorScheme as useSystemColorScheme } from './useColorScheme';
 
 // Enhanced theme mode types
 export type ColorSchemeMode = 'light' | 'dark' | 'auto';
@@ -61,6 +62,18 @@ const defaultDomConfig = {
   attribute: 'data-platform-blocks-manual'
 };
 
+const noopSubscribe = () => () => {};
+
+/* False during static rendering AND the hydration render pass, true from then
+   on (and immediately in client-only rendering). Persisted values that the
+   server could not know about (localStorage) must not influence the hydration
+   pass — React may keep the server's attributes where the passes disagree,
+   stranding stale styles. Gating on this flag keeps hydration clean; React
+   then re-renders synchronously, before first paint, with the real value. */
+function useIsHydrated(): boolean {
+  return useSyncExternalStore(noopSubscribe, () => true, () => false);
+}
+
 /**
  * Enhanced theme mode provider that manages color scheme with persistence
  */
@@ -77,47 +90,20 @@ export function ThemeModeProvider({
     domConfig = defaultDomConfig
   } = config;
 
-  // Get system color scheme. On native, seed from Appearance immediately so an
-  // 'auto' app doesn't flash light before the listener attaches; on web we keep
-  // the 'light' default and let the matchMedia effect below resolve it.
-  const [systemColorScheme, setSystemColorScheme] = React.useState<'light' | 'dark'>(
-    () => (Platform.OS === 'web' ? 'light' : (Appearance.getColorScheme() === 'dark' ? 'dark' : 'light'))
-  );
+  // System color scheme, resolved synchronously on the first client render
+  // (useSyncExternalStore inside) so an 'auto' app never paints a light frame
+  // before flipping dark. During static rendering it reads as 'light'.
+  const systemColorScheme = useSystemColorScheme();
 
-  // Current mode state
-  const [mode, setModeState] = React.useState<ColorSchemeMode>(() => {
+  // Persisted mode state. The initializer reads persistence synchronously so
+  // client-only renders (dev server, native) start on the right mode with no
+  // flash; `isHydrated` below keeps that read out of the hydration pass.
+  const isHydrated = useIsHydrated();
+  const [persistedMode, setModeState] = React.useState<ColorSchemeMode>(() => {
     const persisted = persistence?.get?.();
     return persisted || initialMode;
   });
-
-  // Listen to system color scheme changes (web only)
-  useEffect(() => {
-    if (Platform.OS !== 'web' || typeof window === 'undefined' || !window.matchMedia) return;
-    
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const updateSystemScheme = () => {
-      setSystemColorScheme(mediaQuery.matches ? 'dark' : 'light');
-    };
-    
-    updateSystemScheme(); // Set initial value
-    mediaQuery.addEventListener('change', updateSystemScheme);
-
-    return () => mediaQuery.removeEventListener('change', updateSystemScheme);
-  }, []);
-
-  // Listen to system color scheme changes (native). The web effect above bails
-  // out on native, so without this `systemColorScheme` would be stuck at its
-  // initial value and an 'auto' app would never follow the OS theme.
-  useEffect(() => {
-    if (Platform.OS === 'web') return;
-
-    setSystemColorScheme(Appearance.getColorScheme() === 'dark' ? 'dark' : 'light');
-    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setSystemColorScheme(colorScheme === 'dark' ? 'dark' : 'light');
-    });
-
-    return () => subscription.remove();
-  }, []);
+  const mode = isHydrated ? persistedMode : initialMode;
 
   // Resolve actual color scheme
   const actualColorScheme = useMemo((): 'light' | 'dark' => {
