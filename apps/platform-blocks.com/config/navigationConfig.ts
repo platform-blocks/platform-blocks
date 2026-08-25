@@ -73,6 +73,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'Getting Started', route: '/getting-started', icon: 'home', bottom: true, searchable: true, description: 'Install, set up the provider, and render your first component' },
       { label: 'Examples', route: '/examples', icon: 'layers', searchable: true, description: 'Complete screens built from Platform Blocks components — open fullscreen, then copy the source' },
+      { label: 'Extensions', route: '/extensions', icon: 'package', searchable: true, description: 'Packages that build on Platform Blocks, and the template for making your own' },
       { label: 'Localization', route: '/localization', icon: 'globe', searchable: true },
       { label: 'FAQ', route: '/faq', icon: 'question', bottom: true, searchable: true },
       { label: 'LLM docs', route: '/llms', icon: 'markdown', searchable: true, description: 'Documentation as Markdown for language models — llms.txt, llms-full.txt, and per-page files' },

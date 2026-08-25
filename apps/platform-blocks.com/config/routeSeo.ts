@@ -28,6 +28,11 @@ const STATIC_ROUTES: Record<string, RouteMeta> = {
     description:
       'Install @platform-blocks/ui, wire up the provider, and render your first themeable, cross-platform component on iOS, Android, and Web.',
   },
+  '/extensions': {
+    title: 'Extensions',
+    description:
+      'Packages that build on Platform Blocks — official and community extensions, plus a batteries-included template for building and publishing your own.',
+  },
   '/examples': {
     title: 'Examples',
     description:
