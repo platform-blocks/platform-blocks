@@ -28,6 +28,26 @@ const STATIC_ROUTES: Record<string, RouteMeta> = {
     description:
       'Install @platform-blocks/ui, wire up the provider, and render your first themeable, cross-platform component on iOS, Android, and Web.',
   },
+  '/examples': {
+    title: 'Examples',
+    description:
+      'Complete screens built from Platform Blocks components — login, settings, dashboards, and more. Open fullscreen, then copy the source into your app.',
+  },
+  '/examples/login': {
+    title: 'Login Screen Example',
+    description:
+      'A complete React Native sign-in screen built with Platform Blocks — inputs with inline validation, social sign-in buttons, and a remember-me control.',
+  },
+  '/examples/settings': {
+    title: 'Settings Screen Example',
+    description:
+      'A grouped React Native preferences screen built with Platform Blocks — switch rows, a live theme-mode selector, and a profile header.',
+  },
+  '/examples/dashboard': {
+    title: 'Stats Dashboard Example',
+    description:
+      'A responsive KPI dashboard built with Platform Blocks — stat tiles with trend sparklines from @platform-blocks/charts.',
+  },
   '/components': {
     title: 'Components',
     description:

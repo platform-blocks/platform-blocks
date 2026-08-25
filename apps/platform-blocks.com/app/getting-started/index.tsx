@@ -4,6 +4,7 @@ import {
   Alert,
   BrandButton,
   BrandIcon,
+  Button,
   Card,
   Chip,
   CodeBlock,
@@ -21,6 +22,14 @@ import {
   GETTING_STARTED_STEPS,
   GETTING_STARTED_SUBTITLE,
 } from '../../config/gettingStarted';
+import {
+  STARTER_TEMPLATES,
+  TEMPLATES_COMMUNITY_INVITE,
+  TEMPLATES_GUIDANCE,
+  TEMPLATES_SUBTITLE,
+  TEMPLATES_TITLE,
+} from '../../config/templates';
+import { GITHUB_REPO } from '../../config/urls';
 import { useBrowserTitle, formatPageTitle } from 'hooks/useBrowserTitle';
 
 const renderTagChip = (tag: TagType) => {
@@ -81,6 +90,63 @@ export default function GettingStartedScreen() {
             ) : null}
           </Column>
         ))}
+
+        <Column gap="md">
+          <Title
+            order={2}
+            size={28}
+            weight="bold"
+            subtitle={TEMPLATES_SUBTITLE}
+            subtitleProps={{ variant: 'p' }}
+          >
+            {TEMPLATES_TITLE}
+          </Title>
+
+          <Text variant="p" colorVariant="secondary">{TEMPLATES_GUIDANCE}</Text>
+
+          <Grid columns={12} gap="md">
+            {STARTER_TEMPLATES.map(t => (
+              <GridItem key={t.key} span={{ base: 12, md: 6, lg: 4 }}>
+                <Card variant="elevated" p="md" style={{ flex: 1 }}>
+                  <Flex direction="column" justify="space-between" gap="md" style={{ flex: 1 }}>
+                    <Column gap="sm">
+                      <Flex direction="row" align="center" gap="sm" wrap="wrap">
+                        <Text variant="h4" weight="semibold">{t.name}</Text>
+                        {!t.available && (
+                          <Chip size="sm" color="gray" variant="light">coming soon</Chip>
+                        )}
+                      </Flex>
+                      <Text variant="p" colorVariant="secondary">{t.description}</Text>
+                      <Flex direction="row" gap="xs" wrap="wrap">
+                        {t.tags.map(tag => (
+                          <Chip key={tag} size="sm" variant="surface">{tag}</Chip>
+                        ))}
+                      </Flex>
+                    </Column>
+                    {t.available && (
+                      <Button
+                        title="Use template"
+                        variant="light"
+                        size="sm"
+                        onPress={() => router.push(t.repo)}
+                      />
+                    )}
+                  </Flex>
+                </Card>
+              </GridItem>
+            ))}
+          </Grid>
+
+          <Flex direction="row" align="center" gap="sm" wrap="wrap">
+            <Text variant="small" colorVariant="secondary">{TEMPLATES_COMMUNITY_INVITE}</Text>
+            <Button
+              title="Share your starter"
+              variant="subtle"
+              size="sm"
+              onPress={() => router.push(`${GITHUB_REPO}/issues/new?template=community_template.yml`)}
+            />
+          </Flex>
+        </Column>
 
         <Column gap="md">
           <Title

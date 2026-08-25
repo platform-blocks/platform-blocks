@@ -10,6 +10,10 @@ import {
   LLMS_INTRO,
   LLMS_ON_PAGE_NOTE,
   LLMS_PAGE_FILES,
+  LLMS_SKILLS_INTRO,
+  LLMS_SKILLS_REPO_URL,
+  LLMS_SKILLS_SNIPPET,
+  LLMS_SKILLS_TITLE,
   LLMS_USAGE_SNIPPET,
   type LlmsFileEntry,
 } from '../../config/llmsDocs';
@@ -76,6 +80,27 @@ export default function LlmsScreen() {
             {LLMS_USAGE_SNIPPET}
           </CodeBlock>
           <Text variant="p" colorVariant="secondary">{LLMS_ON_PAGE_NOTE}</Text>
+        </Column>
+
+        <Column gap="md">
+          <Title
+            order={2}
+            size={28}
+            weight="bold"
+            subtitle={LLMS_SKILLS_INTRO}
+            subtitleProps={{ variant: 'p' }}
+          >
+            {LLMS_SKILLS_TITLE}
+          </Title>
+          <CodeBlock variant="terminal" language="bash" fullWidth>
+            {LLMS_SKILLS_SNIPPET}
+          </CodeBlock>
+          <Text variant="p" colorVariant="secondary">
+            All five skills live at{' '}
+            <Link href={LLMS_SKILLS_REPO_URL} target="_blank" variant="hover-underline">
+              {LLMS_SKILLS_REPO_URL}
+            </Link>
+          </Text>
         </Column>
 
         <Alert sev="info" variant="light" title="Always current" fullWidth>

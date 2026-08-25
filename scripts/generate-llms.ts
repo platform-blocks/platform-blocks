@@ -29,6 +29,11 @@ import {
   GETTING_STARTED_SUBTITLE,
 } from '../apps/platform-blocks.com/config/gettingStarted';
 import {
+  STARTER_TEMPLATES,
+  TEMPLATES_GUIDANCE,
+  TEMPLATES_TITLE,
+} from '../apps/platform-blocks.com/config/templates';
+import {
   ACCESSIBILITY_EXAMPLE_LEAD,
   ACCESSIBILITY_EXAMPLE_SNIPPET,
   ACCESSIBILITY_EXAMPLE_TITLE,
@@ -210,6 +215,16 @@ async function buildGuidePages(): Promise<LlmsPage[]> {
         step.note ?? null,
         step.note ? '' : null,
       ]),
+      `## ${TEMPLATES_TITLE}`,
+      '',
+      TEMPLATES_GUIDANCE,
+      '',
+      ...STARTER_TEMPLATES.map(t =>
+        t.available
+          ? `- [${t.name}](${t.repo}) — ${t.description} (${t.tags.join(', ')})`
+          : `- ${t.name} (coming soon) — ${t.description} (${t.tags.join(', ')})`
+      ),
+      '',
     ]),
   });
 

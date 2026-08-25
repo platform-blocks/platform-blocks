@@ -73,6 +73,10 @@ async function generateSitemap(): Promise<void> {
   // Main sections
   const mainSections = [
     { path: '/getting-started', priority: 0.9 },
+    { path: '/examples', priority: 0.8 },
+    { path: '/examples/login', priority: 0.6 },
+    { path: '/examples/settings', priority: 0.6 },
+    { path: '/examples/dashboard', priority: 0.6 },
     { path: '/components', priority: 0.9 },
     { path: '/charts', priority: 0.9 },
     { path: '/hooks', priority: 0.9 },

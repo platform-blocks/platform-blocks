@@ -61,6 +61,16 @@ curl ${SITE_URL}/llms/components/Button.md
 # Or hand over everything at once
 curl ${SITE_URL}/llms-full.txt`;
 
+export const LLMS_SKILLS_TITLE = 'Agent skills';
+
+export const LLMS_SKILLS_INTRO =
+  'Beyond raw documentation, Platform Blocks ships Agent Skills — installable instructions that teach coding agents the working patterns and pitfalls of one area of the library, verified against the source. Five skills cover setup, theming, layout, forms, and charts.';
+
+export const LLMS_SKILLS_REPO_URL = 'https://github.com/platform-blocks/skills';
+
+export const LLMS_SKILLS_SNIPPET = `# Install a skill with the skills.sh CLI
+npx skills add ${LLMS_SKILLS_REPO_URL} --skill platform-blocks-setup`;
+
 export const LLMS_ON_PAGE_NOTE =
   'Every component and hook page also carries a Copy button that puts that page\'s Markdown on your clipboard, plus shortcuts that open it in ChatGPT or Claude. The "LLM docs" link in each page\'s resource list points at the same Markdown file the index links to.';
 

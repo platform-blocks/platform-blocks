@@ -29,7 +29,7 @@ export const PLATFORMS = [
     label: 'iOS',
     brand: 'apple' as const,
     note: 'iOS 26+',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
+    description: 'Native views on iPhone and iPad, with platform haptics, gestures, and safe areas handled for you',
     tags: ['Supported'] as TagType[]
   },
   {
@@ -37,7 +37,7 @@ export const PLATFORMS = [
     label: 'Android',
     brand: 'android' as const,
     note: 'API 36+',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
+    description: 'Native Android rendering with edge-to-edge layouts and the same component API as every platform',
     tags: ['Supported'] as TagType[]
   },
   {

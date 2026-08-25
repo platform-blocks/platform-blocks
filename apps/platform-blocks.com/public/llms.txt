@@ -11,7 +11,7 @@ For a single consolidated file with all content, use:
 - https://platform-blocks.com/llms-full.txt
 
 Install: `npm install @platform-blocks/ui`
-Website: https://platform-blocks.com • GitHub: https://github.com/joshstovall/platform-blocks • npm: https://www.npmjs.com/package/@platform-blocks/ui
+Website: https://platform-blocks.com • GitHub: https://github.com/platform-blocks/platform-blocks • npm: https://www.npmjs.com/package/@platform-blocks/ui
 
 ## Guides
 
