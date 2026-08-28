@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Pair `variant: 'modal'` with a destructive button (`colorVariant="error.5"`) to confirm irreversible actions before calling your business logic.
+Pair `variant: 'modal'` with a destructive button (`color="error"`) to confirm irreversible actions before calling your business logic.

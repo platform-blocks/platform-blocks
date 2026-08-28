@@ -1,4 +1,4 @@
-import type { DonutChartDataPoint } from '../../';
+import type { DonutChartDataPoint } from '@platform-blocks/charts';
 
 export const ARR_SEGMENTS: DonutChartDataPoint[] = [
   { id: 'enterprise', label: 'Enterprise', value: 82, data: { metric: 'arr' } },

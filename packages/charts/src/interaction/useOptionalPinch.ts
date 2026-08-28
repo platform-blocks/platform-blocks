@@ -32,7 +32,6 @@ let cachedRNGH: any | null | undefined;
 export function resolveGestureHandler(): any | null {
   if (cachedRNGH !== undefined) return cachedRNGH;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     cachedRNGH = require('react-native-gesture-handler');
   } catch {
     cachedRNGH = null;

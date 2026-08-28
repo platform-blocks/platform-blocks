@@ -10,7 +10,6 @@ import { DemoRenderer } from '../components/DemoRenderer';
 import { DemoHeading } from '../components/DemoHeading';
 import { buildDemoAnchors } from '../utils/demoAnchors';
 import { PropTable } from '../components/PropTable';
-import { NARROW_PAGE_GUTTER } from '../components/PageLayout';
 import { DocsPage } from '../components/DocsPage';
 import { DocsPageHeader } from '../components/DocsPageHeader';
 import { CopyPageMenu } from '../components/CopyPageMenu';
@@ -35,24 +34,19 @@ import { getPlaygroundConfig, type ComponentPlaygroundConfig } from '../componen
 
 interface ComponentDetailScreenProps { component?: string }
 
-/**
- * On phones the only horizontal breathing room is PageLayout's page gutter —
- * this screen adds none of its own. Demo cards cancel that gutter to run edge
- * to edge.
- */
-const NARROW_GUTTER = NARROW_PAGE_GUTTER;
-
 interface DemoSectionProps {
   demo: any;
   preview: React.ReactNode;
   description?: string;
   hideTitle?: boolean;
-  demoBleed?: number;
   /** Fragment id that deep-links to this demo. */
   anchorId: string;
 }
 
-function DemoSection({ demo, preview, description, hideTitle, demoBleed, anchorId }: DemoSectionProps) {
+/** Matches the `opacity: 0.7` the page-level description is dimmed with. */
+const DEMO_DESCRIPTION_STYLE = { opacity: 0.7 };
+
+function DemoSection({ demo, preview, description, hideTitle, anchorId }: DemoSectionProps) {
   const sectionChildren: React.ReactNode[] = [];
 
   if (!hideTitle) {
@@ -65,18 +59,21 @@ function DemoSection({ demo, preview, description, hideTitle, demoBleed, anchorI
 
   if (description) {
     sectionChildren.push(
-      <View key="description">
+      // Same recessed treatment as the component description under the page
+      // title, so a demo's blurb reads as support text rather than as content.
+      <View key="description" style={DEMO_DESCRIPTION_STYLE}>
         <Markdown>{description}</Markdown>
       </View>
     );
   }
 
   sectionChildren.push(
-    <DemoRenderer key="demo" demo={demo} preview={preview} bleed={demoBleed} />
+    <DemoRenderer key="demo" demo={demo} preview={preview} />
   );
 
   return (
-    <Block gap="md">
+    // No gap: the heading, description and demo card read as one unit.
+    <Block gap={0}>
       {sectionChildren}
     </Block>
   );
@@ -106,9 +103,16 @@ interface ComponentContentProps {
   onTabChange?: (tabKey: string) => void;
   /** Render the inline scrollspy TOC below the header (Examples tab, desktop only). */
   showToc?: boolean;
-  /** Gutter, in px, that demo cards cancel so they run to the screen edge. */
-  demoBleed?: number;
 }
+
+/**
+ * Cancels the horizontal half of the Tabs panel's own padding, keeping its
+ * vertical padding. Deliberately a plain object, not `StyleSheet.create`:
+ * `Tabs` builds its panel style from a factory that returns plain objects, so
+ * react-native-web applies it as an *inline* style — a registered style here
+ * would compile to a class and lose to it.
+ */
+const TABS_CONTENT_STYLE = { paddingLeft: 0, paddingRight: 0 };
 
 const ComponentContent = React.memo(function ComponentContent({
   component,
@@ -124,7 +128,6 @@ const ComponentContent = React.memo(function ComponentContent({
   componentMarkdown,
   onTabChange,
   showToc,
-  demoBleed,
 }: ComponentContentProps) {
   // Every snack-able demo of the component in one Snack — null when none of them
   // can run there. Built once here and shared with the resource links row, since
@@ -217,7 +220,6 @@ const ComponentContent = React.memo(function ComponentContent({
                 preview={preview}
                 description={getLocalizedDescription(demo)}
                 hideTitle={newMeta?.category === 'charts'}
-                demoBleed={demoBleed}
                 anchorId={demoAnchors[demo.id]}
               />
             );
@@ -307,7 +309,10 @@ const ComponentContent = React.memo(function ComponentContent({
           items={tabItems}
           onTabChange={onTabChange}
           style={styles.tabsColumn}
-          contentStyle={demoBleed ? { paddingHorizontal: 0 } : undefined}
+          // Tab panels carry the page's own gutter, not a second one of their
+          // own: demo cards and running text align to the same left edge as the
+          // header above the tabs.
+          contentStyle={TABS_CONTENT_STYLE}
         />
 
         {showToc && (
@@ -377,7 +382,6 @@ export default function ComponentDetailScreen({ component = 'Unknown' }: Compone
   // Determine if we should show side-by-side layout (desktop)
   const { width } = useWindowDimensions();
   const isDesktop = width >= BREAKPOINTS.lg;
-  const isNarrow = width < BREAKPOINTS.md;
 
   // Helper function to get localized description (stable so ComponentContent memo holds)
   const getLocalizedDescription = useCallback((demo: any) => {
@@ -467,8 +471,6 @@ export default function ComponentDetailScreen({ component = 'Unknown' }: Compone
     onTabChange: handleTabChange,
     // The TOC lists the example headings, so it only makes sense on that tab.
     showToc: isDesktop && activeTab === 'demos',
-    // Running text keeps the gutter; demo cards cancel it and run edge to edge.
-    demoBleed: isNarrow ? NARROW_GUTTER : 0,
   };
 
   return (

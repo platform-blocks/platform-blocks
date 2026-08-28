@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native';
-import { SparklineChart } from '../../';
+import { SparklineChart } from '@platform-blocks/charts';
 
 import { TEAMS } from './data';
 

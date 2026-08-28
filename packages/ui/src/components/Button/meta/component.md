@@ -9,7 +9,8 @@ props:
   title: Button label (alternative to children)
   variant: 'default' (default) | 'filled' | 'light' | 'subtle' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'link' | 'none'
   size: Size token (xs–3xl)
-  colorVariant: Color override — palette name, 'palette.shade' syntax, or raw CSS color
+  color: Tint for the color-bearing variants (filled, light, subtle, outline, gradient) and the text of ghost/link — palette name, 'palette.shade' syntax, or raw CSS color. Ignored by the neutral variants (default, secondary, none)
+  colorVariant: Legacy alias for `color` — prefer `color`
   textColor: Explicit text color override
   startIcon / endIcon / icon: Slot icons
   loading: Show loader state

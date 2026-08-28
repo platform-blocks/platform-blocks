@@ -75,11 +75,12 @@ export function PageLayout({ children, style, contentContainerStyle }: PageLayou
         scrollEventThrottle: 16,
       }}
     >
-      {/* Horizontal padding gives card shadows room before the ScrollView's
-          overflow-x clip at the content-column edge (largest theme shadows
-          spread ~24px). Narrow viewports keep a smaller gutter so content never
-          touches the screen edge, and accept some shadow clipping. */}
-      <View style={[{ overflow: 'visible' as any, paddingHorizontal: Platform.OS === 'web' && !isNarrow ? 24 : NARROW_PAGE_GUTTER }, style]}>
+      {/* Wide viewports get no gutter here — the content column carries its own
+          inset, and stacking a second one on top of it pushed the page body in
+          twice as far as it needed. Narrow viewports keep a gutter because the
+          content column drops its inset there, and content would otherwise
+          touch the screen edge. */}
+      <View style={[{ overflow: 'visible' as any, paddingHorizontal: isNarrow ? NARROW_PAGE_GUTTER : 0 }, style]}>
         {children}
       </View>
       <View style={dynamicStyles.footerWrapper}>

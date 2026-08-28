@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { View, Pressable, Platform, PanResponder } from 'react-native';
+import { acquirePageScrollLock, releasePageScrollLock } from '../../core/gestures';
 import type { PanResponderGestureState, PanResponderInstance } from 'react-native';
 import { Input } from '../Input';
 import { Icon } from '../Icon';
@@ -894,6 +895,10 @@ export const NumberInput = factory<{
     state.lastComputedValue = typeof value === 'number' ? value : undefined;
     state.wasFocused = focused;
     beginSelectionGuard();
+    // A scrub only claims the gesture once it clears `dragActivationDistance`,
+    // so the lock is taken here rather than on touch-down: before that point the
+    // touch still belongs to the page and scrolling over the field is correct.
+    acquirePageScrollLock();
     onDragStateChange?.(true);
   }, [withDragGesture, disabled, value, startValue, focused, beginSelectionGuard, onDragStateChange]);
 
@@ -980,6 +985,7 @@ export const NumberInput = factory<{
 
     const shouldRestoreFocus = (state.wasFocused || blurredForDrag) && !disabled;
 
+    releasePageScrollLock();
     state.active = false;
     state.wasFocused = false;
     state.lastComputedValue = undefined;
@@ -996,6 +1002,14 @@ export const NumberInput = factory<{
       endDrag();
     }
   }, [withDragGesture, disabled, endDrag]);
+
+  // Unmounting mid-scrub would otherwise leave the page-scroll lock held.
+  useEffect(() => () => {
+    if (dragStateRef.current.active) {
+      dragStateRef.current.active = false;
+      releasePageScrollLock();
+    }
+  }, []);
 
   const onDragStateChangeRef = useRef(onDragStateChange);
   useEffect(() => {
@@ -1073,7 +1087,9 @@ export const NumberInput = factory<{
         dragHandlersRef.current.end();
       },
       onPanResponderTerminationRequest: () => false,
-      onShouldBlockNativeResponder: () => false,
+      // Once the scrub has out-argued the cross axis it owns the gesture, so the
+      // enclosing native ScrollView is told to stand down for the rest of it.
+      onShouldBlockNativeResponder: () => true,
     });
   }
 

@@ -17,7 +17,16 @@
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "baseUrl": "./src",
+    "paths": {
+      "@platform-blocks/charts": [
+        "./index.ts"
+      ],
+      "@platform-blocks/charts/*": [
+        "./*"
+      ]
+    }
   },
   "include": [
     "src/**/*"
@@ -27,6 +36,8 @@
     "lib",
     "**/*.test.ts",
     "**/*.test.tsx",
+    "src/**/demos/**/*",
+    "src/**/__examples__/**/*",
     "index.ts"
   ]
 }

@@ -1,4 +1,4 @@
-import { ParetoChart } from '../../';
+import { ParetoChart } from '@platform-blocks/charts';
 
 import { SUPPORT_CASES } from './data';
 

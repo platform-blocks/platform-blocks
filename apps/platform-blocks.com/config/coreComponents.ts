@@ -38,12 +38,12 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Select', category: 'input', icon: 'select', description: 'Dropdown selection input with keyboard-aware dismissal defaults' },
   { name: 'Slider', category: 'input', icon: 'slider' },
   { name: 'Knob', category: 'input', icon: 'knob', description: 'Rotary knob input for selecting values within a range' },
+  { name: 'Joystick', category: 'input', icon: 'target', description: 'Two-axis stick and XY pad input with dead zone, stepping, and axis locking' },
   { name: 'TextArea', category: 'input', icon: 'textarea', description: 'Multi-line text input with auto-resize and character counter' },
   { name: 'AutoComplete', category: 'input', icon: 'autocomplete', description: 'Predictive text input with keyboard-aware suggestions and async loading' },
   { name: 'ColorInput', category: 'input', icon: 'colors', description: 'Color selection input with swatches and hex input' },
   { name: 'ColorPicker', category: 'input', icon: 'colors', description: 'Color selection input with swatches' },
   { name: 'ControlField', category: 'input', icon: 'check', description: 'Pressable row combining a label, description, and a switch/checkbox/radio control' },
-  { name: 'EmojiPicker', category: 'input', icon: 'emoji', description: 'Emoji selection panel with categories, search, and skin tone support' },
   { name: 'Form', category: 'input', icon: 'form', description: 'Manages values, validation, and submission state for a group of inputs' },
   { name: 'SegmentedControl', category: 'input', icon: 'splitTrack' },
   { name: 'CopyButton', category: 'input', icon: 'copy', description: 'Utility to copy content to clipboard with feedback' },
@@ -68,6 +68,7 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'ColorSwatch', category: 'display', icon: 'colors', description: 'Individual color swatch for use in color palettes and pickers' },
   { name: 'Accordion', category: 'display', icon: 'accordion' },
   { name: 'ListGroup', category: 'display', icon: 'list', description: 'Grouped list rows with headers, dividers, and pressable items' },
+  { name: 'RollingNumber', category: 'display', icon: 'number', description: 'Animated number readout that rolls each changed digit into place' },
 
 
   // Typography Components
@@ -124,6 +125,7 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Stepper', category: 'navigation', icon: 'stepper', description: 'Step-by-step navigation component for multi-step processes' },
   { name: 'Spotlight', category: 'navigation', icon: 'spotlight', description: 'Command palette / global action search interface' },
   { name: 'Tree', category: 'navigation', icon: 'tree', description: 'Hierarchical tree view with expansion, selection, checkboxes, and filtering' },
+  { name: 'NavTree', category: 'navigation', icon: 'tree', description: 'Sidebar navigation that nests a flat list of routes into a collapsible tree' },
 
   // Overlay Components
   { name: 'Dialog', category: 'overlay', icon: 'dialog' },

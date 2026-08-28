@@ -1,4 +1,4 @@
-import { CodeBlock } from '../index';
+import { CodeBlock } from '@platform-blocks/ui';
 
 export default function BasicCodeBlockDemo() {
   return (

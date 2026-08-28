@@ -1,4 +1,4 @@
-import type { GalleryItem } from '../../types';
+import type { GalleryItem } from '@platform-blocks/ui';
 
 /**
  * A short two-image set — enough to exercise navigation without burying the

@@ -1,4 +1,4 @@
-import { RadarChart } from '../../';
+import { RadarChart } from '@platform-blocks/charts';
 
 import { SERIES } from './data';
 

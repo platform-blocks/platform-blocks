@@ -1,4 +1,4 @@
-import { PieChart, type PieChartDataPoint } from '../../';
+import { PieChart, type PieChartDataPoint } from '@platform-blocks/charts';
 
 import { BUG_TYPES } from './data';
 

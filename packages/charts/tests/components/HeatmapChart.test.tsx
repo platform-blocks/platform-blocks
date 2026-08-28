@@ -33,6 +33,25 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     </ChartThemeProvider>
   );
 
+// react-native-svg is mocked to plain Views, so SvgText renders its value as a raw
+// string child rather than a queryable <Text>. Walk the tree for string leaves.
+const collectTextLeaves = (node: any, out: string[] = []): string[] => {
+  if (node == null) return out;
+  if (Array.isArray(node)) {
+    node.forEach((child) => collectTextLeaves(child, out));
+    return out;
+  }
+  if (typeof node === 'string') {
+    out.push(node);
+    return out;
+  }
+  collectTextLeaves(node.children, out);
+  return out;
+};
+
+const countLabel = (tree: any, label: string) =>
+  collectTextLeaves(tree).filter((text) => text === label).length;
+
 describe('HeatmapChart (cell hit-test engine)', () => {
   it('resolves a cell by rect membership; a point outside the grid resolves to nothing', async () => {
     let ctxRef: ReturnType<typeof useChartInteractionContext> | null = null;
@@ -68,5 +87,25 @@ describe('HeatmapChart (cell hit-test engine)', () => {
     await waitFor(() => {
       expect(ctxRef?.activeTarget).toBeNull();
     });
+  });
+
+  // Hovering used to draw a second, larger copy of the value on top of the label
+  // the cell already renders, so the emphasised text read as doubled.
+  it('draws the hovered cell label once instead of stacking a second copy on it', async () => {
+    let ctxRef: ReturnType<typeof useChartInteractionContext> | null = null;
+    const { getByTestId, toJSON } = renderChart((ctx) => { ctxRef = ctx; });
+    const surface = getByTestId('heatmap-gesture-surface');
+
+    // Cell (0,0) holds the value 1; no axis tick or legend renders that string.
+    expect(countLabel(toJSON(), '1')).toBe(1);
+
+    fireEvent(surface, 'responderGrant', { nativeEvent: { locationX: 100, locationY: 60, pageX: 40, pageY: 60 } });
+    fireEvent(surface, 'responderMove', { nativeEvent: { locationX: 100, locationY: 60, pageX: 40, pageY: 60 } });
+
+    await waitFor(() => {
+      expect(ctxRef?.activeTarget?.cell).toEqual({ row: 0, col: 0 });
+    });
+
+    expect(countLabel(toJSON(), '1')).toBe(1);
   });
 });

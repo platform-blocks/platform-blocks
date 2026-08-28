@@ -1,10 +1,14 @@
 import React, { useMemo, useState } from 'react';
+import { useWindowDimensions } from 'react-native';
 import { Title, Text, Card, Chip, Column, Grid, GridItem, Row, Search } from '@platform-blocks/ui';
+import { BREAKPOINTS } from '@platform-blocks/ui/core/responsive';
 import { PageLayout, RouteLink } from '../components';
 import { useBrowserTitle, formatPageTitle } from '../hooks/useBrowserTitle';
 import { getAllHooks, getHookMeta, hasHookDemosArtifacts } from '../utils/hooksLoader';
 
 const HookListScreen: React.FC = () => {
+  const { width } = useWindowDimensions();
+  const isNarrow = width < BREAKPOINTS.md;
   const [searchQuery, setSearchQuery] = useState('');
   const artifactsReady = hasHookDemosArtifacts();
 
@@ -36,7 +40,12 @@ const HookListScreen: React.FC = () => {
   }, [hooks, searchQuery]);
 
   return (
-    <PageLayout style={{ flex: 1 }} contentContainerStyle={{ paddingVertical: 20, paddingHorizontal: 16 }}>
+    <PageLayout
+      style={{ flex: 1 }}
+      // See ComponentListScreen: PageLayout supplies the gutter on narrow
+      // viewports, so the inset here is only for wide ones.
+      contentContainerStyle={{ paddingVertical: 20, paddingHorizontal: isNarrow ? 0 : 16 }}
+    >
       <Column gap="lg">
         <Column gap="xs">
           <Title order={1} size={40} weight="bold">

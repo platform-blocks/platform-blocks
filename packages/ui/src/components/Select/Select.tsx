@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { View, Pressable, FlatList, Text as RNText, Modal, Platform } from 'react-native';
+import { View, Pressable, FlatList, Text as RNText, Modal, Platform, useWindowDimensions } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { factory } from '../../core/factory/factory';
@@ -279,7 +279,16 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
     });
   }, [position, shouldUseOverlay]);
 
+  const { width: windowWidth } = useWindowDimensions();
+
   const resolvedDropdownWidth = useMemo(() => {
+    // Mobile picker (Modal) mode: the options render as a centered dialog card,
+    // not an anchored dropdown, so the trigger's width is irrelevant — sizing
+    // the card to it left a narrow list floating at the screen's left edge,
+    // visually disconnected from everything. Use a comfortable dialog width.
+    if (shouldUseModal) {
+      return Math.min(Math.max(windowWidth - 48, 0), 400);
+    }
     if (position?.finalWidth && position.finalWidth > 0) {
       return position.finalWidth;
     }
@@ -287,7 +296,7 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
       return triggerWidth;
     }
     return undefined;
-  }, [position?.finalWidth, triggerWidth]);
+  }, [shouldUseModal, windowWidth, position?.finalWidth, triggerWidth]);
 
   const resolvedDropdownMaxHeight = useMemo(() => {
     const keyboardMax = typeof position?.maxHeight === 'number' ? position.maxHeight : undefined;
@@ -330,8 +339,11 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
 
   const listMaxHeight = resolvedDropdownMaxHeight ?? maxH;
   const menu = useMemo(() => {
+    // maxWidth included: menuStyles.dropdown caps at 320, which must not
+    // shrink a dropdown below an explicitly resolved width (a trigger wider
+    // than 320, or the mobile dialog card).
     const widthStyle = resolvedDropdownWidth && resolvedDropdownWidth > 0
-      ? { width: resolvedDropdownWidth, minWidth: resolvedDropdownWidth }
+      ? { width: resolvedDropdownWidth, minWidth: resolvedDropdownWidth, maxWidth: resolvedDropdownWidth }
       : undefined;
     const maxHeightStyle = listMaxHeight
       ? { maxHeight: listMaxHeight }
@@ -571,7 +583,10 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
       {open && shouldUseModal && (
         <Modal transparent animationType="fade" visible onRequestClose={close}>
           <Pressable
-            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.2)', padding: 24, justifyContent: 'center' }}
+            // Centered both ways: without alignItems the card stretched from the
+            // left edge at whatever width the trigger measured, so the options
+            // appeared as a detached strip at the screen's mid-left.
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.2)', padding: 24, justifyContent: 'center', alignItems: 'center' }}
             onPress={close}
           >
             <Pressable style={{ boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)', elevation: 4 }}>

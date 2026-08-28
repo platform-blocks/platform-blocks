@@ -43,9 +43,11 @@ afterAll(() => {
   panResponderSpy?.mockRestore();
 });
 
+// `PanResponder.create` is mocked to hand its config back as `panHandlers`, so
+// the rail view carries the raw `onPanResponder*` callbacks as props.
 const findInteractiveView = (api: ReturnType<typeof render>, matcher: (props: Record<string, any>) => boolean) => {
   const view = api.UNSAFE_getAllByType(View).find((instance) => (
-    typeof instance.props.onResponderGrant === 'function' && matcher(instance.props)
+    typeof instance.props.onPanResponderGrant === 'function' && matcher(instance.props)
   ));
 
   if (!view) {
@@ -55,19 +57,30 @@ const findInteractiveView = (api: ReturnType<typeof render>, matcher: (props: Re
   return view;
 };
 
+/**
+ * `useDragGesture` derives the rail origin from `pageX - locationX` on grant, so
+ * a press at a given offset is expressed by matching page and location values.
+ */
+const pressEvent = (coords: { locationX?: number; locationY?: number }) => {
+  const locationX = coords.locationX ?? 0;
+  const locationY = coords.locationY ?? 0;
+  return {
+    nativeEvent: {
+      locationX,
+      locationY,
+      pageX: locationX,
+      pageY: locationY,
+    },
+  } as any;
+};
+
 describe('Slider - behavior', () => {
   const pressTrack = (
     track: View,
     coords: { locationX?: number; locationY?: number }
   ) => {
     act(() => {
-      track.props.onResponderGrant?.({
-        nativeEvent: {
-          locationX: 0,
-          locationY: 0,
-          ...coords,
-        },
-      } as any);
+      track.props.onPanResponderGrant?.(pressEvent(coords));
     });
   };
 
@@ -128,13 +141,7 @@ describe('Slider - behavior', () => {
 describe('RangeSlider - behavior', () => {
   const pressRangeTrack = (track: View, coords: { locationX?: number; locationY?: number }) => {
     act(() => {
-      track.props.onResponderGrant?.({
-        nativeEvent: {
-          locationX: 0,
-          locationY: 0,
-          ...coords,
-        },
-      } as any);
+      track.props.onPanResponderGrant?.(pressEvent(coords));
     });
   };
 

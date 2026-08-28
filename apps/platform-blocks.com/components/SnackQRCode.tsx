@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, QRCode, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Link, QRCode, Text, useTheme } from '@platform-blocks/ui';
 import { SITE_URL } from '../config/routeSeo';
 
 interface SnackQRCodeProps {
@@ -35,7 +35,7 @@ export const SnackQRCode: React.FC<SnackQRCodeProps> = ({ component, snackUrl })
   const pageUrl = `${SITE_URL}/components/${component}`;
 
   return (
-    <Card style={{ padding: 12, gap: 8, alignItems: 'center' }}>
+    <Block align="center" gap="sm">
       <QRCode
         value={pageUrl}
         size={148}
@@ -49,7 +49,12 @@ export const SnackQRCode: React.FC<SnackQRCodeProps> = ({ component, snackUrl })
       <Text variant="small" colorVariant="muted" align="center">
         Scan to open this page on your phone
       </Text>
-    </Card>
+      {/* The same URL in readable form, for anyone who would rather type or copy
+          it than scan. The scheme is dropped — it is noise at this width. */}
+      <Link href={pageUrl} size="xs" target="_blank" accessibilityLabel={pageUrl}>
+        {pageUrl.replace(/^https?:\/\//, '')}
+      </Link>
+    </Block>
   );
 };
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AutoComplete, Block } from '@platform-blocks/ui';
-import type { AutoCompleteOption } from '../../types';
+import type { AutoCompleteOption } from '@platform-blocks/ui';
 import { sports } from '../data';
 
 export default function Demo() {

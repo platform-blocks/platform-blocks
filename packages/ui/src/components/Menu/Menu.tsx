@@ -87,6 +87,19 @@ interface MenuFactoryPayload {
   ref: View;
 }
 
+/**
+ * Which edge a content-sized panel should hug inside the (wider) box the
+ * positioner laid out for it — the same edge the placement anchored to, so the
+ * panel's visible edge still lines up with the trigger.
+ */
+function alignForPlacement(placement: string): ViewStyle['alignItems'] {
+  if (placement.endsWith('-end')) return 'flex-end';
+  if (placement.endsWith('-start')) return 'flex-start';
+  // A bare 'top'/'bottom' is centred on the trigger; anything horizontal
+  // ('left'/'right') already sits beside it, so its box is its own width.
+  return placement === 'top' || placement === 'bottom' ? 'center' : 'flex-start';
+}
+
 function MenuBase(props: MenuProps, ref: React.Ref<View>) {
   const {
     opened: controlledOpened,
@@ -154,6 +167,10 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
   const { openOverlay, closeOverlay, updateOverlay } = useOverlayApi();
   const overlayIdRef = useRef<string | null>(null);
   const lastResolvedWidthRef = useRef<number | undefined>(undefined);
+  const lastAutoSizeRef = useRef<{ minWidth: number; align: ViewStyle['alignItems'] } | undefined>(undefined);
+  /** The panel's real width, once it has laid out. Feeds the next placement. */
+  const measuredWidthRef = useRef<number | undefined>(undefined);
+  const repositionRef = useRef<(() => void) | null>(null);
   const lastResolvedMaxHeightRef = useRef<number | undefined>(undefined);
   const theme = useTheme();
   const styles = useMenuStyles();
@@ -190,7 +207,11 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
    * on screen: it scrolls within the available space instead of running off the
    * bottom edge.
    */
-  const buildMenuDropdown = useCallback((resolvedWidth: number | undefined, resolvedMaxHeight: number = maxH) => {
+  const buildMenuDropdown = useCallback((
+    resolvedWidth: number | undefined,
+    resolvedMaxHeight: number = maxH,
+    autoSize?: { minWidth: number; align: ViewStyle['alignItems'] },
+  ) => {
     if (!menuItems) return null;
     const scrollable = menuDropdownProps?.scrollable !== false;
     const listGroupStyle: ViewStyle = {
@@ -198,10 +219,14 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
       ...(dropdownSpacingStyles || {}),
       maxHeight: resolvedMaxHeight,
       width: resolvedWidth,
+      // `w="auto"` means *auto*: no explicit width, so the panel is as wide as
+      // its longest item and no wider. It still never gets narrower than the
+      // trigger it hangs off — a menu tucked inside its own button reads as a
+      // mistake — and `styles.dropdown.maxWidth` still caps it.
+      ...(autoSize ? { minWidth: autoSize.minWidth } : null),
     };
 
-    return (
-      <MenuContext.Provider value={menuContextValueOpened}>
+    const panel = (
         <ListGroup
           variant="default"
           size="sm"
@@ -221,6 +246,32 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
             </View>
           )}
         </ListGroup>
+    );
+
+    return (
+      <MenuContext.Provider value={menuContextValueOpened}>
+        {autoSize ? (
+          // The overlay box is positioned from an *estimated* width, so a panel
+          // that shrank to its content has slack on one side. Aligning it to
+          // the edge the placement chose puts that slack where nobody looks:
+          // an end-placed menu still lines its right edge up with the trigger.
+          // `box-none` keeps the empty strip from eating outside clicks.
+          <View pointerEvents="box-none" style={{ width: '100%', alignItems: autoSize.align }}>
+            <View
+              onLayout={(event) => {
+                // First paint placed the menu from an estimated width; this is
+                // the first moment the real one is known. Re-place only when
+                // they differ, so a correct estimate costs nothing.
+                const measured = event.nativeEvent.layout.width;
+                if (!measured || Math.abs((measuredWidthRef.current ?? 0) - measured) < 1) return;
+                measuredWidthRef.current = measured;
+                repositionRef.current?.();
+              }}
+            >
+              {panel}
+            </View>
+          </View>
+        ) : panel}
       </MenuContext.Provider>
     );
   }, [menuItems, menuDropdownProps, styles.dropdown, dropdownSpacingStyles, maxH, menuContextValueOpened]);
@@ -257,8 +308,15 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
     // Height is derived from the actual items rather than assumed, so the side
     // choice is right the first time rather than being corrected after paint.
     const menuHeight = estimateMenuHeight(menuItems, maxH);
-    const resolvedWidth = w === 'target' ? triggerRect.width : (typeof w === 'number' ? w : (w === 'auto' ? 200 : 200));
-    const overlaySize = { width: resolvedWidth, height: menuHeight };
+    // Two different widths. `resolvedWidth` is what the panel is told to be —
+    // undefined under `auto`, so it lays out to its own content. `layoutWidth`
+    // is what the positioner reasons about, which has to be a number; the
+    // long-standing 200 estimate stays, and `buildMenuDropdown` absorbs the
+    // difference by aligning the panel inside the box it produces.
+    const isAutoWidth = w !== 'target' && typeof w !== 'number';
+    const resolvedWidth = w === 'target' ? triggerRect.width : (typeof w === 'number' ? w : undefined);
+    const layoutWidth = resolvedWidth ?? measuredWidthRef.current ?? 200;
+    const overlaySize = { width: layoutWidth, height: menuHeight };
 
     // If contextmenu trigger, prefer cursor coordinates
     let positionResult: { x: number; y: number; placement?: PlacementType; maxHeight?: number; anchorEdge?: 'top' | 'bottom'; anchorOffset?: number };
@@ -291,7 +349,11 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
       ? Math.min(maxH, positionResult.maxHeight)
       : maxH;
 
-    return { positionResult, overlaySize, resolvedWidth, resolvedMaxHeight };
+    const autoSize = isAutoWidth
+      ? { minWidth: triggerRect.width, align: alignForPlacement(positionResult.placement || position) }
+      : undefined;
+
+    return { positionResult, overlaySize, resolvedWidth, resolvedMaxHeight, autoSize };
   }, [menuItems, maxH, w, trigger, position, offset, strategy]);
 
   const handleOpen = useCallback(async (opts?: { clientX?: number; clientY?: number }) => {
@@ -305,13 +367,14 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
       const geometry = await computeMenuGeometry({ ...opts, retryOnEmpty: true });
       if (!geometry) return;
 
-      const { positionResult, overlaySize, resolvedWidth, resolvedMaxHeight } = geometry;
+      const { positionResult, overlaySize, resolvedWidth, resolvedMaxHeight, autoSize } = geometry;
 
       lastResolvedWidthRef.current = resolvedWidth;
       lastResolvedMaxHeightRef.current = resolvedMaxHeight;
+      lastAutoSizeRef.current = autoSize;
 
       // Create menu dropdown content
-      const menuDropdown = buildMenuDropdown(resolvedWidth, resolvedMaxHeight);
+      const menuDropdown = buildMenuDropdown(resolvedWidth, resolvedMaxHeight, autoSize);
       if (!menuDropdown) return;
 
       const overlayId = openOverlay({
@@ -363,12 +426,14 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
     let cancelled = false;
 
     const reposition = async () => {
+      if (cancelled) return;
       const geometry = await computeMenuGeometry();
       if (cancelled || !geometry || !overlayIdRef.current) return;
 
-      const { positionResult, overlaySize, resolvedWidth, resolvedMaxHeight } = geometry;
+      const { positionResult, overlaySize, resolvedWidth, resolvedMaxHeight, autoSize } = geometry;
       lastResolvedWidthRef.current = resolvedWidth;
       lastResolvedMaxHeightRef.current = resolvedMaxHeight;
+      lastAutoSizeRef.current = autoSize;
 
       // `updateOverlay` diffs before committing, so a scroll that doesn't move
       // the trigger costs a measurement and nothing more.
@@ -389,11 +454,16 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
       });
     };
 
+    // `onLayout` on the panel calls this once it knows its real width, which is
+    // the only moment the placement estimate can be corrected.
+    repositionRef.current = handleUpdate;
+
     window.addEventListener('scroll', handleUpdate, true);
     window.addEventListener('resize', handleUpdate);
 
     return () => {
       cancelled = true;
+      repositionRef.current = null;
       if (frame !== null) cancelAnimationFrame(frame);
       window.removeEventListener('scroll', handleUpdate, true);
       window.removeEventListener('resize', handleUpdate);
@@ -406,9 +476,11 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
     if (!menuItems) return;
     if (lastSignatureRef.current === menuItemsSignature) return; // no structural change
     lastSignatureRef.current = menuItemsSignature;
+    // Different items, different width — the cached measurement is stale.
+    measuredWidthRef.current = undefined;
     const currentId = overlayIdRef.current;
     const resolvedWidth = lastResolvedWidthRef.current ?? (typeof w === 'number' ? w : undefined);
-    const menuDropdown = buildMenuDropdown(resolvedWidth, lastResolvedMaxHeightRef.current);
+    const menuDropdown = buildMenuDropdown(resolvedWidth, lastResolvedMaxHeightRef.current, lastAutoSizeRef.current);
     if (!menuDropdown) return;
     updateOverlay(currentId, {
       content: menuDropdown,

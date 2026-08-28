@@ -19,9 +19,27 @@ export function normalizeLanguage(lang: string): string {
     case 'yml':
     case 'yaml': return 'json';
     case 'sh':
+    case 'zsh':
+    case 'shell':
+    case 'shellscript':
+    case 'console':
+    case 'terminal':
     case 'bash': return 'bash';
     default: return lang;
   }
+}
+
+/** Language ids that tokenize as shell rather than as JavaScript. */
+const SHELL_LANGUAGES = new Set([
+  'bash', 'sh', 'zsh', 'shell', 'shellscript', 'console', 'terminal',
+]);
+
+/**
+ * Whether `lang` is a shell dialect. Accepts raw ids as well as the output of
+ * `normalizeLanguage`, so callers don't have to normalize first.
+ */
+export function isShellLanguage(lang: string | undefined): boolean {
+  return Boolean(lang) && SHELL_LANGUAGES.has(lang!.toLowerCase());
 }
 
 /** Lowercase extension of a file name, without the dot (`data.ts` → `ts`). */
@@ -351,14 +369,43 @@ function applyOverrides(
   return next;
 }
 
+/** One rule for the built-in tokenizer. */
+export interface SyntaxPattern {
+  token: CodeBlockToken;
+  pattern: RegExp;
+  color: string;
+  /**
+   * Color this capture group rather than the whole match, for rules that need
+   * left context — a preceding space, a pipe — to decide but must not swallow
+   * it. The group has to sit at the *end* of the match: its offset is derived
+   * from the two lengths, which avoids a lookbehind (still unsupported on the
+   * older Safari and Hermes builds this ships to, and a parse-time error there,
+   * not a runtime one).
+   */
+  group?: number;
+}
+
 /**
  * Regex patterns for the built-in tokenizer, ordered by precedence: the first
  * pattern to claim a range wins, so a keyword inside a string or a quote inside
  * a comment can't be re-colored by a later pattern. Patterns run against the
  * whole source, not one line at a time, so block comments and template literals
  * keep their color across line breaks.
+ *
+ * `language` selects the grammar. Anything that isn't a shell dialect gets the
+ * JavaScript/TSX set, which is what every language fell back to before shell
+ * existed — a `bash` block came out as good as plain text, since none of the JS
+ * patterns match a command line except the operator rule catching the hyphens
+ * and slash in a package name.
  */
-export function getSyntaxPatterns(colors: ReturnType<typeof getSyntaxColors>) {
+export function getSyntaxPatterns(
+  colors: ReturnType<typeof getSyntaxColors>,
+  language?: string
+): SyntaxPattern[] {
+  return isShellLanguage(language) ? getShellPatterns(colors) : getJsPatterns(colors);
+}
+
+function getJsPatterns(colors: ReturnType<typeof getSyntaxColors>): SyntaxPattern[] {
   return [
     // Block comments — first, so nothing inside them is tokenized separately
     { token: 'comment' as const, pattern: /\/\*[\s\S]*?\*\//g, color: colors.comment },
@@ -387,6 +434,54 @@ export function getSyntaxPatterns(colors: ReturnType<typeof getSyntaxColors>) {
   ];
 }
 
+/**
+ * Shell grammar for the built-in tokenizer, used for `bash`/`sh`/`zsh` blocks
+ * and for every `variant="terminal"` block (which is a transcript by
+ * definition, and rarely bothers to declare a language).
+ *
+ * Commands are found by position — the first word of a line or of a pipeline
+ * segment — rather than by matching a list of known binaries, so a project's own
+ * script colors the same as `npm`. The two rules that carry `group` need the
+ * character in front of the token to decide and must not paint it.
+ */
+function getShellPatterns(colors: ReturnType<typeof getSyntaxColors>): SyntaxPattern[] {
+  return [
+    // Shebang, then `#` comments. A comment has to start a word, so the `#` in a
+    // URL fragment or a `#!/bin/sh` argument isn't mistaken for one.
+    { token: 'comment' as const, pattern: /^#![^\n]*/gm, color: colors.comment },
+    { token: 'comment' as const, pattern: /(?:^|[ \t])(#[^\n]*)/gm, color: colors.comment, group: 1 },
+    // The `$`/`>` prompt `variant="terminal"` prepends: punctuation, not content.
+    // Claimed before `$VAR` so the two can't fight over the same character.
+    { token: 'punctuation' as const, pattern: /^[ \t]*[$>](?=[ \t])/gm, color: colors.punctuation },
+    // Quoted strings, ahead of anything that could tokenize their contents.
+    { token: 'string' as const, pattern: /"(?:[^"\\\n]|\\.)*"|'[^'\n]*'/g, color: colors.string },
+    // $VAR, ${VAR}, $1, $@ — a bare `$` followed by a space is the prompt above.
+    { token: 'className' as const, pattern: /\$\{[^}\n]*\}|\$[A-Za-z_]\w*|\$[0-9@*#?!$-]/g, color: colors.className },
+    // Control words, ahead of the command rule so `if`/`for` don't read as commands.
+    { token: 'keyword' as const, pattern: /\b(if|then|else|elif|fi|for|while|until|do|done|case|esac|in|select|function|return|break|continue|export|local|readonly|declare|unset|source|alias|trap|exit)\b/g, color: colors.keyword },
+    // Command position: start of a line (past any prompt), or the head of a
+    // pipeline / list segment / `$(…)` substitution.
+    { token: 'function' as const, pattern: /(?:^[ \t]*(?:[$>][ \t]+)?|[|;&][ \t]*|\$\([ \t]*)([A-Za-z_][\w.-]*)/gm, color: colors.function, group: 1 },
+    // Tools named mid-command (`sudo npm i`, `env FOO=1 node app.js`). Anchored
+    // to a space and closed with `(?![\w.-])` so the `node` inside a package name
+    // like `react-native-node` stays plain.
+    { token: 'function' as const, pattern: /(?:^|[ \t])(npm|npx|yarn|pnpm|bun|bunx|node|deno|expo|eas|git|docker|kubectl|brew|pod|gradle|make|cargo|go|python3?|pip3?)(?![\w.-])/gm, color: colors.function, group: 1 },
+    // Common subcommands (`npm install`, `git status`, `expo start`). Enumerated
+    // rather than "the word after the command", because that positional rule
+    // can't see past a tool the previous rule already claimed — `expo` in
+    // `npx expo install` would eat the lookahead and leave `install` plain.
+    { token: 'keyword' as const, pattern: /(?:^|[ \t])(install|uninstall|add|remove|run|start|stop|restart|build|test|init|create|publish|link|unlink|update|upgrade|clone|commit|push|pull|fetch|checkout|merge|rebase|status|dev|exec|serve|login|logout|prebuild|doctor)(?![\w.-])/gm, color: colors.keyword, group: 1 },
+    // Flags. `\B` is what keeps the hyphens inside `react-native-svg` out of this:
+    // there is a word boundary before each of those, and none before a lone `-`.
+    { token: 'attribute' as const, pattern: /\B--?[A-Za-z][\w-]*/g, color: colors.attribute },
+    { token: 'number' as const, pattern: /\b\d+\b/g, color: colors.number },
+    // Redirection, pipes, and assignment. Deliberately no `/` or `-`: those are
+    // path and package-name characters far more often than operators here.
+    { token: 'operator' as const, pattern: /\|\||&&|[|&]|>>?|<<?|=/g, color: colors.operator },
+    { token: 'punctuation' as const, pattern: /[{}[\]();,]/g, color: colors.punctuation },
+  ];
+}
+
 /** One rendered run of source text. Emphasis mirrors the Prism theme's. */
 export interface NativeSyntaxToken {
   text: string;
@@ -398,6 +493,11 @@ export interface NativeSyntaxToken {
 export interface NativeHighlighterOptions extends SyntaxColorOptions {
   /** Color for text no pattern claims — identifiers, JSX text, whitespace. */
   baseColor?: string;
+  /**
+   * Grammar to tokenize with. Shell dialects get the shell patterns; everything
+   * else gets the JavaScript/TSX set. `variant: 'terminal'` implies shell.
+   */
+  language?: string;
 }
 
 /**
@@ -414,7 +514,11 @@ export function createNativeHighlighter(
   options: NativeHighlighterOptions = {}
 ) {
   const colors = getSyntaxColors(theme, isDark, variant, overrides, options);
-  const patterns = getSyntaxPatterns(colors);
+  // A terminal block is a shell transcript whether or not it declared a
+  // language — `language` defaults to `tsx`, so waiting for an explicit `bash`
+  // would leave every prompt line tokenized as JavaScript.
+  const grammar = variant === 'terminal' ? 'bash' : options.language;
+  const patterns = getSyntaxPatterns(colors, grammar);
   const plainColor = options.baseColor ?? theme.text.primary;
 
   const styleFor = (token: CodeBlockToken, color: string): NativeSyntaxToken => ({
@@ -436,17 +540,21 @@ export function createNativeHighlighter(
       return true;
     };
 
-    for (const { pattern, color, token } of patterns) {
+    for (const { pattern, color, token, group } of patterns) {
       pattern.lastIndex = 0;
       let match: RegExpExecArray | null;
       while ((match = pattern.exec(code)) !== null) {
-        const start = match.index;
-        const end = start + match[0].length;
         // Zero-width matches would spin the loop forever.
-        if (end === start) {
+        if (match[0].length === 0) {
           pattern.lastIndex += 1;
           continue;
         }
+        // A `group` rule paints only its capture, which the pattern guarantees
+        // is the tail of the match — hence the offset from the two lengths.
+        const claimedText = group === undefined ? match[0] : match[group];
+        if (!claimedText) continue;
+        const start = match.index + (match[0].length - claimedText.length);
+        const end = start + claimedText.length;
         if (isFree(start, end)) {
           claimed.push({ start, end, style: styleFor(token, color) });
           taken.fill(1, start, end);

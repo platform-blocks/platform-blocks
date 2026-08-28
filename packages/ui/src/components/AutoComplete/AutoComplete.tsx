@@ -1,5 +1,6 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { View, TextInput, Modal, Pressable, ScrollView, FlatList, Platform, DimensionValue, Keyboard, InteractionManager, StyleSheet, Animated } from 'react-native';
+import React, { useState, useRef, useCallback, useMemo, useEffect, useContext } from 'react';
+import { View, TextInput, Modal, Pressable, ScrollView, FlatList, Platform, DimensionValue, Keyboard, InteractionManager, StyleSheet, Animated, useWindowDimensions } from 'react-native';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { Text } from '../Text';
 import { Loader } from '../Loader';
 import { ListGroup, ListGroupDivider } from '../ListGroup';
@@ -354,10 +355,28 @@ export const AutoComplete = factory<{
 
   const theme = useTheme();
   const isMobile = useIsMobile();
+  const windowDimensions = useWindowDimensions();
+  const safeAreaInsets = useContext(SafeAreaInsetsContext);
   const radiusStyles = useMemo(() => createRadiusStyles(radius, undefined, 'input'), [radius]);
   const inputStyleFactory = useMemo(() => createInputStyles(theme, false, isMobile), [theme, isMobile]);
   const { openOverlay, closeOverlay, updateOverlay } = useOverlayApi();
   const keyboardManager = useKeyboardManagerOptional();
+
+  // The mobile picker is pinned to the top of the screen, not centered: the
+  // modal autofocuses its input, so the on-screen keyboard is up the whole time
+  // it is open, and a centered dialog puts the suggestion list exactly where the
+  // keyboard is. Anchoring at the top keeps input and list in the visible strip.
+  const modalTopOffset = (safeAreaInsets?.top ?? 0) + 12;
+  // On web the window height already excludes the keyboard (react-native-web's
+  // Dimensions tracks visualViewport); on native the window keeps its full size
+  // and the keyboard height is only known when a KeyboardManagerProvider is
+  // mounted. Without one the picker may extend behind the keyboard — the list
+  // still scrolls, and the input stays visible at the top.
+  const keyboardInset = Platform.OS === 'web' ? 0 : (keyboardManager?.keyboardHeight ?? 0);
+  const modalPickerHeight = Math.max(
+    180,
+    Math.min(440, windowDimensions.height - modalTopOffset - keyboardInset - 24)
+  );
   const [suggestions, setSuggestions] = useState<AutoCompleteOption[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -1718,9 +1737,10 @@ export const AutoComplete = factory<{
             style={{
               flex: 1,
               backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              justifyContent: 'center',
+              justifyContent: 'flex-start',
               alignItems: 'center',
               padding: 20,
+              paddingTop: modalTopOffset,
             }}
             onPress={() => {
               setShowSuggestions(false);
@@ -1740,7 +1760,10 @@ export const AutoComplete = factory<{
                 right: 'auto',
                 maxWidth: 400,
                 width: '100%',
-                height: 400, // Increased height to accommodate input
+                // Sized to the visible strip above the keyboard; styles.suggestions
+                // carries a 300px maxHeight that must be overridden alongside.
+                height: modalPickerHeight,
+                maxHeight: modalPickerHeight,
                 paddingTop: 0,
               }]}
               onPress={(e) => e.stopPropagation()}

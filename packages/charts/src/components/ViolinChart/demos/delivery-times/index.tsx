@@ -1,4 +1,4 @@
-import { ViolinChart } from '../../';
+import { ViolinChart } from '@platform-blocks/charts';
 
 import { FULFILLMENT_CENTERS, SLA_WINDOW, STATS_MARKERS } from './data';
 

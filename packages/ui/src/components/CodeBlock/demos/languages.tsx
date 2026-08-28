@@ -1,5 +1,4 @@
-import { CodeBlock } from '../index';
-import { Flex } from '../../index';
+import { CodeBlock, Flex } from '@platform-blocks/ui';
 
 export default function LanguagesCodeBlockDemo() {
   return (

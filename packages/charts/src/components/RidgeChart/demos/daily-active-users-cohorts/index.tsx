@@ -1,4 +1,4 @@
-import { RidgeChart } from '../../';
+import { RidgeChart } from '@platform-blocks/charts';
 
 import { SERIES, formatThousands } from './data';
 

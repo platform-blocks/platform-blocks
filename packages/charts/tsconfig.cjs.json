@@ -13,6 +13,8 @@
     "node_modules",
     "lib",
     "**/*.test.ts",
-    "**/*.test.tsx"
+    "**/*.test.tsx",
+    "src/**/demos/**/*",
+    "src/**/__examples__/**/*"
   ]
 }

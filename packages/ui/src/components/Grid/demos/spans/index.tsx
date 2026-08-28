@@ -5,10 +5,10 @@ export default function Demo() {
 
   return (
     <Block fullWidth>
-      <Grid columns={12} gap={12}>
+      <Grid columns={12} gap="md">
         {spans.map((span, index) => (
           <GridItem key={`${span}-${index}`} span={span}>
-            <Card p={10}>
+            <Card>
               <Text>{`span=${span}`}</Text>
             </Card>
           </GridItem>

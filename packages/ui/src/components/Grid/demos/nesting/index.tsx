@@ -3,27 +3,31 @@ import { Block, Card, Grid, GridItem, Text } from '@platform-blocks/ui';
 export default function NestingGridDemo() {
   return (
     <Block fullWidth>
-      <Grid columns={12} gap={12}>
+      <Grid columns={12} gap="md">
         <GridItem span={8}>
-          <Card p={12} variant="outline">
-            <Text weight="semibold" size="sm" mb={8}>
-              Parent span=8
-            </Text>
-            <Grid columns={6} gap={8}>
-              {Array.from({ length: 6 }).map((_, index) => (
-                <GridItem key={index} span={2}>
-                  <Card p={6} variant="filled">
-                    <Text size="xs" align="center">
-                      Nested {index + 1}
-                    </Text>
-                  </Card>
-                </GridItem>
-              ))}
-            </Grid>
+          <Card variant="outline">
+            {/* Block's own gap separates the label from the nested grid — no
+                margin on either one. */}
+            <Block>
+              <Text weight="semibold" size="sm">
+                Parent span=8
+              </Text>
+              <Grid columns={6} gap="sm">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <GridItem key={index} span={2}>
+                    <Card variant="filled" p="xs">
+                      <Text size="xs" align="center">
+                        Nested {index + 1}
+                      </Text>
+                    </Card>
+                  </GridItem>
+                ))}
+              </Grid>
+            </Block>
           </Card>
         </GridItem>
         <GridItem span={4}>
-          <Card p={12} variant="outline">
+          <Card variant="outline">
             <Text weight="semibold" size="sm">
               Sidebar span=4
             </Text>

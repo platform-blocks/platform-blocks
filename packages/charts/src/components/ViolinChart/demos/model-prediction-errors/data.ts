@@ -1,5 +1,4 @@
-import type { ViolinStatsMarkersConfig, ViolinValueBand } from '../../types';
-import type { DensitySeries } from '../../../RidgeChart/types';
+import type { DensitySeries, ViolinStatsMarkersConfig, ViolinValueBand } from '@platform-blocks/charts';
 
 export const createDistribution = (mean: number, spread: number, count: number, floor = 0.2) =>
   Array.from({ length: count }, (_, index) => {

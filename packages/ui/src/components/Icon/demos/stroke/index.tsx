@@ -1,5 +1,4 @@
-import { Card, Flex, Text } from '../../../..';
-import { Icon } from '../../Icon';
+import { Card, Flex, Text, Icon } from '@platform-blocks/ui';
 
 const strokeVariants = [
   { label: 'Thin (0.75)', value: 0.75 },

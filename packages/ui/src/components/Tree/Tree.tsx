@@ -15,7 +15,8 @@ import { useControllableState } from '../../hooks/useControllableState';
 import { TreeRow, type TreeRowColors } from './TreeRow';
 import { resolveTreeMetrics } from './treeSizes';
 import { useTreeState } from './useTreeState';
-import { findNode, getCheckState, idRange, toggleCheckedIds } from './treeUtils';
+import { findNode, findNodeByHref, getCheckState, idRange, toggleCheckedIds } from './treeUtils';
+import { readPersistedExpansion, writePersistedExpansion } from './treePersistence';
 import type { TreeNode, TreeProps, TreeRenderNode, TreeRow as TreeRowMeta } from './types';
 
 export type { TreeNode, TreeProps } from './types';
@@ -110,6 +111,11 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     virtualized = false,
     height,
     keyboardNavigation = true,
+    activeId: activeIdProp,
+    activeHref,
+    expandToActive = true,
+    scrollActiveIntoView = true,
+    persistKey,
     selectionColor,
     accessibilityLabel,
   } = otherProps as TreeProps;
@@ -168,6 +174,21 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     onToggle?.(node, expanded);
   }, [dropCollapsed, onToggle, useAnimations, virtualized]);
 
+  // `activeHref` resolves against `data` alone: a lazily loaded node does not
+  // exist to match until its branch has been opened, at which point the reader
+  // is already there. Static nav trees — the case this exists for — are fully
+  // present from the first render.
+  const activeId = useMemo(() => {
+    if (activeIdProp) return activeIdProp;
+    if (!activeHref) return undefined;
+    return findNodeByHref(data, activeHref)?.id;
+  }, [activeHref, activeIdProp, data]);
+
+  const expandToIds = useMemo(
+    () => (activeId && expandToActive ? [activeId] : undefined),
+    [activeId, expandToActive]
+  );
+
   const tree = useTreeState({
     data,
     expandAll,
@@ -182,9 +203,36 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     autoExpandOnFilter,
     loadChildren,
     keepMountedIds: collapsingIds,
+    expandToIds,
   });
 
   const { rows, rowIds, rowIndexById, renderNodes, descendantMap, parentMap, loadingIds } = tree;
+
+  /* ------------------------------------------------------------- persistence */
+
+  // Restoring runs in an effect rather than in the state initializer, which is
+  // what keeps it out of the hydration pass: the server has no localStorage, so
+  // reading it during the first render would hand React two different trees.
+  // Effects do not run while rendering to a string and run after hydration on
+  // the client, so the markup matches and the stored expansion lands right
+  // after — before paint, since this is a layout-affecting effect's sibling.
+  const { setExpanded, expandedIds: expandedIdList } = tree;
+  const persistenceEnabled = !!persistKey && expandedIds === undefined;
+  const [persistRestored, setPersistRestored] = useState(false);
+
+  useEffect(() => {
+    if (!persistenceEnabled || !persistKey) return;
+    const stored = readPersistedExpansion(persistKey);
+    if (stored) setExpanded(stored);
+    // Batched with the restore above, so the writer below never sees the
+    // pre-restore list and clobbers what it was about to read back.
+    setPersistRestored(true);
+  }, [persistKey, persistenceEnabled, setExpanded]);
+
+  useEffect(() => {
+    if (!persistenceEnabled || !persistKey || !persistRestored) return;
+    writePersistedExpansion(persistKey, expandedIdList);
+  }, [expandedIdList, persistKey, persistRestored, persistenceEnabled]);
 
   const [effectiveSelected, commitSelected] = useControllableState<string[]>({
     value: selectedIds,
@@ -468,7 +516,26 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     if (focusedId && !rowIndexById.has(focusedId)) setFocusedId(null);
   }, [focusedId, rowIndexById]);
 
+  // Bring the active row on screen once it is actually rendered. The guard on
+  // `rowIndexById` is what makes this wait for `expandToActive` to open the
+  // branches above it — scrolling to a row still inside a collapsed branch
+  // finds nothing, and the effect would not fire again.
+  const scrolledToActive = useRef<string | null>(null);
+  useEffect(() => {
+    if (!web || !scrollActiveIntoView || !activeId) return;
+    if (scrolledToActive.current === activeId) return;
+    if (!rowIndexById.has(activeId)) return;
+    scrolledToActive.current = activeId;
+    if (typeof document === 'undefined') return;
+    document.getElementById(rowDomId(activeId))?.scrollIntoView({ block: 'nearest' });
+  }, [activeId, rowDomId, rowIndexById, scrollActiveIntoView]);
+
   /* ------------------------------------------------------------------ render */
+
+  // With nowhere to route a press, an `href` row stays a plain anchor and the
+  // browser navigates — a tree handed links but no handler should still work as
+  // links, rather than swallowing every click.
+  const interceptLinks = !!onNavigate || !!onNodePress;
 
   const renderRow = useCallback((row: TreeRowMeta) => {
     const { node } = row;
@@ -484,6 +551,7 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
         colors={colors}
         isRTL={isRTL}
         selected={selectedSet.has(node.id)}
+        active={activeId === node.id}
         focused={containerFocused && focusedId === node.id}
         loading={loadingIds.has(node.id)}
         checkState={checkState}
@@ -495,6 +563,8 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
         filterQuery={filterQuery}
         multiSelectable={effectiveSelectionMode === 'multiple'}
         selectable={effectiveSelectionMode !== 'none'}
+        keyboardNavigation={keyboardEnabled}
+        interceptLinks={interceptLinks}
         rowStyle={rowStyle}
         renderLabel={renderLabel}
         renderEndSection={renderEndSection}
@@ -505,6 +575,7 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
       />
     );
   }, [
+    activeId,
     cascadeCheck,
     checkboxes,
     checkedSet,
@@ -520,7 +591,9 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     handleRowPress,
     highlight,
     indentWidth,
+    interceptLinks,
     isRTL,
+    keyboardEnabled,
     loadingIds,
     metrics,
     renderEndSection,

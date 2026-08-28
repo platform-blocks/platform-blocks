@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native';
-import { DonutChart } from '../../';
+import { DonutChart } from '@platform-blocks/charts';
 
 import { REGION_HEADCOUNT, WORK_STYLE, remoteRatio } from './data';
 

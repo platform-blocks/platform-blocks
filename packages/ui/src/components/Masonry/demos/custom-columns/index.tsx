@@ -1,10 +1,5 @@
-import { Masonry } from '../../Masonry';
-import type { MasonryItem } from '../../types';
-import { Card } from '../../../Card';
-import { Text } from '../../../Text';
-import { Button } from '../../../Button';
-import { Row } from '../../../Layout';
-import { useTheme } from '../../../../core/theme';
+import { Masonry, Card, Text, Button, Row, useTheme } from '@platform-blocks/ui';
+import type { MasonryItem } from '@platform-blocks/ui';
 import { useState } from 'react';
 
 export default function CustomColumnsMasonryDemo() {

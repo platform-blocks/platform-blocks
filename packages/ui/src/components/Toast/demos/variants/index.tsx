@@ -37,13 +37,13 @@ export default function Demo() {
         Use the severity helpers to render consistent styling for each toast type.
       </Text>
       <Row gap="xs" wrap="wrap">
-        <Button onPress={showSuccessToast} colorVariant="success.5">
+        <Button onPress={showSuccessToast} variant="filled" color="success">
           Success
         </Button>
-        <Button onPress={showWarningToast} colorVariant="warning.5">
+        <Button onPress={showWarningToast} variant="filled" color="warning">
           Warning
         </Button>
-        <Button onPress={showErrorToast} colorVariant="error.5">
+        <Button onPress={showErrorToast} variant="filled" color="error">
           Error
         </Button>
         <Button onPress={showInfoToast} variant="outline">

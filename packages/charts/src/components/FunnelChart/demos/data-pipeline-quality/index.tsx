@@ -1,4 +1,4 @@
-import { FunnelChart } from '../../';
+import { FunnelChart } from '@platform-blocks/charts';
 
 import { PIPELINE_QUALITY, PipelineMeta } from './data';
 

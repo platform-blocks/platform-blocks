@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Faites varier `colorVariant` pour associer chaque action à une couleur sémantique adaptée.
+Associez `color` à une variante colorée (`filled`, `light`, `subtle`, `outline`, `gradient`) pour relier chaque action à une couleur sémantique. La variante par défaut est neutre et ignore `color`.

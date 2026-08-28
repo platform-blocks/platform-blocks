@@ -68,7 +68,7 @@ export const DocsHeaderMobile: React.FC<DocsHeaderMobileProps> = ({ orientation 
 
       <IconButton
         icon={themeIcon as any}
-        iconVariant={ mode !== 'light' && mode !== 'dark' ? 'filled' : undefined}
+        iconVariant="filled"
         variant="ghost"
         size="lg"
         accessibilityLabel="Toggle theme mode"

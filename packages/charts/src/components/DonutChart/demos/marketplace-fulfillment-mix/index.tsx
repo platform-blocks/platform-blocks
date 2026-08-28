@@ -1,4 +1,4 @@
-import { DonutChart } from '../../';
+import { DonutChart } from '@platform-blocks/charts';
 
 import { FULFILLMENT_PARTNERS } from './data';
 

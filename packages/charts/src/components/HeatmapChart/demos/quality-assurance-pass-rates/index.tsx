@@ -1,4 +1,4 @@
-import { HeatmapChart } from '../../';
+import { HeatmapChart } from '@platform-blocks/charts';
 
 import { PASS_RATES, RELEASES, SUITES } from './data';
 

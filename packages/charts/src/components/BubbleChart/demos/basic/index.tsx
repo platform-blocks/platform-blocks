@@ -1,4 +1,4 @@
-import { BubbleChart } from '../../';
+import { BubbleChart } from '@platform-blocks/charts';
 
 import { companies } from './data';
 

@@ -1,4 +1,4 @@
-import { LineChart } from '../../';
+import { LineChart } from '@platform-blocks/charts';
 
 import { SERIES, formatter } from './data';
 

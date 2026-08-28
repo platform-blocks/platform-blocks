@@ -12,6 +12,7 @@ import {
   filterTree,
   isBranchNode,
   walkTree,
+  ancestorIds,
   type LoadedChildren,
 } from './treeUtils';
 
@@ -30,9 +31,19 @@ export interface UseTreeStateOptions {
   loadChildren?: (node: TreeNode) => Promise<TreeNode[]>;
   /** Branches mid collapse-animation, kept in the render tree until it ends. */
   keepMountedIds?: Set<string>;
+  /**
+   * Ids whose ancestors should be opened — the active route, typically. Applied
+   * whenever the resolved ancestor set changes, not on every render, so a branch
+   * the reader collapsed stays collapsed while they move within it.
+   */
+  expandToIds?: string[];
 }
 
 export interface TreeStateResult {
+  /** Open branch ids, in insertion order. */
+  expandedIds: string[];
+  /** Replace the whole expanded set. Honours controlled mode like any setter. */
+  setExpanded: (ids: string[]) => void;
   /** Visible rows, in display order. The single source of truth for rendering,
    *  keyboard navigation, range selection, striping and aria indices. */
   rows: TreeRow[];
@@ -68,6 +79,7 @@ export function useTreeState(options: UseTreeStateOptions): TreeStateResult {
     autoExpandOnFilter,
     loadChildren,
     keepMountedIds,
+    expandToIds,
   } = options;
 
   const [loadedChildren, setLoadedChildren] = useState<LoadedChildren>({});
@@ -205,6 +217,36 @@ export function useTreeState(options: UseTreeStateOptions): TreeStateResult {
     setNodeExpanded(node, !expandedSet.has(node.id));
   }, [expandedSet, setNodeExpanded]);
 
+  const setExpanded = useCallback((ids: string[]) => {
+    setExpandedList(ids);
+  }, [setExpandedList]);
+
+  // Open the branches above the ids we were pointed at — the active route, in
+  // practice. Keyed on the resolved ancestor set rather than on the ids: moving
+  // between two leaves of the same branch resolves to the same ancestors and
+  // does nothing, so a branch the reader collapsed under their feet stays that
+  // way. Merging rather than replacing leaves their other open branches alone.
+  const appliedAncestors = useRef<string | null>(null);
+  useEffect(() => {
+    if (!collapsible) return;
+    const wanted = new Set<string>();
+    expandToIds?.forEach(id => {
+      ancestorIds(parentMap, id).forEach(ancestor => wanted.add(ancestor));
+    });
+    // Nothing resolved yet — a lazily loaded subtree, or data that has not
+    // arrived. Leave the marker alone so the next parentMap gets its turn.
+    if (!wanted.size) return;
+
+    const key = Array.from(wanted).sort().join('\u0000');
+    if (appliedAncestors.current === key) return;
+    appliedAncestors.current = key;
+
+    setExpandedList(prev => {
+      const missing = Array.from(wanted).filter(id => !prev.includes(id));
+      return missing.length ? [...prev, ...missing] : prev;
+    });
+  }, [collapsible, expandToIds, parentMap, setExpandedList]);
+
   const filter = useMemo(
     () => filterTree(data, filterQuery, loadedChildren),
     [data, filterQuery, loadedChildren]
@@ -281,6 +323,8 @@ export function useTreeState(options: UseTreeStateOptions): TreeStateResult {
   const isExpanded = useCallback((id: string) => expandedSet.has(id), [expandedSet]);
 
   return {
+    expandedIds: expandedList,
+    setExpanded,
     rows,
     rowIds,
     rowIndexById,

@@ -1,5 +1,5 @@
-import type { DividerProps } from '@platform-blocks/ui';
 import { Block, Divider, Text } from '@platform-blocks/ui';
+import type { DividerProps } from '@platform-blocks/ui';
 
 const COLOR_VARIANTS: Array<{ label: string; tone?: DividerProps['colorVariant'] }> = [
   { label: 'Border (default)' },

@@ -1,4 +1,4 @@
-import { HeatmapChart } from '../../';
+import { HeatmapChart } from '@platform-blocks/charts';
 
 import { BACKLOG, MODULES, PRIORITIES } from './data';
 

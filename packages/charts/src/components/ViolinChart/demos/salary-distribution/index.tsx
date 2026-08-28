@@ -1,4 +1,4 @@
-import { ViolinChart } from '../../';
+import { ViolinChart } from '@platform-blocks/charts';
 
 import { MARKET_RANGE, SALARY_SERIES, STATS } from './data';
 

@@ -1,4 +1,4 @@
-import { MarimekkoChart } from '../../';
+import { MarimekkoChart } from '@platform-blocks/charts';
 
 import { PIPELINE_COMPOSITION } from './data';
 

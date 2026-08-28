@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { DocsPage } from '../../components/DocsPage';
 import {
-  Alert,
   BrandButton,
   BrandIcon,
   Button,
@@ -16,9 +15,9 @@ import {
   Title,
 } from '@platform-blocks/ui';
 import { DocsPageHeader } from '../../components/DocsPageHeader';
+import { PrerequisitesList } from '../../components/PrerequisitesList';
 import { PLATFORMS, getTagConfig, type TagType } from '../../config/platforms';
 import {
-  GETTING_STARTED_PREREQUISITES,
   GETTING_STARTED_STEPS,
   GETTING_STARTED_SUBTITLE,
 } from '../../config/gettingStarted';
@@ -57,30 +56,23 @@ export default function GettingStartedScreen() {
       <Column gap="xl">
         <DocsPageHeader
           subtitle={GETTING_STARTED_SUBTITLE}
-          action={
-            <BrandButton
-              title="View on NPM"
-              brand="npm"
-              size="md"
-              onPress={() => router.push('https://www.npmjs.com/package/@platform-blocks/ui')}
-            />
-          }
         >
           Getting Started
         </DocsPageHeader>
 
-        <Alert sev="info" variant="light" title="Prerequisites" fullWidth>
-          {GETTING_STARTED_PREREQUISITES}
-        </Alert>
+        <Column gap="md">
+          <Title order={4} weight="bold">Prerequisites</Title>
+          <PrerequisitesList />
+        </Column>
 
-        {GETTING_STARTED_STEPS.map(({ title, lead, code, fileName, variant, note }) => (
+        {GETTING_STARTED_STEPS.map(({ title, lead, code, fileName, language, variant, note }) => (
           <Column key={title} gap="md">
             <Title order={2} size={28} weight="bold">{title}</Title>
             <Text variant="p" colorVariant="secondary">{lead}</Text>
             <CodeBlock
               variant={variant}
               files={fileName ? [{ name: fileName }] : undefined}
-              language={fileName ? undefined : 'bash'}
+              language={'bash'}
               fullWidth
             >
               {code}

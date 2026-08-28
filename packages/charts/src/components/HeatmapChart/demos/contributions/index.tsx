@@ -1,4 +1,4 @@
-import { HeatmapChart } from '../../';
+import { HeatmapChart } from '@platform-blocks/charts';
 
 import { COLUMNS, CONTRIBUTION_MATRIX, PALETTE, WEEKDAY_LABELS } from './data';
 

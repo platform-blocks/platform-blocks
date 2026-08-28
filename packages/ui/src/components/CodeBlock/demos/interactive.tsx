@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { CodeBlock } from '../index';
-import { Button, Text, Flex } from '../../index';
+import { CodeBlock, Button, Text, Flex } from '@platform-blocks/ui';
 
 export default function InteractiveCodeBlockDemo() {
   const [copiedCode, setCopiedCode] = useState('');

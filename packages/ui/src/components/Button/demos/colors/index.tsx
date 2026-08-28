@@ -3,11 +3,11 @@ import { Button, Row } from '@platform-blocks/ui';
 export default function Demo() {
   return (
     <Row gap="md" wrap="wrap">
-      <Button colorVariant="primary">Primary</Button>
-      <Button colorVariant="secondary">Secondary</Button>
-      <Button colorVariant="success">Success</Button>
-      <Button colorVariant="warning">Warning</Button>
-      <Button colorVariant="error">Error</Button>
+      <Button variant="filled" color="primary">Primary</Button>
+      <Button variant="filled" color="secondary">Secondary</Button>
+      <Button variant="filled" color="success">Success</Button>
+      <Button variant="filled" color="warning">Warning</Button>
+      <Button variant="filled" color="error">Error</Button>
     </Row>
   );
 }

@@ -1,4 +1,4 @@
-import { StackedAreaChart } from '../../';
+import { StackedAreaChart } from '@platform-blocks/charts';
 
 import { SERIES } from './data';
 

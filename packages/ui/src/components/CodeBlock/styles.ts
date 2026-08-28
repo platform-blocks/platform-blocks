@@ -25,9 +25,22 @@ export type ResolvedCodeBlockColors = {
   border?: string;
   text?: string;
   highlightBackground?: string;
-  highlightAccent?: string;
   tokenOverrides?: Partial<Record<CodeBlockToken, string>>;
 };
+
+/** Corner rounding at the two ends of a highlighted run. */
+export const HIGHLIGHT_RADIUS = 4;
+
+/** Where a highlighted line sits in its run — the ends round, the middle does not. */
+export type HighlightCorners = { isFirst: boolean; isLast: boolean };
+
+/** Corner radii for one line of a run, so the run reads as a single block. */
+export const getHighlightCornerRadii = ({ isFirst, isLast }: HighlightCorners) => ({
+  borderTopLeftRadius: isFirst ? HIGHLIGHT_RADIUS : 0,
+  borderTopRightRadius: isFirst ? HIGHLIGHT_RADIUS : 0,
+  borderBottomLeftRadius: isLast ? HIGHLIGHT_RADIUS : 0,
+  borderBottomRightRadius: isLast ? HIGHLIGHT_RADIUS : 0,
+});
 
 /** Resting corner radius of the code surface — matches `radius="xl"`. */
 export const DEFAULT_CODE_RADIUS: RadiusValue = 12;
@@ -125,10 +138,6 @@ export const resolveCodeBlockColors = (
     resolved.highlightBackground = resolveThemeColor(theme, overrides.highlight.background);
   }
 
-  if (overrides.highlight?.accent) {
-    resolved.highlightAccent = resolveThemeColor(theme, overrides.highlight.accent);
-  }
-
   const textConfig = resolveTextColors(theme, overrides.text);
   if (textConfig.baseColor) {
     resolved.text = textConfig.baseColor;
@@ -223,13 +232,20 @@ export const getCodeBlockStyles = (
       lineHeight: 18,
       color: textColor,
     } as TextStyle,
-    highlightedLine: (highlightColors: { background: string; accent: string }) => ({
+    /**
+     * A highlighted line is *painted*, never laid out: the tint adds no border,
+     * padding or margin, so its code sits on exactly the same column as the
+     * lines above and below it.
+     *
+     * `corners` rounds only the outer edges of a run, so lines 5-9 read as one
+     * block rather than five stacked pills.
+     */
+    highlightedLine: (
+      highlightColors: { background: string },
+      corners: HighlightCorners = { isFirst: true, isLast: true }
+    ) => ({
       backgroundColor: highlightColors.background,
-      borderLeftWidth: 3,
-      borderLeftColor: highlightColors.accent,
-      borderRadius: 4,
-      marginVertical: 1,
-      paddingLeft: 8,
+      ...getHighlightCornerRadii(corners),
     }),
     // Title bar above the code well: one step up the ladder from the recessed
     // code surface, so the two read as separate parts of the same panel.

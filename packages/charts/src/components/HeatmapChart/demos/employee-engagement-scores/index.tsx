@@ -1,4 +1,4 @@
-import { HeatmapChart } from '../../';
+import { HeatmapChart } from '@platform-blocks/charts';
 
 import { DIMENSIONS, SCORES, TEAMS } from './data';
 

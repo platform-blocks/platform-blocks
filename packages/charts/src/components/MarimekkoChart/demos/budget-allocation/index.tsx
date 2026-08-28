@@ -1,4 +1,4 @@
-import { MarimekkoChart } from '../../';
+import { MarimekkoChart } from '@platform-blocks/charts';
 
 import { BUDGET_PLAN } from './data';
 

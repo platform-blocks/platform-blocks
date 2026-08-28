@@ -1,4 +1,4 @@
-import { FunnelChart } from '../../';
+import { FunnelChart } from '@platform-blocks/charts';
 
 import { HIRING_SERIES, HiringMeta, STEP_LOOKUP } from './data';
 

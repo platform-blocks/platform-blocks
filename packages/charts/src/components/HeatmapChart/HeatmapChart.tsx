@@ -63,16 +63,6 @@ type ProcessedHeatmapCell = HeatmapCell & {
   columnLabel?: string | number;
 };
 
-function getContrastColor(hexColor: string): string {
-  const hex = hexColor.replace('#', '');
-  if (hex.length < 6) return '#ffffff';
-  const r = parseInt(hex.slice(0, 2), 16);
-  const g = parseInt(hex.slice(2, 4), 16);
-  const b = parseInt(hex.slice(4, 6), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? '#111827' : '#ffffff';
-}
-
 type ValueFormatterLike = HeatmapChartProps['valueFormatter'];
 
 interface FormatterOptions {
@@ -843,24 +833,6 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
               showText={cellData.showLabel}
             />
           ))}
-          {hoverCell && (
-            <SvgText
-              x={hoverCell.pixelX + hoverCell.width / 2}
-              y={hoverCell.pixelY + hoverCell.height / 2 + Math.min(hoverCell.height * 0.1, 6)}
-              fontSize={Math.max(10, Math.min(hoverCell.height * 0.45, 16))}
-              fill={getContrastColor(hoverCell.color)}
-              textAnchor="middle"
-              pointerEvents="none"
-              fontFamily='System'
-              fontWeight="600"
-            >
-              {hoverCell.displayValue ?? (Number.isFinite(hoverCell.value)
-                ? hoverCell.value % 1 === 0
-                  ? hoverCell.value.toString()
-                  : hoverCell.value.toFixed(1)
-                : String(hoverCell.value))}
-            </SvgText>
-          )}
         </G>
       </Svg>
       {xAxis?.show !== false && plotWidth > 0 && (

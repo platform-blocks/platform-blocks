@@ -4,6 +4,13 @@ import { PanResponder, Platform, View } from 'react-native';
 import type { KnobInteractionMode } from '../types';
 import type { LayoutState } from './useKnobGeometry';
 import type { NormalizedInteractionConfig } from '../interactionConfig';
+import {
+  GESTURE_RESPONDER_LOCK,
+  acquirePageScrollLock,
+  acquireTextSelectionLock,
+  releasePageScrollLock,
+  releaseTextSelectionLock,
+} from '../../../core/gestures';
 
 type InteractionState = {
   mode: KnobInteractionMode | null;
@@ -74,7 +81,7 @@ export const useKnobInteraction = ({
   handleTap,
   isPressActionable,
 }: UseKnobInteractionOptions) => {
-  const selectionStateRef = useRef<{ count: number; prev?: string | null }>({ count: 0 });
+  const locksHeldRef = useRef(false);
   const interactionStateRef = useRef<InteractionState>({
     mode: null,
     locked: false,
@@ -90,31 +97,24 @@ export const useKnobInteraction = ({
     startLocationY: 0,
   });
 
-  const disableTextSelection = useCallback(() => {
-    if (Platform.OS !== 'web') return;
-    const doc = typeof document !== 'undefined' ? document : undefined;
-    const body = doc?.body;
-    if (!body) return;
-    const state = selectionStateRef.current;
-    if (state.count === 0) {
-      state.prev = body.style.userSelect;
-      body.style.userSelect = 'none';
-    }
-    state.count += 1;
+  /**
+   * Held for the duration of a pointer gesture. The page-scroll half is what
+   * stops a vertical slide from doubling as a page scroll on touch; the
+   * selection half stops a mouse drag from highlighting the page it sweeps over.
+   * Both are ref-counted at module scope, so overlapping knobs restore cleanly.
+   */
+  const acquireGestureLocks = useCallback(() => {
+    if (locksHeldRef.current) return;
+    locksHeldRef.current = true;
+    acquirePageScrollLock();
+    acquireTextSelectionLock();
   }, []);
 
-  const restoreTextSelection = useCallback(() => {
-    if (Platform.OS !== 'web') return;
-    const doc = typeof document !== 'undefined' ? document : undefined;
-    const body = doc?.body;
-    if (!body) return;
-    const state = selectionStateRef.current;
-    if (state.count === 0) return;
-    state.count -= 1;
-    if (state.count === 0) {
-      body.style.userSelect = state.prev ?? '';
-      state.prev = undefined;
-    }
+  const releaseGestureLocks = useCallback(() => {
+    if (!locksHeldRef.current) return;
+    locksHeldRef.current = false;
+    releasePageScrollLock();
+    releaseTextSelectionLock();
   }, []);
 
   const scrollModeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -186,7 +186,7 @@ export const useKnobInteraction = ({
       state.locked = scrubOnPress;
       state.spinInitialized = scrubOnPress;
       resetLastDragAngle();
-      disableTextSelection();
+      acquireGestureLocks();
       if (scrubOnPress) {
         setActiveInteractionMode('spin');
         updateFromPoint(locationX, locationY, false, true);
@@ -203,7 +203,7 @@ export const useKnobInteraction = ({
       hasSlideModes,
       canSpin,
       resetLastDragAngle,
-      disableTextSelection,
+      acquireGestureLocks,
       setActiveInteractionMode,
       clearScrollModeTimer,
       updateFromPoint,
@@ -328,7 +328,7 @@ export const useKnobInteraction = ({
 
   const handlePanEnd = useCallback(() => {
     resetLastDragAngle();
-    restoreTextSelection();
+    releaseGestureLocks();
     const state = interactionStateRef.current;
     // Never locking into a mode means the press neither scrubbed nor travelled past
     // `lockThresholdPx`. A press that could scrub already set its value on mouse-down, so
@@ -352,7 +352,7 @@ export const useKnobInteraction = ({
     onChangeEnd,
     valueRef,
     resetLastDragAngle,
-    restoreTextSelection,
+    releaseGestureLocks,
     setActiveInteractionMode,
     handleTap,
   ]);
@@ -411,7 +411,7 @@ export const useKnobInteraction = ({
     };
   }, [interactionConfig.scroll.enabled, handleWheel, hostRef]);
 
-  useEffect(() => () => restoreTextSelection(), [restoreTextSelection]);
+  useEffect(() => () => releaseGestureLocks(), [releaseGestureLocks]);
 
   useEffect(() => () => clearScrollModeTimer(), [clearScrollModeTimer]);
 
@@ -426,6 +426,8 @@ export const useKnobInteraction = ({
         onPanResponderMove: handlePanMove,
         onPanResponderRelease: handlePanEnd,
         onPanResponderTerminate: handlePanEnd,
+        // A knob drag outranks an enclosing ScrollView on both platforms.
+        ...GESTURE_RESPONDER_LOCK,
       }),
     [
       disabled,

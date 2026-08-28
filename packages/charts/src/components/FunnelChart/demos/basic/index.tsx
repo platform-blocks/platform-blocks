@@ -1,4 +1,4 @@
-import { FunnelChart } from '../../';
+import { FunnelChart } from '@platform-blocks/charts';
 
 import { SALES_FUNNEL } from './data';
 

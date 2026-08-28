@@ -1,8 +1,5 @@
-import { Masonry } from '../../Masonry';
-import type { MasonryItem } from '../../types';
-import { Card } from '../../../Card';
-import { Text } from '../../../Text';
-import { useTheme } from '../../../../core/theme';
+import { Masonry, Card, Text, useTheme } from '@platform-blocks/ui';
+import type { MasonryItem } from '@platform-blocks/ui';
 
 export default function BasicMasonryDemo() {
   const theme = useTheme();

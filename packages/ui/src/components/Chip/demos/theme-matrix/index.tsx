@@ -1,14 +1,5 @@
-import {
-  Block,
-  Card,
-  Chip,
-  DARK_THEME,
-  DEFAULT_THEME,
-  PlatformBlocksThemeProvider,
-  Row,
-  Text,
-} from '@platform-blocks/ui'
-import type { ChipProps } from '@platform-blocks/ui'
+import { Block, Card, Chip, DARK_THEME, DEFAULT_THEME, PlatformBlocksThemeProvider, Row, Text } from '@platform-blocks/ui';
+import type { ChipProps } from '@platform-blocks/ui';
 
 const VARIANTS: NonNullable<ChipProps['variant']>[] = [
   'filled',

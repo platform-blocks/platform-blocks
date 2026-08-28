@@ -12,7 +12,13 @@ export interface TreeNode<T = any> {
    * renders, and pressing it calls `loadChildren`. Ignored once `children` is set.
    */
   hasChildren?: boolean;
-  href?: string; // optional navigation target
+  /**
+   * Navigation target. On web the row renders as a real `<a href>`, so
+   * cmd/middle-click, "copy link address" and crawlers all work; plain clicks
+   * still go through `onNavigate`. Native has no anchor and falls back to a
+   * pressable with the `link` role.
+   */
+  href?: string;
   startOpen?: boolean;
   icon?: React.ReactNode; // optional leading icon, branches included
   disabled?: boolean;
@@ -23,6 +29,8 @@ export interface TreeNode<T = any> {
 /** Everything a row knows about itself, handed to `renderLabel` / `renderEndSection`. */
 export interface TreeNodeState {
   selected: boolean;
+  /** Row is the tree's `activeId` / `activeHref` target — "you are here". */
+  active: boolean;
   checked: boolean;
   indeterminate: boolean;
   expanded: boolean;
@@ -153,6 +161,35 @@ export interface TreeProps<T = any> {
   height?: number;
   /** Arrow-key navigation, type-ahead and roving focus (web). Defaults to on. */
   keyboardNavigation?: boolean;
+  /**
+   * Id of the node representing the current location — the navigation
+   * counterpart to selection. It paints the row as active, opens the branches
+   * above it, and scrolls it into view, without consuming `selectedIds`.
+   */
+  activeId?: string;
+  /**
+   * `activeId`, resolved by matching a node's `href` instead. Hand it a
+   * pathname and the tree finds the row. Ignored when `activeId` is set.
+   */
+  activeHref?: string;
+  /**
+   * Open the branches leading to the active node whenever it changes.
+   * Re-opening is keyed on the ancestor set, so a branch the reader collapsed
+   * stays collapsed while they move between its children.
+   * @default true
+   */
+  expandToActive?: boolean;
+  /**
+   * Scroll the active row into view once it becomes visible (web only).
+   * @default true
+   */
+  scrollActiveIntoView?: boolean;
+  /**
+   * Remember which branches are open across reloads, under this key
+   * (`localStorage`, web only). Ignored while expansion is controlled through
+   * `expandedIds` — the parent owns the state in that mode.
+   */
+  persistKey?: string;
   /** Base color for selection / focus affordances. Defaults to the primary palette. */
   selectionColor?: string;
   /** Accessible name for the tree container */

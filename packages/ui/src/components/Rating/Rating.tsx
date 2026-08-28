@@ -7,6 +7,14 @@ import { SizeValue, getIconSize } from '../../core/theme/sizes';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { createFocusStyles } from '../../core/interactive-states';
 import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
+import {
+  GESTURE_RESPONDER_LOCK,
+  acquirePageScrollLock,
+  acquireTextSelectionLock,
+  getGestureSurfaceStyle,
+  releasePageScrollLock,
+  releaseTextSelectionLock,
+} from '../../core/gestures';
 import { useDirection } from '../../core/providers/DirectionProvider';
 import { useDisclaimer, extractDisclaimerProps } from '../_internal/Disclaimer';
 import { Icon } from '../Icon';
@@ -560,11 +568,25 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
     };
   }, [containerWidth, getOffsetXFromEventWeb, totalWidth, readWebRect]);
 
-  useEffect(() => () => {
-    if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      (document.body.style as any).userSelect = '';
-    }
+  // Locks are held for the duration of a drag; a component torn down mid-drag
+  // must still hand them back or the page stays unscrollable.
+  const locksHeldRef = useRef(false);
+
+  const acquireDragLocks = useCallback(() => {
+    if (locksHeldRef.current) return;
+    locksHeldRef.current = true;
+    acquirePageScrollLock();
+    acquireTextSelectionLock();
   }, []);
+
+  const releaseDragLocks = useCallback(() => {
+    if (!locksHeldRef.current) return;
+    locksHeldRef.current = false;
+    releasePageScrollLock();
+    releaseTextSelectionLock();
+  }, []);
+
+  useEffect(() => () => releaseDragLocks(), [releaseDragLocks]);
 
   useEffect(() => {
     if (!showTooltip) {
@@ -578,51 +600,44 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
       onMoveShouldSetPanResponder: () => !inputLocked,
       onPanResponderGrant: (evt) => {
         if (inputLocked) return;
-        if (Platform.OS === 'web') {
-          (evt as any).preventDefault?.();
-          if (typeof document !== 'undefined') {
-            document.body.style.userSelect = 'none';
-          }
-        }
+        acquireDragLocks();
         const { x, width } = resolveRelativePosition(evt);
         handlePointerMove(x, width);
       },
       onPanResponderMove: (evt) => {
         if (inputLocked) return;
-        if (Platform.OS === 'web') {
-          (evt as any).preventDefault?.();
-        }
         const { x, width } = resolveRelativePosition(evt);
         handlePointerMove(x, width);
       },
-      onPanResponderTerminationRequest: () => false,
       onPanResponderRelease: (evt) => {
+        releaseDragLocks();
         if (inputLocked) return;
-        if (Platform.OS === 'web' && typeof document !== 'undefined') {
-          document.body.style.userSelect = '';
-        }
         const { x, width } = resolveRelativePosition(evt);
         commitAtOffsetX(x, width);
         setHoverValue(null);
         setTooltipIndex(null);
       },
       onPanResponderTerminate: () => {
-        if (Platform.OS === 'web' && typeof document !== 'undefined') {
-          document.body.style.userSelect = '';
-        }
+        releaseDragLocks();
         setHoverValue(null);
         setTooltipIndex(null);
       },
+      // Keeps an enclosing ScrollView from stealing the drag once the finger
+      // drifts off the star row. See core/gestures/gestureSurface.
+      ...GESTURE_RESPONDER_LOCK,
     });
 
     return responder.panHandlers;
-  }, [inputLocked, resolveRelativePosition, handlePointerMove, commitAtOffsetX]);
+  }, [inputLocked, resolveRelativePosition, handlePointerMove, commitAtOffsetX, acquireDragLocks, releaseDragLocks]);
 
   const ratingContent = (
     <View
       ref={containerRef}
       style={[
         { flexDirection: 'row', position: 'relative', borderRadius: 4 },
+        // `touch-action: none` so a drag across the stars is never handed back
+        // to the page when the finger strays above or below the row.
+        getGestureSurfaceStyle({ enabled: !inputLocked, cursor: inputLocked ? undefined : 'pointer' }),
         // Keyboard focus needs a visible target since the stars themselves are
         // not individually focusable.
         createFocusStyles(theme, isFocused),

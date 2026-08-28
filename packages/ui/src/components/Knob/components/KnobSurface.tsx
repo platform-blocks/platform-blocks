@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { View, ViewProps, PanResponderInstance, LayoutChangeEvent } from 'react-native';
 
 import { getAccessibilityValueProps } from '../../../core/accessibility/utils';
+import { getGestureSurfaceStyle } from '../../../core/gestures';
 import { knobStyles as styles } from '../styles';
 import { SurfaceLayers, type SurfaceLayersProps } from './SurfaceLayers';
 import { TickLayers, type TickLayersProps } from './TickLayers';
@@ -98,6 +99,9 @@ export const KnobSurface: React.FC<KnobSurfaceProps> = ({
           borderColor: trackColor,
           opacity: disabled ? 0.6 : 1,
         },
+        // The knob owns both axes: a spin or a vertical slide must never be
+        // reinterpreted as a page scroll once the pointer leaves the dial.
+        getGestureSurfaceStyle({ enabled: !disabled, cursor: disabled ? undefined : 'grab' }),
         style,
       ]}
       testID={testID}

@@ -1,4 +1,4 @@
-import type { NetworkLink, NetworkNode } from '../../types';
+import type { NetworkLink, NetworkNode } from '@platform-blocks/charts';
 
 export const SYSTEMS: NetworkNode[] = [
   { id: 'edge-firewall', name: 'Edge Firewall', group: 'perimeter', value: 34 },

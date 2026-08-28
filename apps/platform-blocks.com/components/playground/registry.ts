@@ -849,6 +849,36 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       size: { controlType: 'size-slider', options: SIZE_TOKENS }
     }
   },
+  Joystick: {
+    id: 'Joystick',
+    component: 'Joystick',
+    initialProps: {
+      shape: 'circle',
+      size: 'lg',
+      variant: 'default',
+      deadZone: 0,
+      step: 0,
+      showGuides: true,
+      showCrosshair: true,
+      valueLabel: true,
+    },
+    pinnedProps: ['shape', 'size', 'variant', 'deadZone', 'step', 'returnToCenter', 'lockAxis', 'showCrosshair', 'disabled'],
+    hiddenProps: [...COMMON_EVENT_PROPS, 'onChange', 'onChangeEnd', 'onChangeStart', 'value', 'defaultValue', 'baseStyle', 'handleStyle', 'valueLabelStyle', 'label', 'keyboardStep', 'transitionDuration'],
+    controlOverrides: {
+      shape: { controlType: 'segmented', options: ['circle', 'square'] },
+      size: { controlType: 'size-slider', options: SIZE_TOKENS },
+      variant: { controlType: 'select', options: ['default', 'filled', 'outline', 'minimal', 'unstyled'] },
+      deadZone: { controlType: 'number', min: 0, max: 0.8, step: 0.05 },
+      step: { controlType: 'number', min: 0, max: 0.5, step: 0.05 },
+      handleSize: { controlType: 'number', min: 16, max: 96, step: 2 },
+      lockAxis: { controlType: 'select', options: ['x', 'y'] },
+      colorScheme: {
+        controlType: 'color',
+        placeholder: 'primary',
+        colorPresets: ['#228be6', '#40c057', '#f59f00', '#e03131', '#845ef7'],
+      },
+    },
+  },
   Knob: {
     id: 'Knob',
     component: 'Knob',
@@ -1726,6 +1756,37 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       animationDuration: { controlType: 'number', min: 500, max: 3000, step: 100 },
     },
   },
+  RollingNumber: {
+    id: 'RollingNumber',
+    component: 'RollingNumber',
+    initialProps: {
+      value: 1234,
+      size: 48,
+      weight: 'bold',
+      thousandSeparator: true,
+      transitionDuration: 600,
+      timingFunction: 'ease',
+      stagger: 0,
+    },
+    pinnedProps: ['value', 'size', 'weight', 'thousandSeparator', 'decimalScale', 'fixedDecimalScale', 'prefix', 'suffix', 'transitionDuration', 'timingFunction', 'stagger'],
+    hiddenProps: [...COMMON_EVENT_PROPS, 'textStyle', 'digitStyle', 'animationDuration', 'decimalSeparator', 'c', 'ff'],
+    controlOverrides: {
+      value: { controlType: 'number', min: 0, max: 1000000, step: 1 },
+      size: { controlType: 'number', min: 12, max: 96, step: 2 },
+      weight: { controlType: 'select', options: ['normal', 'medium', 'semibold', 'bold'] },
+      decimalScale: { controlType: 'number', min: 0, max: 4, step: 1 },
+      transitionDuration: { controlType: 'number', min: 0, max: 2000, step: 50 },
+      timingFunction: { controlType: 'select', options: ['linear', 'ease', 'ease-in', 'ease-out', 'ease-in-out'] },
+      stagger: { controlType: 'number', min: 0, max: 200, step: 10 },
+      prefix: { controlType: 'text', placeholder: '$ ' },
+      suffix: { controlType: 'text', placeholder: ' USD' },
+      color: {
+        controlType: 'color',
+        placeholder: '#228be6',
+        colorPresets: ['#228be6', '#40c057', '#f59f00', '#e03131', '#845ef7'],
+      },
+    },
+  },
   Rating: {
     id: 'Rating',
     component: 'Rating',
@@ -2427,21 +2488,6 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       variant: { controlType: 'segmented', options: INPUT_VARIANTS },
     },
     previewWrapper: (node) => React.createElement(View, { style: { width: '100%', maxWidth: 320 } }, node),
-  },
-  EmojiPicker: {
-    id: 'EmojiPicker',
-    component: 'EmojiPicker',
-    initialProps: {
-      variant: 'quick',
-      showBackground: false,
-      disabled: false,
-    },
-    pinnedProps: ['variant', 'searchPlaceholder', 'showBackground', 'disabled'],
-    hiddenProps: [...COMMON_EVENT_PROPS, 'value', 'emojis', 'defaultOpened', 'onOpenChange', 'onSearchChange', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
-    controlOverrides: {
-      searchPlaceholder: { controlType: 'text', placeholder: 'Search emoji…' },
-    },
-    previewWrapper: (node) => React.createElement(View, { style: { alignItems: 'center', paddingVertical: 16 } }, node),
   },
   FileInput: {
     id: 'FileInput',

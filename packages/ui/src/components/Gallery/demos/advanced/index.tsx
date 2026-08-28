@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Block, Button, Gallery, Row, Text } from '@platform-blocks/ui';
-import type { GalleryItem } from '../../types';
+import type { GalleryItem } from '@platform-blocks/ui';
 
 import { SAMPLE_IMAGES } from './data';
 

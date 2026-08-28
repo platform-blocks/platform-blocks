@@ -1,4 +1,4 @@
-import { PieChart, type PieChartDataPoint } from '../../';
+import { PieChart, type PieChartDataPoint } from '@platform-blocks/charts';
 
 import { SUPPORT_CHANNELS, TOTAL_INTERACTIONS } from './data';
 

@@ -1,4 +1,4 @@
-import type { AutoCompleteOption } from '../types';
+import type { AutoCompleteOption } from '@platform-blocks/ui';
 
 export const sports: AutoCompleteOption[] = [
   { label: 'Football', value: 'football' },

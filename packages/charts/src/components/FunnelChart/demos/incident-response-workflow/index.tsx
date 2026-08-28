@@ -1,4 +1,4 @@
-import { FunnelChart } from '../../';
+import { FunnelChart } from '@platform-blocks/charts';
 
 import { INCIDENT_RESPONSE, IncidentMeta } from './data';
 

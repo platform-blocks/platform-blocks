@@ -184,31 +184,31 @@ export default function IconButtonDemo() {
           <Row gap="md" align="center" wrap="wrap">
             <IconButton
               icon="heart"
-              colorVariant="error.5"
+              color="error"
               onPress={() => handlePress('red')}
               tooltip="Red Heart"
             />
             <IconButton
               icon="check"
-              colorVariant="success.5"
+              color="success"
               onPress={() => handlePress('green')}
               tooltip="Green Check"
             />
             <IconButton
               icon="info"
-              colorVariant="info.5"
+              color="primary"
               onPress={() => handlePress('blue')}
               tooltip="Blue Info"
             />
             <IconButton
               icon="warning"
-              colorVariant="warning.5"
+              color="warning"
               onPress={() => handlePress('orange')}
               tooltip="Orange Warning"
             />
             <IconButton
               icon="star"
-              colorVariant="#9333ea"
+              color="#9333ea"
               radius="xl"
               onPress={() => handlePress('purple')}
               tooltip="Purple Star (Circular)"
@@ -246,21 +246,21 @@ export default function IconButtonDemo() {
                 icon="heart" 
                 variant="outline" 
                 radius="xl" 
-                colorVariant="error.5"
+                color="error"
                 tooltip="Like" 
               />
               <IconButton 
                 icon="message-circle" 
                 variant="outline" 
                 radius="xl" 
-                colorVariant="info.5"
+                color="primary"
                 tooltip="Comment" 
               />
               <IconButton 
                 icon="share" 
                 variant="outline" 
                 radius="xl" 
-                colorVariant="success.5"
+                color="success"
                 tooltip="Share" 
               />
               <IconButton 

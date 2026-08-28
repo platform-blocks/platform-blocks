@@ -34,6 +34,8 @@ export interface TreeRowProps {
   colors: TreeRowColors;
   isRTL: boolean;
   selected: boolean;
+  /** Current-location row. Paints like a selection without consuming one. */
+  active: boolean;
   focused: boolean;
   loading: boolean;
   checkState: TreeCheckState;
@@ -45,6 +47,13 @@ export interface TreeRowProps {
   filterQuery: string;
   multiSelectable: boolean;
   selectable: boolean;
+  /** Roving focus is on, so link rows stay out of the tab order. */
+  keyboardNavigation: boolean;
+  /**
+   * The tree has somewhere to route a link press. When it does not, an `href`
+   * row is left as a plain anchor and the browser handles it.
+   */
+  interceptLinks: boolean;
   rowStyle?: StyleProp<ViewStyle>;
   renderLabel?: TreeProps['renderLabel'];
   renderEndSection?: TreeProps['renderEndSection'];
@@ -66,6 +75,7 @@ export const TreeRow = React.memo(function TreeRow({
   colors,
   isRTL,
   selected,
+  active,
   focused,
   loading,
   checkState,
@@ -77,6 +87,8 @@ export const TreeRow = React.memo(function TreeRow({
   filterQuery,
   multiSelectable,
   selectable,
+  keyboardNavigation,
+  interceptLinks,
   rowStyle,
   renderLabel,
   renderEndSection,
@@ -93,6 +105,7 @@ export const TreeRow = React.memo(function TreeRow({
 
   const state: TreeNodeState = {
     selected,
+    active,
     checked,
     indeterminate,
     expanded,
@@ -108,7 +121,13 @@ export const TreeRow = React.memo(function TreeRow({
   // drawn next to this row is its own "has a following sibling" flag.
   const guides = showGuides && depth > 0 ? [...row.ancestorLines.slice(1), !row.isLastChild] : [];
 
-  const background = selected
+  // Active and selected paint the same. They answer different questions — "the
+  // page you are on" vs "the rows you picked" — but a tree is only ever asked
+  // one of them at a time, and a sidebar with two competing highlights reads as
+  // a bug rather than a distinction.
+  const emphasized = selected || active;
+
+  const background = emphasized
     ? colors.selectedBg
     : hovered && !disabled
       ? colors.hoverBg
@@ -118,7 +137,7 @@ export const TreeRow = React.memo(function TreeRow({
 
   const borderColor = focused
     ? colors.focusRing
-    : selected
+    : emphasized
       ? colors.selectedBorder
       : 'transparent';
 
@@ -128,9 +147,35 @@ export const TreeRow = React.memo(function TreeRow({
     event?.stopPropagation?.();
   };
 
+  // react-native-web renders a View as an `<a>` as soon as it gets an `href`,
+  // keeping the whole RN style pipeline — so the row becomes a real link
+  // without hand-flattening its styles into plain CSS.
+  const linked = web && !!node.href && !disabled;
+
+  const handlePress = (event: any) => {
+    if (linked && interceptLinks) {
+      // A modified click is the reader asking the browser for something —
+      // a new tab, a new window, a download. The anchor already does all of
+      // that, so bow out and leave the default alone. RNW's press responder
+      // never fires for middle-click (no `click` event), so that path is
+      // native too. Everything else is ours: cancel the navigation and hand
+      // the row to the tree, which routes it client-side.
+      if (event?.metaKey || event?.ctrlKey || event?.shiftKey || event?.altKey) return;
+      event?.preventDefault?.();
+    }
+    onPress(node, isBranch, event);
+  };
+
+  // A branch that is also a link still needs its caret to expand rather than
+  // navigate, so the disclosure control cancels the anchor on its own.
+  const stopLink = (event: any) => {
+    stopPress(event);
+    if (linked) event?.preventDefault?.();
+  };
+
   return (
     <Pressable
-      onPress={(event) => onPress(node, isBranch, event)}
+      onPress={handlePress}
       disabled={disabled}
       {...hoverHandlers}
       style={({ pressed }) => [
@@ -146,12 +191,12 @@ export const TreeRow = React.memo(function TreeRow({
           // 2px and nudged their contents.
           borderWidth: 1,
           borderColor,
-          backgroundColor: pressed && !disabled && !selected ? colors.pressedBg : background,
+          backgroundColor: pressed && !disabled && !emphasized ? colors.pressedBg : background,
           opacity: disabled ? 0.45 : 1,
         } as ViewStyle,
         rowStyle,
       ]}
-      accessibilityRole="button"
+      accessibilityRole={node.href ? 'link' : 'button'}
       accessibilityLabel={node.label}
       accessibilityState={{
         disabled,
@@ -161,13 +206,27 @@ export const TreeRow = React.memo(function TreeRow({
       }}
       {...(web
         ? {
+            ...(linked
+              ? {
+                  href: node.href,
+                  // An `<a href>` is focusable on its own, which would put every
+                  // row into the tab order and break the roving focus the tree
+                  // pattern asks for — the container is the single tab stop and
+                  // moves the ring with `aria-activedescendant`.
+                  ...(keyboardNavigation ? { tabIndex: -1 } : {}),
+                }
+              : {}),
             id: domId,
+            // `role` beats `accessibilityRole` in RNW, so a linked row stays a
+            // `treeitem` for assistive tech while keeping the href a crawler
+            // (and a middle-click) can follow.
             role: 'treeitem',
             'aria-level': depth + 1,
             'aria-posinset': row.posInSet,
             'aria-setsize': row.setSize,
             ...(isBranch ? { 'aria-expanded': expanded } : {}),
             ...(multiSelectable || selectable ? { 'aria-selected': selected } : {}),
+            ...(active ? { 'aria-current': 'page' as const } : {}),
             ...(disabled ? { 'aria-disabled': true } : {}),
           }
         : {})}
@@ -198,7 +257,7 @@ export const TreeRow = React.memo(function TreeRow({
         ) : isBranch && showDisclosure ? (
           <Pressable
             onPress={(event) => {
-              stopPress(event);
+              stopLink(event);
               if (!disabled) onToggle(node);
             }}
             hitSlop={6}
@@ -218,7 +277,7 @@ export const TreeRow = React.memo(function TreeRow({
       </View>
 
       {showCheckbox && (
-        <Pressable onPress={stopPress} {...(web ? { tabIndex: -1 } : {})}>
+        <Pressable onPress={stopLink} {...(web ? { tabIndex: -1 } : {})}>
           <Checkbox
             checked={checked}
             indeterminate={indeterminate}
@@ -240,8 +299,8 @@ export const TreeRow = React.memo(function TreeRow({
         ) : (
           <Text
             size={metrics.textSize}
-            weight={selected ? 'semibold' : 'normal'}
-            style={{ color: disabled ? colors.disabled : selected ? colors.selectedLabel : colors.label }}
+            weight={emphasized ? 'semibold' : 'normal'}
+            style={{ color: disabled ? colors.disabled : emphasized ? colors.selectedLabel : colors.label }}
           >
             {labelContent}
           </Text>

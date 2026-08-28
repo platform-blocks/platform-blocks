@@ -1,4 +1,4 @@
-import type { DonutChartDataPoint } from '../../';
+import type { DonutChartDataPoint } from '@platform-blocks/charts';
 
 export const FULFILLMENT_PARTNERS: DonutChartDataPoint[] = [
   { label: 'Direct warehouses', value: 1.35 },

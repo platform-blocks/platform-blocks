@@ -8,7 +8,7 @@ import { render, fireEvent } from '@testing-library/react-native';
 
 import { Tree } from '../Tree';
 import { Collapse } from '../../Collapse';
-import { filterTree, idRange, toggleCheckedIds } from '../treeUtils';
+import { ancestorIds, filterTree, findNodeByHref, idRange, toggleCheckedIds } from '../treeUtils';
 import type { TreeNode } from '../types';
 
 jest.mock('../../../core/theme', () => ({
@@ -367,5 +367,82 @@ describe('tree utilities', () => {
   it('returns an inclusive range in visible order', () => {
     expect(idRange(['a', 'b', 'c', 'd'], 'c', 'b')).toEqual(['b', 'c']);
     expect(idRange(['a', 'b'], 'a', 'missing')).toEqual([]);
+  });
+
+  describe('active node', () => {
+    const navTree: TreeNode[] = [
+      {
+        id: 'components',
+        label: 'Components',
+        children: [
+          {
+            id: 'input',
+            label: 'Input',
+            children: [
+              { id: 'button', label: 'Button', href: '/components/Button' },
+              { id: 'select', label: 'Select', href: '/components/Select' },
+            ],
+          },
+        ],
+      },
+    ];
+
+    it('opens the branches above the active node so it is reachable', () => {
+      // Nothing here is `startOpen`; only `activeHref` can have gotten the leaf
+      // on screen, and it had to open two levels to do it.
+      const { queryByText } = render(<Tree data={navTree} activeHref="/components/Button" />);
+
+      expect(queryByText('Button')).not.toBeNull();
+    });
+
+    it('marks the active row without spending a selection', () => {
+      const onSelectionChange = jest.fn();
+      const { getByLabelText } = render(
+        <Tree data={navTree} activeHref="/components/Select" onSelectionChange={onSelectionChange} />
+      );
+
+      const active = getByLabelText('Select');
+      const inactive = getByLabelText('Button');
+
+      expect(rowStyle(active).backgroundColor).not.toEqual(rowStyle(inactive).backgroundColor);
+      expect(onSelectionChange).not.toHaveBeenCalled();
+    });
+
+    it('leaves a branch the reader collapsed alone while they move within it', () => {
+      const { getAllByLabelText, rerender, UNSAFE_getAllByType } = render(
+        <Tree data={navTree} activeHref="/components/Button" />
+      );
+
+      // Close the innermost branch the auto-expand opened, then navigate to a
+      // sibling leaf. Both leaves share the same ancestors, so re-opening would
+      // mean the tree fighting the reader on every click.
+      const controls = getAllByLabelText('Collapse');
+      fireEvent.press(controls[controls.length - 1]);
+      rerender(<Tree data={navTree} activeHref="/components/Select" />);
+
+      const collapsedStates = UNSAFE_getAllByType(Collapse).map(node => node.props.isCollapsed);
+      expect(collapsedStates).toContain(true);
+    });
+
+    it('gives a node with an href the link role', () => {
+      const { getByLabelText } = render(<Tree data={navTree} activeHref="/components/Button" />);
+
+      expect(getByLabelText('Button').props.accessibilityRole).toBe('link');
+      expect(getByLabelText('Components').props.accessibilityRole).toBe('button');
+    });
+  });
+
+  it('walks a parent map back to the root, and survives a cycle in one', () => {
+    expect(ancestorIds({ leaf: 'branch', branch: 'root' }, 'leaf')).toEqual(['branch', 'root']);
+    expect(ancestorIds({ a: 'b', b: 'a' }, 'a')).toEqual(['b']);
+  });
+
+  it('finds a node by href, at any depth', () => {
+    const nodes: TreeNode[] = [
+      { id: 'a', label: 'A', children: [{ id: 'b', label: 'B', href: '/b' }] },
+    ];
+
+    expect(findNodeByHref(nodes, '/b')?.id).toBe('b');
+    expect(findNodeByHref(nodes, '/missing')).toBeUndefined();
   });
 });

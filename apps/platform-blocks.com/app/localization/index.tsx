@@ -1,44 +1,51 @@
 import React from 'react';
-import { Text, Button, useI18n, ToggleBar, Notice, Flex, Block, CodeBlock } from '@platform-blocks/ui';
+import { Text, useI18n, ToggleButton, ToggleGroup, Alert, Flex, Block, CodeBlock } from '@platform-blocks/ui';
 import { useBrowserTitle, formatPageTitle } from 'hooks/useBrowserTitle';
 import { DocsPage } from 'components';
 import { DocsPageHeader } from '../../components/DocsPageHeader';
 import { LOCALIZATION_DEMO_LOCALES, LOCALIZATION_STEPS } from '../../config/localization';
 
-function LocalizationContent() {
+/**
+ * Live locale switcher, rendered just above the "switch locales" step so the
+ * copy and the snippet underneath describe the control the reader just used.
+ * `exclusive` + `required` keep exactly one locale active, and the greeting
+ * next to it re-renders on every change.
+ */
+function LocaleSwitcher() {
   const { t, setLocale, locale } = useI18n();
 
-  const locales = LOCALIZATION_DEMO_LOCALES;
+  return (
+    <Flex direction="row" align="center" gap="md" wrap="wrap" fullWidth>
+      <ToggleGroup
+        value={locale}
+        exclusive
+        required
+        onChange={(next) => { if (typeof next === 'string') setLocale(next); }}
+      >
+        {LOCALIZATION_DEMO_LOCALES.map((l) => (
+          <ToggleButton key={l} value={l}>{l.toUpperCase()}</ToggleButton>
+        ))}
+      </ToggleGroup>
+      <Alert icon="globe" style={{ flexGrow: 1 }}>
+        {/* Decorative sample copy, not a section heading — as an h4 it was
+            the only heading between the page h1 and its h2 sections. */}
+        <Text size="lg" weight="semibold">{t('localization.helloWorld')}</Text>
+      </Alert>
+    </Flex>
+  );
+}
 
+function LocalizationContent() {
   return (
     <DocsPage>
       <Block gap="md" mb="lg">
-        <DocsPageHeader
-          tx="localization.title"
-          action={
-            <Notice icon="globe">
-              {/* Decorative sample copy, not a section heading — as an h4 it was
-                  the only heading between the page h1 and its h2 sections. */}
-              <Text size="lg" weight="semibold">{t('localization.helloWorld')}</Text>
-            </Notice>
-          }
-        />
+        <DocsPageHeader tx="localization.title" />
         <Text tx="localization.intro" colorVariant="muted" />
-        <Flex direction="row" align="center" justify="space-between" mb="md">
-          <Button
-            title={t('actions.switchLocale')}
-            onPress={() => setLocale(locale.startsWith('en') ? 'fr' : 'en')}
-          />
-          <ToggleBar
-            value={[locale]}
-            onChange={(vals) => { const next = vals[0]; if (typeof next === 'string') setLocale(next); }}
-            options={locales.map(l => ({ value: l, label: l.toUpperCase() }))}
-          />
-        </Flex>
 
         <Flex direction="column" gap="xl">
           {LOCALIZATION_STEPS.map(({ key, fileName, snippet, highlightLines }) => (
             <React.Fragment key={key}>
+              {key === 'switch' ? <LocaleSwitcher /> : null}
               <Text tx={`localization.steps.${key}`} />
               <CodeBlock files={[{ name: fileName }]} showLineNumbers highlightLines={highlightLines}>
                 {snippet}

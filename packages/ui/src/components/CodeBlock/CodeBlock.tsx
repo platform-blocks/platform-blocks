@@ -119,10 +119,9 @@ export const CodeBlock = React.forwardRef<View, CodeBlockProps>((props, ref) => 
     () => resolvedColors.highlightBackground ?? surfaceInteractionTint(theme, 'selected'),
     [resolvedColors.highlightBackground, theme]
   );
-  const highlightAccentColor = resolvedColors.highlightAccent ?? theme.colors.primary[5];
   const highlightColors = React.useMemo(
-    () => ({ background: highlightBackgroundColor, accent: highlightAccentColor }),
-    [highlightAccentColor, highlightBackgroundColor]
+    () => ({ background: highlightBackgroundColor }),
+    [highlightBackgroundColor]
   );
   // Token shades are picked for contrast against the surface they land on, so a
   // themed (or `colors.background`-overridden) panel stays legible without a
@@ -136,12 +135,16 @@ export const CodeBlock = React.forwardRef<View, CodeBlockProps>((props, ref) => 
     () => getSyntaxColors(theme, isDark, variant, resolvedColors.tokenOverrides, { surface: codeSurface }),
     [theme, isDark, variant, resolvedColors.tokenOverrides, codeSurface]
   );
+  // Declared here rather than beside its other use below: the fallback tokenizer
+  // picks its grammar from it, and Prism takes the same value.
+  const normalizedLang = normalizeLanguage(activeLanguage);
   const nativeHighlighter = React.useMemo(
     () => createNativeHighlighter(theme, isDark, variant, resolvedColors.tokenOverrides, {
       surface: codeSurface,
       baseColor: baseTextColor,
+      language: normalizedLang,
     }),
-    [theme, isDark, variant, resolvedColors.tokenOverrides, codeSurface, baseTextColor]
+    [theme, isDark, variant, resolvedColors.tokenOverrides, codeSurface, baseTextColor, normalizedLang]
   );
 
   const [hovered, hoverHandlers] = useHover();
@@ -187,7 +190,6 @@ export const CodeBlock = React.forwardRef<View, CodeBlockProps>((props, ref) => 
 
   const hideLineNumbersVisually = highlight && !showLineNumbers && highlightSet.size > 0;
   const prismShowLineNumbers = showLineNumbers || hideLineNumbersVisually;
-  const normalizedLang = normalizeLanguage(activeLanguage);
 
   const baseLineStyle = React.useMemo<CSSProperties>(() => ({
     display: 'block',
@@ -197,11 +199,6 @@ export const CodeBlock = React.forwardRef<View, CodeBlockProps>((props, ref) => 
     paddingRight: showLineNumbers ? 0 : 12,
     whiteSpace: wrap ? 'pre-wrap' : 'pre',
   }), [showLineNumbers, wrap]);
-
-  const highlightedLineStyle = React.useMemo<CSSProperties>(() => ({
-    backgroundColor: highlightBackgroundColor,
-    boxShadow: `inset 3px 0 0 0 ${highlightAccentColor}`,
-  }), [highlightBackgroundColor, highlightAccentColor]);
 
   const fallbackColor = baseTextColor;
   // Gutter recedes exactly as far as comments do — same contrast floor, so it
@@ -251,14 +248,17 @@ export const CodeBlock = React.forwardRef<View, CodeBlockProps>((props, ref) => 
       const tokens = tokenLines?.[index] ?? [{ text: line || ' ', color: fallbackColor }];
       const isLineHighlighted = highlightSet.has(lineNumber);
 
-      const lineStyles = [
+      const lineStyles: any[] = [
         styles.codeText,
         textStyle,
         webWhitespaceStyle,
         wrap ? { flexWrap: 'wrap' as const } : { flexWrap: 'nowrap' as const, width: 'auto' as const },
       ];
       if (isLineHighlighted) {
-        lineStyles.push(styles.highlightedLine(highlightColors));
+        lineStyles.push(styles.highlightedLine(highlightColors, {
+          isFirst: !highlightSet.has(lineNumber - 1),
+          isLast: !highlightSet.has(lineNumber + 1),
+        }));
       }
 
       return (
@@ -331,14 +331,10 @@ export const CodeBlock = React.forwardRef<View, CodeBlockProps>((props, ref) => 
         lineProps={(lineNumber: number) => {
           const style: CSSProperties = { ...baseLineStyle };
           if (highlightSet.has(lineNumber)) {
-            Object.assign(style, highlightedLineStyle);
-            const prevHighlighted = highlightSet.has(lineNumber - 1);
-            const nextHighlighted = highlightSet.has(lineNumber + 1);
-            const cornerRadius = 4;
-            style.borderTopLeftRadius = prevHighlighted ? 0 : cornerRadius;
-            style.borderTopRightRadius = prevHighlighted ? 0 : cornerRadius;
-            style.borderBottomLeftRadius = nextHighlighted ? 0 : cornerRadius;
-            style.borderBottomRightRadius = nextHighlighted ? 0 : cornerRadius;
+            Object.assign(style, styles.highlightedLine(highlightColors, {
+              isFirst: !highlightSet.has(lineNumber - 1),
+              isLast: !highlightSet.has(lineNumber + 1),
+            }));
             return { style, 'data-highlighted': 'true' };
           }
           return { style };
@@ -351,13 +347,14 @@ export const CodeBlock = React.forwardRef<View, CodeBlockProps>((props, ref) => 
     baseLineStyle,
     codeData.transformed,
     highlight,
+    highlightColors,
     highlightSet,
-    highlightedLineStyle,
     hideLineNumbersVisually,
     isWeb,
     normalizedLang,
     prismShowLineNumbers,
     styles.codeText.color,
+    styles.highlightedLine,
     styles.codeText.fontFamily,
     syntaxColors,
     theme.text.primary,

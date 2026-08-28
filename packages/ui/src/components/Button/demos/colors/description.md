@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Cycle through semantic `colorVariant` values to align actions with brand intent.
+Pair `color` with a color-bearing variant (`filled`, `light`, `subtle`, `outline`, `gradient`) to align actions with brand intent. The default variant is neutral chrome and ignores `color`.

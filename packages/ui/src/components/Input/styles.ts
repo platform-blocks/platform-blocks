@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { PlatformBlocksTheme, SizeToken, SizeValue } from '../../core/theme/types';
 import { InputStyleProps, InputVariant } from './types';
 import { px } from '../../core/utils';
@@ -10,8 +10,19 @@ import { getControlLabelFontSize } from '../../core/theme/sizes';
  * flex parent (a row, a form grid) otherwise collapse to something too narrow
  * to type in; mobile skips the floor entirely and just fills the row, since
  * 400px is wider than the viewport.
+ *
+ * The floor is clamped to the parent so it can never push the field past it —
+ * a field inside a narrow panel (a 420px sign-in card) would otherwise overflow
+ * the panel's own padding, since `min-width` outranks both `width` and
+ * `max-width`. Web gets the clamp via CSS `min()`; Yoga has no equivalent, so
+ * native keeps the plain floor.
  */
 export const INPUT_MIN_WIDTH = 400;
+
+export const inputMinWidthFloor = () =>
+  (Platform.OS === 'web'
+    ? { minWidth: `min(100%, ${INPUT_MIN_WIDTH}px)` as unknown as number }
+    : { minWidth: INPUT_MIN_WIDTH });
 
 export const createInputStyles = (
   theme: PlatformBlocksTheme,
@@ -74,7 +85,7 @@ export const createInputStyles = (
       container: {
         marginBottom: px(theme.spacing.sm),
         width: '100%',
-        ...(isMobile ? null : { minWidth: INPUT_MIN_WIDTH }),
+        ...(isMobile ? null : inputMinWidthFloor()),
       },
       
       error: {

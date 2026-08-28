@@ -1,5 +1,5 @@
 import { Block, Card, Flex, Text, Title } from '@platform-blocks/ui';
-import { SparklineChart } from '../../';
+import { SparklineChart } from '@platform-blocks/charts';
 
 import { SURFACE_SERIES } from './data';
 

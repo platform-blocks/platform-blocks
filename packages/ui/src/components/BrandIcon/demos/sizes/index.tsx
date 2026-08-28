@@ -1,5 +1,5 @@
-import type { BrandIconProps } from '@platform-blocks/ui';
 import { BrandIcon, Block, Row, Text } from '@platform-blocks/ui';
+import type { BrandIconProps } from '@platform-blocks/ui';
 
 const SIZES: BrandIconProps['size'][] = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
 

@@ -249,12 +249,50 @@ import {
   DialogProvider,
   ToastProvider,
   Divider,
+  Flex,
+  Icon,
   Link,
+  SegmentedControl,
   Text,
   Title,
+  useThemeMode,
 } from '${SNACK_IMPORT_PATH}';
 
 const SITE = 'https://platform-blocks.com';
+
+type ThemeMode = 'light' | 'auto' | 'dark';
+
+/**
+ * The three modes ThemeModeProvider understands. Icon-only: on a phone the
+ * control sits beside the heading, and three word labels would push the title
+ * onto a second line.
+ */
+const THEME_MODES: { value: ThemeMode; label: React.ReactNode; ariaLabel: string }[] = [
+  { value: 'light', label: <Icon name="sun" size="sm" />, ariaLabel: 'Light theme' },
+  { value: 'auto', label: <Icon name="contrast" size="sm" />, ariaLabel: 'Follow system theme' },
+  { value: 'dark', label: <Icon name="moon" size="sm" />, ariaLabel: 'Dark theme' },
+];
+
+/**
+ * Switches the whole Snack between light, dark and the OS setting — the point
+ * being that every demo below re-themes with it, which is the thing a static
+ * screenshot on the docs site can't show.
+ *
+ * Safe to call \`useThemeMode\` here only because Shell passes \`themeModeConfig\`
+ * to the provider; without it PlatformBlocksProvider never mounts
+ * ThemeModeProvider and the hook throws.
+ */
+function ThemeToggle() {
+  const { mode, setMode } = useThemeMode();
+  return (
+    <SegmentedControl
+      data={THEME_MODES}
+      value={mode}
+      onChange={value => setMode(value as ThemeMode)}
+      size="sm"
+    />
+  );
+}
 
 export interface ShellProps {
   /** Screen heading — the component name. */
@@ -268,13 +306,19 @@ export interface ShellProps {
 
 function Screen({ title, subtitle, note, children }: ShellProps) {
   const insets = useSafeAreaInsets();
+  const { actualColorScheme } = useThemeMode();
   return (
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={{ padding: 16, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }}
     >
-      <Title order={1} size={30} weight="bold">{title}</Title>
-      {subtitle ? <Text variant="small" colorVariant="muted">{subtitle}</Text> : null}
+      <Flex direction="row" justify="space-between" align="flex-start" gap="sm" mb={4}>
+        <View style={{ flexShrink: 1 }}>
+          <Title order={1} size={30} weight="bold">{title}</Title>
+          {subtitle ? <Text variant="small" colorVariant="muted">{subtitle}</Text> : null}
+        </View>
+        <ThemeToggle />
+      </Flex>
       {note ? <Text variant="small" colorVariant="muted" mt={8}>{note}</Text> : null}
 
       <View style={{ marginTop: 24 }}>{children}</View>
@@ -286,17 +330,24 @@ function Screen({ title, subtitle, note, children }: ShellProps) {
       </Text>
       <Link href={SITE} external size="sm" target="_blank">platform-blocks.com</Link>
       <Text variant="small" colorVariant="muted" mt={8}>
-        @platform-blocks/ui v${SNACK_PACKAGE_VERSION} · Expo SDK ${SNACK_SDK_VERSION}
+        @platform-blocks/ui v${SNACK_PACKAGE_VERSION} · Expo SDK ${SNACK_SDK_VERSION} · {actualColorScheme}
       </Text>
     </ScrollView>
   );
 }
 
-/** Wraps a Snack's content in the provider stack and the shared chrome. */
+/**
+ * Wraps a Snack's content in the provider stack and the shared chrome.
+ *
+ * \`themeModeConfig\` is what mounts ThemeModeProvider inside
+ * PlatformBlocksProvider — it is opt-in, and the toggle depends on it. The
+ * default persistence writes to localStorage, which is web-only and already
+ * guarded, so on a device it simply starts from the OS setting each run.
+ */
 export default function Shell(props: ShellProps) {
   return (
     <SafeAreaProvider>
-      <PlatformBlocksProvider>
+      <PlatformBlocksProvider themeModeConfig={{ initialMode: 'auto' }}>
         <DialogProvider>
           <ToastProvider>
             <Screen {...props} />

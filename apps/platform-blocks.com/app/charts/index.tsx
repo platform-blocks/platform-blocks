@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { ScrollView, View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { PageLayout } from '../../components/PageLayout';
+import { DocsPage } from '../../components/DocsPage';
 import { RouteLink } from '../../components/RouteLink';
 import { Text, Flex, Card, Tabs, Icon, Button, Chip } from '@platform-blocks/ui';
 import type { TabItem } from '@platform-blocks/ui';
@@ -30,7 +30,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   hero: {
-    padding: 20,
     paddingBottom: 12,
     gap: 12,
   },
@@ -38,7 +37,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoryWrapper: {
-    paddingHorizontal: 20,
     paddingBottom: 20,
     gap: 16,
   },
@@ -191,7 +189,7 @@ export default function ChartsScreen() {
   }), [chartsByCategory, demoCounts, demosReady, handleExplore]);
 
   return (
-    <PageLayout>
+    <DocsPage>
       <View style={styles.root}>
         <View style={styles.hero}>
           <Text variant="h1">Charts</Text>
@@ -204,8 +202,11 @@ export default function ChartsScreen() {
           variant="line"
           size="md"
           style={styles.tabsContainer}
+          // Tabs pads its panel on all four sides; drop the horizontal half so
+          // the cards sit on the same column as the page heading above them.
+          contentStyle={{ paddingHorizontal: 0 }}
         />
       </View>
-    </PageLayout>
+    </DocsPage>
   );
 }

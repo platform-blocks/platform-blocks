@@ -1,12 +1,12 @@
 import React from 'react';
 import { Text } from '@platform-blocks/ui';
-import type { AccordionItem } from '../types';
+import type { AccordionItemType } from '@platform-blocks/ui';
 
 // Wrap body copy in <Text> without JSX so this stays a plain `.ts` data module
 // (a `.tsx` sibling would be picked up as its own demo by the docs generator).
 const body = (text: string) => React.createElement(Text, { size: 'sm' }, text);
 
-export const faqItems: AccordionItem[] = [
+export const faqItems: AccordionItemType[] = [
   {
     key: 'foundation',
     title: 'What is Platform Blocks?',
@@ -24,7 +24,7 @@ export const faqItems: AccordionItem[] = [
   },
 ];
 
-export const knowledgeBase: AccordionItem[] = [
+export const knowledgeBase: AccordionItemType[] = [
   {
     key: 'collaboration',
     title: 'Invite collaborators',
@@ -42,7 +42,7 @@ export const knowledgeBase: AccordionItem[] = [
   },
 ];
 
-export const onboardingSteps: AccordionItem[] = [
+export const onboardingSteps: AccordionItemType[] = [
   {
     key: 'create-project',
     title: 'Create a project',
@@ -55,7 +55,7 @@ export const onboardingSteps: AccordionItem[] = [
   },
 ];
 
-export const statusItems: AccordionItem[] = [
+export const statusItems: AccordionItemType[] = [
   {
     key: 'info',
     title: 'Informational',
@@ -82,7 +82,7 @@ export const statusItems: AccordionItem[] = [
   },
 ];
 
-export const setupSteps: AccordionItem[] = [
+export const setupSteps: AccordionItemType[] = [
   {
     key: 'install',
     title: 'Install the package',

@@ -54,7 +54,8 @@ export default function ButtonShowcase() {
             {['primary', 'secondary', 'success', 'error', 'warning', 'gray'].map((clr) => (
               <Button
                 key={clr}
-                colorVariant={clr}
+                variant="filled"
+                color={clr}
                 loading={loading}
                 fullWidth
               >

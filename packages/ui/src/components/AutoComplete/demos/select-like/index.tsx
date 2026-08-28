@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { AutoComplete, Block } from '@platform-blocks/ui'
-import type { AutoCompleteOption } from '../../types'
+import { AutoComplete, Block } from '@platform-blocks/ui';
+import type { AutoCompleteOption } from '@platform-blocks/ui';
 import { countries } from '../data'
 
 export default function Demo() {

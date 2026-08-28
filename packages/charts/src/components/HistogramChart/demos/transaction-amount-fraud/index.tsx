@@ -1,4 +1,4 @@
-import { HistogramChart } from '../../';
+import { HistogramChart } from '@platform-blocks/charts';
 
 import { REVIEW_THRESHOLD, TRANSACTION_AMOUNTS } from './data';
 

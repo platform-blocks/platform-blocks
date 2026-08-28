@@ -1,6 +1,6 @@
 {
   "name": "platform-blocks",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "workspaces": [
     "packages/ui",
     "packages/charts",
@@ -24,12 +24,14 @@
     "demos:all": "npm run demos:generate && npm run demos:validate",
     "snack:exports": "npx --yes tsx scripts/generate-snack-exports.ts",
     "llms:generate": "npx --yes tsx scripts/generate-llms.ts",
+    "skills:generate": "npx --yes tsx scripts/generate-skills.ts",
+    "skills:check": "npx --yes tsx scripts/generate-skills.ts --check",
     "docs:all": "npm run demos:generate && npm run demos:validate && npm run snack:exports && npm --prefix apps/platform-blocks.com run docs:generate && npm --prefix apps/platform-blocks.com run generate-code-map && npm run llms:generate",
     "site:build": "npm run ui:build && npm run docs:all && npm --prefix apps/platform-blocks.com run build-web",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "docs:baseline": "npm --prefix apps/platform-blocks.com run build-web && npx playwright test --config=playwright.config.ts",
-    "verify:packages": "npm run ui:exports:check && npm run ui:lint && npm run ui:test && npm run charts:lint && npm run charts:test",
+    "verify:packages": "npm run ui:exports:check && npm run skills:check && npm run ui:lint && npm run ui:test && npm run charts:lint && npm run charts:test",
     "verify:packages:build": "npm run ui:build && npm run charts:build",
     "release": "npm run verify:packages && npm run verify:packages:build && npm run ui:build && tsx scripts/publish-release.ts",
     "ui:exports": "tsx scripts/generate-ui-exports.ts",

@@ -1,6 +1,5 @@
 import { ScrollView, View } from 'react-native';
-import { Icon } from '../../Icon';
-import { Text, Card, Flex, Title } from '../../../..';
+import { Icon, Text, Card, Flex, Title } from '@platform-blocks/ui';
 
 export default function IconDemo() {
   return (

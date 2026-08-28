@@ -1,5 +1,10 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { View, Pressable, Text as RNText } from 'react-native';
+import {
+  acquirePageScrollLock,
+  getGestureSurfaceStyle,
+  releasePageScrollLock,
+} from '../../core/gestures';
 import Svg, { Path, Rect, LinearGradient, Stop, Defs, Line, G, Text as SvgText } from 'react-native-svg';
 
 import { useTheme } from '../../core/theme';
@@ -745,9 +750,24 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
     ? { 
         onLayout: handleLayout,
         onStartShouldSetResponder: () => true,
-        onResponderGrant: onDragStart || onDrag || onDragEnd ? handleResponderGrant : handlePress,
+        onMoveShouldSetResponder: () => true,
+        onResponderGrant: (event: any) => {
+          acquirePageScrollLock();
+          if (onDragStart || onDrag || onDragEnd) handleResponderGrant(event);
+          else handlePress(event);
+        },
         onResponderMove: onDrag ? handleResponderMove : undefined,
-        onResponderRelease: onDragEnd ? handleResponderRelease : undefined,
+        onResponderRelease: (event: any) => {
+          releasePageScrollLock();
+          if (onDragEnd) handleResponderRelease(event);
+        },
+        // A scrub that drifts vertically stays a scrub: neither an enclosing
+        // ScrollView nor the browser gets to take the gesture back mid-drag.
+        onResponderTerminationRequest: () => false,
+        onResponderTerminate: () => {
+          releasePageScrollLock();
+        },
+        onShouldBlockNativeResponder: () => true,
         accessibilityRole: 'adjustable' as const,
         accessibilityLabel: accessibilityLabel || 'Audio waveform',
         accessibilityHint: accessibilityHint || (onSeek ? 'Tap to seek to a position, or drag to scrub through' : undefined),
@@ -828,7 +848,14 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
   return (
     <WrapperComponent
       ref={mergedContainerRef}
-      style={[style, fullWidth ? { width: '100%' } : { width: w }]}
+      style={[
+        // A waveform is a large surface, so it keeps `pan-y`: vertical page
+        // scrolling still works over it, while a horizontal scrub is ours for
+        // the whole gesture. Compact controls (Slider, Knob) claim both axes.
+        getGestureSurfaceStyle({ axis: 'x', enabled: interactive, cursor: interactive ? 'pointer' : undefined }),
+        style,
+        fullWidth ? { width: '100%' } : { width: w },
+      ]}
       accessible={true}
       focusable={interactive}
       onFocus={() => setIsFocused(true)}

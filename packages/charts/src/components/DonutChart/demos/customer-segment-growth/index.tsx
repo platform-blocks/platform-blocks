@@ -1,5 +1,5 @@
-import { DonutChart } from '../../';
-import type { DonutChartDataPoint } from '../../';
+import { DonutChart } from '@platform-blocks/charts';
+import type { DonutChartDataPoint } from '@platform-blocks/charts';
 
 import { ARR_SEGMENTS, GROWTH_CONTRIBUTION } from './data';
 

@@ -1,4 +1,4 @@
-import { NetworkChart } from '../../';
+import { NetworkChart } from '@platform-blocks/charts';
 
 import { PROPAGATION, SYSTEMS } from './data';
 

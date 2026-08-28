@@ -1,7 +1,4 @@
-import { BrandButton } from '../../BrandButton';
-import { Card } from '../../../Card';
-import { Flex } from '../../../Flex'; 
-import { Text } from '../../../Text';
+import { BrandButton, Card, Flex, Text } from '@platform-blocks/ui';
 
 export default function UniversalPropsBrandButtonDemo() {
   return (

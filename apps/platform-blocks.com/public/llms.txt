@@ -1,6 +1,6 @@
 # Platform Blocks
 
-> A cross-platform React Native UI library — 98 components, 25 charts,
+> A cross-platform React Native UI library — 100 components, 25 charts,
 > and 18 hooks that render natively on iOS and Android and as real DOM on the web,
 > from one themeable component model.
 
@@ -53,7 +53,6 @@ Website: https://platform-blocks.com • GitHub: https://github.com/platform-blo
 - [DatePickerInput](https://platform-blocks.com/llms/components/DatePickerInput.md): DatePickerInput wraps the inline DatePicker in an accessible input experience
 - [Dialog](https://platform-blocks.com/llms/components/Dialog.md): The Dialog component presents content above the app, supporting focus trapping, scroll locking, and multiple presentation styles (modal, confirmation, bottom sheet)
 - [Divider](https://platform-blocks.com/llms/components/Divider.md): The Divider component provides a visual separator between content sections
-- [EmojiPicker](https://platform-blocks.com/llms/components/EmojiPicker.md): The EmojiPicker component
 - [FileInput](https://platform-blocks.com/llms/components/FileInput.md): The FileInput component provides a user-friendly interface for file uploads with drag-and-drop functionality, file validation, and preview capabilities
 - [Flex](https://platform-blocks.com/llms/components/Flex.md): Flex provides a powerful and intuitive way to create flexible layouts using CSS Flexbox principles
 - [Form](https://platform-blocks.com/llms/components/Form.md): Form manages values, validation, and submission state for a group of inputs
@@ -66,6 +65,7 @@ Website: https://platform-blocks.com • GitHub: https://github.com/platform-blo
 - [Image](https://platform-blocks.com/llms/components/Image.md): The Image component displays images with optional captions and overlays, providing a flexible way to present visual content in your application
 - [Indicator](https://platform-blocks.com/llms/components/Indicator.md): The Indicator component renders a small dot or pill-shaped badge in the corner of a parent container — perfect for online status, unread counts, or "new" markers
 - [Input](https://platform-blocks.com/llms/components/Input.md): A versatile text input component that provides a consistent interface for text entry across different platforms
+- [Joystick](https://platform-blocks.com/llms/components/Joystick.md): Joystick is a two-axis positional input. In its default circle shape it behaves like a physical stick — the handle rides the rim at full deflection and springs back to centre when released. As a square it becomes an XY pad: each axis clamps on its own so the corners are reachable, and the handle stays where it is left
 - [KeyCap](https://platform-blocks.com/llms/components/KeyCap.md): A visual component for displaying keyboard keys, shortcuts, and key combinations with proper styling
 - [Knob](https://platform-blocks.com/llms/components/Knob.md): The Knob component provides a rotary control for adjusting values with touch, mouse, and keyboard input
 - [Link](https://platform-blocks.com/llms/components/Link.md): A versatile component for creating styled hyperlinks and navigation elements with hover states and accessibility features
@@ -79,6 +79,7 @@ Website: https://platform-blocks.com • GitHub: https://github.com/platform-blo
 - [MiniCalendar](https://platform-blocks.com/llms/components/MiniCalendar.md): A compact calendar component for displaying a month view with selectable dates
 - [MonthPicker](https://platform-blocks.com/llms/components/MonthPicker.md): Interactive grid for selecting a month within a given year
 - [MonthPickerInput](https://platform-blocks.com/llms/components/MonthPickerInput.md): Form-friendly wrapper around MonthPicker that renders an input field and opens the picker in a modal dialog
+- [NavTree](https://platform-blocks.com/llms/components/NavTree.md): A sidebar that nests itself
 - [NumberInput](https://platform-blocks.com/llms/components/NumberInput.md): The NumberInput component is a numeric text input field that provides built-in step controls for incrementing and decrementing the value
 - [Overlay](https://platform-blocks.com/llms/components/Overlay.md): The Overlay component provides a utility for dimming background content or drawing focus to foreground elements
 - [Pagination](https://platform-blocks.com/llms/components/Pagination.md): A comprehensive pagination component that provides intuitive navigation through large datasets
@@ -90,6 +91,7 @@ Website: https://platform-blocks.com • GitHub: https://github.com/platform-blo
 - [Radio](https://platform-blocks.com/llms/components/Radio.md): Radio buttons allow users to select a single option from a group of mutually exclusive choices
 - [Rating](https://platform-blocks.com/llms/components/Rating.md): An interactive component for displaying star ratings and allowing users to provide ratings with customizable appearance
 - [Ring](https://platform-blocks.com/llms/components/Ring.md): The Ring component displays progress or status using a radial indicator
+- [RollingNumber](https://platform-blocks.com/llms/components/RollingNumber.md): RollingNumber displays a number and animates every digit that changes, rolling it to its new position
 - [Search](https://platform-blocks.com/llms/components/Search.md): The Search component provides a search input with debouncing, loading states, and customizable clear functionality
 - [SegmentedControl](https://platform-blocks.com/llms/components/SegmentedControl.md): Segmented controls present a small set of exclusive options
 - [Select](https://platform-blocks.com/llms/components/Select.md): Select provides a dropdown interface for choosing from predefined options

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Asset } from 'expo-asset';
 import { Block, Button, Card, Text, Video } from '@platform-blocks/ui';
-import type { VideoTimelineEvent, VideoState } from '../../types';
+import type { VideoTimelineEvent, VideoState } from '@platform-blocks/ui';
 
 // `source.url` takes a URL, so resolve the bundled clip to one. `Image.resolveAssetSource`
 // is native-only, whereas expo-asset works on web too.

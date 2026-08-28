@@ -1,4 +1,4 @@
-import { BarChart } from '../../';
+import { BarChart } from '@platform-blocks/charts';
 
 import { SLA_COMPLIANCE } from './data';
 

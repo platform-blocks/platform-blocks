@@ -1,4 +1,4 @@
-import { MarimekkoChart } from '../../';
+import { MarimekkoChart } from '@platform-blocks/charts';
 
 import { REGIONAL_REVENUE } from './data';
 

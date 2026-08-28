@@ -1,6 +1,6 @@
 {
   "name": "@platform-blocks/ui",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A comprehensive React Native UI component library — 80+ accessible, themeable, cross-platform components for iOS, Android, and Web",
   "type": "module",
   "main": "lib/cjs/index.js",
@@ -248,13 +248,6 @@
       "require": "./lib/cjs/components/Divider/index.js",
       "default": "./lib/esm/components/Divider/index.js"
     },
-    "./EmojiPicker": {
-      "types": "./lib/components/EmojiPicker/index.d.ts",
-      "react-native": "./lib/esm/components/EmojiPicker/index.js",
-      "import": "./lib/esm/components/EmojiPicker/index.js",
-      "require": "./lib/cjs/components/EmojiPicker/index.js",
-      "default": "./lib/esm/components/EmojiPicker/index.js"
-    },
     "./FileInput": {
       "types": "./lib/components/FileInput/index.d.ts",
       "react-native": "./lib/esm/components/FileInput/index.js",
@@ -359,6 +352,13 @@
       "import": "./lib/esm/components/Input/index.js",
       "require": "./lib/cjs/components/Input/index.js",
       "default": "./lib/esm/components/Input/index.js"
+    },
+    "./Joystick": {
+      "types": "./lib/components/Joystick/index.d.ts",
+      "react-native": "./lib/esm/components/Joystick/index.js",
+      "import": "./lib/esm/components/Joystick/index.js",
+      "require": "./lib/cjs/components/Joystick/index.js",
+      "default": "./lib/esm/components/Joystick/index.js"
     },
     "./KeyCap": {
       "types": "./lib/components/KeyCap/index.d.ts",
@@ -465,6 +465,13 @@
       "require": "./lib/cjs/components/MonthPickerInput/index.js",
       "default": "./lib/esm/components/MonthPickerInput/index.js"
     },
+    "./NavTree": {
+      "types": "./lib/components/NavTree/index.d.ts",
+      "react-native": "./lib/esm/components/NavTree/index.js",
+      "import": "./lib/esm/components/NavTree/index.js",
+      "require": "./lib/cjs/components/NavTree/index.js",
+      "default": "./lib/esm/components/NavTree/index.js"
+    },
     "./Navigation": {
       "types": "./lib/components/Navigation/index.d.ts",
       "react-native": "./lib/esm/components/Navigation/index.js",
@@ -548,6 +555,13 @@
       "import": "./lib/esm/components/Ring/index.js",
       "require": "./lib/cjs/components/Ring/index.js",
       "default": "./lib/esm/components/Ring/index.js"
+    },
+    "./RollingNumber": {
+      "types": "./lib/components/RollingNumber/index.d.ts",
+      "react-native": "./lib/esm/components/RollingNumber/index.js",
+      "import": "./lib/esm/components/RollingNumber/index.js",
+      "require": "./lib/cjs/components/RollingNumber/index.js",
+      "default": "./lib/esm/components/RollingNumber/index.js"
     },
     "./Search": {
       "types": "./lib/components/Search/index.d.ts",

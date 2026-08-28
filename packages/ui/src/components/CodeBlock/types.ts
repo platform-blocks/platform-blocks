@@ -36,7 +36,6 @@ export interface CodeBlockColorOverrides {
   /** Highlight colors for emphasized lines */
   highlight?: {
     background?: string;
-    accent?: string;
   };
 }
 

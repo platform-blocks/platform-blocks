@@ -1,4 +1,4 @@
-import { ScatterChart } from '../../';
+import { ScatterChart } from '@platform-blocks/charts';
 
 import { SERIES } from './data';
 

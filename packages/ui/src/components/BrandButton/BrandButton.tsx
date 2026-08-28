@@ -278,7 +278,6 @@ export const BrandButton = React.forwardRef<View, BrandButtonProps>((props, ref)
       variant={effectiveVariant as any}
       size={size}
       textColor={textColor}
-      colorVariant="secondary"
       startIcon={iconPosition === 'left' ? (icon || brandIcon) : undefined}
       endIcon={iconPosition === 'right' ? (icon || brandIcon) : undefined}
       style={[brandStyles, style, { width: 'auto' }]}

@@ -1,4 +1,4 @@
-import { PieChart } from '../../';
+import { PieChart } from '@platform-blocks/charts';
 
 import { TRAFFIC_SOURCES } from './data';
 

@@ -1,4 +1,4 @@
-import { RadialBarChart } from '../../';
+import { RadialBarChart } from '@platform-blocks/charts';
 
 import { AVG, METRICS } from './data';
 

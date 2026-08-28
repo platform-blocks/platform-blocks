@@ -26,7 +26,7 @@ export default function Demo() {
               <Button
                 fullWidth
                 variant="filled"
-                colorVariant="error.5"
+                color="error"
                 onPress={() => {
                   Alert.alert('Deleted', 'Item has been deleted');
                   closeDialog(dialogId);

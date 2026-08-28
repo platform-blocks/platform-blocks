@@ -216,3 +216,39 @@ export const idRange = (orderedIds: string[], fromId: string, toId: string): str
   if (from === -1 || to === -1) return [];
   return orderedIds.slice(Math.min(from, to), Math.max(from, to) + 1);
 };
+
+/**
+ * Every ancestor id of `id`, nearest first. Guards against a cycle in
+ * `parentMap` — a malformed tree should render wrong, not hang the thread.
+ */
+export const ancestorIds = (parentMap: Record<string, string>, id: string): string[] => {
+  const trail: string[] = [];
+  const seen = new Set<string>([id]);
+  let cursor = parentMap[id];
+  while (cursor && !seen.has(cursor)) {
+    seen.add(cursor);
+    trail.push(cursor);
+    cursor = parentMap[cursor];
+  }
+  return trail;
+};
+
+/**
+ * First node whose `href` matches, in document order. Backs `activeHref`, so a
+ * consumer can hand the tree a pathname instead of resolving the node itself.
+ */
+export const findNodeByHref = (
+  nodes: TreeNode[],
+  href: string,
+  loaded?: LoadedChildren
+): TreeNode | undefined => {
+  for (const node of nodes) {
+    if (node.href === href) return node;
+    const kids = childrenOf(node, loaded);
+    if (kids?.length) {
+      const found = findNodeByHref(kids, href, loaded);
+      if (found) return found;
+    }
+  }
+  return undefined;
+};

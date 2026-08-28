@@ -1,6 +1,4 @@
-import { Highlight } from '../..';
-import { Text } from '../../../../components/Text';
-import { Block } from '../../../Block';
+import { Highlight, Text, Block } from '@platform-blocks/ui';
 
 const copy = 'You can switch the highlight color while keeping the default marker style.';
 

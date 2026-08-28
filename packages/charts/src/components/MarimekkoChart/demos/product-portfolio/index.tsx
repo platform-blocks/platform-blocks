@@ -1,4 +1,4 @@
-import { MarimekkoChart } from '../../';
+import { MarimekkoChart } from '@platform-blocks/charts';
 
 import { PRODUCT_MIX } from './data';
 

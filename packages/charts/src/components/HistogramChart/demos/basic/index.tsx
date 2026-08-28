@@ -1,4 +1,4 @@
-import { HistogramChart } from '../../';
+import { HistogramChart } from '@platform-blocks/charts';
 
 import { SESSION_DURATIONS } from './data';
 

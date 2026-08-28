@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Text, Card, Chip, Column, Icon, Row, Grid, GridItem, Title, Search } from '@platform-blocks/ui';
+import { useWindowDimensions } from 'react-native';
+import { BREAKPOINTS } from '@platform-blocks/ui/core/responsive';
 import { useBrowserTitle, formatPageTitle } from '../hooks/useBrowserTitle';
 import { PageLayout, RouteLink } from '../components';
 // Using new demos system exclusively
@@ -17,6 +19,8 @@ const GRID_COLUMNS = { base: 1, sm: 2, lg: 3, xl: 4 } as const;
 
 export default function ComponentListScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isNarrow = width < BREAKPOINTS.md;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -82,7 +86,13 @@ export default function ComponentListScreen() {
   ];
 
   return (
-    <PageLayout contentContainerStyle={{ padding: 20 }}>
+    <PageLayout
+      // Narrow viewports take their gutter from PageLayout; stacking a second
+      // one here inset the page by 36px per side. Wide ones get no gutter from
+      // PageLayout, so the inset is this page's to supply — 16px, the same
+      // content column every other docs page sits in.
+      contentContainerStyle={{ paddingVertical: 20, paddingHorizontal: isNarrow ? 0 : 16 }}
+    >
       <Column gap="lg">
         <Column gap="xs">
           <Title

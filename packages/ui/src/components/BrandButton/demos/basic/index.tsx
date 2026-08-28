@@ -1,5 +1,4 @@
-import { BrandButton } from '../..';
-import { useToast } from 'platform-blocks/components/Toast';
+import { BrandButton, useToast } from '@platform-blocks/ui';
 export default function BasicButtonDemo() {
   const toast = useToast()
   return <BrandButton

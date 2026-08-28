@@ -9,9 +9,6 @@ const PureStackNavigator = React.memo(() => (
   <Stack screenOptions={{ headerShown: false }}>
     <Stack.Screen name="index" />
     <Stack.Screen name="components" />
-    <Stack.Screen name="icons" />
-    <Stack.Screen name="installation/index" />
-    <Stack.Screen name="platforms" />
     <Stack.Screen name="faq/index" />
     <Stack.Screen name="getting-started/index" />
   </Stack>

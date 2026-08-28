@@ -3,6 +3,7 @@ import { Linking, Platform } from 'react-native';
 import { usePathname } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import {
+  BrandIcon,
   Button,
   Icon,
   Menu,
@@ -167,17 +168,20 @@ export const CopyPageMenu: React.FC<CopyPageMenuProps> = ({
         Copy
       </Button>
       <MenuDropdown>
-        <MenuItem startSection={<Icon name="copy" size="sm" />} onPress={handleCopy}>
+        <MenuItem startSection={<Icon name="markdown" size="sm" />} onPress={handleCopy}>
           Copy Markdown
         </MenuItem>
+        {/* Each handoff wears its own logo — `openai` carries
+            `supportsDarkMode`, so its black mark inverts on a dark menu by
+            itself, and Anthropic's clay reads on either. */}
         <MenuItem
-          startSection={<Icon name="chat" size="sm" />}
+          startSection={<BrandIcon brand="openai" size="sm" />}
           onPress={handleOpenChatGPT}
         >
           Open in ChatGPT
         </MenuItem>
         <MenuItem
-          startSection={<Icon name="sparkles" size="sm" />}
+          startSection={<BrandIcon brand="anthropic" size="sm" />}
           onPress={handleOpenClaude}
         >
           Open in Claude

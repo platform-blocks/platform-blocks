@@ -1,4 +1,4 @@
-import { CandlestickChart } from '../../';
+import { CandlestickChart } from '@platform-blocks/charts';
 
 import { PRICE_SERIES } from './data';
 

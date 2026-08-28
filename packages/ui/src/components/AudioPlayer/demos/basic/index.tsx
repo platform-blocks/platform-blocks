@@ -1,5 +1,4 @@
-import { Block, Text } from '@platform-blocks/ui';
-import { AudioPlayer } from '../../AudioPlayer';
+import { Block, Text, AudioPlayer } from '@platform-blocks/ui';
 
 // Peaks measured from the same bundled clip the player loads.
 import { MELODY_PEAKS } from '../../../Waveform/demos/data';

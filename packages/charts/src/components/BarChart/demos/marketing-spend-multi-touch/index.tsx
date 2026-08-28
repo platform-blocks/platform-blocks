@@ -1,4 +1,4 @@
-import { BarChart } from '../../';
+import { BarChart } from '@platform-blocks/charts';
 
 import { CAMPAIGN_SPEND, TOTAL_SPEND } from './data';
 

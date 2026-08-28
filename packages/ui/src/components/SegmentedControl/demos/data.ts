@@ -1,4 +1,4 @@
-import type { SegmentedControlItem } from '../types';
+import type { SegmentedControlItem } from '@platform-blocks/ui';
 
 export const frameworks: SegmentedControlItem[] = [
   { label: 'React', value: 'react' },

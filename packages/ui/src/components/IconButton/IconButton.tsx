@@ -222,6 +222,7 @@ export const IconButton = React.forwardRef<View, IconButtonProps>((allProps, ref
     size = 'md',
     disabled = false,
     loading = false,
+    color,
     colorVariant,
     iconColor,
     iconVariant,
@@ -241,6 +242,9 @@ export const IconButton = React.forwardRef<View, IconButtonProps>((allProps, ref
 
   const effectiveVariant = variant === 'gradient' && !hasLinearGradient ? 'filled' : variant;
 
+  // Explicit `color` wins, then legacy `colorVariant`. Mirrors Button.
+  const roleColorToken = color ?? colorVariant;
+
   // Animation values
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pressInDuration = useTransitionDuration(transitionDuration, 100);
@@ -258,14 +262,14 @@ export const IconButton = React.forwardRef<View, IconButtonProps>((allProps, ref
 
   // Get button styles
   const buttonStyles = useMemo(() => 
-    getIconButtonStyles(theme, effectiveVariant, size, disabled, loading, height, radiusStyles, shadowStyles, colorVariant),
-    [theme, effectiveVariant, size, disabled, loading, height, radiusStyles, shadowStyles, colorVariant]
+    getIconButtonStyles(theme, effectiveVariant, size, disabled, loading, height, radiusStyles, shadowStyles, roleColorToken),
+    [theme, effectiveVariant, size, disabled, loading, height, radiusStyles, shadowStyles, roleColorToken]
   );
 
   // Get icon color
   const resolvedIconColor = useMemo(() => 
-    getIconColor(theme, effectiveVariant, colorVariant, iconColor),
-    [theme, effectiveVariant, colorVariant, iconColor]
+    getIconColor(theme, effectiveVariant, roleColorToken, iconColor),
+    [theme, effectiveVariant, roleColorToken, iconColor]
   );
 
   // Get icon size

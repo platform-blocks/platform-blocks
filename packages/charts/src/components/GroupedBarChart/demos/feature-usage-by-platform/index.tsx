@@ -1,4 +1,4 @@
-import { GroupedBarChart } from '../../';
+import { GroupedBarChart } from '@platform-blocks/charts';
 
 import { SERIES } from './data';
 

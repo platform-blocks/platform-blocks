@@ -1,4 +1,4 @@
-import { GaugeChart } from '../../';
+import { GaugeChart } from '@platform-blocks/charts';
 
 import { RANGES } from './data';
 

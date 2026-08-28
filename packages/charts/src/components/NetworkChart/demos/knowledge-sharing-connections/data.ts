@@ -1,4 +1,4 @@
-import type { NetworkLink, NetworkNode } from '../../types';
+import type { NetworkLink, NetworkNode } from '@platform-blocks/charts';
 
 export const TEAMS: NetworkNode[] = [
   { id: 'design-guild', name: 'Design Guild', group: 'product', value: 36 },

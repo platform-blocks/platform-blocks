@@ -181,6 +181,7 @@ export { ToggleBar } from './components/Toggle';
 export { SegmentedControl } from './components/SegmentedControl';
 export { Slider, RangeSlider } from './components/Slider';
 export { Knob } from './components/Knob';
+export { Joystick } from './components/Joystick';
 export { Search } from './components/Search';
 export { Select } from './components/Select';
 export { AutoComplete } from './components/AutoComplete';
@@ -197,8 +198,8 @@ export { PhoneInput } from './components/PhoneInput';
 export { ColorInput } from './components/ColorInput';
 export { ColorPicker } from './components/ColorPicker';
 export { ColorSwatch } from './components/ColorSwatch';
-export { EmojiPicker } from './components/EmojiPicker';
 export { Rating } from './components/Rating';
+export { RollingNumber } from './components/RollingNumber';
 export { Form, useFormContext, useOptionalFormContext } from './components/Form';
 
 // Navigation Components
@@ -225,7 +226,8 @@ export { Timeline } from './components/Timeline';
 export { DataList } from './components/DataList';
 export { ListGroup, ListGroupItem, ListGroupDivider, ListGroupBody } from './components/ListGroup';
 export { TableOfContents } from './components/TableOfContents';
-export { Tree } from './components/Tree';
+export { Tree, useTreeState } from './components/Tree';
+export { NavTree, buildNavTree } from './components/NavTree';
 
 // Feedback Components
 export { Alert, Notice } from './components/Alert';
@@ -283,6 +285,7 @@ export type {
   VideoState,
   VideoTimelineEvent,
 } from './components/Video';
+export { AudioPlayer } from './components/AudioPlayer';
 export { Waveform } from './components/Waveform';
 
 // Utility Components
@@ -330,10 +333,27 @@ export type { UseMaskedInputOptions, UseMaskedInputReturn } from './hooks';
 export type { UseTitleRegistrationOptions } from './hooks';
 export type { UseOverlayModeOptions, UseOverlayModeResult } from './hooks';
 
+// Shared gesture plumbing — the pan/scroll-lock layer behind Slider, Knob,
+// Joystick and Rating, exported so app code can build its own drag surfaces
+// with the same scroll and selection behaviour.
+export {
+  useDragGesture,
+  getGestureSurfaceStyle,
+  GESTURE_RESPONDER_LOCK,
+} from './core/gestures';
+export type {
+  DragAxis,
+  DragPoint,
+  UseDragGestureOptions,
+  UseDragGestureResult,
+  GestureSurfaceStyleOptions,
+} from './core/gestures';
+
 // Component props types (exported alongside components for co-location)
 export type { ButtonProps } from './components/Button';
 export type { BrandButtonProps, BrandPlatform, BrandConfig } from './components/BrandButton';
-export type { TreeProps, TreeNode } from './components/Tree';
+export type { TreeProps, TreeNode, TreeNodeState } from './components/Tree';
+export type { NavTreeProps, NavTreeItem, BuildNavTreeOptions } from './components/NavTree';
 export type { TextProps } from './components/Text';
 export type { ShimmerTextProps } from './components/ShimmerText';
 export type { GradientTextProps } from './components/GradientText';
@@ -361,9 +381,10 @@ export type { ToggleBarProps, ToggleBarOption } from './components/Toggle/Toggle
 export type { SegmentedControlProps, SegmentedControlItem, SegmentedControlData } from './components/SegmentedControl';
 export type { SliderProps, RangeSliderProps } from './components/Slider';
 export type { KnobProps, KnobMark, KnobVariant, KnobBehavior } from './components/Knob';
+export type { JoystickProps, JoystickValue, JoystickShape, JoystickVariant } from './components/Joystick';
 export type { SearchProps } from './components/Search';
-export type { SelectProps } from './components/Select';
-export type { AutoCompleteProps } from './components/AutoComplete';
+export type { SelectProps, SelectOption } from './components/Select';
+export type { AutoCompleteProps, AutoCompleteOption } from './components/AutoComplete';
 export type { FileInputProps, FileInputFile } from './components/FileInput';
 export type { DatePickerProps, CalendarProps, MiniCalendarProps } from './components/DatePicker';
 export type { MonthPickerProps } from './components/MonthPicker';
@@ -376,8 +397,8 @@ export type { TimePickerInputProps } from './components/TimePickerInput';
 export type { PhoneInputProps } from './components/PhoneInput';
 export type { ColorInputProps } from './components/ColorInput';
 export type { ColorPickerProps } from './components/ColorPicker';
-export type { EmojiPickerProps } from './components/EmojiPicker';
 export type { RatingProps, RatingIcon } from './components/Rating';
+export type { RollingNumberProps, RollingNumberTimingFunction } from './components/RollingNumber';
 export type { FormProps } from './components/Form';
 export type { BreadcrumbsProps } from './components/Breadcrumbs';
 export type { MenuProps, MenuItemProps, MenuSubProps } from './components/Menu';
@@ -436,6 +457,7 @@ export type { IconButtonProps } from './components/IconButton';
 export type { CarouselProps } from './components/Carousel';
 export type { GalleryProps, GalleryItem } from './components/Gallery';
 export type { ImageProps } from './components/Image';
+export type { AudioPlayerProps, AudioPlayerRef } from './components/AudioPlayer';
 export type { WaveformProps } from './components/Waveform';
 export type { DividerProps } from './components/Divider';
 export type { SpaceProps } from './components/Space';
@@ -447,7 +469,7 @@ export type { KeyCapProps } from './components/KeyCap';
 export type { SpoilerProps } from './components/Spoiler';
 export type { FloatingActionsProps, FloatingActionItem } from './components/FloatingActions';
 export type { PressAnimationProps } from './components/_internal/PressAnimation/PressAnimation';
-export type { AccordionProps } from './components/Accordion';
+export type { AccordionProps, AccordionItemType } from './components/Accordion';
 export type { MarkdownProps, MarkdownComponentMap } from './components/Markdown';
 export type { AppShellProps } from './components/AppShell';
 export type { AppShellBottomNavProps, BottomAppBarItem } from './components/AppShell';

@@ -7,13 +7,6 @@ import type { NewDemo } from '../utils/demosLoader';
 export interface DemoRendererProps {
   demo: NewDemo & { code?: string };
   preview: React.ReactNode;
-  /**
-   * Horizontal gutter, in px, that the card should cancel out so it runs to the
-   * screen edge. The owning screen passes its own container padding — only it
-   * knows that number. Corners square off when bleeding, since a radius at the
-   * viewport edge has nothing to sit against.
-   */
-  bleed?: number;
 }
 
 /**
@@ -21,7 +14,7 @@ export interface DemoRendererProps {
  * inside a single bordered container. There is no preview/code toggle — the
  * code for a demo is always visible.
  */
-export const DemoRenderer: React.FC<DemoRendererProps> = ({ demo, preview, bleed = 0 }) => {
+export const DemoRenderer: React.FC<DemoRendererProps> = ({ demo, preview }) => {
   const {
     code,
     files,
@@ -39,35 +32,32 @@ export const DemoRenderer: React.FC<DemoRendererProps> = ({ demo, preview, bleed
 
   const centerPreview = previewCenter !== false || renderStyle === 'center';
 
-  // Phone widths can't afford 24px of card padding on top of the page gutters.
+  // Card padding steps up with the viewport instead of jumping from 8 to 24 at
+  // one breakpoint: narrow windows can't afford 24px per side on top of the
+  // page gutters, and a tablet-width window is still tight.
   const { width } = useWindowDimensions();
-  const cardPadding = width < BREAKPOINTS.md ? 'sm' : '2xl';
+  const cardPadding =
+    width < BREAKPOINTS.md ? 'sm' : width < BREAKPOINTS.lg ? 'lg' : '2xl';
 
   return (
-    <Card
-      variant="outline"
-      radius={bleed ? 'none' : 'xl'}
-      clip
-      fullWidth
-      style={bleed ? { marginHorizontal: -bleed } : undefined}
-    >
+    <Card variant="outline" radius="xl" clip fullWidth>
       {/* The card's padding covers the preview's top/sides; a section escapes it
           horizontally, so the gap above the code rule has to come from here. */}
-     
-        <Card.Section withBorder>
-     
-      <Block
-        direction="column"
-        justify="center"
-        align={centerPreview ? 'center' : 'stretch'}
-       p={cardPadding}
-        // pb={hasCode ? '2xl' : undefined}
-        fullWidth
-      >
-        {preview}
-      </Block>
 
-</Card.Section>
+      <Card.Section withBorder>
+
+        <Block
+          direction="column"
+          justify="center"
+          align={centerPreview ? 'center' : 'stretch'}
+          p={cardPadding}
+          // pb={hasCode ? '2xl' : undefined}
+          fullWidth
+        >
+          {preview}
+        </Block>
+
+      </Card.Section>
       {hasCode && (
         // Full-bleed: the code panel drops its own radius/border and inherits
         // the card's, so it reads as one flush section rather than a nested box.

@@ -1,8 +1,6 @@
 import { Block, CodeBlock, Text } from '@platform-blocks/ui';
 
-const sample = `// Example showcasing highlighted lines
-import React from 'react';
-import { View, Text } from 'react-native';
+const sample = `import { View, Text } from 'react-native';
 
 interface User {
   id: number;

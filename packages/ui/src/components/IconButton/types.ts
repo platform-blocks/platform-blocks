@@ -29,10 +29,19 @@ export interface IconButtonProps extends SpacingProps, LayoutProps, BorderRadius
   /** Whether button is in loading state (shows loader) */
   loading?: boolean;
   /**
-   * Custom color override for the button. Accepts raw CSS color OR theme token syntax:
+   * Tint for the button. Accepts raw CSS color OR theme token syntax:
    *  - 'primary' (palette key -> uses middle shade 5)
    *  - 'primary.6' (palette key + shade index)
    *  - '#ff0000' / 'rgb(...)' direct colors
+   *
+   * `filled`, `secondary` and `outline` tint the container; `ghost` and the
+   * neutral `default`/`none` keep their chrome and tint only the icon.
+   * `gradient` draws its own overlay and ignores this.
+   */
+  color?: string;
+  /**
+   * Legacy alias for `color`, kept for back-compat. `color` wins when both are
+   * set. Prefer `color` — it matches Button, Badge, Chip, and Card.
    */
   colorVariant?: string;
   /** Explicit icon color override (else derived automatically from variant & color) */

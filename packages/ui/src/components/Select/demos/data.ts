@@ -1,4 +1,4 @@
-import type { SelectOption } from '../Select.types'
+import type { SelectOption } from '@platform-blocks/ui';
 
 export const sports: SelectOption<string>[] = [
   { label: 'Soccer', value: 'soccer' },

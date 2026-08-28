@@ -1,5 +1,5 @@
 import React, { isValidElement, useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   Breadcrumbs,
@@ -12,6 +12,7 @@ import {
   Title,
   useI18n
 } from '@platform-blocks/ui';
+import { BREAKPOINTS } from '@platform-blocks/ui/core/responsive';
 import { PageLayout } from '../components/PageLayout';
 import { DemoRenderer } from '../components/DemoRenderer';
 import { DemoHeading } from '../components/DemoHeading';
@@ -73,6 +74,15 @@ const HookDemoSection: React.FC<HookDemoSectionProps> = ({ demo, preview, descri
 const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
   const router = useRouter();
   const { locale } = useI18n();
+  const { width } = useWindowDimensions();
+  // Narrow viewports take their gutter from PageLayout; stacking a second one
+  // here inset the page twice. Wide ones get none from PageLayout, so the inset
+  // is this page's to supply — 16px, the same content column every other docs
+  // page sits in.
+  const containerStyle = [
+    styles.container,
+    { paddingHorizontal: width < BREAKPOINTS.md ? 0 : 16 },
+  ];
   const artifactsReady = hasHookDemosArtifacts();
   const meta = useMemo(() => (hook && artifactsReady ? getHookMeta(hook) : null), [artifactsReady, hook]);
   // Derived during render rather than loaded in an effect: demo titles,
@@ -161,7 +171,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
 
   if (!hook) {
     return (
-      <PageLayout contentContainerStyle={styles.container}>
+      <PageLayout contentContainerStyle={containerStyle}>
         <Card variant="outline" style={styles.infoCard}>
           <Text variant="h1" style={styles.infoTitle}>Hook not specified</Text>
           <Text variant="p" colorVariant="secondary" style={styles.infoMessage}>
@@ -175,7 +185,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
 
   if (!artifactsReady) {
     return (
-      <PageLayout contentContainerStyle={styles.container}>
+      <PageLayout contentContainerStyle={containerStyle}>
         <Card variant="outline" style={styles.infoCard}>
           <Text variant="h1" style={styles.infoTitle}>Documentation artifacts missing</Text>
           <Text variant="p" colorVariant="secondary" style={styles.infoMessage}>
@@ -189,7 +199,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
 
   if (!meta) {
     return (
-      <PageLayout contentContainerStyle={styles.container}>
+      <PageLayout contentContainerStyle={containerStyle}>
         <Card variant="outline" style={styles.infoCard}>
           <Text variant="h1" style={styles.infoTitle}>Hook not found</Text>
           <Text variant="p" colorVariant="secondary" style={styles.infoMessage}>
@@ -208,7 +218,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
   ];
 
   return (
-    <PageLayout contentContainerStyle={styles.container}>
+    <PageLayout contentContainerStyle={containerStyle}>
       <View style={styles.content}>
         {/* <Breadcrumbs items={breadcrumbItems} style={styles.breadcrumbs} size="sm" /> */}
 
@@ -251,7 +261,6 @@ export default HookDetailScreen;
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 24,
     paddingVertical: 32,
   },
   content: {

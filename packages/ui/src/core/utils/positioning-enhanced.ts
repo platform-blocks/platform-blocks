@@ -149,6 +149,29 @@ function isVerticalPlacement(placement: PlacementType): boolean {
 }
 
 /**
+ * Height of the viewport a `bottom` edge pin is actually resolved against.
+ *
+ * On web the overlay renderer applies the pin as CSS `bottom` on a
+ * `position: fixed` element, which the browser resolves against the *layout*
+ * viewport. `viewport.height` here comes from `Dimensions.get('window')`,
+ * which react-native-web sources from `visualViewport` — a height that shrinks
+ * when the on-screen keyboard opens (iOS Safari) or the browser UI changes.
+ * Mixing the two drops every upward-opening overlay by exactly the difference
+ * (one keyboard height, on a phone), which is how menus and dropdowns ended up
+ * "in the wrong place" on mobile web. Anchor rects (getBoundingClientRect) are
+ * layout-viewport coordinates, so the pin must use the layout height too.
+ */
+function getBottomPinBaseHeight(viewport: Viewport): number {
+  if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    const layoutHeight = document.documentElement?.clientHeight;
+    if (layoutHeight && layoutHeight > 0) {
+      return layoutHeight;
+    }
+  }
+  return viewport.height;
+}
+
+/**
  * Positioning for vertical (dropdown-shaped) placements.
  *
  * Deliberately does *not* share the flip/fallback/enforce machinery below, which
@@ -253,9 +276,9 @@ function calculateVerticalPosition(
 
   // --- Main axis (vertical) ----------------------------------------------
   // Pin to the edge touching the trigger. Note the bottom pin resolves against
-  // the *real* viewport height, not `usableBottom` — the platform lays out
-  // `bottom` relative to the full viewport, and the keyboard has already been
-  // accounted for by capping `maxHeight`.
+  // the viewport CSS `bottom` is laid out in (see getBottomPinBaseHeight), not
+  // `usableBottom` — the keyboard has already been accounted for by capping
+  // `maxHeight`.
   let anchorEdge: 'top' | 'bottom';
   let anchorOffset: number;
   let y: number;
@@ -266,7 +289,7 @@ function calculateVerticalPosition(
     y = anchorOffset;
   } else {
     anchorEdge = 'bottom';
-    anchorOffset = viewport.height - (anchor.y - offset);
+    anchorOffset = getBottomPinBaseHeight(viewport) - (anchor.y - offset);
     y = Math.max(boundary, anchor.y - offset - finalHeight);
   }
 

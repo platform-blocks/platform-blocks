@@ -1,4 +1,4 @@
-import { CandlestickChart } from '../../';
+import { CandlestickChart } from '@platform-blocks/charts';
 
 import { TREASURY_SERIES, TreasuryCandle, annotations } from './data';
 

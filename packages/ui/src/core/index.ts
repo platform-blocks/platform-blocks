@@ -47,6 +47,22 @@ export {
   getSectionSpacing as getUnifiedSectionSpacing
 } from './theme/unified-sizing';
 
+// Shared gesture plumbing for draggable value controls
+export {
+  useDragGesture,
+  getGestureSurfaceStyle,
+  GESTURE_RESPONDER_LOCK,
+  acquirePageScrollLock,
+  releasePageScrollLock,
+  acquireTextSelectionLock,
+  releaseTextSelectionLock,
+  type DragAxis,
+  type DragPoint,
+  type UseDragGestureOptions,
+  type UseDragGestureResult,
+  type GestureSurfaceStyleOptions,
+} from './gestures';
+
 // Reusable components
 export { ClearButton, type ClearButtonProps } from './components/ClearButton';
 export { InputContainer, type InputContainerProps } from './components/InputContainer';

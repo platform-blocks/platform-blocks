@@ -96,8 +96,17 @@ export default function HomeScreen() {
         >Platform Blocks</DocsPageHeader>
         <Space h="xl" />
         <Block direction="row" gap="md" wrap>
-          <Button title="Get Started" variant="filled" onPress={() => router.push('/getting-started')} />
-          <Button title="Browse components" variant="outline" onPress={() => router.push('/components')} />
+          <Button 
+          title="Get Started" 
+          variant="filled" 
+          onPress={() => router.push('/getting-started')} 
+          />
+          <Button
+            title="Browse components"
+            variant="subtle"
+            endIcon={<Icon name="arrow-right" stroke={6} />}
+            onPress={() => router.push('/components')}
+          />
         </Block>
       </Block>
 

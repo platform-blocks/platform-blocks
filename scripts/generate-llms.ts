@@ -201,7 +201,11 @@ async function buildGuidePages(): Promise<LlmsPage[]> {
       '',
       `Docs: ${SITE_URL}/getting-started`,
       '',
-      `**Prerequisites:** ${GETTING_STARTED_PREREQUISITES}`,
+      '**Prerequisites:**',
+      '',
+      ...GETTING_STARTED_PREREQUISITES.map(
+        p => `- [${p.label} ${p.version}](${p.href}) — ${p.note}`
+      ),
       '',
       ...GETTING_STARTED_STEPS.flatMap(step => [
         `## ${step.title}`,

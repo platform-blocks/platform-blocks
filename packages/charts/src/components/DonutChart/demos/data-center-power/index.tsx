@@ -1,4 +1,4 @@
-import { DonutChart } from '../../';
+import { DonutChart } from '@platform-blocks/charts';
 
 import { POWER_BY_SUBSYSTEM } from './data';
 

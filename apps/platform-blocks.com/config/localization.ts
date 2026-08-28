@@ -32,18 +32,29 @@ export function App() {
 }`;
 
 export const LOCALIZATION_USAGE_SNIPPET = `
-import { Text, useI18n } from '@platform-blocks/ui';
+import { Alert, Text, ToggleButton, ToggleGroup, useI18n } from '@platform-blocks/ui';
+
+const LOCALES = ['en', 'fr', 'es'];
 
 function Greeting() {
   const { t, setLocale, locale } = useI18n();
   return (
     <>
+      <ToggleGroup
+        value={locale}
+        exclusive
+        required
+        onChange={(next) => { if (typeof next === 'string') setLocale(next); }}
+      >
+        {LOCALES.map((l) => (
+          <ToggleButton key={l} value={l}>{l.toUpperCase()}</ToggleButton>
+        ))}
+      </ToggleGroup>
+      <Alert icon='globe'>
+        <Text tx='localization.helloWorld' />
+      </Alert>
       <Text tx='localization.exampleGreeting' txParams={{ name: 'Ada' }} />
       <Text>{t('localization.current', { locale })}</Text>
-      <Button 
-        title={t('actions.switchLocale')} 
-        onPress={() => setLocale(locale.startsWith('en') ? 'fr' : 'en')} 
-      />
     </>
   );
 }`;

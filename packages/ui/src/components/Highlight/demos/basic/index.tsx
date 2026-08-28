@@ -1,6 +1,5 @@
 import { View } from 'react-native';
-import { Highlight } from '../..';
-import { Text } from '../../../../components/Text';
+import { Highlight, Text } from '@platform-blocks/ui';
 
 const PARAGRAPH = 'Highlight This, definitely THIS and also this!';
 
