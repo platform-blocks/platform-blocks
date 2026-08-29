@@ -11,7 +11,7 @@ const compact = (value: number) => {
 
 const findSeriesContext = (step: unknown) => STEP_LOOKUP.get(step as any) ?? null;
 
-export default function Demo() {
+export function Demo() {
   return (
     <FunnelChart
       title="Hiring funnel — Staff engineer"

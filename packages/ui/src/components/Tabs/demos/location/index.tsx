@@ -45,14 +45,14 @@ const buildItems = (location: Location) => [
   }
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       {SECTIONS.map(({ label, location, helper }) => (
         <Block key={location}>
           <Text weight="medium">{label}</Text>
           <Tabs variant="line" location={location} items={buildItems(location)} />
-          <Text variant="small" colorVariant="muted">
+          <Text variant="small" color="muted">
             {helper}
           </Text>
         </Block>

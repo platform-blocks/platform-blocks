@@ -1,6 +1,6 @@
 import { Block, Divider, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Block align="center" direction="row" h={100}>
@@ -8,7 +8,7 @@ export default function Demo() {
           <Text variant="p" weight="medium">
             Profile
           </Text>
-          <Text variant="small" colorVariant="muted">
+          <Text variant="small" color="muted">
             View details
           </Text>
         </Block>
@@ -19,18 +19,18 @@ export default function Demo() {
           <Text variant="p" weight="medium">
             Settings
           </Text>
-          <Text variant="small" colorVariant="muted">
+          <Text variant="small" color="muted">
             Preferences
           </Text>
         </Block>
 
-        <Divider orientation="vertical" label="Pro" colorVariant="success" />
+        <Divider orientation="vertical" label="Pro" color="success" />
 
         <Block align="center">
           <Text variant="p" weight="medium">
             Support
           </Text>
-          <Text variant="small" colorVariant="muted">
+          <Text variant="small" color="muted">
             Help center
           </Text>
         </Block>
@@ -40,9 +40,9 @@ export default function Demo() {
         <Text variant="p">Home</Text>
         <Divider orientation="vertical" />
         <Text variant="p">Fixtures</Text>
-        <Divider orientation="vertical" colorVariant="primary" />
+        <Divider orientation="vertical" color="primary" />
         <Text variant="p">Standings</Text>
-        <Divider orientation="vertical" label="Live" colorVariant="warning" />
+        <Divider orientation="vertical" label="Live" color="warning" />
         <Text variant="p">Highlights</Text>
       </Block>
     </Block>

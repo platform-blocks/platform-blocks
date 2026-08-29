@@ -1,7 +1,7 @@
 import { BrandIcon, Row } from '@platform-blocks/ui';
 import { DARK_MODE_BRANDS } from '../data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Row align="center" gap="lg" wrap="wrap">
       {DARK_MODE_BRANDS.map((brand) => (

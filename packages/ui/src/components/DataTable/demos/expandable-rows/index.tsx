@@ -17,7 +17,7 @@ const columns: DataTableColumn<Project>[] = [
   },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [expandedRows, setExpandedRows] = useState<(string | number)[]>([projects[0].id]);
 
   return (
@@ -29,7 +29,7 @@ export default function Demo() {
       onExpandedRowsChange={setExpandedRows}
       expandableRowRender={(project) => (
         <Block p="md">
-          <Text colorVariant="muted">{project.summary}</Text>
+          <Text color="muted">{project.summary}</Text>
         </Block>
       )}
       searchable={false}

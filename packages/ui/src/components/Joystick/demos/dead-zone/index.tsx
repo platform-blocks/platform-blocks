@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Flex, Joystick } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [free, setFree] = useState({ x: 0, y: 0 });
   const [stepped, setStepped] = useState({ x: 0, y: 0 });
 

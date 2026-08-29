@@ -40,7 +40,7 @@ export interface StepperStepProps {
   isFirst?: boolean;
   /** Internal: true for the last step in the stepper (added automatically) */
   isLast?: boolean;
-  /** Override props applied to the step's label `<Text>` (style, weight, ff, size, colorVariant). */
+  /** Override props applied to the step's label `<Text>` (style, weight, ff, size, color). */
   labelProps?: Omit<TextProps, 'children'>;
   /** Override props applied to the step's description `<Text>`. */
   descriptionProps?: Omit<TextProps, 'children'>;

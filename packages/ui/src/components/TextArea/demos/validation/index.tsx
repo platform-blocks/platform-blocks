@@ -7,7 +7,7 @@ type ValidationErrors = {
   message?: string;
 };
 
-export default function Demo() {
+export function Demo() {
   const [feedback, setFeedback] = useState('');
   const [message, setMessage] = useState('');
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -46,7 +46,7 @@ export default function Demo() {
         <Text size="sm" weight="semibold">
           Required feedback
         </Text>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Must include at least ten characters before the form can submit.
         </Text>
         <TextArea
@@ -73,7 +73,7 @@ export default function Demo() {
       </Button>
 
       {status ? (
-        <Text size="xs" colorVariant="success">
+        <Text size="xs" color="success">
           {status}
         </Text>
       ) : null}
@@ -88,13 +88,13 @@ export default function Demo() {
             padding: 12,
           }}
         >
-          <Text size="sm" weight="semibold" colorVariant="error">
+          <Text size="sm" weight="semibold" color="error">
             Please fix the following before submitting:
           </Text>
           {Object.values(errors)
             .filter(Boolean)
             .map((errorMessage) => (
-              <Text key={errorMessage} size="xs" colorVariant="error">
+              <Text key={errorMessage} size="xs" color="error">
                 • {errorMessage}
               </Text>
             ))}

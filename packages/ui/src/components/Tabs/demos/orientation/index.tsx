@@ -45,14 +45,14 @@ const ORIENTATIONS: Array<{ label: string; orientation: Orientation; helper: str
   }
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       {ORIENTATIONS.map(({ label, orientation, helper }) => (
         <Block key={orientation}>
           <Text weight="medium">{label}</Text>
           <Tabs orientation={orientation} items={buildItems(orientation)} />
-          <Text variant="small" colorVariant="muted">
+          <Text variant="small" color="muted">
             {helper}
           </Text>
         </Block>

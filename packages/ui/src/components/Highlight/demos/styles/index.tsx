@@ -2,7 +2,7 @@ import { Highlight, Text, Block } from '@platform-blocks/ui';
 
 const copy = 'You can switch the highlight color while keeping the default marker style.';
 
-export default function HighlightStyledDemo() {
+export function Demo() {
   return (
     <Block>
       <Text variant="h5">Highlight color</Text>

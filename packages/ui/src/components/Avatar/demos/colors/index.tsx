@@ -1,6 +1,6 @@
 import { Avatar, Block } from '@platform-blocks/ui';
 
-export default function ColorsAvatarDemo() {
+export function Demo() {
   return (
     <Block align="flex-start">
      <Avatar

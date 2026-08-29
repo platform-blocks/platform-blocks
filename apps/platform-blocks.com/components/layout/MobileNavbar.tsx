@@ -1,19 +1,29 @@
 import React from 'react';
-import { Platform, ScrollView } from 'react-native';
+import { Platform, ScrollView, StyleSheet } from 'react-native';
 import {
   Dialog,
   Flex,
-  useTheme,
+  IconButton,
   useAppShell,
   useAppShellApi,
-  Text,
-  IconButton,
+  useTheme,
 } from '@platform-blocks/ui';
+import { BrandLink } from './BrandLink';
+import { MobileThemeToggle } from './ToggleTheme';
 import { MobileNavigation } from './MobileNavigation';
 
+/**
+ * The phone-sized stand-in for the desktop rail: a full-screen drawer holding
+ * the same navigation tree.
+ *
+ * Its bar is a copy of the header it opens over, down to the height and the
+ * theme toggle, with the menu button swapped for a close button in the same
+ * spot — so nothing moves when the drawer opens and the way out is under the
+ * thumb that opened it.
+ */
 export const MobileNavbar: React.FC = () => {
   const theme = useTheme();
-  const { isMobile, navbarOpen } = useAppShell();
+  const { isMobile, navbarOpen, headerHeightStyle } = useAppShell();
   const { closeNavbar } = useAppShellApi();
 
   if (!isMobile) {
@@ -28,32 +38,45 @@ export const MobileNavbar: React.FC = () => {
       closable
       backdrop
       backdropClosable
-      title="Platform Blocks"
-      style={{ backgroundColor: theme.backgrounds.surface }}
+      // Deliberately untitled. Dialog's own header can only hold a string, and
+      // it paints itself from the surface the dialog was built with — so the
+      // title bar arrived without the brand mark and, in dark mode, a step
+      // lighter than the list below it. The bar below is that header, drawn
+      // where it can carry the logo and share one fill with the drawer.
     >
-      <Flex direction="column" style={{ flex: 1, width: '100%', backgroundColor: theme.backgrounds.surface }}>
-        {/* <Flex
+      <Flex direction="column" style={{ flex: 1, width: '100%' }}>
+        <Flex
           direction="row"
           align="center"
           justify="space-between"
-          px="lg"
-          py="md"
+          px="md"
           style={{
-            borderBottomWidth: 1,
-            borderBottomColor: theme.colors.gray[2],
+            width: '100%',
+            // The same height the header behind it has, taken from the shell so
+            // the drawer's bar lands exactly where the one it covers was.
+            height: headerHeightStyle as any,
+            // A hairline, not a filled band: the bar and the list are one
+            // surface, and the rule is only there to catch rows scrolling
+            // under it.
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: theme.backgrounds.border,
           }}
         >
-          <Text size="lg" weight="semibold">
-            Platform Blocks
-          </Text>
           <IconButton
             icon="x"
             variant="ghost"
             size="lg"
-            accessibilityLabel="Close navigation"
+            accessibilityLabel="Close navigation menu"
             onPress={closeNavbar}
           />
-        </Flex> */}
+
+          <BrandLink onNavigate={closeNavbar} />
+
+          {/* The header's toggle is underneath the drawer. Repeating it keeps
+              the theme reachable while the menu is open, and balances the bar
+              so the brand sits centred against the close button. */}
+          <MobileThemeToggle />
+        </Flex>
 
         <ScrollView
           style={{ flex: 1, width: '100%' }}

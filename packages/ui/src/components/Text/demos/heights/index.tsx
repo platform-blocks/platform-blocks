@@ -3,7 +3,7 @@ import { Block, Card, Text } from '@platform-blocks/ui';
 const SAMPLE_TEXT =
   'This paragraph shows how line height changes the spacing between lines of text when content wraps across multiple lines.';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Card p="md">
       <Block>

@@ -2,7 +2,7 @@ import { ViolinChart } from '@platform-blocks/charts';
 
 import { MARKET_RANGE, SALARY_SERIES, STATS } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <ViolinChart
       title="Total compensation distribution by department"

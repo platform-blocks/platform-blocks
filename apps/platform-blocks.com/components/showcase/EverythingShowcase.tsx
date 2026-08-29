@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Notice,
+  Alert,
   Avatar,
   AvatarGroup,
   Badge,
@@ -308,7 +308,7 @@ export const EverythingPlayground = () => {
           title="Kickoff"
           bullet={<Icon name="calendar" size="sm" color="#fff" variant="filled" />}
         >
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Workshop with stakeholders to frame success metrics.
           </Text>
         </Timeline.Item>
@@ -316,7 +316,7 @@ export const EverythingPlayground = () => {
           title="Design sprint"
           bullet={<Icon name="form" size="sm" color="#fff" variant="filled" />}
         >
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Prototype flows and gather qualitative feedback early.
           </Text>
         </Timeline.Item>
@@ -325,7 +325,7 @@ export const EverythingPlayground = () => {
           bullet={<Icon name="code" size="sm" color="#fff" variant="filled" />}
           active
         >
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Ship accessible components, instrumentation, and docs.
           </Text>
         </Timeline.Item>
@@ -334,15 +334,15 @@ export const EverythingPlayground = () => {
     },
     {
       id: 'alert',
-      content: (<Notice variant="light" color="primary" sev="info">
+      content: (<Alert variant="light" color="primary" severity="info">
         <Block direction="column" gap="xs">
           <Text weight="semibold">Live preview deployed</Text>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Press <KeyCap>⌘</KeyCap> + <KeyCap>K</KeyCap> to open the <Code>Spotlight</Code> command palette.
             {/* Your documentation site was rebuilt 2 minutes ago. */}
           </Text>
         </Block>
-      </Notice>),
+      </Alert>),
     },
     {
       id: 'feedback',
@@ -378,7 +378,7 @@ export const EverythingPlayground = () => {
     {
       id: 'gauge',
       content: (
-        <Notice variant="light" color="primary" sev="warning" icon={false}>
+        <Alert variant="light" color="primary" severity="warning" icon={false}>
           <Block direction="column" gap="sm" align="center">
             <Text size="sm" weight="medium">
               Delivery health — {gaugeValue}%
@@ -386,7 +386,7 @@ export const EverythingPlayground = () => {
             <Gauge value={gaugeValue} size={120} />
             <Slider value={gaugeValue} onChange={setGaugeValue} min={0} max={100} step={5} fullWidth />
           </Block>
-        </Notice>
+        </Alert>
       ),
     },
     {
@@ -421,7 +421,7 @@ export const EverythingPlayground = () => {
             </Text>
             <Row gap="sm" align="center">
               <Rating value={rating} onChange={setRating} />
-              <Text size="sm" colorVariant="secondary">
+              <Text size="sm" color="secondary">
                 {rating.toFixed(1)} / 5.0
               </Text>
             </Row>

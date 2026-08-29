@@ -73,6 +73,11 @@ const STATIC_ROUTES: Record<string, RouteMeta> = {
     description:
       'How Platform Blocks builds in keyboard navigation, screen-reader support, focus management, and semantic roles across every component.',
   },
+  '/contribute': {
+    title: 'Contributing to Platform Blocks',
+    description:
+      'Contribute to Platform Blocks — the monorepo layout, local setup, and the workflow for adding a component, a demo, or a documentation page.',
+  },
   '/localization': {
     title: 'Localization',
     description:

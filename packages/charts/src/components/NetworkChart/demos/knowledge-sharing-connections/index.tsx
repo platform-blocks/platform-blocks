@@ -34,7 +34,7 @@ const linkOpacityByType = (type: string | undefined) => {
   }
 };
 
-export default function Demo() {
+export function Demo() {
   const [focusDetail, setFocusDetail] = useState<string | null>(null);
 
   const highlightText = useMemo(() => focusDetail, [focusDetail]);

@@ -1,5 +1,6 @@
 import { StyleSheet, Platform } from 'react-native';
 import { resolveComponentSize, type ComponentSize } from '../../core/theme/componentSize';
+import { literalBackgrounds, literalText } from '../../core/theme/cssVariableTheme';
 import { readableTextOn } from '../../core/theme/colorUtils';
 import { RadioStyleProps } from './types';
 import { PlatformBlocksTheme } from '../../core/theme/types';
@@ -59,8 +60,11 @@ export const getRadioMetrics = (props: RadioStyleProps & { theme: PlatformBlocks
     if (error) return errorColor;
     return getColorScheme(color)[6];
   })();
+  // Read literally rather than through `theme.backgrounds`: on web that token is
+  // a `var(--platform-blocks-bg-surface, …)` reference, and the hole color is
+  // interpolated, which needs a color the animation can actually parse.
   // Falls back to white for slim themes (tests) that omit the background scale.
-  const surfaceColor = theme.backgrounds?.surface ?? '#ffffff';
+  const surfaceColor = literalBackgrounds(theme)?.surface ?? '#ffffff';
 
   return {
     borderWidth: BORDER_WIDTH,
@@ -85,7 +89,7 @@ export const getRadioMetrics = (props: RadioStyleProps & { theme: PlatformBlocks
      */
     dotColor: disabled
       ? surfaceColor
-      : readableTextOn(accentColor, '#1A1A1A', theme.text.onPrimary || '#ffffff'),
+      : readableTextOn(accentColor, '#1A1A1A', literalText(theme).onPrimary || '#ffffff'),
     /** How far the hole shrinks to become the dot. */
     dotScale: dotSize / holeSize,
   };

@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 
 import { CSSVariables } from './CSSVariables';
+import { withCssVariableColors } from './cssVariableTheme';
 import { DARK_THEME } from './darkTheme';
 import { DEFAULT_THEME } from './defaultTheme';
 import { PlatformBlocksThemeProvider, PlatformBlocksThemeProviderProps } from './ThemeProvider';
@@ -105,6 +106,19 @@ export interface PlatformBlocksProviderProps extends Omit<PlatformBlocksThemePro
   /** Whether to inject CSS variables */
   withCSSVariables?: boolean;
 
+  /**
+   * Render `text` / `backgrounds` / `surfaces` as CSS `var()` references instead
+   * of literal colors (web only, opt-in).
+   *
+   * Pair it with `createThemeColorVariablesCss` inlined in the document head:
+   * statically rendered markup then answers to `prefers-color-scheme` on its
+   * own, so a prerendered page is already in the reader's scheme at first paint
+   * rather than after hydration. Off by default — the rewritten values are CSS
+   * strings, so anything that hands a theme color to a non-CSS consumer (SVG
+   * attributes, Animated interpolation) has to read `literalColors` instead.
+   */
+  colorsAsCssVariables?: boolean;
+
   /** CSS selector where variables should be applied */
   cssVariablesSelector?: string;
 
@@ -160,6 +174,7 @@ function PlatformBlocksContent({
   inherit = true,
   withCSSVariables = true,
   cssVariablesSelector = ':root',
+  colorsAsCssVariables = false,
   colorSchemeMode = 'auto',
   withOverlays = true,
   withSpotlight = false,
@@ -181,11 +196,14 @@ function PlatformBlocksContent({
   }
 
   const resolvedTheme = useMemo(() => {
-    if (theme) return theme; // user supplied custom theme (assumed stable externally)
-    const store = cachedThemesRef.current!;
-    const target: ColorScheme = effectiveColorScheme === 'auto' ? osColorScheme : effectiveColorScheme;
-    return target === 'dark' ? store.dark : store.light;
-  }, [theme, effectiveColorScheme, osColorScheme]);
+    const base = (() => {
+      if (theme) return theme; // user supplied custom theme (assumed stable externally)
+      const store = cachedThemesRef.current!;
+      const target: ColorScheme = effectiveColorScheme === 'auto' ? osColorScheme : effectiveColorScheme;
+      return target === 'dark' ? store.dark : store.light;
+    })();
+    return colorsAsCssVariables ? withCssVariableColors(base) : base;
+  }, [theme, effectiveColorScheme, osColorScheme, colorsAsCssVariables]);
 
   // Set color scheme data attribute on root element (web only)
   useEffect(() => {
@@ -223,6 +241,7 @@ export function PlatformBlocksProvider({
   inherit = true,
   withCSSVariables = true,
   cssVariablesSelector = ':root',
+  colorsAsCssVariables = false,
   colorSchemeMode = 'auto',
   withOverlays = true,
   withSpotlight = false,
@@ -246,6 +265,7 @@ export function PlatformBlocksProvider({
       inherit={inherit}
       withCSSVariables={withCSSVariables}
       cssVariablesSelector={cssVariablesSelector}
+      colorsAsCssVariables={colorsAsCssVariables}
       colorSchemeMode={colorSchemeMode}
       withOverlays={withOverlays}
       withSpotlight={withSpotlight}

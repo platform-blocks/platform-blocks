@@ -1,4 +1,4 @@
-import { ViewStyle } from 'react-native';
+import { Platform, ViewStyle } from 'react-native';
 import { PlatformBlocksTheme } from './theme/types';
 import { DESIGN_TOKENS } from './design-tokens';
 
@@ -45,7 +45,7 @@ export function createHoverStyles(
 
   return {
     opacity: DESIGN_TOKENS.opacity.hover,
-    ...(typeof window !== 'undefined' && { cursor: 'pointer' as any }),
+    ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
   } as ViewStyle;
 }
 
@@ -81,7 +81,7 @@ export function createDisabledStyles(
     opacity: DESIGN_TOKENS.opacity.disabled,
     backgroundColor: theme.colors.gray[1],
     color: theme.text.disabled,
-    ...(typeof window !== 'undefined' && { cursor: 'not-allowed' as any }),
+    ...(Platform.OS === 'web' && { cursor: 'not-allowed' as any }),
   } as ViewStyle;
 }
 

@@ -82,6 +82,7 @@ export interface NavTreeProps
       TreeProps,
       | 'showGuides'
       | 'accordion'
+      | 'disclosure'
       | 'indent'
       | 'filterQuery'
       | 'hideFiltered'

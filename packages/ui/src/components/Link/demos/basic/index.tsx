@@ -8,11 +8,11 @@ const resources = [
 
 const [brandGuide, voiceGuide, releaseChecklist] = resources;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Card p="md">
       <Block>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Use `Link` inline with body copy to direct readers to additional guidance without breaking the flow of text.
         </Text>
         <Text size="sm">

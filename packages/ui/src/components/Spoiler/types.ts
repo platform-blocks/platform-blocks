@@ -34,6 +34,6 @@ export interface SpoilerProps extends SpacingProps {
   fadeColor?: string;
   /** Disable gradient fade animation (debug / perf). Default false (animation enabled). */
   disableFadeAnimation?: boolean;
-  /** Override props applied to the show/hide control `<Text>` (style, weight, ff, size, colorVariant). */
+  /** Override props applied to the show/hide control `<Text>` (style, weight, ff, size, color). */
   controlProps?: Omit<TextProps, 'children'>;
 }

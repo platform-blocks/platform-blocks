@@ -11,7 +11,7 @@
  *      overriding earlier ones, so user-passed style wins on conflicts.
  *
  * This helper exists because hand-rolling the merge is error-prone:
- * historically several components (Notice, Toast, Tabs) shipped subtle bugs
+ * historically several components (Alert, Toast, Tabs) shipped subtle bugs
  * where a hardcoded `fontWeight` in the base style array silently overrode a
  * user's slot `weight` prop. Centralizing the merge order makes that mistake
  * impossible.

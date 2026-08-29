@@ -1,8 +1,5 @@
 /**
- * IconButton color API tests
- *
- * `color` is the canonical tint prop; `colorVariant` is kept as a back-compat
- * alias. These lock in that the two are interchangeable and that `color` wins.
+ * IconButton color API tests — `color` is the one tint prop.
  */
 
 import React from 'react';
@@ -25,7 +22,7 @@ const pressableStyle = (element: any) =>
       : element.props.style
   );
 
-describe('IconButton - color / colorVariant', () => {
+describe('IconButton - color', () => {
   it('tints the filled variant via `color`', () => {
     const tinted = render(
       <IconButton icon="heart" variant="filled" color="error" testID="tinted" />
@@ -34,38 +31,6 @@ describe('IconButton - color / colorVariant', () => {
 
     expect(pressableStyle(tinted.getByTestId('tinted')).backgroundColor).not.toBe(
       pressableStyle(plain.getByTestId('plain')).backgroundColor
-    );
-  });
-
-  it('treats `colorVariant` as an alias of `color`', () => {
-    const viaColor = render(
-      <IconButton icon="heart" variant="filled" color="success" testID="a" />
-    );
-    const viaAlias = render(
-      <IconButton icon="heart" variant="filled" colorVariant="success" testID="b" />
-    );
-
-    expect(pressableStyle(viaAlias.getByTestId('b')).backgroundColor).toBe(
-      pressableStyle(viaColor.getByTestId('a')).backgroundColor
-    );
-  });
-
-  it('lets `color` win when both are set', () => {
-    const both = render(
-      <IconButton
-        icon="heart"
-        variant="filled"
-        color="success"
-        colorVariant="error"
-        testID="both"
-      />
-    );
-    const only = render(
-      <IconButton icon="heart" variant="filled" color="success" testID="only" />
-    );
-
-    expect(pressableStyle(both.getByTestId('both')).backgroundColor).toBe(
-      pressableStyle(only.getByTestId('only')).backgroundColor
     );
   });
 

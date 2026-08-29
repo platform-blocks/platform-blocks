@@ -9,7 +9,7 @@ const compact = (value: number) => {
   return `${value}`;
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <FunnelChart
       title="Data pipeline quality checks"

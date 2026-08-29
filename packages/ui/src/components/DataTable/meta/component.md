@@ -55,7 +55,7 @@ props:
     default: md
   - name: headerTextProps
     type: "Omit<TextProps, 'children'>"
-    description: Override props applied to every column header `<Text>` (style, weight, ff, size, colorVariant)
+    description: Override props applied to every column header `<Text>` (style, weight, ff, size, color)
   - name: cellTextProps
     type: "Omit<TextProps, 'children'>"
     description: Override props applied to default-rendered cell text (cells without a custom `cell` renderer)

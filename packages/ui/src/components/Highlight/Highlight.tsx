@@ -4,6 +4,7 @@ import { Platform, StyleSheet, type Text as RNText } from 'react-native';
 import { Text } from '../Text';
 import type { TextProps } from '../Text/Text';
 import { useTheme } from '../../core/theme';
+import { resolveTextColor } from '../../core/theme/resolveColors';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
 import type { HighlightProps, HighlightValue } from './types';
 
@@ -229,22 +230,12 @@ export const Highlight = React.forwardRef<RNText, HighlightProps>(({
   const outerColor = useMemo(() => {
     const restProps = rest as Partial<TextProps>;
 
-    if (restProps?.color && typeof restProps.color === 'string') {
-      return restProps.color;
-    }
-
-    const colorVariantKey = (restProps as any)?.colorVariant;
-    if (typeof colorVariantKey === 'string') {
-      const fromText = (theme.text as Record<string, string | undefined>)[colorVariantKey];
-      if (fromText) {
-        return fromText;
-      }
-
-      const palette = (theme.colors as Record<string, string[] | undefined>)[colorVariantKey];
-      const paletteColor = resolvePaletteShade(palette, 6, palette ? palette.length - 1 : 6);
-      if (paletteColor) {
-        return paletteColor;
-      }
+    // Same resolution Text itself performs, so a `color` here and a `color` on
+    // the wrapped Text can't land on different shades of the same token.
+    const requested = restProps?.color;
+    if (typeof requested === 'string') {
+      const resolved = resolveTextColor(theme, requested);
+      if (resolved) return resolved;
     }
 
     return extractColorFromStyle(restProps?.style);

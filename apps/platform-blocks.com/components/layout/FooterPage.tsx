@@ -49,7 +49,7 @@ export function FooterContent() {
               size={36} weight="bold">{t('footer.app.title')}</Title>
             <Flex direction="column" gap="xs">
 
-              <Text size="sm" colorVariant="secondary">{t('footer.app.tagline')}</Text>
+              <Text size="sm" color="secondary">{t('footer.app.tagline')}</Text>
               <Flex direction="row" align="center" gap="sm">
                 <BrandButton title={t('actions.starOnGithub')} brand="github" variant="ghost" iconPosition="left" size="sm" onPress={() => handleLinkPress(GITHUB_REPO)} />
                 {/* <BrandButton title={t('actions.followOnX')} brand="x" variant="ghost" iconPosition="left" size="xs" onPress={() => handleLinkPress(TWITTER_PROFILE)} /> */}
@@ -62,7 +62,7 @@ export function FooterContent() {
           {/* Quick Links */}
           <GridItem span={responsive.isMobile ? 4 : 2}>
             <Flex direction="column" gap="sm">
-              <Text size="xs" weight="semibold" colorVariant="info" tracking={1} uppercase>Quick Links</Text>
+              <Text size="xs" weight="semibold" color="info" tracking={1} uppercase>Quick Links</Text>
               <Flex direction="column" gap="xs">
                 <Link {...routeLink('/components')} variant="hover-underline" size="sm" color="gray">Components</Link>
                 {/* Points at the dedicated /charts page, not a filtered /components view —
@@ -76,7 +76,7 @@ export function FooterContent() {
           {/* Documentation */}
           <GridItem span={responsive.isMobile ? 4 : 2}>
             <Flex direction="column" gap="sm">
-              <Text size="xs" weight="semibold" colorVariant="info" tracking={1} uppercase>Documentation</Text>
+              <Text size="xs" weight="semibold" color="info" tracking={1} uppercase>Documentation</Text>
               <Flex direction="column" gap="xs">
                 <Link {...routeLink('/getting-started')} variant="hover-underline" size="sm" color="gray">Getting Started</Link>
                 <Link {...routeLink('/localization')} variant="hover-underline" size="sm" color="gray">Localization</Link>
@@ -88,7 +88,7 @@ export function FooterContent() {
           {/* Resources */}
           <GridItem span={responsive.isMobile ? 4 : 2}>
             <Flex direction="column" gap="sm">
-              <Text size="xs" weight="semibold" colorVariant="info" tracking={1} uppercase>Resources</Text>
+              <Text size="xs" weight="semibold" color="info" tracking={1} uppercase>Resources</Text>
               <Flex direction="column" gap="xs">
                 <Link {...routeLink('/faq')} variant="hover-underline" size="sm" color="gray">FAQ</Link>
                 {/* Changelog and Sitemap leave the router: one is off-site, the other is a

@@ -34,7 +34,7 @@ const columns: DataTableColumn<Server>[] = [
   { key: 'status', header: 'Status', accessor: 'status', sticky: 'right', width: 140, sortable: true },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <DataTable
       data={rows}

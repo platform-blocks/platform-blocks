@@ -8,6 +8,7 @@ import {
 import Svg, { Path, Rect, LinearGradient, Stop, Defs, Line, G, Text as SvgText } from 'react-native-svg';
 
 import { useTheme } from '../../core/theme';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { WaveformProps, PerformanceMetrics, WaveformSizeMetrics } from './types';
 import { WaveformSkeleton } from './WaveformSkeleton';
 import { useMergedRef } from '../../core/utils';
@@ -167,20 +168,11 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
     }
   }, [interactive, isFocused]);
 
-  // Resolve a provided color prop that may be either a semantic theme key or a raw color string
-  const resolveColor = useCallback((val: string | undefined, fallback: string) => {
-    if (!val) return fallback;
-    if (typeof val === 'string') {
-      const palette = (theme.colors as any)[val];
-      if (Array.isArray(palette)) {
-        // Use the mid (5) shade if available, else last
-        return palette[5] || palette[Math.min(5, palette.length - 1)] || fallback;
-      }
-      // If it's not a palette array just return the raw string
-      return val;
-    }
-    return fallback;
-  }, [theme.colors]);
+  // A palette token, `primary.6` shade syntax, or a raw color string.
+  const resolveColor = useCallback(
+    (val: string | undefined, fallback: string) => resolveAccentColor(theme, val) ?? fallback,
+    [theme],
+  );
 
   const waveformColor = resolveColor(color as string, '#6366f1');
   const actualProgressColor = resolveColor(progressColor as string, '#22c55e');

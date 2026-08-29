@@ -2,7 +2,7 @@ import { HistogramChart } from '@platform-blocks/charts';
 
 import { BATTERY_VOLTAGES, REPLACEMENT_THRESHOLD, TARGET_VOLTAGE } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <HistogramChart
       title="Sensor battery voltage after firmware upgrade"

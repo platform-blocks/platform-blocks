@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, Card, Code, PhoneInput, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [autoDetectValue, setAutoDetectValue] = useState('');
   const [autoDetectE164, setAutoDetectE164] = useState('');
   const [autoDetectCountry, setAutoDetectCountry] = useState('US');
@@ -12,7 +12,7 @@ export default function Demo() {
   return (
     <Block fullWidth>
       <Text weight="semibold">International detection</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         With autoDetect, an explicit + prefix picks the country: type or paste
         +447911123456 and the mask, dial code and E.164 output follow along. A
         recognized dial code is stripped on paste either way, so a full international
@@ -49,7 +49,7 @@ export default function Demo() {
 
       <Card variant="outline" p="sm">
         <Block>
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Values
           </Text>
           <Code size="sm">

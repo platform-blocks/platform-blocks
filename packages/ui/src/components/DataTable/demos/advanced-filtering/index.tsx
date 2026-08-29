@@ -41,7 +41,7 @@ const columns: DataTableColumn<Person>[] = [
   },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [filters, setFilters] = useState<DataTableFilter[]>([]);
 
   return (

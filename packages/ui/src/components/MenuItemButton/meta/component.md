@@ -16,12 +16,12 @@ props:
   size: Component size token
   compact: Compact spacing
   rounded: Fully rounded corners
-  tone: Semantic tone — 'default' | 'primary' | 'danger' | 'success' | 'warning'
-  hoverTone / activeTone: Tones applied on hover / active
+  color: Semantic color — 'default' | 'primary' | 'error' | 'success' | 'warning' ('danger' is a deprecated alias for 'error')
+  hoverColor / activeColor: Colors applied on hover / active
   textColor / hoverTextColor / activeTextColor: Text color overrides
-  labelProps: Override props applied to the inner label `<Text>` (style, weight, ff, size, colorVariant)
+  labelProps: Override props applied to the inner label `<Text>` (style, weight, ff, size, color)
 examples:
   - basic
 ---
 
-A row button used inside menus and command palettes. The inner label `<Text>` accepts the full Text-prop API via `labelProps` (`ff`, `weight`, `tracking`, `uppercase`, `colorVariant`, `style`).
+A row button used inside menus and command palettes. The inner label `<Text>` accepts the full Text-prop API via `labelProps` (`ff`, `weight`, `tracking`, `uppercase`, `color`, `style`).

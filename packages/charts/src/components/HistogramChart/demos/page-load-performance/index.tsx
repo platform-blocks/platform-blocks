@@ -4,7 +4,7 @@ import { HistogramChart, HistogramBinSummary } from '@platform-blocks/charts';
 
 import { AVERAGE_LOAD, LOAD_TIMES, SLO_TARGET } from './data';
 
-export default function Demo() {
+export function Demo() {
   const [focusedBin, setFocusedBin] = useState<HistogramBinSummary | null>(null);
 
   return (

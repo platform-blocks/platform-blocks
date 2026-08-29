@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, NumberInput, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [horizontalValue, setHorizontalValue] = useState<number | undefined>(32);
   const [verticalValue, setVerticalValue] = useState<number | undefined>(120);
   const [dragging, setDragging] = useState(false);
@@ -14,10 +14,10 @@ export default function Demo() {
   return (
     <Block>
       <Text weight="semibold">Press-and-drag adjustment</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Drag across the input to nudge values without lifting your pointer. The status below reflects the current drag state.
       </Text>
-      <Text size="xs" colorVariant={dragging ? 'primary' : 'secondary'}>
+      <Text size="xs" color={dragging ? 'primary' : 'secondary'}>
         Dragging: {dragging ? 'active' : 'idle'}
       </Text>
 
@@ -26,7 +26,7 @@ export default function Demo() {
           <Text size="sm" weight="semibold">
             Horizontal drag
           </Text>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Step every 14px drag movement with a multiplier for faster adjustments.
           </Text>
           <NumberInput
@@ -49,7 +49,7 @@ export default function Demo() {
           <Text size="sm" weight="semibold">
             Vertical drag
           </Text>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Drag up or down to adjust between 0 and 200 with built-in controls.
           </Text>
           <NumberInput

@@ -370,7 +370,7 @@ export const PhoneInput = React.forwardRef<TextInput, PhoneInputProps>((props, r
   const dialCodeLabel = useMemo(() => {
     if (!dialCodeText) return null;
     return (
-      <Text size="sm" weight="semibold" colorVariant="secondary">
+      <Text size="sm" weight="semibold" color="secondary">
         {dialCodeText}
       </Text>
     );
@@ -387,7 +387,7 @@ export const PhoneInput = React.forwardRef<TextInput, PhoneInputProps>((props, r
           disabled={base.disabled}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
         >
-          <Text size="sm" weight="semibold" colorVariant="secondary">
+          <Text size="sm" weight="semibold" color="secondary">
             {dialCodeText || currentFormat.name}
           </Text>
           <Icon name="chevron-down" size={12} />

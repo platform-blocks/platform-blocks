@@ -1,6 +1,6 @@
 import { Badge, Block, Row, Text, useOverlayMode } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const { shouldUseModal, shouldUseOverlay, isMobileExperience, isDesktopExperience, isWeb } = useOverlayMode();
 
   const flags = [
@@ -22,7 +22,7 @@ export default function Demo() {
           </Badge>
         ))}
       </Row>
-      <Text size="sm" colorVariant="muted">
+      <Text size="sm" color="muted">
         Resize the preview or switch platforms to see the recommendation change.
       </Text>
     </Block>

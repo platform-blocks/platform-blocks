@@ -4,7 +4,7 @@ import { Block, Knob, Text } from '@platform-blocks/ui';
 
 const TEMPERATURE_STOPS = [0, 25, 50, 75, 100];
 
-export default function Demo() {
+export function Demo() {
   const [level, setLevel] = useState(62);
 
   const status = useMemo(() => {
@@ -68,7 +68,7 @@ export default function Demo() {
           }}
         />
       </Knob.Root>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Thermal headroom · {status}
       </Text>
     </Block>

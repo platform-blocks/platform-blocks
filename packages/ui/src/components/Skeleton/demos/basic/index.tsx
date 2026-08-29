@@ -1,6 +1,6 @@
 import { Block, Row, Skeleton } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Skeleton shape="text" w="60%" />

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, Slider, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [position, setPosition] = useState(0.25);
   const [temp, setTemp] = useState(21.5);
   const [ratio, setRatio] = useState(0.5);
@@ -9,7 +9,7 @@ export default function Demo() {
   return (
     <Block>
       <Block>
-        <Text size="sm" colorVariant="muted">
+        <Text size="sm" color="muted">
           Fractional `step={0.01}` — decimals are inferred from the step
         </Text>
         <Slider
@@ -23,7 +23,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" colorVariant="muted">
+        <Text size="sm" color="muted">
           `step={0.5}` — half steps
         </Text>
         <Slider
@@ -37,7 +37,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" colorVariant="muted">
+        <Text size="sm" color="muted">
           Force decimals with `precision={2}` (independent of step)
         </Text>
         <Slider

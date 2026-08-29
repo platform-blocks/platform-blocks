@@ -4,7 +4,7 @@ import { SLA_COMPLIANCE } from './data';
 
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <BarChart
       title="SLA compliance by response team"

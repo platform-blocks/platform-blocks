@@ -5,7 +5,7 @@ import { Text } from '../Text';
 import { useTheme } from '../../core/theme';
 import { BrandButtonProps, resolveBrandConfig } from './types';
 import { BrandIcon, brandIcons } from '../BrandIcon';
-import { extractUniversalProps, shouldHideComponent } from '../../core/utils/universalSimple';
+import { extractUniversalProps, useShouldHideComponent } from '../../core/utils/universalSimple';
 import { isComponentSize, type ComponentSize } from '../../core/theme/componentSize';
 
 const roundToEven = (value: number) => Math.round(value / 2) * 2;
@@ -42,7 +42,7 @@ const BADGE_SIZE_CONFIGS: Record<ComponentSize, ReturnType<typeof createBadgeSiz
 export const BrandButton = React.forwardRef<View, BrandButtonProps>((props, ref) => {
   const theme = useTheme();
   const { universalProps, componentProps } = extractUniversalProps(props);
-  const shouldHide = shouldHideComponent(universalProps, theme.colorScheme);
+  const shouldHide = useShouldHideComponent(universalProps, theme.colorScheme);
   if (shouldHide) return null;
 
   const {

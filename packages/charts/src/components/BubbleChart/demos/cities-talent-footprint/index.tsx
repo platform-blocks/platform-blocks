@@ -4,7 +4,7 @@ import { Region, cities, regionPalette } from './data';
 
 const formatFootprint = (value: number) => `${value.toFixed(0)}k sq ft`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <BubbleChart
       title="Global Talent Hubs"

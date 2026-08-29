@@ -2,7 +2,7 @@ import { DonutChart } from '@platform-blocks/charts';
 
 import { SEGMENTS } from './data';
 
-export default function Demo() {
+export function Demo() {
 	return (
 		<DonutChart
 			title="Team allocation"

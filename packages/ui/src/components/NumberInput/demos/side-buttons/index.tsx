@@ -4,7 +4,7 @@ import { Block, NumberInput, Row, Text } from '@platform-blocks/ui';
 
 const EnhancedNumberInput = NumberInput as any;
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState(32);
   const [step, setStep] = useState(1);
   const effectiveStep = useMemo(() => step || 1, [step]);
@@ -12,7 +12,7 @@ export default function Demo() {
   return (
     <Block style={{ maxWidth: 360 }}>
       <Text weight="semibold">Side buttons and shift multiplier</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Combine side buttons with the default controls to support coarse and fine adjustments.
       </Text>
 
@@ -34,10 +34,10 @@ export default function Demo() {
           }}
         />
         <Row justify="space-between" align="center">
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Current speed: {value}%
           </Text>
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Shift-click = ±{effectiveStep * 10}
           </Text>
         </Row>
@@ -47,7 +47,7 @@ export default function Demo() {
         <Text size="sm" weight="semibold">
           Adjust the base step
         </Text>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Update the increment to see how the multiplier scales.
         </Text>
         <EnhancedNumberInput

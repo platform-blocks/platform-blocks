@@ -46,7 +46,7 @@ const globalActions: SpotlightProps['actions'] = [
   },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [store] = useSpotlightStoreInstance();
   const [dynamicCount, setDynamicCount] = useState(0);
 
@@ -75,7 +75,7 @@ export default function Demo() {
       <Block>
         <Card p="md">
           <Block>
-            <Text size="sm" colorVariant="secondary">
+            <Text size="sm" color="secondary">
               Combine local stores with the global `spotlight` helper. This demo adds actions to its scoped store while still toggling the shared palette.
             </Text>
             <Row gap="sm" wrap="wrap">
@@ -84,7 +84,7 @@ export default function Demo() {
                 Toggle global spotlight
               </Button>
             </Row>
-            <Text size="xs" colorVariant="secondary">
+            <Text size="xs" color="secondary">
               Select “Add dynamic action” to append more commands on the fly.
             </Text>
           </Block>

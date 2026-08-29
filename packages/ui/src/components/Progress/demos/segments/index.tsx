@@ -15,12 +15,12 @@ const formatSize = (percent: number) => {
   return gb < 1 ? `${Math.round(gb * 1024)} MB` : `${Math.round(gb)} GB`;
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block gap="md" fullWidth>
       <Row justify="space-between" align="center">
         <Text weight="600">Project storage</Text>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           {formatSize(used)} of {TOTAL_GB} GB used
         </Text>
       </Row>
@@ -46,7 +46,7 @@ export default function Demo() {
           <Row key={segment.label} gap="xs" align="center">
             <ColorSwatch color={segment.color} size={12} />
             <Text variant="small">{segment.label}</Text>
-            <Text variant="small" colorVariant="muted">
+            <Text variant="small" color="muted">
               {segment.value}%
             </Text>
           </Row>

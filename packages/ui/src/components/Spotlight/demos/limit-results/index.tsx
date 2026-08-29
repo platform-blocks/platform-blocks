@@ -8,18 +8,18 @@ const actions: SpotlightProps['actions'] = Array.from({ length: 25 }).map((_, in
   onPress: () => console.log('command', index + 1),
 }));
 
-export default function Demo() {
+export function Demo() {
   const [store] = useSpotlightStoreInstance();
 
   return (
     <Block>
       <Card p="md">
         <Block>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Set the `limit` prop to constrain how many results render, even if more actions match the query.
           </Text>
           <Button onPress={() => store.open()}>Open spotlight</Button>
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             This demo caps the list at 8 items.
           </Text>
         </Block>

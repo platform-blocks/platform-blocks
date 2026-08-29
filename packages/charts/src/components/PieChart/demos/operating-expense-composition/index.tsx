@@ -7,7 +7,7 @@ const formatTooltip = (slice: PieChartDataPoint) => {
   return `${slice.label}: $${slice.value}M (${share}%)`;
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <PieChart
       title="Operating expense mix"

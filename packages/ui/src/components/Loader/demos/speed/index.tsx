@@ -8,7 +8,7 @@ const SPEEDS = [
   { label: 'Slow', value: 2000 },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       {SPEEDS.map(({ label, value }) => (
@@ -17,7 +17,7 @@ export default function Demo() {
             <Text variant="small" weight="semibold">
               {label}
             </Text>
-            <Text variant="small" colorVariant="muted">
+            <Text variant="small" color="muted">
               {value}ms
             </Text>
           </Block>

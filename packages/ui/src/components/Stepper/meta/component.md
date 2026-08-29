@@ -34,7 +34,7 @@ props:
     default: primary
   - name: "Stepper.Step labelProps"
     type: "Omit<TextProps, 'children'>"
-    description: "Override props applied to each step's label `<Text>` (style, weight, ff, size, colorVariant)."
+    description: "Override props applied to each step's label `<Text>` (style, weight, ff, size, color)."
   - name: "Stepper.Step descriptionProps"
     type: "Omit<TextProps, 'children'>"
     description: "Override props applied to each step's description `<Text>`."

@@ -4,7 +4,7 @@ import { Block, Input, Tree } from '@platform-blocks/ui';
 
 import { TREE_DATA } from './data';
 
-export default function Demo() {
+export function Demo() {
   const [filterQuery, setFilterQuery] = useState('');
 
   return (

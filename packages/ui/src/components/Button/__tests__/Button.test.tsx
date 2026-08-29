@@ -176,19 +176,19 @@ describe('Button Component', () => {
   // ============================================================================
 
   describe('Color and Styling', () => {
-    it('should accept colorVariant prop', () => {
-      const props: ButtonProps = { colorVariant: 'primary' };
-      expect(props.colorVariant).toBe('primary');
+    it('should accept a palette token as color', () => {
+      const props: ButtonProps = { color: 'primary' };
+      expect(props.color).toBe('primary');
     });
 
-    it('should accept colorVariant with shade', () => {
-      const props: ButtonProps = { colorVariant: 'primary.6' };
-      expect(props.colorVariant).toBe('primary.6');
+    it('should accept palette.shade syntax as color', () => {
+      const props: ButtonProps = { color: 'primary.6' };
+      expect(props.color).toBe('primary.6');
     });
 
     it('should accept hex color', () => {
-      const props: ButtonProps = { colorVariant: '#ff0000' };
-      expect(props.colorVariant).toBe('#ff0000');
+      const props: ButtonProps = { color: '#ff0000' };
+      expect(props.color).toBe('#ff0000');
     });
 
     it('should accept textColor prop', () => {
@@ -365,7 +365,7 @@ describe('Button Component', () => {
         title: 'Submit Form',
         variant: 'filled',
         size: 'lg',
-        colorVariant: 'primary',
+        color: 'primary',
         fullWidth: true,
         onPress,
         icon: 'check',

@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, Text, ToggleButton, ToggleGroup } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [alignment, setAlignment] = useState('center');
 
   const handleChange = (value: string | number | (string | number)[]) => {
@@ -16,7 +16,7 @@ export default function Demo() {
     <Block>
       <Block>
         <Text weight="semibold">Exclusive selection</Text>
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           Set `exclusive` to enforce a single active value at a time.
         </Text>
       </Block>
@@ -28,7 +28,7 @@ export default function Demo() {
         <ToggleButton value="justify">Justify</ToggleButton>
       </ToggleGroup>
 
-      <Text size="xs" colorVariant="secondary">
+      <Text size="xs" color="secondary">
         Active option: {alignment}
       </Text>
     </Block>

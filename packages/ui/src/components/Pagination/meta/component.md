@@ -25,7 +25,7 @@ props:
   loading: Whether pagination is in loading state
   textStyle: Raw TextStyle escape hatch applied to every page label
   activeTextStyle: Raw TextStyle for the active page label
-  labelProps: Override props applied to every page-button label `<Text>` (style, weight, ff, size, colorVariant)
+  labelProps: Override props applied to every page-button label `<Text>` (style, weight, ff, size, color)
   activeLabelProps: Extra props merged on top of `labelProps` for the active page only
 related:
   - Table

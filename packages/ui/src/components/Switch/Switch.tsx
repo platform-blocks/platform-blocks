@@ -11,11 +11,12 @@ import Animated, {
 } from 'react-native-reanimated';
 import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme';
+import { resolveColorProp } from '../../core/theme/resolveColors';
 import { Text } from '../Text';
 import { FieldHeader } from '../_internal/FieldHeader';
 import { useDisclaimer, extractDisclaimerProps } from '../_internal/Disclaimer';
 import { SwitchProps } from './types';
-import { useSwitchStyles } from './styles';
+import { useSwitchStyles, SWITCH_SHADES } from './styles';
 import { Row, Column } from '../Layout';
 import { DESIGN_TOKENS } from '../../core/design-tokens';
 import { useTransitionDuration } from '../../core/motion/useTransitionDuration';
@@ -168,8 +169,7 @@ export const Switch = factory<{
       [leftPosition, rightPosition]
     );
 
-    const colorKey = color as keyof typeof theme.colors;
-    const activeColor = theme.colors[colorKey]?.[6] || theme.colors.primary[6];
+    const activeColor = resolveColorProp(theme, color, { shades: SWITCH_SHADES }) ?? theme.colors.primary[6];
 
     // iOS: a constant large white thumb that only slides.
     if (isIOS) {
@@ -218,8 +218,7 @@ export const Switch = factory<{
   }, [leftPosition, rightPosition, isOutline, isIOS, isAndroid, onThumb, offThumb, onTop, offTop, disabled, color, theme.colors]); // Add dependencies
 
   const trackAnimatedStyle = useAnimatedStyle(() => {
-    const colorKey = color as keyof typeof theme.colors;
-    const activeColor = theme.colors[colorKey]?.[6] || theme.colors.primary[6];
+    const activeColor = resolveColorProp(theme, color, { shades: SWITCH_SHADES }) ?? theme.colors.primary[6];
 
     if (isOutline) {
       // Transparent track; the border animates from the resting gray to the

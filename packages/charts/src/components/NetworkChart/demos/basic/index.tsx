@@ -2,7 +2,7 @@ import { NetworkChart } from '@platform-blocks/charts';
 
 import { LINKS, NODES } from './data';
 
-export default function Demo() {
+export function Demo() {
 	return (
 		<NetworkChart
 			title="Cross-team collaboration"

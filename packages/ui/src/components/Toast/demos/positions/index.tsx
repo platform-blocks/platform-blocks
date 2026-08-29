@@ -9,7 +9,7 @@ const toastPositions = [
   'bottom-right',
 ] as const;
 
-export default function Demo() {
+export function Demo() {
   const toast = useToast();
 
   const showToastAtPosition = (position: typeof toastPositions[number]) => {
@@ -22,7 +22,7 @@ export default function Demo() {
 
   return (
     <Block>
-      <Text size="xs" colorVariant="secondary">
+      <Text size="xs" color="secondary">
         Pass `position` to align the toast container with your layout.
       </Text>
       <Row gap="xs" wrap="wrap">

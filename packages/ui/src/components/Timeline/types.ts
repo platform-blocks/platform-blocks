@@ -20,10 +20,8 @@ export interface TimelineItemProps extends Omit<ViewProps, 'children'> {
   bullet?: ReactNode;
   /** Line variant for this item */
   lineVariant?: 'solid' | 'dashed' | 'dotted';
-  /** Item color (overrides timeline color) */
+  /** Item color (overrides timeline color). Palette token, `'primary.5'` shade syntax, or any CSS color. */
   color?: string;
-  /** Item color variant token (e.g. primary.5 or primary) used if color not provided */
-  colorVariant?: string;
   /** Override title text color for this item */
   titleColor?: string;
   /** Override description text color for this item */
@@ -41,10 +39,8 @@ export interface TimelineProps extends Omit<ViewProps, 'children'> {
   children: ReactNode;
   /** Active item index - items before this will be highlighted */
   active?: number;
-  /** Timeline color */
+  /** Timeline color. Palette token, `'primary.5'` shade syntax, or any CSS color. */
   color?: string;
-  /** Timeline color variant token (e.g. primary.5) used when color not provided */
-  colorVariant?: string;
   /** Default title color for all items */
   titleColor?: string;
   /** Default description color for all items */

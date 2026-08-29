@@ -41,7 +41,7 @@ const VARIANT_DEMOS: Array<{
   }
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       {VARIANT_DEMOS.map(({ heading, variant, helper, items }) => (
@@ -54,7 +54,7 @@ export default function Demo() {
               content: <Text>{description}</Text>
             }))}
           />
-          <Text variant="small" colorVariant="muted">
+          <Text variant="small" color="muted">
             {helper}
           </Text>
         </Block>

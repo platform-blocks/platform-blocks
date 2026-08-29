@@ -1,6 +1,6 @@
 import { DataList } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <DataList withDivider labelWidth={120}>
       <DataList.Item>

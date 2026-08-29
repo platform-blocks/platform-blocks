@@ -9,7 +9,7 @@ import {
   Text,
 } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Menu>
       <Button size="sm" variant="outline">

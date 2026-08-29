@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, Card, Code, PhoneInput, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [country, setCountry] = useState('US');
   const [raw, setRaw] = useState('');
   const [e164, setE164] = useState('');
@@ -10,7 +10,7 @@ export default function Demo() {
   return (
     <Block fullWidth>
       <Text weight="semibold">Country picker</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         With selectableCountry the dial-code prefix becomes a dropdown. Changing the
         country remasks the digits already entered instead of clearing them, and the
         E.164 value is rebuilt against the new dial code.
@@ -30,7 +30,7 @@ export default function Demo() {
 
       <Card variant="outline" p="sm">
         <Block>
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Current values
           </Text>
           <Code size="sm">{JSON.stringify({ country, raw, e164 }, null, 2)}</Code>

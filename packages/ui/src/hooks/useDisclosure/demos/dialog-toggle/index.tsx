@@ -1,6 +1,6 @@
 import { Badge, Block, Button, Dialog, Row, Text, useDisclosure } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [opened, { open, close, toggle }] = useDisclosure(false, {
     onOpen: () => console.log('opened'),
     onClose: () => console.log('closed'),

@@ -5,7 +5,7 @@ import { onboardingSteps as steps } from '../data';
 
 const totalSteps = steps.length;
 
-export default function Demo() {
+export function Demo() {
   const [activeStep, setActiveStep] = useState(1);
 
   const handleStepChange = (nextIndex: number) => {
@@ -22,7 +22,7 @@ export default function Demo() {
     <Block fullWidth>
       <Card p="md">
         <Block>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Control the current step with the `active` prop and provide completion content with `Stepper.Completed`.
           </Text>
           <Stepper active={activeStep} onStepClick={handleStepChange}>

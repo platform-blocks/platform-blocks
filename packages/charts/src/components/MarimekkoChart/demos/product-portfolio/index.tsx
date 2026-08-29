@@ -2,7 +2,7 @@ import { MarimekkoChart } from '@platform-blocks/charts';
 
 import { PRODUCT_MIX } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <MarimekkoChart
       title="ARR by product tier and motion"

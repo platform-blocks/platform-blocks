@@ -60,7 +60,7 @@ const BasicSoundExample: React.FC = () => {
         onHoverIn={handleHover}
         onHoverOut={() => console.log('Button hover ended')}
         variant="filled"
-        colorVariant="success"
+        color="success"
       />
 
       {/* Navigation feedback examples */}

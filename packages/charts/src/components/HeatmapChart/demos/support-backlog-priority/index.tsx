@@ -2,7 +2,7 @@ import { HeatmapChart } from '@platform-blocks/charts';
 
 import { BACKLOG, MODULES, PRIORITIES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <HeatmapChart
       title="Support backlog by module"

@@ -10,7 +10,7 @@ const formatDelta = (value: number, datum: (typeof RECRUITING_PROGRESS)[number])
   return `${sign}${Math.abs(delta)} vs last cycle`;
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <BarChart
       title="New hires secured this recruiting cycle"

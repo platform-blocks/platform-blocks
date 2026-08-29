@@ -6,7 +6,7 @@ const formatLabel = (slice: PieChartDataPoint) => `${slice.label} ${slice.value}
 
 const formatTooltip = (slice: PieChartDataPoint) => `${slice.label}: ${slice.value}% of sessions`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <PieChart
       title="Browser usage share"

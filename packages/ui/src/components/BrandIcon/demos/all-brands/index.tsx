@@ -1,7 +1,7 @@
 import { Block, BrandIcon, Grid, GridItem, Text } from '@platform-blocks/ui';
 import { ALL_BRANDS } from '../data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Grid columns={{ base: 3, sm: 4, md: 6, lg: 8 }} gap="md" fullWidth>
       {ALL_BRANDS.map((brand) => (

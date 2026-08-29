@@ -3,6 +3,10 @@ import { resolveComponentSize, type ComponentSize } from '../../core/theme/compo
 import { SwitchStyleProps } from './types';
 import { PlatformBlocksTheme } from '../../core/theme/types';
 import { DESIGN_TOKENS } from '../../core/design-tokens';
+import { resolveColorProp } from '../../core/theme/resolveColors';
+
+/** The track reads against a white thumb, so it sits one step past the fill base. */
+export const SWITCH_SHADES = [6, 5] as const;
 
 export const useSwitchStyles = (props: SwitchStyleProps & { theme: PlatformBlocksTheme }) => {
   const { checked, disabled, error, size, color, theme, variant = 'filled' } = props;
@@ -31,9 +35,10 @@ export const useSwitchStyles = (props: SwitchStyleProps & { theme: PlatformBlock
     : (resolvedDimensions ?? sizeMap.md!);
   const { width, height, thumb } = switchDimensions;
 
-  // Get switch colors
-  const colorKey = color as keyof typeof theme.colors;
-  const primaryColor = theme.colors[colorKey]?.[6] || theme.colors.primary[6];
+  // Get switch colors. Shade 6 (not the 5 that fills use) keeps the track
+  // legible against the thumb; the shared resolver also accepts `primary.6`
+  // shade syntax and raw CSS colors, which the old palette-key lookup dropped.
+  const primaryColor = resolveColorProp(theme, color, { shades: SWITCH_SHADES }) ?? theme.colors.primary[6];
   const disabledColor = theme.text.disabled;
   const errorColor = theme.colors.error[6];
 

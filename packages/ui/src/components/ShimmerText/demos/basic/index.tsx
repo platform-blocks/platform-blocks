@@ -1,6 +1,6 @@
 import { Block, ShimmerText } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block align="flex-start">
       <ShimmerText size="xl" weight="bold">

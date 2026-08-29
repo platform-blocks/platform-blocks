@@ -2,7 +2,7 @@ import { Block, Text, Waveform } from '@platform-blocks/ui';
 
 import { WAVEFORM_DEMO_PEAKS } from '../data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Block w="100%" maxW={320}>

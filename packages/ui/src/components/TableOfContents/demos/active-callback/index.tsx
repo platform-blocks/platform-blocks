@@ -7,7 +7,7 @@ const SECTIONS = [
   { id: 'error', title: 'Error Recovery', summary: 'Clarify what happens if the data fails to load.' },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
 
@@ -31,7 +31,7 @@ export default function Demo() {
             {SECTIONS.map((section, index) => (
               <Block key={section.id}>
                 <Title order={index === 0 ? 1 : 2}>{section.title}</Title>
-                <Text colorVariant="secondary">{section.summary}</Text>
+                <Text color="secondary">{section.summary}</Text>
               </Block>
             ))}
           </Block>

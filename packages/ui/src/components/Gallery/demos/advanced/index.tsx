@@ -4,7 +4,7 @@ import type { GalleryItem } from '@platform-blocks/ui';
 
 import { SAMPLE_IMAGES } from './data';
 
-export default function Demo() {
+export function Demo() {
   const [active, setActive] = useState<'minimal' | 'custom' | null>(null);
   const [downloaded, setDownloaded] = useState<string | null>(null);
 
@@ -38,7 +38,7 @@ export default function Demo() {
       />
 
       {downloaded ? (
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Downloaded {downloaded}
         </Text>
       ) : null}

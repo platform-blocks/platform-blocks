@@ -8,7 +8,7 @@ const options = sports.map((option) =>
   option.value === 'basketball' ? { ...option, label: 'Basketball (disabled)', disabled: true } : option,
 )
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState<string | null>(sports[0].value)
 
   return (

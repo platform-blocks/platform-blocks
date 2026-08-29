@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button, Flex, RollingNumber } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [total, setTotal] = useState(1299.99);
 
   return (

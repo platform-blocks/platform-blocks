@@ -4,12 +4,11 @@ import {
   type AppLayoutRuntimeContext,
 } from '@platform-blocks/ui';
 import { router } from 'expo-router';
-import { AppHeader } from '../components/layout/Header';
 import { AppNavigation } from '../components/layout/Navigation';
 import { MobileBottomBar } from '../components/layout/BottomBar';
 import { GlobalSpotlightLazy, FloatingActionsLazy } from '../components/layout/LazyComponents';
 import { useGlobalHotkeys, useThemeMode } from '@platform-blocks/ui';
-import { DocsHeaderMobile } from '../components/layout/HeaderMobile';
+import { DocsHeader } from '../components/layout/DocsHeader';
 import { MobileNavbar } from '../components/layout/MobileNavbar';
 
 const coerceBooleanFromQuery = (
@@ -95,6 +94,11 @@ export const docsLayout = defineAppLayout({
     padding: { base: 0 },
   },
   layout: {
+    // The site is statically rendered: one document per route, served to every
+    // viewport. Nothing here may decide its layout from a breakpoint the
+    // prerender had to guess — the shell takes its geometry from the stylesheet
+    // inlined in app/+html.tsx instead. See `shellCssVars.ts` in the UI package.
+    cssGeometry: true,
     withSafeArea: true,
     padding: { base: 0 },
   },
@@ -123,17 +127,17 @@ export const docsLayout = defineAppLayout({
     },
   },
   header: {
-    render: (ctx: AppLayoutRuntimeContext) => {
-      if (ctx.isMobile) {
-        return <DocsHeaderMobile orientation={ctx.orientation} />;
-      }
-      return <AppHeader />;
-    },
+    // Both bars, every time. Which one shows is the stylesheet's call, not a
+    // breakpoint's — see components/layout/DocsHeader.
+    component: DocsHeader,
     show: shouldShowHeader,
   },
   navbar: {
     component: AppNavigation,
-    show: (ctx: AppLayoutRuntimeContext) => !ctx.isMobile && !isFullscreenExampleRoute(ctx),
+    // Rendered at every width, and hidden below `md` by the same stylesheet
+    // that reserves its width above it. Gating this on `ctx.isMobile` put the
+    // rail in the markup on the client and left it out of the prerender.
+    show: (ctx: AppLayoutRuntimeContext) => !isFullscreenExampleRoute(ctx),
     props: (ctx: AppLayoutRuntimeContext) => ({
       onNavigate: (route: string) => {
         if (ctx.navigation?.push) {

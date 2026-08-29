@@ -1,6 +1,6 @@
 import { Block, Card, Grid, GridItem, Text } from '@platform-blocks/ui';
 
-export default function NestingGridDemo() {
+export function Demo() {
   return (
     <Block fullWidth>
       <Grid columns={12} gap="md">
@@ -34,7 +34,7 @@ export default function NestingGridDemo() {
           </Card>
         </GridItem>
       </Grid>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         GridItem components can render another Grid to illustrate nested layouts
       </Text>
     </Block>

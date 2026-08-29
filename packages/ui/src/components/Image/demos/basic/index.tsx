@@ -1,6 +1,6 @@
 import { Block, Card, Text, Image } from '@platform-blocks/ui';
 
-export default function BasicImageDemo() {
+export function Demo() {
   return (
     <Card>
       <Text size="lg" weight="semibold" mb={16}>Basic Image Usage</Text>

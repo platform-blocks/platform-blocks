@@ -3,7 +3,7 @@ import { Badge, Block, Button, Input, useClipboard } from '@platform-blocks/ui';
 
 const INVITE_URL = 'https://app.example.com/invite/engineering';
 
-export default function Demo() {
+export function Demo() {
   const { copy, copied, unsupported, lastValue } = useClipboard({ timeout: 1500 });
   const [value, setValue] = useState(INVITE_URL);
 

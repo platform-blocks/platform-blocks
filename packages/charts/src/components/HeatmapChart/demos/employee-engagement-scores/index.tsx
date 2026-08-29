@@ -2,7 +2,7 @@ import { HeatmapChart } from '@platform-blocks/charts';
 
 import { DIMENSIONS, SCORES, TEAMS } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <HeatmapChart
       title="Employee engagement survey"

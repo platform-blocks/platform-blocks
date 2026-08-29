@@ -182,48 +182,48 @@ describe('Text - Type Safety and Prop Validation', () => {
   });
 
   describe('ColorVariant Types', () => {
-    it('should accept primary colorVariant', () => {
-      const { getByText } = render(<Text colorVariant="primary">Primary</Text>);
+    it('should accept the primary color', () => {
+      const { getByText } = render(<Text color="primary">Primary</Text>);
       expect(getByText('Primary')).toBeTruthy();
     });
 
-    it('should accept secondary colorVariant', () => {
-      const { getByText } = render(<Text colorVariant="secondary">Secondary</Text>);
+    it('should accept the secondary color', () => {
+      const { getByText } = render(<Text color="secondary">Secondary</Text>);
       expect(getByText('Secondary')).toBeTruthy();
     });
 
-    it('should accept muted colorVariant', () => {
-      const { getByText } = render(<Text colorVariant="muted">Muted</Text>);
+    it('should accept the muted color', () => {
+      const { getByText } = render(<Text color="muted">Muted</Text>);
       expect(getByText('Muted')).toBeTruthy();
     });
 
-    it('should accept disabled colorVariant', () => {
-      const { getByText } = render(<Text colorVariant="disabled">Disabled</Text>);
+    it('should accept the disabled color', () => {
+      const { getByText } = render(<Text color="disabled">Disabled</Text>);
       expect(getByText('Disabled')).toBeTruthy();
     });
 
-    it('should accept link colorVariant', () => {
-      const { getByText } = render(<Text colorVariant="link">Link</Text>);
+    it('should accept the link color', () => {
+      const { getByText } = render(<Text color="link">Link</Text>);
       expect(getByText('Link')).toBeTruthy();
     });
 
-    it('should accept success colorVariant', () => {
-      const { getByText } = render(<Text colorVariant="success">Success</Text>);
+    it('should accept the success color', () => {
+      const { getByText } = render(<Text color="success">Success</Text>);
       expect(getByText('Success')).toBeTruthy();
     });
 
-    it('should accept warning colorVariant', () => {
-      const { getByText } = render(<Text colorVariant="warning">Warning</Text>);
+    it('should accept the warning color', () => {
+      const { getByText } = render(<Text color="warning">Warning</Text>);
       expect(getByText('Warning')).toBeTruthy();
     });
 
-    it('should accept error colorVariant', () => {
-      const { getByText } = render(<Text colorVariant="error">Error</Text>);
+    it('should accept the error color', () => {
+      const { getByText } = render(<Text color="error">Error</Text>);
       expect(getByText('Error')).toBeTruthy();
     });
 
-    it('should accept info colorVariant', () => {
-      const { getByText } = render(<Text colorVariant="info">Info</Text>);
+    it('should accept the info color', () => {
+      const { getByText } = render(<Text color="info">Info</Text>);
       expect(getByText('Info')).toBeTruthy();
     });
   });
@@ -418,12 +418,6 @@ describe('Text - Type Safety and Prop Validation', () => {
       expect(getByText('Primary Color')).toBeTruthy();
     });
 
-    it('should prioritize color over colorVariant', () => {
-      const { getByText } = render(
-        <Text color="#ff0000" colorVariant="primary">Override</Text>
-      );
-      expect(getByText('Override')).toBeTruthy();
-    });
   });
 
   describe('Typography Props', () => {
@@ -570,7 +564,7 @@ describe('Text - Type Safety and Prop Validation', () => {
       const { getByText } = render(
         <Text 
           variant="h2" 
-          colorVariant="success"
+          color="success"
           m={2}
           p={1}
         >

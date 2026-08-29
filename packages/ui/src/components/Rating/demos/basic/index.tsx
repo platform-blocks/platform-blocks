@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, Rating, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [score, setScore] = useState<number>(3);
 
   return (
@@ -12,7 +12,7 @@ export default function Demo() {
         size="lg"
         label="Rate the broadcast quality"
       />
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         Current score: {score} out of 5.
       </Text>
     </Block>

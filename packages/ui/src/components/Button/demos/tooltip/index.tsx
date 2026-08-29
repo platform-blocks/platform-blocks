@@ -1,6 +1,6 @@
 import { Block, Button, Icon, Row } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Row gap="md" wrap="wrap" align="flex-start">

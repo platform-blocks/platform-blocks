@@ -1,10 +1,10 @@
 import { Block, Surface, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Surface level={0} padding="md" radius="lg" fullWidth>
       <Block>
-        <Text size="sm" colorVariant="muted">
+        <Text size="sm" color="muted">
           Level 0 — the page
         </Text>
         <Surface raised padding="md" radius="lg" fullWidth>

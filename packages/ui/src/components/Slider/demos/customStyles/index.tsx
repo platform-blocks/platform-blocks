@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Slider, RangeSlider, Text, Card, Block, Flex } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [volume, setVolume] = useState(65);
   const [range, setRange] = useState<[number, number]>([20, 80]);
 
@@ -22,7 +22,7 @@ export default function Demo() {
             showTicks
             tickColor="rgba(52, 199, 89, 0.2)"
             activeTickColor="#34C759"
-            colorScheme="success"
+            color="success"
             trackSize={12}
             thumbSize={30}
             trackStyle={{ opacity: 0.25 }}
@@ -57,7 +57,7 @@ export default function Demo() {
             max={120}
             step={5}
             showTicks
-            colorScheme="warning"
+            color="warning"
             trackSize={10}
             thumbSize={26}
             trackStyle={{ opacity: 0.2 }}

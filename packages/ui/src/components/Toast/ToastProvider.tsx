@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
-import { View, ViewStyle, Platform, Dimensions } from 'react-native';
-import { Toast } from './Toast';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { ViewStyle, Platform, useWindowDimensions } from 'react-native';
+import { ToastStack } from './ToastStack';
 import { ToastProps, ToastVariant } from './types';
 import type { ComponentSizeValue } from '../../core/theme/componentSize';
 import { Icon } from '../Icon';
@@ -115,7 +115,10 @@ export interface ToastQueueOptions {
   allowDuplicates: boolean;
 }
 
-export interface ToastOptions extends Omit<ToastProps, 'visible' | 'onClose' | 'position'> {
+// `visible`, `onClose`, `position`, `paused` and `onExited` are owned by the
+// provider: it drives the show/hide lifecycle, resolves the screen position, and
+// pauses a whole stack while the pointer rests on it.
+export interface ToastOptions extends Omit<ToastProps, 'visible' | 'onClose' | 'position' | 'paused' | 'onExited'> {
   /** Unique identifier for the toast */
   id?: string;
   /** Position where the toast should appear */
@@ -130,16 +133,31 @@ export interface ToastOptions extends Omit<ToastProps, 'visible' | 'onClose' | '
   groupId?: string;
 }
 
-interface ToastItem extends ToastOptions {
+export interface ToastItem extends ToastOptions {
   id: string;
+  /** False once the toast has started leaving; it is unmounted when it lands. */
   visible: boolean;
   position: ToastPosition;
   timestamp: number;
   priority: number;
 }
 
-// Severity-specific toast options (omit sev since it's set by the method)
-export type SeverityToastOptions = Omit<ToastOptions, 'sev'>;
+/**
+ * Backstop for the `onExited` handshake. A toast is normally removed the instant
+ * its hide transition reports completion; this only fires if that callback never
+ * arrives (the toast was unmounted mid-transition, or animations are stubbed in
+ * a test environment) so a hidden toast can never wedge the stack open.
+ */
+const removalFallbackDelay = (toast: ToastItem): number => {
+  const configured = toast.animationConfig?.duration
+    ?? toast.transitionDuration
+    ?? toast.animationDuration
+    ?? 300;
+  return Math.max(configured, 0) + 250;
+};
+
+// Severity-specific toast options (omit severity since it's set by the method)
+export type SeverityToastOptions = Omit<ToastOptions, 'severity'>;
 
 // Simplified options for string shortcuts
 export type ToastMessage = string;
@@ -222,14 +240,14 @@ function normalizeToastShortcut(options: ToastShortcut, severity: 'info' | 'succ
   if (typeof options === 'string') {
     return {
       message: options,
-      sev: severity,
+      severity,
       icon: createSeverityIcon(severity),
     };
   }
 
   return {
     ...options,
-    sev: severity,
+    severity,
     ...(options.icon === undefined ? { icon: createSeverityIcon(severity) } : null)
   };
 }
@@ -292,6 +310,10 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
 }) => {
   const [toasts, setToast] = useState<ToastItem[]>([]);
 
+  // Subscribed rather than read once: a centred stack has to re-centre when the
+  // window resizes, and a stack read from a stale width lands off-screen.
+  const { width: windowWidth } = useWindowDimensions();
+
   // Track the shell-published viewport offset so toast stacks stay clear of the
   // app header / status bar. Falls back to the static `offset` prop per axis.
   const [dynamicOffset, setDynamicOffset] = useState<ToastViewportOffset>(currentToastViewportOffset);
@@ -303,22 +325,37 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
     right: dynamicOffset.right ?? offset?.right ?? 0,
   }), [dynamicOffset, offset?.top, offset?.bottom, offset?.left, offset?.right]);
 
-  // Default queue options
-  const defaultQueueOptions: ToastQueueOptions = {
+  const { maxVisible, spacing } = useMemo<ToastQueueOptions>(() => ({
     maxVisible: limit,
     stackDirection: 'down',
-    spacing: 8,
+    // Enough air for each toast's shadow to read as its own surface.
+    spacing: 12,
     priority: 'fifo',
     allowDuplicates: true,
-  };
+    ...queueOptions,
+  }), [limit, queueOptions]);
 
-  const finalQueueOptions = { ...defaultQueueOptions, ...queueOptions };
+  // Dismissal is a two-step lifecycle: `visible: false` starts the hide
+  // transition and keeps the toast mounted, then the toast reports `onExited`
+  // and it is removed. These timers only cover the case where that report never
+  // arrives — see `removalFallbackDelay`.
+  const removalTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const remove = useCallback((id: string) => {
+    const timer = removalTimers.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      removalTimers.current.delete(id);
+    }
+    setToast(prev => (prev.some(toast => toast.id === id)
+      ? prev.filter(toast => toast.id !== id)
+      : prev));
+  }, []);
 
   const show = useCallback((options: ToastOptions) => {
     const id = ensureToastId(options.id);
     const position = options.position || defaultPosition;
-    const hideTimeout = options.autoHide !== undefined ? options.autoHide : autoHide;
-    
+
     const toast: ToastItem = {
       ...options,
       id,
@@ -327,62 +364,54 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
       size: options.size ?? defaultSize,
       visible: true,
       children: options.message || options.children,
+      // The countdown belongs to the toast, which is the only thing that knows
+      // whether the pointer is resting on the stack. Running a second timer here
+      // used to double-fire the dismissal — and hid `persistent` toasts anyway.
+      autoHide: options.autoHide ?? autoHide,
       timestamp: Date.now(),
       priority: options.priority || 0,
     };
-    
+
     setToast(prev => {
-      // Remove oldest toasts if limit exceeded
-      const positionToast = prev.filter(n => n.position === position);
-      let updatedToast = prev;
-      
-      if (positionToast.length >= limit) {
-        const oldestInPosition = positionToast[0];
-        updatedToast = prev.filter(n => n.id !== oldestInPosition.id);
-      }
-      
-      return [...updatedToast, toast];
+      const next = [...prev, toast];
+      const live = next.filter(item => item.position === position && item.visible);
+      const overflow = live.length - Math.max(maxVisible, 1);
+      if (overflow <= 0) return next;
+      // Over the limit: retire the oldest, but let them play their exit instead
+      // of deleting them out from under the toast that replaced them.
+      const retiring = new Set(live.slice(0, overflow).map(item => item.id));
+      return next.map(item => (retiring.has(item.id) ? { ...item, visible: false } : item));
     });
-    
-    // Auto hide if specified
-    if (hideTimeout > 0) {
-      setTimeout(() => {
-        hide(id);
-      }, hideTimeout);
-    }
-    
+
     return id;
-  }, [defaultPosition, limit, autoHide, defaultVariant, defaultSize]);
+  }, [defaultPosition, maxVisible, autoHide, defaultVariant, defaultSize]);
+
+  const startHiding = useCallback((matches: (toast: ToastItem) => boolean) => {
+    setToast(prev => {
+      let changed = false;
+      const next = prev.map(toast => {
+        if (!toast.visible || !matches(toast)) return toast;
+        changed = true;
+        return { ...toast, visible: false };
+      });
+      return changed ? next : prev;
+    });
+  }, []);
 
   const hide = useCallback((id: string) => {
-    setToast(prev => prev.map(toast => 
-      toast.id === id 
-        ? { ...toast, visible: false } 
-        : toast
-    ));
-    
-    // Remove toast after animation
-    setTimeout(() => {
-      setToast(prev => prev.filter(toast => toast.id !== id));
-    }, 300);
-  }, []);
+    startHiding(toast => toast.id === id);
+  }, [startHiding]);
 
   const hideAll = useCallback(() => {
-    setToast(prev => prev.map(toast => ({ 
-      ...toast, 
-      visible: false 
-    })));
-    
-    // Remove all toasts after animation
-    setTimeout(() => {
-      setToast([]);
-    }, 300);
-  }, []);
+    startHiding(() => true);
+  }, [startHiding]);
 
   const update = useCallback((id: string, options: Partial<ToastOptions>) => {
     setToast(prev => prev.map(toast =>
-      toast.id === id 
-        ? { ...toast, ...options }
+      toast.id === id
+        // `message` is the shortcut spelling of `children`; honouring it here
+        // means an update can replace a toast's body the same way `show` sets it.
+        ? { ...toast, ...options, children: options.message ?? options.children ?? toast.children }
         : toast
     ));
   }, []);
@@ -414,17 +443,8 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
 
   // Enhanced queue management methods
   const hideGroup = useCallback((groupId: string) => {
-    setToast(prev => prev.map(toast => 
-      toast.groupId === groupId 
-        ? { ...toast, visible: false } 
-        : toast
-    ));
-    
-    // Remove toasts after animation
-    setTimeout(() => {
-      setToast(prev => prev.filter(toast => toast.groupId !== groupId));
-    }, 300);
-  }, []);
+    startHiding(toast => toast.groupId === groupId);
+  }, [startHiding]);
 
   const batch = useCallback((toastOptions: ToastOptions[]) => {
     const ids: string[] = [];
@@ -442,26 +462,44 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
       error: ToastShortcut | ((error: any) => ToastShortcut);
     }
   ): Promise<T> => {
-    const pendingId = show(normalizeToastShortcut(options.pending, 'info'));
-    
+    // One toast for the whole operation. Hiding the pending toast and showing a
+    // second one crossfades two messages in the same slot; settling in place
+    // reads as the same notification resolving, and keeps the outcome where the
+    // user was already looking. The pending toast is persistent because a
+    // promise that outlives the default timeout would otherwise leave the user
+    // with no toast at all until it settles.
+    const pendingId = show({
+      ...normalizeToastShortcut(options.pending, 'info'),
+      persistent: true,
+    });
+
+    const settle = (
+      shortcut: ToastShortcut,
+      severity: 'success' | 'error',
+    ) => {
+      update(pendingId, {
+        ...normalizeToastShortcut(shortcut, severity),
+        persistent: false,
+        autoHide,
+      });
+    };
+
     return promiseToResolve
       .then((data) => {
-        hide(pendingId);
-        const successOptions = typeof options.success === 'function' 
-          ? options.success(data) 
+        const successOptions = typeof options.success === 'function'
+          ? options.success(data)
           : options.success;
-        show(normalizeToastShortcut(successOptions, 'success'));
+        settle(successOptions, 'success');
         return data;
       })
       .catch((error) => {
-        hide(pendingId);
-        const errorOptions = typeof options.error === 'function' 
-          ? options.error(error) 
+        const errorOptions = typeof options.error === 'function'
+          ? options.error(error)
           : options.error;
-        show(normalizeToastShortcut(errorOptions, 'error'));
+        settle(errorOptions, 'error');
         throw error;
       });
-  }, [show, hide]);
+  }, [show, update, autoHide]);
 
   const contextValue = useMemo<ToastContextValue>(() => ({
     show,
@@ -483,6 +521,26 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
     toastsStateRef = toasts;
   }, [toasts]);
 
+  // Arm the fallback removal for anything that has started leaving.
+  useEffect(() => {
+    toasts.forEach(toast => {
+      if (toast.visible || removalTimers.current.has(toast.id)) return;
+      const timer = setTimeout(() => {
+        removalTimers.current.delete(toast.id);
+        setToast(prev => prev.filter(item => item.id !== toast.id));
+      }, removalFallbackDelay(toast));
+      removalTimers.current.set(toast.id, timer);
+    });
+  }, [toasts]);
+
+  useEffect(() => {
+    const timers = removalTimers.current;
+    return () => {
+      timers.forEach(clearTimeout);
+      timers.clear();
+    };
+  }, []);
+
   useEffect(() => {
     toastsApiRef = contextValue;
     flushPendingToastOperations();
@@ -501,77 +559,43 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
     // chrome (e.g. a left navbar shifts the visual center rightward).
     const centerShift = (oLeft - oRight) / 2;
 
-    if (Platform.OS === 'web') {
-      const horizontalMargin = 20;
-      const windowWidth = Dimensions.get('window')?.width ?? 1024;
-      const availableWidth = Math.max(windowWidth - horizontalMargin * 2, 0);
-      const centerWidth = Math.min(400, availableWidth || 400);
-      const centerLeft = Math.max((windowWidth - centerWidth) / 2 + centerShift, horizontalMargin);
-
-      const topPos = 20 + oTop;
-      const bottomPos = 20 + oBottom;
-      const leftPos = horizontalMargin + oLeft;
-      const rightPos = horizontalMargin + oRight;
-
-      const webBase: ViewStyle = {
-        position: 'fixed' as any,
-        zIndex: 2000,
-        pointerEvents: 'box-none',
-        maxWidth: 400,
-        minWidth: 'auto' as const,
-      };
-
-      switch (position) {
-        case 'top-left':
-          return { ...webBase, top: topPos, left: leftPos };
-        case 'top-right':
-          return { ...webBase, top: topPos, right: rightPos };
-        case 'top-center':
-          return { ...webBase, top: topPos, left: centerLeft, width: centerWidth };
-        case 'bottom-left':
-          return { ...webBase, bottom: bottomPos, left: leftPos };
-        case 'bottom-right':
-          return { ...webBase, bottom: bottomPos, right: rightPos };
-        case 'bottom-center':
-          return { ...webBase, bottom: bottomPos, left: centerLeft, width: centerWidth };
-        default:
-          return { ...webBase, top: topPos, right: rightPos };
-      }
-    }
-
-    const horizontalMargin = 16;
-    const screenWidth = Dimensions.get('window').width;
-    const rawWidth = screenWidth - horizontalMargin * 2;
-    const containerWidth = rawWidth > 0 ? Math.min(400, rawWidth) : Math.min(400, screenWidth);
-    const centerLeft = Math.max((screenWidth - containerWidth) / 2 + centerShift, horizontalMargin);
+    const isWeb = Platform.OS === 'web';
+    const horizontalMargin = isWeb ? 20 : 16;
+    const available = Math.max(windowWidth - horizontalMargin * 2, 0);
+    // Stacks position their toasts absolutely, so the container needs a real
+    // width — an auto-width container would collapse and take every toast's
+    // `width: '100%'` down with it.
+    const containerWidth = Math.min(400, available || 400);
+    const centerLeft = Math.max((windowWidth - containerWidth) / 2 + centerShift, horizontalMargin);
 
     const topPos = 20 + oTop;
     const bottomPos = 20 + oBottom;
     const leftPos = horizontalMargin + oLeft;
     const rightPos = horizontalMargin + oRight;
 
-    const nativeBase: ViewStyle = {
-      position: 'absolute',
+    const base: ViewStyle = {
+      position: (isWeb ? 'fixed' : 'absolute') as ViewStyle['position'],
       zIndex: 2000,
       pointerEvents: 'box-none',
       width: containerWidth,
+      maxWidth: 400,
     };
 
     switch (position) {
       case 'top-left':
-        return { ...nativeBase, top: topPos, left: leftPos };
+        return { ...base, top: topPos, left: leftPos };
       case 'top-right':
-        return { ...nativeBase, top: topPos, right: rightPos };
+        return { ...base, top: topPos, right: rightPos };
       case 'top-center':
-        return { ...nativeBase, top: topPos, left: centerLeft };
+        return { ...base, top: topPos, left: centerLeft };
       case 'bottom-left':
-        return { ...nativeBase, bottom: bottomPos, left: leftPos };
+        return { ...base, bottom: bottomPos, left: leftPos };
       case 'bottom-right':
-        return { ...nativeBase, bottom: bottomPos, right: rightPos };
+        return { ...base, bottom: bottomPos, right: rightPos };
       case 'bottom-center':
-        return { ...nativeBase, bottom: bottomPos, left: centerLeft };
+        return { ...base, bottom: bottomPos, left: centerLeft };
       default:
-        return { ...nativeBase, top: topPos, right: rightPos };
+        return { ...base, top: topPos, right: rightPos };
     }
   };
 
@@ -590,46 +614,17 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
       <ToastStateContext.Provider value={toasts}>
         {children}
       
-      {/* Render toast containers for each position */}
+      {/* One stack per occupied position; the stack owns layout and motion. */}
       {Object.entries(toastsByPosition).map(([position, positionToast]) => (
-        <View 
-          key={position} 
-          style={getPositionStyle(position as ToastPosition)}
-        >
-          {positionToast.map((toast, index) => {
-            // Determine animation direction based on position
-            const getAnimationPosition = (pos: string) => {
-              if (pos.includes('top')) return 'top';
-              if (pos.includes('bottom')) return 'bottom';
-              if (pos.includes('left')) return 'left';
-              if (pos.includes('right')) return 'right';
-              return 'top'; // default
-            };
-
-            const isBottomPosition = position.includes('bottom');
-            const isLastItem = index === positionToast.length - 1;
-            const isFirstItem = index === 0;
-
-            return (
-              <View 
-                key={toast.id} 
-                style={{ 
-                  marginBottom: isBottomPosition 
-                    ? (isLastItem ? 0 : 12) 
-                    : (isLastItem ? 0 : 12),
-                  marginTop: isBottomPosition && !isFirstItem ? 0 : 0
-                }}
-              >
-                <Toast
-                  {...toast}
-                  visible={toast.visible}
-                  position={getAnimationPosition(position)}
-                  onClose={() => hide(toast.id)}
-                />
-              </View>
-            );
-          })}
-        </View>
+        <ToastStack
+          key={position}
+          position={position as ToastPosition}
+          items={positionToast}
+          containerStyle={getPositionStyle(position as ToastPosition)}
+          spacing={spacing}
+          onClose={hide}
+          onExited={remove}
+        />
       ))}
     </ToastStateContext.Provider>
     </ToastApiContext.Provider>

@@ -11,6 +11,13 @@ export interface NavItem {
   section?: string; // optional override section grouping
   description?: string; // for spotlight
   /**
+   * Rank inside its section. Sections are alphabetical by default; an entry
+   * with an `order` is pulled in front of the unranked ones, which is how
+   * Getting Started stays at the top of Overview instead of sorting into the
+   * middle of it.
+   */
+  order?: number;
+  /**
    * Sub-group inside the section, rendered as a collapsible branch in the
    * sidebar. Components carry their `coreComponents` category here — the
    * grouping already existed for the /components filter chips and was the
@@ -135,7 +142,7 @@ const HOOK_NAV_ITEMS: NavItem[] = ALL_HOOKS
  * section or category still lands somewhere sensible without editing it.
  */
 export const NAV_GROUP_ORDER = [
-  'Docs',
+  'Overview',
   'Components',
   'Charts',
   'Hooks',
@@ -149,7 +156,7 @@ export const NAV_GROUP_ORDER = [
  * `Layout`) reuse its icon; the rest are named here.
  */
 export const NAV_GROUP_ICONS: Record<string, string> = {
-  Docs: 'home',
+  Overview: 'home',
   Components: 'grid',
   Charts: 'chart-bar',
   Hooks: 'hook',
@@ -177,14 +184,15 @@ export const NAV_SECTIONS: NavSection[] = [
   },
 
   {
-    section: 'Docs',
+    section: 'Overview',
     items: [
-      { label: 'Getting Started', route: '/getting-started', icon: 'home', bottom: true, searchable: true, description: 'Install, set up the provider, and render your first component' },
+      { label: 'Getting Started', route: '/getting-started', icon: 'home', order: 0, bottom: true, searchable: true, description: 'Install, set up the provider, and render your first component' },
       { label: 'Examples', route: '/examples', icon: 'layers', searchable: true, description: 'Complete screens built from Platform Blocks components — open fullscreen, then copy the source' },
       { label: 'Extensions', route: '/extensions', icon: 'package', searchable: true, description: 'Packages that build on Platform Blocks, and the template for making your own' },
       { label: 'Localization', route: '/localization', icon: 'globe', searchable: true },
       { label: 'FAQ', route: '/faq', icon: 'question', bottom: true, searchable: true },
       { label: 'LLM docs', route: '/llms', icon: 'markdown', searchable: true, description: 'Documentation as Markdown for language models — llms.txt, llms-full.txt, and per-page files' },
+      { label: 'Contributing', route: '/contribute', icon: 'code', searchable: true, description: 'Repo layout, local setup, and what it takes to land a component, a demo, or a docs page' },
     ]
   },
   {
@@ -237,6 +245,7 @@ export const NAV_TREE_ITEMS: NavTreeItem<NavItem>[] = NAV_SECTIONS.flatMap(secti
       label: item.label,
       href: item.route,
       group: item.group ? [section.section, item.group] : [section.section],
+      order: item.order,
       data: item,
     }))
 );

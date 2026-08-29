@@ -10,7 +10,7 @@ function slides(colors: string[]) {
   ));
 }
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block fullWidth gap="lg">
       <Text variant="h5">Free momentum (dragFree)</Text>

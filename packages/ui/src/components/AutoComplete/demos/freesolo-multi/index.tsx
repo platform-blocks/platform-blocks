@@ -4,7 +4,7 @@ import { AutoComplete, Block, Chip, Icon, Text } from '@platform-blocks/ui';
 import type { AutoCompleteOption } from '@platform-blocks/ui';
 import { fruits } from '../data'
 
-export default function Demo() {
+export function Demo() {
   const [inputValue, setInputValue] = useState('')
   const [selected, setSelected] = useState<AutoCompleteOption[]>([])
 

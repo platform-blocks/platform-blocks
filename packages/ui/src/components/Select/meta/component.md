@@ -55,7 +55,7 @@ props:
     description: "Whether dropdown closes on selection (for multi-select)"
   - name: "labelProps"
     type: "Omit<TextProps, 'children'>"
-    description: "Props applied to the label `<Text>` (style, weight, ff, size, colorVariant)"
+    description: "Props applied to the label `<Text>` (style, weight, ff, size, color)"
   - name: "descriptionProps"
     type: "Omit<TextProps, 'children'>"
     description: "Props applied to the description `<Text>`"

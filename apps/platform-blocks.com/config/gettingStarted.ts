@@ -4,16 +4,23 @@
  * Kept free of JSX (like config/faq.ts) so it can be consumed both by the
  * screen and by the static build steps that run in Node — scripts/generate-llms.ts
  * renders these steps into /llms/guides/getting-started.md.
+ *
+ * Prose fields carry *inline markdown* rather than elements, which is how a
+ * step gets a link without importing React here: the page runs them through
+ * <Prose>, which turns `[text](href)` into an anchor, and the generator emits
+ * the same string into Markdown untouched. One source, both outputs.
  */
 
 export interface GettingStartedStep {
   title: string;
+  /** Inline markdown — `[text](href)`, `` `code` ``, `**bold**`, `_italics_`. */
   lead: string;
   code: string;
   /** File name shown on the code block. Omitted for shell commands. */
   fileName?: string;
   variant?: 'terminal';
   language?: string;
+  /** Inline markdown, same as `lead`. */
   note?: string;
 }
 
@@ -59,17 +66,19 @@ export const GETTING_STARTED_PREREQUISITES: GettingStartedPrerequisite[] = [
 export const GETTING_STARTED_STEPS: GettingStartedStep[] = [
   {
     title: 'Install with npm',
-    lead: 'Add Platform Blocks to your React Native or Expo project:',
+    lead: 'Add [@platform-blocks/ui](https://www.npmjs.com/package/@platform-blocks/ui) to your React Native or Expo project:',
     code: 'npm install @platform-blocks/ui',
-    // variant: 'terminal',
     // note: 'This installs the core library — every component, hook, and utility.',
     language: 'bash',
   },
   {
     title: 'Install the peer dependencies',
     lead: 'Platform Blocks builds on a handful of packages your app provides. On Expo, install them with expo install so the versions match your SDK:',
-    code: `npx expo install react-native-reanimated react-native-safe-area-context react-native-svg @tabler/icons-react-native`,
-    // variant: 'terminal',
+    code: `npx expo install \\
+    react-native-reanimated \\
+    react-native-safe-area-context \\
+    react-native-svg \\
+    @tabler/icons-react-native`,
     language: 'bash',
     // note: '@tabler/icons-react-native backs the Icon registry, which is imported from the package root — without it, Icon and every component that renders one will fail to resolve. Optional integrations (expo-audio, expo-haptics, expo-linear-gradient, @shopify/flash-list, and others) are loaded lazily and only needed for the features that use them.',
   },
@@ -77,6 +86,7 @@ export const GETTING_STARTED_STEPS: GettingStartedStep[] = [
     title: 'Set up the provider',
     lead: 'Wrap your root component with PlatformBlocksProvider to enable theming:',
     fileName: 'App.tsx',
+    language: 'tsx',
     code: `import React from 'react';
 import { PlatformBlocksProvider } from '@platform-blocks/ui';
 import { YourApp } from './YourApp';

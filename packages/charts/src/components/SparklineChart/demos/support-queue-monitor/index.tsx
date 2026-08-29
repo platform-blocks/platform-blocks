@@ -3,7 +3,7 @@ import { SparklineChart } from '@platform-blocks/charts';
 
 import { QUEUE_DEPTH } from './data';
 
-export default function Demo() {
+export function Demo() {
   const current = QUEUE_DEPTH[QUEUE_DEPTH.length - 1];
   const peak = Math.max(...QUEUE_DEPTH);
 

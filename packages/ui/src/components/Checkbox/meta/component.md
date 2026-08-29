@@ -10,8 +10,7 @@ props:
   label: Label text displayed beside the checkbox
   description: Helper text shown beneath the label
   size: Size token controlling checkbox + label scaling
-  color: Custom color override (overrides colorVariant)
-  colorVariant: Named color from theme — primary | success | warning | error | secondary
+  color: Line color — 'border' (default) | 'subtle' | 'muted' | palette token | 'primary.6' | any CSS color
   disabled: Whether the checkbox is disabled
   required: Whether the checkbox is required
   error: Error message replacing the description

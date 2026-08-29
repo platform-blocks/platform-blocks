@@ -51,7 +51,7 @@ export interface DialogProps {
    * @default 300
    */
   transitionDuration?: number;
-  /** Override props applied to the title `<Text>` (style, weight, ff, size, colorVariant). */
+  /** Override props applied to the title `<Text>` (style, weight, ff, size, color). */
   titleProps?: Omit<TextProps, 'children'>;
   /**
    * Moves focus into the dialog once it has finished opening. See

@@ -18,7 +18,7 @@ import {
 } from '../../config/navigationConfig';
 
 /** Open on a first visit: short, and where the reading order starts. */
-const DEFAULT_OPEN_GROUPS = ['Docs'];
+const DEFAULT_OPEN_GROUPS = ['Overview'];
 
 export const AppNavigation: React.FC = () => {
   const { navbarWidth } = useAppShellLayout();
@@ -31,10 +31,10 @@ export const AppNavigation: React.FC = () => {
   const rail = coerceNumber(navbarWidth as any, 72) <= 72;
   const railCollapsed = rail && !hovering;
 
-  // Branches carry an icon; leaves do not. A column of 140 component icons is
-  // decoration, while the dozen branch icons are what the collapsed rail has to
-  // navigate by.
-  const groupIcons = useMemo(
+  // Icons are the collapsed rail's only content, so the branch icons exist for
+  // it alone — expanded, a section is a word and the glyph beside it is
+  // decoration that pushes every row right.
+  const railIcons = useMemo(
     () =>
       Object.fromEntries(
         Object.entries(NAV_GROUP_ICONS).map(([label, icon]) => [
@@ -76,10 +76,14 @@ export const AppNavigation: React.FC = () => {
             activeHref={pathname}
             onNavigate={handleNavigate}
             collapsed={railCollapsed}
-            groupIcons={groupIcons}
+            groupIcons={railCollapsed ? railIcons : undefined}
             groupOrder={NAV_GROUP_ORDER}
             getGroupNode={getGroupNode}
-            // Everything closed but `Docs`, which is short and is where a first
+            // Sections read as headings rather than folders: no caret on the
+            // top level, and no row holding its column open, so the whole tree
+            // sits flush left. Pressing a section still opens it.
+            disclosure="nested"
+            // Everything closed but `Overview`, which is short and is where a first
             // visit starts. Ten rows at rest against the hundred and forty a
             // flat list showed, and `activeHref` opens the branch you are in.
             openDepth={0}

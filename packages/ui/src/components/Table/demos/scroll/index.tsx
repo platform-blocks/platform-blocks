@@ -1,10 +1,10 @@
 import { Block, Table, Text } from '@platform-blocks/ui';
 import { body, columns } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Wrap wide datasets in `Table.ScrollContainer` to enable horizontal scrolling.
       </Text>
       <Table.ScrollContainer minW={900}>

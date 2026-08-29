@@ -2,7 +2,7 @@ import { HeatmapChart } from '@platform-blocks/charts';
 
 import { CLUSTERS, CPU_UTILIZATION, TIME_BLOCKS } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <HeatmapChart
       title="Infrastructure CPU utilization"

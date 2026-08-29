@@ -6,7 +6,7 @@ const colorStops = [
   { value: 90, color: '#14b8a6' },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Row gap="lg" justify="center" wrap="wrap">
       {[48, 72, 97].map((value) => (

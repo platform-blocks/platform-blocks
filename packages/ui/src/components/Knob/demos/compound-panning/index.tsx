@@ -6,7 +6,7 @@ import { Block, Knob, Text } from '@platform-blocks/ui';
 // the arc grows and by the L/R label, not by a color change.
 const PAN_COLOR = '#4ade80';
 
-export default function Demo() {
+export function Demo() {
   const [pan, setPan] = useState(-18);
 
   const readout = useMemo(() => {
@@ -47,7 +47,7 @@ export default function Demo() {
           textStyle={{ fontSize: 30, fontWeight: '700', color: '#f8fafc' }}
         />
       </Knob.Root>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Stereo balance · {readout}
       </Text>
     </Block>

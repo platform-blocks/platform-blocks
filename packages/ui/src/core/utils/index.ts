@@ -14,6 +14,7 @@ export { SpacingProps, BaseSystemProps, getSpacingStyles, extractSpacingProps } 
 // Slot-prop helper used by every component that exposes `labelProps` /
 // `titleProps` / `bodyProps` / etc.
 export { mergeSlotProps } from './mergeSlotProps';
+
 export { mergeRefs, useMergedRef } from './mergeRefs';
 
 // Export universal props system
@@ -155,7 +156,14 @@ export function getShadow(shadow: string | undefined): string | undefined {
 }
 
 /**
- * Gets color value from theme
+ * Reference a theme color as a CSS variable — `getColor('primary', 6)` yields
+ * `var(--platform-blocks-color-primary-6)`, one of the variables `CSSVariables`
+ * emits.
+ *
+ * **Web only.** React Native has no `var()`, so the returned string is inert on
+ * native. To resolve a color prop to a concrete value on every platform, use
+ * `resolveColorProp` (or `resolveTextColor` / `resolveBg` / `resolveAccentColor`
+ * / `resolveLineColor`) from `core/theme` — that is what the components use.
  */
 export function getColor(color: string | undefined, shade?: number | string): string | undefined {
   if (!color) {

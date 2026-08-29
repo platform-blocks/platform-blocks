@@ -2,7 +2,7 @@ import { RadialBarChart } from '@platform-blocks/charts';
 
 import { SCORE } from './data';
 
-export default function Demo() {
+export function Demo() {
 	return (
 		<RadialBarChart
 			title="Customer Satisfaction"

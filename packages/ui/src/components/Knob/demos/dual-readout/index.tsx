@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 
 import { Block, Knob } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [cutoff, setCutoff] = useState(3200);
   const percent = useMemo(() => Math.round(((cutoff - 200) / (8000 - 200)) * 100), [cutoff]);
 

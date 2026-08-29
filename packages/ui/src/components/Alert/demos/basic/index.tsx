@@ -1,15 +1,15 @@
 import { Alert, Block } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
-      <Alert sev="info" title="Heads up">
+      <Alert severity="info" title="Heads up">
         Use alerts to highlight contextual information inline with page content.
       </Alert>
-      <Alert sev="success" title="Profile saved">
+      <Alert severity="success" title="Profile saved">
         Your changes were stored successfully.
       </Alert>
-      <Alert sev="error" title="Connection issue">
+      <Alert severity="error" title="Connection issue">
         Retry the action or check the status page for outages.
       </Alert>
     </Block>

@@ -2,7 +2,6 @@
 // Prefer importing from here in app code, while intra-library keeps local paths
 // to avoid circular dependencies.
 
-export type { NoticeProps } from './Alert';
 export type { AppShellProps } from './AppShell';
 export type { AvatarProps, AvatarGroupProps } from './Avatar';
 export type { BreadcrumbsProps, BreadcrumbItem } from './Breadcrumbs';
@@ -22,7 +21,7 @@ export type { SpaceProps } from './Space';
 export type { FlexProps } from './Flex';
 export type { GridProps } from './Grid';
 export type { IconProps } from './Icon';
-export type { BrandIconProps, BrandName, DeprecatedBrandName } from './BrandIcon';
+export type { BrandIconProps, BrandName } from './BrandIcon';
 export type { InputProps, PasswordInputProps, BaseInputProps } from './Input';
 export type { PhoneInputProps } from './PhoneInput/types';
 export type { LinkProps } from './Link';

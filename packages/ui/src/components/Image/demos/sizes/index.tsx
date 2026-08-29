@@ -6,7 +6,7 @@ const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
 const SAMPLE_SRC =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAALklEQVR42mNITvsIR409P+CIAasokMuAVRQqgSkKksAqiiKB5goGrKJQCawuBgC2Wnfh+zNA9wAAAABJRU5ErkJggg==';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Row align="flex-end" gap="lg" wrap="wrap">
       {SIZES.map((size) => (

@@ -14,7 +14,7 @@ const describeQuadrant = (x: number, y: number) => {
   return labels.bottomLeft ?? null;
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <ScatterChart
       title="API error rate vs. request volume"

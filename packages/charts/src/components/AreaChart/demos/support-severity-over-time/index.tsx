@@ -4,7 +4,7 @@ import { SEVERITY_SERIES, WEEKS } from './data';
 
 const formatWeek = (index: number) => WEEKS[index] ?? `Week ${index + 1}`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <AreaChart
       title="Quarterly Support Ticket Mix"

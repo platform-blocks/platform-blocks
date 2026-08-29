@@ -5,6 +5,7 @@ import type { ViewStyle } from 'react-native';
 import { Text } from '../Text';
 import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { resolveComponentSize } from '../../core/theme/componentSize';
 import { createFocusStyles } from '../../core/interactive-states';
 import { useTransitionDuration } from '../../core/motion/useTransitionDuration';
@@ -125,7 +126,7 @@ export const Joystick = factory<{
     size = 'md',
     handleSize: handleSizeProp,
     variant = 'default',
-    colorScheme = 'primary',
+    color,
     baseColor: baseColorProp,
     handleColor: handleColorProp,
     showGuides = true,
@@ -168,10 +169,8 @@ export const Joystick = factory<{
 
   const duration = useTransitionDuration(transitionDuration, 220);
 
-  const palette = (theme.colors as Record<string, string[]>)[colorScheme];
   const accentColor = handleColorProp
-    ?? palette?.[5]
-    ?? (typeof colorScheme === 'string' && !palette ? colorScheme : undefined)
+    ?? resolveAccentColor(theme, color)
     ?? theme.colors.primary[5];
   const surfaceColor = baseColorProp
     ?? (theme.colorScheme === 'dark' ? theme.colors.gray[7] : theme.colors.gray[2]);

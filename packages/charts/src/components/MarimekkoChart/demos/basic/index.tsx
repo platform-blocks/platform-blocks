@@ -2,7 +2,7 @@ import { MarimekkoChart } from '@platform-blocks/charts';
 
 import { PIPELINE_COMPOSITION } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <MarimekkoChart
       title="Pipeline contribution by segment"

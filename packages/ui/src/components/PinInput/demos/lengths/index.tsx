@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, PinInput, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [fourDigit, setFourDigit] = useState('');
   const [sixDigit, setSixDigit] = useState('');
   const [eightDigit, setEightDigit] = useState('');
@@ -42,7 +42,7 @@ export default function Demo() {
           <Text size="sm" weight="semibold">
             {example.title}
           </Text>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             {example.helper}
           </Text>
           <PinInput

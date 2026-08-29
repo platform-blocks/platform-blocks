@@ -10,20 +10,20 @@ const COPY: Record<ToastVariant, string> = {
   outline: 'Surface with a full colored border.',
 };
 
-export default function Demo() {
+export function Demo() {
   const toast = useToast();
 
   return (
     <Block gap="md">
-      <Text size="xs" colorVariant="secondary">
+      <Text size="xs" color="secondary">
         The `variant` prop controls the toast surface. Each preview below pairs
-        the variant with the `success` severity — swap `sev` or `color` to
+        the variant with the `success` severity — swap `severity` or `color` to
         recolor any of them.
       </Text>
 
       {VARIANTS.map((variant) => (
         <Block key={variant} gap="xs">
-          <Text variant="small" colorVariant="secondary">
+          <Text variant="small" color="secondary">
             {variant}
           </Text>
           <Toast
@@ -31,7 +31,7 @@ export default function Demo() {
             persistent
             autoHide={0}
             variant={variant}
-            sev="success"
+            severity="success"
             title="Changes saved"
             icon={<Icon name="success" variant="filled" />}
             withCloseButton={false}

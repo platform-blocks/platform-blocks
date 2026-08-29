@@ -8,7 +8,7 @@ const TogglePlayground = () => {
   const [formats, setFormats] = useState(['bold']);
   const [view, setView] = useState('list');
   const [favorite, setFavorite] = useState(false);
-  const [colorVariant, setColorVariant] = useState('error');
+  const [color, setColor] = useState('error');
 
   const { width } = useWindowDimensions();
   const isSmall = width < 768;
@@ -16,7 +16,7 @@ const TogglePlayground = () => {
     <View>
        {/* Block Section */}
             <Title text="Block" variant="h2" afterline />
-            <Text variant="p" colorVariant="secondary">
+            <Text variant="p" color="secondary">
               Block is a low-level layout primitive with universal props. It can act as a flexible container or item.
             </Text>
             <Card>
@@ -141,15 +141,15 @@ const TogglePlayground = () => {
       <Block>
         <Text style={styles.sectionTitle}>Color Variants</Text>
         <ToggleGroup
-          value={colorVariant}
+          value={color}
           exclusive
-          onChange={(value) => setColorVariant(value as string)}
+          onChange={(value) => setColor(value as string)}
         >
-          <ToggleButton value="error" colorVariant="error">Red</ToggleButton>
-          <ToggleButton value="success" colorVariant="success">Green</ToggleButton>
-          <ToggleButton value="warning" colorVariant="warning">Yellow</ToggleButton>
+          <ToggleButton value="error" color="error">Red</ToggleButton>
+          <ToggleButton value="success" color="success">Green</ToggleButton>
+          <ToggleButton value="warning" color="warning">Yellow</ToggleButton>
         </ToggleGroup>
-        <Text style={styles.status}>Selected color: {colorVariant}</Text>
+        <Text style={styles.status}>Selected color: {color}</Text>
       </Block>
       </Block>
 

@@ -3,7 +3,7 @@ import { Block, Checkbox, Text } from '@platform-blocks/ui';
 
 const COLORS = ['primary', 'secondary', 'success', 'warning', 'error'] as const;
 
-export default function Demo() {
+export function Demo() {
   const [values, setValues] = useState<Record<string, boolean>>({});
 
   const toggle = (color: string) => {
@@ -20,7 +20,7 @@ export default function Demo() {
         {COLORS.map((color) => (
           <Checkbox
             key={color}
-            colorVariant={color}
+            color={color}
             label={`Color: ${color}`}
             checked={Boolean(values[color])}
             onChange={() => toggle(color)}
@@ -28,12 +28,12 @@ export default function Demo() {
         ))}
       </Block>
       <Checkbox
-        colorVariant="success"
+        color="success"
         label="Default checked"
         defaultChecked
       />
-      <Text variant="small" colorVariant="muted">
-        Use `colorVariant` to match checkbox accents with message intent while keeping labels readable.
+      <Text variant="small" color="muted">
+        Use `color` to match checkbox accents with message intent while keeping labels readable.
       </Text>
     </Block>
   );

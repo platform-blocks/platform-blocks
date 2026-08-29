@@ -1,7 +1,7 @@
 import { Block, Row, SegmentedControl } from '@platform-blocks/ui';
 import { frameworks, panes } from '../data';
 
-export default function Demo() {
+export function Demo() {
   return (
       <Block>
         <Row gap="lg" align="flex-start" wrap="wrap">

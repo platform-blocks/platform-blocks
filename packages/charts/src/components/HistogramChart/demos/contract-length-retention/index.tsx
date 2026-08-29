@@ -2,7 +2,7 @@ import { HistogramChart } from '@platform-blocks/charts';
 
 import { CONTRACT_LENGTHS, median } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <HistogramChart
       title="Customer contract length distribution"

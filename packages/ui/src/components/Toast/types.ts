@@ -2,11 +2,11 @@ import React from 'react';
 import { ViewStyle, StyleProp } from 'react-native';
 import { SpacingProps } from '../../core/utils';
 import { BorderRadiusProps } from '../../core/theme/radius';
+import type { ThemeColor } from '../../core/theme/resolveColors';
 import type { ComponentSizeValue } from '../../core/theme/componentSize';
 import type { TextProps } from '../Text';
 
 export type ToastVariant = 'light' | 'filled' | 'outline';
-export type ToastColor = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'gray';
 export type ToastSeverity = 'info' | 'success' | 'warning' | 'error';
 export type ToastPosition = 'top' | 'bottom' | 'left' | 'right';
 export type ToastAnimationType = 'slide' | 'fade' | 'bounce' | 'scale';
@@ -74,9 +74,12 @@ export interface ToastProps extends SpacingProps, BorderRadiusProps {
    */
   size?: ComponentSizeValue;
   /** Toast color - can be theme color or custom color string */
-  color?: ToastColor | string;
-  /** Severity level - provides default styling for common toast types */
-  sev?: ToastSeverity;
+  color?: ThemeColor;
+  /**
+   * Severity level — sets the color, the default icon, and the haptic played on
+   * appear. More than a color: prefer it over `color` for status toasts.
+   */
+  severity?: ToastSeverity;
   /** Toast title */
   title?: string;
   /** Toast content */
@@ -91,6 +94,12 @@ export interface ToastProps extends SpacingProps, BorderRadiusProps {
   closeButtonLabel?: string;
   /** Callback when close button is pressed */
   onClose?: () => void;
+  /**
+   * Fired once the hide transition has finished playing. `ToastProvider` uses
+   * this to unmount a toast exactly when it finishes leaving instead of on a
+   * fixed timer, so a custom `transitionDuration` never gets cut short.
+   */
+  onExited?: () => void;
   /** Whether the toast is visible */
   visible?: boolean;
   /** Animation duration in ms */
@@ -103,6 +112,13 @@ export interface ToastProps extends SpacingProps, BorderRadiusProps {
   transitionDuration?: number;
   /** Auto hide duration in ms (0 to disable) */
   autoHide?: number;
+  /**
+   * Suspends the auto-hide countdown without resetting it; clearing it resumes
+   * with the time that was left. `ToastProvider` sets this for every toast in a
+   * stack while the pointer or keyboard focus is inside that stack.
+   * @default false
+   */
+  paused?: boolean;
   /** Position of the toast for animation direction */
   position?: ToastPosition;
   /** Container style */
@@ -132,7 +148,7 @@ export interface ToastProps extends SpacingProps, BorderRadiusProps {
    * @default false
    */
   selectable?: boolean;
-  /** Override props applied to the title `<Text>` (style, weight, ff, size, colorVariant). */
+  /** Override props applied to the title `<Text>` (style, weight, ff, size, color). */
   titleProps?: Omit<TextProps, 'children'>;
   /** Override props applied to the body `<Text>` (the `children` content). */
   bodyProps?: Omit<TextProps, 'children'>;

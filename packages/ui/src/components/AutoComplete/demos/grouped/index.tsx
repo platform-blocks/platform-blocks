@@ -4,7 +4,7 @@ import { AutoComplete, Block } from '@platform-blocks/ui';
 import type { AutoCompleteOption } from '@platform-blocks/ui';
 import { groupedCountries } from '../data'
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState('')
   const [selectedCountry, setSelectedCountry] = useState<AutoCompleteOption | null>(null)
 

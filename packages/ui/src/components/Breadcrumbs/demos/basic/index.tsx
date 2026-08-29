@@ -7,6 +7,6 @@ const ITEMS = [
   { label: 'Smartphones' },
 ];
 
-export default function Demo() {
+export function Demo() {
   return <Breadcrumbs items={ITEMS} />;
 }

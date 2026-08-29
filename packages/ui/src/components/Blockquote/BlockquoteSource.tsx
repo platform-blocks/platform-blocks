@@ -50,7 +50,7 @@ export function BlockquoteSource({
       {/* Source Name */}
       <Text 
         size="xs"
-        colorVariant="secondary"
+        color="secondary"
         style={{ 
           textAlign: alignment,
           ...(source.url && { textDecorationLine: 'underline' })

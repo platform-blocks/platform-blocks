@@ -33,7 +33,7 @@ const COLOR_CONFIG = [
 
 type PaletteKey = (typeof COLOR_CONFIG)[number]['key'];
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
   const [values, setValues] = useState<Record<PaletteKey, number>>({
     primary: 4,
@@ -60,7 +60,7 @@ export default function Demo() {
               size="lg"
               labelPosition="right"
               label={
-            <Text variant="small" colorVariant="muted">
+            <Text variant="small" color="muted">
               {label}
             </Text>
             }

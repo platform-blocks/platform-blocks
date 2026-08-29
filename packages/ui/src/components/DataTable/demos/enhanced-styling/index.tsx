@@ -19,7 +19,7 @@ const columns: DataTableColumn<Person>[] = [
           .map((part) => part[0])
           .join('')}
         label={<Text weight="semibold">{row.name}</Text>}
-        description={<Text variant="small" colorVariant="muted">{row.title}</Text>}
+        description={<Text variant="small" color="muted">{row.title}</Text>}
         gap={8}
       />
     ),
@@ -42,7 +42,7 @@ const columns: DataTableColumn<Person>[] = [
     sortable: true,
     cell: (value: Person['status']) => (
       <Text
-        colorVariant={value === 'inactive' ? 'error' : value === 'pending' ? 'warning' : 'success'}
+        color={value === 'inactive' ? 'error' : value === 'pending' ? 'warning' : 'success'}
         weight="semibold"
       >
         {value.charAt(0).toUpperCase() + value.slice(1)}
@@ -59,7 +59,7 @@ const columns: DataTableColumn<Person>[] = [
   },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <DataTable
       data={rows}

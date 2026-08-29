@@ -14,7 +14,7 @@ const latencyToOpacity = (latency: number) => {
   return 0.5;
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <NetworkChart
       title="Microservice latency map"

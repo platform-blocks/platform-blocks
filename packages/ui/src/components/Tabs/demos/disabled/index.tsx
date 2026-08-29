@@ -25,7 +25,7 @@ const PANELS = [
   }
 ];
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState('overview');
   const [lastAttempt, setLastAttempt] = useState<string | null>(null);
@@ -53,7 +53,7 @@ export default function Demo() {
           )
         }))}
       />
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         Disable sensitive tabs while keeping the `onDisabledTabPress` callback to track attempted access.
         {lastAttempt ? ` ${lastAttempt}` : ''}
       </Text>

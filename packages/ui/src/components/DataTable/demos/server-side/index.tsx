@@ -47,7 +47,7 @@ const columns: DataTableColumn<Order>[] = [
   { key: 'amount', header: 'Amount', accessor: 'amount', sortable: true, dataType: 'currency' },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [rows, setRows] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<DataTableSort[]>([]);

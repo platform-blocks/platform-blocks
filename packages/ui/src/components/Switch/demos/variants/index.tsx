@@ -8,7 +8,7 @@ const VARIANTS = [
   { variant: 'android', hint: 'android — Material dot thumb that grows and whitens when on' },
 ] as const;
 
-export default function Demo() {
+export function Demo() {
   const [on, setOn] = useState<Record<string, boolean>>({
     filled: true,
     outline: true,
@@ -20,7 +20,7 @@ export default function Demo() {
     <Block>
       {VARIANTS.map(({ variant, hint }) => (
         <Block key={variant}>
-          <Text variant="small" colorVariant="muted">
+          <Text variant="small" color="muted">
             {hint}
           </Text>
           <Row gap="lg" wrap="wrap" align="center">

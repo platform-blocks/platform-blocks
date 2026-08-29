@@ -39,11 +39,6 @@ export interface IconButtonProps extends SpacingProps, LayoutProps, BorderRadius
    * `gradient` draws its own overlay and ignores this.
    */
   color?: string;
-  /**
-   * Legacy alias for `color`, kept for back-compat. `color` wins when both are
-   * set. Prefer `color` — it matches Button, Badge, Chip, and Card.
-   */
-  colorVariant?: string;
   /** Explicit icon color override (else derived automatically from variant & color) */
   iconColor?: string;
   /** Icon variant override */

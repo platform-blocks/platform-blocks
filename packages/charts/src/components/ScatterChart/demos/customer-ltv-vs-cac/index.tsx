@@ -15,7 +15,7 @@ const resolveQuadrantLabel = (x: number, y: number) => {
   return null;
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <ScatterChart
       title="Customer LTV vs. Acquisition Cost"

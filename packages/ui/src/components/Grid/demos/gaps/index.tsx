@@ -15,7 +15,7 @@ const sections = [
   },
 ];
 
-export default function GapsGridDemo() {
+export function Demo() {
   return (
     <Block fullWidth>
       {sections.map(({ label, props }) => (

@@ -2,7 +2,7 @@ import { ParetoChart } from '@platform-blocks/charts';
 
 import { ACCOUNT_REVENUE } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <ParetoChart
       title="Annual revenue concentration"

@@ -2,7 +2,7 @@ import { CandlestickChart } from '@platform-blocks/charts';
 
 import { PRICE_SERIES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <CandlestickChart
       title="AAPL daily candles"

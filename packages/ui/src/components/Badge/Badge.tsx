@@ -100,8 +100,9 @@ export const Badge = React.forwardRef<View, BadgeProps>((props, ref) => {
     ...rest
   } = props;
 
-  const requestedVariant = v || variant || 'subtle';
-  const resolvedColor = c || color || 'primary';
+  // The canonical name wins over its shorthand, matching Text and RollingNumber.
+  const requestedVariant = variant || v || 'subtle';
+  const resolvedColor = color || c || 'primary';
   const shouldUseGradient = requestedVariant === 'gradient' && hasLinearGradient;
   const effectiveVariant = shouldUseGradient ? 'gradient' : (requestedVariant === 'gradient' ? 'filled' : requestedVariant);
 

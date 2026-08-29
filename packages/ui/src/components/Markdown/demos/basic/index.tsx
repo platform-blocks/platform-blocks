@@ -12,11 +12,11 @@ This is a **bold** statement and this is _italic_.
 
 Inline code: \`const x = 42;\``;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block fullWidth>
       <Markdown>{CONTENT}</Markdown>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Rendered using the default Markdown renderer
       </Text>
     </Block>

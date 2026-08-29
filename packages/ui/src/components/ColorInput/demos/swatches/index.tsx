@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, ColorInput, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [color1, setColor1] = useState('#2196F3');
   const [color2, setColor2] = useState('#4CAF50');
   const [color3, setColor3] = useState('#FF9800');

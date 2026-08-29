@@ -21,7 +21,7 @@ export interface IndicatorProps {
    * fit the label and the text uses a contrast-aware color.
    */
   label?: React.ReactNode;
-  /** Override props applied to the label `<Text>` (style, weight, ff, size, colorVariant). */
+  /** Override props applied to the label `<Text>` (style, weight, ff, size, color). */
   labelProps?: Omit<TextProps, 'children'>;
   invisible?: boolean;
 }

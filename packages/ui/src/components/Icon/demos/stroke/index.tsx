@@ -6,12 +6,12 @@ const strokeVariants = [
   { label: 'Bold (3)', value: 3 },
 ];
 
-export default function IconStrokeDemo() {
+export function Demo() {
   return (
     <Card variant="outline" style={{ padding: 20 }}>
       <Flex direction="column" gap="md">
         <Text variant="h6">Stroke thickness</Text>
-        <Text variant="p" colorVariant="secondary">
+        <Text variant="p" color="secondary">
           Adjust the stroke thickness to match different visual weights. Filled icons that opt in to preserving stroke (like{' '}
           contrast) keep their outline while the fill still applies.
         </Text>

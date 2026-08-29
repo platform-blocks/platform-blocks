@@ -1,46 +1,19 @@
 import React from 'react';
 import { View, ViewStyle } from 'react-native';
 
-import type { DividerProps, DividerFactoryPayload, DividerColorVariant } from './types';
+import type { DividerProps, DividerFactoryPayload } from './types';
 import { factory } from '../../core/factory';
 import { getSpacing } from '../../core/theme/sizes';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
 import { Text } from '../Text';
 import { resolveLinearGradient } from '../../utils/optionalDependencies';
+import { resolveLineColor } from '../../core/theme/resolveColors';
 
 const { LinearGradient: OptionalLinearGradient } = resolveLinearGradient();
 
-const PALETTE_DIVIDER_SHADE = 3 as const;
-
-function resolveDividerColor(
-  theme: any,
-  colorVariant?: DividerColorVariant,
-  color?: string,
-): string {
-  if (color) return color;
-
-  switch (colorVariant) {
-    case 'subtle':
-      return theme.backgrounds?.subtle ?? theme.backgrounds?.border ?? '#E5E5EA';
-    case 'muted':
-      return theme.text?.muted ?? theme.backgrounds?.border ?? '#999999';
-    case 'primary':
-    case 'secondary':
-    case 'success':
-    case 'warning':
-    case 'error':
-    case 'gray': {
-      const palette = (theme.colors as any)?.[colorVariant];
-      if (!palette) return theme.backgrounds?.border ?? '#E5E5EA';
-      return Array.isArray(palette)
-        ? (palette[PALETTE_DIVIDER_SHADE] ?? palette[5] ?? palette[0])
-        : palette;
-    }
-    case 'border':
-    default:
-      return theme.backgrounds?.border ?? '#E5E5EA';
-  }
+function resolveDividerColor(theme: any, color?: string): string {
+  return resolveLineColor(theme, color) ?? theme.backgrounds?.border ?? '#E5E5EA';
 }
 
 function DividerBase(props: DividerProps, ref: React.Ref<View>) {
@@ -48,7 +21,6 @@ function DividerBase(props: DividerProps, ref: React.Ref<View>) {
     orientation = 'horizontal',
     variant = 'solid',
     color,
-    colorVariant = 'border',
     size = 1,
     opacity,
     label,
@@ -63,7 +35,7 @@ function DividerBase(props: DividerProps, ref: React.Ref<View>) {
   const spacingStyles = getSpacingStyles(spacingProps);
 
   const theme = useTheme();
-  const dividerColor = resolveDividerColor(theme, colorVariant, color);
+  const dividerColor = resolveDividerColor(theme, color);
   const dividerSize = typeof size === 'number' ? size : getSpacing(size);
   const labelSpacing = getSpacing('sm');
 
@@ -73,7 +45,7 @@ function DividerBase(props: DividerProps, ref: React.Ref<View>) {
       return (
         <Text
           size="sm"
-          colorVariant="muted"
+          color="muted"
           weight="medium"
           align={orientation === 'vertical' ? 'center' : undefined}
           {...labelProps}

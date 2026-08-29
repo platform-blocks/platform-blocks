@@ -3,7 +3,7 @@ import { AutoComplete, Block } from '@platform-blocks/ui';
 import type { AutoCompleteOption } from '@platform-blocks/ui';
 import { sports } from '../data';
 
-export default function Demo() {
+export function Demo() {
   const [inputValue, setInputValue] = useState('');
   const [selectedSport, setSelectedSport] = useState<AutoCompleteOption | null>(null);
 

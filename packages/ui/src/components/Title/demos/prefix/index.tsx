@@ -1,6 +1,6 @@
 import { Block, Card, Icon, Title } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Card p="md">
       <Block>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, Button, Rating, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [score, setScore] = useState<number>(0);
   const [submitted, setSubmitted] = useState(false);
 
@@ -20,7 +20,7 @@ export default function Demo() {
         error={error}
       />
       <Button onPress={() => setSubmitted(true)}>Submit</Button>
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         {score === 0 ? 'No rating selected.' : `You rated ${score} out of 5.`}
       </Text>
     </Block>

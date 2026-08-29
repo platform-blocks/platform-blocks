@@ -6,16 +6,16 @@ const launches = [
   { title: 'Release', description: 'Rolled the feature out to everyone.' },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
-      <Text size="sm" colorVariant="secondary">
-        Customize the connector line globally with the `color`, `colorVariant`, and `lineWidth` props on `Timeline`.
+      <Text size="sm" color="secondary">
+        Customize the connector line globally with the `color` and `lineWidth` props on `Timeline`.
       </Text>
 
       <Block>
         <Text weight="semibold">Theme color</Text>
-        <Timeline colorVariant="primary.6">
+        <Timeline color="primary.6">
           {launches.map((milestone) => (
             <Timeline.Item key={`color-${milestone.title}`} title={milestone.title}>
               <Text size="sm">{milestone.description}</Text>
@@ -37,7 +37,7 @@ export default function Demo() {
 
       <Block>
         <Text weight="semibold">Combined styling</Text>
-        <Timeline colorVariant="success.6" lineWidth={3}>
+        <Timeline color="success.6" lineWidth={3}>
           {launches.slice(1).map((milestone) => (
             <Timeline.Item key={`combined-${milestone.title}`} title={milestone.title}>
               <Text size="sm">{milestone.description}</Text>

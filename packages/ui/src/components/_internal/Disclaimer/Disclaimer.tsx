@@ -16,13 +16,13 @@ export const Disclaimer: React.FC<DisclaimerProps> = ({
   children,
   mt = 'xs',
   size = 'sm',
-  colorVariant = 'muted',
+  color = 'muted',
   ...textProps
 }) => {
   return (
     <Text
       size={size}
-      colorVariant={colorVariant}
+      color={color}
       mt={mt}
       {...textProps}
     >

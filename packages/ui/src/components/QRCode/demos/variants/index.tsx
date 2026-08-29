@@ -1,11 +1,11 @@
 import { Block, QRCode, Row, Text } from '@platform-blocks/ui';
 import { ERROR_LEVELS, QUIET_ZONES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Error correction levels
         </Text>
         <Row gap="lg" wrap="wrap" justify="center">
@@ -21,7 +21,7 @@ export default function Demo() {
         </Row>
       </Block>
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Quiet zone widths
         </Text>
         <Row gap="lg" wrap="wrap" justify="center">

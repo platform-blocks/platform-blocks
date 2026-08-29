@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { SpacingProps, getSpacingStyles, extractSpacingProps } from '../../core/utils';
 import {
   GaugeProps,
@@ -114,9 +115,8 @@ export const Gauge = factory<{
   // Calculate needle angle
   const needleAngle = valueToAngle(clampedValue, min, max, startAngle, endAngle);
 
-  // Get color from theme or use direct color
-  const gaugePalette = typeof color === 'string' ? theme.colors[color as keyof typeof theme.colors] : undefined;
-  const gaugeColor = gaugePalette ? gaugePalette[5] : (typeof color === 'string' ? color : theme.colors.primary[5]);
+  // Palette token, `primary.6` shade syntax, or a raw CSS color.
+  const gaugeColor = resolveAccentColor(theme, color as string | undefined) ?? theme.colors.primary[5];
 
    const contextValue: GaugeContextValue = {
     value: clampedValue,

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Block, Button, FileInput, Flex, Text } from '@platform-blocks/ui';
 import type { FileInputFile } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [files, setFiles] = useState<FileInputFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({});
@@ -62,11 +62,11 @@ export default function Demo() {
                   <Text size="sm" weight="medium">
                     {file.name}
                   </Text>
-                  <Text size="xs" colorVariant="secondary">
+                  <Text size="xs" color="secondary">
                     {(file.size / 1024).toFixed(1)} KB
                   </Text>
                   {uploadProgress[file.name] !== undefined && (
-                    <Text size="xs" colorVariant="primary">
+                    <Text size="xs" color="primary">
                       Progress: {uploadProgress[file.name]}%
                     </Text>
                   )}

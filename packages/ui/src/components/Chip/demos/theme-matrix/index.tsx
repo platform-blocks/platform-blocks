@@ -46,7 +46,7 @@ function Matrix() {
           <Text
             key={v}
             size="xs"
-            colorVariant="muted"
+            color="muted"
             align="center"
             style={{ width: CELL_W }}
           >
@@ -57,7 +57,7 @@ function Matrix() {
 
       {ROWS.map(({ color, label }) => (
         <Row key={color} gap="xs" align="center">
-          <Text size="xs" colorVariant="muted" style={{ width: LABEL_W }}>
+          <Text size="xs" color="muted" style={{ width: LABEL_W }}>
             {label}
           </Text>
           {VARIANTS.map((v) => (
@@ -89,7 +89,7 @@ function Panel({
         <Block fullWidth>
           <Row justify="space-between" align="baseline">
             <Text weight="600">{title}</Text>
-            <Text size="xs" colorVariant="muted">
+            <Text size="xs" color="muted">
               {surface}
             </Text>
           </Row>
@@ -100,7 +100,7 @@ function Panel({
   )
 }
 
-export default function Demo() {
+export function Demo() {
   // Two panels, each locked to a scheme, so every variant can be read side by side
   // on the real light and dark surfaces. Text is resolved by measured contrast, so
   // every variant stays legible on both.

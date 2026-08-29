@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, Flex, RollingNumber, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [requests, setRequests] = useState(84213);
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { Block, Button, Row, Text, useHaptics } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const { impactPressIn, impactPressOut, notifySuccess, notifyWarning, notifyError, selection } = useHaptics({ throttleMs: 80 });
 
   return (

@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Demonstrate how `color`, `colorVariant`, and `lineWidth` affect the connector line.
+Demonstrate how `color` and `lineWidth` affect the connector line.

@@ -91,7 +91,7 @@ export interface PaginationProps extends SpacingProps {
   /** Total number of items */
   totalItems?: number;
 
-  /** Override props applied to every page-button label `<Text>` (style, weight, ff, size, colorVariant). */
+  /** Override props applied to every page-button label `<Text>` (style, weight, ff, size, color). */
   labelProps?: Omit<TextProps, 'children'>;
 
   /** Override props applied to the active page-button label `<Text>` (merged on top of `labelProps`). */

@@ -1,6 +1,6 @@
 import { Block, Button, DataList, KeyCap, Row, Text, useThemeMode, useToggleColorScheme } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const { mode, cycleMode, actualColorScheme } = useThemeMode();
 
   useToggleColorScheme(cycleMode);
@@ -16,10 +16,10 @@ export default function Demo() {
       />
       <Button onPress={cycleMode}>Toggle theme</Button>
       <Row gap="xs" align="center">
-        <Text size="xs" colorVariant="muted">Or press</Text>
+        <Text size="xs" color="muted">Or press</Text>
         <KeyCap keyCode="J" modifiers={['cmd']} size="sm">⌘</KeyCap>
         <KeyCap keyCode="J" modifiers={['cmd']} size="sm">J</KeyCap>
-        <Text size="xs" colorVariant="muted">anywhere in the docs.</Text>
+        <Text size="xs" color="muted">anywhere in the docs.</Text>
       </Row>
     </Block>
   );

@@ -24,7 +24,7 @@ const BILLING = [
   { label: 'Annual (save 20%)', value: 'annual' }
 ];
 
-export default function Demo() {
+export function Demo() {
   const [plan, setPlan] = useState<string>('');
   const [billingCycle, setBillingCycle] = useState<string>('monthly');
   const [planError, setPlanError] = useState<string | undefined>();
@@ -66,7 +66,7 @@ export default function Demo() {
       <Button onPress={handleSubmit}>Confirm subscription</Button>
 
       {confirmation && (
-        <Text variant="small" colorVariant="success">
+        <Text variant="small" color="success">
           {confirmation}
         </Text>
       )}

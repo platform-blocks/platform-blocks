@@ -138,7 +138,7 @@ export const Title = React.forwardRef<View, TitleProps>(({
     return (
       <Text
         variant="p"
-        colorVariant="secondary"
+        color="secondary"
         {...subtitleProps}
         style={[spacingStyle, subtitleProps?.style]}
       >

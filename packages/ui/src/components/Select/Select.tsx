@@ -403,9 +403,9 @@ export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) 
                   onPress={() => handleSelect(item)}
                   disabled={!!item.disabled}
                   active={false}
-                  tone="default"
-                  hoverTone="default"
-                  activeTone="default"
+                  color="default"
+                  hoverColor="default"
+                  activeColor="default"
                   textColor={baseTextColor}
                   hoverTextColor={baseTextColor}
                   activeTextColor={baseTextColor}

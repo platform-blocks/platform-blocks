@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
-import { BREAKPOINTS } from '@platform-blocks/ui/core/responsive';
-import { PageLayout } from './PageLayout';
+import { View, StyleSheet } from 'react-native';
+import { PageLayout, usePageContentInset } from './PageLayout';
 
 /**
  * The content column every docs page shares. Component detail pages set the
@@ -21,16 +20,18 @@ export function DocsPageContent({
   id?: string;
   style?: any;
 }) {
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= BREAKPOINTS.lg;
-  const isNarrow = width < BREAKPOINTS.md;
+  // The horizontal inset is the complement of PageLayout's gutter — one is on
+  // exactly when the other is off, and their sum is the same 16px at every
+  // width. Measuring the window to pick between them is what made the static
+  // page and the hydrated one disagree; the cascade picks now.
+  const horizontalInset = usePageContentInset();
 
   return (
     <View
       id={id}
       style={[
-        isDesktop ? styles.desktopContainer : styles.container,
-        isNarrow && styles.narrowContainer,
+        styles.container,
+        { paddingHorizontal: horizontalInset as any },
         style,
       ]}
     >
@@ -66,19 +67,15 @@ export function DocsPage({
 }
 
 const styles = StyleSheet.create({
+  // `maxWidth` only bites past 1400 and `alignSelf` is a no-op at full width, so
+  // the desktop column is now the only column — one style for every viewport,
+  // which is what a single prerendered document can serve.
   container: {
     flex: 1,
-    padding: 16,
-  },
-  desktopContainer: {
-    flex: 1,
-    padding: 16,
+    paddingVertical: 16,
     maxWidth: 1400,
     alignSelf: 'center',
     width: '100%',
     minWidth: 0, // Prevents flex item from overflowing
-  },
-  narrowContainer: {
-    paddingHorizontal: 0,
   },
 });

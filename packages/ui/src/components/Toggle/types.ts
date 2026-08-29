@@ -18,10 +18,8 @@ export interface ToggleButtonProps extends SpacingProps, LayoutProps, BorderRadi
   children: React.ReactNode;
   /** Size of the toggle button */
   size?: SizeValue;
-  /** Color variant */
+  /** Button color. A palette token, `'primary.6'` shade syntax, or any CSS color. */
   color?: string;
-  /** Named color variant from theme */
-  colorVariant?: 'primary' | 'secondary' | 'success' | 'error' | 'warning';
   /** Visual style variant */
   variant?: 'solid' | 'ghost';
   /** Custom styles */
@@ -43,10 +41,8 @@ export interface ToggleGroupProps extends SpacingProps, LayoutProps, BorderRadiu
   disabled?: boolean;
   /** Size of all toggle buttons */
   size?: SizeValue;
-  /** Color variant for all buttons */
+  /** Color for all buttons. A palette token, `'primary.6'` shade syntax, or any CSS color. */
   color?: string;
-  /** Named color variant from theme for all buttons */
-  colorVariant?: 'primary' | 'secondary' | 'success' | 'error' | 'warning';
   /** Visual style variant for all buttons */
   variant?: 'solid' | 'ghost';
   /** Orientation of the toggle group */
@@ -74,7 +70,6 @@ export interface ToggleGroupContextValue {
   disabled?: boolean;
   size?: SizeValue;
   color?: string;
-  colorVariant?: 'primary' | 'secondary' | 'success' | 'error' | 'warning';
   variant?: 'solid' | 'ghost';
   required?: boolean;
 }

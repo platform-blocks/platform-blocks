@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, Text, ToggleButton, ToggleGroup } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [formats, setFormats] = useState(['bold']);
 
   const handleChange = (value: string | number | (string | number)[]) => {
@@ -15,7 +15,7 @@ export default function Demo() {
     <Block>
       <Block>
         <Text weight="semibold">Multiple selection</Text>
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           The default mode returns an array of selected values.
         </Text>
       </Block>
@@ -27,7 +27,7 @@ export default function Demo() {
         <ToggleButton value="color">Color</ToggleButton>
       </ToggleGroup>
 
-      <Text size="xs" colorVariant="secondary">
+      <Text size="xs" color="secondary">
         Active formatting: {formats.length > 0 ? formats.join(', ') : 'none'}
       </Text>
     </Block>

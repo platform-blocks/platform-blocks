@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, Checkbox, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [newsletter, setNewsletter] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
@@ -21,7 +21,7 @@ export default function Demo() {
         onChange={setTermsAccepted}
         required
       />
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         Use `description` for supporting copy and pair with `error` to surface validation details.
       </Text>
     </Block>

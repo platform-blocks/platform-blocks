@@ -3,6 +3,7 @@ import { View, Pressable, ScrollView, ViewStyle } from 'react-native';
 import type { LayoutChangeEvent, LayoutRectangle } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming, useSharedValue } from 'react-native-reanimated';
 import { useTheme } from '../../core/theme';
+import { resolveAccentColor, resolveColorProp } from '../../core/theme/resolveColors';
 import { useReducedMotion } from '../../core/motion/ReducedMotionProvider';
 import { SizeValue, getFontSize, getSpacing } from '../../core/theme/sizes';
 import { createRadiusStyles } from '../../core/theme/radius';
@@ -18,20 +19,13 @@ import { useControllableState } from '../../hooks/useControllableState';
 
 
 // Resolve a theme token like "primary.5" or fallback to raw value
-const resolveThemeColor = (theme: PlatformBlocksTheme, token?: string): string | undefined => {
-  if (!token) return undefined;
-  if (token.includes('.')) {
-    const [scale, shade] = token.split('.');
-    const shadeNum = Number(shade);
-    const scaleObj: any = (theme.colors as any)[scale];
-    if (scaleObj && typeof shadeNum === 'number' && scaleObj[shadeNum]) {
-      return scaleObj[shadeNum];
-    }
-  }
-  // Try direct theme.text token
-  if ((theme.text as any)[token]) return (theme.text as any)[token];
-  return token; // raw color value
-};
+/**
+ * Slot color overrides name a `theme.text` role or a palette shade. Bare palette
+ * names stay unresolved on purpose — the tint comes from `color`, so a bare name
+ * here is more likely a mistake than a request for a particular shade.
+ */
+const resolveThemeColor = (theme: PlatformBlocksTheme, token?: string): string | undefined =>
+  resolveColorProp(theme, token, { scopes: ['text'], shades: [] });
 
 const getTabStyles = (
   theme: PlatformBlocksTheme,
@@ -47,7 +41,12 @@ const getTabStyles = (
 ) => {
   const fontSize = getFontSize(size);
   const padding = getSpacing(size);
-  const colorPalette = theme.colors[color as keyof PlatformBlocksTheme['colors']] ?? theme.colors.primary;
+  // Two resolutions rather than a palette array, so a raw CSS color works at
+  // both sites: the indicator/chip fill takes the base shade, the active label
+  // the readable one. A raw color has no ramp, so it comes back as itself for
+  // both — which is what the caller asked for.
+  const accentFill = resolveAccentColor(theme, color) ?? theme.colors.primary[5];
+  const accentText = resolveColorProp(theme, color, { shades: [6, 5] }) ?? theme.colors.primary[6];
   const isVertical = orientation === 'vertical';
   const isHorizontalLayout = orientation === 'horizontal';
   const isEnd = location === 'end';
@@ -108,7 +107,7 @@ const getTabStyles = (
       },
       indicator: {
         position: 'absolute' as const,
-        backgroundColor: colorPalette[5],
+        backgroundColor: accentFill,
         ...(isVertical ? {
           width: resolvedIndicatorThickness,
           // Shift by half thickness for alignment
@@ -146,7 +145,7 @@ const getTabStyles = (
       },
       indicator: {
         position: 'absolute' as const,
-        backgroundColor: colorPalette[5],
+        backgroundColor: accentFill,
         borderRadius: 9999,
         top: 4,
         left: 4,
@@ -333,7 +332,7 @@ const getTabStyles = (
       ...(variant === 'folder' && { transform: [{ skewX: '10deg' }] }),
     },
     activeTabText: {
-      color: variant === 'chip' ? (theme.text.onPrimary || '#FFFFFF') : colorPalette[6],
+      color: variant === 'chip' ? (theme.text.onPrimary || '#FFFFFF') : accentText,
       // Counter-skew the text for folder tabs
       ...(variant === 'folder' && { transform: [{ skewX: '8deg' }] }),
     },

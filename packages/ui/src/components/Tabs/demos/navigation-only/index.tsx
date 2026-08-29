@@ -15,7 +15,7 @@ const CONTENT_COPY: Record<typeof NAV_ITEMS[number]['key'], string> = {
   contact: 'Surface support channels and locations while the navigation stays fixed.'
 };
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState<typeof NAV_ITEMS[number]['key']>('home');
 
@@ -36,7 +36,7 @@ export default function Demo() {
       <Block bg={theme.backgrounds.surface} borderColor={theme.backgrounds.border} radius="lg" p="lg">
         <Text>{CONTENT_COPY[activeTab]}</Text>
       </Block>
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         `navigationOnly` renders just the triggers so you can manage layout and transitions for the content area yourself.
       </Text>
     </Block>

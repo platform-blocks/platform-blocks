@@ -1,10 +1,10 @@
 /**
- * MenuItemButton — press feedback per tone.
+ * MenuItemButton — press feedback per color.
  *
  * A neutral row must not flash the accent color while it is held down: menu and
- * dropdown options are `tone="default"`, and an accent wash there reads as a
+ * dropdown options are `color="default"`, and an accent wash there reads as a
  * selection that never happened. Accent press feedback is opt-in via
- * `activeTone="primary"`.
+ * `activeColor="primary"`.
  */
 
 import React from 'react';
@@ -40,15 +40,15 @@ const backgroundWhilePressed = (props: any = {}) => {
 };
 
 describe('MenuItemButton press feedback', () => {
-  it('tints a default-tone row neutrally rather than with the accent color', () => {
-    const background = backgroundWhilePressed({ tone: 'default', activeTone: 'default' });
+  it('tints a default-color row neutrally rather than with the accent color', () => {
+    const background = backgroundWhilePressed({ color: 'default', activeColor: 'default' });
 
     expect(background).toBe('rgba(0, 0, 0, 0.08)');
     expect(PRIMARY).not.toContain(background);
   });
 
   it('still uses the accent color when the caller asks for a primary press', () => {
-    const background = backgroundWhilePressed({ tone: 'default', activeTone: 'primary' });
+    const background = backgroundWhilePressed({ color: 'default', activeColor: 'primary' });
 
     expect(background).toBe(PRIMARY[1]);
   });

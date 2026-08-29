@@ -39,8 +39,6 @@ function TooltipBase(props: TooltipProps, ref: React.Ref<View>) {
     color,
     radius = 'md',
     offset = 8,
-    // `multiline` is accepted for backwards compatibility but no longer read:
-    // labels wrap by default, and `width` alone produces a fixed-width bubble.
     width,
     maxWidth = 280,
     lineClamp,

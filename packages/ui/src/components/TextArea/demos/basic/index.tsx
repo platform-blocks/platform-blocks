@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, Text, TextArea } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState('');
 
   return (
@@ -18,7 +18,7 @@ export default function Demo() {
         fullWidth
       />
       {value ? (
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           Character count: {value.length}
         </Text>
       ) : null}

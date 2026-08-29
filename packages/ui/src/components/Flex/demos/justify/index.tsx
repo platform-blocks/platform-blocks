@@ -1,6 +1,6 @@
 import { Block, Card, Flex, Text, useTheme } from '@platform-blocks/ui';
 
-export default function JustifyFlexDemo() {
+export function Demo() {
   const theme = useTheme();
 
   return (
@@ -14,7 +14,7 @@ export default function JustifyFlexDemo() {
         { label: 'Evenly', value: 'space-evenly' }
       ].map(({ value }) => (
         <Block key={value} align="stretch">
-          <Text variant="span" size="sm" colorVariant="muted">justify="{value}"</Text>
+          <Text variant="span" size="sm" color="muted">justify="{value}"</Text>
           <Card variant="ghost" padding={0} style={{ alignSelf: 'stretch', width: '100%' }}>
             <Flex
               direction="row"

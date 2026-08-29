@@ -74,6 +74,13 @@ export interface LayoutMainConfig {
 }
 
 export interface LayoutOptions {
+  /**
+   * Resolve the shell's geometry from CSS custom properties instead of the
+   * breakpoint the JavaScript resolved — for statically rendered web apps,
+   * whose prerender has no viewport to measure. The app must inline the
+   * stylesheet `createAppShellCss` builds. See `shellCssVars.ts`.
+   */
+  cssGeometry?: boolean;
   withSafeArea?: boolean;
   withBorder?: boolean;
   backgroundColor?: string;

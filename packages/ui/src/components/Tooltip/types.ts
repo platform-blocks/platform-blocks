@@ -22,12 +22,6 @@ export interface TooltipProps {
   radius?: SizeValue;
   /** Offset from target */
   offset?: number;
-  /**
-   * Kept for backwards compatibility — labels wrap by default now, so this only
-   * matters together with `width` (fixed-width bubble).
-   * @deprecated Use `width` for a fixed bubble or `maxWidth` to change the cap.
-   */
-  multiline?: boolean;
   /** Fixed bubble width. Omit to size to content (capped by `maxWidth`). */
   width?: number;
   /**
@@ -56,7 +50,7 @@ export interface TooltipProps {
   style?: StyleProp<ViewStyle>;
   /** Test ID for testing */
   testID?: string;
-  /** Override props applied to the label `<Text>` (style, weight, ff, size, colorVariant). */
+  /** Override props applied to the label `<Text>` (style, weight, ff, size, color). */
   labelProps?: Omit<TextProps, 'children'>;
 }
 

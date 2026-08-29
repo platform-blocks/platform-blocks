@@ -228,7 +228,7 @@ export function ComponentPlayground({ component, propsMeta, config }: ComponentP
     </ScrollView>
   ) : (
     <View style={styles.emptyState}>
-      <Text variant="p" colorVariant="muted">
+      <Text variant="p" color="muted">
         No interactive props detected yet. Add doc comments in the component source to expose controls.
       </Text>
     </View>
@@ -253,19 +253,19 @@ export function ComponentPlayground({ component, propsMeta, config }: ComponentP
               <PreviewErrorBoundary
                 key={snippet}
                 fallback={
-                  <Text colorVariant="error">
+                  <Text color="error">
                     Component threw while rendering. Check console for details.
                   </Text>
                 }
               >
                 {renderedComponent || (
-                  <Text variant="p" colorVariant="muted">
+                  <Text variant="p" color="muted">
                     Component rendered no output.
                   </Text>
                 )}
               </PreviewErrorBoundary>
             ) : (
-              <Text variant="p" colorVariant="error">
+              <Text variant="p" color="error">
                 {`Component "${targetName}" is not exported from @platform-blocks/ui or @platform-blocks/charts.`}
               </Text>
             )}
@@ -277,7 +277,7 @@ export function ComponentPlayground({ component, propsMeta, config }: ComponentP
       </View>
 
       <Card variant="ghost">
-        <Text variant="small" colorVariant="muted" style={styles.snippetLabel}>JSX preview</Text>
+        <Text variant="small" color="muted" style={styles.snippetLabel}>JSX preview</Text>
         <CodeBlock fullWidth>{snippet}</CodeBlock>
       </Card>
     </View>
@@ -441,7 +441,7 @@ function renderControl(
             onChange={(nextIdx: number) => handleChange(tokenAt(nextIdx))}
           />
           <Space h="xs" />
-          {/* <Text variant="small" colorVariant="muted">
+          {/* <Text variant="small" color="muted">
             {formatOptionLabel(currentToken)}
           </Text> */}
         </View>

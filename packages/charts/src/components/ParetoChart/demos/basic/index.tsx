@@ -2,7 +2,7 @@ import { ParetoChart } from '@platform-blocks/charts';
 
 import { DEFECT_BREAKDOWN } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <ParetoChart
       title="Monthly defect analysis"

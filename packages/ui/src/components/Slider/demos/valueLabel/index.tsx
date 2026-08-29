@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, Row, Slider, RangeSlider, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [a, setA] = useState(40);
   const [b, setB] = useState(60);
   const [c, setC] = useState(72);
@@ -12,12 +12,12 @@ export default function Demo() {
       <Text weight="semibold">Value label position & styling</Text>
 
       <Block>
-        <Text size="sm" colorVariant="muted">Default — tooltip above the thumb</Text>
+        <Text size="sm" color="muted">Default — tooltip above the thumb</Text>
         <Slider value={a} onChange={setA} valueLabelAlwaysOn />
       </Block>
 
       <Block>
-        <Text size="sm" colorVariant="muted">valueLabelPosition="bottom"</Text>
+        <Text size="sm" color="muted">valueLabelPosition="bottom"</Text>
         <Slider
           value={b}
           onChange={setB}
@@ -28,8 +28,8 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" colorVariant="muted">
-          Custom Text styling — `ff`, `weight`, `size`, `colorVariant`
+        <Text size="sm" color="muted">
+          Custom Text styling — `ff`, `weight`, `size`, `color`
         </Text>
         <Slider
           value={c}
@@ -39,14 +39,14 @@ export default function Demo() {
             ff: 'monospace',
             weight: '700',
             size: 'md',
-            colorVariant: 'primary',
+            color: 'primary',
           }}
           valueLabel={(v) => `${Math.round(v)}%`}
         />
       </Block>
 
       <Block>
-        <Text size="sm" colorVariant="muted">
+        <Text size="sm" color="muted">
           Flat tooltip (no Card) with custom wrapper style
         </Text>
         <Slider
@@ -65,7 +65,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" colorVariant="muted">
+        <Text size="sm" color="muted">
           RangeSlider — both thumbs share placement + styling
         </Text>
         <RangeSlider
@@ -100,7 +100,7 @@ export default function Demo() {
               valueLabelPosition="right"
               valueLabelProps={{ weight: '700' }}
             />
-            <Text size="xs" colorVariant="muted">right</Text>
+            <Text size="xs" color="muted">right</Text>
           </Block>
       </Block>
     </Block>

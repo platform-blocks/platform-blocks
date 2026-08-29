@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, Button, Card, Text, useEscapeKey } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [open, setOpen] = useState(true);
 
   // The listener is only registered while the panel is visible.
@@ -13,7 +13,7 @@ export default function Demo() {
         <Card p="md" maxW={360}>
           <Block>
             <Text size="sm" weight="semibold">Escape-enabled panel</Text>
-            <Text size="sm" colorVariant="muted">
+            <Text size="sm" color="muted">
               Press Escape to close this panel without touching the mouse.
             </Text>
             <Button size="sm" onPress={() => setOpen(false)}>Close</Button>

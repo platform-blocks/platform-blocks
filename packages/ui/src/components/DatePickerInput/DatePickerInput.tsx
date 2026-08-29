@@ -29,7 +29,6 @@ export const DatePickerInput = forwardRef(function DatePickerInputInner(
     size = 'md',
     disabled = false,
     withAsterisk,
-    withInput = true,
     dropdownType = 'modal',
     closeOnSelect,
     onOpen,
@@ -194,7 +193,7 @@ export const DatePickerInput = forwardRef(function DatePickerInputInner(
         setViewDate(candidate);
       }
     }
-    if (withInput && shouldCloseOnSelect) {
+    if (shouldCloseOnSelect) {
       if (type === 'single' && next instanceof Date) {
         handleClose();
       } else if (type === 'range' && Array.isArray(next)) {
@@ -274,33 +273,6 @@ export const DatePickerInput = forwardRef(function DatePickerInputInner(
       type={type}
     />
   );
-
-  if (!withInput) {
-    if (__DEV__) {
-      console.warn('DatePickerInput: `withInput={false}` is deprecated. Use the new <DatePicker /> component instead.');
-    }
-
-    return (
-      <DatePicker
-        ref={ref}
-        value={currentValue}
-        defaultValue={defaultValue}
-        onChange={setValue}
-        type={type}
-        calendarProps={{
-          ...calendarRest,
-          numberOfMonths,
-          locale,
-          level: calendarLevelProp,
-          defaultLevel: calendarDefaultLevelProp,
-          onLevelChange: calendarOnLevelChange,
-          date: calendarDateProp,
-          defaultDate: calendarDefaultDateProp,
-          onDateChange: calendarOnDateChange,
-        }}
-      />
-    );
-  }
 
   if (dropdownType === 'modal') {
     return (

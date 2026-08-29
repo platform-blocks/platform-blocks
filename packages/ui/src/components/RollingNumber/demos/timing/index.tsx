@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button, Flex, RollingNumber, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState(407219);
 
   return (

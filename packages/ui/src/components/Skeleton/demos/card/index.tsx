@@ -1,6 +1,6 @@
 import { Block, Row, Skeleton, useTheme } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
 
   return (

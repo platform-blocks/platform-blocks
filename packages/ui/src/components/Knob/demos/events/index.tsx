@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, DataList, Knob } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState(32);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [committed, setCommitted] = useState(value);

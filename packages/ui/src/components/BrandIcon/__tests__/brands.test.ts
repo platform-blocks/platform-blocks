@@ -1,4 +1,4 @@
-import { brandIcons, deprecatedBrandNames, resolveBrandName } from '../brands';
+import { brandIcons } from '../brands';
 import { ALL_BRANDS } from '../demos/data';
 
 describe('brand name registry', () => {
@@ -7,17 +7,6 @@ describe('brand name registry', () => {
     expect(camelCased).toEqual([]);
   });
 
-  it('resolves every deprecated camelCase alias onto a registered brand', () => {
-    for (const [alias, canonical] of Object.entries(deprecatedBrandNames)) {
-      expect([alias, resolveBrandName(alias)]).toEqual([alias, canonical]);
-      expect(brandIcons).toHaveProperty([canonical]);
-    }
-  });
-
-  it('passes canonical names through unchanged', () => {
-    expect(resolveBrandName('app-store')).toBe('app-store');
-    expect(resolveBrandName('github')).toBe('github');
-  });
 });
 
 // The all-brands demo bills itself as the complete catalog, so it has to track

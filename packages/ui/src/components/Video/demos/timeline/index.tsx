@@ -9,7 +9,7 @@ const SOURCE = {
   url: Asset.fromModule(require('../../../../assets/video/demo-clip.mp4')).uri,
 } as const;
 
-export default function Demo() {
+export function Demo() {
   const [log, setLog] = useState<string[]>([]);
 
   const timelineEvents = useMemo<VideoTimelineEvent[]>(
@@ -45,7 +45,7 @@ export default function Demo() {
   return (
     <Card p="md">
       <Block>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Attach `timeline` markers to run callbacks as playback crosses those timestamps. Use the `onTimelineEvent` hook for analytics or syncing UI.
         </Text>
         <Video
@@ -57,11 +57,11 @@ export default function Demo() {
           onTimelineEvent={handleTimelineEvent}
         />
         <Block>
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Timeline log
           </Text>
           {log.length === 0 ? (
-            <Text size="xs" colorVariant="secondary">
+            <Text size="xs" color="secondary">
               Press play to fire registered markers.
             </Text>
           ) : (

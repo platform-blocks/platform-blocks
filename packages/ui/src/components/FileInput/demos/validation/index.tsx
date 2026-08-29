@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Block, FileInput, Text } from '@platform-blocks/ui';
 import type { FileInputFile } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [validatedFiles, setValidatedFiles] = useState<FileInputFile[]>([]);
   const [singleFile, setSingleFile] = useState<FileInputFile[]>([]);
   const [limitedFiles, setLimitedFiles] = useState<FileInputFile[]>([]);
@@ -22,7 +22,7 @@ export default function Demo() {
           fullWidth
         />
         {validatedFiles.length > 0 && (
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Selected: {validatedFiles.length}
           </Text>
         )}
@@ -40,7 +40,7 @@ export default function Demo() {
           fullWidth
         />
         {singleFile[0] && (
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Selected: {singleFile[0].name}
           </Text>
         )}
@@ -59,7 +59,7 @@ export default function Demo() {
           fullWidth
         />
         {limitedFiles.length > 0 && (
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Selected: {limitedFiles.length}
           </Text>
         )}

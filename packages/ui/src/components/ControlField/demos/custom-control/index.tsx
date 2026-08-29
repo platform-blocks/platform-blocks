@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, Checkbox, ControlField } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [subscribed, setSubscribed] = useState(false);
 
   return (
@@ -13,7 +13,7 @@ export default function Demo() {
         </ControlField.Description>
       </Block>
       <ControlField.Indicator>
-        <Checkbox colorVariant="warning" />
+        <Checkbox color="warning" />
       </ControlField.Indicator>
     </ControlField>
   );

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Select } from '@platform-blocks/ui'
 import { sports } from '../data'
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState<string | null>(null)
 
   return (

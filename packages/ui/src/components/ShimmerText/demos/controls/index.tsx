@@ -5,7 +5,7 @@ const MIN_SPREAD = 1;
 const MAX_SPREAD = 4;
 const SPREAD_STEP = 0.1;
 
-export default function Demo() {
+export function Demo() {
   const [spread, setSpread] = useState(2);
   const [repeat, setRepeat] = useState(true);
   const [once, setOnce] = useState(false);

@@ -11,7 +11,7 @@ const formatTooltip = (slice: PieChartDataPoint) => {
   return `${slice.label}: ${slice.value.toLocaleString()} interactions (${share}%)`;
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <PieChart
       title="Support contact mix"

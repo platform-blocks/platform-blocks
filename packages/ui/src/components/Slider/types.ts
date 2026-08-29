@@ -3,8 +3,8 @@ import { ViewStyle, StyleProp } from 'react-native';
 import { BaseInputProps } from '../Input/types';
 import { ColorValue, SizeValue, PlatformBlocksTheme } from '../../core/theme/types';
 import type { TextProps } from '../Text';
+import type { ThemeColor } from '../../core/theme/resolveColors';
 
-export type SliderColorScheme = keyof PlatformBlocksTheme['colors'] | (string & {});
 
 /**
  * Visual variant of the slider.
@@ -68,8 +68,12 @@ export interface SliderProps extends Omit<BaseInputProps, 'value' | 'onChangeTex
   /** Thumb size */
   thumbSize?: number;
 
-  /** Theme color palette or custom color to drive active elements */
-  colorScheme?: SliderColorScheme;
+  /**
+   * Color driving the active track, thumb, and active ticks. A palette token,
+   * `'primary.6'` shade syntax, or any CSS color.
+   */
+  color?: ThemeColor;
+
 
   /** Visual variant of the slider track + thumb. Defaults to `'default'`. */
   variant?: SliderVariant;
@@ -95,7 +99,7 @@ export interface SliderProps extends Omit<BaseInputProps, 'value' | 'onChangeTex
   /** Style applied to active tick marks. */
   activeTickStyle?: StyleProp<ViewStyle>;
 
-  /** Props applied to the `<Text>` rendered for each tick label (style, ff, weight, size, colorVariant). */
+  /** Props applied to the `<Text>` rendered for each tick label (style, ff, weight, size, color). */
   tickLabelProps?: Omit<TextProps, 'children'>;
 
   /** Input label (above the slider) */
@@ -116,7 +120,7 @@ export interface SliderProps extends Omit<BaseInputProps, 'value' | 'onChangeTex
   /** Style applied to the value label wrapper (Card/View). */
   valueLabelStyle?: StyleProp<ViewStyle>;
 
-  /** Props applied to the value label `<Text>` (style, weight, ff, size, colorVariant). */
+  /** Props applied to the value label `<Text>` (style, weight, ff, size, color). */
   valueLabelProps?: Omit<TextProps, 'children'>;
 
   /** When true (default) the value label is wrapped in a `<Card>`. Set to false to render only the bare `<Text>` for a flat tooltip. */

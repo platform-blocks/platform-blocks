@@ -56,7 +56,7 @@ describe('Alert - rendering', () => {
 
   it('applies light variant severity colors', () => {
     const { getByTestId } = render(
-      <Alert sev="warning" title="Check" testID="alert-warning" />
+      <Alert severity="warning" title="Check" testID="alert-warning" />
     );
 
     // Colors come from the shared variant system (alpha tint composited over the
@@ -69,7 +69,7 @@ describe('Alert - rendering', () => {
 
   it('uses filled variant contrast for severity alerts', () => {
     const { getByText } = render(
-      <Alert sev="error" variant="filled" title="Failed" />
+      <Alert severity="error" variant="filled" title="Failed" />
     );
 
     // Filled uses measured contrast against the strong fill → readable white.
@@ -93,7 +93,7 @@ describe('Alert - rendering', () => {
 
   it('uses a legible tinted text and icon for subtle variant', () => {
     const { getByText } = render(
-      <Alert variant="subtle" sev="info" title="Heads up" />
+      <Alert variant="subtle" severity="info" title="Heads up" />
     );
 
     // Text and icon share the measured-contrast color for the variant (info → primary[6]).

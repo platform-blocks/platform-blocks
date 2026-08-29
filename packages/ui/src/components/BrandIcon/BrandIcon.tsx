@@ -2,14 +2,14 @@ import React from 'react';
 import Svg, { Path, Defs, LinearGradient, Stop, Circle } from 'react-native-svg';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { getIconSize, SizeValue } from '../../core/theme/sizes';
-import { brandIcons, resolveBrandName, type BrandName, type DeprecatedBrandName } from './brands';
+import { brandIcons, type BrandName } from './brands';
 import { useTheme } from '../../core/theme/ThemeProvider';
 
-export type { BrandName, DeprecatedBrandName };
+export type { BrandName };
 
 export interface BrandIconProps {
   /** Brand name from the registry. camelCase names are deprecated aliases. */
-  brand: BrandName | DeprecatedBrandName;
+  brand: BrandName;
   /** Size of the icon */
   size?: SizeValue;
   /** Override all colors with a single color */
@@ -63,7 +63,7 @@ export const BrandIcon = React.forwardRef<Svg, BrandIconProps>(({
   const systemColorScheme = theme.colorScheme;
 
   // Get brand icon definition from registry (resolving deprecated camelCase aliases)
-  const brandIconDef = brandIcons[resolveBrandName(brand)];
+  const brandIconDef = brandIcons[brand];
 
   if (!brandIconDef) {
     console.warn(`Brand icon "${brand}" not found in registry`);

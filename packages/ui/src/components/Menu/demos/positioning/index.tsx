@@ -9,7 +9,7 @@ const POSITIONS = [
   { label: 'Top end', position: 'top-end' },
 ] as const;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Row gap="md" justify="center" wrap="wrap">
       {POSITIONS.map(({ label, position }) => (

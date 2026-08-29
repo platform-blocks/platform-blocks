@@ -31,7 +31,7 @@ const decorativeProps =
 
 /** Renders the built-in control for a given variant, wired to field state. */
 function renderBuiltInIndicator(ctx: ControlFieldContextValue) {
-  const { isSelected, isDisabled, isInvalid, size, color, colorVariant, variant } = ctx;
+  const { isSelected, isDisabled, isInvalid, size, color, variant } = ctx;
   // Checkbox/Switch tint their box/border red when `error` is a non-empty
   // string; there is no visible label here, so a single space triggers the
   // invalid styling without rendering any error text.
@@ -45,7 +45,6 @@ function renderBuiltInIndicator(ctx: ControlFieldContextValue) {
           disabled={isDisabled}
           size={size}
           color={color as any}
-          colorVariant={colorVariant}
           error={invalidFlag}
         />
       );
@@ -164,7 +163,6 @@ const ControlFieldBase = factory<{ props: ControlFieldProps; ref: View }>((rawPr
     description,
     error,
     color,
-    colorVariant,
     size: sizeProp,
     indicatorPosition = 'right',
     control,
@@ -212,10 +210,9 @@ const ControlFieldBase = factory<{ props: ControlFieldProps; ref: View }>((rawPr
       isRequired: resolvedRequired,
       size,
       color,
-      colorVariant,
       variant,
     }),
-    [effectiveSelected, resolvedDisabled, resolvedInvalid, resolvedRequired, size, color, colorVariant, variant, setSelected]
+    [effectiveSelected, resolvedDisabled, resolvedInvalid, resolvedRequired, size, color, variant, setSelected]
   );
 
   // Compound mode: children replace the built-in layout. Error children render

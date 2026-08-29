@@ -3,7 +3,7 @@ import { Block, Button, Card, Row, Text, Video } from '@platform-blocks/ui';
 
 const YOUTUBE_SOURCE = { youtube: 'dQw4w9WgXcQ' } as const;
 
-export default function Demo() {
+export function Demo() {
   const [status, setStatus] = useState('Paused');
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -11,7 +11,7 @@ export default function Demo() {
   return (
     <Card p="md">
       <Block>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Stream YouTube content by pointing `source.youtube` to an ID. Playback state stays in sync so you can react to buffering or progress updates.
         </Text>
         <Video
@@ -42,10 +42,10 @@ export default function Demo() {
           }}
         />
         <Row gap="sm" justify="space-between" align="center">
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Status: {status}
           </Text>
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             {Math.floor(currentTime)}s / {Math.floor(duration)}s
           </Text>
         </Row>

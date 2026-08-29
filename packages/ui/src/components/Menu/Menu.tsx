@@ -19,7 +19,7 @@ import { useTheme } from '../../core/theme';
 import { useOverlayApi } from '../../core/providers/OverlayProvider';
 import { measureElement, calculateOverlayPositionEnhanced, type PlacementType } from '../../core/utils/positioning-enhanced';
 import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
-import { MenuItemButton } from '../MenuItemButton';
+import { MenuItemButton, type MenuItemColor } from '../MenuItemButton';
 import {
   MenuProps,
   MenuItemProps,
@@ -602,14 +602,7 @@ function MenuItemBase(props: MenuItemProps, ref: React.Ref<View>) {
     if (closeMenuOnClick) closeMenu();
   }, [disabled, onPress, closeMenuOnClick, closeMenu]);
 
-  const tone: 'default' | 'danger' | 'success' | 'warning' =
-    color === 'danger'
-      ? 'danger'
-      : color === 'success'
-        ? 'success'
-        : color === 'warning'
-          ? 'warning'
-          : 'default';
+  const itemColor: MenuItemColor = color ?? 'default';
 
   return (
     <MenuItemButton
@@ -618,7 +611,7 @@ function MenuItemBase(props: MenuItemProps, ref: React.Ref<View>) {
       disabled={disabled}
       startIcon={startSection}
       endIcon={endSection}
-      tone={tone}
+      color={itemColor}
       testID={testID}
       {...spacingProps}
       {...restProps}
@@ -636,7 +629,7 @@ function MenuLabelBase(props: MenuLabelProps, ref: React.Ref<View>) {
 
   return (
     <View ref={ref} style={[styles.label, spacingStyles]} testID={testID}>
-      <Text variant="small" colorVariant="secondary">
+      <Text variant="small" color="secondary">
         {children}
       </Text>
     </View>
@@ -691,8 +684,7 @@ function MenuSubBase(props: MenuSubProps, ref: React.Ref<View>) {
   const closeTimerRef = useRef<any>(null);
   const [, forceOpenState] = useState(false);
 
-  const tone: 'default' | 'danger' | 'success' | 'warning' =
-    color === 'danger' ? 'danger' : color === 'success' ? 'success' : color === 'warning' ? 'warning' : 'default';
+  const itemColor: MenuItemColor = color ?? 'default';
 
   const cancelScheduledClose = useCallback(() => {
     if (closeTimerRef.current) {
@@ -815,7 +807,7 @@ function MenuSubBase(props: MenuSubProps, ref: React.Ref<View>) {
       disabled={disabled}
       startIcon={startSection}
       endIcon={<Icon name="chevron-right" size={16} />}
-      tone={tone}
+      color={itemColor}
       testID={testID}
       {...spacingProps}
       {...(Platform.OS === 'web'

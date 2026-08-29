@@ -2,7 +2,7 @@ import { SparklineChart } from '@platform-blocks/charts';
 
 import { DAILY_SIGNUPS } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     // TODO: cant see gradient fill on this one, investigate
     <SparklineChart

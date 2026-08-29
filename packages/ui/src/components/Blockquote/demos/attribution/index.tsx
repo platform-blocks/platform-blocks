@@ -2,7 +2,7 @@ import { Block, Blockquote, Text } from '@platform-blocks/ui';
 
 import { AUTHOR, QUOTE, SOURCE } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Block>

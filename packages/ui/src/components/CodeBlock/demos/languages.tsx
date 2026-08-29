@@ -1,6 +1,6 @@
 import { CodeBlock, Flex } from '@platform-blocks/ui';
 
-export default function LanguagesCodeBlockDemo() {
+export function Demo() {
   return (
     <Flex direction="column" gap={16}>
       <CodeBlock language="tsx" title="React Component">

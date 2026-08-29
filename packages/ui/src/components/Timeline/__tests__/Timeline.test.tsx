@@ -6,7 +6,7 @@
  * 
  * Coverage:
  * - Size types (xs, sm, md, lg, xl)
- * - Color and colorVariant props
+ * - Color prop
  * - Active state and reverseActive
  * - Alignment (left, right)
  * - Line variants (solid, dashed, dotted)
@@ -150,18 +150,18 @@ describe('Timeline - Type Safety and Prop Validation', () => {
       expect(getByText('Red Timeline')).toBeTruthy();
     });
 
-    it('should accept colorVariant token', () => {
+    it('should accept a palette.shade color', () => {
       const { getByText } = render(
-        <Timeline colorVariant="primary.5">
+        <Timeline color="primary.5">
           <Timeline.Item title="Primary Timeline"><Text>Content</Text></Timeline.Item>
         </Timeline>
       );
       expect(getByText('Primary Timeline')).toBeTruthy();
     });
 
-    it('should accept colorVariant without shade', () => {
+    it('should accept a bare palette color', () => {
       const { getByText } = render(
-        <Timeline colorVariant="success">
+        <Timeline color="success">
           <Timeline.Item title="Success Timeline"><Text>Content</Text></Timeline.Item>
         </Timeline>
       );
@@ -177,10 +177,10 @@ describe('Timeline - Type Safety and Prop Validation', () => {
       expect(getByText('Red Item')).toBeTruthy();
     });
 
-    it('should allow Timeline.Item to use colorVariant', () => {
+    it('should allow Timeline.Item to set its own color', () => {
       const { getByText } = render(
         <Timeline>
-          <Timeline.Item colorVariant="red.6" title="Red Variant"><Text>Content</Text></Timeline.Item>
+          <Timeline.Item color="red.6" title="Red Variant"><Text>Content</Text></Timeline.Item>
         </Timeline>
       );
       expect(getByText('Red Variant')).toBeTruthy();
@@ -600,7 +600,6 @@ describe('Timeline - Type Safety and Prop Validation', () => {
         <Timeline
           active={1}
           color="#000000"
-          colorVariant="primary.5"
           lineWidth={2}
           bulletSize={24}
           align="left"
@@ -613,7 +612,6 @@ describe('Timeline - Type Safety and Prop Validation', () => {
             bullet={<View />}
             lineVariant="solid"
             color="#ffffff"
-            colorVariant="success.5"
             active={true}
             itemAlign="left"
           >

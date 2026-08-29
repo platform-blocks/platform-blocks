@@ -1,6 +1,6 @@
 import { Image, Card, Text, Row, Icon, Block } from '@platform-blocks/ui';
 
-export default function ImageFallbackDemo() {
+export function Demo() {
   return (
     <Card>
       <Text size="lg" weight="semibold" mb={16}>Image Fallback & Error Handling</Text>

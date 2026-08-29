@@ -18,16 +18,25 @@
  * The split is deliberate. Prop tables go stale silently and are the least
  * interesting part to write by hand, so they are generated. Everything that
  * required judgement stays hand-written and is instead *checked*: `--check`
- * re-parses every `import { … } from '@platform-blocks/…'` in every fenced code
- * block and every `<Icon name="…">`, and fails on anything the library no longer
- * provides. That is the failure this repo is actually exposed to — a skill that
- * confidently teaches an API which no longer exists.
+ * re-parses every fenced code block and fails on anything the library no longer
+ * provides —
+ *
+ *   • `import { … } from '@platform-blocks/…'` naming a symbol that is not exported
+ *   • `<Icon name="…">` naming an icon outside the registry
+ *   • `<Component prop={…}>` naming a prop the component does not have
+ *
+ * That last one is the failure this repo is most exposed to. Prop tables are
+ * generated and so cannot drift, but the hand-written prose is where an agent
+ * actually learns the API — and a removed prop lives on there silently. The
+ * `colorVariant` → `color` rename shipped with every generated table correct and
+ * eleven hand-written files still teaching the old name.
  *
  * Inputs are the artifacts written by scripts/generate-demos.ts. Run
  * `npm run demos:generate` first.
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 import { dirname, join, resolve } from 'path';
+import ts from 'typescript';
 
 const repoRoot = process.cwd();
 const generatedDir = join(repoRoot, 'apps', 'platform-blocks.com', 'data', 'generated');
@@ -306,8 +315,91 @@ const ICON_USAGES: RegExp[] = [
   /\bicon:\s*'([A-Za-z][A-Za-z0-9-]*)'/g,
 ];
 
+/**
+ * Props every component accepts but no component declares, so they are absent
+ * from the extracted tables: React's own, and the ones the underlying RN
+ * primitive passes through.
+ */
+const UNIVERSAL_PROPS = new Set([
+  'key', 'ref', 'style', 'children', 'testID',
+  'accessibilityLabel', 'accessibilityRole', 'accessibilityHint', 'accessibilityState',
+  'nativeID', 'id', 'className',
+]);
+
 function lineOf(text: string, index: number): number {
   return text.slice(0, index).split('\n').length;
+}
+
+/**
+ * Names a code block imports from somewhere that is not the library. Docs
+ * legitimately show `Tabs` from expo-router and `Text` from react-native next to
+ * our own components of the same name; without this, their props read as drift.
+ */
+function shadowedNames(source: ts.SourceFile): Set<string> {
+  const shadowed = new Set<string>();
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isImportDeclaration(node) &&
+      ts.isStringLiteral(node.moduleSpecifier) &&
+      !node.moduleSpecifier.text.startsWith('@platform-blocks/')
+    ) {
+      const bindings = node.importClause?.namedBindings;
+      if (bindings && ts.isNamedImports(bindings)) {
+        for (const element of bindings.elements) shadowed.add(element.name.text);
+      }
+      if (node.importClause?.name) shadowed.add(node.importClause.name.text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return shadowed;
+}
+
+/**
+ * Flag JSX attributes the component does not declare.
+ *
+ * Parsed with the compiler rather than matched: a regex over `<Tag ...>` cannot
+ * tell where the tag ends once a prop holds nested JSX (`content={<Row />}`),
+ * and silently attributes the inner element's props to the outer one.
+ *
+ * Only components with an extracted prop table are checked, which skips local
+ * example components and compound tags like `<Timeline.Item>` — those have no
+ * table of their own, and guessing would cost more in false alarms than it
+ * catches.
+ */
+function checkProps(
+  file: string,
+  text: string,
+  code: string,
+  blockOffset: number,
+  propsByComponent: Record<string, Set<string>>,
+): Problem[] {
+  const problems: Problem[] = [];
+  const source = ts.createSourceFile('block.tsx', code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const shadowed = shadowedNames(source);
+
+  const visit = (node: ts.Node): void => {
+    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const tag = node.tagName.getText(source);
+      const known = propsByComponent[tag];
+      if (known && !shadowed.has(tag)) {
+        for (const attribute of node.attributes.properties) {
+          if (!ts.isJsxAttribute(attribute)) continue;
+          const prop = attribute.name.getText(source);
+          if (known.has(prop) || UNIVERSAL_PROPS.has(prop)) continue;
+          problems.push({
+            file,
+            line: lineOf(text, blockOffset + attribute.getStart(source)),
+            message: `<${tag}> has no prop \`${prop}\``,
+          });
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+  return problems;
 }
 
 function checkFile(
@@ -318,6 +410,7 @@ function checkFile(
     charts: Set<string>;
     subpath: (name: string) => Set<string>;
     icons: Set<string>;
+    props: Record<string, Set<string>>;
   },
 ): Problem[] {
   const problems: Problem[] = [];
@@ -370,6 +463,8 @@ function checkFile(
         });
       }
     }
+
+    problems.push(...checkProps(file, text, code, blockOffset, resolvers.props));
   }
 
   return problems;
@@ -465,6 +560,12 @@ function main() {
     charts: readBarrelExports(join(chartsSrc, 'index.ts')),
     subpath: (name: string) => readSubpathExports(name),
     icons: new Set(iconNames),
+    props: Object.fromEntries(
+      Object.entries(propsByComponent).map(([component, list]) => [
+        component,
+        new Set(list.map((prop) => prop.name)),
+      ]),
+    ),
   };
 
   const problems: Problem[] = [];

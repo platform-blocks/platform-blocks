@@ -4,7 +4,7 @@ import { accounts } from './data';
 
 const formatArr = (value: number) => `$${value.toFixed(2)}M ARR`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <BubbleChart
       title="Customer Account Health vs Expansion"

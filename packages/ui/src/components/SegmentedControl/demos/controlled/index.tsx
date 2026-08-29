@@ -3,17 +3,17 @@ import { Block, Button, Card, Row, SegmentedControl, Text } from '@platform-bloc
 
 import { frameworks } from '../data';
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState('react');
 
   return (
     <Card p="md">
       <Block>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Drive the segmented control from external state to synchronize its value with other inputs.
         </Text>
         <SegmentedControl value={value} onChange={setValue} data={frameworks} />
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           Selected value: <Text as="span" weight="600">{value}</Text>
         </Text>
         <Row gap="sm" wrap="wrap">

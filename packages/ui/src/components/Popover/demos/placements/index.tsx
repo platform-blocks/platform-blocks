@@ -7,7 +7,7 @@ const OPTIONS = [
   { label: 'Left', position: 'left', description: 'Anchors to the left edge.' },
 ] as const;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block direction="row">
       {OPTIONS.map(({ label, position, description }) => (
@@ -20,7 +20,7 @@ export default function Demo() {
           <Popover.Dropdown>
             <Block p="sm" style={{ maxWidth: 220 }}>
               <Text weight="semibold">{label} placement</Text>
-              <Text variant="small" colorVariant="secondary">
+              <Text variant="small" color="secondary">
                 {description}
               </Text>
             </Block>

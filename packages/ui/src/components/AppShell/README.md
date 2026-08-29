@@ -91,7 +91,7 @@ function MyComponent() {
     toast.showToast({
       title: 'Success!',
       children: 'Operation completed successfully.',
-      sev: 'success',
+      severity: 'success',
       autoHide: 3000
     });
   };
@@ -110,7 +110,7 @@ function MyComponent() {
 
 - `title` - Toast title
 - `children` - Toast message content
-- `sev` - Severity level ('info', 'success', 'warning', 'error')
+- `severity` - Severity level ('info', 'success', 'warning', 'error')
 - `icon` - Custom icon component
 - `autoHide` - Auto-hide duration in milliseconds (0 to disable)
 - `variant` - Visual variant ('light', 'filled', 'outline')
@@ -220,7 +220,7 @@ function MainContent() {
     toast.showToast({
       title: 'Action Complete',
       children: 'Your action was completed successfully!',
-      sev: 'success',
+      severity: 'success',
       autoHide: 3000
     });
   };
@@ -266,6 +266,24 @@ function MainContent() {
 - Drawer includes overlay when open
 - Safe area handling for notches and status bars
 - Native-feeling animations
+
+### Statically rendered web
+
+A prerender runs in Node, with no viewport and no reader, so the shell cannot
+know what width to draw or which color scheme to draw it in — and both wrong
+guesses reach the markup, where only the cascade can still correct them.
+
+- **Geometry** is opt-in: set `cssGeometry` and inline the stylesheet
+  `createAppShellCss` builds from the same config.
+- **Chrome colors** need no prop. The shell reads its header, navbar, aside,
+  toc, footer, and bottom-bar fills through the variables
+  `createThemeColorVariablesCss` publishes, so an app already inlining that
+  stylesheet — the same one the rest of the theme's colors use — lands in the
+  reader's scheme at first paint. Without it, or off the web, the shell falls
+  back to literals from the resolved theme.
+
+`shellChrome(theme)` and `shellChromeColors(theme)` return the same values, for
+app chrome that has to sit flush against the shell's.
 
 ## Best Practices
 

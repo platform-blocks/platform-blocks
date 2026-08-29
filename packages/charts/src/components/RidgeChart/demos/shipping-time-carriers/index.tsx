@@ -2,7 +2,7 @@ import { RidgeChart } from '@platform-blocks/charts';
 
 import { SERIES, formatDays } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <RidgeChart
       title="Shipping time distribution by carrier"

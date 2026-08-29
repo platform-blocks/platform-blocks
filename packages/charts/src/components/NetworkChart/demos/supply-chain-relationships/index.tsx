@@ -28,7 +28,7 @@ const riskToOpacity = (risk?: string) => {
   }
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <NetworkChart
       title="Supply chain relationship map"

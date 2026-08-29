@@ -12,7 +12,7 @@ const sampleData = [
   { label: 'Honeydew', value: 'honeydew', description: 'A sweet green melon' },
 ]
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme()
   const isDark = theme.colorScheme === 'dark'
 
@@ -62,7 +62,7 @@ export default function Demo() {
             />
           ))}
         </Row>
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           Type a letter or two, then pick a swatch. The first is the default
           (primary ramp); the rest come from `theme.colors.highlight`, paired
           with a soft tint from the same ramp as the match background.

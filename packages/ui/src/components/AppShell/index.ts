@@ -17,6 +17,16 @@ export {
 export { MobileMenu } from './MobileMenu';
 export { BottomAppBar } from './BottomAppBar';
 export { StatusBarManager } from './StatusBarManager';
+// Static-rendering geometry: see shellCssVars.ts
+export {
+  APP_SHELL_CSS_VARS,
+  createAppShellCss,
+  resolveNavbarReservedWidth,
+  resolveContentBottom,
+  isMobileBreakpoint,
+} from './shellCssVars';
+export type { AppShellCssConfig, AppShellCssVar } from './shellCssVars';
+
 // Hooks
 export { useBreakpoint } from './hooks/useBreakpoint';
 export { useNavbarHover } from './AppShell';

@@ -7,7 +7,7 @@ const ITEMS = [
   { label: 'Product' },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Breadcrumbs items={ITEMS} />

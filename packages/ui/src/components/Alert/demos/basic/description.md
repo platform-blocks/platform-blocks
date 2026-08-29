@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Use `sev` to set the severity — it picks the matching color and icon automatically.
+Use `severity` to set it — it picks the matching color and icon automatically.

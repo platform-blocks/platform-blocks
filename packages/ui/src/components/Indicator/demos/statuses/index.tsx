@@ -9,7 +9,7 @@ const presenceStatuses = [
 
 const notificationCounts = [3, 47, 99, 134, 1005];
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
 
   const resolveColor = (palette: (typeof presenceStatuses)[number]['palette']) => {
@@ -35,7 +35,7 @@ export default function Demo() {
                 />
                 <Indicator placement="bottom-right" size={14} color={resolveColor(status.palette)} />
               </Block>
-              <Text size="xs" colorVariant="secondary">
+              <Text size="xs" color="secondary">
                 {status.label}
               </Text>
             </Block>
@@ -58,7 +58,7 @@ export default function Demo() {
                     {display}
                   </Text>
                 </Indicator>
-                <Text size="xs" colorVariant="secondary">
+                <Text size="xs" color="secondary">
                   {count}
                 </Text>
               </Block>

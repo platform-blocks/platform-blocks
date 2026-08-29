@@ -28,7 +28,7 @@ const severityToOpacity = (severity?: string) => {
   }
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <NetworkChart
       title="Risk propagation path"

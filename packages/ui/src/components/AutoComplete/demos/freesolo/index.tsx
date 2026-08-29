@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { AutoComplete, Block, Text } from '@platform-blocks/ui'
 import { fruits } from '../data'
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState('')
 
   return (
@@ -19,7 +19,7 @@ export default function Demo() {
         minSearchLength={0}
         fullWidth
       />
-      <Text size="xs" colorVariant="secondary">
+      <Text size="xs" color="secondary">
         Current value: {value || '(empty)'}
       </Text>
     </Block>

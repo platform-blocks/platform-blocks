@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Provide a `label` node and adjust `labelPosition` plus `colorVariant` to separate form sections with contextual dividers.
+Provide a `label` node and adjust `labelPosition` plus `color` to separate form sections with contextual dividers.

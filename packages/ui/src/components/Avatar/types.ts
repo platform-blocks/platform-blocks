@@ -30,7 +30,7 @@ export interface AvatarProps {
   gap?: number;
   /** Force horizontal layout off (set false to hide label/description wrapper) */
   showText?: boolean;
-  /** Override props applied to the fallback initials `<Text>` (style, weight, ff, size, colorVariant). */
+  /** Override props applied to the fallback initials `<Text>` (style, weight, ff, size, color). */
   fallbackProps?: Omit<TextProps, 'children'>;
   /** Override props applied to the adjacent label `<Text>` (only when `label` is a string). */
   labelProps?: Omit<TextProps, 'children'>;

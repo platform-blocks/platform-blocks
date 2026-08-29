@@ -1,14 +1,14 @@
 import { Block, Divider, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Block>
         <Text variant="small" weight="medium">
           Gradient variant
         </Text>
-        <Divider variant="gradient" colorVariant="primary" />
-        <Divider variant="gradient" colorVariant="error" size={2} />
+        <Divider variant="gradient" color="primary" />
+        <Divider variant="gradient" color="error" size={2} />
         <Divider variant="gradient" label="Section break" />
       </Block>
 
@@ -16,9 +16,9 @@ export default function Demo() {
         <Text variant="small" weight="medium">
           Opacity prop — same color, different emphasis
         </Text>
-        <Divider colorVariant="primary" />
-        <Divider colorVariant="primary" opacity={0.5} />
-        <Divider colorVariant="primary" opacity={0.25} />
+        <Divider color="primary" />
+        <Divider color="primary" opacity={0.5} />
+        <Divider color="primary" opacity={0.25} />
       </Block>
 
       <Block>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, Pagination, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [page1, setPage1] = useState(10);
   const [page2, setPage2] = useState(15);
   const [page3, setPage3] = useState(25);
@@ -19,7 +19,7 @@ export default function Demo() {
           siblings={2}
           boundaries={2}
         />
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           Includes first and last buttons. Page {page1} of 30.
         </Text>
       </Block>
@@ -33,7 +33,7 @@ export default function Demo() {
           siblings={1}
           boundaries={1}
         />
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           Minimal navigation with prev/next only. Page {page2} of 40.
         </Text>
       </Block>
@@ -48,7 +48,7 @@ export default function Demo() {
           boundaries={1}
           size="sm"
         />
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           Compact layout with tight siblings. Page {page3} of 50.
         </Text>
       </Block>

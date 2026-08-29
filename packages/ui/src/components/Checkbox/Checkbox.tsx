@@ -2,6 +2,7 @@ import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useControllableState } from '../../hooks/useControllableState';
 import { View, Pressable, Animated, Platform } from 'react-native';
 import { useTheme } from '../../core/theme';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { Text } from '../Text';
 import { FieldHeader } from '../_internal/FieldHeader';
 import { Icon } from '../Icon';
@@ -21,7 +22,6 @@ export const Checkbox = React.forwardRef<View, CheckboxProps>((props, ref) => {
     onChange,
     indeterminate = false,
     color,
-    colorVariant = 'primary',
     size = 'md',
     label,
     disabled = false,
@@ -50,24 +50,7 @@ export const Checkbox = React.forwardRef<View, CheckboxProps>((props, ref) => {
     onChange,
   });
 
-  // Resolve color from colorVariant or direct color prop
-  const resolveColor = () => {
-    // Direct color prop takes precedence
-    if (color) {
-      return color;
-    }
-
-    // Fall back to colorVariant
-    if (colorVariant && (theme.colors as any)[colorVariant]) {
-      const colorPalette = (theme.colors as any)[colorVariant];
-      return colorPalette[5] || colorPalette[0] || colorPalette;
-    }
-
-    // Default fallback
-    return theme.colors.primary[5];
-  };
-
-  const resolvedColor = resolveColor();
+  const resolvedColor = resolveAccentColor(theme, color) ?? theme.colors.primary[5];
 
   const styles = useCheckboxStyles({
     checked: effectiveChecked,
@@ -76,7 +59,6 @@ export const Checkbox = React.forwardRef<View, CheckboxProps>((props, ref) => {
     error: !!error,
     size,
     color: resolvedColor,
-    colorVariant,
     labelPosition,
     theme
   });

@@ -35,11 +35,11 @@ const disabledCopyExample = `// This example has the copy button disabled
 const message = "Hello, World!";
 console.log(message);`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block fullWidth>
       <Text weight="semibold">Feature highlights</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Combine titles, line numbers, full-width layouts, and copy controls to match different documentation needs.
       </Text>
       <Block>

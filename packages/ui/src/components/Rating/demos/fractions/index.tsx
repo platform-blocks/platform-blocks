@@ -18,7 +18,7 @@ const FRACTION_SETTINGS = [
 
 type FractionKey = (typeof FRACTION_SETTINGS)[number]['key'];
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
   const [values, setValues] = useState<Record<FractionKey, number>>({
     match: 4.2,
@@ -29,7 +29,7 @@ export default function Demo() {
     <Block>
       {FRACTION_SETTINGS.map(({ key, label, precision, helper }) => (
         <Block key={key}>
-          <Text variant="small" colorVariant="muted">
+          <Text variant="small" color="muted">
             {label}
           </Text>
           <Rating
@@ -43,7 +43,7 @@ export default function Demo() {
             hoverColor={theme.colors.highlight[6]}
             showTooltip
           />
-          <Text variant="small" colorVariant="muted">
+          <Text variant="small" color="muted">
             {helper}
           </Text>
         </Block>

@@ -167,7 +167,7 @@ export function MediaShowcase() {
               progress={progress}
               progressColor="success"
             />
-            <Text size="xs" colorVariant="muted">Rounded bars with animated playback progress.</Text>
+            <Text size="xs" color="muted">Rounded bars with animated playback progress.</Text>
         </Card>
      
         <Card style={{ flexGrow: 1, minWidth: 320 }} p={16}>
@@ -183,7 +183,7 @@ export function MediaShowcase() {
               progress={progress}
               progressColor="warning"
             />
-            <Text size="xs" colorVariant="muted">Continuous line waveform with animated progress overlay.</Text>
+            <Text size="xs" color="muted">Continuous line waveform with animated progress overlay.</Text>
           </Block>
         </Card>
       </Block>
@@ -201,7 +201,7 @@ export function MediaShowcase() {
               timeline={videoChapters}
               onTimelineEvent={(event) => setLastTimelineMarker(event.data?.label ?? event.id)}
             />
-            <Text size="xs" colorVariant="muted">
+            <Text size="xs" color="muted">
               {lastTimelineMarker
                 ? `Latest chapter marker: ${lastTimelineMarker}`
                 : 'Timeline markers surface product chapters while playback runs.'}
@@ -217,7 +217,7 @@ export function MediaShowcase() {
               autoPlay={false}
               muted
             />
-            <Text size="xs" colorVariant="muted">
+            <Text size="xs" color="muted">
               Supports native playback controls plus YouTube quality and speed options.
             </Text>
         </Card>
@@ -256,7 +256,7 @@ export function MediaShowcase() {
             </Block>
             <Block gap="sm" align="center" wrap="wrap">
               <Button size="sm" onPress={() => openGalleryAt(0)}>Open Gallery</Button>
-              <Text size="xs" colorVariant="muted">
+              <Text size="xs" color="muted">
                 Tap a thumbnail or use the button to launch the full-screen gallery.
               </Text>
             </Block>

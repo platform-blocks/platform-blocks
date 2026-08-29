@@ -56,14 +56,6 @@ export interface ButtonProps extends SpacingProps, LayoutProps, BorderRadiusProp
    * value in `style` makes them fill instead.
    */
   fullWidth?: boolean;
-  /**
-   * Custom color override for the button. Accepts raw CSS color OR theme token syntax:
-   *  - 'primary' (palette key -> uses middle shade 5)
-   *  - 'primary.6' (palette key + shade index)
-   *  - '#ff0000' / 'rgb(...)' direct colors
-   * Named colorVariant to align with Text component API.
-   */
-  colorVariant?: string;
   /** Explicit text color override (else derived automatically from variant & color) */
   textColor?: string;
   /** Icon to show in the center (for icon-only buttons) */
@@ -94,6 +86,6 @@ export interface ButtonProps extends SpacingProps, LayoutProps, BorderRadiusProp
   accessibilityLabel?: string;
   /** Accessibility hint for screen readers */
   accessibilityHint?: string;
-  /** Override props applied to the inner label `<Text>` (style, weight, ff, size, colorVariant). */
+  /** Override props applied to the inner label `<Text>` (style, weight, ff, size, color). */
   labelProps?: Omit<TextProps, 'children'>;
 }

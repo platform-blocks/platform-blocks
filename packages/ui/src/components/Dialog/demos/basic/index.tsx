@@ -2,7 +2,7 @@ import { Alert } from 'react-native';
 
 import { Block, Button, Row, Text, useDialog } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const { openDialog, closeDialog } = useDialog();
 
   const showBasicDialog = () => {
@@ -12,7 +12,7 @@ export default function Demo() {
       content: (
         <Block p="md">
           <Text>This is a basic modal dialog with theme-aware styling.</Text>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Works in both light and dark mode.
           </Text>
           <Row gap="sm" mt="sm">

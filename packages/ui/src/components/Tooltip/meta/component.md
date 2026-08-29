@@ -60,7 +60,7 @@ props:
     description: "Clamp the label to N lines with an ellipsis. Unset means the label wraps freely."
   - name: "labelProps"
     type: "Omit<TextProps, 'children'>"
-    description: "Override props applied to the label `<Text>` (style, weight, ff, size, colorVariant)"
+    description: "Override props applied to the label `<Text>` (style, weight, ff, size, color)"
 ---
 
 Tooltip provides contextual information without disrupting the user's workflow. It supports multiple trigger events, smart positioning, and accessibility features for an inclusive experience.

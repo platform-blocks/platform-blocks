@@ -1,5 +1,6 @@
 import type { PlatformBlocksTheme } from './types';
 import { adjustHexColor, withAlpha, readableTextOn, composite, pickReadable, relativeLuminance, contrastRatio } from './colorUtils';
+import { literalBackgrounds } from './cssVariableTheme';
 
 /**
  * The canonical, component-agnostic variant vocabulary. Chip, Badge, Tabs, Pill,
@@ -47,15 +48,24 @@ const PERCEPTIBLE_STEP = 1.1;
  */
 const pickRecessed = (theme: PlatformBlocksTheme, surface: string): string => {
   const surfaceLum = relativeLuminance(surface);
-  const darker = [theme.backgrounds?.subtle, theme.backgrounds?.base]
-    .filter((c): c is string => Boolean(c) && relativeLuminance(c) < surfaceLum);
+  // Choose against the literal colors — `var(--x)` has no luminance — but return
+  // whatever `theme.backgrounds` renders for the winner, so the fill still tracks
+  // the scheme under a CSS-variable theme.
+  const literal = literalBackgrounds(theme);
+  const rendered = theme.backgrounds;
+  const candidates = (['subtle', 'base'] as const)
+    .map((token) => ({ token, value: literal?.[token] }))
+    .filter((c): c is { token: 'subtle' | 'base'; value: string } =>
+      Boolean(c.value) && relativeLuminance(c.value as string) < surfaceLum);
 
-  const clears = darker.find((c) => contrastRatio(c, surface) >= PERCEPTIBLE_STEP);
-  if (clears) return clears;
+  const clears = candidates.find((c) => contrastRatio(c.value, surface) >= PERCEPTIBLE_STEP);
+  if (clears) return rendered?.[clears.token] ?? clears.value;
 
   // Nothing is a full step down: take the darkest of what's on offer, or make one.
-  const darkest = darker.slice().sort((a, b) => relativeLuminance(a) - relativeLuminance(b))[0];
-  return darkest ?? adjustHexColor(surface, -14);
+  const darkest = candidates
+    .slice()
+    .sort((a, b) => relativeLuminance(a.value) - relativeLuminance(b.value))[0];
+  return darkest ? rendered?.[darkest.token] ?? darkest.value : adjustHexColor(surface, -14);
 };
 
 /**
@@ -73,7 +83,9 @@ export const resolveVariantRoles = (
 ): VariantRoles => {
   const isDark = theme.colorScheme === 'dark';
   const isCustomColor = typeof color === 'string' && !(CORE_COLORS as readonly string[]).includes(color);
-  const surface = theme.backgrounds?.surface ?? (isDark ? '#000000' : '#FFFFFF');
+  // Measured against, and composited with, throughout this function — so it has
+  // to be the literal color rather than a `var()` reference.
+  const surface = literalBackgrounds(theme)?.surface ?? (isDark ? '#000000' : '#FFFFFF');
 
   // `strong` = the vivid, saturated color used for solid fills.
   // `textCandidates` = shades tried (most-vivid first) when choosing surface-readable text.

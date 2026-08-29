@@ -1,12 +1,12 @@
 import { Pressable } from 'react-native';
 import { Block, Card, Text, useHover } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [hovered, hoverHandlers] = useHover();
 
   return (
     <Block align="flex-start">
-      <Text size="sm" colorVariant="muted">
+      <Text size="sm" color="muted">
         Hover the card below (web only — touch devices show no hover state).
       </Text>
       <Pressable {...hoverHandlers}>

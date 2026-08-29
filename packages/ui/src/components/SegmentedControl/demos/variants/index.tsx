@@ -49,17 +49,17 @@ const variants = [
   },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Card p="md">
       <Block>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Change the variant to match the surface and emphasis level of the surrounding layout.
         </Text>
         <Block>
           {variants.map((variant) => (
             <Block key={variant.key}>
-              <Text size="xs" colorVariant="secondary">
+              <Text size="xs" color="secondary">
                 {variant.label}
               </Text>
               <SegmentedControl
@@ -67,7 +67,7 @@ export default function Demo() {
                 data={variant.data}
                 {...variant.props}
               />
-              <Text size="xs" colorVariant="muted">
+              <Text size="xs" color="muted">
                 {variant.description}
               </Text>
             </Block>

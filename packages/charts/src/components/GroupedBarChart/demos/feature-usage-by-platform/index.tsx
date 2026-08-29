@@ -2,7 +2,7 @@ import { GroupedBarChart } from '@platform-blocks/charts';
 
 import { SERIES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <GroupedBarChart
       title="Feature usage by platform"

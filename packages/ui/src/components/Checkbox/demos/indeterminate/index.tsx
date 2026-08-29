@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Block, Checkbox } from '@platform-blocks/ui';
 import { ITEMS } from './data';
 
-export default function Demo() {
+export function Demo() {
   const [selected, setSelected] = useState<number[]>([]);
   const allIds = ITEMS.map((item) => item.id);
   const allChecked = selected.length === ITEMS.length;

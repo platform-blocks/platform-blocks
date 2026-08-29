@@ -4,7 +4,7 @@ import { Block, Text, Tree } from '@platform-blocks/ui';
 
 import { TREE_DATA } from './data';
 
-export default function Demo() {
+export function Demo() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   return (
@@ -17,7 +17,7 @@ export default function Demo() {
         expandAll
       />
 
-      <Text size="xs" colorVariant="secondary">
+      <Text size="xs" color="secondary">
         {selectedIds.length === 0
           ? 'Click a row, shift-click for a range, or Cmd/Ctrl-click to toggle.'
           : `${selectedIds.length} selected`}

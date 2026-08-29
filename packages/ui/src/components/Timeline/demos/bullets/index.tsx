@@ -27,10 +27,10 @@ const bulletSizes = [
   { label: 'Large bullet (28px)', bulletSize: 28 },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Override bullet content or scale it with the `bullet` and `bulletSize` props.
       </Text>
 

@@ -4,7 +4,7 @@ import { CheckboxStyleProps } from './types';
 import { PlatformBlocksTheme } from '../../core/theme/types';
 
 export const useCheckboxStyles = (props: CheckboxStyleProps & { theme: PlatformBlocksTheme }) => {
-  const { checked, indeterminate, disabled, error, size, color, colorVariant, labelPosition = 'right', theme } = props;
+  const { checked, indeterminate, disabled, error, size, color, labelPosition = 'right', theme } = props;
 
   // Define size mappings
   const sizeMap: Partial<Record<ComponentSize, number>> = {

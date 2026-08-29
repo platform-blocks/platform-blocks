@@ -1,10 +1,10 @@
 import { Block, Table, Text } from '@platform-blocks/ui';
 import { data } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Combine table, column, and row borders to separate dense numeric data.
       </Text>
       <Table

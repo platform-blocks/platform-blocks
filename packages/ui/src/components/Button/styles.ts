@@ -3,6 +3,7 @@ import { Platform, StyleSheet, type StyleProp, type ViewStyle } from 'react-nati
 import { CORE_COLORS, resolveVariantRoles, type VariantRole, type VariantRoles } from '../../core/theme/variantRoles';
 import { getFontSize, getSpacing, type SizeValue } from '../../core/theme/sizes';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { DESIGN_TOKENS, getUnifiedComponentSize } from '../../core/unified-styles';
 import type { ButtonProps } from './types';
 
@@ -70,7 +71,12 @@ export const getButtonStyles = ({
     borderWidth: 1,
     opacity: disabled ? DESIGN_TOKENS.opacity.disabled : loading ? DESIGN_TOKENS.opacity.pressed : 1,
     ...radiusStyles,
-    ...(typeof window !== 'undefined' && {
+    // `Platform.OS`, not `typeof window`: both are true in a browser, but a static
+    // render happens in Node — where the second one flips and the server drops a
+    // property the client then adds. React calls that a hydration mismatch and
+    // answers it by rebuilding the tree, which is the first thing its own error
+    // message warns about.
+    ...(Platform.OS === 'web' && {
       transition: `all ${DESIGN_TOKENS.motion.duration.fast}ms ${DESIGN_TOKENS.motion.easing.easeOut}`,
     }),
   };
@@ -136,32 +142,6 @@ export const getButtonStyles = ({
 };
 
 /**
- * Resolves a color token to a concrete value. Accepts `palette`,
- * `palette.shade`, or a raw CSS/hex color (returned unchanged).
- */
-export const resolveTokenColor = (
-  theme: PlatformBlocksTheme,
-  token?: string,
-): string | undefined => {
-  if (!token) return undefined;
-
-  const shadeMatch = token.match(/^([a-zA-Z0-9_-]+)\.([0-9]{1,2})$/);
-  if (shadeMatch) {
-    const [, palette, shadeStr] = shadeMatch;
-    const shade = parseInt(shadeStr, 10);
-    const paletteValue = (theme.colors as any)[palette];
-    if (Array.isArray(paletteValue) && paletteValue[shade] != null) return paletteValue[shade];
-  }
-
-  const paletteValue = (theme.colors as any)[token];
-  if (paletteValue) {
-    return Array.isArray(paletteValue) ? paletteValue[5] || paletteValue[0] : paletteValue;
-  }
-
-  return token; // raw css color
-};
-
-/**
  * Tint color for the color-bearing variants. Core palette tokens pass through
  * as tokens (the shared resolver does its own palette lookup); `palette.shade`
  * and raw CSS colors are pre-resolved to a concrete value.
@@ -169,7 +149,7 @@ export const resolveTokenColor = (
 export const resolveRoleColor = (theme: PlatformBlocksTheme, token?: string): string => {
   if (!token) return 'primary';
   if ((CORE_COLORS as readonly string[]).includes(token)) return token;
-  return resolveTokenColor(theme, token) ?? token;
+  return resolveAccentColor(theme, token) ?? token;
 };
 
 export interface ButtonTextColorParams {
@@ -178,7 +158,7 @@ export interface ButtonTextColorParams {
   roles: VariantRoles | null;
   /** Explicit `textColor` prop, if any — always wins. */
   textColorProp?: string;
-  /** Whether the consumer asked for a specific tint via `color`/`colorVariant`. */
+  /** Whether the consumer asked for a specific tint via `color`. */
   hasExplicitColor: boolean;
   /** Accent text color, used by ghost/link when a tint was requested. */
   accentText: string;
@@ -193,7 +173,7 @@ export const resolveButtonTextColor = ({
   hasExplicitColor,
   accentText,
 }: ButtonTextColorParams): string => {
-  if (textColorProp) return resolveTokenColor(theme, textColorProp) || textColorProp;
+  if (textColorProp) return resolveAccentColor(theme, textColorProp) || textColorProp;
   if (roles) return roles.text;
 
   switch (variant) {

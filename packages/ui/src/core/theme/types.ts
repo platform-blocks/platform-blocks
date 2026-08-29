@@ -139,6 +139,20 @@ export interface PlatformBlocksTheme {
   };
 
   /**
+   * The literal colors behind `text`, `backgrounds` and `surfaces` when those
+   * have been rewritten to CSS `var()` references for the web — see
+   * `withCssVariableColors`. Code that *measures* color (contrast math,
+   * compositing) has to read through here, because `var(--x)` has no luminance.
+   * Absent on themes that were never rewritten, where the tokens are already
+   * literal; `literalText` / `literalBackgrounds` handle both cases.
+   */
+  literalColors?: {
+    text: PlatformBlocksTheme['text'];
+    backgrounds: PlatformBlocksTheme['backgrounds'];
+    surfaces?: SurfaceScale;
+  };
+
+  /**
    * Elevation ladder consumed by `Surface` (and, through it, Card, Menu,
    * Popover, Dialog…). Optional: themes that omit it get a ladder derived
    * from `backgrounds`, so existing custom themes keep working.

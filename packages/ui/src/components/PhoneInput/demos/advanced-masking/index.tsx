@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, PhoneInput, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [intlRaw, setIntlRaw] = useState('');
   const [intlFormatted, setIntlFormatted] = useState('');
   const [extensionRaw, setExtensionRaw] = useState('');
@@ -11,7 +11,7 @@ export default function Demo() {
   return (
     <Block fullWidth>
       <Text weight="semibold">Advanced masking</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Apply custom mask patterns to control formatting for international numbers and extension fields.
       </Text>
 
@@ -28,10 +28,10 @@ export default function Demo() {
           mask="+00 (000) 000-0000"
           placeholder="+44 (7911) 123-456"
         />
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           Raw digits: {intlRaw || '—'}
         </Text>
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           Formatted: {intlFormatted || '—'}
         </Text>
       </Block>
@@ -49,10 +49,10 @@ export default function Demo() {
           mask="000-000-0000 x0000"
           placeholder="555-123-4567 x1234"
         />
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           Raw digits: {extensionRaw || '—'}
         </Text>
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           Formatted: {extensionFormatted || '—'}
         </Text>
       </Block>

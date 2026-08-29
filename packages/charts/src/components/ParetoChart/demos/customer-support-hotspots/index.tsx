@@ -2,7 +2,7 @@ import { ParetoChart } from '@platform-blocks/charts';
 
 import { SUPPORT_CASES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <ParetoChart
       title="Support backlog concentration"

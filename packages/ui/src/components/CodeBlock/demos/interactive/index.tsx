@@ -13,7 +13,7 @@ function add(a, b) {
 const result = add(5, 3);
 console.log(\`5 + 3 = \${result}\`);`;
 
-export default function Demo() {
+export function Demo() {
   const [copiedLength, setCopiedLength] = useState<number | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -40,11 +40,11 @@ export default function Demo() {
   return (
     <Block fullWidth>
       <Text weight="semibold">Interactive copy</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Attach an onCopy handler to trigger custom feedback and reuse it outside the CodeBlock controls.
       </Text>
       {copiedLength !== null && (
-        <Text size="xs" colorVariant="success">
+        <Text size="xs" color="success">
           Copied {copiedLength} characters to the clipboard.
         </Text>
       )}

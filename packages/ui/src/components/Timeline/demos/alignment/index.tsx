@@ -7,15 +7,15 @@ const phases = [
 ];
 
 const signals = [
-  { title: 'All Clear', description: 'No blockers detected.', align: 'left' as const, colorVariant: 'success.5' },
-  { title: 'Caution', description: 'Risk detected for timeline.', align: 'right' as const, colorVariant: 'warning.5' },
-  { title: 'Stop', description: 'Escalate critical issues before shipping.', align: 'left' as const, colorVariant: 'error.5' },
+  { title: 'All Clear', description: 'No blockers detected.', align: 'left' as const, color: 'success.5' },
+  { title: 'Caution', description: 'Risk detected for timeline.', align: 'right' as const, color: 'warning.5' },
+  { title: 'Stop', description: 'Escalate critical issues before shipping.', align: 'left' as const, color: 'error.5' },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Adjust alignment with the `align` prop or enable `centerMode` for timelines that alternate between sides.
       </Text>
 
@@ -49,7 +49,7 @@ export default function Demo() {
               key={signal.title}
               title={signal.title}
               itemAlign={signal.align}
-              colorVariant={signal.colorVariant}
+              color={signal.color}
             >
               <Text size="sm">{signal.description}</Text>
             </Timeline.Item>

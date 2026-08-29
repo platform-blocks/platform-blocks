@@ -79,6 +79,9 @@ export interface TreeRenderNode<T = any> {
 
 export type TreeCheckState = 'checked' | 'indeterminate' | 'unchecked';
 
+/** Where the expand/collapse caret is drawn. See `TreeProps.disclosure`. */
+export type TreeDisclosure = 'always' | 'nested' | 'none';
+
 export interface TreeProps<T = any> {
   data: TreeNode<T>[];
   /** Called when a leaf is activated, or when any node carrying `href` is pressed */
@@ -87,6 +90,18 @@ export interface TreeProps<T = any> {
   onNodePress?: (node: TreeNode<T>, context: { isBranch: boolean; event?: any }) => boolean | void;
   /** Allow collapsing/expanding */
   collapsible?: boolean;
+  /**
+   * Where the expand/collapse caret is drawn, and whether every row reserves
+   * its column.
+   * - `'always'` — a caret on each branch, and the column held open on rows
+   *   without one so labels line up whatever the row is.
+   * - `'nested'` — top-level branches go bare and no row reserves the column,
+   *   so the outermost rows read as headings and the whole tree sits flush
+   *   against its edge. Branches still open when the row itself is pressed.
+   * - `'none'` — no caret at any depth, and no column.
+   * @default 'always'
+   */
+  disclosure?: TreeDisclosure;
   /** Row density. Drives height, padding, indent and icon size. */
   size?: ComponentSizeValue;
   /** Indent size in px for each depth level. Defaults to the `size` scale. */

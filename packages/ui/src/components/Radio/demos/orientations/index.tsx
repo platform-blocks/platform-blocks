@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Block, RadioGroup, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [favoriteSport, setFavoriteSport] = useState<string>('soccer');
   const [skillLevel, setSkillLevel] = useState<string>('intermediate');
 
   return (
     <Block>
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Horizontal layout
         </Text>
         <RadioGroup
@@ -25,7 +25,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Vertical layout
         </Text>
         <RadioGroup

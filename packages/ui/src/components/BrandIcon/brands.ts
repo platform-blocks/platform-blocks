@@ -992,23 +992,3 @@ export const brandIcons = {
 
 export type BrandName = keyof typeof brandIcons;
 
-/**
- * camelCase brand names kept for backwards compatibility.
- *
- * @deprecated Use the kebab-case canonical name instead. Removed in 0.12.0.
- */
-export const deprecatedBrandNames = {
-  googlePlay: 'google-play',
-  applePodcasts: 'apple-podcasts',
-  appleMusic: 'apple-music',
-  appgallery: 'app-gallery',
-  amazonMusic: 'amazon-music',
-  youtubeMusic: 'youtube-music',
-} as const satisfies Record<string, BrandName>;
-
-/** @deprecated Use {@link BrandName}. */
-export type DeprecatedBrandName = keyof typeof deprecatedBrandNames;
-
-/** Maps a deprecated camelCase brand name onto its canonical kebab-case name. */
-export const resolveBrandName = (brand: BrandName | DeprecatedBrandName): BrandName =>
-  (deprecatedBrandNames as Record<string, BrandName>)[brand] ?? (brand as BrandName);

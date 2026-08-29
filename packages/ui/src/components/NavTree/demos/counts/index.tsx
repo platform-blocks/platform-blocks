@@ -10,7 +10,7 @@ const ROUTES: NavTreeItem[] = [
   { label: 'Tabs', href: '/components/Tabs', group: 'Navigation' },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [route, setRoute] = useState('/components/Card');
 
   return (

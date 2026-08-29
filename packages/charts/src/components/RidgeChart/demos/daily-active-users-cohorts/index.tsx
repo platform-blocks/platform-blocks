@@ -2,7 +2,7 @@ import { RidgeChart } from '@platform-blocks/charts';
 
 import { SERIES, formatThousands } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <RidgeChart
       title="Daily active users across feature cohorts"

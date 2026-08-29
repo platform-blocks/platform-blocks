@@ -16,7 +16,7 @@ const sampleTOC = (
   </Block>
 );
 
-export default function AppShellDemo() {
+export function Demo() {
   return (
     <AppShell
       header={{ height: 60 }}

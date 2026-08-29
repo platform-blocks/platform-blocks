@@ -1,6 +1,6 @@
 import { Block, Input } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Input type="email" label="Email address" placeholder="user@example.com" />

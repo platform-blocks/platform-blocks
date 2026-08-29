@@ -1,6 +1,6 @@
 import { Block, DataList, Text, useDeviceInfo } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const { runtime, system, screen, appearance, locale, input, safeArea, helpers, network, meta } =
     useDeviceInfo({ enableExtendedData: true });
 

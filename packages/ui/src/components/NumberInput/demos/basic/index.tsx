@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NumberInput } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [quantity, setQuantity] = useState<number | undefined>(2);
 
   return (

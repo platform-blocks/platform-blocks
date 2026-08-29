@@ -2,7 +2,7 @@ import { LineChart } from '@platform-blocks/charts';
 
 import { FORECAST_END, FORECAST_START, MONTH_LABELS, SERIES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <LineChart
       title="ARR Progression vs. Forecast"

@@ -4,7 +4,7 @@ import { DEPARTMENT_ALLOCATIONS } from './data';
 
 const formatBudget = (value: number) => `$${Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value)}M`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <DonutChart
       title="Annual Expense Allocation"

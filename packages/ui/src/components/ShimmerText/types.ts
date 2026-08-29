@@ -14,13 +14,17 @@ export interface ShimmerTextProps extends Omit<TextProps, 'children' | 'color' |
   colors?: string[];
   /** Highlight color used for the shimmer pass */
   shimmerColor?: string;
-  /** Length multiplier for the shimmer sweep (higher = wider highlight) */
+  /**
+   * Width of the highlight band as a multiple of the text width (higher = wider
+   * highlight). The band always travels from fully clear of one edge to fully
+   * clear of the other, so this also sets how far it moves per cycle.
+   */
   spread?: number;
   /** Duration of a single shimmer cycle in seconds */
   duration?: number;
   /** Delay before the shimmer starts (seconds) */
   delay?: number;
-  /** Delay between shimmer repetitions (seconds) */
+  /** Pause held at the end of each cycle, with the band off screen (seconds) */
   repeatDelay?: number;
   /** Whether the shimmer should repeat indefinitely */
   repeat?: boolean;
@@ -30,11 +34,11 @@ export interface ShimmerTextProps extends Omit<TextProps, 'children' | 'color' |
   direction?: ShimmerDirection;
   /** Enable verbose logging for debugging */
   debug?: boolean;
-  /** Custom layout callback propagated to the underlying text */
+  /** Called with the layout of the shimmer container */
   onLayout?: TextProps['onLayout'];
   /** Start shimmering once the component enters the viewport (web only) */
   startOnView?: boolean;
-  /** Custom IntersectionObserver margin (web only) */
+  /** `rootMargin` for the `startOnView` IntersectionObserver (web only) */
   inViewMargin?: string;
   /** Optional container style */
   containerStyle?: any;

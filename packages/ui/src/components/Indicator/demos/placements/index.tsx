@@ -27,7 +27,7 @@ const Tile = ({ children }: { children: ReactNode }) => (
   </Block>
 );
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Block>
@@ -38,7 +38,7 @@ export default function Demo() {
         <Row gap="md" wrap="wrap">
           {cornerPlacements.map((placement) => (
             <Tile key={placement.placement}>
-              <Text size="xs" colorVariant="secondary">
+              <Text size="xs" color="secondary">
                 {placement.label}
               </Text>
               <Indicator placement={placement.placement} color={placement.color} />
@@ -55,7 +55,7 @@ export default function Demo() {
         <Row gap="md" wrap="wrap">
           {offsetPlacements.map((placement) => (
             <Tile key={placement.label}>
-              <Text size="xs" colorVariant="secondary">
+              <Text size="xs" color="secondary">
                 {placement.label}
               </Text>
               <Indicator

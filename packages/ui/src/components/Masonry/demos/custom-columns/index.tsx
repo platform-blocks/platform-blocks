@@ -2,7 +2,7 @@ import { Masonry, Card, Text, Button, Row, useTheme } from '@platform-blocks/ui'
 import type { MasonryItem } from '@platform-blocks/ui';
 import { useState } from 'react';
 
-export default function CustomColumnsMasonryDemo() {
+export function Demo() {
   const theme = useTheme();
   const [numColumns, setNumColumns] = useState(3);
   

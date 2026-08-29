@@ -135,7 +135,7 @@ export const Breadcrumbs = factory<{
           {...mergeSlotProps(
             {
               size: sizeMetrics.fontSize,
-              colorVariant: isLast ? 'primary' as const : 'secondary' as const,
+              color: isLast ? 'primary' as const : 'secondary' as const,
               weight: isLast ? ('600' as const) : ('500' as const),
               style: textStyle,
             },

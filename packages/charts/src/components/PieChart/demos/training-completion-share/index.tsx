@@ -11,7 +11,7 @@ const formatTooltip = (slice: PieChartDataPoint) => {
   return `${slice.label}: ${slice.value.toLocaleString()} completions (${share}%)`;
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <PieChart
       title="Training completion share"

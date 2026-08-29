@@ -1,7 +1,7 @@
 import { Block, QRCode, Row } from '@platform-blocks/ui';
 import { SIZES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Row align="flex-end" gap="lg" wrap="wrap">

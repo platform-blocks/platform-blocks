@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, Button, Checkbox, Input, Popover, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [opened, setOpened] = useState(false);
   const [email, setEmail] = useState('team@example.com');
 

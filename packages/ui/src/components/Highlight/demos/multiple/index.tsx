@@ -3,7 +3,7 @@ import { Highlight, Text } from '@platform-blocks/ui';
 
 const SENTENCE = 'Platform Blocks brings patterns, blocks, and building tools together.';
 
-export default function HighlightMultipleDemo() {
+export function Demo() {
   return (
     <View>
       <Text variant="h5">Multiple values</Text>

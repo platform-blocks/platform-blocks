@@ -1,6 +1,6 @@
 import { Button, useToast } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const toast = useToast();
 
   const handlePress = () => {

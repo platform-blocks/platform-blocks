@@ -1,6 +1,6 @@
 import { Badge, Block, Row, Text, useMediaQuery } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const isCompact = useMediaQuery('(max-width: 640px)');
   const isWide = useMediaQuery('(min-width: 1024px)');
   const columns = isCompact ? 1 : isWide ? 4 : 2;
@@ -24,7 +24,7 @@ export default function Demo() {
         ))}
       </Row>
 
-      <Text size="sm" colorVariant="muted">
+      <Text size="sm" color="muted">
         Resize the viewport (or rotate the device) to see the layout adapt.
       </Text>
     </Block>

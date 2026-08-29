@@ -3,7 +3,7 @@ import { Block, Slider, Waveform } from '@platform-blocks/ui';
 
 import { WAVEFORM_DEMO_PEAKS } from '../data';
 
-export default function Demo() {
+export function Demo() {
   const [progress, setProgress] = useState<number>(0.3);
 
   return (

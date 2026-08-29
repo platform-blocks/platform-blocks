@@ -1,6 +1,6 @@
 import { Block, Card, Image, Row, Text } from '@platform-blocks/ui';
 
-export default function ImageShapesDemo() {
+export function Demo() {
   return (
     <Card>
       <Text size="lg" weight="semibold" mb={16}>Image Shapes</Text>

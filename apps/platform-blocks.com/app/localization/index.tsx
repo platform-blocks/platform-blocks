@@ -40,14 +40,14 @@ function LocalizationContent() {
     <DocsPage>
       <Block gap="md" mb="lg">
         <DocsPageHeader tx="localization.title" />
-        <Text tx="localization.intro" colorVariant="muted" />
+        <Text tx="localization.intro" color="muted" />
 
         <Flex direction="column" gap="xl">
           {LOCALIZATION_STEPS.map(({ key, fileName, snippet, highlightLines }) => (
             <React.Fragment key={key}>
               {key === 'switch' ? <LocaleSwitcher /> : null}
               <Text tx={`localization.steps.${key}`} />
-              <CodeBlock files={[{ name: fileName }]} showLineNumbers highlightLines={highlightLines}>
+              <CodeBlock files={[{ name: fileName }]} highlightLines={highlightLines}>
                 {snippet}
               </CodeBlock>
             </React.Fragment>

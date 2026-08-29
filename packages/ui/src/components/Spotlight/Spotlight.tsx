@@ -3,7 +3,7 @@ import { Dialog } from '../Dialog';
 import { Icon } from '../Icon/Icon';
 import { Text } from '../Text/Text';
 import { Highlight } from '../Highlight';
-import { View, ScrollView, StyleSheet, Pressable, TextInput, useWindowDimensions, Keyboard } from 'react-native';
+import { Platform, View, ScrollView, StyleSheet, Pressable, TextInput, useWindowDimensions, Keyboard } from 'react-native';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { surfaceInteractionTint } from '../../core/theme/surfaces';
 import { useSpotlightStore, setDefaultSpotlightStore } from './SpotlightStore';
@@ -431,7 +431,7 @@ function SpotlightActionsGroup({
         <Text
           size="xs"
           weight="900"
-          colorVariant="info"
+          color="info"
           style={styles.groupLabel}
         >
           {label.toUpperCase()}
@@ -880,7 +880,7 @@ const styles = StyleSheet.create({
     // Remove any default styling
     backgroundColor: 'transparent',
     // Web-specific outline removal
-    ...(typeof window !== 'undefined' && {
+    ...(Platform.OS === 'web' && {
       outlineWidth: 0,
     }),
   },

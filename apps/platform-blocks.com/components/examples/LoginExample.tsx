@@ -46,7 +46,7 @@ export function LoginExample() {
         <Column gap="lg">
           <Column gap="xs">
             <Title order={2}>Welcome back</Title>
-            <Text colorVariant="secondary">Sign in to continue to your account</Text>
+            <Text color="secondary">Sign in to continue to your account</Text>
           </Column>
 
           <Column gap="md">
@@ -97,7 +97,7 @@ export function LoginExample() {
           </Flex>
 
           <Flex direction="row" justify="center" align="center" gap="xs">
-            <Text variant="small" colorVariant="secondary">New here?</Text>
+            <Text variant="small" color="secondary">New here?</Text>
             <Button
               title="Create an account"
               variant="link"

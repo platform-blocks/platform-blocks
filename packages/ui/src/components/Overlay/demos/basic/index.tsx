@@ -42,7 +42,7 @@ const STATIC_EXAMPLES: OverlayExample[] = [
   },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [visible, setVisible] = useState(true);
 
   return (
@@ -81,7 +81,7 @@ export default function Demo() {
         </Block>
       ))}
 
-      <Text variant="small" colorVariant="muted" align="center">
+      <Text variant="small" color="muted" align="center">
         Overlay inherits the size of its container, making it ideal for dimming media, spotlights, and modal scrims.
       </Text>
     </Block>

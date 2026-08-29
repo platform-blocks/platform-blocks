@@ -2,7 +2,7 @@ import { BarChart } from '@platform-blocks/charts';
 
 import { QUARTERLY_REVENUE } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <BarChart
       title="Quarterly revenue"

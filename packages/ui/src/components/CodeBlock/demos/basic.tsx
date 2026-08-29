@@ -1,6 +1,6 @@
 import { CodeBlock } from '@platform-blocks/ui';
 
-export default function BasicCodeBlockDemo() {
+export function Demo() {
   return (
     <CodeBlock>
       {`import { View, Text } from 'react-native';

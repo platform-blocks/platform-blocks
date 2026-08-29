@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ViewStyle } from 'react-native';
+import { Platform, View, ViewStyle } from 'react-native';
 import { useTheme } from '../theme';
 import { SizeValue } from '../theme/types';
 import { createRadiusStyles } from '../theme/radius';
@@ -70,7 +70,7 @@ export function InputContainer({
     }),
     elevation: disabled ? 0 : 1,
     // Web-only affordances for disabled state
-    ...(typeof window !== 'undefined' && disabled && ({ 
+    ...(Platform.OS === 'web' && disabled && ({ 
       cursor: 'not-allowed', 
       opacity: 0.75 
     } as any)),

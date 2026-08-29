@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Alert, Block, Button, KeyCap, Row, useSpotlightToggle } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [open, setOpen] = useState(false);
 
   const openSpotlight = useCallback(() => {
@@ -20,7 +20,7 @@ export default function Demo() {
         <Button onPress={openSpotlight}>Open Spotlight</Button>
         <Button variant="outline" onPress={() => setOpen(false)} disabled={!open}>Close Spotlight</Button>
       </Row>
-      <Alert sev={open ? 'success' : 'info'} fullWidth>
+      <Alert severity={open ? 'success' : 'info'} fullWidth>
         {open ? 'Spotlight is open. Press Mod + K or use the close button to dismiss.' : 'Spotlight is closed.'}
       </Alert>
     </Block>

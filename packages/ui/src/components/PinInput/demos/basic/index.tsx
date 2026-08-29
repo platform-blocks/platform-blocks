@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { PinInput } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState('');
 
   return (

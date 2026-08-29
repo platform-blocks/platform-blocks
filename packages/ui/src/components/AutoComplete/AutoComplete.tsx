@@ -191,9 +191,9 @@ const SuggestionItem = React.memo(({
       // background is overridden below to the neutral `secondary` tint rather
       // than the tone's default primary active color.
       active={isActive}
-      tone="default"
-      hoverTone="default"
-      activeTone="default"
+      color="default"
+      hoverColor="default"
+      activeColor="default"
       textColor={baseTextColor}
       hoverTextColor={baseTextColor}
       activeTextColor={baseTextColor}
@@ -1158,7 +1158,7 @@ export const AutoComplete = factory<{
     if (row.type === 'header') {
       return (
         <View style={styles.groupHeader}>
-          <Text size={groupHeaderFontSize} colorVariant="secondary" style={styles.groupHeaderText}>
+          <Text size={groupHeaderFontSize} color="secondary" style={styles.groupHeaderText}>
             {row.label}
           </Text>
         </View>
@@ -1325,7 +1325,7 @@ export const AutoComplete = factory<{
           {renderLoadingState ? renderLoadingState() : (
             <>
               <Loader size="sm" />
-              <Text size="sm" colorVariant="secondary" style={{ marginTop: 8 }}>
+              <Text size="sm" color="secondary" style={{ marginTop: 8 }}>
                 Searching...
               </Text>
             </>
@@ -1334,7 +1334,7 @@ export const AutoComplete = factory<{
       ) : query.length >= minSearchLength ? (
         <View style={stableSuggestionStyles.emptyContainer}>
           {renderEmptyState ? renderEmptyState() : (
-            <Text size="sm" colorVariant="secondary">
+            <Text size="sm" color="secondary">
               No suggestions found
             </Text>
           )}
@@ -1821,7 +1821,7 @@ export const AutoComplete = factory<{
                     {renderLoadingState ? renderLoadingState() : (
                       <>
                         <Loader size="sm" />
-                        <Text size="sm" colorVariant="secondary" style={{ marginTop: 8 }}>
+                        <Text size="sm" color="secondary" style={{ marginTop: 8 }}>
                           Searching...
                         </Text>
                       </>
@@ -1830,14 +1830,14 @@ export const AutoComplete = factory<{
                 ) : query.length >= minSearchLength ? (
                   <View style={styles.emptyContainer}>
                     {renderEmptyState ? renderEmptyState() : (
-                      <Text size="sm" colorVariant="secondary">
+                      <Text size="sm" color="secondary">
                         No suggestions found
                       </Text>
                     )}
                   </View>
                 ) : (
                   <View style={styles.emptyContainer}>
-                    <Text size="sm" colorVariant="secondary">
+                    <Text size="sm" color="secondary">
                       Type {minSearchLength} or more characters to search
                     </Text>
                   </View>
@@ -1875,7 +1875,7 @@ export const AutoComplete = factory<{
                 {renderLoadingState ? renderLoadingState() : (
                   <>
                     <Loader size="sm" />
-                    <Text size="sm" colorVariant="secondary" style={{ marginTop: 8 }}>
+                    <Text size="sm" color="secondary" style={{ marginTop: 8 }}>
                       Searching...
                     </Text>
                   </>
@@ -1884,7 +1884,7 @@ export const AutoComplete = factory<{
             ) : query.length >= minSearchLength ? (
               <View style={styles.emptyContainer}>
                 {renderEmptyState ? renderEmptyState() : (
-                  <Text size="sm" colorVariant="secondary">
+                  <Text size="sm" color="secondary">
                     No suggestions found
                   </Text>
                 )}

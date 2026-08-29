@@ -12,7 +12,7 @@ props:
   showIcons: Render the per-item icon
   textStyle: Raw TextStyle escape hatch applied to each item label
   separatorStyle: Style applied to the separator wrapper
-  labelProps: Override props applied to each item's label `<Text>` (style, weight, ff, size, colorVariant)
+  labelProps: Override props applied to each item's label `<Text>` (style, weight, ff, size, color)
   separatorProps: Override props applied to string-separator `<Text>` elements
 examples:
   - basic

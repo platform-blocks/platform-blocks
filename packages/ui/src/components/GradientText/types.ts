@@ -1,6 +1,6 @@
 import { TextProps } from '../Text/Text';
 
-export interface GradientTextProps extends Omit<TextProps, 'color' | 'colorVariant'> {
+export interface GradientTextProps extends Omit<TextProps, 'color'> {
   /** Array of colors for the gradient (at least 2 required) */
   colors: string[];
   

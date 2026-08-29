@@ -5,7 +5,7 @@ import { TRACK_TWO_PEAKS, WAVEFORM_DEMO_PEAKS } from '../data';
 
 const CUE_POINTS: number[] = [0, 0.25, 0.5, 0.75, 1];
 
-export default function Demo() {
+export function Demo() {
   const [progress, setProgress] = useState<number>(0.35);
 
   const handleSeek = (value: number) => {

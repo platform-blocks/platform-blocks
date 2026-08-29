@@ -8,7 +8,7 @@ const INITIAL_ITEMS = [
   { id: 'faq', value: 'FAQ', depth: 1 },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block align="flex-start">
       <TableOfContents

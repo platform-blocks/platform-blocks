@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Slider, Text, Card, Block } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState(25);
 
   return (

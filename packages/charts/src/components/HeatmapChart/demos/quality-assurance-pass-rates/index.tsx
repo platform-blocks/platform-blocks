@@ -2,7 +2,7 @@ import { HeatmapChart } from '@platform-blocks/charts';
 
 import { PASS_RATES, RELEASES, SUITES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <HeatmapChart
       title="QA pass rates by release"

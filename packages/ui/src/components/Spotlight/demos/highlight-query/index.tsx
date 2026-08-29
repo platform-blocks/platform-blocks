@@ -32,18 +32,18 @@ const actions: SpotlightProps['actions'] = [
   },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [store] = useSpotlightStoreInstance();
 
   return (
     <Block>
       <Card p="md">
         <Block>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Passing `highlightQuery` emphasizes matching substrings across labels and descriptions, reinforcing why a result surfaced.
           </Text>
           <Button onPress={() => store.open()}>Open spotlight</Button>
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Try typing “proj” or “create” to see the inline highlights.
           </Text>
         </Block>

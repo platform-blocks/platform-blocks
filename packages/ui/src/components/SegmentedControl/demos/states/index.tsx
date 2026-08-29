@@ -10,7 +10,7 @@ const scenarios = [
   { key: 'itemDisabled', label: 'Single option disabled', props: {}, defaultValue: 'typescript', data: languages },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Card p="md">
       <Block>

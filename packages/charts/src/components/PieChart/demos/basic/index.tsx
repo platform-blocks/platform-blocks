@@ -2,7 +2,7 @@ import { PieChart } from '@platform-blocks/charts';
 
 import { TRAFFIC_SOURCES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <PieChart
       title="Traffic sources"

@@ -6,7 +6,7 @@ const formatLabel = (slice: PieChartDataPoint) => `${slice.label} ${slice.value}
 
 const formatTooltip = (slice: PieChartDataPoint) => `${slice.label}: ${slice.value}% of release defects`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <PieChart
       title="Bug type distribution"

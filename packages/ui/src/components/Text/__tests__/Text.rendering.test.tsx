@@ -7,7 +7,7 @@
  * Coverage:
  * - Basic rendering
  * - Variant rendering (styles and font sizes)
- * - Color rendering (color and colorVariant)
+ * - Color rendering
  * - Weight rendering
  * - Size rendering
  * - Alignment
@@ -206,15 +206,15 @@ describe('Text - Rendering and Behavior', () => {
       });
     });
 
-    it('should apply primary colorVariant', () => {
-      const { getByText } = render(<Text colorVariant="primary">Primary</Text>);
+    it('should apply the primary color', () => {
+      const { getByText } = render(<Text color="primary">Primary</Text>);
       const element = getByText('Primary');
       const style = flattenStyle(element.props.style);
       expect(style.color).toBeTruthy();
     });
 
-    it('should apply success colorVariant', () => {
-      const { getByText } = render(<Text colorVariant="success">Success</Text>);
+    it('should apply the success color', () => {
+      const { getByText } = render(<Text color="success">Success</Text>);
       const element = getByText('Success');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -222,8 +222,8 @@ describe('Text - Rendering and Behavior', () => {
       });
     });
 
-    it('should apply error colorVariant', () => {
-      const { getByText } = render(<Text colorVariant="error">Error</Text>);
+    it('should apply the error color', () => {
+      const { getByText } = render(<Text color="error">Error</Text>);
       const element = getByText('Error');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -231,8 +231,8 @@ describe('Text - Rendering and Behavior', () => {
       });
     });
 
-    it('should apply warning colorVariant', () => {
-      const { getByText } = render(<Text colorVariant="warning">Warning</Text>);
+    it('should apply the warning color', () => {
+      const { getByText } = render(<Text color="warning">Warning</Text>);
       const element = getByText('Warning');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -240,23 +240,12 @@ describe('Text - Rendering and Behavior', () => {
       });
     });
 
-    it('should apply info colorVariant', () => {
-      const { getByText } = render(<Text colorVariant="info">Info</Text>);
+    it('should apply the info color', () => {
+      const { getByText } = render(<Text color="info">Info</Text>);
       const element = getByText('Info');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
         color: '#2196f3'
-      });
-    });
-
-    it('should prioritize color over colorVariant', () => {
-      const { getByText } = render(
-        <Text color="#00ff00" colorVariant="error">Override</Text>
-      );
-      const element = getByText('Override');
-      const style = flattenStyle(element.props.style);
-      expect(style).toMatchObject({
-        color: '#00ff00'
       });
     });
 
@@ -596,7 +585,7 @@ describe('Text - Rendering and Behavior', () => {
   describe('Complex Combinations', () => {
     it('should handle variant + weight + color + spacing', () => {
       const { getByText } = render(
-        <Text variant="h2" weight="bold" colorVariant="success" m={2}>
+        <Text variant="h2" weight="bold" color="success" m={2}>
           Complex
         </Text>
       );
@@ -635,7 +624,7 @@ describe('Text - Rendering and Behavior', () => {
         <Text 
           tx="common.button" 
           weight="semibold" 
-          colorVariant="primary"
+          color="primary"
           onPress={onPress}
         />
       );

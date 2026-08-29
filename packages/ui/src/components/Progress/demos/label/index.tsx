@@ -1,6 +1,6 @@
 import { Block, Progress } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block gap="lg" fullWidth>
       <Progress value={64} label="Uploading assets" description="12 of 18 files" />

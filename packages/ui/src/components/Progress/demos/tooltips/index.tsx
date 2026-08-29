@@ -6,7 +6,7 @@ const SECTIONS = [
   { label: 'Backups', value: 18, color: 'warning' as const }
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
       <Progress.Root size="xl">
         {SECTIONS.map((section) => (

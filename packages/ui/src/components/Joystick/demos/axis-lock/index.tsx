@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Flex, Joystick, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
 
   const position = pan.x === 0

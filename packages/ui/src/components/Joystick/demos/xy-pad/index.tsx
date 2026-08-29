@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Flex, Joystick, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState({ x: -0.4, y: 0.6 });
 
   // Map the pad onto a pair of parameters the way an effect unit would.

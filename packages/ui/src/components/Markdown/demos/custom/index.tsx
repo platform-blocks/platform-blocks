@@ -36,11 +36,11 @@ This paragraph uses custom styling and components.
 Regular paragraph text with default styling.
 `;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block fullWidth>
       <Markdown components={CUSTOM_COMPONENTS}>{CONTENT}</Markdown>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Headings, paragraphs, and quotes use custom renderers
       </Text>
     </Block>

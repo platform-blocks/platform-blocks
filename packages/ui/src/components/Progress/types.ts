@@ -1,10 +1,10 @@
 import type { View, Text, ViewStyle, TextStyle, StyleProp } from 'react-native';
 import type { SpacingProps, LayoutProps } from '../../core/utils';
 import type { SizeValue } from '../../core/theme/sizes';
+import type { ThemeColor } from '../../core/theme/resolveColors';
 import type { TooltipPropValue, TooltipProps } from '../Tooltip';
 import type { TextProps } from '../Text';
 
-export type ProgressColor = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'gray';
 
 /** Axis the bar fills along. Vertical bars fill from the bottom up. */
 export type ProgressOrientation = 'horizontal' | 'vertical';
@@ -63,7 +63,7 @@ export interface ProgressInteractionProps {
 export interface ProgressProps extends SpacingProps, LayoutProps, ProgressFieldProps {
   value: number; // 0-100
   size?: SizeValue;
-  color?: ProgressColor | string;
+  color?: ThemeColor;
   radius?: SizeValue;
   striped?: boolean;
   animate?: boolean;
@@ -82,7 +82,7 @@ export interface ProgressProps extends SpacingProps, LayoutProps, ProgressFieldP
 
 export interface ProgressSectionProps extends ProgressInteractionProps {
   value: number; // 0-100
-  color?: ProgressColor | string;
+  color?: ThemeColor;
   /** Diagonal stripe overlay, matching `Progress`'s `striped`. */
   striped?: boolean;
   /** Animates the stripes. Requires `striped`. */

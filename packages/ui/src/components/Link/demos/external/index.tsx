@@ -6,11 +6,11 @@ const references = [
   { href: 'mailto:support@example.com', label: 'Email support', color: 'gray' },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Card p="md">
       <Block>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Set `external` to ensure the link opens outside the app shell and receives the proper accessibility attributes.
         </Text>
         {references.map((resource) => (

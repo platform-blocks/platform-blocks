@@ -3,7 +3,7 @@ import { Block, Calendar, Text } from '@platform-blocks/ui';
 
 const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
 
-export default function Demo() {
+export function Demo() {
   const [selectedRange, setSelectedRange] = useState<[Date | null, Date | null]>([null, null]);
 
   const summary = useMemo(() => {
@@ -25,7 +25,7 @@ export default function Demo() {
         onChange={(range) => setSelectedRange(range as [Date | null, Date | null])}
         highlightToday
       />
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         {summary}
       </Text>
     </Block>

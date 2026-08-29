@@ -9,7 +9,7 @@ const palettes = [
   { key: 'custom', color: '#FF6B6B', defaultValue: 'medium', data: priorities },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       {palettes.map((palette) => (

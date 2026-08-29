@@ -2,7 +2,7 @@ import { HistogramChart } from '@platform-blocks/charts';
 
 import { REVIEW_THRESHOLD, TRANSACTION_AMOUNTS } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <HistogramChart
       title="Transaction amount distribution"

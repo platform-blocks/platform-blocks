@@ -15,7 +15,7 @@ const GROUP_ICONS = {
   Hooks: <Icon name="hook" size={18} />,
 };
 
-export default function Demo() {
+export function Demo() {
   const [collapsed, setCollapsed] = useState(true);
   const [route, setRoute] = useState('/components/Card');
 

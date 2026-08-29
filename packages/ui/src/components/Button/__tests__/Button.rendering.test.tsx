@@ -267,9 +267,9 @@ describe('Button Component - Rendering & Behavior', () => {
   // ============================================================================
   
   describe('Custom Colors', () => {
-    it('should accept custom colorVariant', () => {
+    it('should accept a custom color', () => {
       const { getByTestId } = render(
-        <Button title="Custom" colorVariant="#FF0000" testID="button" />
+        <Button title="Custom" color="#FF0000" testID="button" />
       );
       expect(getByTestId('button')).toBeTruthy();
     });
@@ -283,7 +283,7 @@ describe('Button Component - Rendering & Behavior', () => {
 
     it('should accept theme color tokens', () => {
       const { getByTestId } = render(
-        <Button title="Theme Color" colorVariant="primary.6" testID="button" />
+        <Button title="Theme Color" color="primary.6" testID="button" />
       );
       expect(getByTestId('button')).toBeTruthy();
     });

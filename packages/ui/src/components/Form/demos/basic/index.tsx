@@ -1,6 +1,6 @@
 import { Block, Form, Input } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Form
       initialValues={{ name: '', email: '' }}

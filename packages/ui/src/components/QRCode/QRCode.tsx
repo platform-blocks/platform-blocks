@@ -130,12 +130,12 @@ export function QRCode(props: QRCodeProps) {
   const caption = (
     <View style={{ alignItems: 'center', gap: 2 }}>
       {label != null ? (
-        <Text {...mergeSlotProps({ variant: 'small', colorVariant: 'muted' }, labelProps)}>
+        <Text {...mergeSlotProps({ variant: 'small', color: 'muted' }, labelProps)}>
           {label}
         </Text>
       ) : null}
       {description != null ? (
-        <Text {...mergeSlotProps({ variant: 'small', colorVariant: 'secondary' }, descriptionProps)}>
+        <Text {...mergeSlotProps({ variant: 'small', color: 'secondary' }, descriptionProps)}>
           {description}
         </Text>
       ) : null}

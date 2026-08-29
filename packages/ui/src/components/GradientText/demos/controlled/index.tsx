@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, GradientText, Slider } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [position, setPosition] = useState(0);
 
   return (

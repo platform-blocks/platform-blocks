@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Block, FileInput, Text } from '@platform-blocks/ui';
 import type { FileInputFile } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [files, setFiles] = useState<FileInputFile[]>([]);
 
   return (
@@ -16,7 +16,7 @@ export default function Demo() {
         fullWidth
       />
       {files.length > 0 && (
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           Selected: {files.map((file) => file.name).join(', ')}
         </Text>
       )}

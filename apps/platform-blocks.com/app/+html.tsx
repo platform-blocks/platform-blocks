@@ -1,5 +1,11 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import { type PropsWithChildren } from 'react';
+import {
+  BUILT_IN_DARK_THEME,
+  DEFAULT_THEME,
+  createAppShellCss,
+  createThemeColorVariablesCss,
+} from '@platform-blocks/ui';
 
 /**
  * This file is web-only and used to configure the root HTML for every web page during static rendering.
@@ -26,9 +32,6 @@ export default function Root({ children }: PropsWithChildren) {
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
 
-        {/* Fonts */}
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
         {/* Theme color */}
         <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
@@ -36,16 +39,39 @@ export default function Root({ children }: PropsWithChildren) {
         {/* Ensures proper encoding */}
         <ScrollViewStyleReset />
 
+        {/*
+          Defines every scheme-dependent color as a CSS variable, for both
+          schemes, before the first byte of markup. The prerendered page reads
+          its colors through these (see `colorsAsCssVariables` in
+          components/layout/Providers.tsx), so a dark-theme reader gets a dark
+          page at first paint rather than after hydration.
+        */}
+        <style dangerouslySetInnerHTML={{ __html: themeColorVariables }} />
+
         {/* Using raw CSS styles to improve the initial loading page */}
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
+
+        {/*
+          The layout half of the same problem the variables above solve for
+          color. Static rendering happens once, in Node, with no viewport — so
+          the shell cannot know whether it is drawing a phone or a desktop and
+          every guess it makes is wrong for most readers. These variables let
+          the cascade answer instead, before the first byte of markup is
+          painted: the sidebar's width, the header's height and the bottom of
+          the content area all resolve per viewport with no JavaScript, so the
+          static page lands in the right shape and the hydrating client agrees
+          with it. Keyed to `docsLayout` so the stylesheet and the running shell
+          are the same numbers.
+        */}
+        <style dangerouslySetInnerHTML={{ __html: appShellVariables }} />
+        <style dangerouslySetInnerHTML={{ __html: pageColumnVariables }} />
         
         {/*
-          Paints the correct page backdrop before first paint. The prerendered
-          markup itself carries light-theme colors in inline styles, so for
-          dark-theme readers the script below also holds the content invisible
-          (dark backdrop only) until hydration has restyled it — see
-          `platform-blocks-content-pending` and the reveal in
-          components/layout/Providers.tsx.
+          Only needed for a reader whose stored choice disagrees with the OS: the
+          class it stamps outranks the `prefers-color-scheme` block above, so the
+          saved theme wins on the very first paint instead of flashing the OS one.
+          Readers on `auto` are already served by the media query, with or
+          without JavaScript.
         */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
@@ -54,53 +80,69 @@ export default function Root({ children }: PropsWithChildren) {
   );
 }
 
+const themeColorVariables = createThemeColorVariablesCss(DEFAULT_THEME, BUILT_IN_DARK_THEME);
+
+/**
+ * Mirrors `config/docsLayout.tsx`. Kept beside it rather than derived from it
+ * because the blueprint's `show` predicates are functions of a runtime context
+ * that does not exist at build time — but every number here has to match, so
+ * the two are edited together.
+ */
+const appShellVariables = createAppShellCss({
+  headerHeight: { base: 56, md: 60 },
+  navbarWidth: { base: 220, lg: 260 },
+  navbarCollapsedWidth: 60,
+  navbarStartCollapsed: true,
+  navbarAutoExpandBreakpoint: 'xl',
+});
+
+/**
+ * The page column's own pair, on the same principle and the same breakpoint as
+ * the shell's. `--pb-page-gutter` is the inset narrow viewports get from
+ * PageLayout; `--pb-page-content-inset` is what DocsPageContent adds back once
+ * the gutter drops away. They are complements, so the text keeps the same 16px
+ * from the edge at every width — see components/PageLayout.tsx.
+ */
+const pageColumnVariables = `
+:root {
+  --pb-page-gutter: 16px;
+  --pb-page-content-inset: 0px;
+  --pb-section-gap: 32px;
+  --pb-section-gap-tight: 24px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --pb-page-gutter: 0px;
+    --pb-page-content-inset: 16px;
+    --pb-section-gap: 56px;
+    --pb-section-gap-tight: 32px;
+  }
+}
+`;
+
 const responsiveBackground = `
+html, body {
+  background-color: var(--platform-blocks-bg-base, #F7F8FA);
+}
+
 body {
-  background-color: #fff;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  /* Matches theme.fontFamily in @platform-blocks/ui, which every <Text> writes
+     as an inline style anyway. Naming a webfont here bought nothing but a
+     render-blocking stylesheet request. */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Covers "auto" mode, where the provider deliberately leaves both theme classes
-   off the <html> element. */
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #000;
-  }
-}
-
-/* An explicit light/dark choice has to beat the OS preference above, so these
-   are qualified with html.CLASS to outrank the bare body rule. The classes are
-   stamped by the pre-hydration script below and re-applied by
-   ThemeModeProvider afterwards. */
-html.platform-blocks-light,
-html.platform-blocks-light body {
-  background-color: #fff;
-}
-
-html.platform-blocks-dark,
-html.platform-blocks-dark body {
-  background-color: #000;
-}
 
 #root {
   display: flex;
   flex: 1;
   height: 100vh;
   width: 100vw;
-}
-
-/* The prerendered markup carries light-theme colors in inline styles, so for
-   dark-theme readers the pre-hydration script below stamps this class to hold
-   the content invisible (dark backdrop only) until React has restyled it.
-   Removed by ContentReveal in components/layout/Providers.tsx, or by the
-   script's own fallback timer if hydration never completes. Readers without
-   JS never get the class, so prerendered content stays visible to them. */
-html.platform-blocks-content-pending #root {
-  visibility: hidden;
 }
 
 /* Demo headings on component pages are permalinks (see components/DemoHeading).
@@ -133,13 +175,19 @@ html.platform-blocks-content-pending #root {
 `;
 
 /**
- * Resolves the reader's colour scheme and stamps it on <html> before first paint.
+ * Stamps a stored light/dark choice on <html> before first paint.
+ *
+ * The colors themselves no longer need this script: the CSS variables above
+ * already answer `prefers-color-scheme`, so a reader on `auto` gets the right
+ * scheme with JavaScript disabled entirely. What it still buys is precedence —
+ * a reader who picked a theme that disagrees with their OS would otherwise see
+ * the OS scheme until hydration, and the class stamped here outranks the media
+ * query from the first paint.
  *
  * Runs inside <head>, so `document.body` does not exist yet — an earlier version
  * wrote to it, threw, and landed in a catch that reset `colorScheme` to light,
  * defeating the whole script for dark-theme readers. Everything here touches
- * `documentElement` only; the body background is handled by the class-qualified
- * CSS rules above.
+ * `documentElement` only.
  *
  * The class names are the contract with `ThemeModeConfig.domConfig` in
  * components/layout/Providers.tsx, so the provider picks up where this leaves
@@ -156,24 +204,16 @@ const themeScript = `
 
     if (saved === 'dark' || saved === 'light') {
       scheme = saved;
+      // Only an explicit choice needs a class. Leaving 'auto' unstamped is what
+      // lets the prefers-color-scheme block keep control, so the page still
+      // follows the OS if this script never runs.
+      root.classList.remove('platform-blocks-light', 'platform-blocks-dark');
+      root.classList.add('platform-blocks-' + scheme);
     } else {
       scheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
 
-    root.classList.remove('platform-blocks-light', 'platform-blocks-dark');
-    root.classList.add('platform-blocks-' + scheme);
     root.style.colorScheme = scheme;
-    root.style.backgroundColor = scheme === 'dark' ? '#000000' : '#ffffff';
-
-    if (scheme === 'dark') {
-      // The prerendered content is styled for light mode; hold it invisible
-      // until hydration restyles it (ContentReveal lifts this), with a timer
-      // fallback so the page is never lost if hydration fails.
-      root.classList.add('platform-blocks-content-pending');
-      setTimeout(function () {
-        root.classList.remove('platform-blocks-content-pending');
-      }, 4000);
-    }
   } catch (e) {
     // Leave whatever resolved above in place; never downgrade to light here.
   }

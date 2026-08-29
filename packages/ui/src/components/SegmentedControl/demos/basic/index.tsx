@@ -1,7 +1,7 @@
 import { SegmentedControl, Text } from '@platform-blocks/ui';
 import { frameworks } from '../data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <SegmentedControl defaultValue="react" data={frameworks} />
   );

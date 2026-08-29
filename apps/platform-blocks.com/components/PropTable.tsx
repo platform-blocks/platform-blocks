@@ -43,7 +43,7 @@ export function PropTable({ props }: PropTableProps) {
   if (filtered.length === 0) {
     return (
       <CardAny variant="outline" style={{ marginVertical: 16 }}>
-        <TextAny variant="p" colorVariant="muted" align="center">
+        <TextAny variant="p" color="muted" align="center">
           This component has no props.
         </TextAny>
       </CardAny>
@@ -61,7 +61,7 @@ export function PropTable({ props }: PropTableProps) {
             <TextAny variant="p" weight="semibold" style={{ fontFamily: 'monospace' }}>
               {value}
             </TextAny>
-            <TextAny variant="small" colorVariant="secondary">
+            <TextAny variant="small" color="secondary">
               {row.description || '—'}
             </TextAny>
           </Block>
@@ -104,7 +104,7 @@ export function PropTable({ props }: PropTableProps) {
         >
           {value}
         </TextAny>
-      ) : null //<TextAny variant="small" colorVariant="muted">—</TextAny>
+      ) : null //<TextAny variant="small" color="muted">—</TextAny>
     } : undefined,
     {
       key: 'type',

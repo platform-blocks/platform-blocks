@@ -3,7 +3,7 @@ import { Block, Text, AudioPlayer } from '@platform-blocks/ui';
 // Peaks measured from the same bundled clip the player loads.
 import { MELODY_PEAKS } from '../../../Waveform/demos/data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block gap="sm" w="100%" maxW={520}>
       <AudioPlayer
@@ -15,7 +15,7 @@ export default function Demo() {
         controlsPosition="top"
         controls={{ playPause: true, volume: true, speed: true, waveform: true }}
       />
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         Playback runs through `expo-audio`. Pass `peaks` to draw the real waveform, then tap it to
         seek — the progress line follows playback either way.
       </Text>

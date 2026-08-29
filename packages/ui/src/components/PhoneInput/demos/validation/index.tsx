@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 
 import { Block, PhoneInput, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [usRaw, setUsRaw] = useState('');
   const [usFormatted, setUsFormatted] = useState('');
   const [internationalRaw, setInternationalRaw] = useState('');
@@ -17,7 +17,7 @@ export default function Demo() {
   return (
     <Block fullWidth>
       <Text weight="semibold">Validation states</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Surface validation messages based on raw digit counts for domestic and international numbers.
       </Text>
 
@@ -34,7 +34,7 @@ export default function Demo() {
             showCountryCode
             error={usRaw.length > 0 && !isValidUs ? 'Enter a 10-digit US phone number' : undefined}
           />
-          <Text size="xs" colorVariant={isValidUs || usRaw.length === 0 ? 'success' : 'error'}>
+          <Text size="xs" color={isValidUs || usRaw.length === 0 ? 'success' : 'error'}>
             {usRaw.length === 0
               ? 'Enter a phone number'
               : isValidUs
@@ -62,7 +62,7 @@ export default function Demo() {
           />
           <Text
             size="xs"
-            colorVariant={isValidInternational || internationalRaw.length === 0 ? 'success' : 'error'}
+            color={isValidInternational || internationalRaw.length === 0 ? 'success' : 'error'}
           >
             {internationalRaw.length === 0
               ? 'Enter an international phone number'

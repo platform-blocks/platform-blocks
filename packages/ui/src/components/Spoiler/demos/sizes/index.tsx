@@ -9,17 +9,17 @@ const examples = [
   { key: 'large', label: '150px height', maxHeight: 150 },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Card p="md">
       <Block>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Adjust maxHeight to control how much text stays visible before the rest collapses behind the toggle.
         </Text>
         <Block>
           {examples.map((example) => (
             <Block key={example.key}>
-              <Text size="xs" colorVariant="secondary">
+              <Text size="xs" color="secondary">
                 {example.label}
               </Text>
               <Spoiler maxHeight={example.maxHeight}>

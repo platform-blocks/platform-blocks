@@ -13,7 +13,7 @@ function Section({ title, order, description }: { title: string; order: number; 
   return (
     <View ref={elementRef} nativeID={id}>
       <Text weight="semibold">{title}</Text>
-      <Text size="sm" colorVariant="secondary">{description}</Text>
+      <Text size="sm" color="secondary">{description}</Text>
     </View>
   );
 }
@@ -22,7 +22,7 @@ function RegistryPreview() {
   const { titles } = useTitleRegistry();
 
   if (!titles.length) {
-    return <Text size="sm" colorVariant="muted">No titles registered yet.</Text>;
+    return <Text size="sm" color="muted">No titles registered yet.</Text>;
   }
 
   return (
@@ -33,7 +33,7 @@ function RegistryPreview() {
   );
 }
 
-export default function Demo() {
+export function Demo() {
   return (
     <TitleRegistryProvider>
       <Block gap="lg">

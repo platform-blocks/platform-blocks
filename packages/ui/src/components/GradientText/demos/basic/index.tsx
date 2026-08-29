@@ -1,6 +1,6 @@
 import { GradientText } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <GradientText colors={['#FF0080', '#7928CA']}>
       Hello World

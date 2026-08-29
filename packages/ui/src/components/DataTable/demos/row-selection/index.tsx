@@ -10,7 +10,7 @@ const columns: DataTableColumn<Person>[] = [
   { key: 'role', header: 'Role', accessor: 'role', sortable: true },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [pagination, setPagination] = useState<DataTablePagination>({
     page: 1,
     pageSize: 5,
@@ -20,7 +20,7 @@ export default function Demo() {
 
   return (
     <Block fullWidth>
-      <Text size="sm" colorVariant={selectedRows.length ? 'primary' : 'muted'}>
+      <Text size="sm" color={selectedRows.length ? 'primary' : 'muted'}>
         {selectedRows.length ? `${selectedRows.length} selected` : 'No rows selected'}
       </Text>
 

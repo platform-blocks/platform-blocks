@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { View, Platform } from 'react-native';
 import { useTheme } from '../../core/theme';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { useDragGesture } from '../../core/gestures';
 import { resolveComponentSize, type ComponentSize } from '../../core/theme/componentSize';
 import { factory } from '../../core/factory';
@@ -49,45 +50,33 @@ const SLIDER_SIZE_SCALE: Partial<Record<ComponentSize, 'sm' | 'md' | 'lg'>> = {
   '3xl': 'lg',
 };
 
-const resolvePaletteColor = (themeColors: Record<string, string[]>, scheme?: SliderProps['colorScheme']) => {
-  if (!scheme || typeof scheme !== 'string') {
-    return undefined;
-  }
-
-  const palette = themeColors[scheme];
-  if (Array.isArray(palette)) {
-    return palette;
-  }
-
-  return undefined;
-};
-
 const resolveSliderColors = (
   theme: ReturnType<typeof useTheme>,
   {
-    colorScheme,
+    color,
     trackColor,
     activeTrackColor,
     thumbColor,
     tickColor,
     activeTickColor,
-  }: Pick<SliderProps, 'colorScheme' | 'trackColor' | 'activeTrackColor' | 'thumbColor' | 'tickColor' | 'activeTickColor'>
+  }: Pick<SliderProps, 'color' | 'trackColor' | 'activeTrackColor' | 'thumbColor' | 'tickColor' | 'activeTickColor'>
 ) => {
-  const palette = resolvePaletteColor(theme.colors as Record<string, string[]>, colorScheme);
-  const schemeColor = palette?.[5]
-    ?? (typeof colorScheme === 'string' ? colorScheme : undefined)
-    ?? theme.colors.primary[5];
+  const schemeColor = resolveAccentColor(theme, color) ?? theme.colors.primary[5];
 
-  const resolvedActiveTrack = activeTrackColor ?? schemeColor;
+  // The slot overrides take the same vocabulary as `color`; they used to be
+  // passed through raw, so `trackColor="gray.2"` reached the style as a literal.
+  const slot = (value?: string) => resolveAccentColor(theme, value);
+
+  const resolvedActiveTrack = slot(activeTrackColor) ?? schemeColor;
   const defaultTrackColor = theme.colorScheme === 'dark' ? theme.colors.gray[6] : theme.colors.gray[3];
   const defaultTickColor = theme.colorScheme === 'dark' ? theme.colors.gray[5] : theme.colors.gray[4];
 
   return {
-    trackColor: trackColor ?? defaultTrackColor,
+    trackColor: slot(trackColor) ?? defaultTrackColor,
     activeTrackColor: resolvedActiveTrack,
-    thumbColor: thumbColor ?? resolvedActiveTrack,
-    tickColor: tickColor ?? defaultTickColor,
-    activeTickColor: activeTickColor ?? resolvedActiveTrack,
+    thumbColor: slot(thumbColor) ?? resolvedActiveTrack,
+    tickColor: slot(tickColor) ?? defaultTickColor,
+    activeTickColor: slot(activeTickColor) ?? resolvedActiveTrack,
   };
 };
 
@@ -125,7 +114,8 @@ export const Slider = factory<{
     thumbColor,
     trackSize,
     thumbSize: thumbSizeProp,
-    colorScheme = 'primary',
+    color,
+
     variant = 'default',
     trackStyle,
     activeTrackStyle,
@@ -183,13 +173,13 @@ export const Slider = factory<{
 
 
   const sliderColors = useMemo(() => resolveSliderColors(theme, {
-    colorScheme,
+    color,
     trackColor,
     activeTrackColor,
     thumbColor,
     tickColor,
     activeTickColor,
-  }), [theme, colorScheme, trackColor, activeTrackColor, thumbColor, tickColor, activeTickColor]);
+  }), [theme, color, trackColor, activeTrackColor, thumbColor, tickColor, activeTickColor]);
 
   // Memoized position calculations
   const positions = useMemo(() => {
@@ -448,7 +438,8 @@ export const RangeSlider = factory<{
     thumbColor,
     trackSize,
     thumbSize: thumbSizeProp,
-    colorScheme = 'primary',
+    color,
+
     variant = 'default',
     trackStyle,
     activeTrackStyle,
@@ -491,13 +482,13 @@ export const RangeSlider = factory<{
   const trackHeight = trackSize ?? SLIDER_CONSTANTS.TRACK_HEIGHT[sliderSize];
 
   const sliderColors = useMemo(() => resolveSliderColors(theme, {
-    colorScheme,
+    color,
     trackColor,
     activeTrackColor,
     thumbColor,
     tickColor,
     activeTickColor,
-  }), [theme, colorScheme, trackColor, activeTrackColor, thumbColor, tickColor, activeTickColor]);
+  }), [theme, color, trackColor, activeTrackColor, thumbColor, tickColor, activeTickColor]);
 
   // Memoized processed values
   const [minValue, maxValue] = useSliderValue(value, min, max, step, restrictToTicks, ticks, true) as [number, number];

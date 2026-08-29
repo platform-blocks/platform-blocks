@@ -7,7 +7,6 @@ const stopCalls: Array<Record<string, any>> = [];
 const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
 jest.mock('../brands', () => ({
-  resolveBrandName: (brand: string) => brand,
   brandIcons: {
     google: {
       content: [

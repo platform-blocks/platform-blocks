@@ -77,16 +77,6 @@ export interface CodeBlockProps extends SpacingProps {
   onFileChange?: (fileName: string) => void;
   /** Optional title displayed above the code block */
   title?: string;
-  /**
-   * @deprecated Use `files={[{ name: 'App.tsx' }]}`. Removed in 0.12.0.
-   * Ignored when `files` is set.
-   */
-  fileName?: string;
-  /**
-   * @deprecated Use `files={[{ name: 'App.tsx', icon: <… /> }]}`. Removed in 0.12.0.
-   * Ignored when `files` is set.
-   */
-  fileIcon?: React.ReactNode;
   /** Show line numbers in the code block */
   showLineNumbers?: boolean;
   /** Enable syntax highlighting */

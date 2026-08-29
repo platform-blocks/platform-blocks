@@ -1,6 +1,6 @@
 import { Block, KeyCap, Row } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block align="flex-start">
       <Row gap="sm" align="center" wrap="wrap">

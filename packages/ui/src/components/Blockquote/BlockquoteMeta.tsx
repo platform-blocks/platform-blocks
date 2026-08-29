@@ -55,7 +55,7 @@ export function BlockquoteMeta({
             {renderStars(rating.value, rating.max || 5)}
           </Flex>
           {rating.showValue && (
-            <Text size="xs" colorVariant="secondary">
+            <Text size="xs" color="secondary">
               {rating.value}/{rating.max || 5}
             </Text>
           )}
@@ -70,7 +70,7 @@ export function BlockquoteMeta({
             size="xs"
             color={theme.colors.primary[5]}
           />
-          <Text size="xs" colorVariant="primary">
+          <Text size="xs" color="primary">
             Verified
           </Text>
         </Flex>
@@ -78,7 +78,7 @@ export function BlockquoteMeta({
 
       {/* Date — `!!` so an empty string renders nothing instead of a bare text node */}
       {!!date && (
-        <Text size="xs" colorVariant="muted">
+        <Text size="xs" color="muted">
           {formatDate(date)}
         </Text>
       )}

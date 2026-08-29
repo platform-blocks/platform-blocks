@@ -19,14 +19,14 @@ const ITEMS = [
   }
 ];
 
-export default function Demo() {
+export function Demo() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const activeLabel = ITEMS.find((item) => item.key === activeTab)?.label ?? activeTab;
 
   return (
     <Block>
       <Tabs activeTab={activeTab} onTabChange={setActiveTab} items={ITEMS} />
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         Active tab: {activeLabel}
       </Text>
     </Block>

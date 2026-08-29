@@ -2,7 +2,7 @@ import { ScatterChart } from '@platform-blocks/charts';
 
 import { SERIES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <ScatterChart
       title="Performance rating vs. tenure"

@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, NumberInput, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [price, setPrice] = useState<number | undefined>(249.99);
   const [discount, setDiscount] = useState<number | undefined>(10);
 
@@ -36,7 +36,7 @@ export default function Demo() {
         />
       </Block>
 
-      <Text size="xs" colorVariant="secondary">
+      <Text size="xs" color="secondary">
         Final price: {finalPrice != null ? `$${finalPrice.toFixed(2)}` : '—'}
       </Text>
     </Block>

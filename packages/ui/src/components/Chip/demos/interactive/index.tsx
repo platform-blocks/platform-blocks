@@ -7,7 +7,7 @@ const initialSports = [
   { label: 'Tennis', emoji: '🎾' },
 ]
 
-export default function Demo() {
+export function Demo() {
   const [chips, setChips] = useState(initialSports)
 
   const handleRemove = (chipToRemove: string) => {

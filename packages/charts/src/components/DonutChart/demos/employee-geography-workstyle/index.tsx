@@ -5,7 +5,7 @@ import { REGION_HEADCOUNT, WORK_STYLE, remoteRatio } from './data';
 
 const formatHeadcount = (value: number) => Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
 
-export default function Demo() {
+export function Demo() {
   return (
     <DonutChart
       title="Employee Distribution"

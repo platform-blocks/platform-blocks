@@ -1,6 +1,6 @@
 import { Avatar, Block, Indicator, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Block>
@@ -9,7 +9,7 @@ export default function Demo() {
         </Text>
 
         <Block bg="#f5f5f7" radius="lg" p="lg" position="relative">
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Panel
           </Text>
           <Indicator placement="top-right" />
@@ -41,7 +41,7 @@ export default function Demo() {
           align="center"
           justify="center"
         >
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Inbox
           </Text>
           <Indicator placement="top-right" size={20} offset={4}>

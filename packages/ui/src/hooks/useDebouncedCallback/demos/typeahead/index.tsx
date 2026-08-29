@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, Button, Input, Row, Text, useDebouncedCallback } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [query, setQuery] = useState('');
   const [calls, setCalls] = useState<string[]>([]);
 
@@ -31,7 +31,7 @@ export default function Demo() {
           <Text key={index} ff="monospace" size="sm">{`#${index + 1} → "${call}"`}</Text>
         ))
       ) : (
-        <Text size="sm" colorVariant="muted">No invocations yet.</Text>
+        <Text size="sm" color="muted">No invocations yet.</Text>
       )}
     </Block>
   );

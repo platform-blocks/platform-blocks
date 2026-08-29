@@ -120,7 +120,7 @@ const DatesPlayground: React.FC = () => {
             <Title order={3} size={24} weight="semibold">
               Calendar surfaces
             </Title>
-            <Text size="sm" colorVariant="secondary">
+            <Text size="sm" color="secondary">
               Compare inline calendars, compact timelines, and range selection in one place.
             </Text>
             <Row gap="lg" wrap="wrap">
@@ -175,7 +175,7 @@ const DatesPlayground: React.FC = () => {
             <Title order={3} size={24} weight="semibold">
               Date pickers
             </Title>
-            <Text size="sm" colorVariant="secondary">
+            <Text size="sm" color="secondary">
               Stateful examples of the inline picker and multi-month range flows.
             </Text>
             <Row gap="lg" wrap="wrap">
@@ -221,7 +221,7 @@ const DatesPlayground: React.FC = () => {
             <Title order={3} size={24} weight="semibold">
               Month and year grids
             </Title>
-            <Text size="sm" colorVariant="secondary">
+            <Text size="sm" color="secondary">
               Responsive pickers map to the same date helpers used in Calendar flows.
             </Text>
             <Row gap="lg" wrap="wrap">
@@ -261,7 +261,7 @@ const DatesPlayground: React.FC = () => {
             <Title order={3} size={24} weight="semibold">
               Dialog inputs
             </Title>
-            <Text size="sm" colorVariant="secondary">
+            <Text size="sm" color="secondary">
               Inputs wrap the same pickers in modal flows with formatting helpers.
             </Text>
             <Row gap="lg" wrap="wrap">
@@ -278,7 +278,7 @@ const DatesPlayground: React.FC = () => {
                   }}
                   clearable
                 />
-                <Text size="xs" colorVariant="secondary">
+                <Text size="xs" color="secondary">
                   Selected: {formatDate(dateInputValue)}
                 </Text>
               </Block>
@@ -297,7 +297,7 @@ const DatesPlayground: React.FC = () => {
                     monthsPerRow: { base: 3, md: 4 },
                   }}
                 />
-                <Text size="xs" colorVariant="secondary">
+                <Text size="xs" color="secondary">
                   Selected: {formatDate(monthInputValue)}
                 </Text>
               </Block>
@@ -312,7 +312,7 @@ const DatesPlayground: React.FC = () => {
                   onChange={setYearInputValue}
                   clearable
                 />
-                <Text size="xs" colorVariant="secondary">
+                <Text size="xs" color="secondary">
                   Selected: {formatDate(yearInputValue)}
                 </Text>
               </Block>
@@ -330,7 +330,7 @@ const DatesPlayground: React.FC = () => {
                   withSeconds
                   minuteStep={5}
                 />
-                <Text size="xs" colorVariant="secondary">
+                <Text size="xs" color="secondary">
                   Scheduled: {formatTime(timeValue, true)}
                 </Text>
               </Block>
@@ -347,7 +347,7 @@ const DatesPlayground: React.FC = () => {
                   fullWidth
                   clearable
                 />
-                <Text size="xs" colorVariant="secondary">
+                <Text size="xs" color="secondary">
                   Scheduled: {formatTime(timeInputValue)}
                 </Text>
               </Block>
@@ -360,7 +360,7 @@ const DatesPlayground: React.FC = () => {
             <Title order={3} size={24} weight="semibold">
               Meeting builder
             </Title>
-            <Text size="sm" colorVariant="secondary">
+            <Text size="sm" color="secondary">
               Combine date and time inputs to assemble a quick event summary.
             </Text>
             <Row gap="lg" wrap="wrap">

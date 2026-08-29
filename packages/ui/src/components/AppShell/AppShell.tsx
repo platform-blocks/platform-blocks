@@ -5,6 +5,7 @@ import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-
 
 import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme/ThemeProvider';
+import { shellChrome } from '../../core/theme/cssVariableTheme';
 import { getSpacingStyles, extractSpacingProps, useMergedRef } from '../../core/utils';
 import { useDirection } from '../../core/providers/DirectionProvider';
 import type {
@@ -21,6 +22,7 @@ import type {
 import { useBreakpoint } from './hooks/useBreakpoint';
 import { resolveResponsiveValue } from './hooks/useResponsiveValue';
 import { MobileMenu } from './MobileMenu';
+import { APP_SHELL_CSS_VARS, appShellVar, appShellVarPlus } from './shellCssVars';
 import { BottomAppBar } from './BottomAppBar';
 import { StatusBarManager } from './StatusBarManager';
 
@@ -66,22 +68,23 @@ export const AppShellHeader = React.forwardRef<View, AppShellHeaderProps>(({
   style,
 }, ref) => {
   const theme = useTheme();
-  const { headerHeight } = useAppShell();
+  const chrome = shellChrome(theme);
+  const { headerHeightStyle } = useAppShell();
 
   return (
     <View
       ref={ref}
       style={[
         {
-          height: headerHeight,
+          height: headerHeightStyle,
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
-          backgroundColor: theme.colorScheme === 'dark' ? theme.colors.gray[1] : theme.colors.gray[0],
+          backgroundColor: chrome.background,
           zIndex: zIndex || 1000,
           borderBottomWidth: withBorder ? 1 : 0,
-          borderBottomColor: theme.colorScheme === 'dark' ? theme.colors.gray[2] : theme.colors.gray[1],
+          borderBottomColor: chrome.border,
         },
         style,
       ]}
@@ -124,13 +127,20 @@ export const AppShellNavbar = React.forwardRef<View, AppShellNavbarProps>(({
   drawerMode,
 }, ref) => {
   const theme = useTheme();
+  const chrome = shellChrome(theme);
   const { isRTL } = useDirection();
-  const { navbarWidth, fullNavbarWidth, headerHeight, footerHeight, isNavbarCollapsed, isMobile, navbarOpen, closeNavbar, transitionDuration, navbarCollapsedRailWidth, navbarExpandOnHover, navbarPushOnHover, navbarHoverProgress } = useAppShell();
+  const { navbarWidth, fullNavbarWidth, headerHeight, footerHeight, isNavbarCollapsed, isMobile, navbarOpen, closeNavbar, transitionDuration, navbarCollapsedRailWidth, navbarExpandOnHover, navbarPushOnHover, navbarHoverProgress, cssGeometry, headerHeightStyle, navbarWidthStyle, contentBottomStyle } = useAppShell();
   const { width: windowWidth } = useWindowDimensions();
   const [hovering, setHovering] = React.useState(false);
 
-  // Determine effective drawer mode: mobile defaults to overlay
-  const effectiveDrawer = drawerMode ?? isMobile;
+  // Determine effective drawer mode: mobile defaults to overlay.
+  //
+  // Under `cssGeometry` it never does. The drawer and the inline rail are
+  // different markup, and picking between them from the breakpoint is exactly
+  // the guess a prerender cannot make — so the rail is what renders at every
+  // width and the stylesheet hides it where it doesn't belong. Apps that want a
+  // drawer under it supply their own (the docs site does).
+  const effectiveDrawer = drawerMode ?? (cssGeometry ? false : isMobile);
 
   const railWidth = React.useMemo(() => coerceNumber(navbarCollapsedRailWidth, 72), [navbarCollapsedRailWidth]);
   const targetExpandedWidth = React.useMemo(() => coerceNumber(fullNavbarWidth, 240), [fullNavbarWidth]);
@@ -228,6 +238,27 @@ export const AppShellNavbar = React.forwardRef<View, AppShellNavbarProps>(({
     importantForAccessibility: navbarOpen ? 'auto' : 'no-hide-descendants',
   };
 
+  // Under `cssGeometry` the rail's width and the content's offset are the same
+  // custom property, so expanding on hover is one assignment and the browser
+  // moves both together. Writing a property beats animating two values that
+  // then have to be kept in step — and it never re-renders the page subtree.
+  React.useEffect(() => {
+    if (!cssGeometry || typeof document === 'undefined') return;
+    if (!navbarExpandOnHover || effectiveDrawer) return;
+    const root = document.documentElement;
+    const expand = hovering && !navbarOpen && navbarPushOnHover;
+    if (expand) {
+      root.style.setProperty(APP_SHELL_CSS_VARS.navbarWidth, `${targetExpandedWidth}px`);
+    } else {
+      // Removing rather than setting a value hands the variable back to the
+      // stylesheet, so the media queries stay in charge of the resting width.
+      root.style.removeProperty(APP_SHELL_CSS_VARS.navbarWidth);
+    }
+    return () => {
+      root.style.removeProperty(APP_SHELL_CSS_VARS.navbarWidth);
+    };
+  }, [cssGeometry, hovering, navbarOpen, navbarExpandOnHover, navbarPushOnHover, effectiveDrawer, targetExpandedWidth]);
+
   const hoverHandlers: any = Platform.OS === 'web' && navbarExpandOnHover
     ? {
         onMouseEnter: () => setHovering(true),
@@ -248,25 +279,26 @@ export const AppShellNavbar = React.forwardRef<View, AppShellNavbarProps>(({
     return (
       <Animated.View
         ref={ref}
+        {...(cssGeometry ? ({ dataSet: { pbShellNavbar: 'true' } } as any) : {})}
         style={[
           {
             // height: '100%',
             position: 'absolute',
-            top: headerHeight,
-            bottom: footerHeight,
+            top: cssGeometry ? headerHeightStyle : headerHeight,
+            bottom: cssGeometry ? contentBottomStyle : footerHeight,
             ...(isRTL ? { right: 0 } : { left: 0 }),
             overflow: 'hidden',
-            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.gray[1] : theme.colors.gray[0],
+            backgroundColor: chrome.background,
             zIndex: zIndex || 900,
             ...(isRTL ? {
               borderLeftWidth: withBorder ? 1 : 0,
-              borderLeftColor: theme.colorScheme === 'dark' ? theme.colors.gray[2] : theme.colors.gray[1],
+              borderLeftColor: chrome.border,
             } : {
               borderRightWidth: withBorder ? 1 : 0,
-              borderRightColor: theme.colorScheme === 'dark' ? theme.colors.gray[2] : theme.colors.gray[1],
+              borderRightColor: chrome.border,
             }),
           },
-          widthAnimatedStyles,
+          cssGeometry ? { width: navbarWidthStyle as any } : widthAnimatedStyles,
           style,
         ]}
         {...navAccessibilityProps}
@@ -310,14 +342,14 @@ export const AppShellNavbar = React.forwardRef<View, AppShellNavbarProps>(({
             top: 0, // cover header on mobile to differentiate appearance
             bottom: 0,
             ...(isRTL ? { right: 0 } : { left: 0 }),
-            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.gray[1] : theme.colors.gray[0],
+            backgroundColor: chrome.background,
             zIndex: zIndex || 1000,
             ...(isRTL ? {
               borderLeftWidth: withBorder ? 1 : 0,
-              borderLeftColor: theme.colorScheme === 'dark' ? theme.colors.gray[2] : theme.colors.gray[1],
+              borderLeftColor: chrome.border,
             } : {
               borderRightWidth: withBorder ? 1 : 0,
-              borderRightColor: theme.colorScheme === 'dark' ? theme.colors.gray[2] : theme.colors.gray[1],
+              borderRightColor: chrome.border,
             }),
             boxShadow: '0 6px 16px rgba(0, 0, 0, 0.25)',
             overflow: 'hidden',
@@ -343,6 +375,7 @@ export const AppShellAside = React.forwardRef<View, AppShellAsideProps>(({
   style,
 }, ref) => {
   const theme = useTheme();
+  const chrome = shellChrome(theme);
   const { isRTL } = useDirection();
   const { asideWidth, headerHeight, footerHeight, isAsideCollapsed } = useAppShell();
 
@@ -358,14 +391,14 @@ export const AppShellAside = React.forwardRef<View, AppShellAsideProps>(({
           top: headerHeight,
           bottom: footerHeight,
           ...(isRTL ? { left: 0 } : { right: 0 }),
-          backgroundColor: theme.colorScheme === 'dark' ? theme.colors.gray[1] :  theme.colors.gray[0],
+          backgroundColor: chrome.background,
           zIndex: zIndex || 900,
           ...(isRTL ? {
             borderRightWidth: withBorder ? 1 : 0,
-            borderRightColor: theme.colorScheme === 'dark' ? theme.colors.gray[2] : theme.colors.gray[1],
+            borderRightColor: chrome.border,
           } : {
             borderLeftWidth: withBorder ? 1 : 0,
-            borderLeftColor: theme.colorScheme === 'dark' ? theme.colors.gray[2] : theme.colors.gray[1],
+            borderLeftColor: chrome.border,
           }),
         },
         style,
@@ -386,6 +419,7 @@ export const AppShellFooter = React.forwardRef<View, AppShellFooterProps>(({
   style,
 }, ref) => {
   const theme = useTheme();
+  const chrome = shellChrome(theme);
   const { isRTL } = useDirection();
   const { footerHeight, navbarWidth, asideWidth } = useAppShell();
 
@@ -404,10 +438,10 @@ export const AppShellFooter = React.forwardRef<View, AppShellFooterProps>(({
             left: navbarWidth,
             right: asideWidth,
           }),
-          backgroundColor: theme.colorScheme === 'dark' ? theme.colors.gray[1] : theme.colors.gray[0],
+          backgroundColor: chrome.background,
           zIndex: zIndex || 800,
           borderTopWidth: withBorder ? 1 : 0,
-          borderTopColor: theme.colorScheme === 'dark' ? theme.colors.gray[2] : theme.colors.gray[1],
+          borderTopColor: chrome.border,
         },
         style,
       ]}
@@ -427,6 +461,7 @@ export const AppShellBottomNav = React.forwardRef<View, AppShellBottomNavProps>(
   style,
 }, ref) => {
   const theme = useTheme();
+  const chrome = shellChrome(theme);
   const { bottomNavHeight, isMobile } = useAppShell();
 
   if (!isMobile) return null;
@@ -441,10 +476,10 @@ export const AppShellBottomNav = React.forwardRef<View, AppShellBottomNavProps>(
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: theme.colorScheme === 'dark' ? theme.colors.gray[1] : theme.colors.gray[0],
+          backgroundColor: chrome.background,
           zIndex: zIndex || 1000,
           borderTopWidth: withBorder ? 1 : 0,
-          borderTopColor: theme.colorScheme === 'dark' ? theme.colors.gray[2] : theme.colors.gray[1],
+          borderTopColor: chrome.border,
         },
         style,
       ]}
@@ -470,6 +505,7 @@ export const AppShellMain = React.forwardRef<View, AppShellMainProps>(({
   tocWithBorder = true,
 }, ref) => {
   const theme = useTheme();
+  const chrome = shellChrome(theme);
   const { isRTL } = useDirection();
   const {
     headerHeight,
@@ -483,6 +519,10 @@ export const AppShellMain = React.forwardRef<View, AppShellMainProps>(({
     fullNavbarWidth,
     navbarCollapsedRailWidth,
     navbarOpen,
+    cssGeometry,
+    headerHeightStyle,
+    navbarWidthStyle,
+    contentBottomStyle,
   } = useAppShell();
   const insets = useSafeAreaInsets();
 
@@ -530,6 +570,12 @@ export const AppShellMain = React.forwardRef<View, AppShellMainProps>(({
       : { left: contentLeft + extra, right: contentRight };
   }, [pushDelta, contentLeft, contentRight, isRTL]);
 
+  // Under `cssGeometry` the navbar side is a custom property and the hover push
+  // is a transition on it, so there is nothing here for the UI thread to drive.
+  const cssInsetStyle = isRTL
+    ? { left: contentLeft, right: navbarWidthStyle }
+    : { left: navbarWidthStyle, right: contentRight };
+
   const horizontalPadding = maxWidth && centerContent ? 0 : 0;
 
   const contentStyles = [
@@ -549,14 +595,14 @@ export const AppShellMain = React.forwardRef<View, AppShellMainProps>(({
     top: numericHeaderHeight,
     bottom: isMobile ? numericBottomNavHeight : numericFooterHeight,
     ...(isRTL ? { left: numericAsideWidth } : { right: numericAsideWidth }),
-    backgroundColor: theme.colorScheme === 'dark' ? theme.colors.gray[1] : theme.colors.gray[0],
+    backgroundColor: chrome.background,
     zIndex: 850,
     ...(isRTL ? {
       borderRightWidth: tocWithBorder ? 1 : 0,
-      borderRightColor: theme.colorScheme === 'dark' ? theme.colors.gray[2] : theme.colors.gray[1],
+      borderRightColor: chrome.border,
     } : {
       borderLeftWidth: tocWithBorder ? 1 : 0,
-      borderLeftColor: theme.colorScheme === 'dark' ? theme.colors.gray[2] : theme.colors.gray[1],
+      borderLeftColor: chrome.border,
     }),
   } as any;
 
@@ -626,19 +672,21 @@ export const AppShellMain = React.forwardRef<View, AppShellMainProps>(({
       <Animated.View
         ref={mergedOuterRef}
         {...webAttributes}
+        {...(cssGeometry ? ({ dataSet: { pbShellMain: 'true' } } as any) : {})}
         style={[
           {
             position: 'absolute',
-            top: contentTop,
-            bottom: contentBottom,
+            top: cssGeometry ? headerHeightStyle : contentTop,
+            bottom: cssGeometry ? contentBottomStyle : contentBottom,
             // Use the page background token so the area outside the centered
             // maxWidth content column matches the scrollable page body (which
             // paints theme.backgrounds.base). gray[0] is a slightly different
             // light-mode grey and produced a visible seam at the column edge.
             backgroundColor: theme.backgrounds.base,
           },
-          // left/right (incl. hover push) are owned by the animated style.
-          contentInsetStyle,
+          // left/right (incl. hover push) are owned by the animated style —
+          // except under `cssGeometry`, where the stylesheet owns them.
+          cssGeometry ? (cssInsetStyle as any) : contentInsetStyle,
           style,
         ]}
       >
@@ -705,6 +753,7 @@ function AppShellBase(props: AppShellProps, ref: React.Ref<View>) {
     bottomNavItems,
     bottomNavProps,
     mobileMenu,
+    cssGeometry: cssGeometryProp = false,
     statusBar,
     padding = 'md',
     withBorder = true,
@@ -739,6 +788,7 @@ function AppShellBase(props: AppShellProps, ref: React.Ref<View>) {
   const { spacingProps, otherProps } = extractSpacingProps(rest);
   const spacingStyles = getSpacingStyles(spacingProps);
   const theme = useTheme();
+  const chrome = shellChrome(theme);
   const breakpoint = useBreakpoint();
 
   // Determine if mobile based on breakpoint and platform
@@ -825,12 +875,40 @@ function AppShellBase(props: AppShellProps, ref: React.Ref<View>) {
     ? resolveResponsiveValue(asideConfig.width, breakpoint)
     : 0;
 
+  // Geometry the browser resolves rather than the breakpoint hook. Only on web,
+  // and only when the app asked for it — see `shellCssVars.ts` for why a
+  // statically rendered app needs this and what it owes in return.
+  const cssGeometry = cssGeometryProp && Platform.OS === 'web';
+
+  // Fallbacks inside the `var()` have to be viewport-independent, or the
+  // prerender and the client emit different strings and we are back to the
+  // mismatch this exists to remove. `base` is that value.
+  const headerHeightBase = headerConfig ? resolveResponsiveValue(headerConfig.height, 'base') : 0;
+  const footerHeightBase = footerConfig ? resolveResponsiveValue(footerConfig.height, 'base') : 0;
+  const bottomNavHeightBase = bottomNavConfig ? resolveResponsiveValue(bottomNavConfig.height, 'base') : 0;
+  const contentBottomBase = bottomNavConfig ? bottomNavHeightBase : footerHeightBase;
+
+  const contentBottom = isMobile ? bottomNavHeight : footerHeight;
+  const headerHeightStyle = cssGeometry
+    ? appShellVar(APP_SHELL_CSS_VARS.headerHeight, headerHeightBase)
+    : headerHeight;
+  const navbarWidthStyle = cssGeometry
+    ? appShellVar(APP_SHELL_CSS_VARS.navbarWidth, 0)
+    : navbarWidth;
+  const contentBottomStyle = cssGeometry
+    ? appShellVar(APP_SHELL_CSS_VARS.contentBottom, contentBottomBase)
+    : contentBottom;
+
   const contextValue = React.useMemo<AppShellContextValue>(() => ({
     headerHeight,
     navbarWidth,
     asideWidth,
     footerHeight,
     bottomNavHeight,
+    cssGeometry,
+    headerHeightStyle,
+    navbarWidthStyle,
+    contentBottomStyle,
     isNavbarCollapsed,
     isNavbarRail: !isMobile && !!navbarConfig && !navbarOpen,
     isAsideCollapsed,
@@ -852,6 +930,10 @@ function AppShellBase(props: AppShellProps, ref: React.Ref<View>) {
     asideWidth,
     footerHeight,
     bottomNavHeight,
+    cssGeometry,
+    headerHeightStyle,
+    navbarWidthStyle,
+    contentBottomStyle,
     isNavbarCollapsed,
     isMobile,
     navbarConfig,
@@ -874,7 +956,7 @@ function AppShellBase(props: AppShellProps, ref: React.Ref<View>) {
 
   const containerStyle: ViewStyle = {
     flex: 1,
-    backgroundColor: backgroundColor || (theme.colorScheme === 'dark' ? theme.colors.gray[0] : theme.colors.gray[0]),
+    backgroundColor: backgroundColor || chrome.canvas,
     ...spacingStyles,
     ...style,
 

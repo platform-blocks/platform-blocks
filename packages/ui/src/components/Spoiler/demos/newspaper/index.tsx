@@ -7,7 +7,7 @@ const paragraphs = [
   'City gardeners are also experimenting with hardy dune grasses to keep wind-swept sand in place during the colder months. The pilot plots stretch for blocks and bring a warm beige tone to an otherwise grey season.',
 ];
 
-export default function Demo() {
+export function Demo() {
   const isWeb = Platform.OS === 'web';
 
   return (

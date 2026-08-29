@@ -34,7 +34,7 @@ export const PrerequisitesList: React.FC = () => {
             >
               {version}
             </Link>
-            <Text variant="small" colorVariant="secondary">
+            <Text variant="small" color="secondary">
               {note}
             </Text>
           </View>

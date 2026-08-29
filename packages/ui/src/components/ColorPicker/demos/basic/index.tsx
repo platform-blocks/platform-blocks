@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Block, ColorPicker, Row, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [color, setColor] = useState('#4ECDC4');
 
   return (
     <Block>
       <Row gap="sm" align="center">
         <ColorPicker value={color} onChange={setColor} />
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Selected: {color}
         </Text>
       </Row>

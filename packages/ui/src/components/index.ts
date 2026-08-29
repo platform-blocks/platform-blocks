@@ -1,5 +1,5 @@
 // Component exports
-export { Alert, Notice } from './Alert';
+export { Alert } from './Alert';
 export { AppShell } from './AppShell';
 export { AudioPlayer } from './AudioPlayer';
 export { Avatar, AvatarGroup } from './Avatar';
@@ -105,12 +105,7 @@ export { Gallery } from './Gallery';
 export type {
   AlertProps,
   AlertVariant,
-  AlertColor,
   AlertSeverity,
-  NoticeProps,
-  NoticeVariant,
-  NoticeColor,
-  NoticeSeverity,
 } from './Alert';
 export type { AppShellProps } from './AppShell';
 export type { AvatarProps, AvatarGroupProps } from './Avatar';
@@ -189,7 +184,6 @@ export type {
   ProgressRootProps,
   ProgressSectionProps,
   ProgressLabelProps,
-  ProgressColor,
   ProgressOrientation,
 } from './Progress';
 export type { QRCodeProps } from './QRCode';

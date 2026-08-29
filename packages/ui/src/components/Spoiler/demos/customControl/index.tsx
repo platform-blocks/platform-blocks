@@ -2,13 +2,13 @@ import { useState } from 'react';
 
 import { Block, Button, Card, Spoiler, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <Card p="md">
       <Block>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Drive the spoiler state yourself to sync analytics or a sibling component. Use renderControl when you need a bespoke trigger.
         </Text>
         <Spoiler

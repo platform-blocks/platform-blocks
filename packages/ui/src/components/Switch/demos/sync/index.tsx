@@ -27,7 +27,7 @@ const INITIAL_SETTINGS: Record<PreferenceKey, boolean> = {
   audioHighlights: false
 };
 
-export default function Demo() {
+export function Demo() {
   const [settings, setSettings] = useState<Record<PreferenceKey, boolean>>(
     () => ({ ...INITIAL_SETTINGS })
   );
@@ -35,7 +35,7 @@ export default function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Shared state
         </Text>
         {PREFERENCE_CONTROLS.map(({ key, label, description }) => (
@@ -51,7 +51,7 @@ export default function Demo() {
         ))}
       </Block>
   <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Summary
         </Text>
         <Text variant="p">

@@ -1,6 +1,6 @@
 import { Badge, Block, Input, Text, useMaskedInput } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const { value, unmaskedValue, isComplete, handleChangeText, handleSelectionChange } = useMaskedInput({
     mask: { mask: '(000) 000-0000', placeholderChar: '_' }
   });
@@ -20,7 +20,7 @@ export default function Demo() {
       <Badge variant="subtle" color={isComplete ? 'success' : 'gray'}>
         {isComplete ? 'Mask complete' : 'Enter all digits'}
       </Badge>
-      <Text size="xs" colorVariant="muted">Raw value: {unmaskedValue || '—'}</Text>
+      <Text size="xs" color="muted">Raw value: {unmaskedValue || '—'}</Text>
     </Block>
   );
 }

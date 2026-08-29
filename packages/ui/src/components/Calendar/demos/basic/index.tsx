@@ -3,7 +3,7 @@ import { Block, Calendar, Text } from '@platform-blocks/ui';
 
 const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
 
-export default function Demo() {
+export function Demo() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
 
   return (
@@ -13,7 +13,7 @@ export default function Demo() {
         onChange={(date) => setSelectedDate(date as Date | null)}
         highlightToday
       />
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Selected date: {selectedDate ? formatter.format(selectedDate) : 'none'}
       </Text>
     </Block>

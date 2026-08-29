@@ -2,7 +2,7 @@ import { Badge, Icon, Row, Text, Tree, type TreeNode } from '@platform-blocks/ui
 
 import { STATUS_BADGES, TREE_DATA, TYPE_ICONS, type CustomNodeData } from './data';
 
-export default function Demo() {
+export function Demo() {
   const renderCustomLabel = (node: TreeNode) => {
     const data = node.data as CustomNodeData;
     const status = STATUS_BADGES[data.status];

@@ -7,7 +7,7 @@ const formatMonth = (value: number) => new Date(value).toLocaleDateString('en-US
   year: 'numeric',
 });
 
-export default function Demo() {
+export function Demo() {
   return (
     <CandlestickChart
       title="Subscription MRR Momentum"

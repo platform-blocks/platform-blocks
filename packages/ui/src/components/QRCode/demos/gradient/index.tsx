@@ -1,13 +1,13 @@
 import { Block, QRCode, Row, Text, useTheme } from '@platform-blocks/ui';
 import { createGradientExamples } from './data';
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
   const gradients = createGradientExamples(theme);
 
   return (
     <Block>
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         Gradient fills
       </Text>
       <Row gap="lg" wrap="wrap" justify="center">

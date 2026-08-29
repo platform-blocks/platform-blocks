@@ -3,7 +3,7 @@ import { Block, Button, MiniCalendar, Row, Text } from '@platform-blocks/ui';
 
 const DAY_OPTIONS = [3, 5, 7];
 
-export default function Demo() {
+export function Demo() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [numberOfDays, setNumberOfDays] = useState(5);
 
@@ -26,7 +26,7 @@ export default function Demo() {
         onChange={(date: Date | null) => setSelectedDate(date)}
         numberOfDays={numberOfDays}
       />
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         {selectedDate ? `Selected: ${selectedDate.toLocaleDateString()}` : 'No date selected'}
       </Text>
     </Block>

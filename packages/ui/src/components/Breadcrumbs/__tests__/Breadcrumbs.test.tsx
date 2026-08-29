@@ -32,7 +32,7 @@ jest.mock('../../Text', () => {
   const React = require('react');
   const { Text } = require('react-native');
   return {
-    Text: ({ size, colorVariant, weight, style, children, ...rest }: any) => (
+    Text: ({ size, color, weight, style, children, ...rest }: any) => (
       React.createElement(
         Text,
         {
@@ -40,9 +40,9 @@ jest.mock('../../Text', () => {
           style: [
             {
               fontSize: size,
-              color: typeof colorVariant === 'string'
-                ? (mockTheme.text as Record<string, string>)[colorVariant] ?? colorVariant
-                : colorVariant,
+              color: typeof color === 'string'
+                ? (mockTheme.text as Record<string, string>)[color] ?? color
+                : color,
               fontWeight: weight,
             },
             style,

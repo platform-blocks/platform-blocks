@@ -34,7 +34,7 @@ const WrapperDisclaimerExample = () => (
     <Text variant="h6">With Disclaimer Wrapper</Text>
     <ComponentWithDisclaimer 
       disclaimer="Selected view determines the layout style"
-      disclaimerProps={{ colorVariant: 'muted', size: 'sm' }}
+      disclaimerProps={{ color: 'muted', size: 'sm' }}
     >
       <ToggleGroup value="list" exclusive onChange={() => {}}>
         <ToggleButton value="list">List View</ToggleButton>
@@ -58,7 +58,7 @@ const UtilityDisclaimerExample = () => {
       type="email"
     />,
     "We'll never share your email with third parties",
-    { size: 'xs', colorVariant: 'muted' }
+    { size: 'xs', color: 'muted' }
   );
 
   return (
@@ -75,7 +75,7 @@ const HookDisclaimerExample = () => {
   
   const renderDisclaimer = useDisclaimer(
     `Notifications are ${enabled ? 'enabled' : 'disabled'}`,
-    { size: 'sm', colorVariant: enabled ? 'success' : 'muted' }
+    { size: 'sm', color: enabled ? 'success' : 'muted' }
   );
 
   return (
@@ -92,11 +92,11 @@ const HookDisclaimerExample = () => {
 };
 
 // Main demo component
-export default function DisclaimerDemo() {
+export function Demo() {
   return (
     <Block p="lg">
       <Text variant="h4">Disclaimer Component Demo</Text>
-      <Text colorVariant="muted">
+      <Text color="muted">
         The Disclaimer component provides a consistent way to add contextual help text below any component.
       </Text>
       

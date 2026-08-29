@@ -4,7 +4,7 @@ import { Block, PinInput, Text } from '@platform-blocks/ui';
 
 type SizeToken = 'xs' | 'sm' | 'md' | 'lg';
 
-export default function Demo() {
+export function Demo() {
   const [xsValue, setXsValue] = useState('');
   const [smValue, setSmValue] = useState('');
   const [mdValue, setMdValue] = useState('');
@@ -61,7 +61,7 @@ export default function Demo() {
           <Text size="sm" weight="semibold">
             {example.label}
           </Text>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             {example.helper}
           </Text>
           <PinInput

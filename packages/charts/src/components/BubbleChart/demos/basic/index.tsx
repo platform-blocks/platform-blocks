@@ -2,7 +2,7 @@ import { BubbleChart } from '@platform-blocks/charts';
 
 import { companies } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <BubbleChart
       title="Revenue vs Growth"

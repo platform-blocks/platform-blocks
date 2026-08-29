@@ -14,7 +14,7 @@ const formatPaymentSplit = (split: CheckoutMeta['paymentSplit']) => {
   return `Payment mix: ${Math.round(split.stripe * 100)}% Stripe • ${Math.round(split.paypal * 100)}% PayPal • ${Math.round(split.bnpl * 100)}% BNPL`;
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <FunnelChart
       title="Ecommerce checkout conversion"

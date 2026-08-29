@@ -25,7 +25,6 @@ import {
   resolveButtonRoles,
   resolveButtonTextColor,
   resolveRoleColor,
-  resolveTokenColor,
   splitButtonLayoutStyles,
 } from './styles';
 
@@ -51,7 +50,6 @@ export const Button = React.forwardRef<View, ButtonProps>((allProps, ref) => {
     loading = false,
     loadingTitle,
     color,
-    colorVariant,
     textColor: textColorProp,
     icon,
     startIcon,
@@ -164,8 +162,7 @@ export const Button = React.forwardRef<View, ButtonProps>((allProps, ref) => {
 
   const iconSpacing = getButtonIconSpacing(size);
 
-  // Explicit `color` wins, then legacy `colorVariant`, else `primary`.
-  const roleColorToken = color ?? colorVariant;
+  const roleColorToken = color;
   const hasExplicitColor = roleColorToken != null;
   const resolvedRoleColor = resolveRoleColor(theme, roleColorToken);
 
@@ -216,7 +213,7 @@ export const Button = React.forwardRef<View, ButtonProps>((allProps, ref) => {
   );
 
   // Memoize text props. The base styling is the Button's defaults; if the
-  // consumer passes `labelProps`, those win (weight/ff/colorVariant/style)
+  // consumer passes `labelProps`, those win (weight/ff/color/style)
   // via mergeSlotProps so they aren't silently overridden by the inline style.
   const textProps = useMemo(
     () =>

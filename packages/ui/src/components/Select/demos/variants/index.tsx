@@ -9,7 +9,7 @@ const variants = [
   { variant: 'unstyled', label: 'Unstyled' },
 ] as const
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState<string | null>(null)
 
   return (

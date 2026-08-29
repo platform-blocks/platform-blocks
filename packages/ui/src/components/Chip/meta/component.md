@@ -11,7 +11,7 @@ props:
   startIcon / endIcon: Slot icons
   onRemove: Show a remove button (also `removePosition`)
   textStyle: Raw TextStyle escape hatch
-  labelProps: Override props applied to the inner label `<Text>` (style, weight, ff, size, colorVariant)
+  labelProps: Override props applied to the inner label `<Text>` (style, weight, ff, size, color)
 examples:
   - basic
   - variants

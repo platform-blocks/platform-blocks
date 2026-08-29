@@ -78,7 +78,7 @@ export const LOCALIZATION_STEPS: LocalizationStep[] = [
     title: 'Create resource files',
     fileName: 'resources.ts',
     snippet: LOCALIZATION_RESOURCES_SNIPPET,
-    highlightLines: ['1', '2', '3'],
+    // highlightLines: ['1', '2', '3'],
   },
   { key: 'provider', title: 'Wrap the app in I18nProvider', fileName: 'App.tsx', snippet: LOCALIZATION_PROVIDER_SNIPPET },
   { key: 'switch', title: 'Translate and switch locales', fileName: 'Greeting.tsx', snippet: LOCALIZATION_USAGE_SNIPPET },

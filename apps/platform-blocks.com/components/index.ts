@@ -4,3 +4,4 @@ export { DocsPage, DocsPageContent } from './DocsPage';
 export { DemoRenderer } from './DemoRenderer';
 export { DocsPageHeader } from './DocsPageHeader';
 export { RouteLink } from './RouteLink';
+export { Prose } from './Prose';

@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, Pagination, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const totalItems = 248;
   const [pageSize, setPageSize] = useState(10);
   const [current, setCurrent] = useState(1);
@@ -25,7 +25,7 @@ export default function Demo() {
           setCurrent(1);
         }}
       />
-      <Text size="xs" colorVariant="secondary">
+      <Text size="xs" color="secondary">
         Page {current} of {total} · {pageSize} rows per page
       </Text>
     </Block>

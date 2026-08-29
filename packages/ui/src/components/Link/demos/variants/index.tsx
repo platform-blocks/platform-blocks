@@ -7,17 +7,17 @@ const linkVariants = [
   { label: 'Subtle gray', variant: 'subtle' as const, color: 'gray', description: 'Pair with neutral layouts or footers.' },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Card p="md">
       <Block>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Choose a `variant` that matches the surrounding density while keeping the link discoverable.
         </Text>
         {linkVariants.map((entry) => (
           <Block key={entry.label}>
             <Link href="#" variant={entry.variant} color={entry.color}>{entry.label}</Link>
-            <Text size="xs" colorVariant="secondary">{entry.description}</Text>
+            <Text size="xs" color="secondary">{entry.description}</Text>
           </Block>
         ))}
       </Block>

@@ -374,7 +374,12 @@ export function Dialog({
   const isDark = theme.colorScheme === 'dark';
   // Level 3 — takes over the screen. Previously this hard-coded `#FFFFFF` and
   // `#E1E3E6` in light mode, so a themed app got an unthemed dialog.
-  const dialogSurface = resolveSurface(theme, 3);
+  //
+  // Except when it *is* the screen: a fullscreen dialog floats above nothing,
+  // so it takes the page's own surface. At level 3 it landed two steps lighter
+  // than the app behind it in dark mode, which read as a mis-tinted screen on
+  // its own and banded visibly wherever its content used a page background.
+  const dialogSurface = resolveSurface(theme, variant === 'fullscreen' ? 0 : 3);
   const surfaceColor = dialogSurface.background;
   const borderColor = dialogSurface.border;
   const headerBg = surfaceColor;

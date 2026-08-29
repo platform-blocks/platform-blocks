@@ -1,6 +1,6 @@
 import { Block, Button, useToast } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const toast = useToast();
 
   return (
@@ -10,7 +10,7 @@ export default function Demo() {
           toast.show({
             title: 'Default styling',
             message: 'No custom title or body props.',
-            sev: 'info',
+            severity: 'info',
             autoHide: 4000,
           });
         }}
@@ -23,7 +23,7 @@ export default function Demo() {
           toast.show({
             title: 'Bold uppercase title',
             message: 'Title rendered with monospace + tracking.',
-            sev: 'success',
+            severity: 'success',
             autoHide: 4000,
             titleProps: {
               ff: 'monospace',
@@ -44,7 +44,7 @@ export default function Demo() {
           toast.show({
             title: 'Brand serif title',
             message: 'Title in Georgia, body in default font.',
-            sev: 'warning',
+            severity: 'warning',
             autoHide: 4000,
             titleProps: { ff: 'Georgia, serif', size: 'lg' },
           });

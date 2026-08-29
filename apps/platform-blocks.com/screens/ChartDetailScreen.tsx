@@ -67,7 +67,7 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
         <View style={styles.container}>
           <Card variant="outline" style={{ padding: 24, gap: 12 }}>
             <Text variant="h1" weight="semibold">We couldn&apos;t find docs for “{chartSlug}”.</Text>
-            <Text colorVariant="muted">
+            <Text color="muted">
               The chart may be in development or renamed. Check the charts catalog for the full list of supported visualisations.
             </Text>
             <Flex direction="row" gap={12}>
@@ -87,7 +87,7 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
     <Card style={{ padding: 20, gap: 12 }}>
       <Text variant="h1" weight="bold">{chartDoc.title}</Text>
       {chartDoc.summary && (
-        <Text colorVariant="muted">{chartDoc.summary}</Text>
+        <Text color="muted">{chartDoc.summary}</Text>
       )}
       {chartDoc.tags.length > 0 && (
         <Flex direction="row" gap={8} wrap="wrap">
@@ -198,13 +198,13 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
                     </GlobalChartsRoot>
                   );
                 } catch {
-                  preview = <Text variant="p" colorVariant="error">Demo failed to render.</Text>;
+                  preview = <Text variant="p" color="error">Demo failed to render.</Text>;
                 }
               } else {
                 preview = (
                   <Flex direction="row" align="center" gap={8}>
                     <Loader size="sm" />
-                    <Text variant="p" colorVariant="muted">Loading demo…</Text>
+                    <Text variant="p" color="muted">Loading demo…</Text>
                   </Flex>
                 );
               }
@@ -220,7 +220,7 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
                     </View>
                   {/* </Card> */}
                   {demo.description && (
-                    <Text variant="small" colorVariant="muted" style={{ marginTop: 8 }}>{demo.description}</Text>
+                    <Text variant="small" color="muted" style={{ marginTop: 8 }}>{demo.description}</Text>
                   )}
                 </View>
               );

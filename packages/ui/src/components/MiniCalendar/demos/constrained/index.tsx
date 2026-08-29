@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Block, MiniCalendar, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
 
   const { minDate, maxDate } = useMemo(() => {
@@ -20,10 +20,10 @@ export default function Demo() {
         minDate={minDate}
         maxDate={maxDate}
       />
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         {selectedDate ? `Selected: ${selectedDate.toLocaleDateString()}` : 'No date selected'}
       </Text>
-      <Text size="xs" colorVariant="secondary">
+      <Text size="xs" color="secondary">
         Only the next seven days are enabled
       </Text>
     </Block>

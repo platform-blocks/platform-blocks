@@ -2,7 +2,7 @@ import { HeatmapChart } from '@platform-blocks/charts';
 
 import { DAYS, SESSIONS, UTILIZATION } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <HeatmapChart
       title="Support ticket load"

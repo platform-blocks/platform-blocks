@@ -44,7 +44,7 @@ jest.mock('../../_internal/FieldHeader', () => {
   };
   const propsToStyle = (props: any) => {
     if (!props) return undefined;
-    const { style, weight, size, ff, fontFamily, tracking, uppercase, color, colorVariant } = props;
+    const { style, weight, size, ff, fontFamily, tracking, uppercase, color } = props;
     const synth: any = {};
     if (weight) synth.fontWeight = resolveWeight(weight);
     if (typeof size === 'number') synth.fontSize = size;
@@ -52,7 +52,6 @@ jest.mock('../../_internal/FieldHeader', () => {
     if (typeof tracking === 'number') synth.letterSpacing = tracking;
     if (uppercase) synth.textTransform = 'uppercase';
     if (color) synth.color = color;
-    if (colorVariant) synth.color = colorVariant;
     return [synth, style].filter(Boolean);
   };
   const MockFieldHeader = ({

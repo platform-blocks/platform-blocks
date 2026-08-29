@@ -14,7 +14,7 @@ function Section({ title, order, copy }: { title: string; order: number; copy: s
   return (
     <View ref={elementRef} nativeID={id}>
       <Text weight="semibold">{title}</Text>
-      <Text size="sm" colorVariant="secondary">{copy}</Text>
+      <Text size="sm" color="secondary">{copy}</Text>
     </View>
   );
 }
@@ -23,7 +23,7 @@ function TocList() {
   const { items, activeId } = useScrollSpy();
 
   if (!items.length) {
-    return <Text size="sm" colorVariant="muted">No headings detected yet.</Text>;
+    return <Text size="sm" color="muted">No headings detected yet.</Text>;
   }
 
   return (
@@ -41,7 +41,7 @@ function TocList() {
   );
 }
 
-export default function Demo() {
+export function Demo() {
   return (
     <TitleRegistryProvider>
       <Block gap="lg">

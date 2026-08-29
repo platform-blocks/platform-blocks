@@ -33,14 +33,14 @@ export function SettingsExample() {
         <Avatar size="lg" fallback="JS" />
         <Column gap="xs">
           <Title order={3}>Jordan Smith</Title>
-          <Text variant="small" colorVariant="secondary">jordan@example.com</Text>
+          <Text variant="small" color="secondary">jordan@example.com</Text>
         </Column>
       </Flex>
 
       <Card variant="elevated" p="lg">
         <Column gap="md">
           <Title order={4}>Appearance</Title>
-          <Text variant="small" colorVariant="secondary">
+          <Text variant="small" color="secondary">
             Auto follows your device setting. Changing this re-themes the page for real.
           </Text>
           <SegmentedControl

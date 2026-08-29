@@ -1,4 +1,5 @@
 import { SpacingProps } from '../../core/utils';
+import type { MenuItemColor } from '../MenuItemButton';
 
 export interface MenuProps extends SpacingProps {
   /** Whether the menu is open */
@@ -46,8 +47,8 @@ export interface MenuItemProps extends SpacingProps {
   startSection?: React.ReactNode;
   /** Right section content */
   endSection?: React.ReactNode;
-  /** Item color variant */
-  color?: 'default' | 'danger' | 'success' | 'warning';
+  /** Item color. */
+  color?: MenuItemColor;
   /** Whether item should close menu when pressed */
   closeMenuOnClick?: boolean;
   /** Test ID for testing */
@@ -84,8 +85,8 @@ export interface MenuSubProps extends SpacingProps {
   startSection?: React.ReactNode;
   /** Whether the submenu trigger is disabled */
   disabled?: boolean;
-  /** Trigger color variant */
-  color?: 'default' | 'danger' | 'success' | 'warning';
+  /** Trigger color. */
+  color?: MenuItemColor;
   /** Submenu content width */
   w?: number;
   /** Maximum height for scrollable submenu content */

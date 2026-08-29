@@ -1,7 +1,7 @@
 import { Block, QRCode, Text, useTheme } from '@platform-blocks/ui';
 import { QUIET_ZONES } from './data';
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
 
   return (
@@ -24,7 +24,7 @@ export default function Demo() {
             m="xs"
           />
         </Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Use spacing props and container styling to pad the QR code externally.
         </Text>
       </Block>

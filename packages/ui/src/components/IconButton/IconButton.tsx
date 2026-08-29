@@ -4,6 +4,7 @@ import { useTheme } from '../../core/theme';
 import { SizeValue, getFontSize, getSpacing, getHeight } from '../../core/theme/sizes';
 import { createRadiusStyles } from '../../core/theme/radius';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { getSpacingStyles, extractSpacingProps, extractShadowProps, getShadowStyles, getLayoutStyles, extractLayoutProps } from '../../core/utils';
 import { Loader } from '../Loader';
 import { Icon } from '../Icon';
@@ -178,23 +179,9 @@ const getIconColor = (
   }
 };
 
-const resolveColor = (color: string, theme: PlatformBlocksTheme): string => {
-  // If it's already a valid CSS color (hex, rgb, etc.), return as-is
-  if (color.startsWith('#') || color.startsWith('rgb') || color.startsWith('hsl')) {
-    return color;
-  }
-  
-  // Handle theme token syntax like 'primary' or 'primary.6'
-  const [palette, shade] = color.split('.');
-  const shadeIndex = shade ? parseInt(shade, 10) : 5; // Default to middle shade
-  
-  if (theme.colors[palette as keyof typeof theme.colors]) {
-    const paletteColors = theme.colors[palette as keyof typeof theme.colors] as any;
-    return paletteColors[shadeIndex] || paletteColors[5] || color;
-  }
-  
-  return color;
-};
+/** Argument order kept flipped from the shared helper to match the call sites. */
+const resolveColor = (color: string, theme: PlatformBlocksTheme): string =>
+  resolveAccentColor(theme, color) ?? color;
 
 const getDefaultIconSize = (buttonSize: SizeValue): SizeValue => {
   const sizeMap: Record<SizeValue, SizeValue> = {
@@ -223,7 +210,6 @@ export const IconButton = React.forwardRef<View, IconButtonProps>((allProps, ref
     disabled = false,
     loading = false,
     color,
-    colorVariant,
     iconColor,
     iconVariant,
     iconSize,
@@ -242,8 +228,7 @@ export const IconButton = React.forwardRef<View, IconButtonProps>((allProps, ref
 
   const effectiveVariant = variant === 'gradient' && !hasLinearGradient ? 'filled' : variant;
 
-  // Explicit `color` wins, then legacy `colorVariant`. Mirrors Button.
-  const roleColorToken = color ?? colorVariant;
+  const roleColorToken = color;
 
   // Animation values
   const scaleAnim = useRef(new Animated.Value(1)).current;

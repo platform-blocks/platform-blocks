@@ -1,6 +1,6 @@
 import { Block, Card, Grid, GridItem, Text } from '@platform-blocks/ui';
 
-export default function BasicGridDemo() {
+export function Demo() {
   return (
     <Block fullWidth>
       <Grid columns={12} gap="md">
@@ -14,7 +14,7 @@ export default function BasicGridDemo() {
           </GridItem>
         ))}
       </Grid>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Twelve even columns, each spanning a single track
       </Text>
     </Block>

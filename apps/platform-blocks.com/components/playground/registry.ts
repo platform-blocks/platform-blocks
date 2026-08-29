@@ -155,7 +155,7 @@ const TIMELINE_EVENTS = [
     lineVariant: 'dotted' as const
   }
 ];
-const TIMELINE_COLOR_VARIANTS = ['primary.5', 'secondary.5', 'gray.6', 'success.5', 'warning.5', 'error.5'];
+const TIMELINE_COLOR_OPTIONS = ['primary.5', 'secondary.5', 'gray.6', 'success.5', 'warning.5', 'error.5', '#0ea5e9'];
 
 const WAVEFORM_SAMPLE = Array.from({ length: 140 }, (_, idx) => {
   const primary = Math.sin(idx / 6) * 0.7;
@@ -170,7 +170,7 @@ const WAVEFORM_VARIANTS: Array<'bars' | 'line' | 'rounded' | 'gradient'> = ['bar
 const TEXT_VARIANT_OPTIONS: Array<
   'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'p' | 'span' | 'small' | 'code' | 'body' | 'caption'
 > = ['h1', 'h2', 'h3', 'h4', 'h5', 'p', 'span', 'small', 'code', 'body', 'caption'];
-const TEXT_COLOR_VARIANTS = ['primary', 'secondary', 'muted', 'disabled', 'link', 'success', 'warning', 'error', 'info'];
+const TEXT_COLOR_OPTIONS = ['primary', 'secondary', 'muted', 'disabled', 'link', 'dimmed', 'success', 'warning', 'error', 'primary.6', '#14b8a6'];
 const FONT_WEIGHT_OPTIONS = ['light', 'normal', 'medium', 'semibold', 'bold', 'black'];
 
 const ALERT_VARIANTS: Array<'light' | 'filled' | 'outline' | 'subtle'> = ['subtle', 'filled', 'outline', 'light'];
@@ -792,12 +792,12 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       loading: false,
       disabled: false
     },
-    pinnedProps: ['title', 'variant', 'size', 'fullWidth', 'loading', 'disabled', 'colorVariant', 'textColor'],
+    pinnedProps: ['title', 'variant', 'size', 'fullWidth', 'loading', 'disabled', 'textColor'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'tooltip', 'tooltipPosition'],
     controlOverrides: {
       variant: { controlType: 'segmented', options: ['filled', 'secondary', 'outline', 'ghost', 'gradient', 'link', 'none'] },
       size: { controlType: 'size-slider', options: SIZE_TOKENS },
-      colorVariant: {
+      color: {
         controlType: 'color',
         placeholder: 'primary.6 or #3b82f6',
         colorPresets: ['#228be6', '#845ef7', '#40c057', '#f59f00', '#e03131', '#15aabf']
@@ -1235,24 +1235,19 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       children: 'Telemetry stream ready',
       variant: 'h4',
       size: 'lg',
-      colorVariant: 'primary',
+      color: 'primary',
       weight: 'semibold',
       align: 'left',
       tracking: 0.2,
       uppercase: false,
       numberOfLines: 2
     },
-    pinnedProps: ['variant', 'size', 'c', 'color', 'colorVariant', 'weight', 'align', 'uppercase', 'ff', 'numberOfLines', 'ellipsizeMode'],
+    pinnedProps: ['variant', 'size', 'c', 'color', 'weight', 'align', 'uppercase', 'ff', 'numberOfLines', 'ellipsizeMode'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'tx', 'txParams', 'value', 'fontFamily', 'as'],
     controlOverrides: {
       variant: { controlType: 'select', options: TEXT_VARIANT_OPTIONS },
       size: { controlType: 'size-slider', options: SIZE_TOKENS },
-      colorVariant: { controlType: 'select', options: TEXT_COLOR_VARIANTS },
-      color: {
-        controlType: 'color',
-        placeholder: '#0f172a',
-        colorPresets: ['#0f172a', '#475569', '#f8fafc', '#14b8a6']
-      },
+      color: { controlType: 'select', options: TEXT_COLOR_OPTIONS },
       // `c` shorthand — accepts 'dimmed', palette names, palette.shade
       // (e.g. 'primary.6'), or any CSS color string.
       c: {
@@ -1272,23 +1267,18 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     initialProps: {
       active: 2,
       size: 'md',
-      colorVariant: 'primary.5',
+      color: 'primary.5',
       align: 'left',
       lineWidth: 2,
       bulletSize: 24,
       centerMode: false,
       reverseActive: false
     },
-    pinnedProps: ['active', 'size', 'colorVariant', 'align', 'lineWidth', 'bulletSize', 'centerMode', 'reverseActive'],
+    pinnedProps: ['active', 'size', 'align', 'lineWidth', 'bulletSize', 'centerMode', 'reverseActive'],
     hiddenProps: [...COMMON_EVENT_PROPS],
     controlOverrides: {
       size: { controlType: 'size-slider', options: SIZE_TOKENS },
-      colorVariant: { controlType: 'select', options: TIMELINE_COLOR_VARIANTS },
-      color: {
-        controlType: 'color',
-        placeholder: 'primary.5',
-        colorPresets: ['#0ea5e9', '#22c55e', '#f97316', '#ef4444']
-      },
+      color: { controlType: 'select', options: TIMELINE_COLOR_OPTIONS },
       align: { controlType: 'segmented', options: ['left', 'right'] },
       lineWidth: { controlType: 'number', min: 1, max: 6, step: 1 },
       bulletSize: { controlType: 'number', min: 12, max: 40, step: 2 },
@@ -1305,7 +1295,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
             key: event.key,
             title: event.title,
             lineVariant: event.lineVariant,
-            colorVariant: event.lineVariant === 'dotted' ? 'secondary.5' : undefined
+            color: event.lineVariant === 'dotted' ? 'secondary.5' : undefined
           },
           React.createElement(
             View,
@@ -1395,17 +1385,17 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       children: 'Opportunity window closes in 14 minutes.',
       variant: 'subtle',
       color: 'warning',
-      sev: 'warning',
+      severity: 'warning',
       withCloseButton: true,
       fullWidth: false,
       radius: 'md'
     },
-    pinnedProps: ['title', 'children', 'variant', 'color', 'sev', 'withCloseButton', 'fullWidth', 'radius'],
+    pinnedProps: ['title', 'children', 'variant', 'color', 'severity', 'withCloseButton', 'fullWidth', 'radius'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'icon', 'closeButtonLabel', 'onClose', 'style', 'testID', 'titleProps', 'bodyProps'],
     controlOverrides: {
       variant: { controlType: 'segmented', options: ALERT_VARIANTS },
       color: { controlType: 'select', options: ALERT_COLOR_OPTIONS },
-      sev: { controlType: 'segmented', options: ALERT_SEVERITIES },
+      severity: { controlType: 'segmented', options: ALERT_SEVERITIES },
       radius: { controlType: 'select', options: RADIUS_TOKENS },
       title: { controlType: 'text', placeholder: 'Alert title' },
       children: { controlType: 'text', placeholder: 'Alert message' }
@@ -1631,11 +1621,11 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       disabled: false,
       indeterminate: false,
     },
-    pinnedProps: ['label', 'checked', 'size', 'disabled', 'indeterminate', 'colorVariant', 'labelPosition', 'description', 'error'],
+    pinnedProps: ['label', 'checked', 'size', 'disabled', 'indeterminate', 'labelPosition', 'description', 'error'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'defaultChecked', 'icon', 'indeterminateIcon', 'style', 'testID', 'children', 'required'],
     controlOverrides: {
       size: { controlType: 'size-slider', options: SIZE_TOKENS },
-      colorVariant: { controlType: 'segmented', options: ['primary', 'secondary', 'success', 'error', 'warning'] },
+      color: { controlType: 'segmented', options: ['primary', 'secondary', 'success', 'error', 'warning'] },
       labelPosition: { controlType: 'segmented', options: ['left', 'right', 'top', 'bottom'] },
       label: { controlType: 'text', placeholder: 'Checkbox label' },
       description: { controlType: 'text', placeholder: 'Description text' },
@@ -1655,13 +1645,13 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       disabled: false,
       isInvalid: false,
     },
-    pinnedProps: ['label', 'description', 'variant', 'checked', 'size', 'indicatorPosition', 'colorVariant', 'disabled', 'isRequired', 'isInvalid', 'error'],
+    pinnedProps: ['label', 'description', 'variant', 'checked', 'size', 'indicatorPosition', 'disabled', 'isRequired', 'isInvalid', 'error'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'isSelected', 'defaultSelected', 'control', 'color', 'style', 'testID', 'children', 'accessibilityLabel', 'labelProps', 'descriptionProps'],
     controlOverrides: {
       variant: { controlType: 'segmented', options: ['switch', 'checkbox', 'radio'] },
       size: { controlType: 'size-slider', options: SIZE_TOKENS },
       indicatorPosition: { controlType: 'segmented', options: ['left', 'right'] },
-      colorVariant: { controlType: 'segmented', options: ['primary', 'secondary', 'success', 'error', 'warning'] },
+      color: { controlType: 'segmented', options: ['primary', 'secondary', 'success', 'error', 'warning'] },
       label: { controlType: 'text', placeholder: 'Label text' },
       description: { controlType: 'text', placeholder: 'Description text' },
       error: { controlType: 'text', placeholder: 'Error message' },
@@ -1678,12 +1668,12 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       disabled: false,
       children: 'Dark mode',
     },
-    pinnedProps: ['children', 'selected', 'size', 'variant', 'disabled', 'colorVariant'],
+    pinnedProps: ['children', 'selected', 'size', 'variant', 'disabled'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'value', 'style', 'testID'],
     controlOverrides: {
       variant: { controlType: 'segmented', options: ['solid', 'ghost'] },
       size: { controlType: 'size-slider', options: SIZE_TOKENS },
-      colorVariant: { controlType: 'segmented', options: ['primary', 'secondary', 'success', 'error', 'warning'] },
+      color: { controlType: 'segmented', options: ['primary', 'secondary', 'success', 'error', 'warning'] },
       children: { controlType: 'text', placeholder: 'Toggle label' },
     },
   },
@@ -1823,10 +1813,10 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       orientation: 'horizontal',
       variant: 'solid',
       size: 'xs',
-      colorVariant: 'border',
+      color: 'border',
       opacity: 1,
     },
-    pinnedProps: ['orientation', 'variant', 'size', 'opacity', 'label', 'labelPosition', 'labelColorVariant', 'labelWeight', 'labelItalic', 'color', 'colorVariant'],
+    pinnedProps: ['orientation', 'variant', 'size', 'opacity', 'label', 'labelPosition', 'labelColor', 'labelWeight', 'labelItalic', 'color'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'style', 'testID', 'labelProps'],
     controlOverrides: {
       orientation: { controlType: 'segmented', options: ['horizontal', 'vertical'] },
@@ -1836,25 +1826,18 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       size: { controlType: 'size-slider', options: SIZE_TOKENS },
       labelPosition: { controlType: 'segmented', options: ['left', 'center', 'right'] },
       label: { controlType: 'text', placeholder: 'Divider label' },
-      // colorVariant aligned with the rest of the lib — drops 'tertiary' and
-      // 'subtle'/'surface' fragments, adds 'border' (the new default).
-      colorVariant: {
+      color: {
         controlType: 'select',
         options: ['border', 'subtle', 'muted', 'gray', 'primary', 'secondary', 'success', 'warning', 'error']
-      },
-      color: {
-        controlType: 'color',
-        placeholder: '#dee2e6',
-        colorPresets: ['#dee2e6', '#228be6', '#e03131', '#40c057'],
       },
       opacity: { controlType: 'number', min: 0, max: 1, step: 0.05 },
     },
     extraControls: [
       {
-        name: 'labelColorVariant',
+        name: 'labelColor',
         label: 'Label color',
         controlType: 'select',
-        options: ['primary', 'secondary', 'muted', 'disabled', 'link', 'success', 'warning', 'error', 'info'],
+        options: ['primary', 'secondary', 'muted', 'disabled', 'link', 'success', 'warning', 'error'],
         initialValue: 'muted',
       },
       {
@@ -1872,9 +1855,9 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       },
     ],
     transformProps: (values) => {
-      const { labelColorVariant, labelWeight, labelItalic, ...rest } = values;
+      const { labelColor, labelWeight, labelItalic, ...rest } = values;
       const labelProps: Record<string, any> = {};
-      if (labelColorVariant) labelProps.colorVariant = labelColorVariant;
+      if (labelColor) labelProps.color = labelColor;
       if (labelWeight && labelWeight !== 'normal') labelProps.weight = labelWeight;
       if (labelItalic) labelProps.style = { fontStyle: 'italic' };
       if (Object.keys(labelProps).length && rest.label) {
@@ -1948,13 +1931,13 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       loading: false,
       tooltip: 'Launch mission',
     },
-    pinnedProps: ['icon', 'variant', 'size', 'disabled', 'loading', 'colorVariant', 'tooltip'],
+    pinnedProps: ['icon', 'variant', 'size', 'disabled', 'loading', 'tooltip'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'iconColor', 'iconVariant', 'iconSize', 'tooltipPosition', 'accessibilityLabel'],
     controlOverrides: {
       icon: { controlType: 'text', placeholder: 'Icon name (e.g. rocket)' },
       variant: { controlType: 'segmented', options: ['filled', 'secondary', 'outline', 'ghost', 'gradient', 'none'] },
       size: { controlType: 'size-slider', options: SIZE_TOKENS },
-      colorVariant: { controlType: 'color', placeholder: '#6366f1', colorPresets: ['#228be6', '#845ef7', '#12b886', '#f59f00', '#e03131'] },
+      color: { controlType: 'color', placeholder: '#6366f1', colorPresets: ['#228be6', '#845ef7', '#12b886', '#f59f00', '#e03131'] },
       tooltip: { controlType: 'text', placeholder: 'Tooltip text' },
     },
   },
@@ -2115,7 +2098,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     component: 'Toast',
     initialProps: {
       variant: 'filled',
-      sev: 'success',
+      severity: 'success',
       title: 'Mission accomplished',
       children: 'Your payload has been deployed to production.',
       withCloseButton: true,
@@ -2123,11 +2106,11 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       visible: true,
       position: 'top',
     },
-    pinnedProps: ['variant', 'sev', 'title', 'withCloseButton', 'loading', 'visible', 'position', 'color', 'dismissOnTap', 'persistent'],
+    pinnedProps: ['variant', 'severity', 'title', 'withCloseButton', 'loading', 'visible', 'position', 'color', 'dismissOnTap', 'persistent'],
     hiddenProps: [...COMMON_EVENT_PROPS, 'children', 'icon', 'actions', 'autoHide', 'animationDuration', 'maxWidth', 'keepMounted'],
     controlOverrides: {
       variant: { controlType: 'segmented', options: ['light', 'filled', 'outline'] },
-      sev: { controlType: 'segmented', options: ['info', 'success', 'warning', 'error'] },
+      severity: { controlType: 'segmented', options: ['info', 'success', 'warning', 'error'] },
       title: { controlType: 'text', placeholder: 'Toast title' },
       color: { controlType: 'color', placeholder: '#228be6', colorPresets: ['#228be6', '#40c057', '#fab005', '#e03131', '#868e96'] },
       position: { controlType: 'segmented', options: ['top', 'bottom'] },
@@ -2213,7 +2196,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       secondaryText: '',
     },
     pinnedProps: ['brand', 'title', 'primaryText', 'secondaryText', 'variant', 'size', 'iconPosition', 'iconVariant', 'fullWidth', 'loading', 'disabled', 'darkMode'],
-    hiddenProps: [...COMMON_EVENT_PROPS, 'key', 'color', 'textColor', 'backgroundColor', 'borderColor', 'colorVariant', 'tooltip', 'tooltipPosition', 'labelProps', 'loadingTitle', 'onPressIn', 'onPressOut', 'onLongPress', 'onLayout', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
+    hiddenProps: [...COMMON_EVENT_PROPS, 'key', 'color', 'textColor', 'backgroundColor', 'borderColor', 'tooltip', 'tooltipPosition', 'labelProps', 'loadingTitle', 'onPressIn', 'onPressOut', 'onLongPress', 'onLayout', 'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py'],
     controlOverrides: {
       brand: { controlType: 'select', options: ['google', 'apple', 'facebook', 'github', 'x', 'microsoft', 'discord', 'spotify', 'slack', 'linkedin', 'app-store', 'google-play'] },
       variant: { controlType: 'segmented', options: ['filled', 'outline', 'ghost'] },
@@ -2716,7 +2699,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
     },
     pinnedProps: ['title', 'size', 'active', 'disabled', 'danger', 'compact', 'rounded', 'fullWidth'],
     hiddenProps: [
-      ...COMMON_EVENT_PROPS, 'startIcon', 'endIcon', 'tone', 'hoverTone', 'activeTone', 'textColor', 'hoverTextColor',
+      ...COMMON_EVENT_PROPS, 'startIcon', 'endIcon', 'hoverColor', 'activeColor', 'textColor', 'hoverTextColor',
       'activeTextColor', 'labelProps', 'onPressIn', 'onPressOut', 'onMouseDown', 'onMouseEnter', 'onMouseLeave', 'onFocus', 'onBlur',
       'm', 'mt', 'mr', 'mb', 'ml', 'mx', 'my', 'p', 'pt', 'pr', 'pb', 'pl', 'px', 'py',
     ],
@@ -3036,7 +3019,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       subtitle: 'Systems nominal',
       align: 'left',
     },
-    pinnedProps: ['text', 'order', 'underline', 'afterline', 'align', 'weight', 'colorVariant', 'uppercase', 'size'],
+    pinnedProps: ['text', 'order', 'underline', 'afterline', 'align', 'weight', 'uppercase', 'size'],
     hiddenProps: [
       ...COMMON_EVENT_PROPS, 'underlineColor', 'underlineStroke', 'afterlineGap', 'underlineOffset', 'prefix', 'prefixVariant',
       'prefixColor', 'prefixSize', 'prefixLength', 'prefixGap', 'prefixRadius', 'containerStyle', 'startIcon', 'endIcon', 'action',
@@ -3049,7 +3032,7 @@ const PLAYGROUND_CONFIGS: Record<string, ComponentPlaygroundConfig> = {
       order: { controlType: 'number', min: 1, max: 6, step: 1 },
       align: { controlType: 'segmented', options: ['left', 'center', 'right'] },
       weight: { controlType: 'segmented', options: FONT_WEIGHT_OPTIONS },
-      colorVariant: { controlType: 'select', options: TEXT_COLOR_VARIANTS },
+      color: { controlType: 'select', options: TEXT_COLOR_OPTIONS },
       subtitle: { controlType: 'text', placeholder: 'Subtitle' },
     },
   },

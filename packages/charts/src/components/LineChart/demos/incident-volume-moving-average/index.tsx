@@ -2,7 +2,7 @@ import { LineChart } from '@platform-blocks/charts';
 
 import { DAYS, MAJOR_OUTAGE_DAY, SERIES, STABILIZATION_END, STABILIZATION_START } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <LineChart
       title="Incident Volume with Moving Averages"

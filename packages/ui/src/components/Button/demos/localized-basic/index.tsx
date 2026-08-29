@@ -6,7 +6,7 @@ const LOCALES = [
   { label: 'Français', value: 'fr' },
 ];
 
-export default function Demo() {
+export function Demo() {
   const { t, locale, setLocale } = useI18n();
 
   return (

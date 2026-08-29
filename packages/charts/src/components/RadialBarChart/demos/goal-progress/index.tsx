@@ -2,7 +2,7 @@ import { RadialBarChart } from '@platform-blocks/charts';
 
 import { GOAL } from './data';
 
-export default function Demo() {
+export function Demo() {
 	return (
 		<RadialBarChart
 			title="Fundraising Goal"

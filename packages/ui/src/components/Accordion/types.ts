@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import type { ViewStyle, TextStyle, StyleProp } from 'react-native';
 import type { SizeValue } from '../../core/theme/sizes';
 import type { BorderRadiusProps } from '../../core/theme/radius';
+import type { ThemeColor } from '../../core/theme/resolveColors';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
 import type { SpacingProps } from '../../core/utils';
 import type { TextProps } from '../Text';
@@ -39,12 +40,11 @@ export interface AccordionItem {
    * Overrides the accordion-level `color` for this item's expanded emphasis
    * (title, chevron, and surface tint). Lets a single accordion mix accents.
    */
-  color?: AccordionColor;
+  color?: ThemeColor;
 }
 
 export type AccordionType = 'single' | 'multiple';
 export type AccordionVariant = 'default' | 'separated' | 'bordered';
-export type AccordionColor = 'primary' | 'secondary' | 'tertiary' | 'success' | 'warning' | 'error' | 'gray';
 
 /**
  * Props for the `Accordion` component.
@@ -96,7 +96,7 @@ export interface AccordionProps extends SpacingProps, BorderRadiusProps {
    * from the bolded title and rotated chevron alone.
    * @default undefined
    */
-  color?: AccordionColor;
+  color?: ThemeColor;
   /**
    * Whether to render the chevron affordance.
    * @default true
@@ -129,7 +129,7 @@ export interface AccordionProps extends SpacingProps, BorderRadiusProps {
    */
   headerTextStyle?: StyleProp<TextStyle>;
   /**
-   * Override props applied to each item's header `<Text>` (style, weight, ff, size, colorVariant).
+   * Override props applied to each item's header `<Text>` (style, weight, ff, size, color).
    * Applies to every item in the accordion.
    */
   titleProps?: Omit<TextProps, 'children'>;
@@ -176,7 +176,7 @@ export type AccordionStyleResolver = (
   theme: PlatformBlocksTheme,
   variant: AccordionVariant | undefined,
   size: SizeValue | undefined,
-  color: AccordionColor | undefined,
+  color: ThemeColor | undefined,
   radiusStyles?: any
 ) => AccordionComputedStyles;
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, Checkbox, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [enabled, setEnabled] = useState(true);
   const [required, setRequired] = useState(true);
   const [withError, setWithError] = useState(false);

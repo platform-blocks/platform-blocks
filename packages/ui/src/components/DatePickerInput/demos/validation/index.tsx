@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Block, DatePickerInput, Text } from '@platform-blocks/ui';
 
-export default function ValidationDatePickerInputDemo() {
+export function Demo() {
   const [value, setValue] = useState<Date | null>(null);
   const [error, setError] = useState<string | undefined>();
 
@@ -37,7 +37,7 @@ export default function ValidationDatePickerInputDemo() {
           highlightToday: true,
         }}
       />
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Past dates show the validation state
       </Text>
     </Block>

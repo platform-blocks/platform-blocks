@@ -1,10 +1,10 @@
 import { Block, Button, Card, Row, Text, Tooltip } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Card p="md">
       <Block>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Pass a `position` value to choose where the tooltip appears.
         </Text>
         <Row gap="md" justify="center" wrap="wrap">

@@ -4,7 +4,7 @@ import { FULFILLMENT_PARTNERS } from './data';
 
 const formatOrders = (value: number) => `${value.toFixed(2)}M`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <DonutChart
       title="Marketplace Fulfillment Mix"

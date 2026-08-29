@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Block, DatePicker, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState<Date[]>([]);
 
   return (
@@ -12,7 +12,7 @@ export default function Demo() {
         onChange={(next) => setValue((next as Date[]) ?? [])}
         calendarProps={{ numberOfMonths: 2, withCellSpacing: true }}
       />
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         {value.length > 0
           ? value.map((date) => date.toLocaleDateString()).join(', ')
           : 'Select one or more dates'}

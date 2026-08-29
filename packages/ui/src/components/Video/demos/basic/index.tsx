@@ -9,7 +9,7 @@ const SOURCE = {
   url: Asset.fromModule(require('../../../../assets/video/demo-clip.mp4')).uri,
 } as const;
 
-export default function Demo() {
+export function Demo() {
   const videoRef = useRef<VideoRef>(null);
   const [status, setStatus] = useState('Ready');
   const [currentTime, setCurrentTime] = useState(0);
@@ -42,7 +42,7 @@ export default function Demo() {
   return (
     <Card p="md">
       <Block>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Combine default transport controls with imperative helpers to script playback, adjust volume, and toggle captions from surrounding UI.
         </Text>
         <Video
@@ -71,11 +71,11 @@ export default function Demo() {
           onError={(error) => setStatus(`Error: ${error}`)}
         />
         <Block>
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Status: {status}
           </Text>
           {duration > 0 && (
-            <Text size="xs" colorVariant="secondary">
+            <Text size="xs" color="secondary">
               Progress: {formatTime(currentTime)} / {formatTime(duration)}
             </Text>
           )}

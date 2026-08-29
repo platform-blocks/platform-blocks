@@ -2,7 +2,7 @@ import { MarimekkoChart } from '@platform-blocks/charts';
 
 import { REGIONAL_REVENUE } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <MarimekkoChart
       title="Revenue mix by region"

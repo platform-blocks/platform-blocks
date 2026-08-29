@@ -138,7 +138,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
       return (
         <Flex direction="row" align="center" gap={8}>
           <Loader size="sm" />
-          <Text variant="p" colorVariant="muted">Loading demo…</Text>
+          <Text variant="p" color="muted">Loading demo…</Text>
         </Flex>
       );
     }
@@ -150,7 +150,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
       } catch (error) {
         console.error('[hooks] Demo render failed', hook, demo.id, error);
         return (
-          <Text variant="p" colorVariant="error">
+          <Text variant="p" color="error">
             Demo "{demo.id}" threw during render.
           </Text>
         );
@@ -163,7 +163,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
 
     console.error('[hooks] Demo export invalid', hook, demo.id, exportValue);
     return (
-      <Text variant="p" colorVariant="error">
+      <Text variant="p" color="error">
         Demo "{demo.id}" failed to load.
       </Text>
     );
@@ -174,7 +174,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
       <PageLayout contentContainerStyle={containerStyle}>
         <Card variant="outline" style={styles.infoCard}>
           <Text variant="h1" style={styles.infoTitle}>Hook not specified</Text>
-          <Text variant="p" colorVariant="secondary" style={styles.infoMessage}>
+          <Text variant="p" color="secondary" style={styles.infoMessage}>
             Provide a hook name to view detailed documentation.
           </Text>
           <Button title="Back to Hooks" onPress={() => router.push('/hooks')} />
@@ -188,7 +188,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
       <PageLayout contentContainerStyle={containerStyle}>
         <Card variant="outline" style={styles.infoCard}>
           <Text variant="h1" style={styles.infoTitle}>Documentation artifacts missing</Text>
-          <Text variant="p" colorVariant="secondary" style={styles.infoMessage}>
+          <Text variant="p" color="secondary" style={styles.infoMessage}>
             Run <Text variant="p" weight="semibold">npm run demos:generate</Text> to regenerate hook metadata and example bundles before viewing this page.
           </Text>
           <Button title="Back to Hooks" onPress={() => router.push('/hooks')} />
@@ -202,7 +202,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
       <PageLayout contentContainerStyle={containerStyle}>
         <Card variant="outline" style={styles.infoCard}>
           <Text variant="h1" style={styles.infoTitle}>Hook not found</Text>
-          <Text variant="p" colorVariant="secondary" style={styles.infoMessage}>
+          <Text variant="p" color="secondary" style={styles.infoMessage}>
             The hook "{hook}" is not documented yet.
           </Text>
           <Button title="Back to Hooks" onPress={() => router.push('/hooks')} />
@@ -234,7 +234,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
 
         {demos.length === 0 ? (
           <Card variant="outline" style={styles.emptyState}>
-            <Text variant="p" colorVariant="muted" align="center">
+            <Text variant="p" color="muted" align="center">
               No demos available for this hook yet.
             </Text>
           </Card>

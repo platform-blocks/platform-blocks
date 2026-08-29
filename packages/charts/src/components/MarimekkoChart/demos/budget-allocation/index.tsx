@@ -2,7 +2,7 @@ import { MarimekkoChart } from '@platform-blocks/charts';
 
 import { BUDGET_PLAN } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <MarimekkoChart
       title="FY26 budget allocation"

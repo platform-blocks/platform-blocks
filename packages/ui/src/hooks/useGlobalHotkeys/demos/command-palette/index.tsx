@@ -3,7 +3,7 @@ import { Alert, Block, Button, KeyCap, Row, useGlobalHotkeys } from '@platform-b
 
 const NAMESPACE = 'hooks-command-palette';
 
-export default function Demo() {
+export function Demo() {
   const [open, setOpen] = useState(false);
 
   const togglePalette = useCallback(() => {
@@ -19,7 +19,7 @@ export default function Demo() {
         <KeyCap keyCode="K" modifiers={['cmd']} size="sm">K</KeyCap>
       </Row>
       <Button onPress={togglePalette}>{open ? 'Close palette' : 'Open palette'}</Button>
-      <Alert sev={open ? 'success' : 'info'} fullWidth>
+      <Alert severity={open ? 'success' : 'info'} fullWidth>
         {open ? 'Palette is open globally. Press ⌘K again to close.' : 'Palette is currently closed.'}
       </Alert>
     </Block>

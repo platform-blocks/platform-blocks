@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Block, Switch, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [homeAlerts, setHomeAlerts] = useState(true);
   const [awayAlerts, setAwayAlerts] = useState(false);
 
   return (
     <Block>
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Interactive states
         </Text>
         <Switch
@@ -23,14 +23,14 @@ export default function Demo() {
         />
       </Block>
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Disabled states
         </Text>
         <Switch defaultChecked label="Lineup lock" disabled />
         <Switch label="Sound effects" disabled />
       </Block>
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Validation helpers
         </Text>
         <Switch

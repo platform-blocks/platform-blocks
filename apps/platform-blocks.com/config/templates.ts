@@ -17,6 +17,12 @@ export interface StarterTemplate {
   /** Repo slug under the platform-blocks GitHub org. */
   name: string;
   description: string;
+  /**
+   * Brand mark shown in the template row's leading cell — the toolchain the
+   * starter is built on, not the platforms it targets (those are `tags`).
+   * Must be a `BrandName` from the UI icon registry.
+   */
+  brand: 'expo' | 'react';
   /** Stack/platform tags rendered as chips. */
   tags: string[];
   /** GitHub repository URL. */
@@ -44,6 +50,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     name: 'expo-template',
     description:
       'Full-featured Expo Router app targeting iOS, Android, and web — dark mode, testing, and linting wired up.',
+    brand: 'expo',
     tags: ['Expo', 'iOS', 'Android', 'Web'],
     repo: `${TEMPLATE_ORG_URL}/expo-template`,
     available: true,
@@ -53,6 +60,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     name: 'expo-min-template',
     description:
       'Minimal Expo app — a single screen with the provider set up and nothing else to delete.',
+    brand: 'expo',
     tags: ['Expo', 'Minimal'],
     repo: `${TEMPLATE_ORG_URL}/expo-min-template`,
     available: true,
@@ -62,6 +70,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     name: 'universal-template',
     description:
       'Cross-platform Expo app with statically rendered web output — one codebase shipping native apps and a real website.',
+    brand: 'expo',
     tags: ['Expo', 'iOS', 'Android', 'Web', 'Static web'],
     repo: `${TEMPLATE_ORG_URL}/universal-template`,
     available: true,
@@ -71,6 +80,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     name: 'native-template',
     description:
       'iOS and Android only — no web configuration, for teams shipping mobile apps exclusively.',
+    brand: 'expo',
     tags: ['Expo', 'iOS', 'Android'],
     repo: `${TEMPLATE_ORG_URL}/native-template`,
     available: true,
@@ -80,6 +90,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     name: 'web-template',
     description:
       'React Native Web only — Platform Blocks components in a web-first single-page app.',
+    brand: 'expo',
     tags: ['Web', 'React Native Web'],
     repo: `${TEMPLATE_ORG_URL}/web-template`,
     available: true,
@@ -89,6 +100,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     name: 'react-native-template',
     description:
       'Bare React Native (community CLI, no Expo) with native projects checked in and peer dependencies linked.',
+    brand: 'react',
     tags: ['React Native CLI', 'iOS', 'Android'],
     repo: `${TEMPLATE_ORG_URL}/react-native-template`,
     available: false,

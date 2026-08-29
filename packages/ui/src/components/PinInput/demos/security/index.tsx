@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, Button, PinInput, Row, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [maskedValue, setMaskedValue] = useState('');
   const [otpValue, setOtpValue] = useState('');
   const [otpStatus, setOtpStatus] = useState('');
@@ -48,7 +48,7 @@ export default function Demo() {
         <Text size="sm" weight="semibold">
           Masked PIN input
         </Text>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Conceal characters as they are typed.
         </Text>
         <PinInput
@@ -63,7 +63,7 @@ export default function Demo() {
         <Text size="sm" weight="semibold">
           OTP with auto-complete
         </Text>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Automatically completes once all digits are entered.
         </Text>
         <PinInput
@@ -78,7 +78,7 @@ export default function Demo() {
           label="One-time password"
         />
         {otpStatus ? (
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             {otpStatus}
           </Text>
         ) : null}
@@ -88,7 +88,7 @@ export default function Demo() {
         <Text size="sm" weight="semibold">
           PIN validation state
         </Text>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Enter the correct PIN: 1234
         </Text>
         <PinInput
@@ -121,7 +121,7 @@ export default function Demo() {
         </Row>
 
         {validationMessage ? (
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             {validationMessage}
           </Text>
         ) : null}

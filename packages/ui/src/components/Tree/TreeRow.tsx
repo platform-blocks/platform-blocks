@@ -41,6 +41,8 @@ export interface TreeRowProps {
   checkState: TreeCheckState;
   showCheckbox: boolean;
   showDisclosure: boolean;
+  /** Keep the caret's column on rows that have no caret, so labels line up. */
+  reserveDisclosure: boolean;
   showGuides: boolean;
   striped: boolean;
   domId?: string;
@@ -81,6 +83,7 @@ export const TreeRow = React.memo(function TreeRow({
   checkState,
   showCheckbox,
   showDisclosure,
+  reserveDisclosure,
   showGuides,
   striped,
   domId,
@@ -173,6 +176,32 @@ export const TreeRow = React.memo(function TreeRow({
     if (linked) event?.preventDefault?.();
   };
 
+  // What sits in the caret column: a loader while children are being fetched, a
+  // caret on a branch that can be toggled, and otherwise nothing — in which case
+  // the column itself is dropped unless `reserveDisclosure` holds it open.
+  const disclosure = loading ? (
+    <Loader size={metrics.iconSize} />
+  ) : isBranch && showDisclosure ? (
+    <Pressable
+      onPress={(event) => {
+        stopLink(event);
+        if (!disabled) onToggle(node);
+      }}
+      hitSlop={6}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={expanded ? 'Collapse' : 'Expand'}
+      {...(web ? { tabIndex: -1 } : {})}
+    >
+      <Icon
+        name={expanded ? 'chevron-down' : 'chevron-right'}
+        size={metrics.iconSize}
+        color={disabled ? colors.disabled : colors.chevron}
+        stroke={2}
+      />
+    </Pressable>
+  ) : null;
+
   return (
     <Pressable
       onPress={handlePress}
@@ -251,30 +280,11 @@ export const TreeRow = React.memo(function TreeRow({
         </View>
       )}
 
-      <View style={{ width: metrics.iconSize, height: metrics.iconSize, alignItems: 'center', justifyContent: 'center' }}>
-        {loading ? (
-          <Loader size={metrics.iconSize} />
-        ) : isBranch && showDisclosure ? (
-          <Pressable
-            onPress={(event) => {
-              stopLink(event);
-              if (!disabled) onToggle(node);
-            }}
-            hitSlop={6}
-            disabled={disabled}
-            accessibilityRole="button"
-            accessibilityLabel={expanded ? 'Collapse' : 'Expand'}
-            {...(web ? { tabIndex: -1 } : {})}
-          >
-            <Icon
-              name={expanded ? 'chevron-down' : 'chevron-right'}
-              size={metrics.iconSize}
-              color={disabled ? colors.disabled : colors.chevron}
-              stroke={2}
-            />
-          </Pressable>
-        ) : null}
-      </View>
+      {(reserveDisclosure || disclosure) && (
+        <View style={{ width: metrics.iconSize, height: metrics.iconSize, alignItems: 'center', justifyContent: 'center' }}>
+          {disclosure}
+        </View>
+      )}
 
       {showCheckbox && (
         <Pressable onPress={stopLink} {...(web ? { tabIndex: -1 } : {})}>

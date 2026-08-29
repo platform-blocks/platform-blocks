@@ -2,7 +2,7 @@ import { Block, GradientText } from '@platform-blocks/ui';
 
 const angles = [0, 45, 90, 135];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block gap="md">
       {angles.map((angle) => (

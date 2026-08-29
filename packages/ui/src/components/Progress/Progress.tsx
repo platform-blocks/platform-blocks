@@ -16,6 +16,8 @@ import { Tooltip, resolveTooltipProps, getTooltipText } from '../Tooltip';
 import { Text as UIText } from '../Text';
 import { FieldHeader } from '../_internal/FieldHeader';
 import { factory } from '../../core/factory';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
+import type { ThemeColor } from '../../core/theme/resolveColors';
 import { getHeight, getRadius, getSpacing } from '../../core/theme/sizes';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { getSpacingStyles, extractSpacingProps, getLayoutStyles, extractLayoutProps } from '../../core/utils';
@@ -31,7 +33,6 @@ import type {
   ProgressRootFactoryPayload,
   ProgressSectionFactoryPayload,
   ProgressLabelFactoryPayload,
-  ProgressColor,
   ProgressContextValue,
   ProgressOrientation
 } from './types';
@@ -82,18 +83,13 @@ function useTrackExtent(isVertical: boolean) {
   return [extent, onLayout] as const;
 }
 
-function useResolvedColor(color: ProgressColor | string | undefined) {
+function useResolvedColor(color: ThemeColor | undefined) {
   const theme = useTheme();
 
   return useMemo(() => {
-    if (typeof color === 'string' && theme.colors[color as ProgressColor]) {
-      return theme.colors[color as ProgressColor][5];
-    }
-    if (typeof color === 'string' && color.startsWith('#')) {
-      return color;
-    }
-    // Fallback to primary color
-    return theme.colors.primary[5] || '#007AFF';
+    // The shared resolver also accepts `primary.6` shade syntax and non-hex CSS
+    // colors (`rgb(…)`, named colors), which the old `#`-prefix test dropped.
+    return resolveAccentColor(theme, color) ?? theme.colors.primary[5] ?? '#007AFF';
   }, [color, theme]);
 }
 
@@ -682,6 +678,3 @@ export const Progress = Object.assign(ProgressComponent, {
   Section: ProgressSection,
   Label: ProgressLabel
 });
-
-/** @deprecated Use `Progress` — the sub-components are attached to it directly. */
-export const ProgressWithCompound = Progress;

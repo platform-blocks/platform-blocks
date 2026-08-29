@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Toggle checkboxes styled with semantic `colorVariant` options and a default-checked example.
+Toggle checkboxes styled with semantic `color` options and a default-checked example.

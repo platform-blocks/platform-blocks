@@ -3,7 +3,7 @@ import { SparklineChart } from '@platform-blocks/charts';
 
 import { BUG_BACKLOG } from './data';
 
-export default function Demo() {
+export function Demo() {
   const latest = BUG_BACKLOG[BUG_BACKLOG.length - 1];
   const peak = Math.max(...BUG_BACKLOG);
 

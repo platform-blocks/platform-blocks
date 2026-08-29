@@ -5,8 +5,8 @@ import { Platform, ScrollView, View } from 'react-native';
 import { Text } from '../Text';
 import { resolveOptionalModule } from '../../utils/optionalModule';
 import { useTheme } from '../../core/theme';
-import { withAlpha } from '../../core/theme/colorUtils';
 import { surfaceInteractionTint } from '../../core/theme/surfaces';
+import { resolveVariantRoles } from '../../core/theme/variantRoles';
 import { useDirection } from '../../core/providers/DirectionProvider';
 import { extractSpacingProps, getSpacingStyles } from '../../core/utils';
 import { Collapse } from '../Collapse';
@@ -41,15 +41,20 @@ const resolveFlashList = () =>
  * `onCollapsed` callback is read through a ref because `Collapse` lists
  * `onAnimationEnd` in its effect dependencies — a fresh closure per render
  * would restart the animation on every state change.
+ *
+ * Branches mount only while they are open, so `animateOnMount` is what plays
+ * the unroll — see `openedByPress` for which mounts get it.
  */
 const AnimatedBranch = React.memo(function AnimatedBranch({
   id,
   expanded,
+  animateOnMount,
   onCollapsed,
   children,
 }: {
   id: string;
   expanded: boolean;
+  animateOnMount: boolean;
   onCollapsed: (id: string) => void;
   children: React.ReactNode;
 }) {
@@ -57,13 +62,21 @@ const AnimatedBranch = React.memo(function AnimatedBranch({
   expandedRef.current = expanded;
   const onCollapsedRef = useRef(onCollapsed);
   onCollapsedRef.current = onCollapsed;
+  // Frozen at mount. `Collapse` reads it once, on its first pass, and letting
+  // the value change afterwards only re-runs that effect for nothing.
+  const [animateEntry] = useState(animateOnMount);
 
   const handleAnimationEnd = useCallback(() => {
     if (!expandedRef.current) onCollapsedRef.current(id);
   }, [id]);
 
   return (
-    <Collapse isCollapsed={!expanded} collapsedHeight={0} animateOnMount onAnimationEnd={handleAnimationEnd}>
+    <Collapse
+      isCollapsed={!expanded}
+      collapsedHeight={0}
+      animateOnMount={animateEntry}
+      onAnimationEnd={handleAnimationEnd}
+    >
       <View>{children}</View>
     </Collapse>
   );
@@ -76,6 +89,7 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     onNavigate,
     onNodePress,
     collapsible = true,
+    disclosure = 'always',
     size = 'md',
     indent,
     showGuides = false,
@@ -122,7 +136,6 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
 
   const theme = useTheme?.() as any;
   const { isRTL } = useDirection();
-  const isDark = theme?.colorScheme === 'dark';
   const metrics = useMemo(() => resolveTreeMetrics(size), [size]);
   const indentWidth = indent ?? metrics.indent;
 
@@ -133,20 +146,34 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
   const colors = useMemo<TreeRowColors>(() => {
     const accent = selectionColor || theme?.colors?.primary?.[5] || '#2684FF';
     const labelColor = theme?.text?.primary || theme?.colors?.gray?.[9] || '#1C1C1E';
+    // The selected / active row is the shared `light` variant role — the same
+    // fill, border and text a light Chip or Badge resolves — so the accent reads
+    // identically wherever it appears, and the label is chosen by *measured*
+    // contrast against the color the tint actually composites to.
+    //
+    // Reading a fixed palette index is what broke this in dark mode. The two
+    // palettes mirror each other (light runs pale → deep, dark runs deep →
+    // pale), so `primary[3]` is a pale blue in the light theme and a near-navy
+    // in the dark one: the dark rail was painting #1E40AF text on a blue fill
+    // over a near-black page, at roughly 1.5:1.
+    const selection = resolveVariantRoles(theme, {
+      variant: 'light',
+      color: selectionColor ?? 'primary',
+    });
     return {
-      selectedBg: withAlpha(accent, isDark ? 0.28 : 0.14),
+      selectedBg: selection.fill,
       hoverBg: surfaceInteractionTint(theme, 'hover'),
       pressedBg: surfaceInteractionTint(theme, 'pressed'),
       stripeBg: surfaceInteractionTint(theme, 'band'),
-      selectedBorder: withAlpha(accent, isDark ? 0.55 : 0.35),
+      selectedBorder: selection.border,
       focusRing: theme?.states?.focusRing || accent,
       label: labelColor,
-      selectedLabel: (isDark ? theme?.colors?.primary?.[3] : theme?.colors?.primary?.[7]) || labelColor,
+      selectedLabel: selection.text || labelColor,
       chevron: theme?.text?.secondary || theme?.text?.muted || theme?.colors?.gray?.[7] || '#666',
       disabled: theme?.text?.disabled || theme?.colors?.gray?.[3] || '#C7C7CC',
       guide: surfaceInteractionTint(theme, 'selected'),
     };
-  }, [isDark, selectionColor, theme]);
+  }, [selectionColor, theme]);
 
   // Branches whose collapse animation is still running. Their children stay in
   // the render tree until it ends, then unmount — the old implementation kept
@@ -162,7 +189,17 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     });
   }, []);
 
+  // Branches the reader opened themselves — the only mounts that should
+  // unroll. Everything else that mounts open is the tree arriving in that
+  // shape: its initial `startOpen` state, the ancestors of the active row, the
+  // branches a filter opened. Animating those replays the whole expansion on
+  // every mount, and a tree inside an overlay mounts on every open.
+  const openedByPress = useRef<Set<string>>(new Set());
+
   const handleToggle = useCallback((node: TreeNode, expanded: boolean) => {
+    if (expanded) openedByPress.current.add(node.id);
+    else openedByPress.current.delete(node.id);
+
     if (!expanded && useAnimations && !virtualized) {
       setCollapsingIds(prev => new Set(prev).add(node.id));
     } else if (expanded) {
@@ -556,7 +593,13 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
         loading={loadingIds.has(node.id)}
         checkState={checkState}
         showCheckbox={showCheckbox}
-        showDisclosure={collapsible}
+        // `nested` leaves the outermost branches bare — a section heading with a
+        // caret reads as a folder, and the column it costs is the indent every
+        // row below it inherits.
+        showDisclosure={
+          collapsible && disclosure !== 'none' && !(disclosure === 'nested' && row.depth === 0)
+        }
+        reserveDisclosure={disclosure === 'always'}
         showGuides={showGuides}
         striped={striped && row.index % 2 === 1}
         domId={web ? rowDomId(node.id) : undefined}
@@ -583,6 +626,7 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     colors,
     containerFocused,
     descendantMap,
+    disclosure,
     effectiveSelectionMode,
     filterQuery,
     focusedId,
@@ -617,6 +661,7 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
           <AnimatedBranch
             id={entry.row.node.id}
             expanded={entry.row.expanded}
+            animateOnMount={openedByPress.current.has(entry.row.node.id)}
             onCollapsed={dropCollapsed}
           >
             <View {...(web ? { role: 'group' } : {})}>{renderAnimated(entry.children)}</View>
@@ -655,7 +700,7 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
         {noResultsFallback !== undefined ? (
           noResultsFallback
         ) : (
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             No results
           </Text>
         )}
@@ -666,7 +711,13 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
   if (virtualized) {
     const FlashListComponent = resolveFlashList();
     return (
-      <View {...containerProps}>
+      // A virtualized list positions every row absolutely, so it contributes no
+      // content width of its own. Under a parent that sizes its children to
+      // their content — `alignItems: 'center'` is the usual one — the tree
+      // collapsed to zero width and rendered as an empty box. Stretching the
+      // container gives the list the definite width it measures rows against;
+      // an explicit `style` from the caller still wins.
+      <View {...containerProps} style={[spacingStyle as any, { alignSelf: 'stretch' }, style]}>
         <View style={{ height: height ?? 320 }}>
           {FlashListComponent ? (
             <FlashListComponent

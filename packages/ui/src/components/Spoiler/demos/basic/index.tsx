@@ -5,11 +5,11 @@ const paragraphs = [
   'Use them for optional detail or secondary information that might distract from a primary task. They expand inline, so the surrounding layout stays stable.',
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Card p="md">
       <Block>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Keep the initial height short to hint that more detail is available without overwhelming the layout.
         </Text>
         <Spoiler maxHeight={96}>

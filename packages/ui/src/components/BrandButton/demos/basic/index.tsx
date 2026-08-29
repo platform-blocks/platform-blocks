@@ -1,5 +1,5 @@
 import { BrandButton, useToast } from '@platform-blocks/ui';
-export default function BasicButtonDemo() {
+export function Demo() {
   const toast = useToast()
   return <BrandButton
    title="Click Me" 

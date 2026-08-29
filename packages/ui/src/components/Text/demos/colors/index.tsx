@@ -1,6 +1,6 @@
 import { Block, Card, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Card p="md">
@@ -8,11 +8,11 @@ export default function Demo() {
           <Text variant="p" weight="medium">
             Semantic colors
           </Text>
-          <Text colorVariant="primary">Primary color text</Text>
-          <Text colorVariant="secondary">Secondary color text</Text>
-          <Text colorVariant="muted">Muted color text</Text>
-          <Text colorVariant="disabled">Disabled color text</Text>
-          <Text colorVariant="link">Link color text</Text>
+          <Text color="primary">Primary color text</Text>
+          <Text color="secondary">Secondary color text</Text>
+          <Text color="muted">Muted color text</Text>
+          <Text color="disabled">Disabled color text</Text>
+          <Text color="link">Link color text</Text>
         </Block>
       </Card>
 

@@ -14,6 +14,12 @@ export interface RouteLinkProps {
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
   /**
+   * Fired only when the press turns into an in-app transition. A modified click
+   * opens a new tab and leaves the current view standing, so an overlay that
+   * closes itself from here stays open for those.
+   */
+  onNavigate?: () => void;
+  /**
    * Hover callbacks, mapped to the right event pair per platform. Named after
    * RN's `Pressable` API so `useHover()`'s handlers spread straight in — the raw
    * anchor can't take those props directly, since `onHoverIn`/`onHoverOut` are
@@ -49,6 +55,7 @@ export const RouteLink: React.FC<RouteLinkProps> = ({
   children,
   style,
   accessibilityLabel,
+  onNavigate,
   onHoverIn,
   onHoverOut,
 }) => {
@@ -56,7 +63,8 @@ export const RouteLink: React.FC<RouteLinkProps> = ({
 
   const navigate = useCallback(() => {
     router.push(href as never);
-  }, [href, router]);
+    onNavigate?.();
+  }, [href, onNavigate, router]);
 
   const handleClick = useCallback(
     (event: any) => {

@@ -1,10 +1,10 @@
 import { BrandButton, Card, Flex, Text } from '@platform-blocks/ui';
 
-export default function ColorOverrideBrandButtonDemo() {
+export function Demo() {
   return (
       <Flex direction="column" gap="lg">
         <Text variant="h6">Brand Icon Color Override</Text>
-        <Text variant="p" colorVariant="secondary">
+        <Text variant="p" color="secondary">
           Use the color prop to override default brand colors with a single color
         </Text>
         

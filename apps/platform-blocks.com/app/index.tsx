@@ -11,13 +11,12 @@ import {
   Space,
   Text,
   Title,
-  useBreakpoint,
   useTheme,
 } from '@platform-blocks/ui';
 import { useBrowserTitle, formatPageTitle } from '../hooks/useBrowserTitle';
 import { DocsPage } from 'components';
 import { DocsPageHeader } from '../components/DocsPageHeader';
-import ChartDemosSection from '../components/home/ChartDemosSection';
+import ChartDemos from '../components/home/ChartDemos';
 
 /* ------------------------------------------------------------------ */
 /*  Static data                                                       */
@@ -62,7 +61,7 @@ function SectionHeader({ title, subtitle, action }: { title: string; subtitle: s
   return (
     <Block style={{ width: '100%', marginBottom: 24 }}>
       <Title order={2} size={28} weight="bold" action={action}>{title}</Title>
-      <Text size="md" colorVariant="secondary" style={{ maxWidth: 640 }}>{subtitle}</Text>
+      <Text size="md" color="secondary" style={{ maxWidth: 640 }}>{subtitle}</Text>
     </Block>
   );
 }
@@ -73,12 +72,15 @@ function SectionHeader({ title, subtitle, action }: { title: string; subtitle: s
 
 export default function HomeScreen() {
   const router = useRouter();
-  const breakpoint = useBreakpoint();
   const theme = useTheme();
 
-  const isMobile = breakpoint === 'base' || breakpoint === 'xs' || breakpoint === 'sm';
-  const isTablet = breakpoint === 'md';
-  const cols = isMobile ? 1 : isTablet ? 2 : 3;
+  // Column counts go to `Grid` as responsive objects, not as numbers resolved
+  // here: the breakpoint this component sees starts at a guess and settles
+  // after mount, so a number computed from it paints one layout and then
+  // reflows into another. Handed the object, Grid resolves it in CSS, at the
+  // right width, on the first paint. (Grid's own scale: sm 480, md 640, lg 960.)
+  const chartCols = { base: 1, md: 2, lg: 3 } as const;
+  const chartTypeCols = { base: 3, md: 4, lg: 6 } as const;
 
   useBrowserTitle(formatPageTitle('Home'));
 
@@ -89,7 +91,10 @@ export default function HomeScreen() {
       {/* Hero prose stays narrow for readability, but the block itself starts at
           the page column's edge so the h1 lines up with every other page's. */}
       {/* No top padding: the hero h1 starts where every other page's h1 does. */}
-      <Block style={{ width: '100%', paddingBottom: isMobile ? 24 : 32 }}>
+      {/* Vertical rhythm is a viewport question too, and answering it from the
+          breakpoint means painting one spacing and reflowing into another once
+          it settles. The variables are defined in app/+html.tsx. */}
+      <Block style={{ width: '100%', paddingBottom: 'var(--pb-section-gap-tight, 24px)' as any }}>
         <DocsPageHeader
           subtitle="Build cross-platform apps faster than ever — Platform Blocks includes more than 100 customizable components, 25+ chart types, and a hooks library to cover you in any situation"
           subtitleProps={{ style: { maxWidth: 800 } }}
@@ -111,19 +116,22 @@ export default function HomeScreen() {
       </Block>
 
       {/* ━━ DATA VISUALIZATION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <Block style={{ width: '100%', paddingVertical: isMobile ? 32 : 56 }}>
+      <Block style={{ width: '100%', paddingVertical: 'var(--pb-section-gap, 32px)' as any }}>
         <SectionHeader
           title="Data visualization"
           subtitle="25+ chart types with smooth animations, interactive tooltips, pan & zoom, and real-time streaming support — all rendered natively with react-native-svg."
           action={<Button title="Browse all charts" variant="ghost" size="sm" onPress={() => router.push('/charts')} />}
         />
 
-        {/* Live chart demos — lazy-loaded on web to keep the charts library
-            out of the home route's initial bundle. */}
-        <ChartDemosSection cols={cols} isMobile={isMobile} />
+        {/* Live chart demos. Imported statically: the web export is one bundle
+            for every route, and five other modules — the chart routes, the
+            showcase and playground registries, the dashboard example — already
+            pull the charts barrel into it, so splitting these three demos off
+            saved nothing and only delayed them behind a second round trip. */}
+        <ChartDemos cols={chartCols} />
 
         {/* Chart type grid */}
-        <Grid columns={isMobile ? 3 : isTablet ? 4 : 6} gap="sm" style={{ width: '100%' }}>
+        <Grid columns={chartTypeCols} gap="sm" style={{ width: '100%' }}>
           {CHART_TYPES.map((chart) => (
             <GridItem key={chart.slug} span={1}>
               <Pressable onPress={() => router.push(`/components/${chart.slug}`)}>
@@ -139,7 +147,7 @@ export default function HomeScreen() {
       </Block>
 
       {/* ━━ HOOKS LIBRARY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <Block style={{ width: '100%', paddingVertical: isMobile ? 32 : 56 }}>
+      <Block style={{ width: '100%', paddingVertical: 'var(--pb-section-gap, 32px)' as any }}>
         <SectionHeader
           title="Hooks library"
           subtitle="Reusable React hooks for common and complex tasks — keyboard shortcuts, haptics, clipboard, scroll tracking, and more."
@@ -156,7 +164,7 @@ export default function HomeScreen() {
                     <Text size="md" weight="semibold" color={theme.colors.primary[6]}>{hook.name}</Text>
                   </Block>
                   <Space h="xs" />
-                  <Text size="sm" colorVariant="secondary">{hook.description}</Text>
+                  <Text size="sm" color="secondary">{hook.description}</Text>
                 </Card>
               </Pressable>
             </GridItem>
@@ -174,7 +182,7 @@ export default function HomeScreen() {
                   <Text size="sm" weight="semibold" color={theme.colors.primary[6]}>{hook.name}</Text>
                 </Block>
                 <Space h="xs" />
-                <Text size="xs" colorVariant="secondary">{hook.description}</Text>
+                <Text size="xs" color="secondary">{hook.description}</Text>
               </Card>
             </GridItem>
           ))}

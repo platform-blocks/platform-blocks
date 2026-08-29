@@ -24,11 +24,11 @@ export function FloatingExample() {
   return <span>Hover to see buttons</span>;
 }`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block fullWidth>
       <Text weight="semibold">GitHub actions</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Provide a GitHub URL to render quick links beside copy controls across any CodeBlock variant.
       </Text>
       <Block>

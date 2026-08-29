@@ -4,7 +4,7 @@ import { MONTH_LABELS, RENEWABLE_SERIES } from './data';
 
 const formatMonth = (index: number) => MONTH_LABELS[index] ?? `M${index + 1}`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <AreaChart
       layout="stacked"

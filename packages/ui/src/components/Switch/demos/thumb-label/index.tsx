@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, Icon, Switch, Text, useTheme } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
   const [wifi, setWifi] = useState<boolean>(true);
   const [available, setAvailable] = useState<boolean>(true);
@@ -9,7 +9,7 @@ export default function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Icon on the thumb — swaps with the on/off state
         </Text>
         <Switch
@@ -23,7 +23,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Text label on the thumb
         </Text>
         <Switch

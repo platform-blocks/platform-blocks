@@ -11,7 +11,7 @@ const VARIANTS: { variant: KnobVariant; blurb: string }[] = [
   { variant: 'studio', blurb: 'Plugin rack' },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState(62);
 
   return (

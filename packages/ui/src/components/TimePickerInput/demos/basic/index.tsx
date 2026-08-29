@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Block, Text, TimePickerInput } from '@platform-blocks/ui';
 import type { TimePickerValue } from '@platform-blocks/ui';
 
-export default function BasicTimePickerInputDemo() {
+export function Demo() {
   const [value, setValue] = useState<TimePickerValue | null>({ hours: 9, minutes: 30 });
 
   const formatted = value
@@ -18,7 +18,7 @@ export default function BasicTimePickerInputDemo() {
         format={12}
         fullWidth
       />
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         {formatted ? `Selected: ${formatted}` : 'No time selected'}
       </Text>
     </Block>

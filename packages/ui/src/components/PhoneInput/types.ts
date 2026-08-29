@@ -9,8 +9,6 @@ export type PhoneCountryCode =
   | 'US'
   | 'CA'
   | 'GB'
-  /** @deprecated Not an ISO 3166 code — use `GB`. Accepted as an alias. */
-  | 'UK'
   | 'FR'
   | 'DE'
   | 'AU'

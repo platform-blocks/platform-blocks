@@ -18,6 +18,7 @@ Website: https://platform-blocks.com • GitHub: https://github.com/platform-blo
 - [Getting started](https://platform-blocks.com/llms/guides/getting-started.md): Install Platform Blocks, wire up the provider, and render your first component
 - [Accessibility](https://platform-blocks.com/llms/guides/accessibility.md): How Platform Blocks meets WCAG 2.1 AA for keyboard, screen reader, low-vision, and motion-sensitive users
 - [Localization](https://platform-blocks.com/llms/guides/localization.md): PlatformBlocks ships a lightweight i18n layer
+- [Contributing](https://platform-blocks.com/llms/guides/contributing.md): How the repo is laid out, how to run it locally, and what it takes to land a component, a demo, or a docs page
 
 ## Components
 

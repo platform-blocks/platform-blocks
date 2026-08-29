@@ -15,7 +15,7 @@ interface RichSportOption {
 // that works on both web and native without a color library.
 const tint = (hex: string, alpha: string) => `${hex}${alpha}`
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState('')
   const [selectedSport, setSelectedSport] = useState<RichSportOption | null>(null)
 
@@ -87,7 +87,7 @@ export default function Demo() {
                   <Text size="sm" weight="semibold" numberOfLines={1}>
                     {sport.label}
                   </Text>
-                  <Text size="xs" colorVariant="secondary" numberOfLines={1}>
+                  <Text size="xs" color="secondary" numberOfLines={1}>
                     {sport.duration}
                   </Text>
                 </Column>
@@ -96,7 +96,7 @@ export default function Demo() {
                   <Text size="sm" weight="semibold">
                     ${sport.price.toFixed(2)}
                   </Text>
-                  <Text size="xs" colorVariant="secondary">
+                  <Text size="xs" color="secondary">
                     avg ticket
                   </Text>
                 </Column>
@@ -118,7 +118,7 @@ export default function Demo() {
             <Row align="center" gap="sm" grow={1}>
               {renderTile(sport, 24)}
               <Text size="sm" weight="semibold">{sport.label}</Text>
-              <Text size="xs" colorVariant="secondary">
+              <Text size="xs" color="secondary">
                 {sport.duration}
               </Text>
               <Block grow={1} />

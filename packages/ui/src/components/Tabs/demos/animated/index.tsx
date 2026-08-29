@@ -7,7 +7,7 @@ const ITEMS = [
     content: (
       <Block>
         <Text weight="medium">Welcome back</Text>
-        <Text colorVariant="muted">
+        <Text color="muted">
           Animated transitions ease between dashboard sections and reinforce context shifts.
         </Text>
       </Block>
@@ -19,7 +19,7 @@ const ITEMS = [
     content: (
       <Block>
         <Text weight="medium">Analytics overview</Text>
-        <Text colorVariant="muted">
+        <Text color="muted">
           Surface key charts and KPIs while the motion guides attention to new content.
         </Text>
       </Block>
@@ -31,7 +31,7 @@ const ITEMS = [
     content: (
       <Block>
         <Text weight="medium">Account settings</Text>
-        <Text colorVariant="muted">
+        <Text color="muted">
           Manage notifications, billing, and other preferences without abrupt content swaps.
         </Text>
       </Block>
@@ -39,7 +39,7 @@ const ITEMS = [
   }
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Tabs
@@ -48,7 +48,7 @@ export default function Demo() {
         animationDuration={250}
         items={ITEMS}
       />
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         Enable `animated` to add motion and use `animationDuration` to moderate the easing speed.
       </Text>
     </Block>

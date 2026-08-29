@@ -46,6 +46,14 @@ import {
   LOCALIZATION_NOTE_KEYS,
   LOCALIZATION_STEPS,
 } from '../apps/platform-blocks.com/config/localization';
+import {
+  CONTRIBUTE_INTRO,
+  CONTRIBUTE_OUTRO,
+  CONTRIBUTE_REPO_LAYOUT,
+  CONTRIBUTE_SECTIONS,
+  CONTRIBUTE_SUBTITLE,
+  CONTRIBUTE_TITLE,
+} from '../apps/platform-blocks.com/config/contribute';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -296,6 +304,51 @@ async function buildGuidePages(): Promise<LlmsPage[]> {
       ]),
     });
   }
+
+  // Contributing — its links are written for the site, where `/getting-started`
+  // is a router push; in a Markdown file a bare path has nothing to resolve
+  // against, so same-site hrefs are absolutized on the way out.
+  const absolutize = (text: string) => text.replace(/\]\(\//g, `](${SITE_URL}/`);
+
+  pages.push({
+    slug: 'guides/contributing.md',
+    title: 'Contributing',
+    summary: CONTRIBUTE_SUBTITLE.replace(/\.$/, ''),
+    body: joinLines([
+      `# ${CONTRIBUTE_TITLE}`,
+      '',
+      CONTRIBUTE_SUBTITLE,
+      '',
+      `Docs: ${SITE_URL}/contribute`,
+      '',
+      absolutize(CONTRIBUTE_INTRO),
+      '',
+      '## Repo layout',
+      '',
+      ...CONTRIBUTE_REPO_LAYOUT.map(entry => `- \`${entry.path}\` — ${absolutize(entry.description)}`),
+      '',
+      ...CONTRIBUTE_SECTIONS.flatMap(section => [
+        `## ${section.title}`,
+        '',
+        absolutize(section.lead),
+        '',
+        ...(section.items ?? []).map((item, index) =>
+          section.ordered ? `${index + 1}. ${absolutize(item)}` : `- ${absolutize(item)}`),
+        section.items ? '' : null,
+        ...(section.snippets ?? []).flatMap(snippet => [
+          snippet.lead ?? null,
+          snippet.lead ? '' : null,
+          snippet.fileName ? `\`${snippet.fileName}\`` : null,
+          snippet.fileName ? '' : null,
+          codeBlock(snippet.code, snippet.language ?? 'bash'),
+          '',
+        ]),
+        section.note ? absolutize(section.note) : null,
+        section.note ? '' : null,
+      ]),
+      absolutize(CONTRIBUTE_OUTRO),
+    ]),
+  });
 
   return pages;
 }

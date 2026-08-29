@@ -25,7 +25,7 @@ const milestoneTicksWithHighlight = milestoneTicks.map((t) =>
     : t,
 );
 
-export default function Demo() {
+export function Demo() {
   const [a, setA] = useState(35);
   const [b, setB] = useState(60);
   const [c, setC] = useState(50);
@@ -36,7 +36,7 @@ export default function Demo() {
       <Text weight="semibold">Slot styling</Text>
 
       <Block>
-        <Text size="sm" colorVariant="muted">
+        <Text size="sm" color="muted">
           Track + thumb overrides — taller track, square thumb
         </Text>
         <Slider
@@ -49,7 +49,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" colorVariant="muted">
+        <Text size="sm" color="muted">
           Branded thumb — gradient-style fill via solid color + shadow
         </Text>
         <Slider
@@ -69,7 +69,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" colorVariant="muted">
+        <Text size="sm" color="muted">
           Tick + label styling (`tickStyle`, `activeTickStyle`, `tickLabelProps`)
         </Text>
         <Slider
@@ -83,7 +83,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" colorVariant="muted">
+        <Text size="sm" color="muted">
           Per-tick override — the tick at 50 is taller and yellow
         </Text>
         <Slider
@@ -97,7 +97,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" colorVariant="muted">
+        <Text size="sm" color="muted">
           RangeSlider — same slot props work on both thumbs and the active band
         </Text>
         <RangeSlider
@@ -110,7 +110,7 @@ export default function Demo() {
           thumbStyle={{ backgroundColor: '#a855f7', borderColor: '#7e22ce', borderWidth: 2 }}
           tickStyle={{ width: 2, height: 8, top: 14 }}
           activeTickStyle={{ width: 2, height: 8, top: 14, backgroundColor: '#a855f7' }}
-          tickLabelProps={{ size: 'xs', colorVariant: 'muted' }}
+          tickLabelProps={{ size: 'xs', color: 'muted' }}
           valueLabelAlwaysOn
           valueLabelProps={{ weight: '700', size: 'sm' }}
         />

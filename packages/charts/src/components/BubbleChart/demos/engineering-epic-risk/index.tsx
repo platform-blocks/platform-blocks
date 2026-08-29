@@ -4,7 +4,7 @@ import { Squad, epics, squadPalette } from './data';
 
 const formatMultiplier = (value: number) => `${value.toFixed(1)}× risk`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <BubbleChart
       title="Epic Risk Landscape"

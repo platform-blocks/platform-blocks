@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Block, Button, Card, Text, Tooltip } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [opened, setOpened] = useState(false);
 
   return (
     <Card p="md">
       <Block>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Control `opened` manually when tooltips should sync with another piece of UI state.
         </Text>
         <Tooltip

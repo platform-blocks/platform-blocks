@@ -4,7 +4,7 @@ import { Category, categoryPalette, contracts } from './data';
 
 const formatSpend = (value: number) => `$${value.toFixed(1)}M`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <BubbleChart
       title="Vendor Contract Health"

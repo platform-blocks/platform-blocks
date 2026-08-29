@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, Switch, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [enabled, setEnabled] = useState<boolean>(true);
 
   return (
@@ -12,7 +12,7 @@ export default function Demo() {
         label="Enable live score alerts"
         description="Send push notifications when the match score changes."
       />
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         Notices are {enabled ? 'enabled' : 'disabled'}.
       </Text>
     </Block>

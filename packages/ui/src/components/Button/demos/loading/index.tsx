@@ -3,7 +3,7 @@ import { Button, Row } from '@platform-blocks/ui';
 
 const LOADING_DURATION_MS = 2000;
 
-export default function Demo() {
+export function Demo() {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeKey, setActiveKey] = useState<string | null>(null);
 

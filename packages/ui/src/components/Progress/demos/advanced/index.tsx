@@ -4,7 +4,7 @@ import { Block, Progress } from '@platform-blocks/ui';
 import { describe } from './describe';
 import { TICK_MS, TOTAL_MB, stageFor } from './stages';
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState<number>(0);
 
   useEffect(() => {

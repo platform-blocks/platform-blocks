@@ -23,12 +23,12 @@ const events = [
   },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
       <Timeline active={2}>
         {events.map((event) => (
           <Timeline.Item key={event.title} title={event.title}>
-            <Text colorVariant="secondary" size="xs">
+            <Text color="secondary" size="xs">
               {event.timestamp}
             </Text>
             <Text size="sm">{event.description}</Text>

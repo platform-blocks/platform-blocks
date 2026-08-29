@@ -7,7 +7,7 @@ const formatMillions = (value: number) => `${Intl.NumberFormat('en-US', { maximu
 
 const getRingId = (slice?: DonutChartDataPoint | null) => (slice as any)?.ringId as string | undefined;
 
-export default function Demo() {
+export function Demo() {
   return (
     <DonutChart
       title="ARR Mix by Segment"

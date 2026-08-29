@@ -1,6 +1,6 @@
 import { BrandButton, Block } from '@platform-blocks/ui';
 
-export default function BadgeColors() {
+export function Demo() {
   return (
     <Block direction="row">
       <BrandButton

@@ -4,7 +4,7 @@ import { initiatives } from './data';
 
 const formatMillions = (value: number) => `$${value.toFixed(1)}M`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <BubbleChart
       title="Product Initiative Portfolio"

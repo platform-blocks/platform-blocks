@@ -1,6 +1,6 @@
 import { Block, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block w="100%" maxW={420}>
       <Block bg="#111827" radius="lg" p="lg">
@@ -25,7 +25,7 @@ export default function Demo() {
         </Block>
         <Block w={140} bg="#f9fafb" radius="md" p="md">
           <Text weight="semibold">Backlog</Text>
-          <Text size="sm" colorVariant="muted">
+          <Text size="sm" color="muted">
             Combine fixed widths with flexible layouts via the `w` prop.
           </Text>
         </Block>

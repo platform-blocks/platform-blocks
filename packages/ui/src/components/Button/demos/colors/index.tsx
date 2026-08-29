@@ -1,6 +1,6 @@
 import { Button, Row } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Row gap="md" wrap="wrap">
       <Button variant="filled" color="primary">Primary</Button>

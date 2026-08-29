@@ -20,7 +20,7 @@ const FILTER_OPTIONS = [
   { label: 'Trashed', value: 'trashed' },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [defaultValue, setDefaultValue] = useState('weekly');
   const [planValue, setPlanValue] = useState('growth');
   const [frequencyValue, setFrequencyValue] = useState('weekly');
@@ -29,7 +29,7 @@ export default function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="small" colorVariant="muted">default</Text>
+        <Text variant="small" color="muted">default</Text>
         <RadioGroup
           variant="default"
           value={defaultValue}
@@ -39,7 +39,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" colorVariant="muted">card</Text>
+        <Text variant="small" color="muted">card</Text>
         <RadioGroup
           variant="card"
           value={planValue}
@@ -49,7 +49,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" colorVariant="muted">segmented</Text>
+        <Text variant="small" color="muted">segmented</Text>
         <RadioGroup
           variant="segmented"
           value={frequencyValue}
@@ -59,7 +59,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" colorVariant="muted">chip</Text>
+        <Text variant="small" color="muted">chip</Text>
         <RadioGroup
           variant="chip"
           value={filterValue}

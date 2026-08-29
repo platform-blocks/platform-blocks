@@ -1,7 +1,7 @@
 import { Accordion } from '@platform-blocks/ui';
 import { statusItems } from '../data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Accordion
       type="multiple"

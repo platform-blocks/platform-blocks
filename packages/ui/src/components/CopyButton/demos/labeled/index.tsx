@@ -1,6 +1,6 @@
 import { CopyButton, Card, Flex, Text } from '@platform-blocks/ui';
 
-export default function LabeledCopyButtonDemo() {
+export function Demo() {
   return (
     <Card p={16} variant="outline">
       <Flex direction="column" gap={12}>

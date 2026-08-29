@@ -4,7 +4,8 @@
 
 import React from 'react';
 import { View, Text } from 'react-native';
-import type { ToastProps, ToastVariant, ToastColor, ToastSeverity, ToastPosition, ToastAnimationType } from '../types';
+import type { ToastProps, ToastVariant, ToastSeverity, ToastPosition, ToastAnimationType } from '../types';
+import type { ThemeColor } from '../../../core/theme/resolveColors';
 
 // Mock imports
 jest.mock('react-native-reanimated', () => {
@@ -63,7 +64,7 @@ describe('Toast Component - Type Safety & Props Validation', () => {
     });
 
     it('should accept all valid color values', () => {
-      const colors: ToastColor[] = ['primary', 'secondary', 'success', 'warning', 'error', 'gray'];
+      const colors: ThemeColor[] = ['primary', 'secondary', 'success', 'warning', 'error', 'gray'];
       
       colors.forEach(color => {
         const props: ToastProps = {
@@ -89,12 +90,12 @@ describe('Toast Component - Type Safety & Props Validation', () => {
     it('should accept all valid severity values', () => {
       const severities: ToastSeverity[] = ['info', 'success', 'warning', 'error'];
       
-      severities.forEach(sev => {
+      severities.forEach(severity => {
         const props: ToastProps = {
-          sev,
+          severity,
           title: 'Test',
         };
-        expect(props.sev).toBe(sev);
+        expect(props.severity).toBe(severity);
       });
     });
 
@@ -291,7 +292,7 @@ describe('Toast Component - Type Safety & Props Validation', () => {
       const props: ToastProps = {
         variant: 'filled',
         color: 'success',
-        sev: 'success',
+        severity: 'success',
         title: 'Success!',
         children: <Text>Operation completed</Text>,
         icon: <View />,

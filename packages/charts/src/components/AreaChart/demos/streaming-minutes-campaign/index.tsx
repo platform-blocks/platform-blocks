@@ -2,7 +2,7 @@ import { AreaChart } from '@platform-blocks/charts';
 
 import { STREAMING_SERIES, WEEK_TOTALS, formatWeek } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <AreaChart
       title="Streaming Minutes During Campaign"

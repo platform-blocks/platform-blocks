@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { act, render } from '@testing-library/react-native';
 import { Platform } from 'react-native';
 import { ShimmerText } from '../ShimmerText';
 
@@ -25,16 +25,6 @@ jest.mock('@react-native-masked-view/masked-view', () => {
   return ({ children, ...props }: any) => React.createElement(View, { testID: 'shimmer-masked-view', ...props }, children);
 });
 
-jest.mock('../../GradientText', () => {
-  const React = require('react');
-  const { View } = require('react-native');
-  return {
-    GradientText: ({ children, ...props }: any) => (
-      React.createElement(View, { testID: 'gradient-text', ...props }, children)
-    ),
-  };
-});
-
 const originalPlatformOS = Platform.OS;
 
 afterEach(() => {
@@ -52,7 +42,7 @@ describe('ShimmerText - rendering', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('matches snapshot for the web GradientText variant', () => {
+  it('matches snapshot for the web variant before layout is measured', () => {
     (Platform as any).OS = 'web';
 
     const tree = render(
@@ -65,5 +55,21 @@ describe('ShimmerText - rendering', () => {
     ).toJSON();
 
     expect(tree).toMatchSnapshot();
+  });
+
+  it('matches snapshot for the web variant once the sweep is running', () => {
+    (Platform as any).OS = 'web';
+
+    const view = render(
+      <ShimmerText testID="shimmer" text="Live preview" direction="rtl" spread={2.5} />
+    );
+
+    act(() => {
+      view.getByTestId('shimmer').props.onLayout?.({
+        nativeEvent: { layout: { width: 200, height: 24 } },
+      });
+    });
+
+    expect(view.toJSON()).toMatchSnapshot();
   });
 });

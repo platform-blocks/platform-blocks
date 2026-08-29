@@ -5,7 +5,7 @@ import { STOREFRONTS } from './data';
 
 const formatRevenue = (value: number) => `$${value.toFixed(1)}k`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <View style={{ padding: 16, backgroundColor: '#fff', borderRadius: 12 }}>
       <Text style={{ fontSize: 15, fontWeight: '600', marginBottom: 4 }}>Weekly Revenue Snapshot</Text>

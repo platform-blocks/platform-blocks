@@ -1,6 +1,7 @@
 import React from 'react';
-import { SizeValue, ColorValue, SpacingProps } from '../../core/theme/types';
+import { SizeValue, SpacingProps } from '../../core/theme/types';
 import type { DisclaimerSupport } from '../_internal/Disclaimer';
+import type { ThemeColor } from '../../core/theme/resolveColors';
 import type { TextProps } from '../Text';
 
 export interface BaseComponentProps extends SpacingProps {
@@ -33,8 +34,8 @@ export interface SwitchProps extends BaseComponentProps, DisclaimerSupport {
    */
   variant?: 'filled' | 'outline' | 'ios' | 'android';
 
-  /** Switch color theme when on */
-  color?: ColorValue;
+  /** Switch color when on. A palette token, `'primary.6'` shade syntax, or any CSS color. */
+  color?: ThemeColor;
 
   /**
    * Length of the on/off transition in ms. `0` moves the thumb instantly.
@@ -95,6 +96,6 @@ export interface SwitchStyleProps {
   disabled: boolean;
   error: boolean;
   size: SizeValue;
-  color: ColorValue;
+  color: ThemeColor;
   variant?: 'filled' | 'outline' | 'ios' | 'android';
 }

@@ -2,7 +2,7 @@ import { StackedAreaChart } from '@platform-blocks/charts';
 
 import { SERIES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <StackedAreaChart
       title="Active users by surface"

@@ -3,7 +3,7 @@ import { Button, Card, Block, Row, Stepper, Text } from '@platform-blocks/ui';
 
 const totalSteps = 3;
 
-export default function Demo() {
+export function Demo() {
   const [activeStep, setActiveStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -36,7 +36,7 @@ export default function Demo() {
     <Block fullWidth>
       <Card p="md">
         <Block>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Apply the `loading` prop to a step when a background task is running to replace the icon with a spinner.
           </Text>
           <Stepper active={activeStep} onStepClick={handleStepChange}>

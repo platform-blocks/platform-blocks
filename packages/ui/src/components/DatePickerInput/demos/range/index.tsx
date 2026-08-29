@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Block, DatePickerInput, Text } from '@platform-blocks/ui';
 
-export default function RangeDatePickerInputDemo() {
+export function Demo() {
   const [value, setValue] = useState<[Date | null, Date | null] | null>(null);
 
   return (
@@ -15,7 +15,7 @@ export default function RangeDatePickerInputDemo() {
         closeOnSelect
         fullWidth
       />
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         {value && value[0] && value[1]
           ? `${value[0].toLocaleDateString()} – ${value[1].toLocaleDateString()}`
           : 'Select a start and end date'}

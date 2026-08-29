@@ -10,11 +10,11 @@ export function HelloWorld() {
   );
 }`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block fullWidth>
       <Text weight="semibold">Basic code block</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         The default CodeBlock renders formatted code with copy support and automatic language detection.
       </Text>
       <CodeBlock language="tsx">{sample}</CodeBlock>

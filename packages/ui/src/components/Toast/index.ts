@@ -5,7 +5,6 @@ export {
 export type {
   ToastProps,
   ToastVariant,
-  ToastColor,
   ToastSeverity
 } from './types'
 
@@ -24,4 +23,4 @@ export {
   setToastViewportOffset
 } from './ToastProvider';
 
-export type { ToastViewportOffset } from './ToastProvider';
+export type { ToastViewportOffset, ToastItem } from './ToastProvider';

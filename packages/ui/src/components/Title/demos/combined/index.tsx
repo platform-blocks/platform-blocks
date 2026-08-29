@@ -1,6 +1,6 @@
 import { Block, Card, Text, Title } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Card p="md">
       <Block>
@@ -16,7 +16,7 @@ export default function Demo() {
         >
           Analytics overview
         </Title>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Combine prefixes, underline, and afterline to create a structured page heading with a strong visual anchor.
         </Text>
         <Block>

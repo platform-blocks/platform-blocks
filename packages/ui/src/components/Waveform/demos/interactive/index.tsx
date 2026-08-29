@@ -5,7 +5,7 @@ import { WAVEFORM_DEMO_PEAKS } from '../data';
 
 const SEEK_PRESETS: number[] = [0.25, 0.5, 0.75];
 
-export default function Demo() {
+export function Demo() {
   const [progress, setProgress] = useState<number>(0.2);
   const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
 

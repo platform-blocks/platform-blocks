@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { View, Pressable, Platform, Animated, Easing } from 'react-native';
 import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme';
+import { literalBackgrounds, literalText } from '../../core/theme/cssVariableTheme';
 import { Text } from '../Text';
 import { FieldHeader } from '../_internal/FieldHeader';
 import { RadioProps, RadioGroupProps, RadioStyleProps } from './types';
@@ -350,16 +351,20 @@ export const RadioGroup = factory<{
     const palette = map[color as string] || theme.colors.primary;
     const accentColor = palette[6] as string;
     const surfaceColor = (theme.backgrounds?.surface ?? '#ffffff') as string;
+    // The wash below mixes two colors, and on web `theme.backgrounds.surface`
+    // is a `var()` reference with no measurable channels — read the literal for
+    // the math, and keep the reference above for the color actually painted.
+    const literalSurface = (literalBackgrounds(theme)?.surface ?? '#ffffff') as string;
     return {
       accentColor,
       // Washing the accent over the actual surface rather than reaching for an
       // end of the color scale: dark palettes run dark→light, so indexing for
       // "the subtlest shade" lands on a near-white and turns a selected card
       // into a bright block. A composited wash stays a tint in either scheme.
-      accentTint: composite(accentColor, surfaceColor, theme.colorScheme === 'dark' ? 0.18 : 0.1),
+      accentTint: composite(accentColor, literalSurface, theme.colorScheme === 'dark' ? 0.18 : 0.1),
       // White on the accent for as long as it stays legible — dark themes take
       // their accent from the light end of the scale, where it doesn't.
-      onAccentColor: readableTextOn(accentColor, '#1A1A1A', theme.text.onPrimary || '#ffffff'),
+      onAccentColor: readableTextOn(accentColor, '#1A1A1A', literalText(theme).onPrimary || '#ffffff'),
       surfaceColor,
       subtleBorder: (theme.backgrounds?.border ?? theme.colors.gray[3]) as string,
     };

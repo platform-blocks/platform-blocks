@@ -2,7 +2,7 @@ import { LineChart } from '@platform-blocks/charts';
 
 import { MILESTONES, SERIES, TARGET_RETENTION } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <LineChart
       title="Cohort Retention Across Milestones"

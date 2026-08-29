@@ -28,18 +28,18 @@ function StarPicker({ value, defaultValue, onChange }: StarPickerProps) {
   );
 }
 
-export default function Demo() {
+export function Demo() {
   const [rating, setRating] = useState(3);
 
   return (
     <Block gap="lg">
       <Block gap="xs">
-        <Text size="sm" colorVariant="muted">No value prop — the hook keeps the rating in internal state.</Text>
+        <Text size="sm" color="muted">No value prop — the hook keeps the rating in internal state.</Text>
         <StarPicker defaultValue={2} />
       </Block>
 
       <Block gap="xs">
-        <Text size="sm" colorVariant="muted">A value prop — the parent owns the rating, so it can drive it too.</Text>
+        <Text size="sm" color="muted">A value prop — the parent owns the rating, so it can drive it too.</Text>
         <StarPicker value={rating} onChange={setRating} />
         <Row gap="sm" wrap="wrap">
           <Button size="sm" variant="outline" onPress={() => setRating(5)}>Set 5 from the parent</Button>

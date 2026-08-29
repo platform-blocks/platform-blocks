@@ -1,7 +1,7 @@
 import { Masonry, Card, Text, useTheme } from '@platform-blocks/ui';
 import type { MasonryItem } from '@platform-blocks/ui';
 
-export default function VariableHeightsMasonryDemo() {
+export function Demo() {
   const theme = useTheme();
   
   const masonryItems: MasonryItem[] = [

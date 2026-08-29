@@ -2,7 +2,7 @@ import { GaugeChart } from '@platform-blocks/charts';
 
 import { RANGES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <GaugeChart
       title="System Health"

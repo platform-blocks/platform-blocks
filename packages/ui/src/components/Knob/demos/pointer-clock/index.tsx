@@ -55,7 +55,7 @@ const Hand = ({
   </View>
 );
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
   const face = theme.backgrounds.surface;
   const ink = theme.text.primary;

@@ -6,7 +6,7 @@ import { POSITION_COLORS } from './data';
 // short of the top instead of overlapping position 0. Each detent carries its own
 const POSITIONS = POSITION_COLORS.map((accentColor, index) => ({ value: index, accentColor }));
 
-export default function Demo() {
+export function Demo() {
   const [position, setPosition] = useState(3);
 
   return (

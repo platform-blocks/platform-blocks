@@ -2,7 +2,7 @@ import { LineChart } from '@platform-blocks/charts';
 
 import { MONTHS, RELEASE_MARKERS, SERIES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <LineChart
       title="NPS Trend with Product Releases"

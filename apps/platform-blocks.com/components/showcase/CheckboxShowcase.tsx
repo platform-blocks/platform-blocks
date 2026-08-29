@@ -35,7 +35,7 @@ export default function CheckboxShowcase() {
             {(['primary', 'secondary', 'success', 'error', 'warning'] as const).map((clr) => (
               <Checkbox
                 key={clr}
-                colorVariant={clr}
+                color={clr}
                 defaultChecked
                 label={`${clr.charAt(0).toUpperCase() + clr.slice(1)} color`}
               />

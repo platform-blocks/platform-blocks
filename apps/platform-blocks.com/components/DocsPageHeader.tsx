@@ -17,7 +17,7 @@ export const DocsPageHeader: React.FC<TitleProps> = ({
 }) => {
   const mergedSubtitleProps = {
     variant: 'body',
-    colorVariant: 'secondary',
+    color: 'secondary',
     ...subtitleProps,
   } as TitleProps['subtitleProps'];
 

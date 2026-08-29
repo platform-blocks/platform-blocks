@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, Rating, Text, useTheme } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
   const [hearts, setHearts] = useState<number>(4);
   const [bolts, setBolts] = useState<number>(3);

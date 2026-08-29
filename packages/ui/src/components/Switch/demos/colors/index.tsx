@@ -8,10 +8,10 @@ const COLOR_VARIANTS = [
   { label: 'Error', color: 'error' }
 ] as const;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         Semantic color variants
       </Text>
       <Row gap="md" wrap="wrap">

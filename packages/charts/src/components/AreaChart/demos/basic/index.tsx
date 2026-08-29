@@ -2,7 +2,7 @@ import { AreaChart } from '@platform-blocks/charts';
 
 import { WEEKLY_SIGNUPS } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <AreaChart
       title="Weekly signups"

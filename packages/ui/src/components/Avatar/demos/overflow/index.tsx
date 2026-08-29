@@ -12,7 +12,7 @@ const TEAM = [
 
 const LIMIT = 3;
 
-export default function Demo() {
+export function Demo() {
   const hidden = TEAM.slice(LIMIT).map((member) => member.name);
 
   return (

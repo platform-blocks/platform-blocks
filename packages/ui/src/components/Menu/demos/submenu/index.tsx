@@ -9,7 +9,7 @@ import {
   MenuSub,
 } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Menu w={220}>
       <Button size="sm" variant="outline">

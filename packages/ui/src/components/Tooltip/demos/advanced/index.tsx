@@ -1,11 +1,11 @@
 import { Block, Button, Card, Text, Tooltip } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Card p="md">
       <Block>
         <Block>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Add open and close delays to avoid flicker when the pointer briefly leaves the trigger.
           </Text>
           <Tooltip label="Opens after 400ms" openDelay={400} closeDelay={200}>
@@ -15,7 +15,7 @@ export default function Demo() {
           </Tooltip>
         </Block>
         <Block>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Long labels wrap automatically. Tighten or widen the wrap point with `maxWidth`.
           </Text>
           <Tooltip
@@ -29,7 +29,7 @@ export default function Demo() {
           </Tooltip>
         </Block>
         <Block>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Components with a `tooltip` prop take a string, or an object to pass any Tooltip option.
           </Text>
           <Button

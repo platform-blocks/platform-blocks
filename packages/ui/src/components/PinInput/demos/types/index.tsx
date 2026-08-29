@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, PinInput, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [numericValue, setNumericValue] = useState('');
   const [alphanumericValue, setAlphanumericValue] = useState('');
 
@@ -14,7 +14,7 @@ export default function Demo() {
         <Text size="sm" weight="semibold">
           Numeric (default)
         </Text>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Restricts entry to digits 0-9 for PIN and OTP flows.
         </Text>
         <PinInput
@@ -29,7 +29,7 @@ export default function Demo() {
         <Text size="sm" weight="semibold">
           Alphanumeric
         </Text>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Allow letters and numbers for recovery or backup codes.
         </Text>
         <PinInput

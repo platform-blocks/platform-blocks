@@ -4,7 +4,7 @@ import { POWER_BY_SUBSYSTEM } from './data';
 
 const formatMegawatts = (value: number) => `${value.toFixed(1)} MW`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <DonutChart
       title="Data Center Power Draw"

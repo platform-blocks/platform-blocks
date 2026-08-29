@@ -38,8 +38,6 @@ export const CodeBlock = React.forwardRef<View, CodeBlockProps>((props, ref) => 
   const {
     children,
     title,
-    fileName,
-    fileIcon,
     files,
     defaultFile,
     activeFile,
@@ -73,17 +71,11 @@ export const CodeBlock = React.forwardRef<View, CodeBlockProps>((props, ref) => 
 
   // Files drive the header and, past the first one, what gets rendered: the
   // active file's own code, language and highlight lines win over the top-level
-  // props. `fileName`/`fileIcon` are the pre-`files` spelling of a single file,
-  // normalized here so there is exactly one header code path.
-  const fileList = React.useMemo<CodeBlockFile[]>(() => {
-    if (Array.isArray(files)) {
-      return files.filter(f => f && typeof f.name === 'string');
-    }
-    if (fileName) {
-      return [{ name: fileName, icon: fileIcon, language }];
-    }
-    return [];
-  }, [files, fileName, fileIcon, language]);
+  // props.
+  const fileList = React.useMemo<CodeBlockFile[]>(
+    () => (Array.isArray(files) ? files.filter(f => f && typeof f.name === 'string') : []),
+    [files],
+  );
 
   const [selectedFile, setSelectedFile] = React.useState<string | undefined>(defaultFile);
   const requestedFile = activeFile ?? selectedFile;
@@ -463,7 +455,7 @@ export const CodeBlock = React.forwardRef<View, CodeBlockProps>((props, ref) => 
         {inlineTitleVisible ? (
           <InlineTitleRow
             label={title ?? ''}
-            fileIcon={fileIcon}
+            fileIcon={soloFile?.icon}
             theme={theme}
             rowStyle={styles.inlineTitleRow}
             titleBaseStyle={styles.title}

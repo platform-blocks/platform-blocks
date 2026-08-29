@@ -3,7 +3,7 @@ import { Block, Button, Row, Text } from '@platform-blocks/ui';
 
 const LOADING_DURATION_MS = 2000;
 
-export default function Demo() {
+export function Demo() {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
@@ -31,14 +31,14 @@ export default function Demo() {
 
         <Block>
           <Button>Default width</Button>
-          <Text variant="small" colorVariant="muted">
+          <Text variant="small" color="muted">
             Buttons size themselves to the label length by default.
           </Text>
         </Block>
 
         <Block>
           <Button w={200}>Fixed width (200)</Button>
-          <Text variant="small" colorVariant="muted">
+          <Text variant="small" color="muted">
             Provide an exact `w` value for pixel-perfect toolbars.
           </Text>
         </Block>
@@ -58,7 +58,7 @@ export default function Demo() {
             Short text
           </Button>
         </Row>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           When `loading` is true, the button keeps its original width so layouts stay stable.
         </Text>
       </Block>

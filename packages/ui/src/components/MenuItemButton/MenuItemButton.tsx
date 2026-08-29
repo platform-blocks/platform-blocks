@@ -12,7 +12,8 @@ import { resolveComponentSize, type ComponentSize, type ComponentSizeValue } fro
 import { getComponentSize } from '../../core/theme/unified-sizing';
 import { getFontSize } from '../../core/theme/sizes';
 
-type MenuTone = 'default' | 'primary' | 'danger' | 'success' | 'warning';
+/** Menu item colors, named for the theme palettes they resolve to. */
+export type MenuItemColor = 'default' | 'primary' | 'error' | 'success' | 'warning';
 
 export interface MenuItemButtonProps extends SpacingProps {
   /** Text label (alternative to children) */
@@ -59,12 +60,12 @@ export interface MenuItemButtonProps extends SpacingProps {
   onFocus?: PressableProps['onFocus'];
   /** Blur handler */
   onBlur?: PressableProps['onBlur'];
-  /** Semantic tone for menu styling */
-  tone?: MenuTone;
-  /** Tone to apply when hovered */
-  hoverTone?: MenuTone;
-  /** Tone to apply when active/pressed */
-  activeTone?: MenuTone;
+  /** Semantic color for menu styling */
+  color?: MenuItemColor;
+  /** Color to apply when hovered */
+  hoverColor?: MenuItemColor;
+  /** Color to apply when active/pressed */
+  activeColor?: MenuItemColor;
   /** Override text color for base state */
   textColor?: string;
   /** Override text color when hovered */
@@ -73,7 +74,7 @@ export interface MenuItemButtonProps extends SpacingProps {
   activeTextColor?: string;
   /** Test identifier forwarded to Pressable */
   testID?: string;
-  /** Override props applied to the inner label `<Text>` (style, weight, ff, size, colorVariant). */
+  /** Override props applied to the inner label `<Text>` (style, weight, ff, size, color). */
   labelProps?: Omit<TextProps, 'children'>;
 }
 
@@ -225,9 +226,9 @@ export const MenuItemButton = forwardRef<View, MenuItemButtonProps>((allProps, r
     onHoverOut,
     onFocus,
     onBlur,
-    tone,
-    hoverTone,
-    activeTone,
+    color,
+    hoverColor,
+    activeColor,
     textColor: textColorOverride,
     hoverTextColor: hoverTextColorOverride,
     activeTextColor: activeTextColorOverride,
@@ -244,12 +245,12 @@ export const MenuItemButton = forwardRef<View, MenuItemButtonProps>((allProps, r
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
 
-  const resolveTone = useCallback((toneKey?: MenuTone) => {
-    if (danger) return 'danger' as const;
-    return toneKey ?? 'default';
-  }, [danger]);
+  const resolveTone = useCallback(
+    (toneKey?: MenuItemColor) => (danger ? 'error' as const : toneKey ?? 'default'),
+    [danger],
+  );
 
-  const getPalette = useCallback((toneKey: MenuTone) => {
+  const getPalette = useCallback((toneKey: MenuItemColor) => {
     const isDark = theme.colorScheme === 'dark';
     switch (toneKey) {
       case 'primary':
@@ -260,7 +261,7 @@ export const MenuItemButton = forwardRef<View, MenuItemButtonProps>((allProps, r
           activeBg: isDark ? (theme.colors.primary[5] ?? theme.colors.primary[6]) : (theme.colors.primary[1] ?? 'rgba(0,0,0,0.08)'),
           activeText: isDark ? (theme.text.onPrimary ?? theme.colors.primary[1]) : (theme.colors.primary[7] ?? theme.colors.primary[6]),
         };
-      case 'danger':
+      case 'error':
         return {
           text: theme.colors.error[6],
           bg: 'transparent',
@@ -290,7 +291,7 @@ export const MenuItemButton = forwardRef<View, MenuItemButtonProps>((allProps, r
         // render on level-2 dropdowns as often as on level-1 panels. Press is
         // the same tint as hover, just deeper — a neutral row has no reason to
         // flash the accent color under the finger. Callers that do want an
-        // accent press ask for it with `activeTone="primary"`.
+        // accent press ask for it with `activeColor="primary"`.
         return {
           text: theme.text.primary,
           bg: 'transparent',
@@ -301,9 +302,9 @@ export const MenuItemButton = forwardRef<View, MenuItemButtonProps>((allProps, r
     }
   }, [theme]);
 
-  const baseTone = resolveTone(tone);
-  const hoverToneResolved = resolveTone(hoverTone);
-  const activeToneResolved = resolveTone(activeTone ?? tone);
+  const baseTone = resolveTone(color);
+  const hoverToneResolved = resolveTone(hoverColor);
+  const activeToneResolved = resolveTone(activeColor ?? color);
 
   const basePalette = useMemo(() => getPalette(baseTone), [baseTone, getPalette]);
   const hoverPalette = useMemo(() => getPalette(hoverToneResolved), [hoverToneResolved, getPalette]);

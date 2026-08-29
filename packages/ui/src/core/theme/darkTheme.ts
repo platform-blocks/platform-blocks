@@ -1,21 +1,24 @@
 import { PlatformBlocksTheme } from './types';
 
 export const DARK_THEME: PlatformBlocksTheme = {
-  primaryColor: '#3B82F6',
+  primaryColor: '#2563EB',
   colorScheme: 'dark',
 
   colors: {
     primary: [
+      // Runs dark → light, the mirror of the light theme. Base moved to
+      // blue-600 to match DEFAULT_THEME so white label text clears 4.5:1
+      // (5.17:1, was 3.68:1); every step below it shifts one slot darker.
+      '#121833',
       '#172554',
       '#1E3A8A',
       '#1E40AF',
       '#1D4ED8',
-      '#2563EB',
-      '#3B82F6', // Base color — unified brand blue
+      '#2563EB', // Base color — unified brand blue
+      '#3B82F6',
       '#60A5FA',
       '#93C5FD',
-      '#BFDBFE',
-      '#DBEAFE'
+      '#BFDBFE'
     ],
     secondary: [
       '#0F172A',
@@ -157,6 +160,8 @@ export const DARK_THEME: PlatformBlocksTheme = {
     secondary: '#AEAEB2',
     muted: '#8E8E93',
     disabled: '#636366',
+    // Stays on primary[6]: link text has to read against a near-black
+    // surface, where the darker base would only manage 3.29:1.
     link: '#3B82F6'
   },
 
@@ -249,12 +254,12 @@ export const DARK_THEME: PlatformBlocksTheme = {
   },
 
   semantic: {
-    accent: '#3B82F6', // primary[5] — unified brand blue
+    accent: '#2563EB', // primary[5] — unified brand blue
     borderDefault: '#3A3A3E', // subtle elevated border
     borderSubtle: '#2A2A2E',
     surfaceElevated: '#26262A',
     surfaceCard: '#1C1C1F',
-    focusRing: '#3B82F6' // unified brand blue
+    focusRing: '#3B82F6' // primary[6] — needs 3:1 against the dark surface
   },
 
   components: {},

@@ -2,7 +2,7 @@ import { CandlestickChart } from '@platform-blocks/charts';
 
 import { COST_SERIES, CloudCandle, annotations } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <CandlestickChart
       title="Cloud Spend Volatility"

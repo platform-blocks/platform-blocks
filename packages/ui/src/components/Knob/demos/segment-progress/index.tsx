@@ -7,7 +7,7 @@ const ZONES = [
   { value: 15, color: '#ef4444' },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [load, setLoad] = useState(72);
 
   return (

@@ -1,6 +1,6 @@
 import { Block, Button, Collapse, Text } from '@platform-blocks/ui';
 import { useState } from 'react';
-export default function Demo() {
+export function Demo() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   return (
     <Block>

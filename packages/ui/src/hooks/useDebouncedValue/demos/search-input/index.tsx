@@ -3,7 +3,7 @@ import { Badge, Block, DataList, Input, Row, Text, useDebouncedValue } from '@pl
 
 const PACKAGES = ['react', 'react native', 'redux', 'rxjs', 'remix', 'rollup'];
 
-export default function Demo() {
+export function Demo() {
   const [query, setQuery] = useState('');
   const [debouncedQuery] = useDebouncedValue(query, 300);
 
@@ -35,7 +35,7 @@ export default function Demo() {
           ))}
         </Row>
       ) : (
-        <Text size="sm" colorVariant="muted">No matches.</Text>
+        <Text size="sm" color="muted">No matches.</Text>
       )}
     </Block>
   );

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Block, KeyCap, Row, Text, useHotkeys } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [log, setLog] = useState<string[]>([]);
 
   const append = useCallback((entry: string) => {
@@ -29,7 +29,7 @@ export default function Demo() {
           <Text key={`${entry}-${index}`} size="sm">{entry}</Text>
         ))
       ) : (
-        <Text size="sm" colorVariant="muted">No shortcuts fired yet.</Text>
+        <Text size="sm" color="muted">No shortcuts fired yet.</Text>
       )}
     </Block>
   );

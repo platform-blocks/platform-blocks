@@ -2,7 +2,7 @@ import { CopyButton, Card, Flex, Text } from '@platform-blocks/ui';
 
 const longToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.long.payload.value.with.many.sections.and.characters.for.demo.purposes.only';
 
-export default function LongValueCopyButtonDemo() {
+export function Demo() {
   return (
     <Card p={16} variant="outline">
       <Flex direction="column" gap={12}>

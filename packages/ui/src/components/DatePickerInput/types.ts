@@ -33,9 +33,6 @@ export interface DatePickerInputProps extends Omit<BaseInputProps, 'value' | 'on
   disabled?: boolean;
   /** Show required indicator */
   withAsterisk?: boolean;
-  /** @deprecated Set to false to render inline calendar. Prefer using <DatePicker> directly. */
-  withInput?: boolean;
-
   /** Presentation modality */
   dropdownType?: 'modal' | 'popover';
   /** Close picker after single selection (for single mode) */

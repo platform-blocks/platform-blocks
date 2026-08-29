@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Block, FileInput, Text } from '@platform-blocks/ui';
 import type { FileInputFile } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [imageFiles, setImageFiles] = useState<FileInputFile[]>([]);
   const [documentFiles, setDocumentFiles] = useState<FileInputFile[]>([]);
   const [videoFiles, setVideoFiles] = useState<FileInputFile[]>([]);
@@ -12,7 +12,7 @@ export default function Demo() {
     <Block fullWidth>
       <Block>
         <Text weight="semibold">File type restrictions</Text>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Limit accepted file types per uploader using MIME types, extensions, and size caps.
         </Text>
       </Block>
@@ -29,7 +29,7 @@ export default function Demo() {
           fullWidth
         />
         {imageFiles.length > 0 && (
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Selected: {imageFiles.map((file) => file.name).join(', ')}
           </Text>
         )}
@@ -47,7 +47,7 @@ export default function Demo() {
           fullWidth
         />
         {documentFiles.length > 0 && (
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Selected: {documentFiles.map((file) => file.name).join(', ')}
           </Text>
         )}
@@ -65,7 +65,7 @@ export default function Demo() {
           fullWidth
         />
         {videoFiles.length > 0 && (
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Selected: {videoFiles.map((file) => file.name).join(', ')}
           </Text>
         )}

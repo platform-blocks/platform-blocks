@@ -2,17 +2,21 @@ import type { TextStyle, ViewStyle } from 'react-native';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
 import { getFontSize, getSpacing, SizeValue } from '../../core/theme/sizes';
 import { withAlpha } from '../../core/theme/colorUtils';
+import { resolveAccentColor, resolveColorProp } from '../../core/theme/resolveColors';
 import type { AccordionProps, AccordionComputedStyles } from './types';
 
 /**
  * Resolve the accent shades used to emphasize the expanded item from the
  * `color` prop. Shade 5 is the base brand color in both light and dark themes;
- * shade 6 stays readable as text on either background. Falls back to gray.
+ * shade 6 stays readable as text on either background. Falls back to gray when
+ * no color is given.
  */
 export const resolveAccent = (theme: PlatformBlocksTheme, color: AccordionProps['color']) => {
-  const palette = (theme.colors as any)?.[color as string] ?? theme.colors.gray;
-  const main = palette?.[5] ?? palette?.[palette.length - 1];
-  const text = palette?.[6] ?? main;
+  // Two resolutions rather than a palette array, so `primary.6` shade syntax and
+  // raw CSS colors work — both used to fall through to gray. A raw color has no
+  // ramp, so it comes back as itself for both.
+  const main = resolveAccentColor(theme, color) ?? theme.colors.gray[5];
+  const text = resolveColorProp(theme, color, { shades: [6, 5] }) ?? main;
   return { main, text };
 };
 

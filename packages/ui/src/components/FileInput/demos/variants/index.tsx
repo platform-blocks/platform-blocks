@@ -8,7 +8,7 @@ const sizes = [
   { label: 'Large', size: 'lg' as const },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [files, setFiles] = useState<Record<string, FileInputFile[]>>({});
 
   const handleChange = (key: string) => (next: FileInputFile[]) => {
@@ -31,7 +31,7 @@ export default function Demo() {
             fullWidth
           />
           {files[label]?.length ? (
-            <Text size="xs" colorVariant="secondary">
+            <Text size="xs" color="secondary">
               Selected: {files[label].length}
             </Text>
           ) : null}

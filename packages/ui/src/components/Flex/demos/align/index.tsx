@@ -2,7 +2,7 @@ import { Block, Card, Flex, Text, useTheme } from '@platform-blocks/ui';
 
 const ALIGNMENTS = ['flex-start', 'center', 'flex-end', 'stretch', 'baseline'] as const;
 
-export default function AlignFlexDemo() {
+export function Demo() {
   const theme = useTheme();
   // Baseline is only legible if each Text has a visible box; pull the fill from
   // the theme so it reads in both light and dark.
@@ -14,7 +14,7 @@ export default function AlignFlexDemo() {
     <Flex wrap="wrap" align="flex-start" gap="lg" fullWidth>
       {ALIGNMENTS.map((value) => (
         <Block key={value} gap="xs">
-          <Text variant="span" size="sm" colorVariant="muted">align=&quot;{value}&quot;</Text>
+          <Text variant="span" size="sm" color="muted">align=&quot;{value}&quot;</Text>
           <Card variant="subtle" p="sm">
             {value === 'baseline' ? (
               <Flex direction="row" align="baseline" gap="sm" h={80}>

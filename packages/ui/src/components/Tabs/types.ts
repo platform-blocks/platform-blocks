@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { SpacingProps } from '../../core/utils';
+import type { ThemeColor } from '../../core/theme/resolveColors';
 // Using generic radius via style props; no dedicated BorderRadiusProps available
 interface RadiusProp { radius?: number | string; }
 import type { SizeValue } from '../../core/theme/sizes';
@@ -85,7 +86,7 @@ export interface TabsProps extends SpacingProps, RadiusProp {
    *
    * @default 'primary'
    */
-  color?: 'primary' | 'secondary' | 'gray' | 'tertiary' | string;
+  color?: ThemeColor;
   /**
    * Orientation of the tab list.
    *
@@ -139,7 +140,7 @@ export interface TabsProps extends SpacingProps, RadiusProp {
    */
   textStyle?: StyleProp<TextStyle>;
   /**
-   * Override props applied to each tab's label `<Text>` (style, weight, ff, size, colorVariant).
+   * Override props applied to each tab's label `<Text>` (style, weight, ff, size, color).
    * Applies to all tabs in the strip; per-tab styling can still be done via `TabItem.label` (custom node).
    */
   labelProps?: Omit<TextProps, 'children'>;

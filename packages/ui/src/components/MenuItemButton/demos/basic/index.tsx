@@ -1,6 +1,6 @@
 import { Menu, MenuItem, MenuDivider, MenuDropdown, Button, Icon } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Menu>
       <Button variant="filled">Open Menu</Button>

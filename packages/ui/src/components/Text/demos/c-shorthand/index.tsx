@@ -1,6 +1,6 @@
 import { Block, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Text weight="semibold">c (color shorthand)</Text>

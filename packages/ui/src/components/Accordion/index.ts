@@ -6,7 +6,6 @@ export type { AccordionProps, AccordionItem as AccordionItemType, AccordionRef }
 export type {
 	AccordionType,
 	AccordionVariant,
-	AccordionColor,
 	AccordionComputedStyles,
 	AccordionStyleResolver,
 	AccordionToggleDetail,

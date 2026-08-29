@@ -21,7 +21,7 @@ export default function LayoutShowcase() {
     <ScrollView>
       {/* Block Section */}
       <Title text="Block" variant="h2" afterline action={<Button title="Learn more" variant="ghost" endIcon={<Icon name="arrow-right" />} onPress={() => router.push('/components/Block')} />} />
-      <Text variant="p" colorVariant="secondary">
+      <Text variant="p" color="secondary">
         Block is a low-level layout primitive with universal props. It can act as a flexible container or item.
       </Text>
       <Card>
@@ -34,7 +34,7 @@ export default function LayoutShowcase() {
 
       {/* Row Section */}
       <Title text="Row" variant="h2" afterline action={<Button title="Learn more" variant="ghost" endIcon={<Icon name="arrow-right" />} onPress={() => router.push('/components/Row')} />} />
-      <Text variant="p" colorVariant="secondary">
+      <Text variant="p" color="secondary">
         Row is a layout component that arranges its children in a horizontal line.
       </Text>
       <Card>
@@ -47,7 +47,7 @@ export default function LayoutShowcase() {
 
       {/* Flex Section */}
       <Title text="Flex" variant="h2" afterline action={<Button title="Learn more" variant="ghost" endIcon={<Icon name="arrow-right" />} onPress={() => router.push('/components/Flex')} />} />
-      <Text variant="p" colorVariant="secondary">
+      <Text variant="p" color="secondary">
         Flex wraps flexbox with simplified props like direction, gap, justify, and align.
       </Text>
       <Card>
@@ -60,7 +60,7 @@ export default function LayoutShowcase() {
 
       {/* Grid Section */}
       <Title text="Grid" variant="h2" afterline action={<Button title="Learn more" variant="ghost" endIcon={<Icon name="arrow-right" />} onPress={() => router.push('/components/Grid')} />} />
-      <Text variant="p" colorVariant="secondary">
+      <Text variant="p" color="secondary">
         Grid provides a 12-column layout. Each GridItem declares its span.
       </Text>
       <Card>
@@ -75,14 +75,14 @@ export default function LayoutShowcase() {
 
       {/* PageLayout Section */}
       <Title text="PageLayout" variant="h2" afterline action={<Button title="Learn more" variant="ghost" endIcon={<Icon name="arrow-right" />} onPress={() => router.push('/components/PageLayout')} />} />
-      <Text variant="p" colorVariant="secondary">
+      <Text variant="p" color="secondary">
         PageLayout gives you a consistent page container with optional content container styling.
       </Text>
       <Card>
         <PageLayout>
           <View style={{ padding: 12 }}>
             <Text weight="semibold">Inside PageLayout</Text>
-            <Text size="sm" colorVariant="secondary">Use this as a base for documentation pages.</Text>
+            <Text size="sm" color="secondary">Use this as a base for documentation pages.</Text>
             <Divider my="sm" />
             <Row gap="sm">
               <Button title="Primary" />

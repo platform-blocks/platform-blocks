@@ -1,10 +1,10 @@
 import { Block, Row, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Block>
-        <Text size="sm" colorVariant="muted">Palette names → subtle tint (shade-1)</Text>
+        <Text size="sm" color="muted">Palette names → subtle tint (shade-1)</Text>
         <Row gap="sm" wrap="wrap">
           <Block bg="primary" p="sm" radius="md">
             <Text>primary</Text>
@@ -22,7 +22,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" colorVariant="muted">
+        <Text size="sm" color="muted">
           Specific shade with `palette.shade` syntax
         </Text>
         <Row gap="sm" wrap="wrap">
@@ -36,7 +36,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" colorVariant="muted">Theme background keys</Text>
+        <Text size="sm" color="muted">Theme background keys</Text>
         <Row gap="sm" wrap="wrap">
           <Block bg="surface" p="sm" radius="md" borderWidth={1} borderColor="#ddd">
             <Text>surface</Text>
@@ -48,7 +48,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" colorVariant="muted">Plain CSS color string still works</Text>
+        <Text size="sm" color="muted">Plain CSS color string still works</Text>
         <Block bg="#a855f7" p="sm" radius="md">
           <Text style={{ color: '#fff' }}>Custom hex</Text>
         </Block>

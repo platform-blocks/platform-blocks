@@ -7,7 +7,7 @@ const badges = [
   { label: 'Warning Subtle', variant: 'subtle', color: 'warning' },
 ] as const
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Row gap="sm" wrap="wrap">

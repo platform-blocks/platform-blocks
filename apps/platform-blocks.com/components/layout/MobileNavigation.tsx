@@ -1,8 +1,7 @@
 import React, { useCallback } from 'react';
 import { usePathname, useRouter } from 'expo-router';
-import { Icon, NavTree, type NavTreeItem } from '@platform-blocks/ui';
+import { NavTree, type NavTreeItem } from '@platform-blocks/ui';
 import {
-  NAV_GROUP_ICONS,
   NAV_GROUP_ORDER,
   NAV_TREE_ITEMS,
   SECTION_ROUTES,
@@ -10,19 +9,7 @@ import {
 } from '../../config/navigationConfig';
 
 /** Matches the desktop rail: only the short section starts open. */
-const DEFAULT_OPEN_GROUPS = ['Docs'];
-
-/**
- * Branches get an icon, leaves do not — the same split the desktop rail makes.
- * A column of icons beside every component name is noise; a handful marking
- * where the sections start is what makes a long drawer scannable.
- */
-const GROUP_ICONS = Object.fromEntries(
-  Object.entries(NAV_GROUP_ICONS).map(([label, icon]) => [
-    label,
-    <Icon key={label} name={icon} size={18} />,
-  ])
-);
+const DEFAULT_OPEN_GROUPS = ['Overview'];
 
 export interface MobileNavigationProps {
   onItemPress?: () => void;
@@ -58,9 +45,10 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = React.memo(({ o
       items={NAV_TREE_ITEMS}
       activeHref={pathname}
       onNavigate={handleNavigate}
-      groupIcons={GROUP_ICONS}
       groupOrder={NAV_GROUP_ORDER}
       getGroupNode={getGroupNode}
+      // Same shape as the desktop rail: bare section headings, rows flush left.
+      disclosure="nested"
       openDepth={0}
       openGroups={DEFAULT_OPEN_GROUPS}
       // A drawer is taller than it is wide and closes on every press, so rows

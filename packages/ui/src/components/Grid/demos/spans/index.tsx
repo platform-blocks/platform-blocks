@@ -1,6 +1,6 @@
 import { Block, Card, Grid, GridItem, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const spans = [6, 6, 4, 4, 4, 3, 3, 3, 3];
 
   return (
@@ -14,7 +14,7 @@ export default function Demo() {
           </GridItem>
         ))}
       </Grid>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Mix spans within a 12-column grid to create varied layouts
       </Text>
     </Block>

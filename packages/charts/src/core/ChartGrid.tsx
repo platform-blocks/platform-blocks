@@ -41,7 +41,7 @@ export const ChartGrid: React.FC<ChartGridComponentProps> = ({
   }
 
   const {
-    color = 'red',
+    color = theme.colors.grid,
     thickness = 1,
     style = 'solid',
     showMajor = true,

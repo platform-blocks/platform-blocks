@@ -1,12 +1,12 @@
 import { Block, QRCode, Row, Text, useTheme } from '@platform-blocks/ui';
 import { SCHEMES } from './data';
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
 
   return (
     <Block>
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         Theme-aligned palettes
       </Text>
       <Row gap="lg" wrap="wrap" justify="center">

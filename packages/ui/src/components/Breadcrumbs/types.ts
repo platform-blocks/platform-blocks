@@ -49,7 +49,7 @@ export interface BreadcrumbsProps extends SpacingProps {
   /** Accessibility label */
   accessibilityLabel?: string;
 
-  /** Override props applied to each item's label `<Text>` (style, weight, ff, size, colorVariant). */
+  /** Override props applied to each item's label `<Text>` (style, weight, ff, size, color). */
   labelProps?: Omit<TextProps, 'children'>;
 
   /** Override props applied to the separator `<Text>` when it's a string. */

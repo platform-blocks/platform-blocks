@@ -26,6 +26,7 @@
     "llms:generate": "npx --yes tsx scripts/generate-llms.ts",
     "skills:generate": "npx --yes tsx scripts/generate-skills.ts",
     "skills:check": "npx --yes tsx scripts/generate-skills.ts --check",
+    "codemod:color-props": "npx --yes tsx scripts/codemod-color-props.ts",
     "docs:all": "npm run demos:generate && npm run demos:validate && npm run snack:exports && npm --prefix apps/platform-blocks.com run docs:generate && npm --prefix apps/platform-blocks.com run generate-code-map && npm run llms:generate",
     "site:build": "npm run ui:build && npm run docs:all && npm --prefix apps/platform-blocks.com run build-web",
     "android": "expo run:android",

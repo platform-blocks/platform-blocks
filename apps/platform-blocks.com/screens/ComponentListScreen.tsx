@@ -108,7 +108,7 @@ export default function ComponentListScreen() {
           >
             Components
           </Title>
-          <Text variant="p" colorVariant="secondary">
+          <Text variant="p" color="secondary">
             Explore all {allComponents.length} components in the PlatformBlocks library
           </Text>
         </Column>
@@ -131,7 +131,7 @@ export default function ComponentListScreen() {
           })}
         </Row>
 
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           {filteredComponents.length} components
           {searchQuery && ` matching "${searchQuery}"`}
           {selectedCategory && ` in ${selectedCategory}`}
@@ -140,10 +140,10 @@ export default function ComponentListScreen() {
         {!demosReady && (
           <Card p="xl">
             <Column gap="xs">
-              <Text variant="p" colorVariant="muted" align="center">
+              <Text variant="p" color="muted" align="center">
                 Component demos haven&apos;t been generated yet for this build.
               </Text>
-              <Text variant="small" colorVariant="secondary" align="center">
+              <Text variant="small" color="secondary" align="center">
                 Run <Text variant="small" weight="bold">npm run demos:generate</Text> before building to include metadata and demo modules.
               </Text>
             </Column>
@@ -152,7 +152,7 @@ export default function ComponentListScreen() {
 
         {filteredComponents.length === 0 ? (
           <Card p="xl">
-            <Text variant="p" colorVariant="muted" align="center">
+            <Text variant="p" color="muted" align="center">
               No components found matching your criteria.
             </Text>
           </Card>

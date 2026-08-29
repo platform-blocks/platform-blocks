@@ -8,12 +8,19 @@ import { join } from 'path';
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf8'));
 
-const external = [
+const externalPackages = [
   ...Object.keys(pkg.peerDependencies || {}),
   ...Object.keys(pkg.dependencies || {}),
   'react/jsx-runtime',
   'react/jsx-dev-runtime',
 ];
+
+// Subpaths of an external package are external too. Without this, deep imports
+// like '@tabler/icons-react-native/IconBell' (see Icon/icons/tabler.ts) would
+// miss the exact-name match and get inlined into lib/ — the opposite of why
+// they are deep imports.
+const external = (id) =>
+  externalPackages.some((name) => id === name || id.startsWith(`${name}/`));
 
 const commonConfig = {
   external,

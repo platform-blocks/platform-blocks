@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, Text as RNText, View, ViewStyle, TextStyle, Platform, Linking } from 'react-native';
 
 import { useTheme } from '../../core/theme';
+import { resolveColorProp } from '../../core/theme/resolveColors';
 import { SizeValue, getFontSize } from '../../core/theme/sizes';
 import { SpacingProps, getSpacingStyles, extractSpacingProps } from '../../core/utils';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
@@ -47,15 +48,15 @@ const getLinkStyles = (
 ) => {
   const fontSize = getFontSize(size);
 
-  // Color resolution
-  let textColor: string;
-  if (color === 'inherit') {
-    textColor = 'inherit';
-  } else if (color === 'primary' || color === 'secondary' || color === 'success' || color === 'warning' || color === 'error' || color === 'gray') {
-    textColor = disabled ? theme.colors.gray[5] : theme.colors[color][6];
-  } else {
-    textColor = disabled ? theme.colors.gray[5] : color;
-  }
+  // Color resolution. Link text sits on a surface, so it takes the readable
+  // shade (6) rather than the fill base — but through the *palette*, not the
+  // `theme.text` roles: `color="primary"` on a link has to stay the brand blue,
+  // not resolve into `theme.text.primary` body copy.
+  const textColor: string = color === 'inherit'
+    ? 'inherit'
+    : disabled
+      ? theme.colors.gray[5]
+      : resolveColorProp(theme, color, { shades: [6, 5] }) ?? theme.colors.primary[6];
 
   const baseStyles: TextStyle = {
     fontSize,

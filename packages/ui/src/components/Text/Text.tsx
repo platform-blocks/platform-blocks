@@ -26,12 +26,15 @@ export interface TextProps extends SpacingProps {
   variant?: HTMLTextVariant;
   /** Size can be a size token or number (overrides variant fontSize) */
   size?: SizeValue;
-  /** Text color (overrides theme text color) */
+  /**
+   * Text color. Accepts a `theme.text` role (`'primary'`, `'secondary'`,
+   * `'muted'`, `'disabled'`, `'link'`), `'dimmed'` for the muted token, a
+   * palette name (`'success'` → its readable shade), `'primary.6'` shade
+   * syntax, or any CSS color string.
+   */
   color?: string;
-  /** Shorthand alias for `color`. Accepts `'dimmed'`, theme palette names, `'primary.6'` syntax, or any CSS color string. */
+  /** Shorthand alias for `color`, resolved identically. `color` wins when both are set. */
   c?: string;
-  /** Semantic color variant (overrides color prop). Supports text palette plus status colors */
-  colorVariant?: 'primary' | 'secondary' | 'muted' | 'disabled' | 'link' | 'success' | 'warning' | 'error' | 'info';
   /** Font weight (supports all CSS font-weight values) */
   weight?: 'normal' | 'medium' | 'semibold' | 'bold' | 'light' | 'black' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' | number;
   /** Text alignment */
@@ -74,8 +77,8 @@ const getTextStyles = (
   size?: SizeValue,
   weight?: TextProps['weight'],
   align: 'left' | 'center' | 'right' | 'justify' = 'left',
+  /** Already resolved by `resolveTextColor` at the call site. */
   color?: string,
-  colorVariant?: 'primary' | 'secondary' | 'muted' | 'disabled' | 'link' | 'success' | 'warning' | 'error' | 'info',
   fontFamily?: string,
   lineHeight?: number,
   tracking?: number,
@@ -179,37 +182,10 @@ const getTextStyles = (
     return weightStyles[weight || 'normal']?.fontWeight || '400';
   };
 
-  // Resolve text color with semantic variants
-  const getTextColor = (): string => {
-    // Direct color override: allow raw color strings AND token keys (theme.colors / theme.text)
-    if (color) {
-      // If matches a text token
-      if ((theme.text as any)[color]) return (theme.text as any)[color];
-      // If matches a color palette key (take middle shade 5 if present)
-      if ((theme.colors as any)[color]) {
-        const palette = (theme.colors as any)[color];
-        return Array.isArray(palette) ? (palette[5] || palette[0]) : palette;
-      }
-      return color; // assume raw CSS color
-    }
-    if (colorVariant) {
-      if ((theme.text as any)[colorVariant]) return (theme.text as any)[colorVariant];
-      if ((theme.colors as any)[colorVariant]) {
-        const palette = (theme.colors as any)[colorVariant];
-        return Array.isArray(palette) ? (palette[5] || palette[0]) : palette;
-      }
-      if (colorVariant === 'info' && (theme.colors as any).primary) {
-        const palette = (theme.colors as any).primary;
-        return Array.isArray(palette) ? (palette[5] || palette[0]) : palette;
-      }
-    }
-    return theme.text.primary;
-  };
-
   const baseStyles = {
     fontFamily: fontFamily || theme.fontFamily,
     textAlign: align === 'left' && isRTL ? 'right' : align === 'right' && isRTL ? 'left' : align,
-    color: getTextColor()
+    color: color ?? theme.text.primary
   };
 
   const variantStyle = variantStyles[variant as keyof typeof variantStyles] || variantStyles.p;
@@ -360,7 +336,6 @@ export const Text = React.forwardRef<RNText, TextProps>((allProps, ref) => {
     align = 'left',
     color,
     c,
-    colorVariant,
     lineHeight,
     tracking,
     uppercase,
@@ -396,13 +371,10 @@ export const Text = React.forwardRef<RNText, TextProps>((allProps, ref) => {
   //   console.warn('I18n not available for Text component, using children prop');
   // }
 
-  // `c` shorthand: resolve through shared theme helper so
-  // values like 'dimmed', 'primary', 'primary.6' work identically across
-  // Text, Block, Card, etc. `c` wins over `color` if both are passed.
-  const resolvedColor = c
-    ? resolveTextColor(theme, c) ?? c
-    : color;
-  const textStyles = getTextStyles(theme, variant, size, weight, align, resolvedColor, colorVariant, ff ?? fontFamily, lineHeight, tracking, uppercase, isRTL);
+  // One resolution for both spellings, so `color` and its `c` shorthand can
+  // never disagree about what a value means. The full name wins over the alias.
+  const resolvedColor = resolveTextColor(theme, color ?? c);
+  const textStyles = getTextStyles(theme, variant, size, weight, align, resolvedColor, ff ?? fontFamily, lineHeight, tracking, uppercase, isRTL);
   const spacingStyles = getSpacingStyles(spacingProps);
   const content = 
   (tx && t )

@@ -2,7 +2,7 @@ import { RadialBarChart } from '@platform-blocks/charts';
 
 import { AVG, METRICS } from './data';
 
-export default function Demo() {
+export function Demo() {
 	return (
 		<RadialBarChart
 			title="Quarterly KPIs"

@@ -100,7 +100,7 @@ export { ListGroup, ListGroupItem, ListGroupDivider, ListGroupBody } from './com
 export { Tree } from './components/Tree';
 
 // Feedback
-export { Alert, Notice } from './components/Alert';
+export { Alert } from './components/Alert';
 export { Progress } from './components/Progress';
 export { Skeleton } from './components/Skeleton';
 export { Loader } from './components/Loader';
@@ -116,7 +116,7 @@ export { LoadingOverlay } from './components/LoadingOverlay';
 export { Toast, ToastProvider, useToast, useToastApi } from './components/Toast';
 export { Dialog, DialogProvider, useDialog, useDialogApi, useSimpleDialog } from './components/Dialog';
 export { Spotlight, SpotlightProvider, spotlight, useSpotlightStoreInstance } from './components/Spotlight';
-export { BrandIcon, brandIcons, resolveBrandName } from './components/BrandIcon';
+export { BrandIcon, brandIcons } from './components/BrandIcon';
 export { ControlField, ControlFieldGroup, useControlField } from './components/ControlField';
 export { Indicator } from './components/Indicator';
 

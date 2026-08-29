@@ -2,7 +2,7 @@ import { Block, Carousel, Text } from '@platform-blocks/ui';
 
 const slides = ['#DC2626', '#2563EB', '#0F766E'];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Carousel
       orientation="vertical"

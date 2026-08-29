@@ -11,7 +11,7 @@ const formatVariance = (value: number, datum: (typeof REGIONAL_REVENUE)[number])
   return `${direction}$${Math.abs(diff).toFixed(2)}M vs goal`;
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <BarChart
       title="Quarterly Revenue by Region"

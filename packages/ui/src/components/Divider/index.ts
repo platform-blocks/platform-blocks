@@ -1,2 +1,2 @@
 export { Divider } from './Divider';
-export type { DividerProps, DividerOrientation, DividerVariant, DividerColorVariant } from './types';
+export type { DividerProps, DividerOrientation, DividerVariant } from './types';

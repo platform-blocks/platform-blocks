@@ -126,7 +126,7 @@ export const FileHeaderBar: React.FC<FileHeaderBarProps> = ({
   githubUrl,
 }) => (
   <View style={barStyle}>
-    <Text variant="small" colorVariant="secondary" style={[titleBaseStyle, titleStyle, { marginBottom: 0 }]}>
+    <Text variant="small" color="secondary" style={[titleBaseStyle, titleStyle, { marginBottom: 0 }]}>
       {fileName}
     </Text>
     <HeaderControls

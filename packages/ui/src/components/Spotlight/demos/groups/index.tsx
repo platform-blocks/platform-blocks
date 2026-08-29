@@ -29,14 +29,14 @@ const actions: SpotlightProps['actions'] = [
   },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [store] = useSpotlightStoreInstance();
 
   return (
     <Block>
       <Card p="md">
         <Block>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Group actions to create semantic sections inside the results list. Each group renders a header before its nested actions.
           </Text>
           <Button variant="secondary" onPress={() => store.open()}>

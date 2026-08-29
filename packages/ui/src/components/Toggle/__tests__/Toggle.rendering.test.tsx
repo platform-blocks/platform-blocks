@@ -34,7 +34,7 @@ jest.mock('../../Text', () => {
 describe('Toggle - rendering', () => {
   it('applies selected fill and segmentation for grouped buttons', () => {
     const { getByTestId } = render(
-      <ToggleGroup value="primary" colorVariant="success">
+      <ToggleGroup value="primary" color="success">
         <ToggleButton value="primary" testID="seg-primary">Primary</ToggleButton>
         <ToggleButton value="secondary" testID="seg-secondary">Secondary</ToggleButton>
       </ToggleGroup>

@@ -7,11 +7,11 @@ const CHANNELS = [
   { label: 'Vox', value: 47, color: 'error' as const }
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block gap="lg">
       <Block gap="sm">
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Vertical bars fill from the bottom up
         </Text>
         <Row gap="md" align="flex-end">
@@ -26,7 +26,7 @@ export default function Demo() {
                 color={channel.color}
                 transitionDuration={600}
               />
-              <Text variant="small" colorVariant="muted">
+              <Text variant="small" color="muted">
                 {channel.label}
               </Text>
             </Block>

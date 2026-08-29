@@ -3,7 +3,7 @@ import { Highlight, Text } from '@platform-blocks/ui';
 
 const PARAGRAPH = 'Highlight This, definitely THIS and also this!';
 
-export default function HighlightBasicDemo() {
+export function Demo() {
   return (
     <View>
       <Text variant="h5">Case-insensitive match</Text>

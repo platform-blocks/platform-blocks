@@ -18,7 +18,9 @@ jest.mock('react-native-reanimated', () => {
       ScrollView: View,
       createAnimatedComponent: (Component: any) => Component,
     },
-    useSharedValue: (initial: any) => ({ value: initial }),
+    // Stable across renders, like the real hook — a fresh object each render
+    // would make every effect that lists a shared value re-run.
+    useSharedValue: (initial: any) => require('react').useRef({ value: initial }).current,
     useAnimatedStyle: (cb: any) => cb(),
     withTiming: (value: any) => value,
     withSpring: (value: any) => value,
@@ -237,28 +239,28 @@ describe('Toast Component - Rendering & Behavior', () => {
   describe('Severity Rendering', () => {
     it('should render info severity', () => {
       const { getByText } = render(
-        <Toast title="Info" sev="info" visible />
+        <Toast title="Info" severity="info" visible />
       );
       expect(getByText('Info')).toBeTruthy();
     });
 
     it('should render success severity', () => {
       const { getByText } = render(
-        <Toast title="Success" sev="success" visible />
+        <Toast title="Success" severity="success" visible />
       );
       expect(getByText('Success')).toBeTruthy();
     });
 
     it('should render warning severity', () => {
       const { getByText } = render(
-        <Toast title="Warning" sev="warning" visible />
+        <Toast title="Warning" severity="warning" visible />
       );
       expect(getByText('Warning')).toBeTruthy();
     });
 
     it('should render error severity', () => {
       const { getByText } = render(
-        <Toast title="Error" sev="error" visible />
+        <Toast title="Error" severity="error" visible />
       );
       expect(getByText('Error')).toBeTruthy();
     });
@@ -544,7 +546,7 @@ describe('Toast Component - Rendering & Behavior', () => {
           title="Complex Toast"
           visible
           variant="filled"
-          sev="success"
+          severity="success"
           icon={<View testID="icon" />}
           withCloseButton
           onClose={onClose}

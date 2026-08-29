@@ -8,7 +8,7 @@ const SECTIONS = [
   { id: 'faq', title: 'FAQ', summary: 'Answer the questions you expect most often.' },
 ];
 
-export default function Demo() {
+export function Demo() {
   const contentRef = useRef<HTMLDivElement | null>(null);
 
   return (
@@ -25,7 +25,7 @@ export default function Demo() {
           {SECTIONS.map((section, index) => (
             <Block key={section.id}>
               <Title order={index === 0 ? 1 : 2}>{section.title}</Title>
-              <Text colorVariant="secondary">{section.summary}</Text>
+              <Text color="secondary">{section.summary}</Text>
             </Block>
           ))}
         </Block>

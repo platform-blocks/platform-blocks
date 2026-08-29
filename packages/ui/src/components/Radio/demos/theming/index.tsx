@@ -3,14 +3,14 @@ import { Block, Radio, RadioGroup, Text } from '@platform-blocks/ui';
 
 const COLOR_OPTIONS = ['primary', 'secondary', 'success', 'error'] as const;
 
-export default function Demo() {
+export function Demo() {
   const [sizeValue, setSizeValue] = useState<string>('club');
   const [colorValue, setColorValue] = useState<typeof COLOR_OPTIONS[number]>('primary');
 
   return (
     <Block>
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Size tokens
         </Text>
         <RadioGroup
@@ -26,7 +26,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Semantic colors
         </Text>
         <Block>
@@ -44,7 +44,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Common states
         </Text>
         <Radio value="available" checked label="Available" />

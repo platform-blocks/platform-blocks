@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Block, Knob } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState(0);
   const normalizedAngle = useMemo(() => ((value % 360) + 360) % 360, [value]);
   const rotations = useMemo(() => value / 360, [value]);

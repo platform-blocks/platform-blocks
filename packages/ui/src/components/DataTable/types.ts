@@ -286,7 +286,7 @@ export interface DataTableProps<T = any> extends SpacingProps {
   expandIcon?: React.ReactNode;
   collapseIcon?: React.ReactNode;
 
-  /** Override props applied to every column header `<Text>` (style, weight, ff, size, colorVariant). */
+  /** Override props applied to every column header `<Text>` (style, weight, ff, size, color). */
   headerTextProps?: Omit<TextProps, 'children'>;
   /** Override props applied to default-rendered cell text (cells without a custom `cell` renderer). */
   cellTextProps?: Omit<TextProps, 'children'>;

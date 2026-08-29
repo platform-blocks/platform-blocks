@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Block, Rating } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [interactiveValue, setInteractiveValue] = useState<number>(4);
 
   return (

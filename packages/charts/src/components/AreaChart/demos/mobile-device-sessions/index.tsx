@@ -4,7 +4,7 @@ import { PHASE_LABELS, SESSION_SERIES } from './data';
 
 const formatPhase = (index: number) => PHASE_LABELS[index] ?? `Week ${index + 1}`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <AreaChart
       title="Active Sessions During Launch"

@@ -2,7 +2,7 @@ import { HistogramChart } from '@platform-blocks/charts';
 
 import { SESSION_DURATIONS } from './data';
 
-export default function Demo() {
+export function Demo() {
 	return (
 		<HistogramChart
 			title="Session duration distribution"

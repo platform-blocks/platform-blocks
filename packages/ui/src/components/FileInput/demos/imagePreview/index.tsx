@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Block, Button, Card, FileInput, Flex, Text } from '@platform-blocks/ui';
 import type { FileInputFile } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [images, setImages] = useState<FileInputFile[]>([]);
 
   const handleRemoveFile = (index: number) => {

@@ -1,7 +1,7 @@
 import { Block, Divider, Text } from '@platform-blocks/ui';
 import type { DividerProps } from '@platform-blocks/ui';
 
-const COLOR_VARIANTS: Array<{ label: string; tone?: DividerProps['colorVariant'] }> = [
+const COLORS: Array<{ label: string; tone?: DividerProps['color'] }> = [
   { label: 'Border (default)' },
   { label: 'Subtle', tone: 'subtle' },
   { label: 'Muted', tone: 'muted' },
@@ -13,19 +13,19 @@ const COLOR_VARIANTS: Array<{ label: string; tone?: DividerProps['colorVariant']
   { label: 'Error', tone: 'error' },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Block>
         <Text variant="small" weight="medium">
           Semantic color variants
         </Text>
-        {COLOR_VARIANTS.map(({ label, tone }) => (
+        {COLORS.map(({ label, tone }) => (
           <Block key={label}>
-            <Text variant="p" colorVariant="muted">
+            <Text variant="p" color="muted">
               {label}
             </Text>
-            <Divider colorVariant={tone} />
+            <Divider color={tone} />
           </Block>
         ))}
       </Block>
@@ -34,19 +34,19 @@ export default function Demo() {
         <Text variant="small" weight="medium">
           Labeled dividers
         </Text>
-        <Divider colorVariant="primary" label="Quarterly results" />
-        <Divider colorVariant="success" label="Customer satisfaction" />
-        <Divider colorVariant="error" label="Risks" />
+        <Divider color="primary" label="Quarterly results" />
+        <Divider color="success" label="Customer satisfaction" />
+        <Divider color="error" label="Risks" />
       </Block>
 
       <Block>
         <Text variant="small" weight="medium">
           Variant styles
         </Text>
-        <Divider colorVariant="primary" variant="solid" label="Solid" />
-        <Divider colorVariant="primary" variant="dashed" label="Dashed" />
-        <Divider colorVariant="primary" variant="dotted" label="Dotted" />
-        <Divider colorVariant="primary" variant="gradient" label="Gradient" />
+        <Divider color="primary" variant="solid" label="Solid" />
+        <Divider color="primary" variant="dashed" label="Dashed" />
+        <Divider color="primary" variant="dotted" label="Dotted" />
+        <Divider color="primary" variant="gradient" label="Gradient" />
       </Block>
     </Block>
   );

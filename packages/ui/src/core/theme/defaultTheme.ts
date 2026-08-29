@@ -2,7 +2,7 @@ import { PlatformBlocksTheme } from './types';
 import { DESIGN_TOKENS } from '../design-tokens';
 
 export const DEFAULT_THEME: PlatformBlocksTheme = {
-  primaryColor: '#3B82F6',
+  primaryColor: '#2563EB',
   colorScheme: 'light',
 
   // Integration with design tokens
@@ -15,11 +15,14 @@ export const DEFAULT_THEME: PlatformBlocksTheme = {
       '#BFDBFE',
       '#93C5FD',
       '#60A5FA',
-      '#3B82F6', // Base color — unified brand blue
-      '#2563EB',
+      // Base sits on blue-600 rather than blue-500: white label text needs
+      // 4.5:1 and only clears it from 600 down (5.17:1 vs 3.68:1). The ramp is
+      // still Tailwind blue end to end, re-anchored one step darker.
+      '#2563EB', // Base color — unified brand blue
       '#1D4ED8',
       '#1E40AF',
-      '#1E3A8A'
+      '#1E3A8A',
+      '#172554'
     ],
     secondary: [
       '#F8FAFC',
@@ -155,7 +158,7 @@ export const DEFAULT_THEME: PlatformBlocksTheme = {
     secondary: '#6E6E73',
     muted: '#8E8E93',
     disabled: '#C7C7CC',
-  link: '#3B82F6',
+  link: '#2563EB',
   onPrimary: '#FFFFFF'
   },
 
@@ -248,7 +251,7 @@ export const DEFAULT_THEME: PlatformBlocksTheme = {
   },
 
   semantic: {
-    accent: '#3B82F6', // primary[5] — unified brand blue
+    accent: '#2563EB', // primary[5] — unified brand blue
     borderDefault: '#E7E7E9', // surface[3]
     borderSubtle: '#F7F8FA', // surface[1]
     surfaceElevated: '#FFFFFF', // surface[0]

@@ -59,7 +59,7 @@ props:
     default: false
   - name: controlProps
     type: "Omit<TextProps, 'children'>"
-    description: Override props applied to the show/hide control `<Text>` (style, weight, ff, size, colorVariant)
+    description: Override props applied to the show/hide control `<Text>` (style, weight, ff, size, color)
 examples:
   - basic
   - sizes

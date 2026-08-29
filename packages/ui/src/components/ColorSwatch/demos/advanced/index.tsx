@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Flex, Text, ColorSwatch } from '@platform-blocks/ui';
 
-export default function ColorSwatchAdvancedDemo() {
+export function Demo() {
   const [selectedColor, setSelectedColor] = useState<string>('#E74C3C');
 
   return (
@@ -35,7 +35,7 @@ export default function ColorSwatchAdvancedDemo() {
           />
           <Flex direction="column" gap={4}>
             <Text weight="semibold">{selectedColor}</Text>
-            <Text size="xs" colorVariant="secondary">Click any swatch above to change</Text>
+            <Text size="xs" color="secondary">Click any swatch above to change</Text>
           </Flex>
         </Flex>
       </Flex>

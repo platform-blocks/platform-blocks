@@ -2,7 +2,7 @@ import { LineChart } from '@platform-blocks/charts';
 
 import { SERIES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <LineChart
       title="Monthly active customers"

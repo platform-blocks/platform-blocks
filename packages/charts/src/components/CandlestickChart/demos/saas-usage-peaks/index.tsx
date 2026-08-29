@@ -7,7 +7,7 @@ const formatDay = (value: number) => new Date(value).toLocaleDateString('en-US',
   day: 'numeric',
 });
 
-export default function Demo() {
+export function Demo() {
   return (
     <CandlestickChart
       title="SaaS Usage Peaks"

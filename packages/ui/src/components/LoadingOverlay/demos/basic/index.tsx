@@ -23,7 +23,7 @@ const TEXT_FIELDS: TextFieldConfig[] = [
   },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [visible, setVisible] = useState(false);
 
   return (
@@ -41,7 +41,7 @@ export default function Demo() {
               <Text variant="h4" weight="semibold">
                 Account details
               </Text>
-              <Text variant="p" colorVariant="muted">
+              <Text variant="p" color="muted">
                 Pause form interaction while requests finish and keep the layout intact.
               </Text>
             </Block>
@@ -60,7 +60,7 @@ export default function Demo() {
         </Button>
       </Block>
 
-      <Text variant="small" colorVariant="muted" align="center">
+      <Text variant="small" color="muted" align="center">
         LoadingOverlay anchors to a relative container and dims the content while the loader animates.
       </Text>
     </Block>

@@ -9,7 +9,7 @@ import {
   Text,
 } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Menu trigger="contextmenu">
       <Card
@@ -25,7 +25,7 @@ export default function Demo() {
       >
         <Block align="center">
           <Icon name="star" size="lg" color="gold" />
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Right-click or long-press this area
           </Text>
         </Block>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, Button, Text, Toast, useToast } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -74,19 +74,19 @@ export default function Demo() {
       {
         title: 'Batch 1',
         message: 'First toast in batch',
-        sev: 'info',
+        severity: 'info',
         groupId: 'batch-demo',
       },
       {
         title: 'Batch 2',
         message: 'Second toast in batch',
-        sev: 'success',
+        severity: 'success',
         groupId: 'batch-demo',
       },
       {
         title: 'Batch 3',
         message: 'Third toast in batch',
-        sev: 'warning',
+        severity: 'warning',
         groupId: 'batch-demo',
       },
     ]);
@@ -144,13 +144,13 @@ export default function Demo() {
       </Button>
 
       <Block>
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           Tap-to-dismiss example:
         </Text>
         <Toast
           visible
           title="Tap me!"
-          sev="info"
+          severity="info"
           dismissOnTap
           onClose={() => console.log('Tapped!')}
           position="bottom"

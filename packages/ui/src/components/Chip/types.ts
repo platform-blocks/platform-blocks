@@ -3,6 +3,7 @@ import { ViewStyle, TextStyle, StyleProp } from 'react-native';
 import { SizeValue } from '../../core/theme/sizes';
 import { SpacingProps } from '../../core/utils';
 import { BorderRadiusProps } from '../../core/theme/radius';
+import type { ThemeColor } from '../../core/theme/resolveColors';
 import { ShadowProps } from '../../core/theme/shadow';
 import type { TextProps } from '../Text';
 
@@ -16,7 +17,7 @@ export interface ChipProps extends SpacingProps, BorderRadiusProps, ShadowProps 
    */
   variant?: 'filled' | 'outline' | 'light' | 'subtle' | 'surface' | 'gradient';
   /** Theme palette name or CSS color. Not used by the `surface` variant. */
-  color?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'gray' | string;
+  color?: ThemeColor;
   onPress?: () => void;
   /** Show a small leading status dot. Defaults to the chip's resolved text color. */
   dot?: boolean;
@@ -29,7 +30,7 @@ export interface ChipProps extends SpacingProps, BorderRadiusProps, ShadowProps 
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
-  /** Override props applied to the inner label `<Text>` (style, weight, ff, size, colorVariant). */
+  /** Override props applied to the inner label `<Text>` (style, weight, ff, size, color). */
   labelProps?: Omit<TextProps, 'children'>;
   radius?: any;
   shadow?: any;

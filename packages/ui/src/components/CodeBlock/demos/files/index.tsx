@@ -7,7 +7,7 @@ const FILES = [
 
 import { AUTHOR, QUOTE } from './data';
 
-export default function Demo() {
+export function Demo() {
   return <Blockquote author={AUTHOR}>{QUOTE}</Blockquote>;
 }`,
   },
@@ -37,10 +37,10 @@ export const QUOTE = 'The components feel native on every platform.';`,
   },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block fullWidth>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Switch files from the tab strip in the top-left corner.
       </Text>
       <CodeBlock files={FILES} />

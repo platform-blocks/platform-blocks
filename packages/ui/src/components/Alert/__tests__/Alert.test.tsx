@@ -60,8 +60,8 @@ describe('Alert', () => {
     expect(getByLabelText('Dismiss message')).toBeTruthy();
   });
 
-  it('renders severity icon when sev is provided', () => {
-    render(<Alert sev="success" title="Saved" />);
+  it('renders severity icon when severity is provided', () => {
+    render(<Alert severity="success" title="Saved" />);
 
     expect(mockIconSpy).toHaveBeenCalledWith(expect.objectContaining({ name: 'success' }));
   });

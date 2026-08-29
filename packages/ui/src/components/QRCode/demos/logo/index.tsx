@@ -1,7 +1,7 @@
 import { QRCode, Row, useTheme } from '@platform-blocks/ui';
 import { LOGO_EXAMPLES } from './data';
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
 
   return (

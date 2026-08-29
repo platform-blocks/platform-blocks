@@ -18,7 +18,7 @@ const EXAMPLES = [
   }
 ] as const;
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
 
   return (
@@ -33,7 +33,7 @@ export default function Demo() {
               <Text>Second line</Text>
             </Block>
           </Block>
-          <Text variant="small" colorVariant="muted">
+          <Text variant="small" color="muted">
             {helper}
           </Text>
         </Block>

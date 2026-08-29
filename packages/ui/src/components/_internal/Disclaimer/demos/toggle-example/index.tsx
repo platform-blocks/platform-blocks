@@ -15,7 +15,7 @@ import {
   Icon
 } from '@platform-blocks/ui';
 
-export const ToggleWithDisclaimerExample = () => {
+export function Demo() {
   const [view, setView] = useState('list');
   const [favorite, setFavorite] = useState(false);
 
@@ -46,7 +46,7 @@ export const ToggleWithDisclaimerExample = () => {
         <Text variant="p" mb="sm">✅ New Pattern (Wrapper):</Text>
         <ComponentWithDisclaimer 
           disclaimer={`Selected view: ${view}`}
-          disclaimerProps={{ size: 'sm', colorVariant: 'muted' }}
+          disclaimerProps={{ size: 'sm', color: 'muted' }}
         >
           <ToggleGroup
             value={view}
@@ -74,12 +74,10 @@ export const ToggleWithDisclaimerExample = () => {
           <ToggleButton value="grid">Grid View</ToggleButton>
           <ToggleButton value="block">Block View</ToggleButton>
         </ToggleGroup>
-        <Disclaimer size="sm" colorVariant="muted">
+        <Disclaimer size="sm" color="muted">
           Selected view: {view}
         </Disclaimer>
       </Block>
     </Block>
   );
-};
-
-export default ToggleWithDisclaimerExample;
+}

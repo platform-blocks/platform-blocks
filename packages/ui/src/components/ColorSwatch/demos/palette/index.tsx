@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Flex, Text, ColorSwatch } from '@platform-blocks/ui';
 
-export default function ColorSwatchPaletteDemo() {
+export function Demo() {
   const [selectedColor, setSelectedColor] = useState<string>('#E74C3C');
 
   const colorPalettes = {

@@ -4,7 +4,7 @@ import { Block, Input } from '@platform-blocks/ui';
 
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-export default function Demo() {
+export function Demo() {
   const [email, setEmail] = useState('');
 
   return (

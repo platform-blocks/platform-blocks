@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CodeBlock, Button, Text, Flex } from '@platform-blocks/ui';
 
-export default function InteractiveCodeBlockDemo() {
+export function Demo() {
   const [copiedCode, setCopiedCode] = useState('');
 
   const handleCopy = (code: string) => {

@@ -14,7 +14,7 @@ const resolveAction = (x: number, y: number) => {
   return labels.bottomRight ?? null;
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <ScatterChart
       title="Campaign spend vs. attributed revenue"

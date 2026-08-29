@@ -229,21 +229,9 @@ describe('Divider - Rendering & Behavior', () => {
 		expect(lineStyle.borderStyle).toBe('dashed');
 	});
 
-	it('prioritizes color prop over semantic variants', () => {
-		const explicitColor = '#123abc';
+	it('uses a soft palette shade (3) for a palette color — tuned for separators', () => {
 		const { getByTestId } = render(
-			<Divider testID="divider" color={explicitColor} colorVariant="primary" />
-		);
-		const divider = getByTestId('divider');
-		const [line] = getChildInstances(divider);
-		const lineStyle = flattenStyle(line.props.style);
-
-		expect(lineStyle.borderTopColor).toBe(explicitColor);
-	});
-
-	it('uses a soft palette shade (3) for colorVariant — tuned for separators', () => {
-		const { getByTestId } = render(
-			<Divider testID="divider" colorVariant="primary" />
+			<Divider testID="divider" color="primary" />
 		);
 		const divider = getByTestId('divider');
 		const [line] = getChildInstances(divider);

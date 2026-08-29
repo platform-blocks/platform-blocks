@@ -6,7 +6,7 @@ const scenes = [
   { title: 'Desert journey', src: require('../../../../assets/images/scene-desert.png') },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Carousel height={280} loop showArrows showDots>
       {scenes.map(({ title, src }) => (

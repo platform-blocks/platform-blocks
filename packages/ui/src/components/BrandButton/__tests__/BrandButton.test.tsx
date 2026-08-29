@@ -32,7 +32,6 @@ jest.mock('../../BrandIcon', () => {
   const React = require('react');
   return {
     brandIcons: jest.requireActual('../../BrandIcon/brands').brandIcons,
-    resolveBrandName: jest.requireActual('../../BrandIcon/brands').resolveBrandName,
     BrandIcon: (props: any) => {
       brandIconPropsLog.push(props);
       return React.createElement('BrandIcon', props);
@@ -41,7 +40,7 @@ jest.mock('../../BrandIcon', () => {
 });
 
 jest.mock('../../../core/utils/universalSimple', () => ({
-  shouldHideComponent: (props: any, scheme: 'light' | 'dark') =>
+  useShouldHideComponent: (props: any, scheme: 'light' | 'dark') =>
     mockShouldHideComponent(props, scheme),
   extractUniversalProps: (props: any) => mockExtractUniversalProps(props),
 }));
@@ -132,13 +131,6 @@ describe('BrandButton', () => {
     for (const brand of Object.keys(brandIcons)) {
       expect([brand, brand in brandColors]).toEqual([brand, true]);
     }
-  });
-
-  it('resolves deprecated camelCase brands onto their canonical config', () => {
-    expect(resolveBrandConfig('googlePlay' as any)).toEqual({
-      icon: 'google-play',
-      ...brandColors['google-play'],
-    });
   });
 
   describe('badge layout', () => {

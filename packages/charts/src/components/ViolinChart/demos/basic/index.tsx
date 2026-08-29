@@ -2,7 +2,7 @@ import { ViolinChart } from '@platform-blocks/charts';
 
 import { SERIES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <ViolinChart
       title="Delivery time distribution"

@@ -6,7 +6,7 @@ const ITEMS = [
   { id: 'accessibility', value: 'Accessibility', depth: 1 },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Row gap="md" align="flex-start" wrap="wrap">
       <TableOfContents initialData={ITEMS} variant="outline" size="xs" style={{ width: 200 }} />

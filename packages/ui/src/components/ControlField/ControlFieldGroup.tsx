@@ -111,7 +111,7 @@ export const ControlFieldGroup = factory<{ props: ControlFieldGroupProps; ref: V
                 {padded}
                 {dividers && index < items.length - 1 ? (
                   <Divider
-                    colorVariant="border"
+                    color="border"
                     style={insetDividers ? { marginLeft: px } : undefined}
                   />
                 ) : null}

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Block, DatePicker, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState<Date | null>(null);
   const [inlineError, setInlineError] = useState('');
 
@@ -24,7 +24,7 @@ export default function Demo() {
         onChange={handleChange}
         calendarProps={{ minDate: today, highlightToday: true }}
       />
-      <Text size="sm" colorVariant={inlineError ? 'error' : 'secondary'}>
+      <Text size="sm" color={inlineError ? 'error' : 'secondary'}>
         {inlineError || 'Only dates today or later are enabled'}
       </Text>
     </Block>

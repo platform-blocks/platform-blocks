@@ -3,7 +3,7 @@ import { SparklineChart } from '@platform-blocks/charts';
 
 import { TEAMS } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <View style={{ padding: 16, backgroundColor: '#fff', borderRadius: 12 }}>
       <Text style={{ fontSize: 15, fontWeight: '600', marginBottom: 4 }}>Deploy Velocity by Team</Text>

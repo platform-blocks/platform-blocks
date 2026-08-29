@@ -2,6 +2,7 @@ import React, { createContext, useContext, forwardRef, useState, useCallback } f
 import { View, Text, ViewStyle, TextStyle, LayoutChangeEvent } from 'react-native';
 import { TimelineProps, TimelineItemProps, TimelineContextValue, TimelineSizeMetrics } from './types';
 import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { clampComponentSize, resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
 
 // Context
@@ -50,30 +51,12 @@ const resolveTimelineMetrics = (value: ComponentSizeValue): TimelineSizeMetrics 
 };
 
 // Token resolver (palette.shade or palette)
-const resolveTokenColor = (token: string | undefined, theme: any): string | undefined => {
-  if (!token) return undefined;
-  const m = token.match(/^([a-zA-Z0-9_-]+)\.(\d{1,2})$/);
-  if (m) {
-    const [, palette, shadeStr] = m;
-    const shade = parseInt(shadeStr, 10);
-    const pal = theme.colors[palette];
-    if (pal && Array.isArray(pal) && pal[shade] != null) return pal[shade];
-  }
-  const pal = theme.colors[token];
-  if (pal) {
-    if (Array.isArray(pal)) return pal[5] || pal[0];
-    return pal;
-  }
-  return token; // assume raw color string
-};
-
 // Item
 const TimelineItem = forwardRef<View, TimelineItemProps & { itemIndex?: number; isLastItem?: boolean }>(({
   children,
   title,
   timestamp,
   bullet,
-  colorVariant,
   lineVariant = 'solid',
   color,
   titleColor,
@@ -112,10 +95,7 @@ const TimelineItem = forwardRef<View, TimelineItemProps & { itemIndex?: number; 
     }
   }, [patternHeight]);
 
-  // Resolve item color precedence
-  const resolvedItemColor = color
-    ? color
-    : (colorVariant ? resolveTokenColor(colorVariant, theme) : timelineColor);
+  const resolvedItemColor = resolveAccentColor(theme, color) ?? timelineColor;
 
   const resolvedTitleColor = titleColor ?? timelineTitleColor;
   const resolvedDescriptionColor = descriptionColor ?? timelineDescriptionColor;
@@ -368,7 +348,6 @@ const Timeline = forwardRef<View, TimelineProps>(({
   children,
   active,
   color,
-  colorVariant,
   titleColor,
   descriptionColor,
   timestampColor,
@@ -384,7 +363,7 @@ const Timeline = forwardRef<View, TimelineProps>(({
   const clampedSize = clampComponentSize(size, TIMELINE_ALLOWED_SIZES);
   const baseMetrics = resolveTimelineMetrics(clampedSize);
 
-  const resolvedTimelineColor = color || resolveTokenColor(colorVariant, theme) || theme.colors.primary[5];
+  const resolvedTimelineColor = resolveAccentColor(theme, color) ?? theme.colors.primary[5];
 
   const effectiveLineWidth = lineWidth ?? baseMetrics.lineWidth;
   const effectiveBulletSize = bulletSize ?? baseMetrics.bulletSize;

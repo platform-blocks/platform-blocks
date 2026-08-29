@@ -109,7 +109,7 @@ export const createInputStyles = (
         minHeight: 20, // Set a minimum height for the text input
         fontFamily: theme.fontFamily,
         // Remove any web-specific styling that could interfere
-        ...(typeof window !== 'undefined' && {
+        ...(Platform.OS === 'web' && {
           outlineWidth: 0,
           outlineStyle: 'none',
           border: 'none',
@@ -191,7 +191,7 @@ export const createInputStyles = (
           // Inputs sit flat on the surface: no focus ring, no elevation — focus is
           // carried entirely by `borderColor`, so light and dark read the same.
           elevation: 0,
-          ...(typeof window !== 'undefined' && props.disabled && ({ cursor: 'not-allowed', opacity: 0.75 } as any)),
+          ...(Platform.OS === 'web' && props.disabled && ({ cursor: 'not-allowed', opacity: 0.75 } as any)),
         };
       })(),
       

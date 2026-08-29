@@ -1,13 +1,13 @@
 import { Block, Divider, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Block>
         <Text variant="p" weight="medium">
           Release Notes
         </Text>
-        <Text variant="p" colorVariant="muted">
+        <Text variant="p" color="muted">
           Default solid divider keeps sections crisp.
         </Text>
         <Divider variant="solid" />
@@ -20,7 +20,7 @@ export default function Demo() {
         <Text variant="p" weight="medium">
           Sprint Checklist
         </Text>
-        <Text variant="p" colorVariant="muted">
+        <Text variant="p" color="muted">
           Dashed lines work nicely for in-progress flows.
         </Text>
         <Divider variant="dashed" />
@@ -33,7 +33,7 @@ export default function Demo() {
         <Text variant="p" weight="medium">
           Creator Status
         </Text>
-        <Text variant="p" colorVariant="muted">
+        <Text variant="p" color="muted">
           Dotted borders add a softer visual break.
         </Text>
         <Divider variant="dotted" />
@@ -46,10 +46,10 @@ export default function Demo() {
         <Text variant="p" weight="medium">
           Section break
         </Text>
-        <Text variant="p" colorVariant="muted">
+        <Text variant="p" color="muted">
           Gradient variant fades the line in and out — softer than a hard rule.
         </Text>
-        <Divider variant="gradient" colorVariant="primary" />
+        <Divider variant="gradient" color="primary" />
         <Text variant="p">
           The fade keeps long-form content breathable without dropping a horizontal stripe.
         </Text>
@@ -67,7 +67,7 @@ export default function Demo() {
         <Text variant="small" weight="medium">
           Scheduled
         </Text>
-        <Divider orientation="vertical" variant="dotted" label="Beta" colorVariant="warning" style={{ height: 48 }} />
+        <Divider orientation="vertical" variant="dotted" label="Beta" color="warning" style={{ height: 48 }} />
         <Text variant="small" weight="medium">
           Archived
         </Text>

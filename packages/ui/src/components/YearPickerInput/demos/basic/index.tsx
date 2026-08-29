@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Block, Text, YearPickerInput } from '@platform-blocks/ui';
 
-export default function BasicYearPickerInputDemo() {
+export function Demo() {
   const [value, setValue] = useState<Date | null>(null);
 
   return (
@@ -14,7 +14,7 @@ export default function BasicYearPickerInputDemo() {
         clearable
         fullWidth
       />
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         {value ? `Selected: ${value.getFullYear()}` : 'No year selected'}
       </Text>
     </Block>

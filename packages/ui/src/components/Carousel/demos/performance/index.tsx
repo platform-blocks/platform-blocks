@@ -2,7 +2,7 @@ import { Block, Carousel, Text } from '@platform-blocks/ui';
 
 const slides = ['#1E3A8A', '#047857', '#9333EA', '#B91C1C', '#B45309', '#0F766E'];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Carousel height={180} loop showArrows windowSize={3} reducedMotion slideGap={12}>
       {slides.map((bg, index) => (

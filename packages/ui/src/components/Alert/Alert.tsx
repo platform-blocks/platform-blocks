@@ -11,10 +11,11 @@ import { semanticIcons, type SemanticIconRole } from '../../core/theme/semanticI
 import { SpacingProps, getSpacingStyles, extractSpacingProps, mergeSlotProps } from '../../core/utils';
 import { Icon } from '../Icon';
 
-import type { AlertProps, AlertColor, AlertSeverity, AlertFactoryPayload } from './types';
+import type { AlertProps, AlertSeverity, AlertFactoryPayload } from './types';
+import type { ThemeColor } from '../../core/theme/resolveColors';
 
 // Helper function to map severity to theme colors
-const getSeverityColor = (severity: AlertSeverity): AlertColor => {
+const getSeverityColor = (severity: AlertSeverity): ThemeColor => {
   switch (severity) {
     case 'info':
       return 'primary';
@@ -39,7 +40,7 @@ function AlertBase(props: AlertProps, ref: React.Ref<View>) {
   const {
     variant = 'light',
     color = 'primary',
-    sev,
+    severity,
     title,
     children,
     icon,
@@ -65,7 +66,7 @@ function AlertBase(props: AlertProps, ref: React.Ref<View>) {
   const padding = getSpacing('md');
 
   // Determine final color - severity overrides color prop
-  const finalColor = sev ? getSeverityColor(sev) : color;
+  const finalColor = severity ? getSeverityColor(severity) : color;
   
   // Determine final icon based on icon prop value
   const getFinalIcon = () => {
@@ -85,8 +86,8 @@ function AlertBase(props: AlertProps, ref: React.Ref<View>) {
     }
     
     // If icon is null or undefined and severity exists, use default severity icon
-    if ((icon === null || icon === undefined) && sev) {
-      return getSeverityIcon(sev);
+    if ((icon === null || icon === undefined) && severity) {
+      return getSeverityIcon(severity);
     }
     
     // If icon is null or undefined and no severity, show no icon
@@ -187,6 +188,3 @@ function AlertBase(props: AlertProps, ref: React.Ref<View>) {
 export const Alert = factory<AlertFactoryPayload>(AlertBase);
 
 Alert.displayName = 'Alert';
-
-/** @deprecated Use `Alert`. `Notice` is kept as a back-compat alias. */
-export const Notice = Alert;

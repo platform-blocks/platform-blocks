@@ -20,23 +20,23 @@ const examples = [
 const bodyCopy =
   'Vivamus fermentum orci eget tortor facilisis, eu egestas eros maximus. Fusce vitae semper libero. Pellentesque habitant morbi tristique senectus et netus.';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Card p="md">
       <Block>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Control whether the content renders expanded on mount or waits for user input. Both states remain accessible to assistive tech.
         </Text>
         <Block>
           {examples.map((example) => (
             <Block key={example.key}>
-              <Text size="xs" colorVariant="secondary">
+              <Text size="xs" color="secondary">
                 {example.label}
               </Text>
               <Spoiler maxHeight={72} {...example.props}>
                 <Text size="sm">{bodyCopy}</Text>
               </Spoiler>
-              <Text size="xs" colorVariant="muted">
+              <Text size="xs" color="muted">
                 {example.description}
               </Text>
             </Block>

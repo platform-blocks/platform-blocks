@@ -2,7 +2,7 @@ import { AreaChart } from '@platform-blocks/charts';
 
 import { INVENTORY_SERIES, formatMonth } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <AreaChart
       title="Inventory Levels by Warehouse"

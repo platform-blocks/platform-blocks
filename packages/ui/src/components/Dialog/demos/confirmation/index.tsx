@@ -2,7 +2,7 @@ import { Alert } from 'react-native';
 
 import { Block, Button, Row, Text, useDialog } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const { openDialog, closeDialog } = useDialog();
 
   const showConfirmationDialog = () => {
@@ -12,7 +12,7 @@ export default function Demo() {
       content: (
         <Block p="md">
           <Text>Are you sure you want to delete this item?</Text>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             This action cannot be undone.
           </Text>
 

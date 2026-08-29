@@ -16,7 +16,7 @@ const releaseFlow = [
   { title: 'Launch', variant: 'solid' as const },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block direction="row" justify="space-between" fullWidth>
       {variantExamples.map((example) => (

@@ -1,13 +1,13 @@
 import { ButtonProps } from '../Button';
 import { UniversalSystemProps } from '../../core/utils/universalSimple';
-import { resolveBrandName, type BrandName, type DeprecatedBrandName } from '../BrandIcon';
+import type { BrandName } from '../BrandIcon';
 
 /**
  * Any brand the icon registry knows, plus the pre-rebrand `twitter` alias.
  * Widened from a hand-kept list so badge-only brands (`google-play`,
  * `soundcloud`, …) are addressable from the same component.
  */
-export type BrandPlatform = BrandName | DeprecatedBrandName | 'twitter';
+export type BrandPlatform = BrandName | 'twitter';
 
 export interface BrandConfig {
   /** Canonical registry name of the mark to render */
@@ -121,6 +121,6 @@ export const resolveBrandConfig = (brand: BrandPlatform): BrandConfig => {
   const legacy = LEGACY_BRAND_CONFIGS[brand as 'twitter'];
   if (legacy) return legacy;
 
-  const icon = resolveBrandName(brand as BrandName);
+  const icon = brand as BrandName;
   return { icon, ...(brandColors[icon] ?? FALLBACK_BRAND_COLORS) };
 };

@@ -4,7 +4,7 @@ import { Block, Calendar, Text } from '@platform-blocks/ui';
 const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
 const dateFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
 
-export default function Demo() {
+export function Demo() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
 
   const { minDate, maxDate, monthLabel } = useMemo(() => {
@@ -23,10 +23,10 @@ export default function Demo() {
         maxDate={maxDate}
         highlightToday
       />
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Selected date: {selectedDate ? dateFormatter.format(selectedDate) : 'none'}
       </Text>
-      <Text size="xs" colorVariant="secondary">
+      <Text size="xs" color="secondary">
         Only dates in {monthLabel} are enabled.
       </Text>
     </Block>

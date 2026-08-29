@@ -1,6 +1,6 @@
 import { BrandButton, Row, useToast } from '@platform-blocks/ui';
 
-export default function BadgeUsage() {
+export function Demo() {
   const toast = useToast();
 
   const announce = (store: string) =>

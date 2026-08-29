@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { Block, Card, Image, Text } from '@platform-blocks/ui';
 
-export default function UniversalSpacingDemo() {
+export function Demo() {
   return (
     <Card>
       <Text size="lg" weight="semibold" mb={16}>Universal Spacing Props</Text>

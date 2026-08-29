@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Block, Button, Input, QRCode, Row, Text } from '@platform-blocks/ui';
 import { ERROR_LEVELS, MODULE_SHAPES, PRESETS, SIZES } from './data';
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState<string>(PRESETS[0].value);
   const [size, setSize] = useState<(typeof SIZES)[number]>(SIZES[1]);
   const [errorLevel, setErrorLevel] = useState<(typeof ERROR_LEVELS)[number]>('M');
@@ -11,7 +11,7 @@ export default function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Source content
         </Text>
         <Input
@@ -34,7 +34,7 @@ export default function Demo() {
             </Button>
           ))}
         </Row>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           {value.length} characters
         </Text>
       </Block>
@@ -42,7 +42,7 @@ export default function Demo() {
         <Block maxW={320} w="full">
           <Block>
             <Block>
-              <Text variant="small" colorVariant="muted">
+              <Text variant="small" color="muted">
                 Size
               </Text>
               <Row gap="xs" wrap="wrap">
@@ -59,7 +59,7 @@ export default function Demo() {
               </Row>
             </Block>
             <Block>
-              <Text variant="small" colorVariant="muted">
+              <Text variant="small" color="muted">
                 Error correction
               </Text>
               <Row gap="xs" wrap="wrap">
@@ -74,12 +74,12 @@ export default function Demo() {
                   </Button>
                 ))}
               </Row>
-              <Text variant="small" colorVariant="muted">
+              <Text variant="small" color="muted">
                 L≈7% • M≈15% • Q≈25% • H≈30% recovery
               </Text>
             </Block>
             <Block>
-              <Text variant="small" colorVariant="muted">
+              <Text variant="small" color="muted">
                 Module shape
               </Text>
               <Row gap="xs" wrap="wrap">

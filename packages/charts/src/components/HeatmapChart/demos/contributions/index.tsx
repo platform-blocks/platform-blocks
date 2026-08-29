@@ -2,7 +2,7 @@ import { HeatmapChart } from '@platform-blocks/charts';
 
 import { COLUMNS, CONTRIBUTION_MATRIX, PALETTE, WEEKDAY_LABELS } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <HeatmapChart
       title="Weekly contributions"

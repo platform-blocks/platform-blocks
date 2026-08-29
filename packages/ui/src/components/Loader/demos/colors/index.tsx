@@ -5,7 +5,7 @@ interface LoaderSwatch {
   color: string;
 }
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
 
   const swatches: LoaderSwatch[] = [
@@ -20,7 +20,7 @@ export default function Demo() {
       {swatches.map(({ label, color }) => (
         <Row key={label} gap="md" align="center">
           <Block minW={88}>
-            <Text variant="small" colorVariant="muted">
+            <Text variant="small" color="muted">
               {label}
             </Text>
           </Block>

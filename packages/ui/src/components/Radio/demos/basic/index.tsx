@@ -3,14 +3,14 @@ import { Block, Radio, RadioGroup, Text } from '@platform-blocks/ui';
 
 const TEAMS = ['Falcons', 'Tigers', 'Sharks'] as const;
 
-export default function Demo() {
+export function Demo() {
   const [favoriteTeam, setFavoriteTeam] = useState<string>('Tigers');
   const [ticketType, setTicketType] = useState<string>('reserved');
 
   return (
     <Block>
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Standalone radios
         </Text>
         <Block>
@@ -27,7 +27,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           Grouped selection
         </Text>
         <RadioGroup

@@ -48,7 +48,7 @@ export interface RollingNumberProps extends SpacingProps {
   size?: SizeValue;
   /** Text color. Accepts theme palette syntax (`'primary.6'`, `'dimmed'`) or any CSS color. */
   color?: string;
-  /** Shorthand alias for `color`. */
+  /** Shorthand alias for `color`, resolved identically. `color` wins when both are set. */
   c?: string;
   /** Font weight. */
   weight?: TextStyle['fontWeight'] | 'normal' | 'medium' | 'semibold' | 'bold';

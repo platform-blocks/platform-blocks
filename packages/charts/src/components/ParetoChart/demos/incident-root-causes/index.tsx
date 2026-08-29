@@ -2,7 +2,7 @@ import { ParetoChart } from '@platform-blocks/charts';
 
 import { POSTMORTEM_CAUSES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <ParetoChart
       title="Incident root causes"

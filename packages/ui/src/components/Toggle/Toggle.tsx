@@ -4,6 +4,7 @@ import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme';
 import { getSpacing, getHeight, getFontSize } from '../../core/theme/sizes';
 import { createRadiusStyles } from '../../core/theme/radius';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { 
   getSpacingStyles, 
   getLayoutStyles, 
@@ -29,7 +30,6 @@ const getToggleButtonStyles = (
   disabled: boolean,
   size: any,
   color?: string,
-  colorVariant?: 'primary' | 'secondary' | 'success' | 'error' | 'warning',
   variant?: 'solid' | 'ghost',
   isFirst?: boolean,
   isLast?: boolean,
@@ -38,15 +38,7 @@ const getToggleButtonStyles = (
   const height = getHeight(size);
   const horizontalSpacing = getSpacing(size);
   
-  // Resolve color from colorVariant or direct color prop
-  let baseColor = color;
-  if (colorVariant && (theme.colors as any)[colorVariant]) {
-    const colorPalette = (theme.colors as any)[colorVariant];
-    baseColor = colorPalette[5] || colorPalette[0] || colorPalette;
-  }
-  if (!baseColor) {
-    baseColor = theme.colors.primary[5];
-  }
+  const baseColor = resolveAccentColor(theme, color) ?? theme.colors.primary[5];
   
   const isGhost = variant === 'ghost';
   
@@ -133,7 +125,6 @@ export const ToggleButton = factory<{
     children,
     size: sizeProp,
     color: colorProp,
-    colorVariant: colorVariantProp,
     variant: variantProp,
     style,
     testID,
@@ -154,8 +145,8 @@ export const ToggleButton = factory<{
   
   const disabled = disabledProp ?? groupContext?.disabled ?? false;
   const size = sizeProp ?? groupContext?.size ?? 'md';
+  // A button's own color wins over the group's.
   const color = colorProp ?? groupContext?.color;
-  const colorVariant = colorVariantProp ?? groupContext?.colorVariant;
   const variant = variantProp ?? groupContext?.variant ?? 'solid';
 
   const spacingStyles = getSpacingStyles(spacingProps);
@@ -168,15 +159,7 @@ export const ToggleButton = factory<{
       const height = getHeight(size);
       const horizontalSpacing = getSpacing(size);
       
-      // Resolve color from colorVariant or direct color prop
-      let baseColor = color;
-      if (colorVariant && (theme.colors as any)[colorVariant]) {
-        const colorPalette = (theme.colors as any)[colorVariant];
-        baseColor = colorPalette[5] || colorPalette[0] || colorPalette;
-      }
-      if (!baseColor) {
-        baseColor = theme.colors.primary[5];
-      }
+      const baseColor = resolveAccentColor(theme, color) ?? theme.colors.primary[5];
       
       const isGhost = variant === 'ghost';
       return {
@@ -197,24 +180,16 @@ export const ToggleButton = factory<{
     
     // This will be set by the group
     return {};
-  }, [theme, selected, disabled, size, color, colorVariant, groupContext, variant]);
+  }, [theme, selected, disabled, size, color, groupContext, variant]);
 
   const textColor = useMemo(() => {
-    // Resolve color from colorVariant or direct color prop
-    let baseColor = color;
-    if (colorVariant && (theme.colors as any)[colorVariant]) {
-      const colorPalette = (theme.colors as any)[colorVariant];
-      baseColor = colorPalette[5] || colorPalette[0] || colorPalette;
-    }
-    if (!baseColor) {
-      baseColor = theme.colors.primary[5];
-    }
+    const baseColor = resolveAccentColor(theme, color) ?? theme.colors.primary[5];
     
     if (variant === 'ghost') {
       return selected ? theme.colors.primary[7] : baseColor;
     }
     return selected ? '#FFFFFF' : baseColor;
-  }, [selected, color, colorVariant, theme.colors.primary, variant]);
+  }, [selected, color, theme.colors.primary, variant]);
 
   const handlePress = useCallback(() => {
     if (disabled) return;
@@ -276,7 +251,6 @@ export const ToggleGroup = factory<{
     disabled = false,
     size = 'md',
     color,
-    colorVariant,
     variant,
     orientation = 'horizontal',
     required = false,
@@ -333,10 +307,9 @@ export const ToggleGroup = factory<{
     disabled,
     size,
     color,
-    colorVariant,
     variant,
     required,
-  }), [value, handleChange, exclusive, disabled, size, color, colorVariant, variant, required]);
+  }), [value, handleChange, exclusive, disabled, size, color, variant, required]);
 
   // Clone children with position info for styling
   const childrenWithProps = useMemo(() => {
@@ -353,14 +326,13 @@ export const ToggleGroup = factory<{
           : value === buttonValue;
         
         const effectiveVariant = (child.props as any).variant ?? variant;
-        const effectiveColorVariant = (child.props as any).colorVariant ?? colorVariant;
+        const effectiveColor = (child.props as any).color ?? color;
         const buttonStyles = getToggleButtonStyles(
           theme,
           selected,
           disabled || (child.props.disabled ?? false),
           size,
-          color || child.props.color,
-          effectiveColorVariant,
+          effectiveColor,
           effectiveVariant,
           isFirst,
           isLast,

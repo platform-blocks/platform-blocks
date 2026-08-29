@@ -49,10 +49,8 @@ export interface ControlFieldProps extends BaseComponentProps {
   /** Error message shown below the row when invalid */
   error?: string;
 
-  /** Indicator color (theme color name or literal) */
+  /** Indicator color. A palette token, `'primary.6'` shade syntax, or any CSS color. */
   color?: ColorValue;
-  /** Named color variant applied to the checkbox indicator */
-  colorVariant?: 'primary' | 'secondary' | 'success' | 'error' | 'warning';
   /** Indicator + label size */
   size?: SizeValue;
 
@@ -90,7 +88,6 @@ export interface ControlFieldContextValue {
   isRequired: boolean;
   size: SizeValue;
   color?: ColorValue;
-  colorVariant?: ControlFieldProps['colorVariant'];
   variant: ControlFieldVariant;
 }
 

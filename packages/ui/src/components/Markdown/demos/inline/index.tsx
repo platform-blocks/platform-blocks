@@ -1,6 +1,6 @@
 import { Block, Markdown, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const inlineContent = 'This is **bold text** and this is *italic text* with `inline code`.';
 
   return (

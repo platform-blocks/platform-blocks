@@ -3,7 +3,7 @@ import { Block, Icon, Knob } from '@platform-blocks/ui';
 
 import { STATUS_SCENES } from './data';
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState(0);
 
   const statusMarks = useMemo(

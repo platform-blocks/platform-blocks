@@ -3,6 +3,7 @@ import { Platform, type TextStyle, type ViewStyle } from 'react-native';
 import { getBorderRadius, type RadiusValue } from '../../core/theme/radius';
 import { resolveSurface } from '../../core/theme/surfaces';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
+import { resolveColorProp } from '../../core/theme/resolveColors';
 import type { CodeBlockColorOverrides, CodeBlockTextPalette, CodeBlockToken, CodeBlockVariant } from './types';
 
 /** Order the `colors.text` array form maps onto, one color per token. */
@@ -55,21 +56,13 @@ const HACKER_BORDER = 'rgba(0,255,0,0.22)';
 /** Plain identifiers belong to the skin too — `text.primary` is dark on this panel. */
 const HACKER_TEXT = '#00ff41';
 
-const resolveThemeColor = (theme: PlatformBlocksTheme, token?: string): string | undefined => {
-  if (!token) return undefined;
-  if (token.includes('.')) {
-    const [scale, shade] = token.split('.');
-    const shadeNum = Number(shade);
-    const scaleObj: any = (theme.colors as any)[scale];
-    if (scaleObj && !Number.isNaN(shadeNum) && scaleObj[shadeNum]) {
-      return scaleObj[shadeNum];
-    }
-  }
-  if ((theme.text as any)[token]) {
-    return (theme.text as any)[token];
-  }
-  return token;
-};
+/**
+ * Code-block colors name a `theme.text` role or a palette shade. Bare palette
+ * names stay unresolved on purpose — a token color is a specific shade choice,
+ * so `'primary'` alone is more likely a mistake than a request for shade 5.
+ */
+const resolveThemeColor = (theme: PlatformBlocksTheme, token?: string): string | undefined =>
+  resolveColorProp(theme, token, { scopes: ['text'], shades: [] });
 
 const resolveTextColors = (theme: PlatformBlocksTheme, palette?: CodeBlockTextPalette) => {
   if (!palette) return {};

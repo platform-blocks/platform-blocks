@@ -22,11 +22,9 @@ export interface CheckboxProps extends BaseComponentProps {
   /** Indeterminate state for partial selections */
   indeterminate?: boolean;
   
-  /** Custom color override */
+  /** Indicator color. A palette token (`'success'`), `'primary.6'` shade syntax, or any CSS color. */
   color?: string;
-  
-  /** Named color variant from theme */
-  colorVariant?: 'primary' | 'secondary' | 'success' | 'error' | 'warning';
+
   
   /** Checkbox size */
   size?: SizeValue;
@@ -81,7 +79,7 @@ export interface CheckboxStyleProps {
   disabled: boolean;
   error: boolean;
   size: SizeValue;
+  /** Already resolved to a concrete color by the component. */
   color?: string;
-  colorVariant?: 'primary' | 'secondary' | 'success' | 'error' | 'warning';
   labelPosition?: 'left' | 'right' | 'top' | 'bottom';
 }

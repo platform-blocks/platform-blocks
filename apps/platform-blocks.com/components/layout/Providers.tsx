@@ -17,6 +17,8 @@ import {
   getAllSounds,
   DirectionProvider,
   useThemeMode,
+  literalText,
+  literalBackgrounds,
   type ColorSchemeMode,
   type ThemeModeConfig
 } from '@platform-blocks/ui';
@@ -220,9 +222,12 @@ export const AppProviders: React.FC<Props> = React.memo(({ children }) => {
             themeModeConfig={themeModeConfig}
             withOverlays 
             i18nResources={docsI18nResources}
+            // Colors resolve through the CSS variables defined in app/+html.tsx,
+            // so the prerendered HTML is already in the reader's scheme at first
+            // paint instead of waiting for hydration to restyle it.
+            colorsAsCssVariables
           >
             <ThemeModeHydrator />
-            <ContentReveal />
             <ChartThemeBridge>
               <KeyboardManagerProvider disabled={!keyboardManagerEnabled}>
                 {content}
@@ -286,10 +291,13 @@ const ChartThemeBridge: React.FC<{ children: React.ReactNode }> = ({ children })
   const accentPalette = CHART_SERIES_PALETTE;
 
   const hostBridge = React.useMemo(() => ({
-    textPrimary: theme.text.primary,
-    textSecondary: theme.text.secondary,
-    background: theme.backgrounds.surface,
-    grid: theme.colors.gray?.[3] ?? theme.backgrounds.border ?? '#e5e7eb',
+    // react-native-svg writes these into presentation attributes, which do not
+    // understand `var()` — so the chart bridge reads the literal colors behind
+    // the CSS-variable theme rather than the references themselves.
+    textPrimary: literalText(theme).primary,
+    textSecondary: literalText(theme).secondary,
+    background: literalBackgrounds(theme).surface,
+    grid: theme.colors.gray?.[3] ?? literalBackgrounds(theme).border ?? '#e5e7eb',
     accentPalette,
     fontFamily: theme.fontFamily,
   }), [theme, accentPalette]);
@@ -365,36 +373,3 @@ const ThemeModeHydrator: React.FC = () => {
 
 ThemeModeHydrator.displayName = 'ThemeModeHydrator';
 
-/**
- * Lifts the `platform-blocks-content-pending` class that the pre-hydration
- * script in app/+html.tsx stamps on <html> for dark-theme readers. By the time
- * this effect's animation frame fires, the theme provider has re-rendered the
- * tree with the resolved (dark) theme, so revealing here is what turns
- * "light content flashes, then darkens" into "dark backdrop, then dark
- * content". The script's own timer remains the fallback if this never runs.
- */
-const ContentReveal: React.FC = () => {
-  useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') {
-      return;
-    }
-
-    const reveal = () => {
-      document.documentElement.classList.remove('platform-blocks-content-pending');
-    };
-
-    if (typeof requestAnimationFrame === 'function') {
-      const frame = requestAnimationFrame(reveal);
-      return () => {
-        cancelAnimationFrame(frame);
-        reveal();
-      };
-    }
-
-    reveal();
-  }, []);
-
-  return null;
-};
-
-ContentReveal.displayName = 'ContentReveal';

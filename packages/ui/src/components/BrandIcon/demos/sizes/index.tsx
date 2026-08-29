@@ -3,7 +3,7 @@ import type { BrandIconProps } from '@platform-blocks/ui';
 
 const SIZES: BrandIconProps['size'][] = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Row align="center" gap="lg" wrap="wrap">
       {SIZES.map((size) => (

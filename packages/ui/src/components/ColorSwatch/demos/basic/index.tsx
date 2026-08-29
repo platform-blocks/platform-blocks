@@ -6,7 +6,7 @@ const colors = [
   '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
 ];
 
-export default function ColorSwatchBasicDemo() {
+export function Demo() {
   const [selectedColor, setSelectedColor] = useState<string>('#FF6B6B');
 
   return (
@@ -26,7 +26,7 @@ export default function ColorSwatchBasicDemo() {
             />
           ))}
         </Flex>
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           Selected: {selectedColor}
         </Text>
       </Flex>

@@ -2,7 +2,7 @@ import { SankeyChart } from '@platform-blocks/charts';
 
 import { LINKS, NODES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <SankeyChart
       title="Customer journey flow"

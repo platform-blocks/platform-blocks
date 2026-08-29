@@ -1,6 +1,6 @@
 import { Block, Button, Text, useDialog } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const { openDialog, closeDialog } = useDialog();
 
   const open = (titleProps: any) => {
@@ -46,7 +46,7 @@ export default function Demo() {
       <Button
         onPress={() =>
           open({
-            colorVariant: 'primary',
+            color: 'primary',
             weight: '700',
             ff: 'monospace',
           })

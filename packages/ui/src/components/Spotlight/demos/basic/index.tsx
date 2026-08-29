@@ -24,18 +24,18 @@ const actions: SpotlightProps['actions'] = [
   },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [store] = useSpotlightStoreInstance();
 
   return (
     <Block>
       <Card p="md">
         <Block>
-          <Text size="sm" colorVariant="secondary">
+          <Text size="sm" color="secondary">
             Spotlight provides a keyboard-driven command palette. Open it with `⌘K` or `Ctrl+K`, or trigger it imperatively from a button.
           </Text>
           <Button onPress={() => store.open()}>Open spotlight</Button>
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             You can reuse the same store across multiple triggers.
           </Text>
         </Block>

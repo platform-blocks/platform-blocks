@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, Card, Code, PhoneInput, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [us, setUs] = useState('');
   const [uk, setUk] = useState('');
   const [fr, setFr] = useState('');
@@ -11,7 +11,7 @@ export default function Demo() {
   return (
     <Block fullWidth>
       <Text weight="semibold">Country formatting</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Compare built-in masks for several countries. Each input stores digits only while rendering a localized format.
       </Text>
 
@@ -48,7 +48,7 @@ export default function Demo() {
 
       <Card variant="outline" p="sm">
         <Block>
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Raw digit values
           </Text>
           <Code size="sm">{JSON.stringify({ us, uk, fr, br }, null, 2)}</Code>

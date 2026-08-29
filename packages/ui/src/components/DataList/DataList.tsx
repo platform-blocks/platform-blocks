@@ -74,7 +74,7 @@ const DataListItemLabel = forwardRef<View, DataListItemLabelProps>(({ children, 
       <Text
         size={metrics.fontSize}
         weight="medium"
-        {...(resolvedColor ? { color: resolvedColor } : { colorVariant: 'secondary' })}
+        color={resolvedColor ?? 'secondary'}
       >
         {children}
       </Text>
@@ -90,7 +90,7 @@ const DataListItemValue = forwardRef<View, DataListItemValueProps>(({ children, 
     <View ref={ref} style={style} {...rest}>
       <Text
         size={metrics.fontSize}
-        {...(resolvedColor ? { color: resolvedColor } : { colorVariant: 'primary' })}
+        color={resolvedColor ?? 'primary'}
       >
         {children}
       </Text>

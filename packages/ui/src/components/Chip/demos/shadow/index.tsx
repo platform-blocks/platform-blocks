@@ -1,6 +1,6 @@
 import { Chip, Row } from '@platform-blocks/ui'
 
-export default function Demo() {
+export function Demo() {
   return (
     <Row gap={8} wrap="wrap">
       <Chip shadow="none">No Shadow</Chip>

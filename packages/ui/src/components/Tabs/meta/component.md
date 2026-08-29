@@ -55,7 +55,7 @@ props:
     description: "Raw text style applied to all tab labels (escape hatch)."
   - name: "labelProps"
     type: "Omit<TextProps, 'children'>"
-    description: "Rich Text-prop overrides applied to all tab labels (ff, weight, tracking, uppercase, size, colorVariant, style)."
+    description: "Rich Text-prop overrides applied to all tab labels (ff, weight, tracking, uppercase, size, color, style)."
 ---
 
 Tabs organize content into multiple sections that users can navigate between. The component supports various visual styles, orientations, and interactive behaviors while maintaining accessibility standards.

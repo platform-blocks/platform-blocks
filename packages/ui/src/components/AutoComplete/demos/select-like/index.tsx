@@ -3,7 +3,7 @@ import { AutoComplete, Block } from '@platform-blocks/ui';
 import type { AutoCompleteOption } from '@platform-blocks/ui';
 import { countries } from '../data'
 
-export default function Demo() {
+export function Demo() {
   const [inputValue, setInputValue] = useState('')
   const [selectedCountry, setSelectedCountry] = useState<AutoCompleteOption | null>(null)
 

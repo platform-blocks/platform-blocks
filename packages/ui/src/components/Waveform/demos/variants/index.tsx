@@ -9,7 +9,7 @@ const VARIANTS = [
   { variant: 'gradient', hint: 'Bars filled with a color ramp.' },
 ] as const;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block gap="lg">
       <Block gap="sm">
@@ -22,7 +22,7 @@ export default function Demo() {
               <Text variant="small" weight="medium">
                 {variant}
               </Text>
-              <Text size="xs" colorVariant="secondary">
+              <Text size="xs" color="secondary">
                 {hint}
               </Text>
             </Row>
@@ -35,7 +35,7 @@ export default function Demo() {
             />
           </Block>
         ))}
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           The gradient ramp is derived from `color`; pass `gradientColors` to
           supply your own stops.
         </Text>

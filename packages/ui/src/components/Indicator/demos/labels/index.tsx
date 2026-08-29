@@ -17,11 +17,11 @@ const Anchor = ({ children }: { children?: React.ReactNode }) => (
   </View>
 );
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Block>
-        <Text size="sm" colorVariant="muted">Numeric counts</Text>
+        <Text size="sm" color="muted">Numeric counts</Text>
         <Row gap="lg">
           <Anchor>
             <Indicator size={20} color="#ef4444" label={3} />
@@ -36,7 +36,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" colorVariant="muted">
+        <Text size="sm" color="muted">
           Monospace badge with custom label styling
         </Text>
         <Row gap="lg">
@@ -61,7 +61,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" colorVariant="muted">Custom child content (children, not label)</Text>
+        <Text size="sm" color="muted">Custom child content (children, not label)</Text>
         <Row gap="lg">
           <Anchor>
             <Indicator size={16} color="#10b981">

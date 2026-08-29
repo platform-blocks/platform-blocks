@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ControlField } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [wifi, setWifi] = useState(true);
   const [bluetooth, setBluetooth] = useState(false);
   const [airplane, setAirplane] = useState(false);

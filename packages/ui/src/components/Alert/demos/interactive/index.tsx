@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, Button } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [visible, setVisible] = useState(true);
 
   if (!visible) {
@@ -14,7 +14,7 @@ export default function Demo() {
 
   return (
     <Alert
-      sev="warning"
+      severity="warning"
       title="Draft warning"
       withCloseButton
       onClose={() => setVisible(false)}

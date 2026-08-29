@@ -1,6 +1,6 @@
 import { Alert, Block } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Alert variant="light" color="primary" title="Light">

@@ -1,6 +1,6 @@
 import { Block, KeyCap, Row, Search, Text, useToast } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const toast = useToast();
 
   const handleCustomPress = () => {
@@ -10,7 +10,7 @@ export default function Demo() {
   return (
     <Block maxW={420} w="100%">
       <Block>
-        <Text size="xs" colorVariant="muted">
+        <Text size="xs" color="muted">
           Default Spotlight launcher
         </Text>
         <Search
@@ -26,7 +26,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text size="xs" colorVariant="muted">
+        <Text size="xs" color="muted">
           Custom handler with shortcut hint
         </Text>
         <Search

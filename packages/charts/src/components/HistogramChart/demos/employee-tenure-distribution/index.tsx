@@ -2,7 +2,7 @@ import { HistogramChart } from '@platform-blocks/charts';
 
 import { TENURE_YEARS, medianTenure } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <HistogramChart
       title="Employee tenure distribution"

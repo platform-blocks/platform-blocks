@@ -51,8 +51,8 @@ export interface JoystickProps extends SpacingProps {
   handleSize?: number;
   /** Visual preset. Default `'default'`. */
   variant?: JoystickVariant;
-  /** Theme palette key (`'primary'`, `'grape'`, …) or any color string. */
-  colorScheme?: string;
+  /** Accent color: a palette token (`'primary'`), `'primary.6'` shade syntax, or any CSS color. */
+  color?: string;
   /** Base surface color override. */
   baseColor?: string;
   /** Handle color override. */

@@ -38,11 +38,11 @@ This is a **markdown** example with \`inline code\`.
 
 > Blockquote with *emphasis* and **bold** text.`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block fullWidth>
       <Text weight="semibold">Language presets</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         CodeBlock detects syntax styles across languages like TypeScript, JSON, and Markdown.
       </Text>
       <Block>

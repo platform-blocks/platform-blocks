@@ -349,7 +349,7 @@ export const TableCaption = React.forwardRef<View, TableSectionProps>((allProps,
     <View ref={ref} style={[styles.caption, getSpacingStyles(spacingProps), style]}>
       <Text
         variant="small"
-        colorVariant="secondary"
+        color="secondary"
         style={{ textAlign: 'center' }}
       >
         {children}

@@ -24,11 +24,11 @@ export function filterActive(users: User[]) {
   return users.filter((u) => u.active);
 }`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block fullWidth>
       <Text weight="semibold">Highlighted lines</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Combine individual lines and ranges in the highlightLines prop to emphasize key logic.
       </Text>
   <CodeBlock title="Highlighted lines" showLineNumbers highlightLines={['1', '5-9', '11-14', '20-22']}>

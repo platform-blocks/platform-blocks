@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, Icon, Input, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [workspace, setWorkspace] = useState('');
   const [search, setSearch] = useState('');
 
@@ -13,7 +13,7 @@ export default function Demo() {
         placeholder="my-workspace"
         value={workspace}
         onChangeText={setWorkspace}
-        startSection={<Text ff="monospace" colorVariant="muted">https://</Text>}
+        startSection={<Text ff="monospace" color="muted">https://</Text>}
         startSectionProps={{ style: { paddingRight: 8 } }}
       />
 

@@ -13,7 +13,7 @@ const GROUPS = [
   }
 ] as const;
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
 
   return (
@@ -34,7 +34,7 @@ export default function Demo() {
               </Button>
             </Row>
           </Block>
-          <Text variant="small" colorVariant="muted">
+          <Text variant="small" color="muted">
             {helper}
           </Text>
         </Block>

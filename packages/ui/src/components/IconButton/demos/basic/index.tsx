@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Block, Card, Divider, IconButton, Row, Switch, Text } from '@platform-blocks/ui';
 
-export default function IconButtonDemo() {
+export function Demo() {
   const [loading, setLoading] = useState(false);
   const [disabled, setDisabled] = useState(false);
 
@@ -12,7 +12,7 @@ export default function IconButtonDemo() {
   return (
     <Block p="lg">
       <Text variant="h4">IconButton Component Demo</Text>
-      <Text colorVariant="muted">
+      <Text color="muted">
         IconButton is designed specifically for displaying icons in square or circular shapes.
         Use radius="xl" for circular buttons.
       </Text>
@@ -144,7 +144,7 @@ export default function IconButtonDemo() {
                 onPress={() => handlePress('square-sm')}
                 tooltip="Small Radius (Square-ish)"
               />
-              <Text size="xs" colorVariant="muted">radius="sm"</Text>
+              <Text size="xs" color="muted">radius="sm"</Text>
             </Block>
             <Block align="center">
               <IconButton
@@ -153,7 +153,7 @@ export default function IconButtonDemo() {
                 onPress={() => handlePress('square-md')}
                 tooltip="Medium Radius"
               />
-              <Text size="xs" colorVariant="muted">radius="md"</Text>
+              <Text size="xs" color="muted">radius="md"</Text>
             </Block>
             <Block align="center">
               <IconButton
@@ -162,7 +162,7 @@ export default function IconButtonDemo() {
                 onPress={() => handlePress('square-lg')}
                 tooltip="Large Radius"
               />
-              <Text size="xs" colorVariant="muted">radius="lg"</Text>
+              <Text size="xs" color="muted">radius="lg"</Text>
             </Block>
             <Block align="center">
               <IconButton
@@ -171,7 +171,7 @@ export default function IconButtonDemo() {
                 onPress={() => handlePress('circular')}
                 tooltip="Circular (XL Radius)"
               />
-              <Text size="xs" colorVariant="muted">radius="xl" (circular)</Text>
+              <Text size="xs" color="muted">radius="xl" (circular)</Text>
             </Block>
           </Row>
         </Block>

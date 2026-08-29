@@ -5,7 +5,7 @@ import { randomValue } from './randomValue';
 
 const TRANSITION_MS = 400;
 
-export default function Demo() {
+export function Demo() {
   const [completion, setCompletion] = useState<number>(50);
   return (
     <Block fullWidth >

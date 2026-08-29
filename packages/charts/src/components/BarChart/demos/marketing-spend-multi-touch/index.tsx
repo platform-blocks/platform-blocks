@@ -4,7 +4,7 @@ import { CAMPAIGN_SPEND, TOTAL_SPEND } from './data';
 
 const formatSpend = (value: number) => `$${value.toLocaleString()}k`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <BarChart
       title="Marketing spend by channel"

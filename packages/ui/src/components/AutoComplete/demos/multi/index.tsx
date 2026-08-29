@@ -4,7 +4,7 @@ import { AutoComplete, Block, Chip, Icon } from '@platform-blocks/ui';
 import type { AutoCompleteOption } from '@platform-blocks/ui';
 import { musicGenres } from '../data'
 
-export default function Demo() {
+export function Demo() {
   const [inputValue, setInputValue] = useState('')
   const [selectedGenres, setSelectedGenres] = useState<AutoCompleteOption[]>([])
 

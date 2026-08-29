@@ -10,7 +10,7 @@ const LEVEL_MARKS = [
   { value: 100, label: 'Max' },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [level, setLevel] = useState(48);
 
   return (

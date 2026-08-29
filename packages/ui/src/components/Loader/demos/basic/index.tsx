@@ -1,6 +1,6 @@
 import { Loader, Row } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Row gap="lg" align="center">
       <Loader variant="oval" />

@@ -2,7 +2,7 @@ import { LineChart } from '@platform-blocks/charts';
 
 import { COOLING_SEASON, MONTHS, PORTFOLIO_TARGET, SERIES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <LineChart
       title="Energy Consumption Across Office Portfolio"

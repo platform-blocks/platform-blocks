@@ -1,10 +1,9 @@
 import { Blockquote } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Blockquote
       variant="testimonial"
-      // shadow
       author={{
         name: 'Priya Shah',
         title: 'CTO',

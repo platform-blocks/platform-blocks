@@ -1,10 +1,10 @@
 import { BrandIcon, Block, Row, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="small" colorVariant="secondary">
+        <Text variant="small" color="secondary">
           Authentic brand palettes
         </Text>
         <Row align="center" gap="md" wrap="wrap">
@@ -17,7 +17,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" colorVariant="secondary">
+        <Text variant="small" color="secondary">
           Custom blue
         </Text>
         <Row align="center" gap="md" wrap="wrap">
@@ -30,7 +30,7 @@ export default function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" colorVariant="secondary">
+        <Text variant="small" color="secondary">
           Custom red
         </Text>
         <Row align="center" gap="md" wrap="wrap">

@@ -11,7 +11,7 @@ const columns: DataTableColumn<Sale>[] = [
   { key: 'revenue', header: 'Revenue', accessor: 'revenue', dataType: 'currency', align: 'right', aggregate: 'sum' },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <DataTable
       data={rows}

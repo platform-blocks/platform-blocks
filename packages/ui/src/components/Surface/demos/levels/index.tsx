@@ -7,7 +7,7 @@ const LEVELS = [
   { level: 3 as const, label: 'Level 3 — takes over the screen' },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block fullWidth>
       {LEVELS.map(({ level, label }) => (

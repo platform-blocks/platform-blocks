@@ -3,7 +3,7 @@ import { Slider, Text, Block, Card } from '@platform-blocks/ui';
 
 const VARIANTS = ['default', 'filled', 'outline', 'minimal', 'segmented', 'unstyled'] as const;
 
-export default function Demo() {
+export function Demo() {
   const [value, setValue] = useState(40);
 
   return (

@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { WaveformStyleProps } from './types';
 import { PlatformBlocksTheme } from '../../core/theme/types';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
 
 export const useWaveformStyles = (props: WaveformStyleProps & { theme: PlatformBlocksTheme }) => {
   const { 
@@ -13,13 +14,9 @@ export const useWaveformStyles = (props: WaveformStyleProps & { theme: PlatformB
     theme 
   } = props;
 
-  // Get color from theme if it's a theme color key
-  const resolvedColor = (() => {
-    if (color && ['primary', 'secondary', 'success', 'warning', 'error', 'gray'].includes(color)) {
-      return theme.colors[color as keyof typeof theme.colors]?.[5] ?? theme.colors.primary[5];
-    }
-    return color || theme.colors.primary[5];
-  })();
+  // The shared resolver covers every palette the theme defines — not just the
+  // six this used to hard-code — plus `primary.6` shade syntax.
+  const resolvedColor = resolveAccentColor(theme, color) ?? theme.colors.primary[5];
 
   const resolvedBackgroundColor = backgroundColor || 'transparent';
 

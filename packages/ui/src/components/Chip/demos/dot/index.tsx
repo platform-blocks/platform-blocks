@@ -1,6 +1,6 @@
 import { Block, Chip, Row, Text } from '@platform-blocks/ui'
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block fullWidth={false}>
       <Row gap="xs" wrap="wrap" align="center">
@@ -14,7 +14,7 @@ export default function Demo() {
         <Chip variant="light" color="gray" dotColor="#F59E0B" dot>Away</Chip>
         <Chip variant="light" color="gray" dotColor="#EF4444" dot>Busy</Chip>
       </Row>
-      <Text size="xs" colorVariant="muted">
+      <Text size="xs" color="muted">
         Use <Text size="xs" weight="600">dot</Text> to toggle the indicator and{' '}
         <Text size="xs" weight="600">dotColor</Text> to set a custom color.
       </Text>

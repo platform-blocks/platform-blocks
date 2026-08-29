@@ -3,11 +3,14 @@ import { View, Platform, Pressable } from 'react-native';
 import { Text } from '../Text';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../core/theme/ThemeProvider';
+import { shellChrome } from '../../core/theme/cssVariableTheme';
 import { resolveSurface } from '../../core/theme/surfaces';
 import type { AppShellBottomNavProps, BottomAppBarItem } from './types';
 import { Search } from '../Search';
 
 const getVariantStyles = (variant: AppShellBottomNavProps['variant'], theme: any, elevation: number | undefined) => {
+  const chrome = shellChrome(theme);
+
   switch (variant) {
     case 'surface':
       // App chrome resting on the page — level 1.
@@ -22,12 +25,12 @@ const getVariantStyles = (variant: AppShellBottomNavProps['variant'], theme: any
     case 'translucent':
       return Platform.select({
         web: {
-          backgroundColor: theme.colorScheme === 'dark' ? 'rgba(20,20,22,0.55)' : 'rgba(255,255,255,0.6)',
+          backgroundColor: chrome.veil,
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
         },
         default: {
-          backgroundColor: theme.colorScheme === 'dark' ? 'rgba(20,20,22,0.75)' : 'rgba(255,255,255,0.82)'
+          backgroundColor: chrome.veilStrong
         }
       });
     case 'solid':
@@ -84,7 +87,7 @@ const NavItem: React.FC<{
           padding: 6,
           borderRadius: 20,
           overflow: 'hidden',
-          backgroundColor: active ? (theme.colorScheme === 'dark' ? theme.colors.primary[8] : theme.colors.primary[0]) : 'transparent'
+          backgroundColor: active ? shellChrome(theme).navActive : 'transparent'
         }}>
           {active && item.activeIcon ? item.activeIcon : item.icon}
         </View>
@@ -136,7 +139,7 @@ export const BottomAppBar = React.forwardRef<View, AppShellBottomNavProps>(({
         {
           ...getVariantStyles(variant, theme, elevation),
           borderTopWidth: withBorder ? 1 : 0,
-          borderTopColor: theme.colorScheme === 'dark' ? theme.colors.gray[2] : theme.colors.gray[1],
+          borderTopColor: shellChrome(theme).border,
           zIndex: zIndex || 1000,
           ...(Platform.OS === 'web'
             ? {

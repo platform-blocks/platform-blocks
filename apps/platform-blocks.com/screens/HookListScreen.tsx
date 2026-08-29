@@ -51,7 +51,7 @@ const HookListScreen: React.FC = () => {
           <Title order={1} size={40} weight="bold">
             Hooks
           </Title>
-          <Text variant="p" colorVariant="secondary">
+          <Text variant="p" color="secondary">
             Browse reusable utilities for keyboard shortcuts, theming, clipboard helpers, and more. Select a hook to view dedicated examples and code snippets generated from the source.
           </Text>
         </Column>
@@ -64,7 +64,7 @@ const HookListScreen: React.FC = () => {
 
         {!artifactsReady && (
           <Card>
-            <Text variant="p" colorVariant="muted">
+            <Text variant="p" color="muted">
               Hook documentation artifacts are missing. Run <Text variant="p" weight="semibold">npm run demos:generate</Text> to regenerate metadata and example bundles.
             </Text>
           </Card>
@@ -72,7 +72,7 @@ const HookListScreen: React.FC = () => {
 
         {filteredHooks.length === 0 ? (
           <Card>
-            <Text variant="p" colorVariant="muted" align="center">
+            <Text variant="p" color="muted" align="center">
               No hooks match "{searchQuery}".
             </Text>
           </Card>
@@ -93,7 +93,7 @@ const HookListScreen: React.FC = () => {
                         {hook.title}
                       </Title>
                       {hook.description && (
-                        <Text variant="small" colorVariant="secondary">
+                        <Text variant="small" color="secondary">
                           {hook.description}
                         </Text>
                       )}

@@ -2,7 +2,7 @@ import { ViolinChart } from '@platform-blocks/charts';
 
 import { FULFILLMENT_CENTERS, SLA_WINDOW, STATS_MARKERS } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <ViolinChart
       title="Delivery time spread by fulfillment center"

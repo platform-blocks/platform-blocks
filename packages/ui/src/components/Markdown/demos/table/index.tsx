@@ -35,11 +35,11 @@ const CONTENT = `# Table examples
 | Input | \`placeholder\`, \`value\`, \`onChange\` | Text input field | \`<Input placeholder="Enter text" />\` |
 | Card | \`variant\`, \`padding\` | Container component | \`<Card variant="outline">Content</Card>\` |`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block fullWidth>
       <Markdown>{CONTENT}</Markdown>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Multiple table layouts rendered with Markdown
       </Text>
     </Block>

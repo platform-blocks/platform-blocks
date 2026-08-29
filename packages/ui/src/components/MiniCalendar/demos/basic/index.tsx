@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Block, MiniCalendar, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
 
   return (
@@ -11,7 +11,7 @@ export default function Demo() {
         onChange={(date: Date | null) => setSelectedDate(date)}
         numberOfDays={7}
       />
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         {selectedDate ? `Selected: ${selectedDate.toLocaleDateString()}` : 'No date selected'}
       </Text>
     </Block>

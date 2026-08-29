@@ -1,6 +1,6 @@
 import { QRCode } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   return (
     <QRCode
       value="https://platform-blocks.com"

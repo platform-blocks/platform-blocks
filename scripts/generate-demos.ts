@@ -626,9 +626,12 @@ function collectDemos() {
     const flushJsDoc = () => {
       if (!jsDocLines.length) return { description: undefined as string | undefined, tags: '' };
       const content = jsDocLines.join('\n');
-      const cleaned = jsDocLines
-        .map(l => l.replace(/^\s*\* ?/, ''))
-        .filter(l => !l.trim().startsWith('@'))
+      // The description is everything before the first `@tag`. Filtering only
+      // the lines that *start* with `@` leaks the continuation lines of a
+      // wrapped tag (a multi-line `@deprecated` note) into the description.
+      const stripped = jsDocLines.map(l => l.replace(/^\s*\* ?/, ''));
+      const firstTag = stripped.findIndex(l => l.trim().startsWith('@'));
+      const cleaned = (firstTag === -1 ? stripped : stripped.slice(0, firstTag))
         .join(' ')
         .replace(/\s+/g, ' ')
         .trim();
@@ -659,7 +662,10 @@ function collectDemos() {
         continue;
       }
       if (line.startsWith('//')) { pendingLineComment = line.replace(/^\/\//, '').trim() || pendingLineComment; continue; }
-      const sigMatch = line.match(/^(readonly\s+)?([A-Za-z0-9_]+)\??:\s*(.+)$/);
+      // The type may start on the next line — a wide union is usually written as
+      // `type?:` followed by one `| 'value'` per line. Requiring a non-empty
+      // remainder here dropped those props from the table entirely.
+      const sigMatch = line.match(/^(readonly\s+)?([A-Za-z0-9_]+)\??:\s*(.*)$/);
       if (!sigMatch) continue;
       const name = sigMatch[2];
       if (dedupe.has(name)) { pendingLineComment = undefined; jsDocLines = []; continue; }
@@ -671,6 +677,8 @@ function collectDemos() {
       const commentSplit = typePortion.split(/\/\/+/);
       if (commentSplit.length > 1) { trailingComment = commentSplit.slice(1).join('//').trim(); typePortion = commentSplit[0].trim(); }
       if (typePortion.endsWith(';')) typePortion = typePortion.slice(0, -1).trim();
+      // A union whose members each sit on their own line arrives as `| 'a' | 'b'`.
+      if (typePortion.startsWith('|')) typePortion = typePortion.slice(1).trim();
       let defaultValue: string | undefined;
       const eqIdx = typePortion.indexOf('=');
       if (eqIdx !== -1) { const two = typePortion.substring(eqIdx, eqIdx + 2); if (two !== '=>') { defaultValue = typePortion.slice(eqIdx + 1).trim(); typePortion = typePortion.slice(0, eqIdx).trim(); } }
@@ -731,6 +739,12 @@ function collectDemos() {
   const chartsSrc = path.join(ROOT, 'packages', 'charts', 'src');
   for (const f of walkTs(chartsSrc, f => f.endsWith('.ts') && !f.endsWith('.d.ts'))) scanForInterfaces(f);
   for (const f of walkTs(UI_COMPONENTS_DIR, f => /(?:^|\/)types\.ts$|\.types\.ts$/.test(f.replace(/\\/g, '/')))) scanForInterfaces(f);
+  // Shared prop bags live in core, not in any component's `types.ts` —
+  // `BorderRadiusProps` (core/theme/radius) and `ShadowProps` (core/theme/shadow)
+  // are extended by Card, Surface, Badge and others, and were silently dropped
+  // from every prop table until this was scanned.
+  const uiCore = path.join(ROOT, 'packages', 'ui', 'src', 'core');
+  for (const f of walkTs(uiCore, f => f.endsWith('.ts') && !f.endsWith('.d.ts'))) scanForInterfaces(f);
 
   // Split an `extends` clause into base specs, honouring `Omit<Base, 'k' | 'j'>`.
   const splitExtends = (ext: string): Array<{ name: string; omit?: string[] }> => {

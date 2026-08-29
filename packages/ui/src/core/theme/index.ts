@@ -18,6 +18,14 @@ export {
 } from './ThemeProvider';
 export { CSSVariables } from './CSSVariables';
 export { useColorScheme } from './useColorScheme';
+export {
+  resolveColorProp,
+  resolveTextColor,
+  resolveBg,
+  resolveAccentColor,
+  resolveLineColor,
+} from './resolveColors';
+export type { ColorScope, ResolveColorOptions, ThemeColor, ThemeColorToken } from './resolveColors';
 export { semanticIcons } from './semanticIcons';
 export type { SemanticIconRole } from './semanticIcons';
 export type { ColorScheme } from './useColorScheme';
@@ -28,3 +36,4 @@ export * from './sizes';
 export * from './componentSize';
 export * from './radius';
 export * from './shadow';
+export * from './cssVariableTheme';

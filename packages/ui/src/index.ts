@@ -11,7 +11,7 @@
 // =============================================================================
 
 // Theme & Provider
-export { PlatformBlocksProvider } from './core/theme/PlatformBlocksProvider';
+export { PlatformBlocksProvider, BUILT_IN_DARK_THEME } from './core/theme/PlatformBlocksProvider';
 export { HapticsProvider, useHapticsSettings } from './core/haptics/HapticsProvider';
 export { useTheme, useThemeVisuals, useThemeLayout, PlatformBlocksThemeProvider } from './core/theme/ThemeProvider';
 export type { ThemeVisuals, ThemeLayout, PlatformBlocksThemeProviderProps } from './core/theme/ThemeProvider';
@@ -22,6 +22,17 @@ export { DARK_THEME } from './core/theme/darkTheme';
 export { resolveVariantRoles, CORE_COLORS } from './core/theme/variantRoles';
 export type { VariantRole, VariantRoles, ResolveVariantOptions } from './core/theme/variantRoles';
 export { withAlpha, readableTextOn, contrastRatio, composite, pickReadable } from './core/theme/colorUtils';
+export {
+  withCssVariableColors,
+  createThemeColorVariablesCss,
+  themeColorVariables,
+  literalText,
+  literalBackgrounds,
+  literalSurfaces,
+  shellChrome,
+  shellChromeColors,
+} from './core/theme/cssVariableTheme';
+export type { ThemeColorVariablesCssOptions, ShellChromeColors, ShellChromeToken } from './core/theme/cssVariableTheme';
 export { useColorScheme } from './core/theme/useColorScheme';
 export { I18nProvider, useI18n } from './core/i18n';
 export { OverlayProvider, useOverlay, useOverlayApi, useOverlays } from './core/providers/OverlayProvider';
@@ -150,6 +161,8 @@ export {
   useBreakpoint,
   useNavbarHover,
   resolveResponsiveValue,
+  APP_SHELL_CSS_VARS,
+  createAppShellCss,
   defineAppLayout,
   AppLayoutProvider,
   AppLayoutRenderer,
@@ -230,7 +243,7 @@ export { Tree, useTreeState } from './components/Tree';
 export { NavTree, buildNavTree } from './components/NavTree';
 
 // Feedback Components
-export { Alert, Notice } from './components/Alert';
+export { Alert } from './components/Alert';
 export { Progress, ProgressRoot, ProgressSection, ProgressLabel } from './components/Progress';
 export { Skeleton } from './components/Skeleton';
 export { Loader } from './components/Loader';
@@ -245,7 +258,7 @@ export {
   setToastViewportOffset
 } from './components/Toast';
 
-export type { ToastViewportOffset } from './components/Toast';
+export type { ToastViewportOffset, ToastItem } from './components/Toast';
 
 // Overlay Components
 export { Dialog, DialogProvider, DialogRenderer, useDialog, useDialogApi, useDialogs, useSimpleDialog, onDialogsRequested } from './components/Dialog';
@@ -274,7 +287,7 @@ export { FloatingActions } from './components/FloatingActions';
 export { Icon } from './components';
 export { IconButton } from './components/IconButton';
 export { Image } from './components/Image';
-export { BrandIcon, brandIcons, resolveBrandName } from './components/BrandIcon';
+export { BrandIcon, brandIcons } from './components/BrandIcon';
 export { Carousel } from './components/Carousel';
 export { Gallery } from './components/Gallery';
 export { Video } from './components/Video';
@@ -415,7 +428,7 @@ export type { DataTableProps, DataTableColumn, DataTableFilter, DataTableSort, D
 export type { InputVariant } from './components/Input';
 export type { SliderVariant } from './components/Slider';
 export type { RadioGroupVariant } from './components/Radio';
-export type { DividerVariant, DividerColorVariant } from './components/Divider';
+export type { DividerVariant } from './components/Divider';
 export type { DisclaimerProps, WithDisclaimerProps, ComponentWithDisclaimerProps, DisclaimerSupport } from './components/_internal/Disclaimer';
 export type { TableProps } from './components/Table';
 export type { TimelineProps } from './components/Timeline';
@@ -424,19 +437,13 @@ export type { TableOfContentsProps } from './components/TableOfContents';
 export type {
   AlertProps,
   AlertVariant,
-  AlertColor,
   AlertSeverity,
-  NoticeProps,
-  NoticeVariant,
-  NoticeColor,
-  NoticeSeverity,
 } from './components/Alert';
 export type {
   ProgressProps,
   ProgressRootProps,
   ProgressSectionProps,
   ProgressLabelProps,
-  ProgressColor,
   ProgressOrientation,
 } from './components/Progress';
 export type { SkeletonProps } from './components/Skeleton';
@@ -451,7 +458,7 @@ export type { ContextMenuProps } from './components/ContextMenu';
 export type { PopoverProps, PopoverTargetProps, PopoverDropdownProps } from './components/Popover';
 export type { SpotlightProps } from './components/Spotlight';
 
-export type { BrandIconProps, BrandName, DeprecatedBrandName } from './components/BrandIcon';
+export type { BrandIconProps, BrandName } from './components/BrandIcon';
 export type { CollapseProps } from './components/Collapse';
 export type { IconButtonProps } from './components/IconButton';
 export type { CarouselProps } from './components/Carousel';

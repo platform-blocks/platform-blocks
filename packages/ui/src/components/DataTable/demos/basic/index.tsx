@@ -11,7 +11,7 @@ const columns: DataTableColumn<Person>[] = [
   { key: 'department', header: 'Department', accessor: 'department', sortable: true },
 ];
 
-export default function Demo() {
+export function Demo() {
   const [sortBy, setSortBy] = useState<DataTableSort[]>([]);
   const [pagination, setPagination] = useState<DataTablePagination>({
     page: 1,

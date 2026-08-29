@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, Row, Text, ToggleButton, ToggleGroup } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [view, setView] = useState('list');
 
   const handleChange = (value: string | number | (string | number)[]) => {
@@ -15,7 +15,7 @@ export default function Demo() {
     <Block>
       <Block>
         <Text weight="semibold">Toggle orientations</Text>
-        <Text size="xs" colorVariant="secondary">
+        <Text size="xs" color="secondary">
           Swap the `orientation` prop to lay buttons out horizontally or vertically.
         </Text>
       </Block>
@@ -44,7 +44,7 @@ export default function Demo() {
         </Block>
       </Row>
 
-      <Text size="xs" colorVariant="secondary">
+      <Text size="xs" color="secondary">
         Selected view: {view}
       </Text>
     </Block>

@@ -1,6 +1,6 @@
 import { Flex, Card, Text } from '@platform-blocks/ui';
 
-export default function BasicFlexDemo() {
+export function Demo() {
   return (
     <Card variant="outline" p="md">
       <Flex gap="md">

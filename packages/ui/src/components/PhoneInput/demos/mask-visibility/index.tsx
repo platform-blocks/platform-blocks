@@ -2,14 +2,14 @@ import { useState } from 'react';
 
 import { Block, PhoneInput, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [withCountryCode, setWithCountryCode] = useState('');
   const [withoutCountryCode, setWithoutCountryCode] = useState('');
 
   return (
     <Block fullWidth>
       <Text weight="semibold">Country code visibility</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Toggle the country prefix while keeping the same underlying digits.
       </Text>
 
@@ -22,7 +22,7 @@ export default function Demo() {
             country="US"
             showCountryCode
           />
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Raw digits: {withCountryCode || '—'}
           </Text>
         </Block>
@@ -35,7 +35,7 @@ export default function Demo() {
             country="US"
             showCountryCode={false}
           />
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Raw digits: {withoutCountryCode || '—'}
           </Text>
         </Block>

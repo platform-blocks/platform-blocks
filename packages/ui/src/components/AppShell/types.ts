@@ -130,6 +130,16 @@ export interface AppShellProps extends SpacingProps {
   /** Additional props forwarded to BottomAppBar in autoLayout mode (items overridden by bottomNavItems) */
   bottomNavProps?: Partial<AppShellBottomNavProps>;
   mobileMenu?: MobileMenuConfig;
+  /**
+   * Take the shell's geometry from CSS custom properties rather than from the
+   * breakpoint the JavaScript resolved. Web only, and a contract: the app must
+   * inline the stylesheet `createAppShellCss` builds from the same config. It
+   * exists for statically rendered apps, where the prerender has no viewport to
+   * measure and every guess it makes lands as a layout shift and a hydration
+   * mismatch on first paint. See `shellCssVars.ts`.
+   * @default false
+   */
+  cssGeometry?: boolean;
   statusBar?: StatusBarConfig;
   padding?: ResponsiveSize;
   withBorder?: boolean;
@@ -179,6 +189,21 @@ export interface AppShellContextValue {
   toggleNavbar: () => void;
   navbarOpen: boolean;
   transitionDuration: number;
+  /**
+   * Emit the shell's geometry as `var(--pb-shell-*)` references instead of
+   * resolved numbers. See `shellCssVars.ts`; web only, and only correct when
+   * the app inlines the matching stylesheet.
+   */
+  cssGeometry: boolean;
+  /**
+   * The three values above as they should be *written into a style*: the same
+   * numbers, or the `var()` references that stand in for them under
+   * `cssGeometry`. Kept beside the numbers rather than replacing them because
+   * the shell still does arithmetic with the numbers.
+   */
+  headerHeightStyle: number | string;
+  navbarWidthStyle: number | string;
+  contentBottomStyle: number | string;
 }
 
 // Configuration object consumed by layout calculator

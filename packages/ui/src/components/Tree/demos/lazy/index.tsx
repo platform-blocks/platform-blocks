@@ -2,7 +2,7 @@ import { Tree, type TreeNode } from '@platform-blocks/ui';
 
 import { TREE_DATA, fetchInstances, fetchVolumes } from './data';
 
-export default function Demo() {
+export function Demo() {
   const loadChildren = (node: TreeNode) =>
     node.id.includes('-web') ? fetchVolumes(node.id) : fetchInstances(node.id);
 

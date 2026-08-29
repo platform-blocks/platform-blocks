@@ -9,7 +9,7 @@ import { CLIP_PEAKS } from '../data';
 // is native-only, whereas expo-asset works on web too.
 const CLIP_URL = Asset.fromModule(require('../../../../assets/video/demo-clip.mp4')).uri;
 
-export default function Demo() {
+export function Demo() {
   const videoRef = useRef<VideoRef>(null);
   const [playback, setPlayback] = useState({ currentTime: 0, duration: 0 });
 
@@ -51,7 +51,7 @@ export default function Demo() {
         accessibilityHint="Tap or drag to seek the video"
       />
 
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         The peaks were measured from this clip's audio track. `onTimeUpdate` feeds `progress`, and
         scrubbing the waveform calls `seek()` on the video ref — so the two stay in step in both
         directions.

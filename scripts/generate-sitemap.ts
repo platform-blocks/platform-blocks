@@ -83,6 +83,7 @@ async function generateSitemap(): Promise<void> {
     { path: '/hooks', priority: 0.9 },
     { path: '/accessibility', priority: 0.8 },
     { path: '/localization', priority: 0.8 },
+    { path: '/contribute', priority: 0.7 },
     { path: '/llms', priority: 0.6 },
     { path: '/faq', priority: 0.6 },
   ];

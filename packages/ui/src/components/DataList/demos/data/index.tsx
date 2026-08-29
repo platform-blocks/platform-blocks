@@ -7,6 +7,6 @@ const details = [
   { label: 'Payment', value: 'Visa •••• 4242' },
 ];
 
-export default function Demo() {
+export function Demo() {
   return <DataList data={details} withDivider labelWidth={100} />;
 }

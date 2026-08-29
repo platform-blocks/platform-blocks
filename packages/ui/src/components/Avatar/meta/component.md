@@ -15,7 +15,7 @@ props:
   label: Primary label rendered to the right of the avatar
   description: Secondary subtext under the label
   gap: Spacing between avatar and text block
-  fallbackProps: Override props applied to the initials `<Text>` (style, weight, ff, size, colorVariant)
+  fallbackProps: Override props applied to the initials `<Text>` (style, weight, ff, size, color)
   labelProps: Override props applied to the adjacent label `<Text>` (only when `label` is a string)
   descriptionProps: Override props applied to the description `<Text>` (only when `description` is a string)
 examples:

@@ -18,11 +18,11 @@ const ITEMS = [
   }
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Tabs items={ITEMS} />
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         Tabs render inline content directly below the active trigger by default.
       </Text>
     </Block>

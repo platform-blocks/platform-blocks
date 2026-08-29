@@ -315,21 +315,21 @@ function Screen({ title, subtitle, note, children }: ShellProps) {
       <Flex direction="row" justify="space-between" align="flex-start" gap="sm" mb={4}>
         <View style={{ flexShrink: 1 }}>
           <Title order={1} size={30} weight="bold">{title}</Title>
-          {subtitle ? <Text variant="small" colorVariant="muted">{subtitle}</Text> : null}
+          {subtitle ? <Text variant="small" color="muted">{subtitle}</Text> : null}
         </View>
         <ThemeToggle />
       </Flex>
-      {note ? <Text variant="small" colorVariant="muted" mt={8}>{note}</Text> : null}
+      {note ? <Text variant="small" color="muted" mt={8}>{note}</Text> : null}
 
       <View style={{ marginTop: 24 }}>{children}</View>
 
       <Divider mt={40} mb={16} />
       <Title order={2} size={16} weight="bold" mb={2}>Platform Blocks</Title>
-      <Text variant="small" colorVariant="muted" mb={8}>
+      <Text variant="small" color="muted" mb={8}>
         A React Native design system for iOS, Android and Web.
       </Text>
       <Link href={SITE} external size="sm" target="_blank">platform-blocks.com</Link>
-      <Text variant="small" colorVariant="muted" mt={8}>
+      <Text variant="small" color="muted" mt={8}>
         @platform-blocks/ui v${SNACK_PACKAGE_VERSION} · Expo SDK ${SNACK_SDK_VERSION} · {actualColorScheme}
       </Text>
     </ScrollView>
@@ -469,7 +469,7 @@ export function buildDemoBundle({
   if (!demo) return null;
 
   const app = `import Shell from './Shell';
-import Demo from './Demo';
+import { Demo } from './Demo';
 
 export default function App() {
   return (
@@ -556,7 +556,7 @@ function buildBundleAppFile(
   skippedCount: number
 ): string {
   const imports = demos
-    .map(demo => `import ${demoIdentifier(demo.id)} from './demos/${demo.id}';`)
+    .map(demo => `import { Demo as ${demoIdentifier(demo.id)} } from './demos/${demo.id}';`)
     .join('\n');
 
   const sections = demos

@@ -2,7 +2,7 @@ import { BrandButton, Block, Row, Text } from '@platform-blocks/ui';
 
 const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
 
-export default function BadgeSizes() {
+export function Demo() {
   return (
     <Row gap="lg" wrap="wrap" align="flex-end">
       {SIZES.map((size) => (
@@ -13,7 +13,7 @@ export default function BadgeSizes() {
             secondaryText="App Store"
             size={size}
           />
-          <Text variant="small" colorVariant="secondary">
+          <Text variant="small" color="secondary">
             {size}
           </Text>
         </Block>

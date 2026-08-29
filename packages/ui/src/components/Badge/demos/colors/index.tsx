@@ -1,6 +1,6 @@
 import { Badge, Row } from '@platform-blocks/ui'
 
-export default function Demo() {
+export function Demo() {
   return (
     <Row gap={8} wrap="wrap">
       <Badge color="primary">Primary</Badge>

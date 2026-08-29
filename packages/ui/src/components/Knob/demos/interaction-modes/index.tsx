@@ -31,7 +31,7 @@ const MODE_LABELS: Record<ModeName, string> = MODES.reduce((acc, mode) => {
   return acc;
 }, {} as Record<ModeName, string>);
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme();
   const [value, setValue] = useState(12);
   const [activeMode, setActiveMode] = useState<ModeName | null>(null);

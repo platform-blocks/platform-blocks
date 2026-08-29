@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Block, Icon, Select, Text, useTheme } from '@platform-blocks/ui'
 import { detailedSports, type DetailedSport } from '../data'
 
-export default function Demo() {
+export function Demo() {
   const theme = useTheme()
   const [value, setValue] = useState<string | null>(detailedSports[0].value)
   const accent = theme.colorScheme === 'dark' ? theme.colors.primary[5] : theme.colors.primary[6]
@@ -33,7 +33,7 @@ export default function Demo() {
               <Text size="3xl">{emoji}</Text>
               <Block direction="column" style={{ flex: 1 }} gap={0}>
                 <Text weight={selected ? '900' : '600'}>{name}</Text>
-                <Text size="sm" colorVariant="secondary">
+                <Text size="sm" color="secondary">
                   {description}
                 </Text>
               </Block>

@@ -1,7 +1,7 @@
 import { ScrollView, View } from 'react-native';
 import { Icon, Text, Card, Flex, Title } from '@platform-blocks/ui';
 
-export default function IconDemo() {
+export function Demo() {
   return (
     <ScrollView style={{ flex: 1 }}>
       <View style={{ padding: 20, gap: 24 }}>
@@ -9,7 +9,7 @@ export default function IconDemo() {
         {/* Header */}
         <View>
           <Text variant="h4" style={{ marginBottom: 8 }}>Icon</Text>
-          <Text variant="p" colorVariant="secondary">
+          <Text variant="p" color="secondary">
             Scalable vector icons with consistent sizing and theming integration.
           </Text>
         </View>
@@ -17,7 +17,7 @@ export default function IconDemo() {
         {/* Different Sizes */}
         <Card variant="outline" style={{ padding: 20 }}>
           <Text variant="h6" style={{ marginBottom: 16 }}>Sizes</Text>
-          <Text variant="p" colorVariant="secondary" style={{ marginBottom: 16 }}>
+          <Text variant="p" color="secondary" style={{ marginBottom: 16 }}>
             Available in multiple sizes using the UI theme system.
           </Text>
           
@@ -44,7 +44,7 @@ export default function IconDemo() {
         {/* Navigation Icons */}
         <Card variant="outline" style={{ padding: 20 }}>
           <Text variant="h6" style={{ marginBottom: 16 }}>Navigation Icons</Text>
-          <Text variant="p" colorVariant="secondary" style={{ marginBottom: 16 }}>
+          <Text variant="p" color="secondary" style={{ marginBottom: 16 }}>
             Common navigation and directional icons.
           </Text>
           
@@ -63,7 +63,7 @@ export default function IconDemo() {
         {/* Action Icons */}
         <Card variant="outline" style={{ padding: 20 }}>
           <Text variant="h6" style={{ marginBottom: 16 }}>Action Icons</Text>
-          <Text variant="p" colorVariant="secondary" style={{ marginBottom: 16 }}>
+          <Text variant="p" color="secondary" style={{ marginBottom: 16 }}>
             Icons for common user actions and operations.
           </Text>
           
@@ -82,7 +82,7 @@ export default function IconDemo() {
         {/* UI Icons */}
         <Card variant="outline" style={{ padding: 20 }}>
           <Text variant="h6" style={{ marginBottom: 16 }}>UI Icons</Text>
-          <Text variant="p" colorVariant="secondary" style={{ marginBottom: 16 }}>
+          <Text variant="p" color="secondary" style={{ marginBottom: 16 }}>
             Interface and user experience icons.
           </Text>
           
@@ -101,20 +101,20 @@ export default function IconDemo() {
         {/* Variants */}
         <Card variant="outline" style={{ padding: 20 }}>
           <Text variant="h6" style={{ marginBottom: 16 }}>Icon Variants</Text>
-          <Text variant="p" colorVariant="secondary" style={{ marginBottom: 16 }}>
+          <Text variant="p" color="secondary" style={{ marginBottom: 16 }}>
             Icons can be displayed in outlined or filled variants.
           </Text>
           
           <Flex direction="column" gap="lg">
             <Flex direction="row" align="center" gap="md" wrap="wrap">
-              <Title variant="small" colorVariant="secondary">Outlined (Default):</Title>
+              <Title variant="small" color="secondary">Outlined (Default):</Title>
               <Icon name="star" size="xl" variant="outlined" />
               <Icon name="heart" size="xl" variant="outlined" />
               <Icon name="user" size="xl" variant="outlined" />
             </Flex>
             
             <Flex direction="row" align="center" gap="md" wrap="wrap">
-              <Title variant="small" colorVariant="secondary">Filled:</Title>
+              <Title variant="small" color="secondary">Filled:</Title>
               <Icon name="star" size="xl" variant="filled" />
               <Icon name="heart" size="xl" variant="filled" />
               <Icon name="user" size="xl" variant="filled" />
@@ -125,7 +125,7 @@ export default function IconDemo() {
         {/* Custom Colors */}
         <Card variant="outline" style={{ padding: 20 }}>
           <Text variant="h6" style={{ marginBottom: 16 }}>Custom Colors</Text>
-          <Text variant="p" colorVariant="secondary" style={{ marginBottom: 16 }}>
+          <Text variant="p" color="secondary" style={{ marginBottom: 16 }}>
             Override icon colors to match your design.
           </Text>
           
@@ -152,7 +152,7 @@ export default function IconDemo() {
         {/* New Icons */}
         <Card variant="outline" style={{ padding: 20 }}>
           <Text variant="h6" style={{ marginBottom: 16 }}>New Icons</Text>
-          <Text variant="p" colorVariant="secondary" style={{ marginBottom: 16 }}>
+          <Text variant="p" color="secondary" style={{ marginBottom: 16 }}>
             Recently added icons for common use cases.
           </Text>
           

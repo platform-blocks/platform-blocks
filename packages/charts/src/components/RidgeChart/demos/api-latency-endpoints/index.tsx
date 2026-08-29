@@ -2,7 +2,7 @@ import { RidgeChart } from '@platform-blocks/charts';
 
 import { SERIES, formatLatency } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <RidgeChart
       title="API latency distribution by endpoint"

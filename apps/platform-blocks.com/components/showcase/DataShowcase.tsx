@@ -101,7 +101,7 @@ export default function DataShowcase() {
       accessor: 'email',
       sortable: true,
       cell: (value: any) => (
-        <Text size="sm" colorVariant="secondary">{value}</Text>
+        <Text size="sm" color="secondary">{value}</Text>
       )
     },
     // {
@@ -160,7 +160,7 @@ export default function DataShowcase() {
 
       {/* DataTable Section */}
        <Title text="Data Table" variant="h2" afterline />
-        <Text variant="p" colorVariant="secondary">
+        <Text variant="p" color="secondary">
           Interactive data grid with sorting, searching, and pagination
         </Text>
         
@@ -189,7 +189,7 @@ export default function DataShowcase() {
       {/* Chips Section */}
       <Card >
         <Text variant="h2" >Chips</Text>
-        <Text variant="p" colorVariant="secondary">
+        <Text variant="p" color="secondary">
           Compact elements for tags, statuses, and categories
         </Text>
         
@@ -202,7 +202,7 @@ export default function DataShowcase() {
           <Chip color="secondary">Secondary</Chip>
         </Row>
 
-        <Text variant="small" colorVariant="secondary">Different sizes:</Text>
+        <Text variant="small" color="secondary">Different sizes:</Text>
         <Row wrap="wrap" gap="sm">
           <Chip size="sm">Small</Chip>
           <Chip size="md">Medium</Chip>
@@ -213,7 +213,7 @@ export default function DataShowcase() {
       {/* Rating Section */}
       <Card >
         <Text variant="h2">Rating</Text>
-        <Text variant="p" colorVariant="secondary">
+        <Text variant="p" color="secondary">
           Star-based rating system for feedback and reviews
         </Text>
         
@@ -221,13 +221,13 @@ export default function DataShowcase() {
           <Row gap="md" align="center">
             <Text>Interactive Rating:</Text>
             <Rating value={rating} onChange={setRating} />
-            <Text colorVariant="secondary">({rating}/5)</Text>
+            <Text color="secondary">({rating}/5)</Text>
           </Row>
           
           <Row gap="md" align="center">
             <Text>Read-only Rating:</Text>
             <Rating value={3.5} readOnly />
-            <Text colorVariant="secondary">(3.5/5)</Text>
+            <Text color="secondary">(3.5/5)</Text>
           </Row>
           
           <Row gap="md" align="center">
@@ -240,7 +240,7 @@ export default function DataShowcase() {
       {/* Gauge Section */}
       <Card >
         <Text variant="h2"  >Gauge</Text>
-        <Text variant="p" colorVariant="secondary" >
+        <Text variant="p" color="secondary" >
           Progress and metric indicators
         </Text>
         
@@ -249,7 +249,7 @@ export default function DataShowcase() {
             <Gauge value={gaugeValue} size={120} />
             <Block direction="column" gap="sm">
               <Text variant="h3">{gaugeValue}%</Text>
-              <Text colorVariant="secondary">Project Completion</Text>
+              <Text color="secondary">Project Completion</Text>
               <Slider
                 value={gaugeValue}
                 onChange={setGaugeValue}
@@ -270,7 +270,7 @@ export default function DataShowcase() {
       {/* QRCode Section */}
       <Card >
         <Text variant="h2"  >QR Code</Text>
-        <Text variant="p" colorVariant="secondary" >
+        <Text variant="p" color="secondary" >
           Generate QR codes from text or URLs
         </Text>
         
@@ -286,7 +286,7 @@ export default function DataShowcase() {
             <QRCode value={qrText} size={120} />
             <Block direction="column" gap="sm">
               <Text weight="medium">Scan this code</Text>
-              <Text size="sm" colorVariant="secondary">
+              <Text size="sm" color="secondary">
                 {qrText.length > 30 ? qrText.substring(0, 30) + '...' : qrText}
               </Text>
             </Block>
@@ -298,7 +298,7 @@ export default function DataShowcase() {
       {/* Timeline Section */}
       <Card >
         <Text variant="h2"  >Timeline</Text>
-        <Text variant="p" colorVariant="secondary" >
+        <Text variant="p" color="secondary" >
           Display sequence of events in chronological order
         </Text>
         
@@ -313,7 +313,7 @@ export default function DataShowcase() {
               title="Project Kickoff"
               bullet={<Text selectable={false}>🚀</Text>}
             >
-              <Text size="sm" colorVariant="secondary">
+              <Text size="sm" color="secondary">
                 Initial project planning and team alignment meeting
               </Text>
             </Timeline.Item>
@@ -321,7 +321,7 @@ export default function DataShowcase() {
               title="Design Phase Complete"
               bullet={<Text selectable={false}>🎨</Text>}
             >
-              <Text size="sm" colorVariant="secondary">
+              <Text size="sm" color="secondary">
                 All wireframes and mockups finalized and approved
               </Text>
             </Timeline.Item>
@@ -330,7 +330,7 @@ export default function DataShowcase() {
               bullet={<Text selectable={false}>💻</Text>}
               active
             >
-              <Text size="sm" colorVariant="secondary">
+              <Text size="sm" color="secondary">
                 Frontend and backend development commenced
               </Text>
             </Timeline.Item>
@@ -338,7 +338,7 @@ export default function DataShowcase() {
               title="Testing Phase"
               bullet={<Text selectable={false}>🧪</Text>}
             >
-              <Text size="sm" colorVariant="secondary">
+              <Text size="sm" color="secondary">
                 Quality assurance and user acceptance testing
               </Text>
             </Timeline.Item>
@@ -346,7 +346,7 @@ export default function DataShowcase() {
               title="Production Deployment"
               bullet={<Text selectable={false}>🚀</Text>}
             >
-              <Text size="sm" colorVariant="secondary">
+              <Text size="sm" color="secondary">
                 Successfully deployed to production environment
               </Text>
             </Timeline.Item>
@@ -357,7 +357,7 @@ export default function DataShowcase() {
       {/* Markdown Section */}
       <Card >
         <Text variant="h2"  >Markdown</Text>
-        <Text variant="p" colorVariant="secondary" >
+        <Text variant="p" color="secondary" >
           Render markdown content with syntax highlighting
         </Text>
         

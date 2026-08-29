@@ -7,7 +7,7 @@ const withinBusiness = (v: TimePickerValue) => {
   return totalMinutes >= 9 * 60 && totalMinutes <= 17 * 60; // 09:00 - 17:00 inclusive
 };
 
-export default function ValidationTimePickerInputDemo() {
+export function Demo() {
   const [value, setValue] = useState<TimePickerValue | null>({ hours: 8, minutes: 45 });
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -37,7 +37,7 @@ export default function ValidationTimePickerInputDemo() {
         fullWidth
       />
       {value && (
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Selected: {value.hours.toString().padStart(2, '0')}:{value.minutes.toString().padStart(2, '0')}
         </Text>
       )}

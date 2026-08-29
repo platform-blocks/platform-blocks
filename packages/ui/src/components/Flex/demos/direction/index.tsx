@@ -1,6 +1,6 @@
 import { Block, Card, Flex, Text } from '@platform-blocks/ui';
 
-export default function DirectionFlexDemo() {
+export function Demo() {
   return (
     <Block>
       <Block>

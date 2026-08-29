@@ -2,7 +2,7 @@ import { ComboChart } from '@platform-blocks/charts';
 
 import { LAYERS } from './data';
 
-export default function Demo() {
+export function Demo() {
 	return (
 		<ComboChart
 			title="Revenue vs. active users"

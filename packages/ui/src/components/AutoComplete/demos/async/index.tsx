@@ -13,7 +13,7 @@ const searchLanguages = async (query: string): Promise<AutoCompleteOption[]> => 
   )
 }
 
-export default function Demo() {
+export function Demo() {
   const [inputValue, setInputValue] = useState('')
   const [selectedLanguage, setSelectedLanguage] = useState<AutoCompleteOption | null>(null)
 

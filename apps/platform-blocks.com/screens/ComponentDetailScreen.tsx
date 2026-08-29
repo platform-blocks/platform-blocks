@@ -176,7 +176,7 @@ const ComponentContent = React.memo(function ComponentContent({
                   });
                 }
                 preview = (
-                  <Text variant="p" colorVariant="error">
+                  <Text variant="p" color="error">
                     Demo "{demo.id}" failed: not a component export.
                   </Text>
                 );
@@ -199,7 +199,7 @@ const ComponentContent = React.memo(function ComponentContent({
                   // eslint-disable-next-line no-console
                   console.error('[DemoLoader] Error rendering demo', demo.id, err);
                   preview = (
-                    <Text variant="p" colorVariant="error">
+                    <Text variant="p" color="error">
                       Demo "{demo.id}" threw during render.
                     </Text>
                   );
@@ -209,7 +209,7 @@ const ComponentContent = React.memo(function ComponentContent({
               preview = (
                 <Flex direction="row" align="center" gap={8}>
                   <Loader size="sm" />
-                  <Text variant="p" colorVariant="muted">Loading demo…</Text>
+                  <Text variant="p" color="muted">Loading demo…</Text>
                 </Flex>
               );
             }

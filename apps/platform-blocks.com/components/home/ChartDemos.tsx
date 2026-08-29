@@ -1,15 +1,20 @@
 import React from 'react';
 import { View, type LayoutChangeEvent } from 'react-native';
-import { Card, Grid, GridItem } from '@platform-blocks/ui';
+import { Card, Grid, GridItem, type ResponsiveProp } from '@platform-blocks/ui';
 import { AreaChart, BarChart, PieChart } from '@platform-blocks/charts';
 
 /* ------------------------------------------------------------------ */
 /*  Live chart demos for the home page.                               */
 /*                                                                    */
-/*  Split into its own module so the charts library (+ react-native-  */
-/*  svg) can be code-split off the home route's initial web bundle.   */
-/*  See ChartDemosSection.web.tsx (lazy) vs ChartDemosSection.tsx     */
-/*  (static, for native EAS builds).                                  */
+/*  These used to sit behind a React.lazy boundary on web, held back  */
+/*  until after hydration so the prerender and the hydration pass     */
+/*  agreed on the fallback. It bought nothing: the web export is a    */
+/*  single bundle for every route, and the chart routes, the showcase */
+/*  and playground registries and the dashboard example all import    */
+/*  the charts barrel into it already — the split chunk came out at   */
+/*  1.8 KB. All it did was hold the demos back until hydration had    */
+/*  finished and then spend a round trip fetching them, ~900ms of     */
+/*  empty cards after the page was on screen.                         */
 /* ------------------------------------------------------------------ */
 
 const AREA_DATA = [
@@ -60,11 +65,11 @@ function ChartCard({ children }: { title: string; children: (width: number) => R
 }
 
 export interface ChartDemosProps {
-  cols: number;
-  isMobile: boolean;
+  /** Responsive so `Grid` resolves it in CSS rather than from a settled breakpoint. */
+  cols: ResponsiveProp<number>;
 }
 
-export default function ChartDemos({ cols, isMobile }: ChartDemosProps) {
+export default function ChartDemos({ cols }: ChartDemosProps) {
   return (
     <Grid columns={cols} gap="lg" style={{ width: '100%', marginBottom: 32 }}>
       <GridItem span={1}>
@@ -96,20 +101,23 @@ export default function ChartDemos({ cols, isMobile }: ChartDemosProps) {
           )}
         </ChartCard>
       </GridItem>
-      {!isMobile && (
-        <GridItem span={1}>
-          <ChartCard title="Traffic sources">
-            {(width) => (
-              <PieChart
-                width={width}
-                height={CHART_CARD_HEIGHT}
-                data={PIE_DATA}
-                legend={{ show: true }}
-              />
-            )}
-          </ChartCard>
-        </GridItem>
-      )}
+      {/* The third card is a width the prerender cannot know: rendering it or
+          not by breakpoint means the static page and the hydrated one disagree
+          about how many children this grid has, which React answers by throwing
+          the tree away. It always renders; the stylesheet hides it where two
+          cards is all that fits. */}
+      <GridItem span={1} {...({ dataSet: { pbShellDesktopOnly: 'true' } } as any)}>
+        <ChartCard title="Traffic sources">
+          {(width) => (
+            <PieChart
+              width={width}
+              height={CHART_CARD_HEIGHT}
+              data={PIE_DATA}
+              legend={{ show: true }}
+            />
+          )}
+        </ChartCard>
+      </GridItem>
     </Grid>
   );
 }

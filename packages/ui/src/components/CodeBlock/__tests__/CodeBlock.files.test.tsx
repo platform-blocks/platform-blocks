@@ -128,24 +128,10 @@ describe('CodeBlock - files', () => {
     expect(screen.getByText(/const ok = 1;/)).toBeTruthy();
   });
 
-  describe('deprecated fileName/fileIcon', () => {
-    it('renders fileName as a file chip', () => {
-      render(<CodeBlock fileName="legacy.tsx">{'const legacy = 1;'}</CodeBlock>);
-      expect(screen.getByTestId('tab-legacy.tsx')).toBeTruthy();
-      expect(screen.getByText(/const legacy = 1;/)).toBeTruthy();
-    });
-
-    it('is ignored once files is set', () => {
-      render(<CodeBlock fileName="legacy.tsx" files={[{ name: 'App.tsx', code: 'const a = 1;' }]} />);
-      expect(screen.getByTestId('tab-App.tsx')).toBeTruthy();
-      expect(screen.queryByTestId('tab-legacy.tsx')).toBeNull();
-    });
-
-    it('moves the label into a detached bar with fileHeader, not both places', () => {
-      render(<CodeBlock fileHeader fileName="legacy.tsx">{'const legacy = 1;'}</CodeBlock>);
-      expect(screen.getByTestId('file-header-bar')).toHaveTextContent('legacy.tsx');
-      expect(screen.queryByTestId('inline-title')).toBeNull();
-      expect(screen.queryByTestId('file-tabs')).toBeNull();
-    });
+  it('moves a lone file label into a detached bar with fileHeader, not both places', () => {
+    render(<CodeBlock fileHeader files={[{ name: 'App.tsx', code: 'const a = 1;' }]} />);
+    expect(screen.getByTestId('file-header-bar')).toHaveTextContent('App.tsx');
+    expect(screen.queryByTestId('inline-title')).toBeNull();
+    expect(screen.queryByTestId('file-tabs')).toBeNull();
   });
 });

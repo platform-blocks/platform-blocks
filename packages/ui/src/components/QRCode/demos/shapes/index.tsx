@@ -1,10 +1,10 @@
 import { Block, QRCode, Row, Text } from '@platform-blocks/ui';
 import { SHAPES } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         Module geometry
       </Text>
       <Row gap="lg" wrap="wrap" justify="center">

@@ -4,7 +4,7 @@ import { FEATURE_ADOPTION } from './data';
 
 const formatAccounts = (value: number) => `${value.toLocaleString()} accounts`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <BarChart
       title="Feature adoption by customer tier"

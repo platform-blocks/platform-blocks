@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Button, Card, Chip, Column, Flex, Text, Title } from '@platform-blocks/ui';
+import { BrandButton, Button, Card, Chip, Column, Flex, Text, Title } from '@platform-blocks/ui';
 
 import { DocsPage } from '../../components/DocsPage';
 import { DocsPageHeader } from '../../components/DocsPageHeader';
@@ -42,16 +42,18 @@ export default function ExtensionsScreen() {
                       {extension.official ? 'official' : 'community'}
                     </Chip>
                   </Flex>
-                  <Text colorVariant="secondary">{extension.description}</Text>
+                  <Text color="secondary">{extension.description}</Text>
                 </Column>
                 <Flex direction="row" gap="sm" wrap="wrap">
-                  <Button
+                  <BrandButton
+                    brand="npm"
                     title="View on npm"
                     variant="light"
                     size="sm"
                     onPress={() => router.push(extension.npmUrl)}
                   />
-                  <Button
+                  <BrandButton
+                    brand="github"
                     title="Source"
                     variant="subtle"
                     size="sm"
@@ -66,13 +68,13 @@ export default function ExtensionsScreen() {
         <Card variant="outline" p="lg">
           <Column gap="sm">
             <Title order={3}>Build your own</Title>
-            <Text colorVariant="secondary">
+            <Text color="secondary">
               The extension template gives you a complete development environment: a sample
               component wired into the Platform Blocks theme, an Expo example app that
               hot-reloads your package on iOS, Android, and web, tests, linting, a production
               build, CI, and one-command npm releases.
             </Text>
-            <Text colorVariant="secondary">{EXTENSIONS_INVITE}</Text>
+            <Text color="secondary">{EXTENSIONS_INVITE}</Text>
             <Flex direction="row" gap="sm" wrap="wrap">
               <Button
                 title="Use the extension template"

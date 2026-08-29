@@ -854,7 +854,7 @@ export const DataTable = <T,>({
       <Flex gap={DESIGN_TOKENS.spacing.md} align="center">
         {selectedRows.length > 0 && bulkActions.length > 0 && (
           <Flex gap={8}>
-            <Text variant="small" colorVariant="muted">
+            <Text variant="small" color="muted">
               {selectedRows.length} selected
             </Text>
             {bulkActions.map(action => (
@@ -1031,7 +1031,7 @@ export const DataTable = <T,>({
               <View style={{ padding: 8, maxHeight: 300, width: 260 }}>
                 <ComponentWithDisclaimer
                   disclaimer="Selected view determines the layout style"
-                  disclaimerProps={{ colorVariant: 'muted', size: 'sm' }}
+                  disclaimerProps={{ color: 'muted', size: 'sm' }}
                 >
                   <Row>
                     <Button
@@ -1602,14 +1602,14 @@ export const DataTable = <T,>({
           </View>
           <Text
             variant="h6"
-            colorVariant="muted"
+            color="muted"
             style={{ marginBottom: 8, fontWeight: '600' }}
           >
             No Data Available
           </Text>
           <Text
             variant="p"
-            colorVariant="muted"
+            color="muted"
             style={{ textAlign: 'center', maxWidth: 280 }}
           >
             {emptyMessage ||
@@ -2096,7 +2096,7 @@ export const DataTable = <T,>({
           <Text variant="h6" color={theme.colors.error[7]} style={{ marginBottom: 8 }}>
             Error Loading Data
           </Text>
-          <Text variant="p" colorVariant="muted" style={{ textAlign: 'center' }}>
+          <Text variant="p" color="muted" style={{ textAlign: 'center' }}>
             {error}
           </Text>
         </View>

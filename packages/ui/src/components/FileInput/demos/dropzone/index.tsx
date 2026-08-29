@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import { Block, FileInput, Text } from '@platform-blocks/ui';
 import type { FileInputFile } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [files, setFiles] = useState<FileInputFile[]>([]);
 
   const instructions =
@@ -14,7 +14,7 @@ export default function Demo() {
 
   return (
     <Block fullWidth>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         {instructions}
       </Text>
       <FileInput
@@ -33,7 +33,7 @@ export default function Demo() {
           </Text>
           <Block>
             {files.map((file) => (
-              <Text key={file.id} size="xs" colorVariant="secondary">
+              <Text key={file.id} size="xs" color="secondary">
                 {file.name}
               </Text>
             ))}

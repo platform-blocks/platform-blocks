@@ -28,11 +28,11 @@ Content above the line.
 
 Content below the line.`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block fullWidth>
       <Markdown>{CONTENT}</Markdown>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Images, links, tables, and horizontal rules render inline
       </Text>
     </Block>

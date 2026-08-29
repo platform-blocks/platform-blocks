@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, Input } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [autoText, setAutoText] = useState('');
   const [fixedText, setFixedText] = useState('');
 

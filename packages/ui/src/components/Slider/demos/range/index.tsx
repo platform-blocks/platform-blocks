@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { RangeSlider, Text, Block, Card, Flex } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [priceRange, setPriceRange] = useState<[number, number]>([25, 75]);
   const [temperatureRange, setTemperatureRange] = useState<[number, number]>([18, 24]);
   const [scoreRange, setScoreRange] = useState<[number, number]>([60, 90]);

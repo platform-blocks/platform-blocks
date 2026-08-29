@@ -1,6 +1,6 @@
 import { Block, Button, Row, Text, useToast } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const toast = useToast();
 
   const showSuccessToast = () => {
@@ -33,7 +33,7 @@ export default function Demo() {
 
   return (
     <Block>
-      <Text size="xs" colorVariant="secondary">
+      <Text size="xs" color="secondary">
         Use the severity helpers to render consistent styling for each toast type.
       </Text>
       <Row gap="xs" wrap="wrap">

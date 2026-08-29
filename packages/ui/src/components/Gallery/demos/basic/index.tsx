@@ -4,7 +4,7 @@ import { Block, Gallery, Image, Row } from '@platform-blocks/ui';
 
 import { SAMPLE_IMAGES } from './data';
 
-export default function Demo() {
+export function Demo() {
   // `null` closes the gallery; any index opens it on that image.
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 

@@ -16,7 +16,7 @@ const waveToOpacity = (wave?: number) => {
   return 0.45;
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <NetworkChart
       title="Customer referral influence network"

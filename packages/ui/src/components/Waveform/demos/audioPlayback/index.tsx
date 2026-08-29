@@ -30,7 +30,7 @@ const formatTime = (seconds: number) => {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 };
 
-export default function Demo() {
+export function Demo() {
   const [index, setIndex] = useState(0);
   const track = TRACKS[index];
 
@@ -95,7 +95,7 @@ export default function Demo() {
         <Button size="sm" onPress={togglePlayback}>
           {status.playing ? 'Pause' : 'Play'}
         </Button>
-        <Text variant="small" colorVariant="muted">
+        <Text variant="small" color="muted">
           {formatTime(status.currentTime)} / {formatTime(duration)}
         </Text>
       </Row>

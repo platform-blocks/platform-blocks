@@ -306,6 +306,7 @@ export const AppLayoutRenderer: React.FC<AppLayoutRendererProps> = ({ children }
         footer={footerConfig as any}
         bottomNav={bottomNavConfig as any}
         padding={padding}
+        cssGeometry={blueprint.layout?.cssGeometry}
         withSafeArea={blueprint.layout?.withSafeArea}
         withBorder={blueprint.layout?.withBorder}
         backgroundColor={blueprint.layout?.backgroundColor}

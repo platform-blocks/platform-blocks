@@ -18,7 +18,6 @@ props:
   indicatorPosition: Which side the control sits on — 'left' | 'right' (default 'right')
   control: Custom control element used instead of the built-in variant indicator
   color: Indicator color (theme color name or literal)
-  colorVariant: Named color applied to the checkbox indicator
   size: Indicator + label size
 examples:
   - Basic switch row
@@ -26,6 +25,4 @@ examples:
   - Custom control via the Indicator slot
   - Grouped surface with dividers (ControlField.Group)
 ---
-ControlField combines a label, description, and a control (Switch, Checkbox, or Radio) into a single pressable row. Tapping anywhere on the row toggles the control, giving settings lists and consent rows a consistent, accessible layout. Use the `variant`/`label`/`description` shorthand for the common case, or compose `ControlField.Label`, `ControlField.Description`, `ControlField.Indicator`, and `ControlField.Error` for full control.
-
-Wrap multiple rows in `ControlField.Group` for an iOS-style settings surface — a rounded, filled (or bordered) background with hairline dividers between rows, plus optional section `title`/`footer`. The group can also set a shared `size` for all its children.
+ControlField combines a label, description, and a control (Switch, Checkbox, or Radio) into a single pressable row.

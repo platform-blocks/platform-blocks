@@ -16,11 +16,11 @@ $ cd my-app
 $ npm start
 Server running on port 3000`;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block fullWidth>
       <Text weight="semibold">Visual variants</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Switch between default, terminal, and hacker themes using the variant prop.
       </Text>
       <Block>

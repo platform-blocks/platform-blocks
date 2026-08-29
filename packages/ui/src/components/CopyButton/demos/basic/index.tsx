@@ -1,6 +1,6 @@
 import { CopyButton, Card, Flex, Text } from '@platform-blocks/ui';
 
-export default function BasicCopyButtonDemo() {
+export function Demo() {
   return (
     <Card p={16} variant="outline">
       <Flex direction="row" align="center" gap={12}>

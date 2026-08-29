@@ -15,7 +15,7 @@ const getDeltaLabel = (series: number[]) => {
   return `${prefix}${Math.abs(delta).toLocaleString()} vs yesterday`;
 };
 
-export default function Demo() {
+export function Demo() {
   return (
     <Card padding="lg" radius="lg">
       <Block mb="md">

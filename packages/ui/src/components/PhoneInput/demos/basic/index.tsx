@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, Card, Code, PhoneInput, Text } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [raw, setRaw] = useState('');
   const [formatted, setFormatted] = useState('');
   const [e164, setE164] = useState('');
@@ -11,7 +11,7 @@ export default function Demo() {
   return (
     <Block fullWidth>
       <Text weight="semibold">Basic phone input</Text>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Controlled phone field showing the raw national digits, the formatted display
         value, and the submittable E.164 form.
       </Text>
@@ -29,7 +29,7 @@ export default function Demo() {
       />
       <Card variant="outline" p="sm">
         <Block>
-          <Text size="xs" colorVariant="secondary">
+          <Text size="xs" color="secondary">
             Current values
           </Text>
           <Code size="sm">{JSON.stringify({ raw, formatted, e164, complete }, null, 2)}</Code>

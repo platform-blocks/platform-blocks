@@ -36,7 +36,7 @@ const STATUS_AVATARS: StatusAvatar[] = [
   }
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block direction="row" justify="space-evenly" fullWidth>
       {STATUS_AVATARS.map(({ key, indicatorColor, online = true, ...avatar }) => (

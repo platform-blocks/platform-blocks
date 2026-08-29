@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Block, Text, TextArea } from '@platform-blocks/ui';
 
-export default function Demo() {
+export function Demo() {
   const [autoResizeValue, setAutoResizeValue] = useState(
     'Type more text to see auto-resize in action...\n\nAdd multiple lines to watch the text area grow and shrink with content.'
   );
@@ -26,7 +26,7 @@ export default function Demo() {
         <Text size="sm" weight="semibold">
           Character counter
         </Text>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Enforces a maximum length while surfacing a live counter.
         </Text>
         <TextArea
@@ -46,7 +46,7 @@ export default function Demo() {
         <Text size="sm" weight="semibold">
           Error and required states
         </Text>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Show validation messaging when the field is empty.
         </Text>
         <TextArea
@@ -65,7 +65,7 @@ export default function Demo() {
         <Text size="sm" weight="semibold">
           Disabled field
         </Text>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Communicates when editing is not allowed.
         </Text>
         <TextArea
@@ -82,7 +82,7 @@ export default function Demo() {
         <Text size="sm" weight="semibold">
           Required helper copy
         </Text>
-        <Text size="sm" colorVariant="secondary">
+        <Text size="sm" color="secondary">
           Pair helper text with the required badge to give extra guidance.
         </Text>
         <TextArea

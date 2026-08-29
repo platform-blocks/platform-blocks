@@ -29,11 +29,11 @@ const user: User = {
 
 Inline code: \`const result = fibonacci(10);\``;
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block fullWidth>
       <Markdown>{CONTENT}</Markdown>
-      <Text size="sm" colorVariant="secondary">
+      <Text size="sm" color="secondary">
         Showcases fenced code blocks with syntax highlighting
       </Text>
     </Block>

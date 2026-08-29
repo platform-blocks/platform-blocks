@@ -6,7 +6,7 @@ const ITEMS = [
   { id: 'delete', label: 'Delete', danger: true },
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <ContextMenu items={ITEMS}>
       {(triggerProps) => (

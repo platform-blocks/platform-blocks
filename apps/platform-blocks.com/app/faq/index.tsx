@@ -16,7 +16,7 @@ const FAQ_DATA = [{
   id: 1,
   key: 'expo-compatibility',
   title: 'Is Platform Blocks compatible with Expo?',
-  content: <P>Yes! Platform Blocks is fully compatible with <Text variant="p" colorVariant="link" onPress={() => Linking.openURL('https://expo.dev')}>Expo</Text> and works out of the box. All components are designed to work in the Expo environment without requiring any native code modifications.</P>
+  content: <P>Yes! Platform Blocks is fully compatible with <Text variant="p" color="link" onPress={() => Linking.openURL('https://expo.dev')}>Expo</Text> and works out of the box. All components are designed to work in the Expo environment without requiring any native code modifications.</P>
 }, {
   id: 2,
   key: 'does-support',

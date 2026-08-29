@@ -1,12 +1,14 @@
-import React, { useEffect, useRef } from 'react';
-import { View, TouchableOpacity, ViewStyle, Platform, Dimensions } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { View, TouchableOpacity, ViewStyle, Platform, useWindowDimensions } from 'react-native';
 import { Text } from '../Text';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withTiming, 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
   Easing,
   withSpring,
+  withRepeat,
+  cancelAnimation,
   interpolate,
   runOnJS
 } from 'react-native-reanimated';
@@ -33,9 +35,10 @@ import { readableTextOn } from '../../core/theme/colorUtils';
 import { resolveSurface } from '../../core/theme/surfaces';
 import { getShadowValue, COMPONENT_SHADOW_DEFAULTS } from '../../core/theme/shadow';
 import { getSpacingStyles, extractSpacingProps, mergeSlotProps } from '../../core/utils';
-import { ToastProps, ToastColor, ToastSeverity, ToastAction, ToastAnimationConfig, ToastSwipeConfig, ToastSizeMetrics } from './types';
+import { ToastProps, ToastSeverity, ToastAnimationType, ToastSizeMetrics } from './types';
+import type { ThemeColor } from '../../core/theme/resolveColors';
 import { useHaptics } from '../../hooks/useHaptics';
-import { Icon } from '../Icon';
+import { useReducedMotion } from './useReducedMotion';
 import { IconButton } from '../IconButton';
 
 interface ToastFactoryPayload {
@@ -87,6 +90,27 @@ const TOAST_SIZE_SCALE: Record<ComponentSize, ToastSizeMetrics> = {
 
 const BASE_TOAST_METRICS = TOAST_SIZE_SCALE.md;
 
+/**
+ * Motion tokens. A toast is a small object that arrives at the edge of an
+ * existing stack, so it travels a short distance along the axis of the edge it
+ * is anchored to rather than flying across the viewport. Vertical stacks keep
+ * the travel under one toast height so an arriving toast never sweeps across
+ * the message above it; edge-anchored (left/right) stacks can travel their full
+ * width because nothing sits between them and the edge.
+ */
+const VERTICAL_TRAVEL = 40;
+const HORIZONTAL_TRAVEL_FALLBACK = 400;
+const HORIZONTAL_TRAVEL_GUTTER = 32;
+/** Entry scale for translating animations — a hair of depth, not a zoom. */
+const SLIDE_SCALE_FROM = 0.96;
+/** Entry scale for the explicit `scale` animation type. */
+const SCALE_SCALE_FROM = 0.85;
+/** Exit is shorter than entry: arriving asks for attention, leaving should not. */
+const EXIT_DURATION_RATIO = 0.6;
+/** Max tilt while dragging a toast sideways. */
+const SWIPE_ROTATION = 6;
+const SWIPE_FLING_DURATION = 180;
+
 const resolveToastMetrics = (value: ComponentSizeValue | undefined): ToastSizeMetrics => {
   // A numeric size is read as the title font size; everything else scales with it
   // so a custom value stays proportional instead of snapping to the nearest token.
@@ -117,7 +141,7 @@ const resolveToastMetrics = (value: ComponentSizeValue | undefined): ToastSizeMe
 };
 
 // Helper function to map severity to theme colors
-const getSeverityColor = (severity: ToastSeverity): ToastColor => {
+const getSeverityColor = (severity: ToastSeverity): ThemeColor => {
   switch (severity) {
     case 'info':
       return 'primary';
@@ -137,7 +161,7 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
     variant = 'light',
     size = 'md',
     color = 'gray',
-    sev,
+    severity,
     title,
     children,
     icon,
@@ -145,10 +169,12 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
     loading = false,
     closeButtonLabel = 'Close notification',
     onClose,
+    onExited,
     visible = false,
     animationDuration = 300,
     transitionDuration,
     autoHide = 4000,
+    paused = false,
     position = 'top',
     style,
     testID,
@@ -174,140 +200,153 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
 
   // Handle radius prop with 'md' as default for toasts
   const radiusStyles = createRadiusStyles(radius || 'md');
-  const metrics = React.useMemo(() => resolveToastMetrics(size), [size]);
+  const metrics = useMemo(() => resolveToastMetrics(size), [size]);
   const padding = metrics.padding;
 
-  // Helper function to get hidden position based on toast position
-  const getHiddenPosition = React.useCallback((pos: string): number => {
-    'worklet';
-    switch (pos) {
-      case 'top':
-        return -100; // Slide from top
-      case 'bottom':
-        return 100; // Slide from bottom
-      case 'left':
-        return -100; // Slide from left
-      case 'right':
-        return 100; // Slide from right
-      default:
-        return -100;
-    }
-  }, []);
+  const { width: screenWidth } = useWindowDimensions();
+  const reducedMotion = useReducedMotion();
 
-  // Animation values - always start from hidden position
-  const slideAnimation = useSharedValue(getHiddenPosition(position));
-  const fadeAnimation = useSharedValue(0);
+  // ---- Motion configuration -------------------------------------------------
+  // Everything the transition depends on is reduced to primitives here so the
+  // enter/exit effect can key off stable values. Object props (`animationConfig`,
+  // callbacks) are almost always created inline by callers; depending on their
+  // identity is what previously restarted every toast's entrance animation on
+  // each provider render.
+  const motionType: ToastAnimationType = animationConfig?.type ?? 'slide';
+  // `transitionDuration` is the cross-component spelling and wins over the
+  // Toast-specific `animationDuration`; `animationConfig.duration` is the most
+  // specific of the three. 0 shows/hides with no transition.
+  const enterDuration = Math.max(
+    animationConfig?.duration ?? transitionDuration ?? animationDuration,
+    0
+  );
+  const exitDuration = Math.round(enterDuration * EXIT_DURATION_RATIO);
+  // Reduced motion drops the travel, the scale and the spring — not the
+  // transition itself. An opacity change is not the kind of motion the setting
+  // is about, and a toast that pops in and out of existence with no transition
+  // at all is harder to follow, not easier.
+  const springEnter = motionType === 'bounce' && !reducedMotion;
+
+  const swipeEnabled = (swipeConfig?.enabled ?? true) && !!Gesture;
+  const swipeDirection = swipeConfig?.direction ?? 'horizontal';
+  const swipeThreshold = swipeConfig?.threshold ?? screenWidth * 0.4;
+  const swipeVelocityThreshold = swipeConfig?.velocityThreshold ?? 500;
+
+  // Distance the toast travels on the axis of the edge it is anchored to.
+  const travel = useMemo(() => {
+    switch (position) {
+      case 'left':
+        return -((maxWidth ?? HORIZONTAL_TRAVEL_FALLBACK) + HORIZONTAL_TRAVEL_GUTTER);
+      case 'right':
+        return (maxWidth ?? HORIZONTAL_TRAVEL_FALLBACK) + HORIZONTAL_TRAVEL_GUTTER;
+      case 'bottom':
+        return VERTICAL_TRAVEL;
+      case 'top':
+      default:
+        return -VERTICAL_TRAVEL;
+    }
+  }, [position, maxWidth]);
+  const travelAxis: 'x' | 'y' = position === 'left' || position === 'right' ? 'x' : 'y';
+  const scaleFrom = reducedMotion || motionType === 'fade'
+    ? 1
+    : motionType === 'scale' ? SCALE_SCALE_FROM : SLIDE_SCALE_FROM;
+  // `fade` and `scale` are non-positional by definition.
+  const travelDistance = reducedMotion || motionType === 'fade' || motionType === 'scale'
+    ? 0
+    : travel;
+
+  // ---- Animation values -----------------------------------------------------
+  // A single `progress` value (0 hidden → 1 shown) drives opacity, travel and
+  // scale together. Separate slide/fade values could — and did — desynchronise
+  // whenever one of them was retargeted mid-flight.
+  const progress = useSharedValue(0);
   const swipeX = useSharedValue(0);
   const swipeY = useSharedValue(0);
-  const autoHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  // Get screen dimensions for swipe calculations
-  const screenWidth = Dimensions.get('window').width;
-  
-  // `transitionDuration` is the cross-component spelling and wins over the
-  // Toast-specific `animationDuration`; 0 shows/hides with no transition.
-  const resolvedDuration = Math.max(transitionDuration ?? animationDuration, 0);
-
-  // Default configurations
-  const defaultAnimationConfig: ToastAnimationConfig = {
-    type: 'slide',
-    duration: resolvedDuration,
-    easing: Easing.out(Easing.ease),
-    springConfig: {
-      damping: 15,
-      stiffness: 100,
-      mass: 1,
-    }
-  };
-
-  const defaultSwipeConfig: ToastSwipeConfig = {
-    enabled: true,
-    threshold: screenWidth * 0.4,
-    direction: 'horizontal',
-    velocityThreshold: 500,
-  };
-
-  const finalAnimationConfig = { ...defaultAnimationConfig, ...animationConfig };
-  // Effective show/hide length; 0 means "no transition" and is applied directly.
-  const toastDuration = Math.max(finalAnimationConfig.duration ?? resolvedDuration, 0);
-  const finalSwipeConfig = { ...defaultSwipeConfig, ...swipeConfig };
-
-  // Memoize expensive calculations
-  const memoizedColors = React.useMemo(() => {
-    // Determine final color - severity overrides color prop
-    const finalColor = sev ? getSeverityColor(sev) : color;
-    
-    // Check if finalColor is a theme color or custom color string
-    const isThemeColor = typeof finalColor === 'string' &&
-      ['primary', 'secondary', 'success', 'warning', 'error', 'gray'].includes(finalColor);
-
-    const colorConfig = isThemeColor
-      ? theme.colors[finalColor as keyof typeof theme.colors]
-      : null;
-
-    return { finalColor, isThemeColor, colorConfig };
-  }, [sev, color, theme.colors]);
-
-  const { finalColor, isThemeColor, colorConfig } = memoizedColors;
+  const swipeFade = useSharedValue(1);
 
   const shouldUnmountOnHide = !keepMounted;
-
   const [shouldRender, setShouldRender] = React.useState(shouldUnmountOnHide ? visible : true);
 
   useEffect(() => {
-    if (!shouldUnmountOnHide) {
-      setShouldRender(true);
-    }
+    if (!shouldUnmountOnHide) setShouldRender(true);
   }, [shouldUnmountOnHide]);
-  const transformProperty = React.useMemo(
-    () => (position === 'left' || position === 'right' ? 'translateX' : 'translateY'),
-    [position]
-  );
 
-  // Animation styles
+  // Callbacks live in refs so the transition effect never re-runs — and never
+  // restarts an in-flight animation — just because a parent re-rendered.
+  const onCloseRef = useRef(onClose);
+  const onExitedRef = useRef(onExited);
+  const onSwipeDismissRef = useRef(onSwipeDismiss);
+  const easingRef = useRef(animationConfig?.easing);
+  const springRef = useRef(animationConfig?.springConfig);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+    onExitedRef.current = onExited;
+    onSwipeDismissRef.current = onSwipeDismiss;
+    easingRef.current = animationConfig?.easing;
+    springRef.current = animationConfig?.springConfig;
+  });
+
+  const requestClose = useCallback(() => {
+    onCloseRef.current?.();
+  }, []);
+
+  const handleExited = useCallback(() => {
+    if (shouldUnmountOnHide) setShouldRender(false);
+    onExitedRef.current?.();
+  }, [shouldUnmountOnHide]);
+
+  const handleSwipeDismissed = useCallback(() => {
+    onSwipeDismissRef.current?.();
+    onCloseRef.current?.();
+  }, []);
+
   const animatedStyle = useAnimatedStyle(() => {
-    const baseTransform = transformProperty === 'translateX'
-      ? [{ translateX: slideAnimation.value }]
-      : [{ translateY: slideAnimation.value }];
+    const p = progress.value;
+    const remaining = 1 - p;
 
-    // Add swipe transforms
-    const swipeTransform = [
-      { translateX: swipeX.value },
-      { translateY: swipeY.value }
+    const enterX = travelAxis === 'x' ? remaining * travelDistance : 0;
+    const enterY = travelAxis === 'y' ? remaining * travelDistance : 0;
+    const enterScale = scaleFrom + (1 - scaleFrom) * p;
+
+    const dragX = swipeX.value;
+    const dragY = swipeY.value;
+    const dragging = dragX !== 0 || dragY !== 0;
+
+    const transforms: any[] = [
+      { translateX: enterX + dragX },
+      { translateY: enterY + dragY },
     ];
 
-    // Add rotation based on swipe for natural feel
-    const rotation = interpolate(
-      swipeX.value,
-      [-screenWidth * 0.5, 0, screenWidth * 0.5],
-      [-10, 0, 10],
-      'clamp'
-    );
-
-    // Scale effect during swipe
-    const scale = interpolate(
-      Math.abs(swipeX.value) + Math.abs(swipeY.value),
-      [0, finalSwipeConfig.threshold! * 0.5],
-      [1, 0.95],
-      'clamp'
-    );
-
-    // Combine all transforms
-    const allTransforms: any[] = [...baseTransform, ...swipeTransform];
-
-    if (finalSwipeConfig.enabled && finalSwipeConfig.direction !== 'vertical') {
-      allTransforms.push({ rotate: `${rotation}deg` });
-    }
-
-    if (finalAnimationConfig.type === 'scale' || finalSwipeConfig.enabled) {
-      allTransforms.push({ scale });
+    if (dragging) {
+      // Tilt and shrink only while a drag is actually in progress. Leaving these
+      // in the transform list at rest made every toast pay for two interpolations
+      // per frame and pinned the toast to a rotated origin during entry.
+      if (swipeDirection !== 'vertical') {
+        transforms.push({
+          rotate: `${interpolate(
+            dragX,
+            [-screenWidth * 0.5, 0, screenWidth * 0.5],
+            [-SWIPE_ROTATION, 0, SWIPE_ROTATION],
+            'clamp'
+          )}deg`,
+        });
+      }
+      const dragScale = interpolate(
+        Math.abs(dragX) + Math.abs(dragY),
+        [0, Math.max(swipeThreshold, 1)],
+        [1, 0.94],
+        'clamp'
+      );
+      transforms.push({ scale: enterScale * dragScale });
+    } else if (enterScale !== 1) {
+      transforms.push({ scale: enterScale });
     }
 
     return {
-      transform: allTransforms,
-      opacity: fadeAnimation.value,
+      transform: transforms,
+      opacity: p * swipeFade.value,
     };
-  }, [transformProperty, screenWidth, finalSwipeConfig, finalAnimationConfig]);
+  }, [travelAxis, travelDistance, scaleFrom, swipeDirection, swipeThreshold, screenWidth]);
 
   const haptics = useHaptics();
   const notifySuccess = haptics.notifySuccess ?? (() => {});
@@ -315,7 +354,7 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
   const notifyError = haptics.notifyError ?? (() => {});
 
   // Improved haptic feedback with error handling
-  const triggerHapticFeedback = React.useCallback((severity?: ToastSeverity) => {
+  const triggerHapticFeedback = useCallback((severity?: ToastSeverity) => {
     try {
       switch (severity) {
         case 'success':
@@ -337,168 +376,202 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
       }
     }
   }, [notifySuccess, notifyWarning, notifyError]);
+  const triggerHapticRef = useRef(triggerHapticFeedback);
+  triggerHapticRef.current = triggerHapticFeedback;
 
-  // Swipe gesture handler
-  const panGesture = React.useMemo(() => {
-    if (!finalSwipeConfig.enabled || !Gesture) return null;
-    
+  // ---- Enter / exit ---------------------------------------------------------
+  // Keyed on `visible` and the resolved motion primitives only. Re-running this
+  // for any other reason retargets an animation that is already playing.
+  useEffect(() => {
+    if (visible) {
+      if (shouldUnmountOnHide) setShouldRender(true);
+      // Clear any leftover drag from a previous appearance. This runs on a real
+      // show, not on every render — resetting it per render is what used to
+      // cancel a swipe the instant any other toast appeared.
+      swipeX.value = 0;
+      swipeY.value = 0;
+      swipeFade.value = 1;
+      triggerHapticRef.current(severity);
+
+      if (enterDuration === 0) {
+        progress.value = 1;
+        return;
+      }
+
+      if (springEnter) {
+        progress.value = withSpring(1, {
+          damping: 15,
+          stiffness: 100,
+          mass: 1,
+          ...springRef.current,
+        });
+      } else {
+        progress.value = withTiming(1, {
+          duration: enterDuration,
+          easing: easingRef.current ?? Easing.out(Easing.cubic),
+        });
+      }
+      return;
+    }
+
+    if (exitDuration === 0) {
+      progress.value = 0;
+      handleExited();
+      return;
+    }
+
+    progress.value = withTiming(
+      0,
+      { duration: exitDuration, easing: Easing.in(Easing.cubic) },
+      (finished) => {
+        'worklet';
+        if (finished) runOnJS(handleExited)();
+      }
+    );
+  }, [
+    visible,
+    springEnter,
+    enterDuration,
+    exitDuration,
+    severity,
+    shouldUnmountOnHide,
+    handleExited,
+    progress,
+    swipeX,
+    swipeY,
+    swipeFade,
+  ]);
+
+  // ---- Auto hide ------------------------------------------------------------
+  // The countdown is suspended while `paused` (the stack pauses on hover/focus)
+  // and resumes with the time that was left, so reaching for a toast does not
+  // cost the user the toast underneath it.
+  const remainingRef = useRef(autoHide);
+  const timedOut = autoHide > 0 && !persistent;
+
+  useEffect(() => {
+    remainingRef.current = autoHide;
+  }, [visible, autoHide, persistent]);
+
+  useEffect(() => {
+    if (!visible || !timedOut || paused) return;
+    const startedAt = Date.now();
+    const remaining = remainingRef.current;
+    const timer = setTimeout(() => {
+      remainingRef.current = 0;
+      requestClose();
+    }, remaining);
+    return () => {
+      clearTimeout(timer);
+      remainingRef.current = Math.max(0, remaining - (Date.now() - startedAt));
+    };
+  }, [visible, timedOut, paused, requestClose]);
+
+  // ---- Loading ring ---------------------------------------------------------
+  const spin = useSharedValue(0);
+  useEffect(() => {
+    if (!loading || reducedMotion) {
+      cancelAnimation(spin);
+      spin.value = 0;
+      return;
+    }
+    spin.value = 0;
+    spin.value = withRepeat(
+      withTiming(360, { duration: 900, easing: Easing.linear }),
+      -1,
+      false
+    );
+    return () => cancelAnimation(spin);
+  }, [loading, reducedMotion, spin]);
+
+  const spinnerStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${spin.value}deg` }],
+  }), []);
+
+  // ---- Swipe ----------------------------------------------------------------
+  const panGesture = useMemo(() => {
+    if (!swipeEnabled || !Gesture) return null;
+
+    const tracksX = swipeDirection === 'horizontal' || swipeDirection === 'both';
+    const tracksY = swipeDirection === 'vertical' || swipeDirection === 'both';
+
     return Gesture.Pan()
       .onUpdate((event: any) => {
         'worklet';
-        if (finalSwipeConfig.direction === 'horizontal' || finalSwipeConfig.direction === 'both') {
-          swipeX.value = event.translationX;
-        }
-        if (finalSwipeConfig.direction === 'vertical' || finalSwipeConfig.direction === 'both') {
-          swipeY.value = event.translationY;
-        }
+        if (tracksX) swipeX.value = event.translationX;
+        if (tracksY) swipeY.value = event.translationY;
       })
       .onEnd((event: any) => {
         'worklet';
-        const shouldDismiss = 
-          (finalSwipeConfig.direction === 'horizontal' && 
-           (Math.abs(event.translationX) > finalSwipeConfig.threshold! || 
-            Math.abs(event.velocityX) > finalSwipeConfig.velocityThreshold!)) ||
-          (finalSwipeConfig.direction === 'vertical' && 
-           (Math.abs(event.translationY) > finalSwipeConfig.threshold! || 
-            Math.abs(event.velocityY) > finalSwipeConfig.velocityThreshold!)) ||
-          (finalSwipeConfig.direction === 'both' && 
-           (Math.abs(event.translationX) > finalSwipeConfig.threshold! || 
-            Math.abs(event.translationY) > finalSwipeConfig.threshold! ||
-            Math.abs(event.velocityX) > finalSwipeConfig.velocityThreshold! ||
-            Math.abs(event.velocityY) > finalSwipeConfig.velocityThreshold!));
+        const pastX = tracksX
+          && (Math.abs(event.translationX) > swipeThreshold
+            || Math.abs(event.velocityX) > swipeVelocityThreshold);
+        const pastY = tracksY
+          && (Math.abs(event.translationY) > swipeThreshold
+            || Math.abs(event.velocityY) > swipeVelocityThreshold);
 
-        if (shouldDismiss) {
-          // Animate out in the swipe direction
-          const dismissDirection = Math.abs(event.translationX) > Math.abs(event.translationY) ? 'horizontal' : 'vertical';
-          
-          if (dismissDirection === 'horizontal') {
-            swipeX.value = withSpring(event.translationX > 0 ? screenWidth : -screenWidth);
+        if (pastX || pastY) {
+          // Fling out along whichever axis the user actually moved, then hand
+          // dismissal back to the owner. `swipeFade` is separate from `progress`
+          // so the fling is not fighting the exit transition for the transform.
+          if (pastX && Math.abs(event.translationX) >= Math.abs(event.translationY)) {
+            swipeX.value = withSpring(event.translationX > 0 ? screenWidth : -screenWidth, {
+              velocity: event.velocityX,
+              damping: 40,
+              stiffness: 180,
+            });
           } else {
-            swipeY.value = withSpring(event.translationY > 0 ? 300 : -300);
+            swipeY.value = withSpring(event.translationY > 0 ? 300 : -300, {
+              velocity: event.velocityY,
+              damping: 40,
+              stiffness: 180,
+            });
           }
-          
-          fadeAnimation.value = withTiming(0, { duration: 200 }, (finished) => {
+
+          swipeFade.value = withTiming(0, { duration: SWIPE_FLING_DURATION }, (finished) => {
             'worklet';
-            if (finished) {
-              // Use runOnJS to call callbacks from worklet context
-              if (onSwipeDismiss) {
-                runOnJS(onSwipeDismiss)();
-              }
-              if (onClose) {
-                runOnJS(onClose)();
-              }
-            }
+            if (finished) runOnJS(handleSwipeDismissed)();
           });
-        } else {
-          // Spring back to original position
-          swipeX.value = withSpring(0);
-          swipeY.value = withSpring(0);
+          return;
         }
+
+        swipeX.value = withSpring(0, { damping: 22, stiffness: 260 });
+        swipeY.value = withSpring(0, { damping: 22, stiffness: 260 });
       });
-  }, [finalSwipeConfig, swipeX, swipeY, fadeAnimation, screenWidth, onSwipeDismiss, onClose]);
-
-  // Create a callback that can be called from worklets
-  const handleShouldRenderUpdate = React.useCallback((shouldRender: boolean) => {
-    setShouldRender(shouldRender);
-  }, []);
-
-  useEffect(() => {
-    if (visible) {
-      if (shouldUnmountOnHide) {
-        setShouldRender(true);
-      }
-      
-      // Reset swipe positions
-      swipeX.value = 0;
-      swipeY.value = 0;
-
-      if (toastDuration === 0) {
-        // No transition — present the toast already in place.
-        slideAnimation.value = 0;
-        fadeAnimation.value = 1;
-        triggerHapticFeedback(sev);
-        if (autoHide > 0 && !persistent) {
-          autoHideTimeoutRef.current = setTimeout(() => {
-            onClose?.();
-          }, autoHide);
-        }
-        return () => {
-          if (autoHideTimeoutRef.current) {
-            clearTimeout(autoHideTimeoutRef.current);
-          }
-        };
-      }
-
-      // Animate in based on animation type
-      switch (finalAnimationConfig.type) {
-        case 'bounce':
-          slideAnimation.value = withSpring(0, finalAnimationConfig.springConfig);
-          break;
-        case 'scale':
-          slideAnimation.value = withTiming(0, { 
-            duration: toastDuration,
-            easing: finalAnimationConfig.easing
-          });
-          break;
-        case 'fade':
-          slideAnimation.value = 0;
-          break;
-        case 'slide':
-        default:
-          slideAnimation.value = withTiming(0, { 
-            duration: toastDuration,
-            easing: finalAnimationConfig.easing || Easing.out(Easing.back(1.1))
-          });
-      }
-      
-      fadeAnimation.value = withTiming(1, { 
-        duration: toastDuration * 0.8,
-        easing: Easing.out(Easing.ease)
-      });
-
-      // Haptic feedback on show based on severity
-      triggerHapticFeedback(sev);
-
-      // Auto hide
-      if (autoHide > 0 && !persistent) {
-        autoHideTimeoutRef.current = setTimeout(() => {
-          onClose?.();
-        }, autoHide);
-      }
-    } else if (toastDuration === 0) {
-      // No transition — drop straight to the hidden state.
-      slideAnimation.value = getHiddenPosition(position);
-      fadeAnimation.value = 0;
-      if (shouldUnmountOnHide) handleShouldRenderUpdate(false);
-    } else {
-      // Slide out and fade out
-      slideAnimation.value = withTiming(getHiddenPosition(position), { 
-        duration: toastDuration,
-        easing: Easing.in(Easing.back(1.1))
-      }, (finished) => {
-        'worklet';
-        if (finished && shouldUnmountOnHide) {
-          runOnJS(handleShouldRenderUpdate)(false);
-        }
-      });
-      fadeAnimation.value = withTiming(0, { 
-        duration: toastDuration * 0.6,
-        easing: Easing.in(Easing.ease)
-      });
-    }
-
-    return () => {
-      if (autoHideTimeoutRef.current) {
-        clearTimeout(autoHideTimeoutRef.current);
-      }
-    };
-  }, [visible, finalAnimationConfig, autoHide, onClose, slideAnimation, fadeAnimation, swipeX, swipeY, position, persistent, triggerHapticFeedback, sev, getHiddenPosition, handleShouldRenderUpdate, shouldUnmountOnHide]);
+  }, [
+    swipeEnabled,
+    swipeDirection,
+    swipeThreshold,
+    swipeVelocityThreshold,
+    screenWidth,
+    swipeX,
+    swipeY,
+    swipeFade,
+    handleSwipeDismissed,
+  ]);
 
   // A toast floats above everything, so it sits at the top of the elevation
   // ladder alongside Dialog. Previously this used `colors.gray[0]`, which is
   // the *page base* in the dark theme (#0E0E11) — the toast fill matched the
   // background exactly and the message read as floating text with no container.
   const surface = resolveSurface(theme, 3);
+
+  // Determine final color - severity overrides color prop
+  const memoizedColors = useMemo(() => {
+    const finalColor = severity ? getSeverityColor(severity) : color;
+
+    // Check if finalColor is a theme color or custom color string
+    const isThemeColor = typeof finalColor === 'string' &&
+      ['primary', 'secondary', 'success', 'warning', 'error', 'gray'].includes(finalColor);
+
+    const colorConfig = isThemeColor
+      ? theme.colors[finalColor as keyof typeof theme.colors]
+      : null;
+
+    return { finalColor, isThemeColor, colorConfig };
+  }, [severity, color, theme.colors]);
+
+  const { finalColor, colorConfig } = memoizedColors;
 
   const getToastStyles = () => {
     const baseStyles: ViewStyle = {
@@ -636,29 +709,32 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
   }
 
   // Check if swipe is enabled and gesture handler is available
-  const needsGestureHandler = finalSwipeConfig.enabled && panGesture && GestureDetector && GestureHandlerRootView;
+  const needsGestureHandler = swipeEnabled && panGesture && GestureDetector && GestureHandlerRootView;
 
+  // The transform lives on the outermost node so the toast's hit area travels
+  // with it. Previously the touch target stayed at the untranslated position for
+  // the whole entrance, so clicks during the transition landed nowhere.
   const toastContent = (
-    <TouchableOpacity
-      activeOpacity={dismissOnTap ? 0.8 : 1}
-      onPress={dismissOnTap ? onClose : undefined}
-      disabled={!dismissOnTap}
-      style={{ width: '100%' }}
-    >
-      <Animated.View
-        ref={ref}
-        style={[
-          toastStyles,
-          spacingStyles,
-          style,
-          animatedStyle
-        ]}
-        testID={testID}
-        accessibilityRole="alert"
-        accessibilityLiveRegion="polite"
-        accessibilityLabel={title ? `${title}. ${children || ''}` : String(children || '')}
-        {...otherProps}
+    <Animated.View style={[{ width: '100%' }, animatedStyle]} pointerEvents="box-none">
+      <TouchableOpacity
+        activeOpacity={dismissOnTap ? 0.8 : 1}
+        onPress={dismissOnTap ? requestClose : undefined}
+        disabled={!dismissOnTap}
+        style={{ width: '100%' }}
       >
+        <View
+          ref={ref}
+          style={[
+            toastStyles,
+            spacingStyles,
+            style
+          ]}
+          testID={testID}
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          accessibilityLabel={title ? `${title}. ${children || ''}` : String(children || '')}
+          {...otherProps}
+        >
       {/* Icon or Loading */}
       {(icon || loading) && (
         <View style={{
@@ -670,16 +746,20 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
         }}>
           {loading ? (
             <View style={{ width: metrics.iconSize, height: metrics.iconSize, justifyContent: 'center', alignItems: 'center' }}>
-              {/* Improved loading indicator */}
+              {/* The ring only reads as "working" if it turns — it was drawing a
+                  static gap-topped circle, which looks like a rendering fault. */}
               <Animated.View
-                style={{
-                  width: spinnerSize,
-                  height: spinnerSize,
-                  borderRadius: spinnerSize / 2,
-                  borderWidth: Math.max(1, Math.round(spinnerSize / 8)),
-                  borderColor: iconColor,
-                  borderTopColor: 'transparent',
-                }}
+                style={[
+                  {
+                    width: spinnerSize,
+                    height: spinnerSize,
+                    borderRadius: spinnerSize / 2,
+                    borderWidth: Math.max(1, Math.round(spinnerSize / 8)),
+                    borderColor: iconColor,
+                    borderTopColor: 'transparent',
+                  },
+                  spinnerStyle,
+                ]}
               />
             </View>
           ) : icon ? (
@@ -789,7 +869,7 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
       {withCloseButton && (
         <IconButton
           icon="close"
-          onPress={onClose}
+          onPress={requestClose}
           variant="ghost"
           size={metrics.closeButtonSize}
           iconSize={Math.round(metrics.closeButtonSize / 2)}
@@ -802,8 +882,9 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
           }}
         />
       )}
-      </Animated.View>
-    </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
   );
 
   // Conditionally wrap with gesture handling

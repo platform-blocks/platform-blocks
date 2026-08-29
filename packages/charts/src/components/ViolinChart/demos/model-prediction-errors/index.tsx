@@ -2,7 +2,7 @@ import { ViolinChart } from '@platform-blocks/charts';
 
 import { ERROR_SERIES, STATS, VALUE_BANDS } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <ViolinChart
       title="Prediction error distribution per model version"

@@ -25,15 +25,15 @@ export function TypographyShowcase() {
 
         <Card padding={20}>
           <Block direction="column" gap={16}>
-            <Text weight="bold" size="lg" colorVariant="primary">Color Variants</Text>
+            <Text weight="bold" size="lg" color="primary">Color Variants</Text>
             <Block direction="column" gap={8}>
-              <Text colorVariant="primary">{sampleParagraph}</Text>
-              <Text colorVariant="secondary">{sampleParagraph}</Text>
-              <Text colorVariant="muted">{sampleParagraph}</Text>
-              <Text colorVariant="success">{sampleParagraph}</Text>
-              <Text colorVariant="warning">{sampleParagraph}</Text>
-              <Text colorVariant="error">{sampleParagraph}</Text>
-              <Text colorVariant="info">{sampleParagraph}</Text>
+              <Text color="primary">{sampleParagraph}</Text>
+              <Text color="secondary">{sampleParagraph}</Text>
+              <Text color="muted">{sampleParagraph}</Text>
+              <Text color="success">{sampleParagraph}</Text>
+              <Text color="warning">{sampleParagraph}</Text>
+              <Text color="error">{sampleParagraph}</Text>
+              <Text color="info">{sampleParagraph}</Text>
             </Block>
           </Block>
         </Card>
@@ -42,7 +42,7 @@ export function TypographyShowcase() {
         <Card padding={20}>
           <Block direction="column" gap={16}>
             <Block direction="column" gap={16}>
-              <Text weight="bold" size="lg" colorVariant="primary">CodeBlock</Text>
+              <Text weight="bold" size="lg" color="primary">CodeBlock</Text>
               <CodeBlock language="tsx">
                 {`<Tabs
   items=[
@@ -58,7 +58,7 @@ export function TypographyShowcase() {
 
         <Card padding={20}>
           <Block direction="column" gap={16}>
-            <Text weight="bold" size="lg" colorVariant="primary">Enhanced Typography</Text>
+            <Text weight="bold" size="lg" color="primary">Enhanced Typography</Text>
             <Block direction="column" gap={12}>
               <GradientText colors={['#22d3ee', '#6366f1']} weight="bold" size="xl">
                 GradientText brings motion to headlines

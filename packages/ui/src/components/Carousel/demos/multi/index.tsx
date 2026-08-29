@@ -2,7 +2,7 @@ import { Block, Carousel, Text } from '@platform-blocks/ui';
 
 const slides = ['#1D4ED8', '#0F766E', '#C026D3', '#B45309', '#7C3AED'];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Carousel
       height={180}

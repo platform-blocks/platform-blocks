@@ -170,7 +170,7 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
 
     if (typeof label === 'string') {
       return (
-        <Text variant="small" colorVariant="secondary">
+        <Text variant="small" color="secondary">
           {label}
           {asterisk}
         </Text>
@@ -730,7 +730,7 @@ function RatingBase(rawProps: RatingProps, ref: React.Ref<View>) {
       )}
       {description && !error ? (
         <View style={{ width: '100%', marginTop: 4 }}>
-          <Text variant="small" colorVariant="muted">{description}</Text>
+          <Text variant="small" color="muted">{description}</Text>
         </View>
       ) : null}
       {error ? (

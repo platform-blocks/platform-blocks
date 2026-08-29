@@ -10,7 +10,7 @@ const TEAM = [
   { id: 7, initials: 'AB', color: '#FFB6C1' }
 ];
 
-export default function Demo() {
+export function Demo() {
   return (
     <Block>
       <Text weight="medium">Simple group</Text>
@@ -19,7 +19,7 @@ export default function Demo() {
           <Avatar key={id} fallback={initials} backgroundColor={color} size="md" />
         ))}
       </AvatarGroup>
-      <Text variant="small" colorVariant="muted">
+      <Text variant="small" color="muted">
         Groups overlap avatars automatically to conserve space.
       </Text>
     </Block>

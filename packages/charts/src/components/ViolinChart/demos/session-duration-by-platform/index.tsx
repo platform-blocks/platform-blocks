@@ -2,7 +2,7 @@ import { ViolinChart } from '@platform-blocks/charts';
 
 import { ENGAGEMENT_BANDS, SESSION_SERIES, STATS } from './data';
 
-export default function Demo() {
+export function Demo() {
   return (
     <ViolinChart
       title="Session duration distribution by platform"
