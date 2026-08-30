@@ -15,12 +15,14 @@ export interface ChartsProviderProps extends ViewProps {
 
 /**
  * ChartsProvider lets multiple charts share one interaction context (pointer, crosshair, series registry, zoom state).
- * Use together with each chart's `useOwnInteractionProvider={false}` and typically `suppressPopover` so only this provider renders a single popover.
+ * Nested charts automatically reuse this interaction context and shared
+ * popover. `useOwnInteractionProvider={false}` remains available for custom
+ * chart compositions that provide their own root.
  *
  * Example:
  * <ChartsProvider config={{ multiTooltip: true, invertPinchZoom: true, invertWheelZoom: true }}>
- *   <LineChart useOwnInteractionProvider={false} suppressPopover ... />
- *   <ScatterChart useOwnInteractionProvider={false} suppressPopover ... />
+ *   <LineChart ... />
+ *   <ScatterChart ... />
  * </ChartsProvider>
  */
 export const ChartsProvider: React.FC<ChartsProviderProps> = ({ config, withPopover = true, style, children, ...rest }) => {

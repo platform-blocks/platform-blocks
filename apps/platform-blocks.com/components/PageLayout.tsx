@@ -1,9 +1,8 @@
 import React from 'react';
-import { View, StyleSheet, Platform, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, Platform, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { usePathname } from 'expo-router';
 import { usePersistentScroll, getSavedScroll } from '../utils/usePersistentScroll';
-import { KeyboardAwareLayout, useTheme } from '@platform-blocks/ui';
-import { BREAKPOINTS } from '@platform-blocks/ui/core/responsive';
+import { KeyboardAwareLayout, useBreakpoint, useTheme } from '@platform-blocks/ui';
 import { FooterContent } from './layout/FooterPage';
 
 /**
@@ -27,16 +26,20 @@ export const PAGE_CONTENT_INSET_VAR = '--pb-page-content-inset';
 
 /** The gutter, deferred to the cascade on web and measured on native. */
 export const usePageGutter = (): number | string => {
-  const { width } = useWindowDimensions();
+  const breakpoint = useBreakpoint();
   if (Platform.OS === 'web') return `var(${PAGE_GUTTER_VAR}, ${NARROW_PAGE_GUTTER}px)`;
-  return width < BREAKPOINTS.md ? NARROW_PAGE_GUTTER : 0;
+  return breakpoint === 'base' || breakpoint === 'xs' || breakpoint === 'sm'
+    ? NARROW_PAGE_GUTTER
+    : 0;
 };
 
 /** Its complement: 0 while the gutter is on, 16 once it is off. */
 export const usePageContentInset = (): number | string => {
-  const { width } = useWindowDimensions();
+  const breakpoint = useBreakpoint();
   if (Platform.OS === 'web') return `var(${PAGE_CONTENT_INSET_VAR}, 0px)`;
-  return width < BREAKPOINTS.md ? 0 : NARROW_PAGE_GUTTER;
+  return breakpoint === 'base' || breakpoint === 'xs' || breakpoint === 'sm'
+    ? 0
+    : NARROW_PAGE_GUTTER;
 };
 
 interface PageLayoutProps {

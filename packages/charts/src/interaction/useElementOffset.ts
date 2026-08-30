@@ -19,7 +19,7 @@ export interface UseElementOffsetResult {
   /** Imperative re-measure (e.g. on first pointer-down). */
   measure: () => void;
   /** Attach to the measured View so layout changes trigger a re-measure. */
-  onLayout: (e: LayoutChangeEvent) => void;
+  onLayout?: (e: LayoutChangeEvent) => void;
   ref: React.RefObject<View | null>;
 }
 
@@ -56,18 +56,28 @@ export function useElementOffset(): UseElementOffsetResult {
     }
   }, [apply]);
 
-  const onLayout = useCallback((_e: LayoutChangeEvent) => {
+  const handleLayout = useCallback((_e: LayoutChangeEvent) => {
     measure();
   }, [measure]);
+  const onLayout = isWeb() ? undefined : handleLayout;
 
   // Web: keep offset fresh across scroll/resize. Native relies on onLayout +
   // imperative measure.
   useEffect(() => {
     if (!isWeb() || typeof window === 'undefined') return;
-    const handler = () => measure();
+    let frame: number | null = null;
+    const handler = () => {
+      if (frame != null) return;
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        measure();
+      });
+    };
+    measure();
     window.addEventListener('scroll', handler, { passive: true } as any);
     window.addEventListener('resize', handler);
     return () => {
+      if (frame != null) cancelAnimationFrame(frame);
       window.removeEventListener('scroll', handler as any);
       window.removeEventListener('resize', handler as any);
     };

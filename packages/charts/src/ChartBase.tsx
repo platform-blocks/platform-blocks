@@ -80,12 +80,14 @@ export const ChartContainer: React.FC<BaseChartProps & {
     suppressPopover,
     ...rest
   } = props;
+  const parentInteraction = useOptionalChartInteraction();
 
   const { spacing, rest: otherProps } = extractSpacing(rest);
   const spacingStyles = spacingToStyle(spacing);
 
-  // If a parent ChartsProvider supplies interaction context (useOwnInteractionProvider=false) we default to suppressing
-  const effectiveSuppressPopover = suppressPopover ?? !useOwnInteractionProvider;
+  // Reuse an existing shared root rather than shadowing it with another store,
+  // offset observer, and tooltip.
+  const effectiveSuppressPopover = suppressPopover ?? (!useOwnInteractionProvider || parentInteraction != null);
 
   const content = (
     <TitleBandProvider>
@@ -110,7 +112,7 @@ export const ChartContainer: React.FC<BaseChartProps & {
     </TitleBandProvider>
   );
 
-  if (!useOwnInteractionProvider) {
+  if (!useOwnInteractionProvider || parentInteraction) {
     return content;
   }
 

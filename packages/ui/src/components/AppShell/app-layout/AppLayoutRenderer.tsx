@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, useWindowDimensions } from 'react-native';
+import { Dimensions, Platform } from 'react-native';
 import { AppShell } from '../AppShell';
 import { useTheme } from '../../../core/theme/ThemeProvider';
 import { useReducedMotion } from '../../../core/motion/ReducedMotionProvider';
@@ -21,6 +21,24 @@ const DEFAULT_NAVBAR_WIDTH = 240;
 const DEFAULT_ASIDE_WIDTH = 320;
 const DEFAULT_FOOTER_HEIGHT = 56;
 const DEFAULT_BOTTOM_NAV_HEIGHT = 64;
+
+const readIsLandscape = () => {
+  const { width, height } = Dimensions.get('window');
+  return width > height;
+};
+
+const useIsLandscape = () => {
+  const [isLandscape, setIsLandscape] = React.useState(readIsLandscape);
+
+  React.useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setIsLandscape(window.width > window.height);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  return isLandscape;
+};
 
 interface EvaluatedEntry {
   visible: boolean;
@@ -97,15 +115,13 @@ export const AppLayoutRenderer: React.FC<AppLayoutRendererProps> = ({ children }
   const reducedMotion = useReducedMotion();
   const breakpoint = useBreakpoint();
 
-  const window = useWindowDimensions();
-
-  const isLandscape = React.useMemo(() => window.width > window.height, [window.width, window.height]);
+  const isLandscape = useIsLandscape();
 
   const isMobile = React.useMemo(() => {
     if (Platform.OS !== 'web') {
       return true;
     }
-    return breakpoint === 'xs' || breakpoint === 'sm';
+    return breakpoint === 'base' || breakpoint === 'xs' || breakpoint === 'sm';
   }, [breakpoint]);
 
   const ctx = React.useMemo<AppLayoutRuntimeContext>(() => ({

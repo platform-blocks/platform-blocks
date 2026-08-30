@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useRef, useEffect, useCallback } from 'react';
-import { View, ViewStyle, Platform, useWindowDimensions, KeyboardAvoidingView } from 'react-native';
+import { Dimensions, View, ViewStyle, Platform, KeyboardAvoidingView } from 'react-native';
 import Animated, { useSharedValue, withTiming, useAnimatedStyle, interpolate, Easing } from 'react-native-reanimated';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -118,6 +118,20 @@ const coerceNumber = (val: any, fallback: number): number => {
   return fallback;
 };
 
+const useWindowWidth = (enabled: boolean): number => {
+  const [width, setWidth] = React.useState(() => Dimensions.get('window').width);
+
+  React.useEffect(() => {
+    if (!enabled) return;
+    const update = ({ window }: { window: { width: number } }) => setWidth(window.width);
+    setWidth(Dimensions.get('window').width);
+    const subscription = Dimensions.addEventListener('change', update);
+    return () => subscription?.remove();
+  }, [enabled]);
+
+  return width;
+};
+
 // Component for navbar
 export const AppShellNavbar = React.forwardRef<View, AppShellNavbarProps>(({
   children,
@@ -130,7 +144,7 @@ export const AppShellNavbar = React.forwardRef<View, AppShellNavbarProps>(({
   const chrome = shellChrome(theme);
   const { isRTL } = useDirection();
   const { navbarWidth, fullNavbarWidth, headerHeight, footerHeight, isNavbarCollapsed, isMobile, navbarOpen, closeNavbar, transitionDuration, navbarCollapsedRailWidth, navbarExpandOnHover, navbarPushOnHover, navbarHoverProgress, cssGeometry, headerHeightStyle, navbarWidthStyle, contentBottomStyle } = useAppShell();
-  const { width: windowWidth } = useWindowDimensions();
+  const windowWidth = useWindowWidth(!cssGeometry);
   const [hovering, setHovering] = React.useState(false);
 
   // Determine effective drawer mode: mobile defaults to overlay.

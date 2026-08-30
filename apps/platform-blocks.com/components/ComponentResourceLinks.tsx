@@ -67,14 +67,6 @@ export const ComponentResourceLinks: React.FC<ComponentResourceLinksProps> = ({
         text: 'LLM documentation',
         icon: <Icon name="markdown" size="sm" color={iconColor} />,
       },
-      // ...(snackUrl
-      //   ? [{
-      //     label: 'Demo',
-      //     href: snackUrl,
-      //     text: 'Open in Expo Snack',
-      //     icon: <Icon name="qrcode" size="sm" color={iconColor} />,
-      //   }]
-      //   : []),
       {
         label: 'Package',
         href: `https://www.npmjs.com/package/${packageName}`,
@@ -119,7 +111,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     columnGap: 8,
   },
-  // Fixed box so the link text lines up across rows regardless of glyph width.
   icon: {
     width: 16,
     alignItems: 'center',

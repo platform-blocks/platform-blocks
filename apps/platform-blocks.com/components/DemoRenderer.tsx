@@ -1,7 +1,5 @@
 import React from 'react';
-import { useWindowDimensions } from 'react-native';
-import { Block, Card, CodeBlock } from '@platform-blocks/ui';
-import { BREAKPOINTS } from '@platform-blocks/ui/core/responsive';
+import { Block, Card, CodeBlock, useBreakpoint } from '@platform-blocks/ui';
 import type { NewDemo } from '../utils/demosLoader';
 
 export interface DemoRendererProps {
@@ -32,12 +30,15 @@ export const DemoRenderer: React.FC<DemoRendererProps> = ({ demo, preview }) => 
 
   const centerPreview = previewCenter !== false || renderStyle === 'center';
 
-  // Card padding steps up with the viewport instead of jumping from 8 to 24 at
-  // one breakpoint: narrow windows can't afford 24px per side on top of the
-  // page gutters, and a tablet-width window is still tight.
-  const { width } = useWindowDimensions();
+  // Subscribe to the shared breakpoint rather than raw window dimensions. A
+  // resize inside one range no longer rebuilds every mounted demo card.
+  const breakpoint = useBreakpoint();
   const cardPadding =
-    width < BREAKPOINTS.md ? 'sm' : width < BREAKPOINTS.lg ? 'lg' : '2xl';
+    breakpoint === 'base' || breakpoint === 'xs' || breakpoint === 'sm'
+      ? 'sm'
+      : breakpoint === 'md'
+        ? 'lg'
+        : '2xl';
 
   return (
     <Card variant="outline" radius="xl" clip fullWidth>

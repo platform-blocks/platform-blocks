@@ -47,7 +47,7 @@ export interface UseChartPointerOptions {
 export interface ChartPointerHandlers {
   handlers: Record<string, any>;
   ref: ReturnType<typeof useElementOffset>['ref'];
-  onLayout: (e: LayoutChangeEvent) => void;
+  onLayout?: (e: LayoutChangeEvent) => void;
 }
 
 export function useChartPointer(opts: UseChartPointerOptions): ChartPointerHandlers {

@@ -102,7 +102,7 @@ export function useChartAutoSize(
   useLayoutEffect(() => {
     if (!isWeb()) return;
     apply(measureNode(ref.current));
-  });
+  }, [apply]);
 
   return useMemo(() => {
     const measured = available > 0;

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Text, Button, Card, Flex, Loader, Tabs, Markdown, useI18n, TableOfContents, Link, Block } from '@platform-blocks/ui';
-import { BREAKPOINTS } from '@platform-blocks/ui/core/responsive';
+import { Text, Button, Card, Flex, Loader, Tabs, Markdown, useI18n, TableOfContents, Link, Block, useBreakpoint } from '@platform-blocks/ui';
 import { GlobalChartsRoot } from '@platform-blocks/charts';
 import { useBrowserTitle, formatPageTitle } from '../hooks/useBrowserTitle';
 import { useFragmentScroll } from '../hooks/useFragmentScroll';
@@ -380,8 +379,8 @@ export default function ComponentDetailScreen({ component = 'Unknown' }: Compone
   }
 
   // Determine if we should show side-by-side layout (desktop)
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= BREAKPOINTS.lg;
+  const breakpoint = useBreakpoint();
+  const isDesktop = breakpoint === 'lg' || breakpoint === 'xl';
 
   // Helper function to get localized description (stable so ComponentContent memo holds)
   const getLocalizedDescription = useCallback((demo: any) => {
