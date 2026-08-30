@@ -7,7 +7,6 @@ export function Demo() {
     <LineChart
       title="Cohort Retention Across Milestones"
       subtitle="Weekly retention milestones by signup quarter"
-      width={720}
       height={440}
       series={SERIES}
       smooth={false}

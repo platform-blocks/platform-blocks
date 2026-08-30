@@ -10,6 +10,7 @@ import {
   ViolinSeriesStats,
 } from './types';
 import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
+import { resolveCartesianPadding, domainTickLabels } from '../../core/axisLayout';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
@@ -139,7 +140,36 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
   // title/subtitle need reserved headroom or they crowd/overlap the violin tops. Reserve
   // extra top space when a title/subtitle is present so the plot drops clear below them.
   const topReserve = subtitle ? 76 : title ? 56 : 40;
-  const basePadding = { top: topReserve, right: 20, bottom: 60, left: yAxis?.title ? 104 : 80 };
+  const isHorizontal = layout === 'horizontal';
+  const basePadding = React.useMemo(() => {
+    const names = series.map((entry, index) => entry.name || `Series ${index + 1}`);
+    let min = Infinity;
+    let max = -Infinity;
+    series.forEach((entry) => (entry.values ?? []).forEach((value: number) => {
+      if (value < min) min = value;
+      if (value > max) max = value;
+    }));
+    const values = Number.isFinite(min) && Number.isFinite(max)
+      ? domainTickLabels([min, max], (value) => formatNumber(value))
+      : [];
+    const measured = resolveCartesianPadding({
+      // Categories run along whichever axis the violins are not measured on.
+      yTickLabels: isHorizontal ? names : values,
+      xTickLabels: isHorizontal ? values : names,
+      yTitle: yAxis?.title,
+      xTitle: xAxis?.title,
+      showYAxis: yAxis?.show !== false,
+      showXAxis: xAxis?.show !== false,
+      showYTickLabels: yAxis?.showLabels !== false,
+      showXTickLabels: xAxis?.showLabels !== false,
+      containerWidth: width,
+      containerHeight: height,
+    });
+    // Violins fill the top of the plot (unlike bars, which grow from the
+    // baseline), so the title/subtitle need reserved headroom of their own.
+    return { ...measured, top: Math.max(measured.top, topReserve) };
+  }, [series, isHorizontal, yAxis?.title, xAxis?.title, yAxis?.show, xAxis?.show,
+      yAxis?.showLabels, xAxis?.showLabels, width, height, topReserve]);
   const resolvedLegend = React.useMemo(() => {
     if (legend) return legend;
     if (!showLegend) return undefined;
@@ -174,7 +204,6 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
   const defaultScheme = colorSchemes.default;
   const widthRatio = clamp(violinWidthRatio ?? 0.9, 0.2, 1);
   const showStatsMarkers = statsMarkersEnabled(statsMarkers);
-  const isHorizontal = layout === 'horizontal';
   const overlap = clamp(stackOverlap ?? 0, 0, series.length > 1 ? 0.95 : 0);
   const categoryAxisLength = isHorizontal ? plotHeight : plotWidth;
   const valueAxisLength = isHorizontal ? plotWidth : plotHeight;
@@ -1044,6 +1073,8 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
           length={plotWidth}
           offset={{ x: padding.left, y: padding.top + plotHeight }}
           tickCount={axisTickCountX}
+          tickLabelWidth={basePadding.xTickLabelWidth}
+          tickLabelLines={basePadding.xTickLabelLines}
           tickSize={xAxis?.tickLength ?? 4}
           tickPadding={4}
           tickFormat={(value) => {
@@ -1058,7 +1089,6 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
           stroke={xAxis?.color || theme.colors.grid}
           strokeWidth={xAxis?.thickness ?? 1}
           label={xAxis?.title}
-          labelOffset={xAxis?.title ? (xAxis?.titleFontSize ?? 12) + 20 : 30}
           tickLabelColor={xAxis?.labelColor || theme.colors.textSecondary}
           tickLabelFontSize={xAxis?.labelFontSize}
           labelColor={xAxis?.titleColor || theme.colors.textPrimary}
@@ -1074,6 +1104,7 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
           length={plotHeight}
           offset={{ x: padding.left, y: padding.top }}
           tickCount={axisTickCountY}
+          tickLabelWidth={basePadding.yTickLabelWidth}
           tickSize={yAxis?.tickLength ?? 4}
           tickPadding={4}
           tickFormat={(value) => {
@@ -1088,7 +1119,6 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
           stroke={yAxis?.color || theme.colors.grid}
           strokeWidth={yAxis?.thickness ?? 1}
           label={yAxis?.title}
-          labelOffset={yAxis?.title ? (yAxis?.titleFontSize ?? 12) + 20 : 30}
           tickLabelColor={yAxis?.labelColor || theme.colors.textSecondary}
           tickLabelFontSize={yAxis?.labelFontSize}
           labelColor={yAxis?.titleColor || theme.colors.textPrimary}

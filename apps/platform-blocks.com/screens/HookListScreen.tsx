@@ -92,11 +92,11 @@ const HookListScreen: React.FC = () => {
                       <Title order={2} size={18} weight="600">
                         {hook.title}
                       </Title>
-                      {hook.description && (
+                      {hook.description ? (
                         <Text variant="small" color="secondary">
                           {hook.description}
                         </Text>
-                      )}
+                      ) : null}
                       {hook.tags.length > 0 && (
                         <Row wrap="wrap" gap="xs">
                           {hook.tags.map(tag => (

@@ -7,7 +7,6 @@ export function Demo() {
     <HeatmapChart
       title="QA pass rates by release"
       subtitle="Regression suites vs. release candidates"
-      width={680}
       height={340}
       data={{ rows: SUITES, cols: RELEASES, values: PASS_RATES }}
       cellSize={{ width: 110, height: 48 }}

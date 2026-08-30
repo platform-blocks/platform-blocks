@@ -7,7 +7,6 @@ export function Demo() {
     <MarimekkoChart
       title="Revenue mix by region"
       subtitle="Trailing twelve months"
-      width={760}
       height={440}
       data={REGIONAL_REVENUE}
       columnGap={20}

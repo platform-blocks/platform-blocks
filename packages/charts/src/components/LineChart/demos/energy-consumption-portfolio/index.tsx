@@ -7,7 +7,6 @@ export function Demo() {
     <LineChart
       title="Energy Consumption Across Office Portfolio"
       subtitle="Monthly MWh usage benchmarking against 360 MWh target"
-      width={720}
       height={440}
       series={SERIES}
       smooth={false}

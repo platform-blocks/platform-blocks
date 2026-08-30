@@ -15,7 +15,6 @@ export function Demo() {
       </Text>
 
       <SparklineChart
-        width={228}
         height={86}
         data={BUG_BACKLOG}
         color="#F03E3E"

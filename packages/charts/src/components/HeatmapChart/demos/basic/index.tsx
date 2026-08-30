@@ -7,7 +7,6 @@ export function Demo() {
     <HeatmapChart
       title="Support ticket load"
       subtitle="Average tickets per hour"
-      width={520}
       height={320}
       data={{ rows: SESSIONS, cols: DAYS, values: UTILIZATION }}
       cellSize={{ width: 48, height: 44 }}

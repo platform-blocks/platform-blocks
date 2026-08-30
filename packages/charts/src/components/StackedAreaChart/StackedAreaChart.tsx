@@ -13,6 +13,7 @@ import { LineChartSeries } from '../LineChart/types';
 import { StackedAreaChartProps } from './types';
 import { ChartDataPoint } from '../../types';
 import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
+import { resolveCartesianPadding, domainTickLabels } from '../../core/axisLayout';
 import { useChartInteractionContext, usePointer, useActiveTarget } from '../../interaction/ChartInteractionContext';
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { PointSeriesHitTester } from '../../core/hittest/point';
@@ -309,8 +310,30 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
   const xDomain: [number, number] = useMemo(() => [xValues[0] ?? 0, xValues[xValues.length - 1] ?? 1], [xValues]);
   const yDomain: [number, number] = useMemo(() => [0, yMax], [yMax]);
 
-  // Adjust padding based on legend position to prevent overlap with axis labels
-  const basePadding = useMemo(() => ({ top: 40, right: 20, bottom: 60, left: yAxis?.title ? 104 : 80 }), [yAxis?.title]);
+  // Margins measured from the labels that will be drawn, rather than a fixed
+  // reserve that was a third of the width on a narrow chart.
+  const basePadding = useMemo(
+    () => resolveCartesianPadding({
+      yTickLabels: domainTickLabels(yDomain, (value) =>
+        yAxis?.labelFormatter ? yAxis.labelFormatter(value)
+          : yScaleType === 'time' ? new Date(value).toLocaleDateString()
+          : formatNumber(value)),
+      xTickLabels: domainTickLabels(xDomain, (value) =>
+        xAxis?.labelFormatter ? xAxis.labelFormatter(value)
+          : xScaleType === 'time' ? new Date(value).toLocaleDateString()
+          : formatNumber(value)),
+      yTitle: yAxis?.title,
+      xTitle: xAxis?.title,
+      showYAxis: yAxis?.show !== false,
+      showXAxis: xAxis?.show !== false,
+      showYTickLabels: yAxis?.showLabels !== false,
+      showXTickLabels: xAxis?.showLabels !== false,
+      containerWidth: width,
+      containerHeight: height,
+    }),
+    [yDomain, xDomain, yAxis?.labelFormatter, xAxis?.labelFormatter, yAxis?.title, xAxis?.title,
+     yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, yScaleType, xScaleType, width, height]
+  );
   // Grown so the plot clears the title and legend overlays.
   const legendLabels = useMemo(
     () => layers.map((l) => ({ label: l.name || String(l.id) })),
@@ -552,7 +575,9 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
           orientation="bottom"
           length={plotWidth}
           offset={{ x: padding.left, y: padding.top + plotHeight }}
-          tickCount={xTicks.length}
+          ticks={xTicks}
+          tickLabelWidth={basePadding.xTickLabelWidth}
+          tickLabelLines={basePadding.xTickLabelLines}
           tickSize={xAxisTickSize}
           tickPadding={axisTickPadding}
           tickFormat={(value) => {
@@ -566,7 +591,6 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
           stroke={xAxis?.color || theme.colors.grid}
           strokeWidth={xAxis?.thickness ?? 1}
           label={xAxis?.title}
-          labelOffset={xAxis?.title ? (xAxis?.titleFontSize ?? 12) + 20 : 40}
           tickLabelColor={xAxis?.labelColor || resolvedTextColor}
           tickLabelFontSize={xAxis?.labelFontSize}
           labelColor={xAxis?.titleColor || theme.colors.textPrimary}
@@ -580,7 +604,8 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
           orientation="left"
           length={plotHeight}
           offset={{ x: padding.left, y: padding.top }}
-          tickCount={yTicks.length}
+          ticks={yTicks}
+          tickLabelWidth={basePadding.yTickLabelWidth}
           tickSize={yAxisTickSize}
           tickPadding={axisTickPadding}
           tickFormat={(value) => {
@@ -594,7 +619,6 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
           stroke={yAxis?.color || theme.colors.grid}
           strokeWidth={yAxis?.thickness ?? 1}
           label={yAxis?.title}
-          labelOffset={yAxis?.title ? (yAxis?.titleFontSize ?? 12) + 20 : 30}
           tickLabelColor={yAxis?.labelColor || resolvedTextColor}
           tickLabelFontSize={yAxis?.labelFontSize}
           labelColor={yAxis?.titleColor || theme.colors.textPrimary}

@@ -12,7 +12,6 @@ export function Demo() {
     <CandlestickChart
       title="Battery Material Pricing"
       subtitle="Negotiation window tracked across lithium and nickel contracts"
-      width={760}
       height={420}
       series={[
         {

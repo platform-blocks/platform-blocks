@@ -191,6 +191,7 @@ const createFillPath = (points: Array<{ chartX: number; chartY: number }>, plotH
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { LineChartProps, ChartInteractionEvent, ChartDataPoint, LineChartSeries } from '../../types';
 import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
+import { resolveCartesianPadding } from '../../core/axisLayout';
 import { useChartInteractionContext, usePointer } from '../../interaction/ChartInteractionContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import type { Scale } from '../../utils/scales';
@@ -397,27 +398,68 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
     }
   }, [initializeDomains, xDomain, yDomain, interaction?.domains]);
 
-  // Chart dimensions — grown so the plot clears the title and legend overlays.
-  const basePadding = { top: 40, right: 20, bottom: 60, left: yAxis?.title ? 104 : 80 };
+  // Generate ticks for axes
+  const xTicks = React.useMemo(() => {
+    switch (props.xScaleType) {
+      case 'log': return generateLogTicks(xDomain, 6);
+      case 'time': return generateTimeTicks(xDomain, 6);
+      default: return generateTicks(xDomain[0], xDomain[1], 6);
+    }
+  }, [xDomain, props.xScaleType]);
+  const yTicks = React.useMemo(() => {
+    switch (props.yScaleType) {
+      case 'log': return generateLogTicks(yDomain, 5);
+      case 'time': return generateTimeTicks(yDomain, 5);
+      default: return generateTicks(yDomain[0], yDomain[1], 5);
+    }
+  }, [yDomain, props.yScaleType]);
+
+  const xTickLabels = React.useMemo(
+    () => xTicks.map((tick) => (xAxis?.labelFormatter ? xAxis.labelFormatter(Number(tick)) : formatNumber(Number(tick)))),
+    [xTicks, xAxis?.labelFormatter]
+  );
+  const yTickLabels = React.useMemo(
+    () => yTicks.map((tick) => (yAxis?.labelFormatter ? yAxis.labelFormatter(Number(tick)) : formatNumber(Number(tick)))),
+    [yTicks, yAxis?.labelFormatter]
+  );
+
   const legendLabels = React.useMemo(
     () => normalizedSeries.map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
     [normalizedSeries]
   );
-  const legendPadding = React.useMemo(
+  // Margins measured from the labels that will be drawn, then grown so the plot
+  // clears the title and legend overlays.
+  const axisPadding = React.useMemo(
+    () => resolveCartesianPadding({
+      yTickLabels,
+      xTickLabels,
+      yTitle: yAxis?.title,
+      xTitle: xAxis?.title,
+      showYAxis: yAxis?.show !== false,
+      showXAxis: xAxis?.show !== false,
+      showYTickLabels: yAxis?.showLabels !== false,
+      showXTickLabels: xAxis?.showLabels !== false,
+      containerWidth: width,
+      containerHeight: height,
+    }),
+    [yTickLabels, xTickLabels, yAxis?.title, xAxis?.title, yAxis?.show, xAxis?.show,
+     yAxis?.showLabels, xAxis?.showLabels, width, height]
+  );
+  const padding = React.useMemo(
     () =>
-      withChartBandPadding(basePadding, {
+      withChartBandPadding(axisPadding, {
         title,
         subtitle,
         legendItems: legend?.show ? legendLabels : undefined,
         legendPosition: legend?.position,
         legendFontSize: legend?.fontSize,
         containerWidth: width,
+        topAllowance: axisPadding.top,
       }),
-    [basePadding.left, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels, width]
+    [axisPadding, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels, width]
   );
-  const padding = legendPadding;
-  const plotWidth = width - padding.left - padding.right;
-  const plotHeight = height - padding.top - padding.bottom;
+  const plotWidth = Math.max(width - padding.left - padding.right, 0);
+  const plotHeight = Math.max(height - padding.top - padding.bottom, 0);
 
   // Scale helpers based on prop
   const xScaleFn = React.useCallback((v: number, domain: [number, number], range: [number, number]) => {
@@ -729,21 +771,6 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
     onPanResponderTerminationRequest: () => true,
   });
 
-  // Generate ticks for axes
-  const xTicks = React.useMemo(() => {
-    switch (props.xScaleType) {
-      case 'log': return generateLogTicks(xDomain, 6);
-      case 'time': return generateTimeTicks(xDomain, 6);
-      default: return generateTicks(xDomain[0], xDomain[1], 6);
-    }
-  }, [xDomain, props.xScaleType]);
-  const yTicks = React.useMemo(() => {
-    switch (props.yScaleType) {
-      case 'log': return generateLogTicks(yDomain, 5);
-      case 'time': return generateTimeTicks(yDomain, 5);
-      default: return generateTicks(yDomain[0], yDomain[1], 5);
-    }
-  }, [yDomain, props.yScaleType]);
 
   // Convert ticks to normalized positions (0-1) for ChartGrid
   const normalizedXTicks = xTicks.map(tick => xScaleFn(tick, xDomain, [0, 1]));
@@ -835,7 +862,9 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
           orientation="bottom"
           length={plotWidth}
           offset={{ x: padding.left, y: padding.top + plotHeight }}
-          tickCount={xTicks.length}
+          ticks={xTicks}
+          tickLabelWidth={axisPadding.xTickLabelWidth}
+          tickLabelLines={axisPadding.xTickLabelLines}
           tickSize={xAxisTickSize}
           tickPadding={axisTickPadding}
           tickFormat={(value) =>
@@ -846,7 +875,6 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
           stroke={xAxis?.color || theme.colors.grid}
           strokeWidth={xAxis?.thickness ?? 1}
           label={xAxis?.title}
-          labelOffset={xAxis?.title ? (xAxis?.titleFontSize ?? 12) + 20 : 40}
           tickLabelColor={xAxis?.labelColor}
           tickLabelFontSize={xAxis?.labelFontSize}
           labelColor={xAxis?.titleColor}
@@ -860,7 +888,8 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
           orientation="left"
           length={plotHeight}
           offset={{ x: padding.left, y: padding.top }}
-          tickCount={yTicks.length}
+          ticks={yTicks}
+          tickLabelWidth={axisPadding.yTickLabelWidth}
           tickSize={yAxisTickSize}
           tickPadding={axisTickPadding}
           tickFormat={(value) =>
@@ -871,7 +900,6 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
           stroke={yAxis?.color || theme.colors.grid}
           strokeWidth={yAxis?.thickness ?? 1}
           label={yAxis?.title}
-          labelOffset={yAxis?.title ? (yAxis?.titleFontSize ?? 12) + 20 : 30}
           style={{ width: padding.left, height: plotHeight }}
           tickLabelColor={yAxis?.labelColor}
           tickLabelFontSize={yAxis?.labelFontSize}

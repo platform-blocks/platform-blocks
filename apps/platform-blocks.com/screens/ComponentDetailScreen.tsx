@@ -251,9 +251,9 @@ const ComponentContent = React.memo(function ComponentContent({
       content: (
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
           <View style={{ gap: 16 }}>
-            {playgroundMeta.description && (
+            {playgroundMeta.description ? (
               <Markdown>{playgroundMeta.description}</Markdown>
-            )}
+            ) : null}
             {playgroundConfig ? (
               <ComponentPlayground
                 component={component}
@@ -291,11 +291,11 @@ const ComponentContent = React.memo(function ComponentContent({
       </DocsPageHeader>
 
       <View style={{ opacity: 0.7 }}>
-        {newMeta?.description && (
+        {newMeta?.description ? (
           <Markdown mb={16}>
             {normalizeDescriptionHeadings(newMeta.description)}
           </Markdown>
-        )}
+        ) : null}
       </View>
 
       <ComponentResourceLinks component={component} meta={newMeta} snackUrl={snackUrl} />

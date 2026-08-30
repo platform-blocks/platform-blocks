@@ -11,7 +11,7 @@ export function Demo() {
     <PieChart
       title="Bug type distribution"
       subtitle="Latest release cycle"
-      width={560}
+      maxWidth={560}
       height={380}
       data={BUG_TYPES}
       innerRadius={70}

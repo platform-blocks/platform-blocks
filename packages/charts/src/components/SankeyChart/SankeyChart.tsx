@@ -10,7 +10,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { SankeyChartProps, SankeyNode, SankeyLink, SankeyInconsistency } from './types';
-import { ChartContainer, ChartTitle } from '../../ChartBase';
+import { ChartContainer, ChartTitle, estimateChartTextWidth, measureChartTitleBand } from '../../ChartBase';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
 import type { ActiveTarget } from '../../core/hittest/types';
@@ -30,6 +30,12 @@ interface InternalNode {
   x: number;
   y: number;
   height: number;
+  /** Which side of the node its label is drawn on. */
+  labelSide: 'left' | 'right';
+  /** Label after truncation to the space available on that side. */
+  displayLabel: string;
+  /** True when the label crosses the flows and needs a halo behind it. */
+  labelOverFlows: boolean;
   valueLabel: string;
   raw?: SankeyNode;
 }
@@ -47,6 +53,12 @@ interface InternalLink {
   raw: SankeyLink;
 }
 
+/** Gap between a node and its label. */
+const LABEL_GAP = 8;
+const LABEL_FONT_SIZE = 11;
+/** Space between a node's name and its value. */
+const VALUE_GAP = 6;
+
 // Animated Sankey Node Component
 interface AnimatedSankeyNodeProps {
   node: InternalNode;
@@ -59,8 +71,6 @@ interface AnimatedSankeyNodeProps {
   onHover?: () => void;
   onHoverOut?: () => void;
   highlightAlpha: number;
-  chartWidth: number;
-  padding: { left: number; right: number };
 }
 
 const AnimatedSankeyNode: React.FC<AnimatedSankeyNodeProps> = React.memo(({
@@ -74,8 +84,6 @@ const AnimatedSankeyNode: React.FC<AnimatedSankeyNodeProps> = React.memo(({
   onHover,
   onHoverOut,
   highlightAlpha,
-  chartWidth,
-  padding,
 }) => {
   const animatedProps = useAnimatedProps(() => {
     const progress = animationProgress.value;
@@ -91,14 +99,28 @@ const AnimatedSankeyNode: React.FC<AnimatedSankeyNodeProps> = React.memo(({
 
   const isWeb = Platform.OS === 'web';
   const valueLabel = node.valueLabel;
-  const showInnerName = node.height > 20 && !!node.label;
-  const showInnerValue = node.height > 34 && !!valueLabel;
-  const approxLabelWidth = valueLabel ? valueLabel.length * 6.2 : 0;
-  const fitsRight = valueLabel
-    ? node.x + nodeWidth + 8 + approxLabelWidth <= chartWidth - padding.right
-    : true;
-  const outsideX = fitsRight ? node.x + nodeWidth + 8 : Math.max(padding.left, node.x - 8);
-  const outsideAnchor = fitsRight ? 'start' : 'end';
+  // Labels sit beside the node, never inside it. White text on a node whose
+  // colour happens to be pale is unreadable, and a name centred on a 20px-wide
+  // node spills out both sides of it.
+  // Name and value are separate <Text> elements at measured offsets rather than
+  // one element with a <TSpan>: react-native-svg does not advance the text cursor
+  // for a TSpan on web, so the value landed on top of the end of the name.
+  const nameWidth = estimateChartTextWidth(node.displayLabel, LABEL_FONT_SIZE);
+  const valueWidth = valueLabel ? estimateChartTextWidth(valueLabel, LABEL_FONT_SIZE) : 0;
+  const labelY = node.y + node.height / 2;
+  const anchorX = node.labelSide === 'left' ? node.x - LABEL_GAP : node.x + nodeWidth + LABEL_GAP;
+  const labelParts = node.labelSide === 'left'
+    // Right-aligned against the node: the value trails the name, so the name
+    // starts far enough left to leave room for it.
+    ? [
+        { key: 'name', text: node.displayLabel, x: anchorX - (valueWidth ? valueWidth + VALUE_GAP : 0), fill: theme.colors.textPrimary },
+        ...(valueLabel ? [{ key: 'value', text: valueLabel, x: anchorX, fill: theme.colors.textSecondary }] : []),
+      ]
+    : [
+        { key: 'name', text: node.displayLabel, x: anchorX, fill: theme.colors.textPrimary },
+        ...(valueLabel ? [{ key: 'value', text: valueLabel, x: anchorX + nameWidth + VALUE_GAP, fill: theme.colors.textSecondary }] : []),
+      ];
+  const labelAnchor = node.labelSide === 'left' ? 'end' : 'start';
 
   return (
     <G>
@@ -121,45 +143,40 @@ const AnimatedSankeyNode: React.FC<AnimatedSankeyNodeProps> = React.memo(({
               onPressOut: onHoverOut,
             })}
       />
-      {showInnerName && (
-        <SvgText
-          x={node.x + nodeWidth / 2}
-          y={node.y + node.height / 2 - (showInnerValue ? 6 : 0)}
-          fontSize={Math.min(10, node.height / 2)}
-          fill="#ffffff"
-          fontFamily={theme.fontFamily}
-          textAnchor="middle"
-          alignmentBaseline="central"
-        >
-          {node.label.length > 12 ? `${node.label.slice(0, 10)}…` : node.label}
-        </SvgText>
-      )}
-      {showInnerValue && (
-        <SvgText
-          x={node.x + nodeWidth / 2}
-          y={node.y + node.height / 2 + 10}
-          fontSize={Math.min(10, node.height / 2)}
-          fill="rgba(255,255,255,0.9)"
-          fontFamily={theme.fontFamily}
-          textAnchor="middle"
-          alignmentBaseline="central"
-        >
-          {valueLabel}
-        </SvgText>
-      )}
-      {!showInnerValue && valueLabel && (
-        <SvgText
-          x={outsideX}
-          y={node.y + node.height / 2}
-          fontSize={10}
-          fill={theme.colors.textSecondary}
-          fontFamily={theme.fontFamily}
-          textAnchor={outsideAnchor as any}
-          alignmentBaseline="central"
-        >
-          {valueLabel}
-        </SvgText>
-      )}
+      {node.displayLabel !== '' && labelParts.map(part => (
+        <G key={part.key}>
+          {/* A label between two columns crosses the flows behind it. Painting it
+              twice — once as a thick stroke in the chart background, once filled —
+              is the SVG halo trick, and keeps it readable over any link colour. */}
+          {node.labelOverFlows && (
+            <SvgText
+              x={part.x}
+              y={labelY}
+              fontSize={LABEL_FONT_SIZE}
+              fill="none"
+              stroke={theme.colors.background}
+              strokeWidth={3}
+              strokeLinejoin="round"
+              fontFamily={theme.fontFamily}
+              textAnchor={labelAnchor as any}
+              alignmentBaseline="central"
+            >
+              {part.text}
+            </SvgText>
+          )}
+          <SvgText
+            x={part.x}
+            y={labelY}
+            fontSize={LABEL_FONT_SIZE}
+            fill={part.fill}
+            fontFamily={theme.fontFamily}
+            textAnchor={labelAnchor as any}
+            alignmentBaseline="central"
+          >
+            {part.text}
+          </SvgText>
+        </G>
+      ))}
     </G>
   );
 });
@@ -345,12 +362,12 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
     [valueFormatter, rawNodeMap]
   );
 
-  const resolvedPadding = React.useMemo(
+  const paddingOverrides = React.useMemo(
     () => ({
-      top: chartPadding?.top ?? 40,
-      right: chartPadding?.right ?? 40,
-      bottom: chartPadding?.bottom ?? 40,
-      left: chartPadding?.left ?? 40,
+      top: chartPadding?.top,
+      right: chartPadding?.right,
+      bottom: chartPadding?.bottom,
+      left: chartPadding?.left,
     }),
     [chartPadding]
   );
@@ -408,10 +425,76 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
       }
     });
 
+    // The first and last columns label outward, into the margin, so the margin is
+    // sized from those labels. Everything in between labels inward, over its own
+    // flows, and costs nothing here.
+    const labelWidth = (name: string, value: string) =>
+      estimateChartTextWidth(name, LABEL_FONT_SIZE)
+      + (value ? VALUE_GAP + estimateChartTextWidth(value, LABEL_FONT_SIZE) : 0);
+
+    const labelWidthFor = (predicate: (layerIndex: number) => boolean) => {
+      let widest = 0;
+      nodes.forEach((node) => {
+        const layerIndex = layer[node.id];
+        if (layerIndex == null || !predicate(layerIndex)) return;
+        widest = Math.max(
+          widest,
+          labelWidth(formatLabel(node.id), formatValueLabel(node.id, nodeAgg[node.id]?.value ?? 0)),
+        );
+      });
+      return widest;
+    };
+    // Ceil, not round: the label-fit test below subtracts the same two gaps back
+    // out, so a margin rounded *down* by a hair drops the value off the very
+    // label the margin was measured from.
+    const outerMargin = (widest: number, cap: number) =>
+      Math.ceil(Math.min(widest + LABEL_GAP * 2, Math.max(48, cap)));
+
+    const widestFirst = labelWidthFor((index) => index === 0);
+    const widestLast = labelWidthFor((index) => index === layerCount - 1);
+    // A margin is capped at a quarter of the chart while both sides want one;
+    // a single margin can afford a third, since nothing is paying for the other.
+    const outerLeft = outerMargin(widestFirst, width * 0.26);
+    const outerRight = outerMargin(widestLast, width * 0.26);
+    const outerRightAlone = outerMargin(widestLast, width * 0.34);
+
+    /**
+     * Where each terminal column puts its labels.
+     *
+     * Outside reads best — sources down the left edge, destinations down the
+     * right, nothing over the flows — but each side costs a fixed margin, and on
+     * a phone the pair was taking more than half the width and squeezing the
+     * diagram into a strip.
+     *
+     * The two sides are not equally expensive to give up, though. The first
+     * column can label inward for free: it points right, across its own outgoing
+     * flows, into a gap no other column wants. The last column has no gap after
+     * it — pointing inward puts it head-to-head with the column before it, and
+     * both end up truncated to three characters. So when space is short the left
+     * margin goes first and the right one is kept.
+     */
+    const insideGutter = 8;
+    const bothOutside = outerLeft + outerRight <= width * 0.4;
+    const rightMargin = bothOutside ? outerRight : outerRightAlone;
+    const keepRightMargin = bothOutside || rightMargin <= width * 0.34;
+    const placement = {
+      first: bothOutside ? 'outside' as const : 'inside' as const,
+      last: keepRightMargin ? 'outside' as const : 'inside' as const,
+    };
+
+    const resolvedPadding = {
+      top: paddingOverrides.top ?? Math.max(12, measureChartTitleBand(title, subtitle)),
+      bottom: paddingOverrides.bottom ?? 16,
+      left: paddingOverrides.left ?? (placement.first === 'outside' ? outerLeft : insideGutter),
+      right: paddingOverrides.right ?? (placement.last === 'outside' ? rightMargin : insideGutter),
+    };
+
     const plotW = Math.max(1, width - resolvedPadding.left - resolvedPadding.right);
     const plotH = Math.max(1, height - resolvedPadding.top - resolvedPadding.bottom);
 
-    const autoNodeWidth = Math.min(40, Math.max(8, plotW * 0.08));
+    // 8% of the plot put a 40px slab between every pair of columns — width that a
+    // dense diagram needs for its labels. This is the d3-sankey range instead.
+    const autoNodeWidth = Math.min(24, Math.max(10, plotW * 0.02));
     const resolvedNodeWidth = Math.max(6, Math.min(nodeWidthProp ?? autoNodeWidth, plotW * 0.25));
     const resolvedNodePadding = Math.max(4, nodePaddingProp ?? Math.max(8, plotH * 0.02));
 
@@ -430,6 +513,9 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
         x: 0,
         y: 0,
         height: 0,
+        labelSide: 'right',
+        displayLabel: '',
+        labelOverFlows: false,
         valueLabel: '',
         raw: rawNodeMap.get(node.id),
       };
@@ -476,6 +562,111 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
         cursor += node.height + globalGap;
       });
     });
+
+    // Label placement, once every node has an x.
+    const truncateToWidth = (text: string, budget: number) => {
+      if (budget <= 0) return '';
+      if (estimateChartTextWidth(text, LABEL_FONT_SIZE) <= budget) return text;
+      let trimmed = text;
+      while (trimmed.length > 1 && estimateChartTextWidth(`${trimmed}…`, LABEL_FONT_SIZE) > budget) {
+        trimmed = trimmed.slice(0, -1);
+      }
+      return trimmed.length > 1 ? `${trimmed.trimEnd()}…` : '';
+    };
+
+    // Space between one column's nodes and the next column's.
+    const columnGap = Math.max(0, colW - resolvedNodeWidth - LABEL_GAP);
+    const allNodes = Object.values(layerNodes).flat();
+
+    /**
+     * Whether a column shows its values at all.
+     *
+     * Values are dropped per column rather than per node: one column reading
+     * "Solar / Wind 32 / Hydro" — where only the label that happened to fit kept
+     * its number — looks like missing data rather than a layout decision.
+     */
+    const columnShowsValue: Record<number, boolean> = {};
+    const budgetFor = (node: InternalNode) => {
+      const isFirstColumn = node.layer === 0;
+      const isLastColumn = node.layer === layerCount - 1 && layerCount > 1;
+      const outward = (isFirstColumn && placement.first === 'outside')
+        || (isLastColumn && placement.last === 'outside');
+      // With the last column labelling inward there is one gap two columns point
+      // into; they split it so a right-pointing label and the left-pointing one
+      // opposite can't meet in the middle. Every other gap has a single claimant.
+      const sharedGap = placement.last === 'inside'
+        && layerCount > 1
+        && (node.layer === layerCount - 1 || node.layer === layerCount - 2);
+      return outward
+        ? (isFirstColumn ? resolvedPadding.left : resolvedPadding.right) - LABEL_GAP * 2
+        : sharedGap
+          ? columnGap / 2 - LABEL_GAP
+          : columnGap;
+    };
+
+    allNodes.forEach((node) => {
+      const fits = labelWidth(node.label, node.valueLabel) <= budgetFor(node);
+      columnShowsValue[node.layer] = (columnShowsValue[node.layer] ?? true) && fits;
+    });
+
+    allNodes.forEach((node) => {
+      const isFirstColumn = node.layer === 0;
+      const isLastColumn = node.layer === layerCount - 1 && layerCount > 1;
+      const outward = (isFirstColumn && placement.first === 'outside')
+        || (isLastColumn && placement.last === 'outside');
+
+      // Outward: the first column reads right-to-left into the left margin, the
+      // last column left-to-right into the right one. Inward: everything points
+      // right, except the last column, which has no column after it to point at.
+      node.labelSide = outward
+        ? (isFirstColumn ? 'left' : 'right')
+        : (isLastColumn ? 'left' : 'right');
+      node.labelOverFlows = !outward;
+
+      const budget = budgetFor(node);
+
+      // The value is the first thing to go — a name without its number still
+      // says what the flow is — and it goes for the whole column at once.
+      if (!columnShowsValue[node.layer]) node.valueLabel = '';
+      node.displayLabel = labelWidth(node.label, node.valueLabel) <= budget
+        ? node.label
+        : truncateToWidth(node.label, budget);
+    });
+
+    /**
+     * Drops labels that would print over one another.
+     *
+     * Per-column culling was not enough once the terminal columns started
+     * labelling inward: a label reaching right across a gap meets the one
+     * reaching left from the next column. Bigger nodes are placed first, so what
+     * survives a crowd is the flow that matters most.
+     */
+    const lineHeight = LABEL_FONT_SIZE * 1.15;
+    const placed: { x0: number; x1: number; y0: number; y1: number }[] = [];
+    [...allNodes]
+      .sort((a, b) => b.value - a.value)
+      .forEach((node) => {
+        if (node.displayLabel === '') return;
+        const textWidth = labelWidth(node.displayLabel, node.valueLabel);
+        const anchorX = node.labelSide === 'left'
+          ? node.x - LABEL_GAP
+          : node.x + resolvedNodeWidth + LABEL_GAP;
+        const center = node.y + node.height / 2;
+        const rect = {
+          x0: node.labelSide === 'left' ? anchorX - textWidth : anchorX,
+          x1: node.labelSide === 'left' ? anchorX : anchorX + textWidth,
+          y0: center - lineHeight / 2,
+          y1: center + lineHeight / 2,
+        };
+        const collides = placed.some(other =>
+          rect.x0 < other.x1 && rect.x1 > other.x0 && rect.y0 < other.y1 && rect.y1 > other.y0);
+        if (collides) {
+          node.displayLabel = '';
+          node.valueLabel = '';
+          return;
+        }
+        placed.push(rect);
+      });
 
     const internalNodes = Object.values(layerNodes).flat();
     const nodeIndex: Record<string, InternalNode> = {};
@@ -545,7 +736,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
       nodePadding: globalGap,
       inconsistencies,
     };
-  }, [nodes, links, width, height, resolvedPadding, nodeWidthProp, nodePaddingProp, rawNodeMap, formatLabel, formatValueLabel]);
+  }, [nodes, links, width, height, paddingOverrides, title, subtitle, nodeWidthProp, nodePaddingProp, rawNodeMap, formatLabel, formatValueLabel]);
 
   const { internalNodes, internalLinks, nodeWidth: resolvedNodeWidth, inconsistencies, padding } = layout;
 
@@ -743,8 +934,6 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
               onHover={() => handleNodeHover(n.id)}
               onHoverOut={() => handleNodeHover(null)}
               highlightAlpha={resolveNodeAlpha(n.id)}
-              chartWidth={width}
-              padding={{ left: padding.left, right: padding.right }}
             />
           ))}
         </G>

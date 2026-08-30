@@ -7,7 +7,6 @@ export function Demo() {
     <ViolinChart
       title="Delivery time spread by fulfillment center"
       subtitle="Distribution of hours from order capture to doorstep delivery"
-      width={720}
       height={460}
       series={FULFILLMENT_CENTERS}
       samples={96}

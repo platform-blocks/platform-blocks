@@ -7,7 +7,6 @@ export function Demo() {
     <SankeyChart
       title="Budget allocation flow"
       subtitle="FY26 operating plan"
-      width={680}
       height={400}
       nodes={NODES}
       links={LINKS}

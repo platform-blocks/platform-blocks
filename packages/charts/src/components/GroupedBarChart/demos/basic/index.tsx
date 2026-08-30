@@ -7,7 +7,6 @@ export function Demo() {
 		<GroupedBarChart
 			title="Product revenue by segment"
 			subtitle="Comparison vs targets"
-			width={520}
 			height={320}
 			series={SERIES}
 			barSpacing={0.15}

@@ -7,7 +7,7 @@ export function Demo() {
 		<RadialBarChart
 			title="Customer Satisfaction"
 			subtitle="Rolling 30-day CSAT"
-			width={340}
+			maxWidth={340}
 			height={240}
 			startAngle={-90}
 			endAngle={90}

@@ -12,6 +12,7 @@ import Animated, {
 
 import { HistogramChartProps, HistogramBin, HistogramBinSummary } from './types';
 import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
+import { resolveCartesianPadding, domainTickLabels } from '../../core/axisLayout';
 import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { BandCategoryHitTester } from '../../core/hittest/band';
@@ -232,8 +233,23 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
   const total = sampleCount || 1;
   const maxCount = Math.max(...bins.map((b: HistogramBin) => b.count), 1);
 
-  // Layout constants - adjust padding based on legend position to prevent overlap
-  const basePadding = { top: 40, right: 20, bottom: 60, left: yAxis?.title ? 104 : 80 };
+  // Layout constants — margins measured from the labels the axes will draw.
+  const basePadding = useMemo(
+    () => resolveCartesianPadding({
+      yTickLabels: domainTickLabels([0, maxCount], (value) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : `${Math.round(value)}`)),
+      xTickLabels: domainTickLabels([min, max], (value) => (xAxis?.labelFormatter ? xAxis.labelFormatter(value) : `${value}`)),
+      yTitle: yAxis?.title,
+      xTitle: xAxis?.title,
+      showYAxis: yAxis?.show !== false,
+      showXAxis: xAxis?.show !== false,
+      showYTickLabels: yAxis?.showLabels !== false,
+      showXTickLabels: xAxis?.showLabels !== false,
+      containerWidth: width,
+      containerHeight: height,
+    }),
+    [maxCount, min, max, yAxis?.labelFormatter, xAxis?.labelFormatter, yAxis?.title, xAxis?.title,
+     yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, width, height]
+  );
   // Grown so the plot clears the title and legend overlays. Mirrors the fixed pair of
   // entries the legend renders below.
   const legendLabels = useMemo(

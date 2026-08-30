@@ -7,7 +7,6 @@ export function Demo() {
     <GroupedBarChart
       title="Feature usage by platform"
       subtitle="Weekly active users per capability (in thousands)"
-      width={600}
       height={360}
       series={SERIES}
       barSpacing={0.18}

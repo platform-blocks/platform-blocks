@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Pressable, FlatList, ViewStyle } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View } from 'react-native';
 // NOTE: Using direct relative imports to avoid barrel (index.ts) circular dependency
 import { Text } from '../Text';
 import { Flex } from '../Flex';
-import { useTheme } from '../../core/theme';
+import { Wheel } from '../Wheel';
 import type { TimePickerProps, TimePickerValue } from './types';
 
 const pad = (n: number) => n.toString().padStart(2, '0');
@@ -42,31 +42,37 @@ export const TimePicker = React.forwardRef<View, TimePickerProps>(({
   disabled = false,
   style,
 }, ref) => {
-  const theme = useTheme();
   const isControlled = value !== undefined;
   const [internal, setInternal] = useState<TimePickerValue>(() =>
     buildTimeValue(format, withSeconds, value ?? defaultValue ?? null)
   );
+  const internalRef = useRef(internal);
   const is12h = format === 12;
 
   useEffect(() => {
     if (!isControlled || !value) return;
-    setInternal(buildTimeValue(format, withSeconds, value));
+    const nextInternal = buildTimeValue(format, withSeconds, value);
+    internalRef.current = nextInternal;
+    setInternal(nextInternal);
   }, [isControlled, value?.hours, value?.minutes, value?.seconds, value, format, withSeconds]);
 
   const commit = useCallback(
-    (next: Partial<TimePickerValue>, isFinalColumn = false) => {
+    (next: Partial<TimePickerValue>) => {
       if (disabled) return;
-      setInternal((prev) => {
-        const merged: TimePickerValue = { ...prev, ...next };
-        onChange?.(merged);
-        if (isFinalColumn) {
-          onChangeComplete?.(merged);
-        }
-        return merged;
-      });
+      const merged: TimePickerValue = { ...internalRef.current, ...next };
+      internalRef.current = merged;
+      setInternal(merged);
+      onChange?.(merged);
     },
-    [disabled, onChange, onChangeComplete]
+    [disabled, onChange]
+  );
+
+  const complete = useCallback(
+    (next: Partial<TimePickerValue>) => {
+      if (disabled) return;
+      onChangeComplete?.({ ...internalRef.current, ...next });
+    },
+    [disabled, onChangeComplete]
   );
 
   const hoursOptions = useMemo(() => {
@@ -98,59 +104,6 @@ export const TimePicker = React.forwardRef<View, TimePickerProps>(({
     commit({ hours: hour24 });
   };
 
-  const listCommon: ViewStyle = {
-    maxHeight: columnHeight,
-    width: '100%',
-  };
-
-  const columnListStyle = [
-    listCommon,
-    { borderRadius: 12, backgroundColor: theme.colors.gray[1] },
-  ];
-
-  const renderPill = (
-    key: React.Key,
-    label: string,
-    active: boolean,
-    onPress: () => void
-  ) => (
-    <Pressable
-      key={key}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active, disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 10,
-        backgroundColor: active
-          ? theme.colors.primary[5]
-          : pressed
-          ? theme.colors.gray[2]
-          : 'transparent',
-        marginVertical: 2,
-        marginHorizontal: 4,
-        minWidth: 48,
-        alignItems: 'center',
-      })}
-    >
-      <Text
-        size="md"
-        weight={active ? 'semibold' : 'medium'}
-        style={{
-          color: active ? 'white' : theme.colors.gray[8],
-          fontSize: 16,
-        }}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-
-  const renderNumber = (n: number, active: boolean, onPress: () => void) =>
-    renderPill(n, pad(n), active, onPress);
-
   const renderColumnLabel = (label: string) => (
     <Text size="sm" weight="medium" style={{ marginBottom: 12, textAlign: 'center' }}>
       {label}
@@ -162,73 +115,62 @@ export const TimePicker = React.forwardRef<View, TimePickerProps>(({
       <Flex direction="row" gap={6} align="flex-start" justify="center">
         <View style={{ width: columnWidth, alignItems: 'center' }}>
           {renderColumnLabel('Hour')}
-          <FlatList
-            data={hoursOptions}
-            keyExtractor={(item) => 'h-' + item}
-            renderItem={({ item }) =>
-              renderNumber(
-                item,
-                (is12h ? ((internal.hours + 11) % 12) + 1 : internal.hours) === item,
-                () => setHourDisplay(item)
-              )
-            }
-            style={columnListStyle}
-            contentContainerStyle={{ paddingVertical: 8 }}
-            showsVerticalScrollIndicator={false}
+          <Wheel
+            label="Hour"
+            items={hoursOptions.map((item) => ({ value: item, label: pad(item) }))}
+            value={is12h ? ((internal.hours + 11) % 12) + 1 : internal.hours}
+            onValueChange={setHourDisplay}
+            width={columnWidth}
+            height={columnHeight}
+            disabled={disabled}
           />
         </View>
 
         <View style={{ width: columnWidth, alignItems: 'center' }}>
           {renderColumnLabel('Minute')}
-          <FlatList
-            data={minuteOptions}
-            keyExtractor={(item) => 'm-' + item}
-            renderItem={({ item }) =>
-              renderNumber(item, internal.minutes === item, () =>
-                commit({ minutes: item }, !withSeconds)
-              )
-            }
-            style={columnListStyle}
-            contentContainerStyle={{ paddingVertical: 8 }}
-            showsVerticalScrollIndicator={false}
+          <Wheel
+            label="Minute"
+            items={minuteOptions.map((item) => ({ value: item, label: pad(item) }))}
+            value={internal.minutes}
+            onValueChange={(minutes) => commit({ minutes })}
+            onChangeComplete={withSeconds ? undefined : (minutes) => complete({ minutes })}
+            width={columnWidth}
+            height={columnHeight}
+            disabled={disabled}
           />
         </View>
 
         {withSeconds && (
           <View style={{ width: columnWidth, alignItems: 'center' }}>
             {renderColumnLabel('Second')}
-            <FlatList
-              data={secondOptions}
-              keyExtractor={(item) => 's-' + item}
-              renderItem={({ item }) =>
-                renderNumber(item, (internal.seconds ?? 0) === item, () =>
-                  commit({ seconds: item }, true)
-                )
-              }
-              style={columnListStyle}
-              contentContainerStyle={{ paddingVertical: 8 }}
-              showsVerticalScrollIndicator={false}
+            <Wheel
+              label="Second"
+              items={secondOptions.map((item) => ({ value: item, label: pad(item) }))}
+              value={internal.seconds ?? 0}
+              onValueChange={(seconds) => commit({ seconds })}
+              onChangeComplete={(seconds) => complete({ seconds })}
+              width={columnWidth}
+              height={columnHeight}
+              disabled={disabled}
             />
           </View>
         )}
 
         {is12h && (
-          <View style={{ alignItems: 'center' }}>
+          <View style={{ width: columnWidth, alignItems: 'center' }}>
             {renderColumnLabel('Period')}
-            <Flex
-              direction="column"
-              align="center"
-              justify="center"
-              style={{
-                height: columnHeight,
-                paddingVertical: 8,
-                borderRadius: 12,
-                backgroundColor: theme.colors.gray[1],
-              }}
-            >
-              {renderPill('am', 'AM', internal.hours < 12, () => setMeridiem(false))}
-              {renderPill('pm', 'PM', internal.hours >= 12, () => setMeridiem(true))}
-            </Flex>
+            <Wheel
+              label="Period"
+              items={[
+                { value: 'am', label: 'AM' },
+                { value: 'pm', label: 'PM' },
+              ]}
+              value={internal.hours < 12 ? 'am' : 'pm'}
+              onValueChange={(period) => setMeridiem(period === 'pm')}
+              width={columnWidth}
+              height={columnHeight}
+              disabled={disabled}
+            />
           </View>
         )}
       </Flex>

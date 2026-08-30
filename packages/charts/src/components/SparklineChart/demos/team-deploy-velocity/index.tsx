@@ -16,7 +16,6 @@ export function Demo() {
           <View key={team.id} style={{ marginBottom: index === TEAMS.length - 1 ? 0 : 16 }}>
             <Text style={{ fontSize: 13, fontWeight: '600', marginBottom: 6 }}>{team.name}</Text>
             <SparklineChart
-              width={260}
               height={76}
               data={team.data}
               color={team.color}

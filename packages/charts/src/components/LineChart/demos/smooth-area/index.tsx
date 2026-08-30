@@ -7,7 +7,6 @@ export function Demo() {
     <LineChart
       title="Revenue trajectory"
       subtitle="Smoothed forecast vs. actuals"
-      width={560}
       height={320}
       series={SERIES}
       smooth

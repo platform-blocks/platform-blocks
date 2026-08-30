@@ -15,6 +15,7 @@ import { useChartTheme } from '../../theme/ChartThemeContext';
 import { BarChartProps, BarChartDataPoint, BarChartSeries } from './types';
 import { ChartInteractionEvent } from '../../types';
 import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
+import { resolveCartesianPadding } from '../../core/axisLayout';
 import { Axis } from '../../core/Axis';
 import { ChartGrid as Grid } from '../../core/ChartGrid';
 import { linearScale } from '../../utils/scales';
@@ -398,33 +399,10 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
     return visibleSeries;
   }, [resolvedLayout, visibleSeries, normalizedSeries]);
 
-  // Reserve extra room on the left for a rotated y-axis title so it clears the tick labels.
-  const basePadding = { top: 40, right: 20, bottom: 60, left: yAxis?.title ? 104 : 80 };
   const legendLabels = useMemo(
     () => normalizedSeries.map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
     [normalizedSeries]
   );
-  const chartDimensions = useMemo(
-    () => {
-      // Grown so the plot clears the title and legend overlays.
-      const adjustedPadding = withChartBandPadding(basePadding, {
-        title,
-        subtitle,
-        legendItems: legend?.show ? legendLabels : undefined,
-        legendPosition: legend?.position,
-        legendFontSize: legend?.fontSize,
-        containerWidth: width,
-      });
-      return {
-        padding: adjustedPadding,
-        plotWidth: width - adjustedPadding.left - adjustedPadding.right,
-        plotHeight: height - adjustedPadding.top - adjustedPadding.bottom,
-      };
-    },
-    [width, height, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels, yAxis?.title]
-  );
-
-  const { padding, plotWidth, plotHeight } = chartDimensions;
 
   const usePercentageStack = resolvedLayout === 'stacked' && stackMode === '100%';
 
@@ -487,6 +465,61 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
   }, [categories.length, displaySeries, resolvedLayout, usePercentageStack]);
 
   const valueTicks = useMemo(() => generateTicks(metrics.minValue, metrics.maxValue, 5), [metrics.minValue, metrics.maxValue]);
+
+  // Margins are measured off the labels that will actually be drawn, so a chart
+  // in a narrow column spends its width on bars instead of on empty gutter.
+  const valueTickLabels = useMemo(() => {
+    const format = orientation === 'vertical' ? yAxis?.labelFormatter : xAxis?.labelFormatter;
+    return valueTicks.map((tick) => (format ? format(tick) : formatNumber(tick)));
+  }, [valueTicks, orientation, yAxis?.labelFormatter, xAxis?.labelFormatter]);
+
+  const chartDimensions = useMemo(
+    () => {
+      const isVertical = orientation === 'vertical';
+      const measured = resolveCartesianPadding({
+        yTickLabels: isVertical ? valueTickLabels : categories,
+        xTickLabels: isVertical ? categories : valueTickLabels,
+        yTitle: yAxis?.title,
+        xTitle: xAxis?.title,
+        showYAxis: yAxis?.show !== false,
+        showXAxis: xAxis?.show !== false,
+        showYTickLabels: yAxis?.showLabels !== false,
+        showXTickLabels: xAxis?.showLabels !== false,
+        containerWidth: width,
+        containerHeight: height,
+        // Value labels sit above the tallest bar; without the allowance they are
+        // drawn over the title band.
+        topAllowance: showValueLabels && !valueLabelInside && isVertical
+          ? valueLabelFontSize + valueLabelOffset
+          : 0,
+      });
+      // Grown so the plot clears the title and legend overlays.
+      const adjustedPadding = withChartBandPadding(measured, {
+        title,
+        subtitle,
+        legendItems: legend?.show ? legendLabels : undefined,
+        legendPosition: legend?.position,
+        legendFontSize: legend?.fontSize,
+        containerWidth: width,
+        topAllowance: measured.top,
+      });
+      return {
+        padding: adjustedPadding,
+        axisLabelWidths: {
+          y: measured.yTickLabelWidth,
+          x: measured.xTickLabelWidth,
+          xLines: measured.xTickLabelLines,
+        },
+        plotWidth: Math.max(width - adjustedPadding.left - adjustedPadding.right, 0),
+        plotHeight: Math.max(height - adjustedPadding.top - adjustedPadding.bottom, 0),
+      };
+    },
+    [width, height, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels,
+     orientation, categories, valueTickLabels, yAxis?.title, xAxis?.title, yAxis?.show, xAxis?.show,
+     yAxis?.showLabels, xAxis?.showLabels, showValueLabels, valueLabelInside, valueLabelFontSize, valueLabelOffset]
+  );
+
+  const { padding, plotWidth, plotHeight, axisLabelWidths } = chartDimensions;
 
   const valueScaleY = useMemo(() => linearScale([metrics.minValue, metrics.maxValue], [plotHeight, 0]), [metrics.minValue, metrics.maxValue, plotHeight]);
   const valueScaleX = useMemo(() => linearScale([metrics.minValue, metrics.maxValue], [0, plotWidth]), [metrics.minValue, metrics.maxValue, plotWidth]);
@@ -956,11 +989,8 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
               scale={valueScaleY}
               orientation="left"
               length={plotHeight}
-              offset={{
-                x: padding.left - valueAxisTickSize - axisTickPadding - 6,
-                y: padding.top,
-              }}
-              tickCount={valueTicks.length}
+              offset={{ x: padding.left, y: padding.top }}
+              ticks={valueTicks}
               tickSize={valueAxisTickSize}
               tickPadding={axisTickPadding}
               tickFormat={(val) =>
@@ -971,7 +1001,7 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
               stroke={yAxis?.color || theme.colors.grid}
               strokeWidth={yAxis?.thickness ?? 1}
               label={yAxis?.title}
-              labelOffset={yAxis?.title ? (yAxis?.titleFontSize ?? 12) + 20 : 30}
+              tickLabelWidth={axisLabelWidths.y}
               tickLabelColor={yAxis?.labelColor}
               tickLabelFontSize={yAxis?.labelFontSize}
               labelColor={yAxis?.titleColor}
@@ -986,7 +1016,7 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
               orientation="bottom"
               length={plotWidth}
               offset={{ x: padding.left, y: padding.top + plotHeight }}
-              tickCount={categories.length}
+              ticks={categories.map((_, index) => index)}
               tickSize={categoryAxisTickSize}
               tickPadding={axisTickPadding}
               tickFormat={(val) => {
@@ -998,7 +1028,8 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
               stroke={xAxis?.color || theme.colors.grid}
               strokeWidth={xAxis?.thickness ?? 1}
               label={xAxis?.title}
-              labelOffset={xAxis?.title ? (xAxis?.titleFontSize ?? 12) + 20 : 40}
+              tickLabelWidth={axisLabelWidths.x}
+              tickLabelLines={axisLabelWidths.xLines}
               tickLabelColor={xAxis?.labelColor}
               tickLabelFontSize={xAxis?.labelFontSize}
               labelColor={xAxis?.titleColor}
@@ -1013,11 +1044,8 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
               scale={categoryScaleY}
               orientation="left"
               length={plotHeight}
-              offset={{
-                x: padding.left - categoryAxisTickSize - axisTickPadding - 6,
-                y: padding.top,
-              }}
-              tickCount={categories.length}
+              offset={{ x: padding.left, y: padding.top }}
+              ticks={categories.map((_, index) => index)}
               tickSize={categoryAxisTickSize}
               tickPadding={axisTickPadding}
               tickFormat={(val) => {
@@ -1029,7 +1057,7 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
               stroke={yAxis?.color || theme.colors.grid}
               strokeWidth={yAxis?.thickness ?? 1}
               label={yAxis?.title}
-              labelOffset={yAxis?.title ? (yAxis?.titleFontSize ?? 12) + 20 : 30}
+              tickLabelWidth={axisLabelWidths.y}
               tickLabelColor={yAxis?.labelColor}
               tickLabelFontSize={yAxis?.labelFontSize}
               labelColor={yAxis?.titleColor}
@@ -1044,7 +1072,7 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
               orientation="bottom"
               length={plotWidth}
               offset={{ x: padding.left, y: padding.top + plotHeight }}
-              tickCount={valueTicks.length}
+              ticks={valueTicks}
               tickSize={valueAxisTickSize}
               tickPadding={axisTickPadding}
               tickFormat={(val) =>
@@ -1055,7 +1083,8 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
               stroke={xAxis?.color || theme.colors.grid}
               strokeWidth={xAxis?.thickness ?? 1}
               label={xAxis?.title}
-              labelOffset={xAxis?.title ? (xAxis?.titleFontSize ?? 12) + 20 : 40}
+              tickLabelWidth={axisLabelWidths.x}
+              tickLabelLines={axisLabelWidths.xLines}
               tickLabelColor={xAxis?.labelColor}
               tickLabelFontSize={xAxis?.labelFontSize}
               labelColor={xAxis?.titleColor}

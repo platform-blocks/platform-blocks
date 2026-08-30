@@ -4,6 +4,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, Easi
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ScatterChartProps, ChartInteractionEvent, ChartDataPoint } from '../../types';
 import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
+import { resolveCartesianPadding, domainTickLabels } from '../../core/axisLayout';
 import { useOptionalChartInteraction, useChartInteractionVolatile } from '../../interaction/ChartInteractionContext';
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { touchDistance } from '../../interaction/useOptionalPinch';
@@ -217,7 +218,22 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
   const paddedYDomain: [number, number] = [yDomain[0] - yPadding, yDomain[1] + yPadding];
 
   // Chart dimensions — grown so the plot clears the title and legend overlays.
-  const basePadding = { top: 40, right: 20, bottom: 60, left: yAxis?.title ? 104 : 80 };
+  const basePadding = React.useMemo(
+    () => resolveCartesianPadding({
+      yTickLabels: domainTickLabels(paddedYDomain, (value) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : formatNumber(value))),
+      xTickLabels: domainTickLabels(paddedXDomain, (value) => (xAxis?.labelFormatter ? xAxis.labelFormatter(value) : formatNumber(value))),
+      yTitle: yAxis?.title,
+      xTitle: xAxis?.title,
+      showYAxis: yAxis?.show !== false,
+      showXAxis: xAxis?.show !== false,
+      showYTickLabels: yAxis?.showLabels !== false,
+      showXTickLabels: xAxis?.showLabels !== false,
+      containerWidth: width,
+      containerHeight: height,
+    }),
+    [paddedYDomain, paddedXDomain, yAxis?.labelFormatter, xAxis?.labelFormatter, yAxis?.title, xAxis?.title,
+     yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, width, height]
+  );
   const legendLabels = React.useMemo(
     () => normalizedSeries.map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
     [normalizedSeries]
@@ -676,7 +692,9 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
           orientation="bottom"
           length={plotWidth}
           offset={{ x: padding.left, y: padding.top + plotHeight }}
-          tickCount={xTicks.length}
+          ticks={xTicks}
+          tickLabelWidth={basePadding.xTickLabelWidth}
+          tickLabelLines={basePadding.xTickLabelLines}
           tickSize={xAxisTickSize}
           tickPadding={axisTickPadding}
           tickFormat={(value) => {
@@ -690,7 +708,6 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
           stroke={xAxis?.color || theme.colors.grid}
           strokeWidth={xAxis?.thickness ?? 1}
           label={xAxis?.title}
-          labelOffset={xAxis?.title ? (xAxis?.titleFontSize ?? 12) + 20 : 40}
           tickLabelColor={xAxis?.labelColor || resolvedTextColor}
           tickLabelFontSize={xAxis?.labelFontSize}
           labelColor={xAxis?.titleColor || theme.colors.textPrimary}
@@ -704,7 +721,8 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
           orientation="left"
           length={plotHeight}
           offset={{ x: padding.left, y: padding.top }}
-          tickCount={yTicks.length}
+          ticks={yTicks}
+          tickLabelWidth={basePadding.yTickLabelWidth}
           tickSize={yAxisTickSize}
           tickPadding={axisTickPadding}
           tickFormat={(value) => {
@@ -718,7 +736,6 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
           stroke={yAxis?.color || theme.colors.grid}
           strokeWidth={yAxis?.thickness ?? 1}
           label={yAxis?.title}
-          labelOffset={yAxis?.title ? (yAxis?.titleFontSize ?? 12) + 20 : 30}
           tickLabelColor={yAxis?.labelColor || resolvedTextColor}
           tickLabelFontSize={yAxis?.labelFontSize}
           labelColor={yAxis?.titleColor || theme.colors.textPrimary}

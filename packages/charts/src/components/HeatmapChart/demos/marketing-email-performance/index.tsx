@@ -7,7 +7,6 @@ export function Demo() {
     <HeatmapChart
       title="Email click-through performance"
       subtitle="Daily CTR (%) across audience segments"
-      width={760}
       height={320}
       data={{ rows: SEGMENTS, cols: DAYS, values: CLICK_RATES }}
       cellSize={{ width: 80, height: 44 }}

@@ -7,7 +7,6 @@ export function Demo() {
     <RidgeChart
       title="Shipping time distribution by carrier"
       subtitle="Parcel delivery performance across recent quarters"
-      width={620}
       height={420}
       series={SERIES}
       samples={110}

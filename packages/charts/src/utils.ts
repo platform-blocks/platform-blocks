@@ -170,6 +170,25 @@ export function getDataDomain(
 /**
  * Generate nice tick values for an axis
  */
+/**
+ * Picks the "nice" tick step (1, 2, or 5 × a power of ten) that lands closest to
+ * `targetCount` ticks across `span`.
+ *
+ * The old rule rounded the rough step *up* to the next nice value, so a span of
+ * 8,800 asked for 5 ticks got a step of 5,000 — and an axis with a single label
+ * on it. Choosing by proximity (the thresholds are d3's) keeps the requested
+ * density instead.
+ */
+export function niceTickStep(span: number, targetCount: number = 5): number {
+  const absSpan = Math.abs(span);
+  if (!Number.isFinite(absSpan) || absSpan === 0) return 0;
+  const rough = absSpan / Math.max(1, targetCount);
+  const power = Math.pow(10, Math.floor(Math.log10(rough)));
+  const error = rough / power;
+  const multiple = error >= Math.sqrt(50) ? 10 : error >= Math.sqrt(10) ? 5 : error >= Math.sqrt(2) ? 2 : 1;
+  return multiple * power;
+}
+
 export function generateTicks(
   min: number,
   max: number,
@@ -178,35 +197,18 @@ export function generateTicks(
   if (min === max) {
     return [min];
   }
-  
-  const range = max - min;
-  const roughStep = range / (targetCount - 1);
-  
-  // Find the power of 10 that's less than or equal to roughStep
-  const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)));
-  
-  // Normalize the step to a nice value
-  const normalizedStep = roughStep / magnitude;
-  let step;
-  
-  if (normalizedStep <= 1) {
-    step = magnitude;
-  } else if (normalizedStep <= 2) {
-    step = 2 * magnitude;
-  } else if (normalizedStep <= 5) {
-    step = 5 * magnitude;
-  } else {
-    step = 10 * magnitude;
-  }
-  
+
+  const step = niceTickStep(max - min, targetCount);
+  if (!Number.isFinite(step) || step <= 0) return [min, max];
+
   // Generate ticks
   const ticks: number[] = [];
   const start = Math.ceil(min / step) * step;
-  
-  for (let tick = start; tick <= max + step * 0.01; tick += step) {
+
+  for (let tick = start; tick <= max + step * 1e-6; tick += step) {
     ticks.push(Number(tick.toFixed(10))); // Avoid floating point precision issues
   }
-  
+
   return ticks;
 }
 

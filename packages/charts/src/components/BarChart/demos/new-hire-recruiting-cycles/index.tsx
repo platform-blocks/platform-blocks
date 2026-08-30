@@ -15,7 +15,6 @@ export function Demo() {
     <BarChart
       title="New hires secured this recruiting cycle"
       subtitle="Compared with winter intake"
-      width={720}
       height={440}
       orientation="horizontal"
       data={RECRUITING_PROGRESS}

@@ -7,7 +7,6 @@ export function Demo() {
     <MarimekkoChart
       title="Pipeline contribution by segment"
       subtitle="Quarter to date"
-      width={760}
       height={440}
       data={PIPELINE_COMPOSITION}
       columnGap={16}

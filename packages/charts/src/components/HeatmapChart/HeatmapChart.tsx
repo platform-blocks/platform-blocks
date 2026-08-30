@@ -446,15 +446,32 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
     return Math.max(4, (availablePlotHeight - gap * Math.max(uniqueY - 1, 0)) / Math.max(uniqueY, 1));
   }, [availablePlotHeight, gap, uniqueY]);
 
+  /**
+   * How much an explicit `cellSize` has to shrink to fit the width on offer.
+   *
+   * A pinned cell size is a request, not a licence to overflow: on a phone, a
+   * 90px cell across seven columns drew a chart twice as wide as the screen.
+   * Both dimensions scale by the same factor so the cells keep the aspect ratio
+   * that was asked for.
+   */
+  const cellScale = React.useMemo(() => {
+    if (!cellSize?.width || !uniqueX) return 1;
+    const requested = cellSize.width * uniqueX + gap * Math.max(uniqueX - 1, 0);
+    if (requested <= availablePlotWidth || requested <= 0) return 1;
+    return Math.max(availablePlotWidth / requested, 0.1);
+  }, [cellSize?.width, uniqueX, gap, availablePlotWidth]);
+
   const cellW = React.useMemo(() => {
     if (!uniqueX) return 0;
-    return Math.max(1, cellSize?.width ?? fallbackCellWidth);
-  }, [cellSize?.width, fallbackCellWidth, uniqueX]);
+    const scaled = (cellSize?.width ?? fallbackCellWidth) * cellScale;
+    // Floored, so the scaled cells can only ever come in under the width budget.
+    return Math.max(1, cellScale < 1 ? Math.floor(scaled) : scaled);
+  }, [cellSize?.width, fallbackCellWidth, uniqueX, cellScale]);
 
   const cellH = React.useMemo(() => {
     if (!uniqueY) return 0;
-    return Math.max(1, cellSize?.height ?? fallbackCellHeight);
-  }, [cellSize?.height, fallbackCellHeight, uniqueY]);
+    return Math.max(1, (cellSize?.height ?? fallbackCellHeight) * (cellSize?.height ? cellScale : 1));
+  }, [cellSize?.height, fallbackCellHeight, uniqueY, cellScale]);
 
   const shouldShowCellLabel = React.useCallback(
     (cell: HeatmapCell, rowPercent: number, columnPercent: number, overallPercent: number) => {
@@ -491,7 +508,9 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
   // Grow the box to fit rather than letting the axes and legend spill past it.
   const contentWidth = basePadding.left + plotWidth + basePadding.right;
   const contentHeight = basePadding.top + plotHeight + basePadding.bottom;
-  const boxWidth = Math.max(width, contentWidth);
+  // Once the cells have been scaled to fit, `width` is the box — growing past it
+  // would put the rounding slack right back outside the container.
+  const boxWidth = cellScale < 1 ? width : Math.max(width, contentWidth);
   const boxHeight = Math.max(height, contentHeight);
 
   // A fixed `cellSize` narrower than the box leaves slack on one side; split it so

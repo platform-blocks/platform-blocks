@@ -7,7 +7,6 @@ export function Demo() {
     <HeatmapChart
       title="Employee engagement survey"
       subtitle="Dimension scores (1-5) by team"
-      width={720}
       height={360}
       data={{ rows: TEAMS, cols: DIMENSIONS, values: SCORES }}
       cellSize={{ width: 96, height: 48 }}

@@ -7,7 +7,6 @@ export function Demo() {
     <LineChart
       title="Web analytics"
       subtitle="Sessions and goals over time"
-      width={600}
       height={360}
       series={SERIES}
       xScaleType="time"

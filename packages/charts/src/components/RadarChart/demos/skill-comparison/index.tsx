@@ -7,7 +7,7 @@ export function Demo() {
     <RadarChart
       title="Engineering guild comparison"
       subtitle="Quarterly capability radar"
-      width={700}
+      maxWidth={700}
       height={440}
       series={SERIES}
       maxValue={100}

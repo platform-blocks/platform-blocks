@@ -17,6 +17,7 @@ Data visualization components for React Native and React Native Web. Part of the
 ## Features
 
 - **25 chart types** — Bar, Line, Area, Pie, Scatter, Radar, Heatmap, Candlestick, Funnel, Donut, Gauge, Sparkline, and more
+- **Responsive by default** — a chart fills the box it is placed in and redraws when that box changes
 - **Animated** — Smooth transitions powered by `react-native-reanimated`
 - **Interactive** — Built-in tooltips, popovers, pan & zoom, and streaming data support
 - **Accessible** — Screen reader support via the `ChartAccessibility` layer
@@ -50,7 +51,6 @@ import { AreaChart } from '@platform-blocks/charts';
 export function RevenueChart({ data }) {
   return (
     <AreaChart
-      width={320}
       height={220}
       data={data}
       xKey="month"
@@ -59,6 +59,31 @@ export function RevenueChart({ data }) {
   );
 }
 ```
+
+## Sizing
+
+Leave `width` off and the chart measures the space it was given, fills it, and
+redraws when that space changes — in a flex row, a resizing window, a phone in
+landscape. Nothing else is required to make a chart responsive.
+
+```tsx
+<View style={{ flex: 1, padding: 16 }}>
+  <LineChart data={data} height={240} />   {/* as wide as the padded box */}
+</View>
+```
+
+| Prop | Effect |
+| --- | --- |
+| `width` | Pins the width. Still capped by the container — a chart never draws wider than the box it is in. |
+| `height` | Pins the height. Defaults to the chart's resting height. |
+| `aspectRatio` | Height as `width / aspectRatio`, when `height` is omitted. `2` stays twice as wide as it is tall at every size. |
+| `maxWidth` / `minWidth` | Bounds on the resolved width. `maxWidth` is the usual way to keep a radial chart from stretching across a wide column. |
+| `maxHeight` / `minHeight` | Bounds on a height derived from `aspectRatio`. |
+
+Margins are measured, not fixed: the space reserved for tick labels, axis titles,
+legends, and the chart title comes from the text that will actually be drawn. A
+chart with `$0`–`$500k` on its value axis spends less width on the axis than one
+labelled `1,250,000`, and neither wraps or clips.
 
 ## Available charts
 
@@ -101,6 +126,7 @@ export function RevenueChart({ data }) {
 | `useChartPointer` | Normalized pointer events + hit-testing for interaction |
 | `usePanZoom` | Pan and zoom gesture handling |
 | `useStreamingData` | Handle real-time data feeds |
+| `useChartAutoSize` | Resolve a drawing box from size props plus the measured container |
 
 ## Shared tooltip provider
 

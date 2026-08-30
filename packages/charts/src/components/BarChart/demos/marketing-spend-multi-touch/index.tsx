@@ -9,7 +9,6 @@ export function Demo() {
     <BarChart
       title="Marketing spend by channel"
       subtitle="Multi-touch journey campaign mix"
-      width={720}
       height={420}
       data={CAMPAIGN_SPEND}
       barSpacing={0.28}

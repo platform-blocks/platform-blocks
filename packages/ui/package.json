@@ -752,6 +752,13 @@
       "require": "./lib/cjs/components/Waveform/index.js",
       "default": "./lib/esm/components/Waveform/index.js"
     },
+    "./Wheel": {
+      "types": "./lib/components/Wheel/index.d.ts",
+      "react-native": "./lib/esm/components/Wheel/index.js",
+      "import": "./lib/esm/components/Wheel/index.js",
+      "require": "./lib/cjs/components/Wheel/index.js",
+      "default": "./lib/esm/components/Wheel/index.js"
+    },
     "./YearPicker": {
       "types": "./lib/components/YearPicker/index.d.ts",
       "react-native": "./lib/esm/components/YearPicker/index.js",

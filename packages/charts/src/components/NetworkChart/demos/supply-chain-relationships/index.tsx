@@ -33,7 +33,6 @@ export function Demo() {
     <NetworkChart
       title="Supply chain relationship map"
       subtitle="Tiered flow from suppliers to regional distribution"
-      width={780}
       height={440}
       layout="coordinate"
       nodes={NODES}

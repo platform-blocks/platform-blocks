@@ -17,6 +17,7 @@ import Animated, {
 import { StackedBarChartProps } from './types';
 import { BarChartDataPoint } from '../BarChart/types';
 import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
+import { resolveCartesianPadding, domainTickLabels } from '../../core/axisLayout';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
@@ -141,7 +142,35 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
   const updateSeriesVisibility = interaction?.updateSeriesVisibility;
   const interactionSeries = interaction?.series;
 
-  const basePadding = { top: 40, right: 24, bottom: 64, left: yAxis?.title ? 104 : 80 };
+  // Stacked totals, not single values, set how wide the value labels get.
+  const categoryLabels = React.useMemo(() => {
+    const set = new Set<string>();
+    (series ?? []).forEach((s) => s.data.forEach((d) => set.add(d.category)));
+    return Array.from(set);
+  }, [series]);
+  const basePadding = React.useMemo(() => {
+    const totals = new Map<string, number>();
+    let min = 0;
+    (series ?? []).forEach((s) => s.data.forEach((d) => {
+      const value = Number(d.value) || 0;
+      if (value >= 0) totals.set(d.category, (totals.get(d.category) ?? 0) + value);
+      else min = Math.min(min, value);
+    }));
+    const max = totals.size ? Math.max(...totals.values()) : 0;
+    return resolveCartesianPadding({
+      yTickLabels: domainTickLabels([min, max], (value) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : `${value}`)),
+      xTickLabels: categoryLabels,
+      yTitle: yAxis?.title,
+      xTitle: xAxis?.title,
+      showYAxis: yAxis?.show !== false,
+      showXAxis: xAxis?.show !== false,
+      showYTickLabels: yAxis?.showLabels !== false,
+      showXTickLabels: xAxis?.showLabels !== false,
+      containerWidth: width,
+      containerHeight: height,
+    });
+  }, [series, categoryLabels, yAxis?.labelFormatter, yAxis?.title, xAxis?.title, yAxis?.show,
+      xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, width, height]);
   // Grown so the plot clears the title and legend overlays.
   const legendLabels = React.useMemo(
     () => (series ?? []).map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
@@ -536,7 +565,8 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
           scale={yAxisScale}
           length={plotHeight}
           offset={{ x: padding.left, y: padding.top }}
-          tickCount={valueTicks.length}
+          ticks={valueTicks}
+          tickLabelWidth={basePadding.yTickLabelWidth}
           tickSize={yAxis?.tickLength ?? 4}
           tickPadding={6}
           tickFormat={(value: number) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : formatNumber(value))}

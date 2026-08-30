@@ -19,7 +19,7 @@ export function Demo() {
     <FunnelChart
       title="Ecommerce checkout conversion"
       subtitle="Drop-off by stage"
-      width={520}
+      maxWidth={520}
       height={440}
       series={CHECKOUT_FUNNEL}
       layout={{

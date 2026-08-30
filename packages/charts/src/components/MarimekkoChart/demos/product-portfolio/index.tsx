@@ -7,7 +7,6 @@ export function Demo() {
     <MarimekkoChart
       title="ARR by product tier and motion"
       subtitle="Current quarter"
-      width={780}
       height={460}
       data={PRODUCT_MIX}
       segmentBorderRadius={4}

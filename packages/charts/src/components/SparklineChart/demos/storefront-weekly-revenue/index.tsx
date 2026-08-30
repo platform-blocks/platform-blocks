@@ -24,7 +24,6 @@ export function Demo() {
                 Latest: {formatRevenue(latest)} · Low: {formatRevenue(minimum)}
               </Text>
               <SparklineChart
-                width={200}
                 height={76}
                 data={store.data}
                 color={store.color}

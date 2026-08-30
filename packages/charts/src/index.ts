@@ -30,6 +30,16 @@ export { MarimekkoChart } from './components/MarimekkoChart';
 
 // Core chart building blocks and context
 export { ChartRoot } from './core/ChartContext';
+/**
+ * Responsive sizing, exported so an extension building its own visualisation can
+ * behave like the built-in charts — fill the box it is given, redraw when that
+ * box changes — without reimplementing the measurement.
+ */
+export { useChartAutoSize, withChartAutoSize } from './core/autoSize';
+export type { ChartAutoSizeProps, ChartAutoSizeDefaults, ResolvedChartSize } from './core/autoSize';
+/** Margin math driven by the labels a chart will actually draw. */
+export { resolveCartesianPadding, domainTickLabels, measureWidestLabel } from './core/axisLayout';
+export type { CartesianPaddingInput, CartesianPadding } from './core/axisLayout';
 export { ChartContainer, ChartTitle, ChartLegend } from './ChartBase';
 export { ChartsProvider, GlobalChartsRoot } from './ChartsProvider';
 // New interaction engine (Phase 2)

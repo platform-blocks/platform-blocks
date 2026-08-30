@@ -7,7 +7,6 @@ export function Demo() {
     <ViolinChart
       title="Session duration distribution by platform"
       subtitle="Minutes per active session across major surfaces"
-      width={700}
       height={440}
       series={SESSION_SERIES}
       samples={88}

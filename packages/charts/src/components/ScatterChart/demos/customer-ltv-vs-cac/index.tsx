@@ -20,7 +20,6 @@ export function Demo() {
     <ScatterChart
       title="Customer LTV vs. Acquisition Cost"
       subtitle="Segment performance across recent cohorts"
-      width={560}
       height={360}
       data={SERIES.flatMap((serie) => serie.data)}
       series={SERIES}

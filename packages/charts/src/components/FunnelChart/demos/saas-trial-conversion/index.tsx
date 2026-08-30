@@ -14,7 +14,7 @@ export function Demo() {
     <FunnelChart
       title="SaaS trial-to-paid conversion"
       subtitle="Retention from sign-up to paid"
-      width={520}
+      maxWidth={520}
       height={440}
       series={TRIAL_CONVERSION}
       layout={{

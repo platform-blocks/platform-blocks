@@ -7,7 +7,6 @@ export function Demo() {
     <GroupedBarChart
       title="Assessment results by grade level"
       subtitle="Spring benchmark proficiency rates"
-      width={600}
       height={360}
       series={SERIES}
       barSpacing={0.18}

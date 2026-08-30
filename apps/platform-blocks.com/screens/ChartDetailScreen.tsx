@@ -189,8 +189,9 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
                 try {
                   preview = (
                     <GlobalChartsRoot
-                      // Charts declare a fixed width, so the full-width root has to
-                      // centre them or every demo hugs the left edge of the card.
+                      // Charts size themselves from this box now, so the root only
+                      // has to be the full width of the card. `alignItems` still
+                      // centres the ones that cap their width (radial charts).
                       style={{ width: '100%', alignItems: 'center' }}
                       config={DOCS_CHART_INTERACTION_CONFIG}
                     >
@@ -210,7 +211,9 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
               }
               return (
                 <View key={demo.id}>
-                  <Flex direction="row" justify="space-between" align="center" style={{ marginBottom: 8 }}>
+                  {/* The chart draws its own title at the top of its box, so the
+                      demo heading needs real space under it or the two collide. */}
+                  <Flex direction="row" justify="space-between" align="center" style={{ marginBottom: 16 }}>
                     <Text variant="h2" weight="semibold">{demo.title}</Text>
                     {demo.category && (<Chip size="sm" variant="filled">{demo.category}</Chip>)}
                   </Flex>
@@ -219,9 +222,11 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
                     {preview}
                     </View>
                   {/* </Card> */}
-                  {demo.description && (
+                  {/* Ternary, not `&&`: an empty description string is a text
+                      node, and react-native-web rejects those inside a View. */}
+                  {demo.description ? (
                     <Text variant="small" color="muted" style={{ marginTop: 8 }}>{demo.description}</Text>
-                  )}
+                  ) : null}
                 </View>
               );
             })}

@@ -7,7 +7,6 @@ export function Demo() {
     <HistogramChart
       title="Sensor battery voltage after firmware upgrade"
       subtitle="Monitoring pack health across deployed field units"
-      width={520}
       height={320}
       data={BATTERY_VOLTAGES}
       bins={12}

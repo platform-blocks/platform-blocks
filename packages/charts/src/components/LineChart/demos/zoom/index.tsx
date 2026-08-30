@@ -7,7 +7,6 @@ export function Demo() {
     <LineChart
       title="Product engagement"
       subtitle="Scroll to zoom · drag to pan · Shift-drag to box-zoom · double-click to reset"
-      width={560}
       height={340}
       series={SERIES}
       xAxis={{ show: true, title: 'Week', labelFormatter: (value) => `W${value}` }}

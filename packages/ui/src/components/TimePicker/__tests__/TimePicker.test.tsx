@@ -50,6 +50,24 @@ describe('TimePicker - inline panel', () => {
     expect(onChange).toHaveBeenCalledWith({ hours: 10, minutes: 30 });
   });
 
+  it('can update a controlled parent without setting state during render', () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const ControlledTimePicker = () => {
+      const [value, setValue] = React.useState({ hours: 10, minutes: 0 });
+      return <TimePicker value={value} onChange={setValue} minuteStep={30} />;
+    };
+
+    const { getByText } = render(<ControlledTimePicker />);
+    fireEvent.press(getByText('30'));
+
+    const emittedRenderWarning = consoleError.mock.calls.some((args) =>
+      args.some((arg) => String(arg).includes('Cannot update a component'))
+    );
+    expect(emittedRenderWarning).toBe(false);
+    consoleError.mockRestore();
+  });
+
   it('fires onChangeComplete only for the final column', () => {
     const onChangeComplete = jest.fn();
     // Distinct steps keep the minute and second labels unambiguous.

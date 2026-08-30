@@ -16,7 +16,7 @@ export function Demo() {
     <FunnelChart
       title="Hiring funnel — Staff engineer"
       subtitle="External candidates vs. internal transfers"
-      width={620}
+      maxWidth={620}
       height={480}
       series={HIRING_SERIES}
       layout={{

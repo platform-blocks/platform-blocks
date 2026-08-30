@@ -105,8 +105,11 @@ export const AnimatedSparkline: React.FC<AnimatedSparklineProps> = React.memo((p
     opacity: visible ? Math.min(1, Math.max(progress.value, 0.05)) : 0,
   }));
 
+  // The gradient already carries `fillOpacity` in its stops, so multiplying it in
+  // here again squared it — a 0.15 fill rendered at 0.02 and read as no fill at
+  // all. Only a flat fill needs the opacity applied at the path.
   const fillAnimatedProps = useAnimatedProps(() => ({
-    opacity: visible && fillPath ? progress.value * fillOpacity : 0,
+    opacity: visible && fillPath ? progress.value * (gradientId ? 1 : fillOpacity) : 0,
   }));
 
   const pointAnimatedProps = useAnimatedProps(() => ({

@@ -16,7 +16,6 @@ export function Demo() {
     <BarChart
       title="Quarterly Revenue by Region"
       subtitle="Q3 actuals with variance to plan"
-      width={720}
       height={420}
       data={REGIONAL_REVENUE}
       barSpacing={0.32}

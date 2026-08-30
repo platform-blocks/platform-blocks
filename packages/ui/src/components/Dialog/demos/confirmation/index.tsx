@@ -1,5 +1,3 @@
-import { Alert } from 'react-native';
-
 import { Block, Button, Row, Text, useDialog } from '@platform-blocks/ui';
 
 export function Demo() {
@@ -28,7 +26,7 @@ export function Demo() {
                 variant="filled"
                 color="error"
                 onPress={() => {
-                  Alert.alert('Deleted', 'Item has been deleted');
+                  console.log('Item has been deleted');
                   closeDialog(dialogId);
                 }}
               >

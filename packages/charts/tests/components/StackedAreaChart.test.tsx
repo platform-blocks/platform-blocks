@@ -34,8 +34,11 @@ describe('StackedAreaChart (hit-test engine)', () => {
 
     // Registration happens in an effect; the store's hitTest resolves the nearest
     // registered mark. It returns whichever layer is nearest at the query point.
+    // The query is deliberately generous rather than a pixel that assumed a
+    // particular axis margin — margins are measured from the labels now, so a
+    // hard-coded point stops landing on a mark the moment a label changes width.
     await waitFor(() => {
-      const target = ctxRef?.hitTest({ px: 80, py: 120 });
+      const target = ctxRef?.hitTest({ px: 200, py: 120, maxDistance: 400 });
       expect(target).not.toBeNull();
       expect(['mobile', 'desktop']).toContain(String(target?.seriesId));
       expect(typeof target?.formattedValue).toBe('string');

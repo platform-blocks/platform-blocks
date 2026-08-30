@@ -7,7 +7,6 @@ export function Demo() {
     <HeatmapChart
       title="Infrastructure CPU utilization"
       subtitle="Average utilization (%) across compute clusters"
-      width={760}
       height={360}
       data={{ rows: CLUSTERS, cols: TIME_BLOCKS, values: CPU_UTILIZATION }}
       cellSize={{ width: 90, height: 44 }}

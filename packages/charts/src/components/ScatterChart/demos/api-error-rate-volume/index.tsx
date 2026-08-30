@@ -19,7 +19,6 @@ export function Demo() {
     <ScatterChart
       title="API error rate vs. request volume"
       subtitle="Each point represents a service, sized by throughput"
-      width={560}
       height={360}
       data={SERIES.flatMap((serie) => serie.data)}
       series={SERIES}

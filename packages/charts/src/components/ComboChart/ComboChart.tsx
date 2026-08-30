@@ -5,6 +5,7 @@ import Animated, { SharedValue, useSharedValue, useAnimatedProps, withTiming, Ea
 
 import { ComboChartProps, ComboChartLayer } from './types';
 import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
+import { resolveCartesianPadding, domainTickLabels, measureWidestLabel } from '../../core/axisLayout';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
@@ -440,29 +441,6 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
     () => resolvedLayers.map((layer) => ({ label: layer.name })),
     [resolvedLayers]
   );
-  const padding = useMemo(() => withChartBandPadding(
-    {
-      top: 40,
-      right: hasRightAxis ? 72 : 32,
-      bottom: 64,
-      left: 80,
-    },
-    {
-      title,
-      subtitle,
-      legendItems: legend?.show ? legendLabels : undefined,
-      legendPosition: legend?.position,
-      legendFontSize: legend?.fontSize,
-      containerWidth: width,
-      topAllowance: 10,
-    },
-  ), [hasRightAxis, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels, width]);
-
-  const plotWidth = Math.max(0, width - padding.left - padding.right);
-  const plotHeight = Math.max(0, height - padding.top - padding.bottom);
-  const pointerTrackingEnabled = pointerStateAvailable && !disabled && plotWidth > 0 && plotHeight > 0;
-  const hasContinuousPointerTracking = pointerTrackingEnabled && isWeb;
-
   const { xDomain, yDomainLeft, yDomainRight } = useMemo(() => {
     const leftLayers = resolvedLayers.filter((layer) => layer.targetAxis === 'left');
     const rightLayersOnly = resolvedLayers.filter((layer) => layer.targetAxis === 'right');
@@ -503,6 +481,50 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
       yDomainRight: rightDomain,
     };
   }, [resolvedLayers, xDomainProp, yDomainLeftProp, yDomainRightProp]);
+
+  // Margins measured off the labels each axis will draw, rather than a flat 80px
+  // gutter that a narrow chart could not afford.
+  const axisPadding = useMemo(
+    () => resolveCartesianPadding({
+      yTickLabels: domainTickLabels(yDomainLeft, (value) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : `${value}`)),
+      xTickLabels: domainTickLabels(xDomain, (value) => (xAxis?.labelFormatter ? xAxis.labelFormatter(value) : `${value}`)),
+      yTitle: yAxis?.title,
+      xTitle: xAxis?.title,
+      showYAxis: yAxis?.show !== false,
+      showXAxis: xAxis?.show !== false,
+      showYTickLabels: yAxis?.showLabels !== false,
+      showXTickLabels: xAxis?.showLabels !== false,
+      containerWidth: width,
+      containerHeight: height,
+      // A right-hand value axis needs its own label column.
+      rightAllowance: hasRightAxis
+        ? Math.ceil(measureWidestLabel(
+            domainTickLabels(yDomainRight, (value) => (yAxisRight?.labelFormatter ? yAxisRight.labelFormatter(value) : `${value}`)),
+            11,
+          )) + 12
+        : 0,
+    }),
+    [yDomainLeft, yDomainRight, xDomain, yAxis?.labelFormatter, xAxis?.labelFormatter, yAxisRight?.labelFormatter,
+     yAxis?.title, xAxis?.title, yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, hasRightAxis, width, height]
+  );
+  const padding = useMemo(() => withChartBandPadding(
+    axisPadding,
+    {
+      title,
+      subtitle,
+      legendItems: legend?.show ? legendLabels : undefined,
+      legendPosition: legend?.position,
+      legendFontSize: legend?.fontSize,
+      containerWidth: width,
+      topAllowance: 10,
+    },
+  ), [axisPadding, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels, width]);
+
+  const plotWidth = Math.max(0, width - padding.left - padding.right);
+  const plotHeight = Math.max(0, height - padding.top - padding.bottom);
+  const pointerTrackingEnabled = pointerStateAvailable && !disabled && plotWidth > 0 && plotHeight > 0;
+  const hasContinuousPointerTracking = pointerTrackingEnabled && isWeb;
+
 
   const scaleX = useMemo(() => linearScale(xDomain, [0, plotWidth]), [xDomain, plotWidth]);
   const scaleYLeft = useMemo(() => linearScale(yDomainLeft, [plotHeight, 0]), [yDomainLeft, plotHeight]);

@@ -13,7 +13,7 @@ export function Demo() {
 	return (
 		<FunnelChart
 			title="Product acquisition funnel"
-			width={420}
+			maxWidth={420}
 			height={420}
 			series={SALES_FUNNEL}
 			layout={{

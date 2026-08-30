@@ -79,6 +79,7 @@ export { MiniCalendar } from './components/MiniCalendar';
 export { DatePicker } from './components/DatePicker';
 export { DatePickerInput } from './components/DatePickerInput';
 export { TimePicker } from './components/TimePicker';
+export { Wheel } from './components/Wheel';
 
 // Navigation
 export { Breadcrumbs } from './components/Breadcrumbs';

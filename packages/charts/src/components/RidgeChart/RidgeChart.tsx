@@ -3,7 +3,8 @@ import { View } from 'react-native';
 import Svg, { G, Line, Circle, Text as SvgText } from 'react-native-svg';
 import { RidgeChartProps } from './types';
 import type { RidgeTooltipContext } from './types';
-import { ChartContainer, ChartTitle, estimateChartTextWidth } from '../../ChartBase';
+import { ChartContainer, ChartTitle, estimateChartTextWidth, withChartBandPadding } from '../../ChartBase';
+import { resolveCartesianPadding, domainTickLabels } from '../../core/axisLayout';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
@@ -68,8 +69,42 @@ export const RidgeChart: React.FC<RidgeChartProps> = ({
   statsMarkers,
 }) => {
   const theme = useChartTheme();
-  const basePadding = { top: 40, right: 20, bottom: 60, left: yAxis?.title ? 104 : 80 };
-  const padding = basePadding;
+  // The left axis carries the series names, so the label column is sized to the
+  // longest of them rather than to a fixed 80px that truncated half of them.
+  const basePadding = React.useMemo(() => {
+    let min = Infinity;
+    let max = -Infinity;
+    series.forEach((entry) => entry.values.forEach((value) => {
+      if (value < min) min = value;
+      if (value > max) max = value;
+    }));
+    const finite = Number.isFinite(min) && Number.isFinite(max);
+    return resolveCartesianPadding({
+      yTickLabels: series.map((entry, index) => String(entry.name ?? entry.id ?? index)),
+      xTickLabels: finite
+        ? domainTickLabels([min, max], (value) => (xAxis?.labelFormatter ? xAxis.labelFormatter(value) : value.toFixed(1)))
+        : [],
+      yTitle: yAxis?.title,
+      xTitle: xAxis?.title,
+      showYAxis: yAxis?.show !== false,
+      showXAxis: xAxis?.show !== false,
+      showYTickLabels: yAxis?.showLabels !== false,
+      showXTickLabels: xAxis?.showLabels !== false,
+      containerWidth: width,
+      containerHeight: height,
+    });
+  }, [series, xAxis?.labelFormatter, yAxis?.title, xAxis?.title, yAxis?.show, xAxis?.show,
+      yAxis?.showLabels, xAxis?.showLabels, width, height]);
+  // Grown so the plot clears the title overlay.
+  const padding = React.useMemo(
+    () => withChartBandPadding(basePadding, {
+      title,
+      subtitle,
+      containerWidth: width,
+      topAllowance: basePadding.top,
+    }),
+    [basePadding, title, subtitle, width]
+  );
   const plotWidth = Math.max(0, width - padding.left - padding.right);
   const plotHeight = Math.max(0, height - padding.top - padding.bottom);
   const count = Math.max(series.length, 1);
@@ -480,6 +515,8 @@ export const RidgeChart: React.FC<RidgeChartProps> = ({
           length={plotWidth}
           offset={{ x: padding.left, y: padding.top + plotHeight }}
           tickCount={axisScaleX.ticks?.().length || 5}
+          tickLabelWidth={basePadding.xTickLabelWidth}
+          tickLabelLines={basePadding.xTickLabelLines}
           tickSize={xAxis?.tickLength ?? 4}
           tickPadding={4}
           tickFormat={(value) => {
@@ -491,7 +528,6 @@ export const RidgeChart: React.FC<RidgeChartProps> = ({
           stroke={xAxis?.color || theme.colors.grid}
           strokeWidth={xAxis?.thickness ?? 1}
           label={xAxis?.title}
-          labelOffset={xAxis?.title ? (xAxis?.titleFontSize ?? 12) + 20 : 30}
           tickLabelColor={xAxis?.labelColor || theme.colors.textSecondary}
           tickLabelFontSize={xAxis?.labelFontSize}
           labelColor={xAxis?.titleColor || theme.colors.textPrimary}
@@ -506,7 +542,8 @@ export const RidgeChart: React.FC<RidgeChartProps> = ({
           orientation="left"
           length={plotHeight}
           offset={{ x: padding.left, y: padding.top }}
-          tickCount={series.length}
+          ticks={series.map((entry, index) => entry.name || `Series ${index + 1}`)}
+          tickLabelWidth={basePadding.yTickLabelWidth}
           tickSize={yAxis?.tickLength ?? 4}
           tickPadding={4}
           tickFormat={(value) => {
@@ -518,7 +555,6 @@ export const RidgeChart: React.FC<RidgeChartProps> = ({
           stroke={yAxis?.color || theme.colors.grid}
           strokeWidth={yAxis?.thickness ?? 1}
           label={yAxis?.title}
-          labelOffset={yAxis?.title ? (yAxis?.titleFontSize ?? 12) + 20 : 30}
           tickLabelColor={yAxis?.labelColor || theme.colors.textSecondary}
           tickLabelFontSize={yAxis?.labelFontSize}
           labelColor={yAxis?.titleColor || theme.colors.textPrimary}

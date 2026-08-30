@@ -7,7 +7,7 @@ export function Demo() {
     <RadarChart
       title="Product health radar"
       subtitle="Operational score vs. strategic goal"
-      width={580}
+      maxWidth={580}
       height={440}
       series={SERIES}
       maxValue={10}

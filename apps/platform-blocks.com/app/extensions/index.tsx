@@ -4,9 +4,12 @@ import { BrandButton, Button, Card, Chip, Column, Flex, Text, Title } from '@pla
 import { DocsPage } from '../../components/DocsPage';
 import { DocsPageHeader } from '../../components/DocsPageHeader';
 import {
+  EXTENSION_CONTRACT,
   EXTENSION_TEMPLATE_URL,
   EXTENSIONS,
+  EXTENSIONS_DEFINITION,
   EXTENSIONS_INVITE,
+  EXTENSIONS_PUBLISH_STEPS,
   EXTENSIONS_SUBTITLE,
   EXTENSIONS_TITLE,
 } from '../../config/extensions';
@@ -21,6 +24,31 @@ export default function ExtensionsScreen() {
         <DocsPageHeader subtitle={EXTENSIONS_SUBTITLE}>
           {EXTENSIONS_TITLE}
         </DocsPageHeader>
+
+        {/* The registry answers "what exists"; this answers "what one is" —
+            without it, an extension reads as nothing more than a dependency. */}
+        <Column gap="md">
+          <Text color="secondary">{EXTENSIONS_DEFINITION}</Text>
+          <Flex direction="row" wrap="wrap" gap="md">
+            {EXTENSION_CONTRACT.map(point => (
+              <Card
+                key={point.title}
+                variant="subtle"
+                p="md"
+                style={{ flexBasis: 280, flexGrow: 1 }}
+              >
+                <Column gap="xs">
+                  <Text weight="semibold">{point.title}</Text>
+                  <Text variant="small" color="secondary">{point.detail}</Text>
+                </Column>
+              </Card>
+            ))}
+          </Flex>
+        </Column>
+
+        <Column gap="sm">
+          <Title order={3}>Published extensions</Title>
+        </Column>
 
         <Flex direction="row" wrap="wrap" gap="md">
           {EXTENSIONS.map(extension => (
@@ -66,15 +94,20 @@ export default function ExtensionsScreen() {
         </Flex>
 
         <Card variant="outline" p="lg">
-          <Column gap="sm">
+          <Column gap="md">
             <Title order={3}>Build your own</Title>
-            <Text color="secondary">
-              The extension template gives you a complete development environment: a sample
-              component wired into the Platform Blocks theme, an Expo example app that
-              hot-reloads your package on iOS, Android, and web, tests, linting, a production
-              build, CI, and one-command npm releases.
-            </Text>
             <Text color="secondary">{EXTENSIONS_INVITE}</Text>
+            <Column gap="sm">
+              {EXTENSIONS_PUBLISH_STEPS.map((step, index) => (
+                <Flex key={step.title} direction="row" gap="sm" align="flex-start">
+                  <Chip size="sm" variant="light" color="primary">{index + 1}</Chip>
+                  <Column gap={2} style={{ flex: 1 }}>
+                    <Text weight="semibold">{step.title}</Text>
+                    <Text variant="small" color="secondary">{step.detail}</Text>
+                  </Column>
+                </Flex>
+              ))}
+            </Column>
             <Flex direction="row" gap="sm" wrap="wrap">
               <Button
                 title="Use the extension template"

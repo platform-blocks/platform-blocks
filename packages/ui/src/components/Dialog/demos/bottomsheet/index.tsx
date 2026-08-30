@@ -6,7 +6,6 @@ export function Demo() {
   const showBottomSheetDialog = () => {
     const dialogId = openDialog({
       variant: 'bottomsheet',
-      // title: 'Bottom Sheet with Gestures',
       content: (
         <Block>
           <Text>This dialog slides up from the bottom with theme-aware styling.</Text>

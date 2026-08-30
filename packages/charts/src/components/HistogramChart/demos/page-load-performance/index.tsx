@@ -12,7 +12,6 @@ export function Demo() {
       <HistogramChart
         title="Page load time distribution"
         subtitle="Week after performance optimization rollout"
-        width={560}
         height={340}
         data={LOAD_TIMES}
         bins={14}

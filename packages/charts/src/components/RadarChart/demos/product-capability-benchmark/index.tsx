@@ -7,7 +7,7 @@ export function Demo() {
     <RadarChart
       title="Product capability vs. competition"
       subtitle="Benchmarking core differentiators"
-      width={620}
+      maxWidth={620}
       height={460}
       series={SERIES}
       maxValue={10}

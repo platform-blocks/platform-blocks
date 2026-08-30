@@ -1,5 +1,3 @@
-import { Alert } from 'react-native';
-
 import { Block, Button, Row, Text, useDialog } from '@platform-blocks/ui';
 
 export function Demo() {
@@ -25,7 +23,7 @@ export function Demo() {
               <Button
                 fullWidth
                 onPress={() => {
-                  Alert.alert('Action', 'OK button pressed!');
+                  console.log('OK button pressed!');
                   closeDialog(dialogId);
                 }}
                 variant="filled"

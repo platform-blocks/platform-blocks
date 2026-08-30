@@ -7,7 +7,6 @@ export function Demo() {
     <ScatterChart
       title="Performance rating vs. tenure"
       subtitle="Team-by-team view with marker size scaled to total compensation (USD thousands)"
-      width={560}
       height={360}
       data={SERIES.flatMap((serie) => serie.data)}
       series={SERIES}

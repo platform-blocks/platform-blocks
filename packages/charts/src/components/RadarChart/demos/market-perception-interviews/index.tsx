@@ -7,7 +7,7 @@ export function Demo() {
     <RadarChart
       title="Market perception signal"
       subtitle="Customer interview scorecard"
-      width={700}
+      maxWidth={700}
       height={460}
       series={SERIES}
       maxValue={5}

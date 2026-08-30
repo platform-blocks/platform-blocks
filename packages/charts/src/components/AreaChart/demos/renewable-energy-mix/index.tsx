@@ -10,7 +10,6 @@ export function Demo() {
       layout="stacked"
       title="Renewable Energy Generation"
       subtitle="Utility-scale output by source"
-      width={640}
       height={420}
       series={RENEWABLE_SERIES}
       smooth

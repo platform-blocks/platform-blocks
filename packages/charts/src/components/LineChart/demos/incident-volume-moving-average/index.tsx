@@ -7,7 +7,6 @@ export function Demo() {
     <LineChart
       title="Incident Volume with Moving Averages"
       subtitle="SRE daily incident intake and trailing trends"
-      width={720}
       height={440}
       series={SERIES}
       smooth

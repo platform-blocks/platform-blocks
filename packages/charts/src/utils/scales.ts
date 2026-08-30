@@ -1,3 +1,4 @@
+import { niceTickStep } from '../utils';
 // Basic scale abstractions for the chart library
 // These are intentionally lightweight and can be extended (time/log/etc.)
 
@@ -127,15 +128,16 @@ export function bandScale(domain: string[], range: [number, number], opts: BandS
  */
 export function generateNiceTicks(min: number, max: number, target: number = 5): number[] {
   if (min === max) return [min];
-  const span = max - min;
-  const roughStep = span / Math.max(1, target - 1);
-  const pow10 = Math.pow(10, Math.floor(Math.log10(Math.max(1e-12, roughStep))));
-  const multiples = [1, 2, 5, 10];
-  const step = multiples.find(m => roughStep / pow10 <= m) || 10;
-  const niceStep = step * pow10;
+  // One chooser for both generators, so an axis and the gridlines behind it
+  // can't disagree about where the ticks are.
+  const niceStep = niceTickStep(max - min, target);
+  if (!Number.isFinite(niceStep) || niceStep <= 0) return [min, max];
   const first = Math.ceil(min / niceStep) * niceStep;
   const ticks: number[] = [];
-  for (let v = first; v <= max + niceStep * 0.5; v += niceStep) {
+  // Stop at the domain, not half a step past it. The old bound emitted a tick
+  // above `max` whenever the data didn't end on a round number, and the axis
+  // drew its label wherever the scale extrapolated to — outside the plot.
+  for (let v = first; v <= max + niceStep * 1e-6; v += niceStep) {
     ticks.push(Number(v.toFixed(12)));
   }
   return ticks;

@@ -7,7 +7,6 @@ export function Demo() {
     <CandlestickChart
       title="Cloud Spend Volatility"
       subtitle="Optimization window captured a 4.7% cost reduction"
-      width={640}
       height={420}
       series={[
         {

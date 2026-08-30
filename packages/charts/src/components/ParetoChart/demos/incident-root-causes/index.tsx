@@ -7,7 +7,6 @@ export function Demo() {
     <ParetoChart
       title="Incident root causes"
       subtitle="Rolling twelve months"
-      width={720}
       height={420}
       data={POSTMORTEM_CAUSES}
       valueSeriesLabel="Incidents"

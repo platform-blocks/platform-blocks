@@ -12,7 +12,6 @@ export function Demo() {
     <CandlestickChart
       title="SaaS Usage Peaks"
       subtitle="Daily active sessions during phased launch with capacity guardrails"
-      width={700}
       height={420}
       series={[
         {

@@ -7,7 +7,6 @@ export function Demo() {
     <HistogramChart
       title="Employee tenure distribution"
       subtitle="Helps spot retention risks and succession depth"
-      width={540}
       height={320}
       data={TENURE_YEARS}
       bins={12}

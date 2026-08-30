@@ -7,7 +7,6 @@ export function Demo() {
     <GroupedBarChart
       title="On-time delivery by logistics partner"
       subtitle="Share of shipments delivered within committed window"
-      width={620}
       height={360}
       series={SERIES}
       barSpacing={0.18}

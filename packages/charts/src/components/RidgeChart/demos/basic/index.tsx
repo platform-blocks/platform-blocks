@@ -7,7 +7,6 @@ export function Demo() {
 		<RidgeChart
 			title="Customer satisfaction distribution"
 			subtitle="Annual NPS density"
-			width={560}
 			height={360}
 			series={SERIES}
 			samples={96}

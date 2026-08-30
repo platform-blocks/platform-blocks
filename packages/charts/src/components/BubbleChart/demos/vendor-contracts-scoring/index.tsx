@@ -9,7 +9,6 @@ export function Demo() {
     <BubbleChart
       title="Vendor Contract Health"
       subtitle="Compliance vs renewal probability — bubble area encodes annual spend"
-      width={760}
       height={420}
       data={contracts}
       dataKey={{

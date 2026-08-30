@@ -12,7 +12,6 @@ export function Demo() {
     <CandlestickChart
       title="Crypto Treasury Balances"
       subtitle="Weekly BTC position changes with treasury policy markers"
-      width={720}
       height={420}
       series={[
         {

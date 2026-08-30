@@ -15,7 +15,6 @@ export function Demo() {
       </Text>
 
       <SparklineChart
-        width={228}
         height={82}
         data={QUEUE_DEPTH}
         fill

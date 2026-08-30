@@ -6,6 +6,7 @@ import { CandlestickChartProps } from './types';
 import type { CandlestickDataPoint } from './types';
 import type { ChartInteractionEvent } from '../../types';
 import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
+import { resolveCartesianPadding, domainTickLabels } from '../../core/axisLayout';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
 import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
@@ -145,7 +146,26 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
     return [min, max];
   }, [flattened]);
 
-  const basePadding = { top: 40, right: 20, bottom: volumeEnabled ? 72 : 60, left: yAxis?.title ? 104 : 80 };
+  const basePadding = React.useMemo(
+    () => {
+      const measured = resolveCartesianPadding({
+        yTickLabels: domainTickLabels(yDomain, (value) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : formatNumber(value))),
+        xTickLabels: domainTickLabels(xDomain, (value) => (xAxis?.labelFormatter ? xAxis.labelFormatter(value) : formatNumber(value))),
+        yTitle: yAxis?.title,
+        xTitle: xAxis?.title,
+        showYAxis: yAxis?.show !== false,
+        showXAxis: xAxis?.show !== false,
+        showYTickLabels: yAxis?.showLabels !== false,
+        showXTickLabels: xAxis?.showLabels !== false,
+        containerWidth: width,
+        containerHeight: height,
+      });
+      // The volume pane lives in the bottom margin, under the price axis labels.
+      return volumeEnabled ? { ...measured, bottom: measured.bottom + 12 } : measured;
+    },
+    [yDomain, xDomain, yAxis?.labelFormatter, xAxis?.labelFormatter, yAxis?.title, xAxis?.title,
+     yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, width, height, volumeEnabled]
+  );
   // Grown so the plot clears the title and legend overlays.
   const legendLabels = React.useMemo(
     () => series.map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
@@ -724,7 +744,9 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
           orientation="bottom"
           length={plotWidth}
           offset={{ x: padding.left, y: padding.top + plotHeight }}
-          tickCount={resolvedXTicks.length}
+          ticks={resolvedXTicks}
+          tickLabelWidth={basePadding.xTickLabelWidth}
+          tickLabelLines={basePadding.xTickLabelLines}
           tickSize={xAxis?.tickLength ?? 4}
           tickPadding={4}
           tickFormat={(value) => {
@@ -737,7 +759,6 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
           stroke={xAxis?.color || theme.colors.grid}
           strokeWidth={xAxis?.thickness ?? 1}
           label={xAxis?.title}
-          labelOffset={xAxis?.title ? (xAxis?.titleFontSize ?? 12) + 20 : 40}
           tickLabelColor={xAxis?.labelColor || theme.colors.textSecondary}
           tickLabelFontSize={xAxis?.labelFontSize}
           labelColor={xAxis?.titleColor || theme.colors.textPrimary}
@@ -751,7 +772,8 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
           orientation="left"
           length={plotHeight}
           offset={{ x: padding.left, y: padding.top }}
-          tickCount={resolvedYTicks.length}
+          ticks={resolvedYTicks}
+          tickLabelWidth={basePadding.yTickLabelWidth}
           tickSize={yAxis?.tickLength ?? 4}
           tickPadding={4}
           tickFormat={(value) => {
@@ -764,7 +786,6 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
           stroke={yAxis?.color || theme.colors.grid}
           strokeWidth={yAxis?.thickness ?? 1}
           label={yAxis?.title}
-          labelOffset={yAxis?.title ? (yAxis?.titleFontSize ?? 12) + 20 : 30}
           tickLabelColor={yAxis?.labelColor || theme.colors.textSecondary}
           tickLabelFontSize={yAxis?.labelFontSize}
           labelColor={yAxis?.titleColor || theme.colors.textPrimary}

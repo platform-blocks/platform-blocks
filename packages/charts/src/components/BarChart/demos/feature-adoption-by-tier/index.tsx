@@ -9,7 +9,6 @@ export function Demo() {
     <BarChart
       title="Feature adoption by customer tier"
       subtitle="Accounts live on the experimentation canvas within 45 days"
-      width={680}
       height={400}
       data={FEATURE_ADOPTION}
       barSpacing={0.26}

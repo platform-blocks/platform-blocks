@@ -9,7 +9,6 @@ export function Demo() {
     <BubbleChart
       title="Global Talent Hubs"
       subtitle="Talent depth vs cost of living — bubble size represents active office footprint"
-      width={780}
       height={440}
       data={cities}
       dataKey={{

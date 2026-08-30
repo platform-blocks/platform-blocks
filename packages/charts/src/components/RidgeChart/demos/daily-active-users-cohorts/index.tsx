@@ -7,7 +7,6 @@ export function Demo() {
     <RidgeChart
       title="Daily active users across feature cohorts"
       subtitle="Distribution of session counts over the last six months"
-      width={640}
       height={480}
       series={SERIES}
       samples={128}

@@ -9,7 +9,6 @@ export function Demo() {
     <AreaChart
       title="Active Sessions During Launch"
       subtitle="Layered by device platform"
-      width={640}
       height={420}
       series={SESSION_SERIES}
       smooth

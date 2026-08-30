@@ -19,7 +19,6 @@ export function Demo() {
     <ScatterChart
       title="Campaign spend vs. attributed revenue"
       subtitle="Ad set performance, each marker sized by budget grouping"
-      width={560}
       height={360}
       data={SERIES.flatMap((serie) => serie.data)}
       series={SERIES}

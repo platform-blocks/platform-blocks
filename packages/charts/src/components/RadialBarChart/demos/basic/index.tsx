@@ -7,7 +7,7 @@ export function Demo() {
 		<RadialBarChart
 			title="Quarterly KPIs"
 			subtitle="Progress toward goals"
-			width={400}
+			maxWidth={400}
 			height={400}
 			data={METRICS}
 			barThickness={18}

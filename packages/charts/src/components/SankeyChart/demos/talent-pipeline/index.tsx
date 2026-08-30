@@ -7,7 +7,6 @@ export function Demo() {
     <SankeyChart
       title="Engineering talent pipeline"
       subtitle="Campus + lateral hiring"
-      width={760}
       height={420}
       nodes={NODES}
       links={LINKS}

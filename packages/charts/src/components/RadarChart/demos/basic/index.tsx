@@ -6,7 +6,7 @@ export function Demo() {
   return (
     <RadarChart
       title="Team capability radar"
-      width={560}
+      maxWidth={560}
       height={380}
       series={SERIES}
       maxValue={60}

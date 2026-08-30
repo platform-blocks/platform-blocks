@@ -14,7 +14,7 @@ export function Demo() {
     <FunnelChart
       title="Data pipeline quality checks"
       subtitle="From ingestion to certified datasets"
-      width={520}
+      maxWidth={520}
       height={440}
       series={PIPELINE_QUALITY}
       layout={{

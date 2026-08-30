@@ -16,7 +16,7 @@ export function Demo() {
     <PieChart
       title="Training completion share"
       subtitle="Annual compliance program"
-      width={520}
+      maxWidth={520}
       height={440}
       data={TRAINING_COMPLETIONS}
       innerRadius={100}

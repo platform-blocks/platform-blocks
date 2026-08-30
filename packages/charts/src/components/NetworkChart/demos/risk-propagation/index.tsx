@@ -33,7 +33,6 @@ export function Demo() {
     <NetworkChart
       title="Risk propagation path"
       subtitle="Simulated attack progression across services"
-      width={640}
       height={420}
       nodes={SYSTEMS}
       links={PROPAGATION}

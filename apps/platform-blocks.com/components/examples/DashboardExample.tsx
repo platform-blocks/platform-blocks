@@ -71,8 +71,8 @@ export function DashboardExample() {
                 </Chip>
               </Flex>
               <Title order={3}>{stat.value}</Title>
+              {/* No width: the sparkline takes the card it is in, which grows. */}
               <SparklineChart
-                width={200}
                 height={48}
                 data={stat.trend}
                 fill

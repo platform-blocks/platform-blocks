@@ -12,7 +12,6 @@ export function Demo() {
     <CandlestickChart
       title="Subscription MRR Momentum"
       subtitle="Expansion revenue outpaced churn across a pricing refresh"
-      width={720}
       height={420}
       series={[
         {

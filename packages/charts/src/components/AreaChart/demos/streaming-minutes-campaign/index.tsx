@@ -7,7 +7,6 @@ export function Demo() {
     <AreaChart
       title="Streaming Minutes During Campaign"
       subtitle="Share of viewing time by content category"
-      width={640}
       height={420}
       series={STREAMING_SERIES}
       layout="stackedPercentage"

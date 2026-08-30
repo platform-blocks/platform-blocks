@@ -7,7 +7,6 @@ export function Demo() {
 		<ComboChart
 			title="Revenue vs. active users"
 			subtitle="First half of FY25"
-			width={540}
 			height={340}
 			layers={LAYERS}
 			enableCrosshair

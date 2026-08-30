@@ -42,6 +42,19 @@ const spacingToStyle = (s: SpacingProps) => {
   return style;
 };
 
+/**
+ * Height of the title band, published by `ChartTitle` and read by `ChartLegend`.
+ *
+ * Both are absolutely-positioned overlays pinned to the container's top edge, so
+ * a legend with `position="top"` used to render straight through the chart's
+ * title. The band is derived from the title's own props, so the only thing that
+ * has to travel between them is the number.
+ */
+const ChartTitleBandContext = React.createContext<{
+  band: number;
+  setBand: (band: number) => void;
+} | null>(null);
+
 // Base Chart Container Component
 export const ChartContainer: React.FC<BaseChartProps & {
   children: React.ReactNode;
@@ -75,6 +88,7 @@ export const ChartContainer: React.FC<BaseChartProps & {
   const effectiveSuppressPopover = suppressPopover ?? !useOwnInteractionProvider;
 
   const content = (
+    <TitleBandProvider>
     <View
       style={[
         {
@@ -93,6 +107,7 @@ export const ChartContainer: React.FC<BaseChartProps & {
       {children}
       {!effectiveSuppressPopover && <ChartActiveTooltip />}
     </View>
+    </TitleBandProvider>
   );
 
   if (!useOwnInteractionProvider) {
@@ -104,6 +119,13 @@ export const ChartContainer: React.FC<BaseChartProps & {
       <RootOffsetCapture>{content}</RootOffsetCapture>
     </ChartInteractionProvider>
   );
+};
+
+/** Holds the title band so the legend can stack below it. */
+const TitleBandProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [band, setBand] = React.useState(0);
+  const value = React.useMemo(() => ({ band, setBand }), [band]);
+  return <ChartTitleBandContext.Provider value={value}>{children}</ChartTitleBandContext.Provider>;
 };
 
 // Internal component to capture the container's page offset cross-platform
@@ -140,9 +162,28 @@ const LEGEND_ITEM_MARGIN_H = 8;
 const LEGEND_ITEM_MARGIN_V = 4;
 const LEGEND_FONT_SIZE = 12;
 
-/** Average glyph advance for the chart sans stack — close enough to reserve space by. */
-export const estimateChartTextWidth = (text: string, fontSize: number) =>
-  text.length * fontSize * 0.58;
+/**
+ * Approximate rendered width of a string in the chart's sans stack.
+ *
+ * A flat per-character average under-reserves for digits and capitals — the
+ * characters axis labels are mostly made of — which is how "$500k" ended up
+ * ellipsised inside a box sized for it. Weighting by character class costs one
+ * pass and lands within a few px of the real advance.
+ */
+export const estimateChartTextWidth = (text: string, fontSize: number): number => {
+  if (!text) return 0;
+  let advances = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (/[ilj.,:;'!|[\]()]/.test(char)) advances += 0.32;
+    else if (/[mwMW@]/.test(char)) advances += 0.86;
+    else if (/[A-Z0-9$%&]/.test(char)) advances += 0.63;
+    else if (char === ' ') advances += 0.28;
+    else advances += 0.53;
+  }
+  // Two px of slack keeps a label that estimates a hair narrow from ellipsising.
+  return advances * fontSize + 2;
+};
 
 /** Height ChartTitle occupies, including a gap before whatever is drawn below it. */
 export const measureChartTitleBand = (
@@ -285,6 +326,12 @@ export const ChartTitle: React.FC<{
   } = props;
 
   const theme = useChartTheme();
+  const titleBandCtx = React.useContext(ChartTitleBandContext);
+  const band = measureChartTitleBand(title, subtitle, { titleSize, subtitleSize });
+  React.useEffect(() => {
+    titleBandCtx?.setBand(band);
+    return () => titleBandCtx?.setBand(0);
+  }, [titleBandCtx, band]);
 
   if (!title && !subtitle) return null;
 
@@ -361,6 +408,7 @@ export const ChartLegend: React.FC<{
   } = props;
 
   const theme = useChartTheme();
+  const titleBand = React.useContext(ChartTitleBandContext)?.band ?? 0;
   // Pressable's onPress event (RN / RN Web) often omits modifier keys; capture last pointerdown globally (web only)
   const lastMods = React.useRef<{ altKey: boolean; metaKey: boolean; shiftKey: boolean; ctrlKey: boolean }>({ altKey: false, metaKey: false, shiftKey: false, ctrlKey: false });
   React.useEffect(() => {
@@ -387,11 +435,13 @@ export const ChartLegend: React.FC<{
     end: 'flex-end',
   }[align];
 
+  // A top legend starts below the title rather than on top of it; the other
+  // edges are the container's own.
   const positionStyle = {
-    top: { top: 0, left: 0, right: 0 },
+    top: { top: titleBand, left: 0, right: 0 },
     bottom: { bottom: 0, left: 0, right: 0 },
-    left: { left: 0, top: 0, bottom: 0 },
-    right: { right: 0, top: 0, bottom: 0 },
+    left: { left: 0, top: titleBand, bottom: 0 },
+    right: { right: 0, top: titleBand, bottom: 0 },
   }[position];
 
   // Determine an accessible legend text color when host theme background is dark

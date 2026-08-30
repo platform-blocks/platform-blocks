@@ -14,7 +14,7 @@ export function Demo() {
     <FunnelChart
       title="Incident response workflow"
       subtitle="Volume flowing through each stage"
-      width={520}
+      maxWidth={520}
       height={460}
       series={INCIDENT_RESPONSE}
       layout={{

@@ -7,7 +7,6 @@ export function Demo() {
     <MarimekkoChart
       title="FY26 budget allocation"
       subtitle="Percentage of total discretionary spend"
-      width={720}
       height={420}
       data={BUDGET_PLAN}
       segmentBorderRadius={3}

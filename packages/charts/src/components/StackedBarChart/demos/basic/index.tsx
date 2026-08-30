@@ -6,7 +6,6 @@ export function Demo() {
 	return (
 		<StackedBarChart
 			title="Quarterly ARR by motion"
-			width={520}
 			height={320}
 			series={SERIES}
 			barSpacing={0.25}

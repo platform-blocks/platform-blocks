@@ -7,7 +7,6 @@ export function Demo() {
     <GroupedBarChart
       title="Experiment conversion uplift by region"
       subtitle="Completed purchases per 100 sessions"
-      width={580}
       height={340}
       series={SERIES}
       barSpacing={0.22}

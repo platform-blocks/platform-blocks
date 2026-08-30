@@ -11,7 +11,7 @@ export function Demo() {
     <PieChart
       title="Browser usage share"
       subtitle="Active sessions"
-      width={520}
+      maxWidth={520}
       height={420}
       data={BROWSER_USAGE}
       outerRadius={150}

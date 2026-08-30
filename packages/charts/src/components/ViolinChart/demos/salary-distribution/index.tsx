@@ -7,7 +7,6 @@ export function Demo() {
     <ViolinChart
       title="Total compensation distribution by department"
       subtitle="Annual salary including bonus (USD thousands)"
-      width={720}
       height={480}
       series={SALARY_SERIES}
       samples={96}

@@ -7,7 +7,6 @@ export function Demo() {
     <LineChart
       title="ARR Progression vs. Forecast"
       subtitle="GTM regions actualized ARR with forward-looking plans"
-      width={720}
       height={440}
       series={SERIES}
       smooth

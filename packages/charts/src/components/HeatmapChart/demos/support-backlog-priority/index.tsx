@@ -7,7 +7,6 @@ export function Demo() {
     <HeatmapChart
       title="Support backlog by module"
       subtitle="Open tickets by severity priority"
-      width={700}
       height={360}
       data={{ rows: MODULES, cols: PRIORITIES, values: BACKLOG }}
       cellSize={{ width: 108, height: 48 }}

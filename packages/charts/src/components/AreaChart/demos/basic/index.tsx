@@ -7,7 +7,6 @@ export function Demo() {
     <AreaChart
       title="Weekly signups"
       subtitle="Organic vs virality"
-      width={360}
       height={240}
       data={WEEKLY_SIGNUPS}
       xAxis={{

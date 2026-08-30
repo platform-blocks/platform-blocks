@@ -33,7 +33,6 @@ export function Demo() {
                 {latest.toLocaleString()} · {getDeltaLabel(series.data)}
               </Text>
               <SparklineChart
-                width={200}
                 height={72}
                 data={series.data}
                 fill

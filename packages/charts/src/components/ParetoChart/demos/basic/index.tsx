@@ -7,7 +7,6 @@ export function Demo() {
     <ParetoChart
       title="Monthly defect analysis"
       subtitle="Product QA triage"
-      width={720}
       height={420}
       data={DEFECT_BREAKDOWN}
       valueSeriesLabel="Defects"

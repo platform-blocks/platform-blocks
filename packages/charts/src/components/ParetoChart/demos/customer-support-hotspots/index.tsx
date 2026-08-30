@@ -7,7 +7,6 @@ export function Demo() {
     <ParetoChart
       title="Support backlog concentration"
       subtitle="Top ten case drivers this quarter"
-      width={760}
       height={440}
       data={SUPPORT_CASES}
       valueSeriesLabel="Cases"

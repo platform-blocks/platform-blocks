@@ -7,7 +7,7 @@ export function Demo() {
     <RadarChart
       title="Role family skills gap analysis"
       subtitle="Percent attainment against competency targets"
-      width={720}
+      maxWidth={720}
       height={480}
       series={SERIES}
       maxValue={100}

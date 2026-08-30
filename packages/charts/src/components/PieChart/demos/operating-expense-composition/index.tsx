@@ -12,7 +12,7 @@ export function Demo() {
     <PieChart
       title="Operating expense mix"
       subtitle="FY25 year-to-date"
-      width={520}
+      maxWidth={520}
       height={440}
       data={OPERATING_EXPENSES}
       innerRadius={90}

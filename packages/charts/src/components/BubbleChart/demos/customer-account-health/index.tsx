@@ -9,7 +9,6 @@ export function Demo() {
     <BubbleChart
       title="Customer Account Health vs Expansion"
       subtitle="Bubble size reflects current ARR; use upper-right quadrant to spot ready-to-expand logos"
-      width={760}
       height={440}
       data={accounts}
       dataKey={{

@@ -7,7 +7,7 @@ export function Demo() {
     <RadarChart
       title="Data platform maturity"
       subtitle="Governance and enablement dimensions"
-      width={620}
+      maxWidth={620}
       height={480}
       series={SERIES}
       maxValue={5}

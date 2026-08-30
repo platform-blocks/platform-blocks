@@ -7,7 +7,6 @@ export function Demo() {
     <HeatmapChart
       title="Weekly contributions"
       subtitle="GitHub-style activity calendar"
-      width={640}
       height={280}
       data={{ rows: WEEKDAY_LABELS, cols: COLUMNS, values: CONTRIBUTION_MATRIX }}
       cellSize={{ width: 12, height: 12 }}
