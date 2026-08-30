@@ -1,4 +1,4 @@
-import { BrandIcon, Block, Row, Text } from '@platform-blocks/ui';
+import { BrandIcon, Block, Row, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

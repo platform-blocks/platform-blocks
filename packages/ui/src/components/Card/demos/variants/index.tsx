@@ -1,4 +1,4 @@
-import { Block, Card, Text } from '@platform-blocks/ui';
+import { Block, Card, Text } from '@platform-blocks/react-ui-library';
 
 const VARIANTS = ['filled', 'outline', 'elevated', 'subtle', 'ghost', 'gradient'] as const;
 

@@ -10,7 +10,7 @@ import {
   Text,
   type SpotlightProps,
   useSpotlightStoreInstance,
-} from '@platform-blocks/ui';
+} from '@platform-blocks/react-ui-library';
 
 const baseActions: SpotlightProps['actions'] = [
   {

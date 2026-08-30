@@ -1,4 +1,4 @@
-import { Block, QRCode, Row, Text, useTheme } from '@platform-blocks/ui';
+import { Block, QRCode, Row, Text, useTheme } from '@platform-blocks/react-ui-library';
 import { SCHEMES } from './data';
 
 export function Demo() {
@@ -18,7 +18,7 @@ export function Demo() {
           return (
             <QRCode
               key={key}
-              value="https://platform-blocks.com"
+              value="https://react-ui-library.com"
               size={144}
               backgroundColor={background}
               color={foreground}

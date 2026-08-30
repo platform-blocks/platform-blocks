@@ -6,7 +6,7 @@
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 
-const ROOT = join(process.cwd(), 'apps', 'platform-blocks.com');
+const ROOT = join(process.cwd(), 'apps', 'react-ui-library.com');
 const LOCALES_DIR = join(ROOT, 'i18n', 'locales');
 
 function walk(dir: string, files: string[] = []): string[] {

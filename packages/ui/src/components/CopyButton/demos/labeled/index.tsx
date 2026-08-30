@@ -1,4 +1,4 @@
-import { CopyButton, Card, Flex, Text } from '@platform-blocks/ui';
+import { CopyButton, Card, Flex, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

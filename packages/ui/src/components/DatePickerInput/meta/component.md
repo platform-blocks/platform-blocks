@@ -2,7 +2,7 @@
 playground: true
 title: DatePickerInput
 description: Input-based date picker that opens a modal calendar for selecting single dates, ranges, or multiple values.
-source: "@platform-blocks/ui"
+source: "@platform-blocks/react-ui-library"
 status: "stable"
 category: dates
 accessibility: "Provides labeled button, focus trap, and keyboard navigation within the modal calendar."

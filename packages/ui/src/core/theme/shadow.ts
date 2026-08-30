@@ -1,4 +1,4 @@
-// Enhanced shadow system for Platform Blocks
+// Enhanced shadow system for React UI Library
 import { Platform } from 'react-native';
 import { SizeValue } from './sizes';
 import { PlatformBlocksTheme } from './types';

@@ -2,7 +2,7 @@
 playground: true
 title: Overlay
 description: Dim or highlight areas of the interface with configurable color, opacity, gradients, and blur.
-source: "@platform-blocks/ui"
+source: "@platform-blocks/react-ui-library"
 status: "beta"
 category: overlay
 accessibility: "Non-interactive layer; ensure interactive overlays include appropriate focus management and keyboard escape affordances."

@@ -1,4 +1,4 @@
-import { Highlight, Text, Block } from '@platform-blocks/ui';
+import { Highlight, Text, Block } from '@platform-blocks/react-ui-library';
 
 const copy = 'You can switch the highlight color while keeping the default marker style.';
 

@@ -1,5 +1,5 @@
 import { Pressable } from 'react-native';
-import { Block, Card, Text, useHover } from '@platform-blocks/ui';
+import { Block, Card, Text, useHover } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [hovered, hoverHandlers] = useHover();

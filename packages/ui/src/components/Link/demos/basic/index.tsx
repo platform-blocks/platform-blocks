@@ -1,4 +1,4 @@
-import { Block, Card, Link, Text } from '@platform-blocks/ui';
+import { Block, Card, Link, Text } from '@platform-blocks/react-ui-library';
 
 const resources = [
   { href: '#brand', label: 'brand guidelines' },

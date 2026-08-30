@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Slider, RangeSlider, Text, Card, Block, Flex } from '@platform-blocks/ui';
+import { Slider, RangeSlider, Text, Card, Block, Flex } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [volume, setVolume] = useState(65);

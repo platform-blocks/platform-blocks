@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { Block, Knob, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Knob, Text, useTheme } from '@platform-blocks/react-ui-library';
 
 const SIZE = 240;
 const CENTER = SIZE / 2;

@@ -1,4 +1,4 @@
-import { Block, Button, Popover, Text } from '@platform-blocks/ui';
+import { Block, Button, Popover, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

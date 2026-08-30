@@ -1,4 +1,4 @@
-import type { GalleryItem } from '@platform-blocks/ui';
+import type { GalleryItem } from '@platform-blocks/react-ui-library';
 
 /**
  * A short two-image set — enough to exercise navigation without burying the

@@ -1,4 +1,4 @@
-import { Block, Markdown, Text } from '@platform-blocks/ui';
+import { Block, Markdown, Text } from '@platform-blocks/react-ui-library';
 
 const CONTENT = `# Hello Markdown
 

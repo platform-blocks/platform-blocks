@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { TouchableOpacity } from 'react-native';
-import { Block, Gallery, Image, Row } from '@platform-blocks/ui';
+import { Block, Gallery, Image, Row } from '@platform-blocks/react-ui-library';
 
 import { SAMPLE_IMAGES } from './data';
 

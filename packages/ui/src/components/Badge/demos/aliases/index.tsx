@@ -1,4 +1,4 @@
-import { Badge, Block, Row } from '@platform-blocks/ui'
+import { Badge, Block, Row } from '@platform-blocks/react-ui-library'
 
 const badges = [
   { label: 'Primary Filled', variant: 'filled', color: 'primary' },

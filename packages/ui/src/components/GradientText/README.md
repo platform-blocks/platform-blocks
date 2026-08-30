@@ -15,18 +15,18 @@ A powerful React Native component for rendering text with gradient colors. Suppo
 
 ## Installation
 
-The component is part of `@platform-blocks/ui`:
+The component is part of `@platform-blocks/react-ui-library`:
 
 ```bash
-npm install @platform-blocks/ui
+npm install @platform-blocks/react-ui-library
 # or
-yarn add @platform-blocks/ui
+yarn add @platform-blocks/react-ui-library
 ```
 
 ## Basic Usage
 
 ```tsx
-import { GradientText } from '@platform-blocks/ui';
+import { GradientText } from '@platform-blocks/react-ui-library';
 
 function App() {
   return (
@@ -181,7 +181,7 @@ Values outside 0-1 will wrap the gradient.
 Full TypeScript support with comprehensive type definitions:
 
 ```typescript
-import { GradientText, GradientTextProps } from '@platform-blocks/ui';
+import { GradientText, GradientTextProps } from '@platform-blocks/react-ui-library';
 
 const MyGradient: React.FC = () => {
   const gradientProps: GradientTextProps = {
@@ -268,4 +268,4 @@ Found a bug or have a feature request? Please open an issue on GitHub.
 
 ## License
 
-MIT © Platform Blocks
+MIT © React UI Library

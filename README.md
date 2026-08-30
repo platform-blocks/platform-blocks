@@ -1,30 +1,29 @@
 <p align="center">
-  <a href="https://platform-blocks.com/" rel="noopener" target="_blank"><img width="75" height="75" src="./apps/platform-blocks.com/assets/favicon.png" alt="Platform Blocks logo"/></a>
+  <a href="https://react-ui-library.com/" rel="noopener" target="_blank"><img width="75" height="75" src="./apps/react-ui-library.com/assets/favicon.png" alt="React UI Library logo"/></a>
 </p>
 
-<h1 align="center">Platform Blocks</h1>
+<h1 align="center">React UI Library</h1>
 
 <div align="center">
 
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/platform-blocks/platform-blocks/blob/HEAD/LICENSE)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/platform-blocks/react-ui-library/blob/HEAD/LICENSE)
 [![Discord](https://img.shields.io/badge/Chat%20on-Discord-%235865f2)](https://discord.gg/kbHjwzgXbc)
-[![X](https://img.shields.io/badge/Follow-%40platform__blocks-000000?logo=x&logoColor=white)](https://x.com/platform_blocks)
 
 </div>
 
-[Platform Blocks](https://platform-blocks.com/) is a React Native UI component library for building intuitive, accessible, and highly customizable mobile and web applications.
+[React UI Library](https://react-ui-library.com/) is a React Native UI component library for building intuitive, accessible, and highly customizable mobile and web applications.
 
 ## Packages
 
 | Package | Description | Version |
 | --- | --- | --- |
-| [`@platform-blocks/ui`](./packages/ui) | 80+ UI components — inputs, navigation, overlays, media, theming, and more | [![npm](https://img.shields.io/npm/v/@platform-blocks/ui)](https://www.npmjs.com/package/@platform-blocks/ui) |
+| [`@platform-blocks/react-ui-library`](./packages/ui) | 100+ UI components — inputs, navigation, overlays, media, theming, and more | [![npm](https://img.shields.io/npm/v/@platform-blocks/react-ui-library)](https://www.npmjs.com/package/@platform-blocks/react-ui-library) |
 | [`@platform-blocks/charts`](./packages/charts) | 25 data visualization chart types with animations and interactions | [![npm](https://img.shields.io/npm/v/@platform-blocks/charts)](https://www.npmjs.com/package/@platform-blocks/charts) |
 
 ## Installation
 
 ```sh
-npm i @platform-blocks/ui
+npm i @platform-blocks/react-ui-library
 npm i @platform-blocks/charts
 ```
 
@@ -39,7 +38,7 @@ npx expo install react-native-reanimated react-native-safe-area-context react-na
 ## Key features
 
 - **Cross-platform** — iOS, Android, and Web from a single codebase
-- **80+ components** — Comprehensive set of UI primitives and complex widgets
+- **100+ components** — Comprehensive set of UI primitives and complex widgets
 - **25 chart types** — Bar, Line, Area, Pie, Scatter, Radar, Heatmap, and more
 - **Themeable** — Built-in light/dark themes with full customization support
 - **Accessible** — Screen reader, keyboard navigation, and RTL support
@@ -48,16 +47,16 @@ npx expo install react-native-reanimated react-native-safe-area-context react-na
 
 ## Documentation
 
-Full documentation and examples are available at [platform-blocks.com](https://platform-blocks.com).
+Full documentation and examples are available at [react-ui-library.com](https://react-ui-library.com).
 
-- [Getting started](https://platform-blocks.com/getting-started)
-- [Component gallery](https://platform-blocks.com/components)
-- [Theming](https://platform-blocks.com/theming)
-- [Accessibility](https://platform-blocks.com/accessibility)
-- [llms.txt](https://platform-blocks.com/llms.txt) — Documentation index for LLMs and AI assistants,
+- [Getting started](https://react-ui-library.com/getting-started)
+- [Component gallery](https://react-ui-library.com/components)
+- [Theming](https://react-ui-library.com/theming)
+- [Accessibility](https://react-ui-library.com/accessibility)
+- [llms.txt](https://react-ui-library.com/llms.txt) — Documentation index for LLMs and AI assistants,
   linking a standalone Markdown page per component, chart, hook, guide, and FAQ entry.
-  [llms-full.txt](https://platform-blocks.com/llms-full.txt) is the same content in one file;
-  [platform-blocks.com/llms](https://platform-blocks.com/llms) explains the layout.
+  [llms-full.txt](https://react-ui-library.com/llms-full.txt) is the same content in one file;
+  [react-ui-library.com/llms](https://react-ui-library.com/llms) explains the layout.
 
 ## Contributing
 

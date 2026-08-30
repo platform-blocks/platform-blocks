@@ -1,6 +1,6 @@
 export const PRESETS = [
-  { label: 'Docs', value: 'https://platform-blocks.com' },
-  { label: 'Support', value: 'mailto:support@platform-blocks.com' },
+  { label: 'Docs', value: 'https://react-ui-library.com' },
+  { label: 'Support', value: 'mailto:support@react-ui-library.com' },
   { label: 'SMS', value: 'sms:+1234567890?body=Go Blocks!' }
 ] as const;
 

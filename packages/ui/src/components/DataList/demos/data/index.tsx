@@ -1,4 +1,4 @@
-import { DataList } from '@platform-blocks/ui';
+import { DataList } from '@platform-blocks/react-ui-library';
 
 const details = [
   { label: 'Order', value: '#SS-10428' },

@@ -1,5 +1,5 @@
-name: Report a bug in Platform Blocks
-description: Use this template to report issues with Platform Blocks packages or example apps. For questions, ideas, or feature requests, open a discussion instead.
+name: Report a bug in React UI Library
+description: Use this template to report issues with React UI Library packages or example apps. For questions, ideas, or feature requests, open a discussion instead.
 labels:
   - bug
 body:
@@ -11,13 +11,13 @@ body:
       options:
         - label: I have searched existing GitHub issues and discussions for similar reports.
           required: true
-        - label: I am using the latest published version of the affected Platform Blocks packages (or I have a reproduction on the latest main branch).
+        - label: I am using the latest published version of the affected React UI Library packages (or I have a reproduction on the latest main branch).
           required: true
   - type: input
     id: version
     attributes:
-      placeholder: "@platform-blocks/ui@1.0.0, @platform-blocks/charts@1.0.0"
-      label: Which Platform Blocks package versions are in your project?
+      placeholder: "@platform-blocks/react-ui-library@1.0.0, @platform-blocks/charts@1.0.0"
+      label: Which React UI Library package versions are in your project?
     validations:
       required: true
   - type: dropdown
@@ -25,9 +25,9 @@ body:
     attributes:
       label: Which area is affected?
       options:
-        - "@platform-blocks/ui"
+        - "@platform-blocks/react-ui-library"
         - "@platform-blocks/charts"
-        - Docs site (platform-blocks.com)
+        - Docs site (react-ui-library.com)
         - Example gallery / demos
         - Tooling (scripts, generators, configuration)
         - Other (please describe below)

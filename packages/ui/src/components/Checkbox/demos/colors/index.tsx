@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Checkbox, Text } from '@platform-blocks/ui';
+import { Block, Checkbox, Text } from '@platform-blocks/react-ui-library';
 
 const COLORS = ['primary', 'secondary', 'success', 'warning', 'error'] as const;
 

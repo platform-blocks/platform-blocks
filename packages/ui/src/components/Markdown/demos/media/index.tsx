@@ -1,14 +1,14 @@
-import { Block, Markdown, Text } from '@platform-blocks/ui';
+import { Block, Markdown, Text } from '@platform-blocks/react-ui-library';
 
 const CONTENT = `# Media in Markdown
 
 ## Images
 
-![PlatformBlocks Logo](https://raw.githubusercontent.com/platform-blocks/platform-blocks/main/apps/platform-blocks.com/assets/favicon.png)
+![PlatformBlocks Logo](https://raw.githubusercontent.com/platform-blocks/react-ui-library/main/apps/react-ui-library.com/assets/favicon.png)
 
 ## Links
 
-Visit the [PlatformBlocks Documentation](https://platform-blocks.com) for more examples.
+Visit the [PlatformBlocks Documentation](https://react-ui-library.com) for more examples.
 
 ## Tables
 
@@ -18,7 +18,7 @@ Visit the [PlatformBlocks Documentation](https://platform-blocks.com) for more e
 | Code Blocks | ✅ | Syntax highlighting |
 | Tables | ✅ | Responsive layout |
 | Images | ✅ | Auto-sizing |
-| [Links](https://platform-blocks.com) | ✅ | External navigation |
+| [Links](https://react-ui-library.com) | ✅ | External navigation |
 
 ## Horizontal Rule
 

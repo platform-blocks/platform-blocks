@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Block, Select } from '@platform-blocks/ui'
+import { Block, Select } from '@platform-blocks/react-ui-library'
 import { sports } from '../data'
 
 const variants = [

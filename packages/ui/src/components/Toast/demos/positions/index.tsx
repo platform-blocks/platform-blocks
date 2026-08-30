@@ -1,4 +1,4 @@
-import { Block, Button, Row, Text, useToast } from '@platform-blocks/ui';
+import { Block, Button, Row, Text, useToast } from '@platform-blocks/react-ui-library';
 
 const toastPositions = [
   'top-left',

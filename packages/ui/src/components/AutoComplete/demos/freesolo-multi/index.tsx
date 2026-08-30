@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
-import { AutoComplete, Block, Chip, Icon, Text } from '@platform-blocks/ui';
-import type { AutoCompleteOption } from '@platform-blocks/ui';
+import { AutoComplete, Block, Chip, Icon, Text } from '@platform-blocks/react-ui-library';
+import type { AutoCompleteOption } from '@platform-blocks/react-ui-library';
 import { fruits } from '../data'
 
 export function Demo() {

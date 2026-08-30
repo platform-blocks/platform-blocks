@@ -1,4 +1,4 @@
-import { AppShell, Block, Text } from '@platform-blocks/ui';
+import { AppShell, Block, Text } from '@platform-blocks/react-ui-library';
 
 const sampleTOC = (
   <Block>

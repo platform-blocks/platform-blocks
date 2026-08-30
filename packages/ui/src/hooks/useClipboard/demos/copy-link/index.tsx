@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Badge, Block, Button, Input, useClipboard } from '@platform-blocks/ui';
+import { Badge, Block, Button, Input, useClipboard } from '@platform-blocks/react-ui-library';
 
 const INVITE_URL = 'https://app.example.com/invite/engineering';
 

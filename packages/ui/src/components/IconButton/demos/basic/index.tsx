@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Block, Card, Divider, IconButton, Row, Switch, Text } from '@platform-blocks/ui';
+import { Block, Card, Divider, IconButton, Row, Switch, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [loading, setLoading] = useState(false);

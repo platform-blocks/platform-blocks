@@ -38,10 +38,10 @@
       "platform-blocks/*": [
         "./*"
       ],
-      "@platform-blocks/ui": [
+      "@platform-blocks/react-ui-library": [
         "./index.ts"
       ],
-      "@platform-blocks/ui/*": [
+      "@platform-blocks/react-ui-library/*": [
         "./*"
       ],
       "@platform-blocks/charts": [

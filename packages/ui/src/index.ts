@@ -377,7 +377,13 @@ export type { TitleProps } from './components/Title/types';
 export type { KeyboardAwareLayoutProps } from './components/KeyboardAwareLayout';
 export type { FlexProps } from './components/Flex';
 export type { GridProps, GridItemProps } from './components/Grid';
-export type { MasonryProps, MasonryItem } from './components/Masonry';
+export type {
+  MasonryFlashListProps,
+  MasonryItem,
+  MasonryProps,
+  MasonryViewabilityCallback,
+  MasonryViewToken,
+} from './components/Masonry';
 export type { InputProps, PasswordInputProps } from './components/Input';
 export type { NumberInputProps } from './components/NumberInput';
 export type { PinInputProps } from './components/PinInput';

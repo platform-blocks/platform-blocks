@@ -1,4 +1,4 @@
-import type { TreeNode } from '@platform-blocks/ui';
+import type { TreeNode } from '@platform-blocks/react-ui-library';
 
 /** Payload each node carries on `node.data` for the custom label renderer. */
 export interface CustomNodeData {

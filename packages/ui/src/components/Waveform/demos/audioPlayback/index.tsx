@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { Block, Button, Row, Text, Waveform } from '@platform-blocks/ui';
+import { Block, Button, Row, Text, Waveform } from '@platform-blocks/react-ui-library';
 
 import { CHIME_PEAKS, MELODY_PEAKS, RAIN_PEAKS } from '../data';
 

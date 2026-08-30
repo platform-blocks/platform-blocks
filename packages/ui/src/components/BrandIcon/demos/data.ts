@@ -1,4 +1,4 @@
-import type { BrandName } from '@platform-blocks/ui';
+import type { BrandName } from '@platform-blocks/react-ui-library';
 
 export const FEATURED_BRANDS: BrandName[] = [
   'google',

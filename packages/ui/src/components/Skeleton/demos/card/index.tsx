@@ -1,4 +1,4 @@
-import { Block, Row, Skeleton, useTheme } from '@platform-blocks/ui';
+import { Block, Row, Skeleton, useTheme } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const theme = useTheme();

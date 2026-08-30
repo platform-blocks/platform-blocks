@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Button, Text, TextArea } from '@platform-blocks/ui';
+import { Block, Button, Text, TextArea } from '@platform-blocks/react-ui-library';
 
 type ValidationErrors = {
   feedback?: string;

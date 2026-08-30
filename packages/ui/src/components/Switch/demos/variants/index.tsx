@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Row, Switch, Text } from '@platform-blocks/ui';
+import { Block, Row, Switch, Text } from '@platform-blocks/react-ui-library';
 
 const VARIANTS = [
   { variant: 'filled', hint: 'filled (default) — solid track fills with the active color' },

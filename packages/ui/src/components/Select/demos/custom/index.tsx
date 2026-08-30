@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Block, Icon, Select, Text, useTheme } from '@platform-blocks/ui'
+import { Block, Icon, Select, Text, useTheme } from '@platform-blocks/react-ui-library'
 import { detailedSports, type DetailedSport } from '../data'
 
 export function Demo() {

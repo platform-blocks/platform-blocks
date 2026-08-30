@@ -1,4 +1,4 @@
-import { BrandButton, Card, Flex, Text } from '@platform-blocks/ui';
+import { BrandButton, Card, Flex, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

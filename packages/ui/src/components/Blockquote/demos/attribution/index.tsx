@@ -1,4 +1,4 @@
-import { Block, Blockquote, Text } from '@platform-blocks/ui';
+import { Block, Blockquote, Text } from '@platform-blocks/react-ui-library';
 
 import { AUTHOR, QUOTE, SOURCE } from './data';
 

@@ -1,4 +1,4 @@
-import { Badge, ListGroup, ListGroupItem } from '@platform-blocks/ui';
+import { Badge, ListGroup, ListGroupItem } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

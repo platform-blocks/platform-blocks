@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Block, Calendar, Text } from '@platform-blocks/ui';
+import { Block, Calendar, Text } from '@platform-blocks/react-ui-library';
 
 const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
 

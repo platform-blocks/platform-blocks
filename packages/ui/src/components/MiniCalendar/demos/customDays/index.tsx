@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Block, Button, MiniCalendar, Row, Text } from '@platform-blocks/ui';
+import { Block, Button, MiniCalendar, Row, Text } from '@platform-blocks/react-ui-library';
 
 const DAY_OPTIONS = [3, 5, 7];
 

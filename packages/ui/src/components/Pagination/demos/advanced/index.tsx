@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Pagination, Text } from '@platform-blocks/ui';
+import { Block, Pagination, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [page1, setPage1] = useState(10);

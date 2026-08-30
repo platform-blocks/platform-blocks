@@ -7,14 +7,14 @@ import { Input } from '../../Input';
 import { 
   AccessibilityDebugger, 
   AccessibilityTestSuite 
-} from '../Accessibility/AccessibilityTesting';
+} from './AccessibilityTesting';
 import { 
   SkipLink, 
   Landmark, 
   LiveRegion, 
   ProgressIndicator,
   ErrorBoundaryFallback 
-} from '../Accessibility/AccessibilityHelpers';
+} from './AccessibilityHelpers';
 import { 
   useAnnouncementQueue,
   useFocusTrap,
@@ -104,7 +104,7 @@ export const AccessibilityDemo: React.FC = () => {
             color: theme.colors.gray[9],
             marginBottom: DESIGN_TOKENS.spacing.lg,
           }}>
-            Platform Blocks Accessibility Demo
+            React UI Library Accessibility Demo
           </Text>
         </Landmark>
 

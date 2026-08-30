@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Flex, Text, ColorSwatch } from '@platform-blocks/ui';
+import { Flex, Text, ColorSwatch } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [selectedColor, setSelectedColor] = useState<string>('#E74C3C');

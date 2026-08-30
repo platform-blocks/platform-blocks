@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, PinInput, Text } from '@platform-blocks/ui';
+import { Block, PinInput, Text } from '@platform-blocks/react-ui-library';
 
 type SizeToken = 'xs' | 'sm' | 'md' | 'lg';
 

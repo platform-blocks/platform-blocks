@@ -1,4 +1,4 @@
-import { Card, Flex, Text, Icon } from '@platform-blocks/ui';
+import { Card, Flex, Text, Icon } from '@platform-blocks/react-ui-library';
 
 const strokeVariants = [
   { label: 'Thin (0.75)', value: 0.75 },

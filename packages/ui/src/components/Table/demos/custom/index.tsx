@@ -1,4 +1,4 @@
-import { Block, Chip, Table, Text } from '@platform-blocks/ui';
+import { Block, Chip, Table, Text } from '@platform-blocks/react-ui-library';
 import { rows } from './data';
 
 export function Demo() {

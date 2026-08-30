@@ -1,5 +1,5 @@
-import { SizeValue } from '../theme/types';
-import { PlatformBlocksTheme } from '../theme/types';
+import { SizeValue } from './types';
+import { PlatformBlocksTheme } from './types';
 
 /**
  * Unified sizing system for all UI components

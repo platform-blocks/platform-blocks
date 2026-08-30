@@ -99,11 +99,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/platform-blocks/platform-blocks.git",
+    "url": "https://github.com/platform-blocks/react-ui-library.git",
     "directory": "packages/charts"
   },
   "bugs": {
-    "url": "https://github.com/platform-blocks/platform-blocks/issues"
+    "url": "https://github.com/platform-blocks/react-ui-library/issues"
   },
-  "homepage": "https://platform-blocks.com"
+  "homepage": "https://react-ui-library.com"
 }

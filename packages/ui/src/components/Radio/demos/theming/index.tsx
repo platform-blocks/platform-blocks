@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Radio, RadioGroup, Text } from '@platform-blocks/ui';
+import { Block, Radio, RadioGroup, Text } from '@platform-blocks/react-ui-library';
 
 const COLOR_OPTIONS = ['primary', 'secondary', 'success', 'error'] as const;
 

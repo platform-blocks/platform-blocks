@@ -1,4 +1,4 @@
-import { Block, DataList, Text, useDeviceInfo } from '@platform-blocks/ui';
+import { Block, DataList, Text, useDeviceInfo } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const { runtime, system, screen, appearance, locale, input, safeArea, helpers, network, meta } =

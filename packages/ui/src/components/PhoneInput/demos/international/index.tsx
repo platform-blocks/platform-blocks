@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Card, Code, PhoneInput, Text } from '@platform-blocks/ui';
+import { Block, Card, Code, PhoneInput, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [autoDetectValue, setAutoDetectValue] = useState('');

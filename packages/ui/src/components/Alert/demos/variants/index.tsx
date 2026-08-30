@@ -1,4 +1,4 @@
-import { Alert, Block } from '@platform-blocks/ui';
+import { Alert, Block } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

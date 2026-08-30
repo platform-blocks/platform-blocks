@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, RadioGroup, Text } from '@platform-blocks/ui';
+import { Block, RadioGroup, Text } from '@platform-blocks/react-ui-library';
 
 const PLAN_OPTIONS = [
   { label: 'Starter', value: 'starter', description: 'Up to 3 projects, community support' },

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Input, Tree } from '@platform-blocks/ui';
+import { Block, Input, Tree } from '@platform-blocks/react-ui-library';
 
 import { TREE_DATA } from './data';
 

@@ -1,4 +1,4 @@
-import { Block, Progress } from '@platform-blocks/ui';
+import { Block, Progress } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

@@ -1,6 +1,6 @@
 import { useState, type ComponentProps } from 'react';
 import { StyleSheet } from 'react-native';
-import { Block, Button, Card, Input, LoadingOverlay, Switch, Text } from '@platform-blocks/ui';
+import { Block, Button, Card, Input, LoadingOverlay, Switch, Text } from '@platform-blocks/react-ui-library';
 
 type TextFieldConfig = {
   key: string;
@@ -12,7 +12,7 @@ const TEXT_FIELDS: TextFieldConfig[] = [
   {
     key: 'email',
     label: 'Email',
-    placeholder: 'jane@platform-blocks.com',
+    placeholder: 'jane@react-ui-library.com',
     keyboardType: 'email-address',
   },
   {

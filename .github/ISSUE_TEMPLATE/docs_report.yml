@@ -1,5 +1,5 @@
 name: Report a docs or site issue
-description: Flag typos, broken links, or confusing content on platform-blocks.com or related docs.
+description: Flag typos, broken links, or confusing content on react-ui-library.com or related docs.
 labels:
   - docs
 body:
@@ -7,7 +7,7 @@ body:
     id: link
     attributes:
       label: Link to the page where something is not right
-      placeholder: https://platform-blocks.com/path/to/page
+      placeholder: https://react-ui-library.com/path/to/page
   - type: textarea
     id: quote
     attributes:

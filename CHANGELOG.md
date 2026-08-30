@@ -1,6 +1,6 @@
 # Changelog
 
-See all versions and their changes on the [releases page](https://github.com/platform-blocks/platform-blocks/releases).
+See all versions and their changes on the [releases page](https://github.com/platform-blocks/react-ui-library/releases).
 
 - [1.2.0](changelog/1.2.0.md)
 - [1.1.0](changelog/1.1.0.md)

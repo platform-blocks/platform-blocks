@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Button, Rating, Text } from '@platform-blocks/ui';
+import { Block, Button, Rating, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [score, setScore] = useState<number>(0);

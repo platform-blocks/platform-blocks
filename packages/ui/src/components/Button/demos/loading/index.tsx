@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Row } from '@platform-blocks/ui';
+import { Button, Row } from '@platform-blocks/react-ui-library';
 
 const LOADING_DURATION_MS = 2000;
 

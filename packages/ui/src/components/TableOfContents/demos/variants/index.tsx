@@ -1,4 +1,4 @@
-import { Row, TableOfContents } from '@platform-blocks/ui';
+import { Row, TableOfContents } from '@platform-blocks/react-ui-library';
 
 const ITEMS = [
   { id: 'overview', value: 'Overview', depth: 1 },

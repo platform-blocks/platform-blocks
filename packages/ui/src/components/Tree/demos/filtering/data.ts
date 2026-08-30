@@ -1,4 +1,4 @@
-import type { TreeNode } from '@platform-blocks/ui';
+import type { TreeNode } from '@platform-blocks/react-ui-library';
 
 /** Enough labels sharing substrings ("Java"/"JavaScript") to make filtering visible. */
 export const TREE_DATA: TreeNode[] = [

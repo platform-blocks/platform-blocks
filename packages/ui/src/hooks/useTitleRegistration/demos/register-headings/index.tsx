@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { Block, DataList, Text, TitleRegistryProvider, useTitleRegistration, useTitleRegistry } from '@platform-blocks/ui';
+import { Block, DataList, Text, TitleRegistryProvider, useTitleRegistration, useTitleRegistry } from '@platform-blocks/react-ui-library';
 
 const SECTIONS = [
   { title: 'Why it matters', order: 1, description: 'Explain how the registry keeps navigation UI in sync with content.' },

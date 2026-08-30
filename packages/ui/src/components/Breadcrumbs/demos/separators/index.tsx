@@ -1,4 +1,4 @@
-import { Block, Breadcrumbs, Icon } from '@platform-blocks/ui';
+import { Block, Breadcrumbs, Icon } from '@platform-blocks/react-ui-library';
 
 const ITEMS = [
   { label: 'Home', href: '/' },

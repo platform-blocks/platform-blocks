@@ -1,4 +1,4 @@
-import { Avatar, Block, Indicator, Row, Text, useTheme } from '@platform-blocks/ui';
+import { Avatar, Block, Indicator, Row, Text, useTheme } from '@platform-blocks/react-ui-library';
 
 const presenceStatuses = [
   { label: 'Online', palette: 'success', avatar: require('../../../../assets/avatars/avatar-1.png') },

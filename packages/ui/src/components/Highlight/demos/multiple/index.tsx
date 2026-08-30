@@ -1,7 +1,7 @@
 import { View } from 'react-native';
-import { Highlight, Text } from '@platform-blocks/ui';
+import { Highlight, Text } from '@platform-blocks/react-ui-library';
 
-const SENTENCE = 'Platform Blocks brings patterns, blocks, and building tools together.';
+const SENTENCE = 'React UI Library brings patterns, blocks, and building tools together.';
 
 export function Demo() {
   return (

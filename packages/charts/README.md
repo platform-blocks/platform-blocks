@@ -1,18 +1,18 @@
 <p align="center">
-  <a href="https://platform-blocks.com/" rel="noopener" target="_blank"><img width="75" height="75" src="https://raw.githubusercontent.com/platform-blocks/platform-blocks/refs/heads/main/apps/platform-blocks.com/assets/favicon.png" alt="Platform Blocks logo"/></a>
+  <a href="https://react-ui-library.com/" rel="noopener" target="_blank"><img width="75" height="75" src="https://raw.githubusercontent.com/platform-blocks/react-ui-library/refs/heads/main/apps/react-ui-library.com/assets/favicon.png" alt="React UI Library logo"/></a>
 </p>
 
 <h1 align="center">@platform-blocks/charts</h1>
 
 <div align="center">
 
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/platform-blocks/platform-blocks/blob/HEAD/LICENSE)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/platform-blocks/react-ui-library/blob/HEAD/LICENSE)
 [![npm](https://img.shields.io/npm/v/@platform-blocks/charts)](https://www.npmjs.com/package/@platform-blocks/charts)
 [![Discord](https://img.shields.io/badge/Chat%20on-Discord-%235865f2)](https://discord.gg/kbHjwzgXbc)
 
 </div>
 
-Data visualization components for React Native and React Native Web. Part of the [Platform Blocks](https://platform-blocks.com/) ecosystem.
+Data visualization components for React Native and React Native Web. Part of the [React UI Library](https://react-ui-library.com/) ecosystem.
 
 ## Features
 
@@ -147,16 +147,16 @@ export function Dashboard() {
 
 ## Documentation
 
-Full documentation, interactive examples, and API reference are available at [platform-blocks.com](https://platform-blocks.com).
+Full documentation, interactive examples, and API reference are available at [react-ui-library.com](https://react-ui-library.com).
 
-- [Getting started](https://platform-blocks.com/getting-started)
-- [Charts](https://platform-blocks.com/charts)
-- [llms.txt](https://platform-blocks.com/llms.txt) — Full API reference for LLMs and AI assistants
+- [Getting started](https://react-ui-library.com/getting-started)
+- [Charts](https://react-ui-library.com/charts)
+- [llms.txt](https://react-ui-library.com/llms.txt) — Full API reference for LLMs and AI assistants
 
 ## Contributing
 
-See the [contributing guide](https://github.com/platform-blocks/platform-blocks/blob/main/CONTRIBUTING.md) for setup instructions.
+See the [contributing guide](https://github.com/platform-blocks/react-ui-library/blob/main/CONTRIBUTING.md) for setup instructions.
 
 ## License
 
-[MIT](https://github.com/platform-blocks/platform-blocks/blob/main/LICENSE) © [Josh Stovall](https://github.com/joshstovall)
+[MIT](https://github.com/platform-blocks/react-ui-library/blob/main/LICENSE) © [Josh Stovall](https://github.com/joshstovall)

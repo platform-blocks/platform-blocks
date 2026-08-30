@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="90" y1="40" x2="1110" y2="590" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEF2FF"/>
+      <stop offset=".55" stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#DBEAFE"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="70" y1="55" x2="270" y2="275" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1100" cy="80" r="220" fill="#C7D2FE" opacity=".45"/>
+  <circle cx="60" cy="610" r="260" fill="#BFDBFE" opacity=".42"/>
+  <rect x="86" y="94" width="168" height="168" rx="48" fill="url(#mark)" transform="rotate(-4 170 178)"/>
+  <path d="m163 143-37 35 37 35m31-70 37 35-37 35m-9-86-22 102" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="17"/>
+  <text x="304" y="161" fill="#111827" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700">REACT UI LIBRARY</text>
+  <text x="88" y="390" fill="#111827" font-family="Arial, Helvetica, sans-serif" font-size="76" font-weight="800">One UI system.</text>
+  <text x="88" y="478" fill="#111827" font-family="Arial, Helvetica, sans-serif" font-size="76" font-weight="800">Every screen.</text>
+  <text x="92" y="548" fill="#475569" font-family="Arial, Helvetica, sans-serif" font-size="28">100+ components for React Native and Web</text>
+  <rect x="882" y="482" width="236" height="64" rx="32" fill="#111827"/>
+  <text x="1000" y="523" fill="#fff" font-family="Courier New, monospace" font-size="19" text-anchor="middle">@platform-blocks/react-ui-library</text>
+</svg>

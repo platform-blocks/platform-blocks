@@ -1,4 +1,4 @@
-import { Blockquote } from '@platform-blocks/ui';
+import { Blockquote } from '@platform-blocks/react-ui-library';
 
 const AUTHOR = {
   name: 'Jamie Ortega',

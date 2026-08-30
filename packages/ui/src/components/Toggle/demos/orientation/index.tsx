@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Row, Text, ToggleButton, ToggleGroup } from '@platform-blocks/ui';
+import { Block, Row, Text, ToggleButton, ToggleGroup } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [view, setView] = useState('list');

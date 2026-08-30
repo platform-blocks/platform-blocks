@@ -1,4 +1,4 @@
-import type { TreeNode } from '@platform-blocks/ui';
+import type { TreeNode } from '@platform-blocks/react-ui-library';
 
 /** Two-level technology groups, so cascading checks have parents to roll up into. */
 export const TREE_DATA: TreeNode[] = [

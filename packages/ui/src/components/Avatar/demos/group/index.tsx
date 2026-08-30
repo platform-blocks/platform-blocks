@@ -1,4 +1,4 @@
-import { Avatar, AvatarGroup, Block, Text } from '@platform-blocks/ui';
+import { Avatar, AvatarGroup, Block, Text } from '@platform-blocks/react-ui-library';
 
 const TEAM = [
   { id: 1, initials: 'SJ', color: '#FF6B6B' },

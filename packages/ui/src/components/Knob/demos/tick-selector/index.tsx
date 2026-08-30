@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Knob } from '@platform-blocks/ui';
+import { Block, Knob } from '@platform-blocks/react-ui-library';
 import { POSITION_COLORS } from './data';
 
 // Twelve detents on a full circle. `max` is 12 rather than 11 so position 11 sits one step

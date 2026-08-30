@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavTree, type NavTreeItem } from '@platform-blocks/ui';
+import { NavTree, type NavTreeItem } from '@platform-blocks/react-ui-library';
 
 // The whole input: a flat list, with a category on each row. Nothing here
 // describes the tree — `NavTree` derives it.

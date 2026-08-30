@@ -1,5 +1,5 @@
 name: Share a community starter
-description: Share a public repository that showcases Platform Blocks in a real project.
+description: Share a public repository that showcases React UI Library in a real project.
 labels:
   - community template
 body:
@@ -15,7 +15,7 @@ body:
     attributes:
       label: What does this starter include?
       description: Highlight the tech stack, supported platforms (web, native, Expo), and anything unique about the setup.
-      placeholder: "A React Native + Expo starter with Platform Blocks UI and Charts, preconfigured for iOS, Android, and web."
+      placeholder: "A React Native + Expo starter with React UI Library UI and Charts, preconfigured for iOS, Android, and web."
     validations:
       required: true
   - type: textarea

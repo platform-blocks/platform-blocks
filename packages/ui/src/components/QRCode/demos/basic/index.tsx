@@ -1,12 +1,12 @@
-import { QRCode } from '@platform-blocks/ui';
+import { QRCode } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (
     <QRCode
-      value="https://platform-blocks.com"
+      value="https://react-ui-library.com"
       size={168}
       quietZone={2}
-      label="Scan to open the Platform Blocks docs."
+      label="Scan to open the React UI Library docs."
     />
   );
 }

@@ -1,4 +1,4 @@
-import { Block, GradientText } from '@platform-blocks/ui';
+import { Block, GradientText } from '@platform-blocks/react-ui-library';
 
 const angles = [0, 45, 90, 135];
 

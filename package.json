@@ -1,22 +1,22 @@
 {
-  "name": "platform-blocks",
+  "name": "react-ui-library",
   "version": "1.1.0",
   "workspaces": [
     "packages/ui",
     "packages/charts",
-    "apps/platform-blocks.com"
+    "apps/react-ui-library.com"
   ],
   "scripts": {
     "build": "npm --prefix packages/ui run build",
-    "dev": "npm --prefix apps/platform-blocks.com run start",
-    "docs": "npm --prefix apps/platform-blocks.com run start",
+    "dev": "npm --prefix apps/react-ui-library.com run start",
+    "docs": "npm --prefix apps/react-ui-library.com run start",
     "ui:build": "npm --prefix packages/ui run build",
     "ui:test": "npm --prefix packages/ui run test",
     "ui:lint": "npm --prefix packages/ui run lint",
     "charts:build": "npm --prefix packages/charts run build",
     "charts:test": "npm --prefix packages/charts run test",
     "charts:lint": "npm --prefix packages/charts run lint",
-    "docs:lint": "cd apps/platform-blocks.com && npx expo lint",
+    "docs:lint": "cd apps/react-ui-library.com && npx expo lint",
     "clean": "npm --prefix packages/ui run clean",
     "i18n:scan": "tsx scripts/scan-i18n-keys.ts",
     "demos:generate": "npx --yes tsx scripts/generate-demos.ts",
@@ -27,11 +27,11 @@
     "skills:generate": "npx --yes tsx scripts/generate-skills.ts",
     "skills:check": "npx --yes tsx scripts/generate-skills.ts --check",
     "codemod:color-props": "npx --yes tsx scripts/codemod-color-props.ts",
-    "docs:all": "npm run demos:generate && npm run demos:validate && npm run snack:exports && npm --prefix apps/platform-blocks.com run docs:generate && npm --prefix apps/platform-blocks.com run generate-code-map && npm run llms:generate",
-    "site:build": "npm run ui:build && npm run docs:all && npm --prefix apps/platform-blocks.com run build-web",
+    "docs:all": "npm run demos:generate && npm run demos:validate && npm run snack:exports && npm --prefix apps/react-ui-library.com run docs:generate && npm --prefix apps/react-ui-library.com run generate-code-map && npm run llms:generate",
+    "site:build": "npm run ui:build && npm run docs:all && npm --prefix apps/react-ui-library.com run build-web",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "docs:baseline": "npm --prefix apps/platform-blocks.com run build-web && npx playwright test --config=playwright.config.ts",
+    "docs:baseline": "npm --prefix apps/react-ui-library.com run build-web && npx playwright test --config=playwright.config.ts",
     "verify:packages": "npm run ui:exports:check && npm run skills:check && npm run ui:lint && npm run ui:test && npm run charts:lint && npm run charts:test",
     "verify:packages:build": "npm run ui:build && npm run charts:build",
     "release": "npm run verify:packages && npm run verify:packages:build && npm run ui:build && tsx scripts/publish-release.ts",
@@ -63,5 +63,5 @@
   },
   "author": "Josh Stovall",
   "license": "MIT",
-  "homepage": "https://platform-blocks.com"
+  "homepage": "https://react-ui-library.com"
 }

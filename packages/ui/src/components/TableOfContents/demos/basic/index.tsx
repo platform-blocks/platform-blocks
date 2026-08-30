@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Block, Row, TableOfContents, Text, Title, TitleRegistryProvider } from '@platform-blocks/ui';
+import { Block, Row, TableOfContents, Text, Title, TitleRegistryProvider } from '@platform-blocks/react-ui-library';
 
 const SECTIONS = [
   { id: 'intro', title: 'Introduction', summary: 'Set the stage for the walkthrough.' },

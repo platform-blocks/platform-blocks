@@ -1,4 +1,4 @@
-import { Block, CodeBlock, Text } from '@platform-blocks/ui';
+import { Block, CodeBlock, Text } from '@platform-blocks/react-ui-library';
 
 const fibonacciExample = `function fibonacci(n) {
   if (n <= 1) {

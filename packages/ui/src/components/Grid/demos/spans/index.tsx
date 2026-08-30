@@ -1,4 +1,4 @@
-import { Block, Card, Grid, GridItem, Text } from '@platform-blocks/ui';
+import { Block, Card, Grid, GridItem, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const spans = [6, 6, 4, 4, 4, 3, 3, 3, 3];

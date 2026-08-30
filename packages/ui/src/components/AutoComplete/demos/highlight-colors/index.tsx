@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AutoComplete, Block, ColorSwatch, Row, Text, useTheme } from '@platform-blocks/ui'
+import { AutoComplete, Block, ColorSwatch, Row, Text, useTheme } from '@platform-blocks/react-ui-library'
 
 const sampleData = [
   { label: 'Apple', value: 'apple', description: 'A red or green fruit' },

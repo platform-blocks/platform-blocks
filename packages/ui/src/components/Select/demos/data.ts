@@ -1,4 +1,4 @@
-import type { SelectOption } from '@platform-blocks/ui';
+import type { SelectOption } from '@platform-blocks/react-ui-library';
 
 export const sports: SelectOption<string>[] = [
   { label: 'Soccer', value: 'soccer' },

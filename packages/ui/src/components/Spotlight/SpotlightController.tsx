@@ -1,6 +1,6 @@
 import React from 'react';
-import { SpotlightProvider, spotlight } from '../../components/Spotlight/SpotlightStore';
-import { Spotlight } from '../../components/Spotlight';
+import { SpotlightProvider, spotlight } from './SpotlightStore';
+import { Spotlight } from '.';
 import { useHotkeys } from '../../hooks/useHotkeys';
 import type { HighlightProps as HighlightComponentProps } from '../Highlight';
 

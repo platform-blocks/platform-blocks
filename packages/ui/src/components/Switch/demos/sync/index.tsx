@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Switch, Text } from '@platform-blocks/ui';
+import { Block, Switch, Text } from '@platform-blocks/react-ui-library';
 
 const PREFERENCE_CONTROLS = [
   {

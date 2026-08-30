@@ -1,4 +1,4 @@
-import { Badge, Block, Row, Text, useMediaQuery } from '@platform-blocks/ui';
+import { Badge, Block, Row, Text, useMediaQuery } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const isCompact = useMediaQuery('(max-width: 640px)');

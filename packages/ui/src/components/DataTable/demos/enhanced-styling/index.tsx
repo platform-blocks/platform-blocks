@@ -1,5 +1,5 @@
-import { Avatar, Chip, DataTable, Text } from '@platform-blocks/ui';
-import type { DataTableColumn } from '@platform-blocks/ui';
+import { Avatar, Chip, DataTable, Text } from '@platform-blocks/react-ui-library';
+import type { DataTableColumn } from '@platform-blocks/react-ui-library';
 
 import { people, type Person } from '../data';
 

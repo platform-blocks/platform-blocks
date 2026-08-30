@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { DataTable } from '@platform-blocks/ui';
-import type { DataTableColumn, DataTablePagination, DataTableSort } from '@platform-blocks/ui';
+import { DataTable } from '@platform-blocks/react-ui-library';
+import type { DataTableColumn, DataTablePagination, DataTableSort } from '@platform-blocks/react-ui-library';
 
 import { people, type Person } from '../data';
 

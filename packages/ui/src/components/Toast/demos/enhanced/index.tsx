@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Button, Text, Toast, useToast } from '@platform-blocks/ui';
+import { Block, Button, Text, Toast, useToast } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const toast = useToast();

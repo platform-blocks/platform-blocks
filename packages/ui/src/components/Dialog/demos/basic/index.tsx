@@ -1,4 +1,4 @@
-import { Block, Button, Row, Text, useDialog } from '@platform-blocks/ui';
+import { Block, Button, Row, Text, useDialog } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const { openDialog, closeDialog } = useDialog();

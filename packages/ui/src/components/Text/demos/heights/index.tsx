@@ -1,4 +1,4 @@
-import { Block, Card, Text } from '@platform-blocks/ui';
+import { Block, Card, Text } from '@platform-blocks/react-ui-library';
 
 const SAMPLE_TEXT =
   'This paragraph shows how line height changes the spacing between lines of text when content wraps across multiple lines.';

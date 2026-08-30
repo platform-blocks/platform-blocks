@@ -1,4 +1,4 @@
-import { BrandButton, useToast } from '@platform-blocks/ui';
+import { BrandButton, useToast } from '@platform-blocks/react-ui-library';
 export function Demo() {
   const toast = useToast()
   return <BrandButton

@@ -1,4 +1,4 @@
-// Enhanced border radius system for Platform Blocks
+// Enhanced border radius system for React UI Library
 import { SizeValue, resolveSize } from './sizes';
 
 export type RadiusValue = 

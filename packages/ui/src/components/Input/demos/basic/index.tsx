@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Input } from '@platform-blocks/ui';
+import { Input } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [value, setValue] = useState('');

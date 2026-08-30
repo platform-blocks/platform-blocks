@@ -1,2 +1,8 @@
 export { Masonry } from './Masonry';
-export type { MasonryProps, MasonryItem } from './types';
+export type {
+  MasonryFlashListProps,
+  MasonryItem,
+  MasonryProps,
+  MasonryViewabilityCallback,
+  MasonryViewToken,
+} from './types';

@@ -1,4 +1,4 @@
-import { Block, Row, SegmentedControl } from '@platform-blocks/ui';
+import { Block, Row, SegmentedControl } from '@platform-blocks/react-ui-library';
 import { frameworks, panes } from '../data';
 
 export function Demo() {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Block, Chip } from '@platform-blocks/ui'
+import { Block, Chip } from '@platform-blocks/react-ui-library'
 
 const initialSports = [
   { label: 'Soccer', emoji: '⚽' },

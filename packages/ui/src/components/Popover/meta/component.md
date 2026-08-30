@@ -1,7 +1,7 @@
 ---
 title: Popover
 description: Layered surface that displays contextual content next to a trigger without blocking the rest of the UI.
-source: "@platform-blocks/ui"
+source: "@platform-blocks/react-ui-library"
 status: "beta"
 category: overlay
 playground: true

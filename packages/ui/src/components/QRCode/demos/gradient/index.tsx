@@ -1,4 +1,4 @@
-import { Block, QRCode, Row, Text, useTheme } from '@platform-blocks/ui';
+import { Block, QRCode, Row, Text, useTheme } from '@platform-blocks/react-ui-library';
 import { createGradientExamples } from './data';
 
 export function Demo() {

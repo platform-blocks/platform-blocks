@@ -20,7 +20,7 @@ The `AppShell` component provides a complete application layout structure with i
 The main shell component that orchestrates the layout.
 
 ```tsx
-import { AppShell, AppHeader, AppFooter, AppDrawer } from '@platform-blocks/ui';
+import { AppShell, AppHeader, AppFooter, AppDrawer } from '@platform-blocks/react-ui-library';
 
 function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -82,7 +82,7 @@ A simple footer component for application-wide footer content.
 The AppShell includes a built-in toast system accessible via the `useToast` hook:
 
 ```tsx
-import { useToast } from '@platform-blocks/ui';
+import { useToast } from '@platform-blocks/react-ui-library';
 
 function MyComponent() {
   const toast = useToast();
@@ -177,7 +177,7 @@ import {
   Text,
   Button,
   useToast 
-} from '@platform-blocks/ui';
+} from '@platform-blocks/react-ui-library';
 
 function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { Block, Button, CodeBlock, Text } from '@platform-blocks/ui';
+import { Block, Button, CodeBlock, Text } from '@platform-blocks/react-ui-library';
 
 const sampleCode = `const greeting = "Hello, World!";
 console.log(greeting);

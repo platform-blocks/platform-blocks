@@ -1,4 +1,4 @@
-import { Block, Card, Flex, Text, Title } from '@platform-blocks/ui';
+import { Block, Card, Flex, Text, Title } from '@platform-blocks/react-ui-library';
 import { SparklineChart } from '@platform-blocks/charts';
 
 import { SURFACE_SERIES } from './data';

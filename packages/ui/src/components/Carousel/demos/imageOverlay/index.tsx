@@ -1,4 +1,4 @@
-import { Block, Carousel, Image, Text } from '@platform-blocks/ui';
+import { Block, Carousel, Image, Text } from '@platform-blocks/react-ui-library';
 
 const scenes = [
   { title: 'Mountain escape', src: require('../../../../assets/images/scene-mountains.png') },

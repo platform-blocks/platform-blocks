@@ -1,4 +1,4 @@
-import { Block, Blockquote } from '@platform-blocks/ui';
+import { Block, Blockquote } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (
@@ -33,7 +33,7 @@ export function Demo() {
         }}
         date="1 day ago"
       >
-        Just finished testing the new Platform Blocks UI library. The component quality and developer experience is outstanding!
+        Just finished testing the new React UI Library UI library. The component quality and developer experience is outstanding!
       </Blockquote>
 
       <Blockquote

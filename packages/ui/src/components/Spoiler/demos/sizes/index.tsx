@@ -1,4 +1,4 @@
-import { Block, Card, Spoiler, Text } from '@platform-blocks/ui';
+import { Block, Card, Spoiler, Text } from '@platform-blocks/react-ui-library';
 
 const longText =
   'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Integer tincidunt condimentum risus, sit amet cursus massa fermentum non.';

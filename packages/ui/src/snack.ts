@@ -1,5 +1,5 @@
 /**
- * Snack entry point (`@platform-blocks/ui/snack`).
+ * Snack entry point (`@platform-blocks/react-ui-library/snack`).
  *
  * The main barrel bundles every component into a single ~2 MB file, which
  * Expo's package bundler (Snackager) will not finish building. This entry
@@ -20,7 +20,7 @@
  * utils/optionalModule.ts, which resolves at runtime and degrades when the
  * module is absent, so neither lands in this graph.
  *
- * Keep `SNACK_COMPONENTS` in apps/platform-blocks.com/utils/snackUrl.ts in sync
+ * Keep `SNACK_COMPONENTS` in apps/react-ui-library.com/utils/snackUrl.ts in sync
  * with what is exported here.
  */
 

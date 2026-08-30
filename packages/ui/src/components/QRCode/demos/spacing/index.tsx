@@ -1,4 +1,4 @@
-import { Block, QRCode, Text, useTheme } from '@platform-blocks/ui';
+import { Block, QRCode, Text, useTheme } from '@platform-blocks/react-ui-library';
 import { QUIET_ZONES } from './data';
 
 export function Demo() {
@@ -9,7 +9,7 @@ export function Demo() {
       {QUIET_ZONES.map(({ label, quietZone }) => (
         <QRCode
           key={label}
-          value="https://platform-blocks.com"
+          value="https://react-ui-library.com"
           size={150}
           quietZone={quietZone}
           label={label}
@@ -18,7 +18,7 @@ export function Demo() {
       <Block align="center">
         <Block bg={theme.backgrounds.subtle} radius="lg" p="sm">
           <QRCode
-            value="https://platform-blocks.com"
+            value="https://react-ui-library.com"
             size={150}
             quietZone={0}
             m="xs"

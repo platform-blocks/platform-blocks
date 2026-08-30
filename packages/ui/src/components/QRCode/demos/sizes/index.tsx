@@ -1,4 +1,4 @@
-import { Block, QRCode, Row } from '@platform-blocks/ui';
+import { Block, QRCode, Row } from '@platform-blocks/react-ui-library';
 import { SIZES } from './data';
 
 export function Demo() {
@@ -8,7 +8,7 @@ export function Demo() {
         {SIZES.map((size) => (
           <QRCode
             key={size}
-            value="https://platform-blocks.com"
+            value="https://react-ui-library.com"
             size={size}
             quietZone={2}
             label={size}
@@ -17,7 +17,7 @@ export function Demo() {
       </Row>
 
       <QRCode
-        value="https://platform-blocks.com"
+        value="https://react-ui-library.com"
         size={144}
         quietZone={2}
         label="144 (numeric)"

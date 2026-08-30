@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Badge, Block, Button, Rating, Row, Text, useControllableState } from '@platform-blocks/ui';
+import { Badge, Block, Button, Rating, Row, Text, useControllableState } from '@platform-blocks/react-ui-library';
 
 interface StarPickerProps {
   /** Controlled value. Passing this hands ownership to the parent. */

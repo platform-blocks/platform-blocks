@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Slider, Text, Block, Card } from '@platform-blocks/ui';
+import { Slider, Text, Block, Card } from '@platform-blocks/react-ui-library';
 
 const VARIANTS = ['default', 'filled', 'outline', 'minimal', 'segmented', 'unstyled'] as const;
 

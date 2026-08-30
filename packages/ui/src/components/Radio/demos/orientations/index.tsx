@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, RadioGroup, Text } from '@platform-blocks/ui';
+import { Block, RadioGroup, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [favoriteSport, setFavoriteSport] = useState<string>('soccer');

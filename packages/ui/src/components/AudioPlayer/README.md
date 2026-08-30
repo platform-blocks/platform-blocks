@@ -1,6 +1,6 @@
 # AudioPlayer Component
 
-A professional-grade audio player component with waveform visualization, built to extend the Platform Blocks UI library with SoundCloud/WaveSurfer-like capabilities.
+A professional-grade audio player component with waveform visualization, built to extend the React UI Library UI library with SoundCloud/WaveSurfer-like capabilities.
 
 ## Features
 
@@ -32,10 +32,10 @@ A professional-grade audio player component with waveform visualization, built t
 
 ## Installation
 
-The AudioPlayer is part of the Platform Blocks UI library. Make sure you have the required dependencies:
+The AudioPlayer is part of the React UI Library UI library. Make sure you have the required dependencies:
 
 ```bash
-npm install @platform-blocks/ui
+npm install @platform-blocks/react-ui-library
 # Optional: for full audio functionality
 npm install expo-av expo-haptics
 ```
@@ -44,7 +44,7 @@ npm install expo-av expo-haptics
 
 ```tsx
 import React from 'react';
-import { AudioPlayer } from '@platform-blocks/ui';
+import { AudioPlayer } from '@platform-blocks/react-ui-library';
 
 export const MyAudioPlayer = () => {
   return (
@@ -67,7 +67,7 @@ export const MyAudioPlayer = () => {
 
 ```tsx
 import React, { useRef, useState } from 'react';
-import { AudioPlayer, type AudioPlayerRef, type PlaybackState } from '@platform-blocks/ui';
+import { AudioPlayer, type AudioPlayerRef, type PlaybackState } from '@platform-blocks/react-ui-library';
 
 export const AdvancedAudioPlayer = () => {
   const playerRef = useRef<AudioPlayerRef>(null);
@@ -219,7 +219,7 @@ await playerRef.current?.unload();
 
 ## Styling
 
-The AudioPlayer integrates with the Platform Blocks theme system and can be customized using the `style` prop:
+The AudioPlayer integrates with the React UI Library theme system and can be customized using the `style` prop:
 
 ```tsx
 <AudioPlayer
@@ -235,10 +235,10 @@ The AudioPlayer integrates with the Platform Blocks theme system and can be cust
 
 ## Integration with Sound System
 
-The AudioPlayer automatically integrates with the Platform Blocks sound system for UI feedback:
+The AudioPlayer automatically integrates with the React UI Library sound system for UI feedback:
 
 ```tsx
-import { SoundProvider } from '@platform-blocks/ui';
+import { SoundProvider } from '@platform-blocks/react-ui-library';
 
 export const App = () => {
   return (
@@ -290,4 +290,4 @@ Check out the `AudioPlayerDemo` component for comprehensive examples of all feat
 
 ## License
 
-Part of the Platform Blocks UI library. See the main library license for details.
+Part of the React UI Library UI library. See the main library license for details.

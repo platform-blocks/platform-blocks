@@ -1,4 +1,4 @@
-import { Block, Loader, Row, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Loader, Row, Text, useTheme } from '@platform-blocks/react-ui-library';
 
 interface LoaderSwatch {
   label: string;

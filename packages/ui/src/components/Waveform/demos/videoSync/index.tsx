@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Asset } from 'expo-asset';
-import { Block, Text, Video, Waveform } from '@platform-blocks/ui';
-import type { VideoRef, VideoState } from '@platform-blocks/ui';
+import { Block, Text, Video, Waveform } from '@platform-blocks/react-ui-library';
+import type { VideoRef, VideoState } from '@platform-blocks/react-ui-library';
 
 import { CLIP_PEAKS } from '../data';
 

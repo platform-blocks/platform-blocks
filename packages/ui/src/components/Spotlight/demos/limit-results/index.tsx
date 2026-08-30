@@ -1,4 +1,4 @@
-import { Block, Button, Card, Spotlight, Text, type SpotlightProps, useSpotlightStoreInstance } from '@platform-blocks/ui';
+import { Block, Button, Card, Spotlight, Text, type SpotlightProps, useSpotlightStoreInstance } from '@platform-blocks/react-ui-library';
 
 const actions: SpotlightProps['actions'] = Array.from({ length: 25 }).map((_, index) => ({
   id: `command-${index}`,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Flex, Text, ColorSwatch } from '@platform-blocks/ui';
+import { Flex, Text, ColorSwatch } from '@platform-blocks/react-ui-library';
 
 const colors = [
   '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',

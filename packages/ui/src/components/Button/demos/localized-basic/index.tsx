@@ -1,4 +1,4 @@
-import { Block, Button, Flex, Select, useI18n } from '@platform-blocks/ui';
+import { Block, Button, Flex, Select, useI18n } from '@platform-blocks/react-ui-library';
 
 const LOCALES = [
   { label: 'English', value: 'en' },

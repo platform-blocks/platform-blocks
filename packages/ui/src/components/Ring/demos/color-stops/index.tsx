@@ -1,4 +1,4 @@
-import { Ring, Row } from '@platform-blocks/ui';
+import { Ring, Row } from '@platform-blocks/react-ui-library';
 
 const colorStops = [
   { value: 0, color: '#f87171' },

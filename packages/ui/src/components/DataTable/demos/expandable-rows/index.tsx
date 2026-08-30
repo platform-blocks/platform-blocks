@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Block, DataTable, Text } from '@platform-blocks/ui';
-import type { DataTableColumn } from '@platform-blocks/ui';
+import { Block, DataTable, Text } from '@platform-blocks/react-ui-library';
+import type { DataTableColumn } from '@platform-blocks/react-ui-library';
 
 import { projects, type Project } from '../data';
 

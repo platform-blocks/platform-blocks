@@ -1,4 +1,4 @@
-import { Button, Block, Popover, Text } from '@platform-blocks/ui';
+import { Button, Block, Popover, Text } from '@platform-blocks/react-ui-library';
 
 const OPTIONS = [
   { label: 'Top', position: 'top', description: 'Appears above the trigger.' },

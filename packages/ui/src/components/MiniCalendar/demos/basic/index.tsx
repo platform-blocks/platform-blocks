@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, MiniCalendar, Text } from '@platform-blocks/ui';
+import { Block, MiniCalendar, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Block, Progress } from '@platform-blocks/ui';
+import { Block, Progress } from '@platform-blocks/react-ui-library';
 
 import { describe } from './describe';
 import { TICK_MS, TOTAL_MB, stageFor } from './stages';

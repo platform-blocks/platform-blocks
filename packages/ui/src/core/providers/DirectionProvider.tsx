@@ -102,7 +102,7 @@ const updatePlatformDirection = (direction: Direction) => {
  * 
  * @example
  * ```tsx
- * import { DirectionProvider } from '@platform-blocks/ui';
+ * import { DirectionProvider } from '@platform-blocks/react-ui-library';
  * 
  * function App() {
  *   return (

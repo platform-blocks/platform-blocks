@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { AutoComplete, Block, Column, Icon, MenuItemButton, Row, Text } from '@platform-blocks/ui'
+import { AutoComplete, Block, Column, Icon, MenuItemButton, Row, Text } from '@platform-blocks/react-ui-library'
 
 interface RichSportOption {
   label: string;

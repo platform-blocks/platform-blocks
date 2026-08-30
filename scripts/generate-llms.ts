@@ -11,7 +11,7 @@
  * An agent reads the index, then fetches only the handful of pages it needs.
  *
  * Inputs are the artifacts written by scripts/generate-demos.ts plus the
- * JSX-free content modules under apps/platform-blocks.com/config/. Run
+ * JSX-free content modules under apps/react-ui-library.com/config/. Run
  * `npm run demos:generate` first — without the generated data this emits an
  * index of whatever it can find and warns about the rest.
  */
@@ -20,19 +20,19 @@ import { promises as fs, type Dirent } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { CORE_COMPONENTS, type CoreComponentConfig } from '../apps/platform-blocks.com/config/coreComponents';
-import { FAQ_ITEMS } from '../apps/platform-blocks.com/config/faq';
-import { GITHUB_REPO, NPM_PACKAGE, SITE_URL } from '../apps/platform-blocks.com/config/urls';
+import { CORE_COMPONENTS, type CoreComponentConfig } from '../apps/react-ui-library.com/config/coreComponents';
+import { FAQ_ITEMS } from '../apps/react-ui-library.com/config/faq';
+import { GITHUB_REPO, NPM_PACKAGE, SITE_URL } from '../apps/react-ui-library.com/config/urls';
 import {
   GETTING_STARTED_PREREQUISITES,
   GETTING_STARTED_STEPS,
   GETTING_STARTED_SUBTITLE,
-} from '../apps/platform-blocks.com/config/gettingStarted';
+} from '../apps/react-ui-library.com/config/gettingStarted';
 import {
   STARTER_TEMPLATES,
   TEMPLATES_GUIDANCE,
   TEMPLATES_TITLE,
-} from '../apps/platform-blocks.com/config/templates';
+} from '../apps/react-ui-library.com/config/templates';
 import {
   ACCESSIBILITY_EXAMPLE_LEAD,
   ACCESSIBILITY_EXAMPLE_SNIPPET,
@@ -41,24 +41,23 @@ import {
   ACCESSIBILITY_OUTRO,
   ACCESSIBILITY_SECTIONS,
   ACCESSIBILITY_TITLE,
-} from '../apps/platform-blocks.com/config/accessibility';
+} from '../apps/react-ui-library.com/config/accessibility';
 import {
   LOCALIZATION_NOTE_KEYS,
   LOCALIZATION_STEPS,
-} from '../apps/platform-blocks.com/config/localization';
+} from '../apps/react-ui-library.com/config/localization';
 import {
-  CONTRIBUTE_INTRO,
   CONTRIBUTE_OUTRO,
   CONTRIBUTE_REPO_LAYOUT,
   CONTRIBUTE_SECTIONS,
   CONTRIBUTE_SUBTITLE,
   CONTRIBUTE_TITLE,
-} from '../apps/platform-blocks.com/config/contribute';
+} from '../apps/react-ui-library.com/config/contribute';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
-const docsDir = path.join(repoRoot, 'apps', 'platform-blocks.com');
+const docsDir = path.join(repoRoot, 'apps', 'react-ui-library.com');
 const generatedDir = path.join(docsDir, 'data', 'generated');
 const publicDir = path.join(docsDir, 'public');
 const llmsDir = path.join(publicDir, 'llms');
@@ -244,7 +243,7 @@ async function buildGuidePages(): Promise<LlmsPage[]> {
   pages.push({
     slug: 'guides/accessibility.md',
     title: 'Accessibility',
-    summary: 'How Platform Blocks meets WCAG 2.1 AA for keyboard, screen reader, low-vision, and motion-sensitive users',
+    summary: 'How React UI Library meets WCAG 2.1 AA for keyboard, screen reader, low-vision, and motion-sensitive users',
     body: joinLines([
       `# ${ACCESSIBILITY_TITLE}`,
       '',
@@ -320,8 +319,6 @@ async function buildGuidePages(): Promise<LlmsPage[]> {
       CONTRIBUTE_SUBTITLE,
       '',
       `Docs: ${SITE_URL}/contribute`,
-      '',
-      absolutize(CONTRIBUTE_INTRO),
       '',
       '## Repo layout',
       '',
@@ -539,8 +536,8 @@ async function buildHookPages(): Promise<LlmsPage[]> {
 
     const metaList: string[] = [
       `- Canonical name: \`${name}\``,
-      '- Package: `@platform-blocks/ui`',
-      `- Import: \`import { ${name} } from '@platform-blocks/ui';\``,
+      '- Package: `@platform-blocks/react-ui-library`',
+      `- Import: \`import { ${name} } from '@platform-blocks/react-ui-library';\``,
     ];
     if (meta.status) metaList.push(`- Status: ${meta.status}`);
     if (meta.since) metaList.push(`- Since: ${meta.since}`);
@@ -603,19 +600,19 @@ function pageUrl(page: LlmsPage): string {
 
 function buildIndex(sections: LlmsSection[], counts: Record<string, number>): string {
   const lines: string[] = [
-    '# Platform Blocks',
+    '# React UI Library',
     '',
     `> A cross-platform React Native UI library — ${counts.components} components, ${counts.charts} charts,`,
     `> and ${counts.hooks} hooks that render natively on iOS and Android and as real DOM on the web,`,
     '> from one themeable component model.',
     '',
-    'This index lists Platform Blocks documentation pages formatted for LLMs.',
+    'This index lists React UI Library documentation pages formatted for LLMs.',
     'Each link points to a standalone Markdown file under the /llms path.',
     '',
     'For a single consolidated file with all content, use:',
     `- ${SITE_URL}/llms-full.txt`,
     '',
-    'Install: `npm install @platform-blocks/ui`',
+    'Install: `npm install @platform-blocks/react-ui-library`',
     `Website: ${SITE_URL} • GitHub: ${GITHUB_REPO} • npm: ${NPM_PACKAGE}`,
     '',
   ];
@@ -635,7 +632,7 @@ function buildIndex(sections: LlmsSection[], counts: Record<string, number>): st
 
 function buildFullText(sections: LlmsSection[]): string {
   const parts: string[] = [
-    '# Platform Blocks — Complete Documentation',
+    '# React UI Library — Complete Documentation',
     '',
     'Every documentation page concatenated in full: component and chart pages with',
     'their props tables and every demo, hook pages with their type definitions,',
@@ -643,7 +640,7 @@ function buildFullText(sections: LlmsSection[]): string {
     '',
     `For an index of the same content as individually fetchable pages, use ${SITE_URL}/llms.txt`,
     '',
-    'All code examples use the published package imports (@platform-blocks/ui, @platform-blocks/charts).',
+    'All code examples use the published package imports (@platform-blocks/react-ui-library, @platform-blocks/charts).',
     '',
     '='.repeat(80),
     '',

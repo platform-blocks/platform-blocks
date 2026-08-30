@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Slider, Block } from '@platform-blocks/ui';
+import { Slider, Block } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [value, setValue] = useState(50);

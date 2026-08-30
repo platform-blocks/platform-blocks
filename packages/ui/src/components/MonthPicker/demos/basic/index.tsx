@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Block, MonthPicker, Text } from '@platform-blocks/ui';
+import { Block, MonthPicker, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [value, setValue] = useState<Date | null>(new Date());

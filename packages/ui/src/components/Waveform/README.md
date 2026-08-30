@@ -17,7 +17,7 @@ An advanced, interactive audio waveform visualization component for React Native
 ## Basic Usage
 
 ```tsx
-import { Waveform } from '@platform-blocks/ui';
+import { Waveform } from '@platform-blocks/react-ui-library';
 
 // Simple waveform
 <Waveform

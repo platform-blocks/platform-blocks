@@ -19,7 +19,7 @@ A unified dialog system for React Native with support for modals, bottom sheets,
 Wrap your app with `DialogProvider` and add `DialogRenderer`:
 
 ```tsx
-import { DialogProvider, DialogRenderer } from '@platform-blocks/ui';
+import { DialogProvider, DialogRenderer } from '@platform-blocks/react-ui-library';
 
 function App() {
   return (
@@ -34,7 +34,7 @@ function App() {
 ### 2. Use the Dialog Hook
 
 ```tsx
-import { useDialog, Button, Text } from '@platform-blocks/ui';
+import { useDialog, Button, Text } from '@platform-blocks/react-ui-library';
 
 function MyComponent() {
   const { openDialog } = useDialog();
@@ -129,7 +129,7 @@ openDialog({
 For common patterns, use `useSimpleDialog`:
 
 ```tsx
-import { useSimpleDialog } from '@platform-blocks/ui';
+import { useSimpleDialog } from '@platform-blocks/react-ui-library';
 
 function MyComponent() {
   const dialog = useSimpleDialog();

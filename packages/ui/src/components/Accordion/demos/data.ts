@@ -1,6 +1,6 @@
 import React from 'react';
-import { Text } from '@platform-blocks/ui';
-import type { AccordionItemType } from '@platform-blocks/ui';
+import { Text } from '@platform-blocks/react-ui-library';
+import type { AccordionItemType } from '@platform-blocks/react-ui-library';
 
 // Wrap body copy in <Text> without JSX so this stays a plain `.ts` data module
 // (a `.tsx` sibling would be picked up as its own demo by the docs generator).
@@ -9,7 +9,7 @@ const body = (text: string) => React.createElement(Text, { size: 'sm' }, text);
 export const faqItems: AccordionItemType[] = [
   {
     key: 'foundation',
-    title: 'What is Platform Blocks?',
+    title: 'What is React UI Library?',
     content: body('A cross-platform design system for shipping polished React Native apps faster.'),
   },
   {
@@ -86,7 +86,7 @@ export const setupSteps: AccordionItemType[] = [
   {
     key: 'install',
     title: 'Install the package',
-    content: body('Run `npm install @platform-blocks/ui` in your workspace.'),
+    content: body('Run `npm install @platform-blocks/react-ui-library` in your workspace.'),
   },
   {
     key: 'provider',

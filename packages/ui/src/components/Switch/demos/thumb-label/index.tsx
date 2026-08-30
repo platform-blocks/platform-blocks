@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Icon, Switch, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Icon, Switch, Text, useTheme } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const theme = useTheme();

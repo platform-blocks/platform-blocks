@@ -1,4 +1,4 @@
-import { Button, useToast } from '@platform-blocks/ui';
+import { Button, useToast } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const toast = useToast();

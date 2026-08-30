@@ -16,7 +16,7 @@ A polymorphic building block component that serves as a foundational element to 
 ### Basic Usage
 
 ```tsx
-import { Block } from '@platform-blocks/ui';
+import { Block } from '@platform-blocks/react-ui-library';
 
 // Simple container
 <Block bg="blue.500" p="md" radius="lg">

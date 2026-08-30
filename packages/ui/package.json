@@ -1,7 +1,7 @@
 {
-  "name": "@platform-blocks/ui",
+  "name": "@platform-blocks/react-ui-library",
   "version": "1.1.0",
-  "description": "A comprehensive React Native UI component library — 80+ accessible, themeable, cross-platform components for iOS, Android, and Web",
+  "description": "A comprehensive React Native UI component library — 100+ accessible, themeable, cross-platform components for iOS, Android, and Web",
   "type": "module",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
@@ -815,13 +815,13 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/platform-blocks/platform-blocks.git",
+    "url": "https://github.com/platform-blocks/react-ui-library.git",
     "directory": "packages/ui"
   },
   "bugs": {
-    "url": "https://github.com/platform-blocks/platform-blocks/issues"
+    "url": "https://github.com/platform-blocks/react-ui-library/issues"
   },
-  "homepage": "https://platform-blocks.com",
+  "homepage": "https://react-ui-library.com",
   "devDependencies": {
     "@babel/core": "^7.28.0",
     "@babel/preset-env": "^7.28.0",

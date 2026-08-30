@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Block, DatePicker, Text } from '@platform-blocks/ui';
+import { Block, DatePicker, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [value, setValue] = useState<[Date | null, Date | null] | null>(null);

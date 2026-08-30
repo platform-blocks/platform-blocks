@@ -1,4 +1,4 @@
-import { Block, Card, Spoiler, Text } from '@platform-blocks/ui';
+import { Block, Card, Spoiler, Text } from '@platform-blocks/react-ui-library';
 
 const examples = [
   {

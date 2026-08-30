@@ -10,7 +10,7 @@
  *
  * Shipped in the repo so downstream consumers can run it against their own app:
  *
- *   npx tsx node_modules/@platform-blocks/ui/scripts/codemod-color-props.ts src
+ *   npx tsx node_modules/@platform-blocks/react-ui-library/scripts/codemod-color-props.ts src
  *
  * Parses with the TypeScript compiler so it only touches real JSX attributes —
  * a regex would also hit the words in strings, comments, and prop names that

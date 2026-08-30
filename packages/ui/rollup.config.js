@@ -40,7 +40,7 @@ const commonConfig = {
 };
 
 // The main entry preserves the source module graph so consumers can deep-import
-// a single component (`@platform-blocks/ui/Button`) and pull only its subtree.
+// a single component (`@platform-blocks/react-ui-library/Button`) and pull only its subtree.
 // Metro does almost no tree-shaking, so a single 2 MB bundle would otherwise
 // land in every app that imports one button.
 const preserved = { preserveModules: true, preserveModulesRoot: 'src' };
@@ -55,7 +55,7 @@ const componentEntries = readdirSync('src/components', { withFileTypes: true })
 
 const mainInputs = ['src/index.ts', ...componentEntries];
 
-// `snack` is the trimmed surface consumed by @platform-blocks/ui/snack — it
+// `snack` is the trimmed surface consumed by @platform-blocks/react-ui-library/snack — it
 // stays a single file because Snack loads it directly. See src/snack.ts.
 const entries = [
   { input: mainInputs, esmDir: './lib/esm', cjsDir: './lib/cjs' },

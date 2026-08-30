@@ -1,4 +1,4 @@
-import { CopyButton, Card, Flex, Text } from '@platform-blocks/ui';
+import { CopyButton, Card, Flex, Text } from '@platform-blocks/react-ui-library';
 
 const longToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.long.payload.value.with.many.sections.and.characters.for.demo.purposes.only';
 

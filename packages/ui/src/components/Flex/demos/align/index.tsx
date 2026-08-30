@@ -1,4 +1,4 @@
-import { Block, Card, Flex, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Card, Flex, Text, useTheme } from '@platform-blocks/react-ui-library';
 
 const ALIGNMENTS = ['flex-start', 'center', 'flex-end', 'stretch', 'baseline'] as const;
 

@@ -1,4 +1,4 @@
-import type { GalleryItem } from '@platform-blocks/ui';
+import type { GalleryItem } from '@platform-blocks/react-ui-library';
 
 /**
  * Three bundled scenes with full metadata, so the viewer's info panel has something

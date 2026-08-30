@@ -1,5 +1,5 @@
 /**
- * Tabler-backed icon registry — the default icon set for @platform-blocks/ui.
+ * Tabler-backed icon registry — the default icon set for @platform-blocks/react-ui-library.
  *
  * Every icon is a component from `@tabler/icons-react-native`. `<Icon name="..." />`
  * resolves these by key; the Icon component picks `filled`/`outlined` based on the

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Button, Input, QRCode, Row, Text } from '@platform-blocks/ui';
+import { Block, Button, Input, QRCode, Row, Text } from '@platform-blocks/react-ui-library';
 import { ERROR_LEVELS, MODULE_SHAPES, PRESETS, SIZES } from './data';
 
 export function Demo() {
@@ -98,7 +98,7 @@ export function Demo() {
           </Block>
         </Block>
         <QRCode
-          value={value || 'Platform Blocks'}
+          value={value || 'React UI Library'}
           size={size}
           quietZone={2}
           errorCorrectionLevel={errorLevel}

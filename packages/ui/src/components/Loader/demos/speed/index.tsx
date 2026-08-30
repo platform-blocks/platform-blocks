@@ -1,4 +1,4 @@
-import { Block, Loader, Row, Text } from '@platform-blocks/ui';
+import { Block, Loader, Row, Text } from '@platform-blocks/react-ui-library';
 
 // `speed` is the duration of one full animation cycle in milliseconds —
 // lower is faster. Default is 1000ms.

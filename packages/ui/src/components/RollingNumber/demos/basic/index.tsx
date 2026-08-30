@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Flex, RollingNumber } from '@platform-blocks/ui';
+import { Button, Flex, RollingNumber } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [value, setValue] = useState(1234);

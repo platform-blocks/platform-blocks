@@ -9,7 +9,7 @@ import {
   Text,
   ToggleButton,
   ToggleGroup,
-} from '@platform-blocks/ui';
+} from '@platform-blocks/react-ui-library';
 import { 
   Disclaimer,
   ComponentWithDisclaimer,

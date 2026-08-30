@@ -1,4 +1,4 @@
-import { Block, Text, Waveform } from '@platform-blocks/ui';
+import { Block, Text, Waveform } from '@platform-blocks/react-ui-library';
 
 import { WAVEFORM_DEMO_PEAKS } from '../data';
 

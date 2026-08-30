@@ -1,4 +1,4 @@
-import { Block, Button, Icon, Row, Text, Toast, useToast } from '@platform-blocks/ui';
+import { Block, Button, Icon, Row, Text, Toast, useToast } from '@platform-blocks/react-ui-library';
 
 const VARIANTS = ['light', 'filled', 'outline'] as const;
 

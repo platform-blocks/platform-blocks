@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Rating, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Rating, Text, useTheme } from '@platform-blocks/react-ui-library';
 
 const COLOR_CONFIG = [
   {

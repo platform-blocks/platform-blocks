@@ -1,7 +1,7 @@
 ---
 title: Select
 description: A dropdown component for selecting from a list of options with support for disabled states, custom styling, and multi-value selection.
-source: "@platform-blocks/ui"
+source: "@platform-blocks/react-ui-library"
 status: "stable"
 category: input
 playground: true

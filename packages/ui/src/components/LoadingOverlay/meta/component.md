@@ -2,7 +2,7 @@
 playground: true
 title: LoadingOverlay
 description: Overlay helper that blocks a section with a centered loader while background work completes.
-source: "@platform-blocks/ui"
+source: "@platform-blocks/react-ui-library"
 status: "beta"
 category: feedback
 accessibility: "Non-modal overlay; disable or trap focus manually when blocking interactive regions."

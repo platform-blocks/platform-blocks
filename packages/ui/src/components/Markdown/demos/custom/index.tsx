@@ -1,4 +1,4 @@
-import { Block, Card, Markdown, Text } from '@platform-blocks/ui';
+import { Block, Card, Markdown, Text } from '@platform-blocks/react-ui-library';
 
 const CUSTOM_COMPONENTS = {
   h1: ({ children, ...props }: any) => (

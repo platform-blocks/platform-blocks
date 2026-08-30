@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Block, Indicator, Row, Text } from '@platform-blocks/ui';
+import { Block, Indicator, Row, Text } from '@platform-blocks/react-ui-library';
 
 const cornerPlacements = [
   { label: 'Top left', placement: 'top-left', color: '#F59E0B' },

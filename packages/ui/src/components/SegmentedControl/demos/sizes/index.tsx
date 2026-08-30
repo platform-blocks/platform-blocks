@@ -1,4 +1,4 @@
-import { Block, SegmentedControl, Text } from '@platform-blocks/ui';
+import { Block, SegmentedControl, Text } from '@platform-blocks/react-ui-library';
 
 import { frameworkNames } from '../data';
 

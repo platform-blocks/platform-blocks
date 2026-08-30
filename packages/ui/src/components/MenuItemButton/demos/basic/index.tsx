@@ -1,4 +1,4 @@
-import { Menu, MenuItem, MenuDivider, MenuDropdown, Button, Icon } from '@platform-blocks/ui';
+import { Menu, MenuItem, MenuDivider, MenuDropdown, Button, Icon } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

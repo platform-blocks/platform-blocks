@@ -1,5 +1,5 @@
 /**
- * Core styling utilities for Platform Blocks UI
+ * Core styling utilities for React UI Library UI
  * 
  * This module provides unified styling utilities to ensure consistency
  * across all components in the library.

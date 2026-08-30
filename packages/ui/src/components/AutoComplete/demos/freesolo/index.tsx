@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { AutoComplete, Block, Text } from '@platform-blocks/ui'
+import { AutoComplete, Block, Text } from '@platform-blocks/react-ui-library'
 import { fruits } from '../data'
 
 export function Demo() {

@@ -1,4 +1,4 @@
-import { Block, Text, Timeline } from '@platform-blocks/ui';
+import { Block, Text, Timeline } from '@platform-blocks/react-ui-library';
 
 const launches = [
   { title: 'Announcement', description: 'Introduced the roadmap to stakeholders.' },

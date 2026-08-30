@@ -1,4 +1,4 @@
-import { Block, Button, Card, Spotlight, Text, type SpotlightProps, useSpotlightStoreInstance } from '@platform-blocks/ui';
+import { Block, Button, Card, Spotlight, Text, type SpotlightProps, useSpotlightStoreInstance } from '@platform-blocks/react-ui-library';
 
 // Actions intentionally share overlapping substrings to show highlighting effect
 const actions: SpotlightProps['actions'] = [

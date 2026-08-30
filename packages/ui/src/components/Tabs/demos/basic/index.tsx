@@ -1,4 +1,4 @@
-import { Block, Tabs, Text } from '@platform-blocks/ui';
+import { Block, Tabs, Text } from '@platform-blocks/react-ui-library';
 
 const ITEMS = [
   {

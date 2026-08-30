@@ -9,7 +9,13 @@ import { Loader } from '../Loader';
 import type { MasonryProps, MasonryItem } from './types';
 import { Block } from '../Block';
 
-export type { MasonryProps, MasonryItem } from './types';
+export type {
+  MasonryFlashListProps,
+  MasonryItem,
+  MasonryProps,
+  MasonryViewabilityCallback,
+  MasonryViewToken,
+} from './types';
 
 /**
  * Resolved lazily so apps that never render a Masonry neither bundle

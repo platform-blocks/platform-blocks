@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react';
-import { Block, Tabs, Text } from '@platform-blocks/ui';
+import { Block, Tabs, Text } from '@platform-blocks/react-ui-library';
 
 type Variant = NonNullable<ComponentProps<typeof Tabs>['variant']>;
 

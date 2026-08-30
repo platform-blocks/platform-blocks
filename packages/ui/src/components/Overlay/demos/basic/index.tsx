@@ -1,6 +1,6 @@
 import { useState, type ComponentProps } from 'react';
 import { ImageBackground, StyleSheet, type ImageSourcePropType } from 'react-native';
-import { Block, Button, Overlay, Text } from '@platform-blocks/ui';
+import { Block, Button, Overlay, Text } from '@platform-blocks/react-ui-library';
 
 const HERO_IMAGE = require('../../../../assets/images/scene-city.png');
 const GRADIENT_IMAGE = require('../../../../assets/images/scene-aurora.png');

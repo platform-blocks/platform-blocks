@@ -2,10 +2,10 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "paths": {
-      "@platform-blocks/ui": [
+      "@platform-blocks/react-ui-library": [
         "./packages/ui/src/index.ts"
       ],
-      "@platform-blocks/ui/*": [
+      "@platform-blocks/react-ui-library/*": [
         "./packages/ui/src/*"
       ],
       "@platform-blocks/charts": [

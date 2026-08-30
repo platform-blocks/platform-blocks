@@ -30,15 +30,15 @@ jobs:
           cache: npm
           cache-dependency-path: |
             package-lock.json
-            apps/platform-blocks.com/package-lock.json
+            apps/react-ui-library.com/package-lock.json
 
       - name: Install dependencies (docs)
         run: npm ci
-        working-directory: apps/platform-blocks.com
+        working-directory: apps/react-ui-library.com
 
       - name: Build Expo web bundle
         run: npm run build-web
-        working-directory: apps/platform-blocks.com
+        working-directory: apps/react-ui-library.com
         env:
           EXPO_NO_TELEMETRY: "1"
           EXPO_PUBLIC_WEB_APP_ROOT: "/"
@@ -54,6 +54,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
-          publish_dir: apps/platform-blocks.com/dist
+          publish_dir: apps/react-ui-library.com/dist
           force_orphan: true
-          cname: platform-blocks.com
+          cname: react-ui-library.com

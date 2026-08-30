@@ -1,4 +1,4 @@
-import { Block, Markdown, Text } from '@platform-blocks/ui';
+import { Block, Markdown, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const inlineContent = 'This is **bold text** and this is *italic text* with `inline code`.';

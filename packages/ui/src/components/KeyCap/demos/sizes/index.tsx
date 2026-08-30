@@ -1,4 +1,4 @@
-import { Block, KeyCap, Row } from '@platform-blocks/ui';
+import { Block, KeyCap, Row } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

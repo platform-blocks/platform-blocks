@@ -1,4 +1,4 @@
-import type { AutoCompleteOption } from '@platform-blocks/ui';
+import type { AutoCompleteOption } from '@platform-blocks/react-ui-library';
 
 export const sports: AutoCompleteOption[] = [
   { label: 'Football', value: 'football' },

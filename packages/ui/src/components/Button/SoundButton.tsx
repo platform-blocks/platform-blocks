@@ -1,8 +1,8 @@
 import React from 'react';
 import type { View } from 'react-native';
-import { Button as BaseButton } from '../Button';
+import { Button as BaseButton } from '.';
 import { useButtonFeedback } from '../../core/sound/hooks';
-import type { ButtonProps } from '../Button/types';
+import type { ButtonProps } from './types';
 import type { SoundOptions, HapticFeedbackOptions } from '../../core/sound/types';
 
 interface SoundButtonProps extends ButtonProps {

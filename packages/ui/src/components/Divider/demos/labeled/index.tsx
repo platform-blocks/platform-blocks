@@ -1,4 +1,4 @@
-import { Block, Chip, Divider, Text } from '@platform-blocks/ui';
+import { Block, Chip, Divider, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

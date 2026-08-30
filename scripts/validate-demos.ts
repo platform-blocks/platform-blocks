@@ -6,7 +6,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { CORE_COMPONENTS } from '../apps/platform-blocks.com/config/coreComponents';
+import { CORE_COMPONENTS } from '../apps/react-ui-library.com/config/coreComponents';
 
 // Optional zod import for component meta validation
 let z: any; try { z = require('zod'); } catch { z = null; }
@@ -23,7 +23,7 @@ const ComponentMetaSchema = z?.object?.({
 interface DemoMeta { id: string; component: string; demo: string; title: string; order: number; hidden?: boolean; }
 
 const ROOT = path.resolve(__dirname, '..');
-const OUTPUT_DIR = path.join(ROOT, 'apps', 'platform-blocks.com', 'data', 'generated');
+const OUTPUT_DIR = path.join(ROOT, 'apps', 'react-ui-library.com', 'data', 'generated');
 const FILE = path.join(OUTPUT_DIR, 'demos.json');
 
 function fail(msg: string): never { console.error(`✖ ${msg}`); process.exit(1); }

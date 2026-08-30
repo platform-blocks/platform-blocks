@@ -2,7 +2,7 @@
 /**
  * Extracts the export names from packages/ui/src/snack.ts — and from the
  * charts barrel, which Snacks consume whole — into
- * apps/platform-blocks.com/data/generated/snack-exports.json.
+ * apps/react-ui-library.com/data/generated/snack-exports.json.
  *
  * The docs site uses those lists to decide which demos get an "Open in Snack"
  * button: a demo can only run in a Snack if every identifier it imports from
@@ -21,7 +21,7 @@ const CHARTS_PACKAGE_JSON = path.join(ROOT, 'packages', 'charts', 'package.json'
 const OUTPUT = path.join(
   ROOT,
   'apps',
-  'platform-blocks.com',
+  'react-ui-library.com',
   'data',
   'generated',
   'snack-exports.json'
@@ -75,7 +75,7 @@ fs.writeFileSync(
   `${JSON.stringify(
     {
       version,
-      entry: '@platform-blocks/ui/snack',
+      entry: '@platform-blocks/react-ui-library/snack',
       exports,
       charts: {
         version: chartsVersion,

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Switch, Text } from '@platform-blocks/ui';
+import { Block, Switch, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [homeAlerts, setHomeAlerts] = useState(true);

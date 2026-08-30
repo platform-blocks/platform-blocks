@@ -1,5 +1,5 @@
 /**
- * Universal props system for Platform Blocks components
+ * Universal props system for React UI Library components
  * Provides props that can be applied to all components in the library
  * Optimized for React Native (Expo) with web compatibility
  */

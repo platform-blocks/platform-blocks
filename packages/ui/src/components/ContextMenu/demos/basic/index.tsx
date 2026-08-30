@@ -1,4 +1,4 @@
-import { ContextMenu, Card, Text } from '@platform-blocks/ui';
+import { ContextMenu, Card, Text } from '@platform-blocks/react-ui-library';
 
 const ITEMS = [
   { id: 'copy', label: 'Copy' },

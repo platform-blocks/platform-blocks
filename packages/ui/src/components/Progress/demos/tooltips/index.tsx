@@ -1,4 +1,4 @@
-import { Block, Progress, Text } from '@platform-blocks/ui';
+import { Block, Progress, Text } from '@platform-blocks/react-ui-library';
 
 const SECTIONS = [
   { label: 'Documents', value: 34, color: 'primary' as const },

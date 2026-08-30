@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Platform Blocks",
+    "title": "React UI Library",
     "tagline": "Système de design React Native",
     "version": "Version",
     "libraryDescription": "Bibliothèque UI React Native pour iOS, Android et le Web"
@@ -36,7 +36,7 @@
   },
   "footer": {
       "app": {
-      "title": "Platform Blocks",
+      "title": "React UI Library",
       "tagline": "Un système de conception React Native complet avec des composants qui fonctionnent de manière transparente sur iOS, Android et Web.",
       "version": "Version",
       "libraryDescription": "Bibliothèque UI React Native pour iOS, Android et le Web"

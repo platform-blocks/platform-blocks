@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Slider, RangeSlider, Text } from '@platform-blocks/ui';
+import { Block, Slider, RangeSlider, Text } from '@platform-blocks/react-ui-library';
 
 const milestoneTicks = [
   { value: 0, label: '0' },

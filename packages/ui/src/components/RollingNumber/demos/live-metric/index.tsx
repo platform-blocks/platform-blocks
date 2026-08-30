@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, Flex, RollingNumber, Text } from '@platform-blocks/ui';
+import { Card, Flex, RollingNumber, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [requests, setRequests] = useState(84213);

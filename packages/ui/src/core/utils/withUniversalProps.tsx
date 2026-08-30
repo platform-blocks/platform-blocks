@@ -1,5 +1,5 @@
 /**
- * Higher-order component for applying universal props to Platform Blocks components
+ * Higher-order component for applying universal props to React UI Library components
  * Optimized for React Native with web compatibility
  */
 

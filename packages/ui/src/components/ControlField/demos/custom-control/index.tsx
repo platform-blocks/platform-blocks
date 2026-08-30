@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Checkbox, ControlField } from '@platform-blocks/ui';
+import { Block, Checkbox, ControlField } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [subscribed, setSubscribed] = useState(false);

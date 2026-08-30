@@ -1,5 +1,5 @@
 import { ScrollView, View } from 'react-native';
-import { Badge, Block, Row, Text, TitleRegistryProvider, useScrollSpy, useTitleRegistration } from '@platform-blocks/ui';
+import { Badge, Block, Row, Text, TitleRegistryProvider, useScrollSpy, useTitleRegistration } from '@platform-blocks/react-ui-library';
 
 const SECTIONS = [
   { title: 'Overview', order: 1, copy: 'Introduce the feature and set expectations for what the rest of the document covers.' },

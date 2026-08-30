@@ -1,4 +1,4 @@
-import { Block, Carousel, Text } from '@platform-blocks/ui';
+import { Block, Carousel, Text } from '@platform-blocks/react-ui-library';
 
 function slides(colors: string[]) {
   return colors.map((bg, index) => (

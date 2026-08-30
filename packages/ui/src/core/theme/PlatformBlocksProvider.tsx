@@ -232,7 +232,7 @@ function PlatformBlocksContent({
 }
 
 /**
- * Main provider component for Platform Blocks library
+ * Main provider component for React UI Library library
  * Provides theme context and injects CSS variables
  */
 export function PlatformBlocksProvider({

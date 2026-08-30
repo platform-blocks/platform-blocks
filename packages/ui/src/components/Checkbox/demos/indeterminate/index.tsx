@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Checkbox } from '@platform-blocks/ui';
+import { Block, Checkbox } from '@platform-blocks/react-ui-library';
 import { ITEMS } from './data';
 
 export function Demo() {

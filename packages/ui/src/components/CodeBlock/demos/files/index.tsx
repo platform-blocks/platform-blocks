@@ -1,9 +1,9 @@
-import { Block, CodeBlock, Text } from '@platform-blocks/ui';
+import { Block, CodeBlock, Text } from '@platform-blocks/react-ui-library';
 
 const FILES = [
   {
     name: 'index.tsx',
-    code: `import { Blockquote } from '@platform-blocks/ui';
+    code: `import { Blockquote } from '@platform-blocks/react-ui-library';
 
 import { AUTHOR, QUOTE } from './data';
 

@@ -1,4 +1,4 @@
-import { Block, Card, SegmentedControl, Text } from '@platform-blocks/ui';
+import { Block, Card, SegmentedControl, Text } from '@platform-blocks/react-ui-library';
 
 import { cadences, frameworks, panes, priorities, publishStates } from '../data';
 

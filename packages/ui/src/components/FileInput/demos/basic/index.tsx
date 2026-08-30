@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
-import { Block, FileInput, Text } from '@platform-blocks/ui';
-import type { FileInputFile } from '@platform-blocks/ui';
+import { Block, FileInput, Text } from '@platform-blocks/react-ui-library';
+import type { FileInputFile } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [files, setFiles] = useState<FileInputFile[]>([]);

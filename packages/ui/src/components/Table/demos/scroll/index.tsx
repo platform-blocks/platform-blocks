@@ -1,4 +1,4 @@
-import { Block, Table, Text } from '@platform-blocks/ui';
+import { Block, Table, Text } from '@platform-blocks/react-ui-library';
 import { body, columns } from './data';
 
 export function Demo() {

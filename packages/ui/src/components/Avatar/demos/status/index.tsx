@@ -1,5 +1,5 @@
-import { Avatar, Block } from '@platform-blocks/ui';
-import type { AvatarProps } from '@platform-blocks/ui';
+import { Avatar, Block } from '@platform-blocks/react-ui-library';
+import type { AvatarProps } from '@platform-blocks/react-ui-library';
 
 type StatusAvatar = Pick<AvatarProps, 'size' | 'src' | 'online' | 'indicatorColor'> & {
   key: string;

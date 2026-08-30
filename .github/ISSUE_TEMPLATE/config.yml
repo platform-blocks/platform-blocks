@@ -1,10 +1,10 @@
 blank_issues_enabled: true
 contact_links:
   - name: Feature request
-    url: https://github.com/platform-blocks/platform-blocks/discussions/new
+    url: https://github.com/platform-blocks/react-ui-library/discussions/new
     about: Request new feature
   - name: Ask a question, give feedback, share your project
-    url: https://github.com/platform-blocks/platform-blocks/discussions
+    url: https://github.com/platform-blocks/react-ui-library/discussions
     about: Connect with other community members with GitHub discussions
   - name: Get help on Discord
     url: https://discord.gg/kbHjwzgXbc

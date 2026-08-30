@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Button, Card, Text, Tooltip } from '@platform-blocks/ui';
+import { Block, Button, Card, Text, Tooltip } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [opened, setOpened] = useState(false);

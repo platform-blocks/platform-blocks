@@ -11,13 +11,13 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
-import { GITHUB_REPO, SITE_URL } from '../apps/platform-blocks.com/config/urls';
+import { GITHUB_REPO, SITE_URL } from '../apps/react-ui-library.com/config/urls';
 
 const ROOT = path.resolve(__dirname, '..');
 const UI_COMPONENTS_DIR = path.join(ROOT, 'packages', 'ui', 'src', 'components');
 const UI_HOOKS_DIR = path.join(ROOT, 'packages', 'ui', 'src', 'hooks');
 const CHARTS_COMPONENTS_DIR = path.join(ROOT, 'packages', 'charts', 'src', 'components'); // charts components directory
-const OUTPUT_DIR = path.join(ROOT, 'apps', 'platform-blocks.com', 'data', 'generated');
+const OUTPUT_DIR = path.join(ROOT, 'apps', 'react-ui-library.com', 'data', 'generated');
 // Per-component markdown consumed by the docs app (CopyPageMenu) and by
 // scripts/generate-llms.ts, which publishes it under public/llms/.
 const COMPONENT_MARKDOWN_DIR = path.join(OUTPUT_DIR, 'component-markdown');
@@ -1185,7 +1185,7 @@ function buildComponentMarkdown(
   }
 
   const packageName = componentMeta.packageName
-    || (componentMeta.category === 'charts' ? '@platform-blocks/charts' : '@platform-blocks/ui');
+    || (componentMeta.category === 'charts' ? '@platform-blocks/charts' : '@platform-blocks/react-ui-library');
   const metaList: string[] = [];
   metaList.push(`- Canonical name: \`${name}\``);
   metaList.push(`- Package: \`${packageName}\``);
@@ -1241,7 +1241,7 @@ function generate() {
     meta.sourcePath = relative;
     meta.packageName = relative.startsWith('packages/charts/')
       ? '@platform-blocks/charts'
-      : '@platform-blocks/ui';
+      : '@platform-blocks/react-ui-library';
     if (fs.existsSync(path.join(sourceDir, 'meta', 'component.md'))) {
       meta.docsPath = `${relative}/meta/component.md`;
     }

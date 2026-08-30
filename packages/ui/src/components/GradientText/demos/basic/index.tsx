@@ -1,4 +1,4 @@
-import { GradientText } from '@platform-blocks/ui';
+import { GradientText } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Flex, Joystick, Text } from '@platform-blocks/ui';
+import { Flex, Joystick, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [value, setValue] = useState({ x: -0.4, y: 0.6 });

@@ -1,4 +1,4 @@
-import { Block, Surface, Text } from '@platform-blocks/ui';
+import { Block, Surface, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

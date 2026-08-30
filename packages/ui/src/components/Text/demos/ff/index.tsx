@@ -1,4 +1,4 @@
-import { Block, Code, H3, Text } from '@platform-blocks/ui';
+import { Block, Code, H3, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

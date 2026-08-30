@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { Avatar, Block, Indicator, Row, Text } from '@platform-blocks/ui';
+import { Avatar, Block, Indicator, Row, Text } from '@platform-blocks/react-ui-library';
 
 const Anchor = ({ children }: { children?: React.ReactNode }) => (
   <View

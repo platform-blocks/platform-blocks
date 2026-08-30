@@ -1,0 +1,64 @@
+import React, { useCallback } from 'react';
+import { usePathname, useRouter } from 'expo-router';
+import { NavTree, type NavTreeItem } from '@platform-blocks/react-ui-library';
+import {
+  NAV_GROUP_ORDER,
+  NAV_TREE_ITEMS,
+  SECTION_ROUTES,
+  type NavItem,
+} from '../../config/navigationConfig';
+
+/** Matches the desktop rail: only the short section starts open. */
+const DEFAULT_OPEN_GROUPS = ['Overview'];
+
+export interface MobileNavigationProps {
+  onItemPress?: () => void;
+}
+
+/**
+ * The drawer's navigation, rendered by the same component as the desktop
+ * sidebar. It used to be a second, divergent implementation — buttons pushed
+ * through the router where the sidebar used anchors, a different active tint,
+ * and no nesting — which meant every change to the rail had to be made twice
+ * and only ever got made once.
+ */
+export const MobileNavigation: React.FC<MobileNavigationProps> = React.memo(({ onItemPress }) => {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const handleNavigate = useCallback(
+    (item: NavTreeItem<NavItem>) => {
+      router.push(item.href as never);
+      onItemPress?.();
+    },
+    [onItemPress, router]
+  );
+
+  const getGroupNode = useCallback(
+    ({ label, depth }: { label: string; depth: number }) =>
+      depth === 0 && SECTION_ROUTES[label] ? { href: SECTION_ROUTES[label] } : {},
+    []
+  );
+
+  return (
+    <NavTree
+      items={NAV_TREE_ITEMS}
+      activeHref={pathname}
+      onNavigate={handleNavigate}
+      groupOrder={NAV_GROUP_ORDER}
+      getGroupNode={getGroupNode}
+      // Same shape as the desktop rail: bare section headings, rows flush left.
+      disclosure="nested"
+      openDepth={0}
+      openGroups={DEFAULT_OPEN_GROUPS}
+      // A drawer is taller than it is wide and closes on every press, so rows
+      // get the roomier density and start from scratch each time it opens.
+      size="md"
+      searchable
+      searchPlaceholder="Filter docs…"
+      accessibilityLabel="Documentation"
+    />
+  );
+});
+
+MobileNavigation.displayName = 'MobileNavigation';

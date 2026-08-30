@@ -1,4 +1,4 @@
-import { Block, Button, Card, Icon, Spotlight, Text, type SpotlightProps, useSpotlightStoreInstance } from '@platform-blocks/ui';
+import { Block, Button, Card, Icon, Spotlight, Text, type SpotlightProps, useSpotlightStoreInstance } from '@platform-blocks/react-ui-library';
 
 const actions: SpotlightProps['actions'] = [
   {

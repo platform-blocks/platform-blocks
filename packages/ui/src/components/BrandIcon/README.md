@@ -12,7 +12,7 @@ The `BrandIcon` component provides branded icons with their official colors or a
 ## Usage
 
 ```tsx
-import { BrandIcon } from '@platform-blocks/ui';
+import { BrandIcon } from '@platform-blocks/react-ui-library';
 
 // Use brand colors (default)
 <BrandIcon brand="google" size="lg" />

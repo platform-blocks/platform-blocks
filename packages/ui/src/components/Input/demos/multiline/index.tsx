@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Input } from '@platform-blocks/ui';
+import { Block, Input } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [autoText, setAutoText] = useState('');

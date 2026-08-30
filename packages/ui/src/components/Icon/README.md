@@ -11,7 +11,7 @@ and spacing props. Any external icon library can also be used via the `icon` pro
 ## Usage
 
 ```tsx
-import { Icon } from '@platform-blocks/ui';
+import { Icon } from '@platform-blocks/react-ui-library';
 
 // By registry name (Tabler-backed)
 <Icon name="chevron-down" size="md" color="#666" />
@@ -41,7 +41,7 @@ import { IconRocket } from '@tabler/icons-react-native';
 Add your own icons to the registry (component-based or legacy SVG path):
 
 ```tsx
-import { registerIcon } from '@platform-blocks/ui';
+import { registerIcon } from '@platform-blocks/react-ui-library';
 import { IconConfetti } from '@tabler/icons-react-native';
 
 // Component-based (recommended)

@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react';
-import type { ViewStyle, StyleProp } from 'react-native';
-import type { FlashListProps, ViewToken } from '@shopify/flash-list';
+import type {
+  ScrollViewProps,
+  StyleProp,
+  ViewabilityConfig,
+  ViewStyle,
+} from 'react-native';
 
 import type { SpacingProps } from '../../core/utils/spacing';
 import type { SizeValue } from '../../core/theme/sizes';
@@ -15,6 +19,53 @@ export interface MasonryItem {
   /** Optional custom styling for the item */
   style?: StyleProp<ViewStyle>;
 }
+
+/**
+ * Stable viewability payload exposed by Masonry without coupling consumers to
+ * FlashList's internal source declarations.
+ */
+export interface MasonryViewToken<T> {
+  item: T;
+  key: string;
+  index: number | null;
+  isViewable: boolean;
+  timestamp: number;
+}
+
+/**
+ * FlashList options that Masonry forwards to the optional virtualized renderer.
+ *
+ * This intentionally mirrors the supported public surface instead of extending
+ * FlashListProps. FlashList 2.x publishes declarations that re-export its raw
+ * source, which makes consumers type-check the dependency internals.
+ */
+export type MasonryFlashListProps = Omit<
+  Partial<ScrollViewProps>,
+  'onViewableItemsChanged'
+> & {
+  drawDistance?: number;
+  estimatedItemSize?: number;
+  extraData?: unknown;
+  getItemType?: (item: MasonryItem, index: number, extraData?: unknown) => string | number | undefined;
+  keyExtractor?: (item: MasonryItem, index: number) => string;
+  maxItemsInRecyclePool?: number;
+  onLoad?: (info: { elapsedTimeInMs: number }) => void;
+  onViewableItemsChanged?: MasonryViewabilityCallback;
+  optimizeItemArrangement?: boolean;
+  overrideItemLayout?: (
+    layout: { span?: number; size?: number },
+    item: MasonryItem,
+    index: number,
+    maxColumns: number,
+    extraData?: unknown
+  ) => void;
+  viewabilityConfig?: ViewabilityConfig | null;
+};
+
+export type MasonryViewabilityCallback = ((info: {
+  viewableItems: MasonryViewToken<MasonryItem>[];
+  changed: MasonryViewToken<MasonryItem>[];
+}) => void) | null;
 
 export interface MasonryProps extends SpacingProps {
   /** Array of items to display in masonry layout */
@@ -38,7 +89,7 @@ export interface MasonryProps extends SpacingProps {
   /** Empty state content */
   emptyContent?: ReactNode;
   /** Flash list props to pass through */
-  flashListProps?: Partial<Omit<FlashListProps<MasonryItem>, 'data' | 'renderItem' | 'numColumns'>>;
+  flashListProps?: MasonryFlashListProps;
 
   // --- Native FlashList passthrough props ---
 
@@ -49,7 +100,7 @@ export interface MasonryProps extends SpacingProps {
   onEndReachedThreshold?: number;
 
   /** Callback when viewable items change */
-  onViewableItemsChanged?: ((info: { viewableItems: ViewToken<MasonryItem>[]; changed: ViewToken<MasonryItem>[] }) => void) | null;
+  onViewableItemsChanged?: MasonryViewabilityCallback;
 
   /** Whether scrolling is enabled */
   scrollEnabled?: boolean;
@@ -70,7 +121,7 @@ export interface MasonryProps extends SpacingProps {
   refreshControl?: React.ReactElement;
 
   /** Scroll event callback */
-  onScroll?: FlashListProps<MasonryItem>['onScroll'];
+  onScroll?: ScrollViewProps['onScroll'];
 
   /** Throttle interval for scroll events in ms */
   scrollEventThrottle?: number;

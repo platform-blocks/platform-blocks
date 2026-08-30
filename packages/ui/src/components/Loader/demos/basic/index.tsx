@@ -1,4 +1,4 @@
-import { Loader, Row } from '@platform-blocks/ui';
+import { Loader, Row } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

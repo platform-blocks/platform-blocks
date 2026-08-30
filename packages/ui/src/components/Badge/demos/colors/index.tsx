@@ -1,4 +1,4 @@
-import { Badge, Row } from '@platform-blocks/ui'
+import { Badge, Row } from '@platform-blocks/react-ui-library'
 
 export function Demo() {
   return (

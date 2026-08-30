@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, Block, Button, KeyCap, Row, useGlobalHotkeys } from '@platform-blocks/ui';
+import { Alert, Block, Button, KeyCap, Row, useGlobalHotkeys } from '@platform-blocks/react-ui-library';
 
 const NAMESPACE = 'hooks-command-palette';
 

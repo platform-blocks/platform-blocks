@@ -1,4 +1,4 @@
-import { Block, Text, AudioPlayer } from '@platform-blocks/ui';
+import { Block, Text, AudioPlayer } from '@platform-blocks/react-ui-library';
 
 // Peaks measured from the same bundled clip the player loads.
 import { MELODY_PEAKS } from '../../../Waveform/demos/data';

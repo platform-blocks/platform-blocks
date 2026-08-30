@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CodeBlock, Button, Text, Flex } from '@platform-blocks/ui';
+import { CodeBlock, Button, Text, Flex } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [copiedCode, setCopiedCode] = useState('');

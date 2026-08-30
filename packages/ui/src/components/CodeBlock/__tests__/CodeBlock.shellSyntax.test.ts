@@ -21,7 +21,7 @@ describe('shell tokenizer', () => {
   });
 
   it('colors the command but not the package name', () => {
-    const [line] = highlightShell('$ npm install @platform-blocks/ui');
+    const [line] = highlightShell('$ npm install @platform-blocks/react-ui-library');
 
     expect(colorOf([line], 0, '$')).toBe(colors.punctuation);
     expect(colorOf([line], 0, 'npm')).toBe(colors.function);
@@ -30,9 +30,9 @@ describe('shell tokenizer', () => {
     // run: the JS grammar used to split it on its hyphens and slash, colored
     // those as operators, and left everything else the base color — which is
     // what made a `bash` block read as plain text with a few specks in it.
-    expect(line.map((token) => token.text).join('')).toBe('$ npm install @platform-blocks/ui');
+    expect(line.map((token) => token.text).join('')).toBe('$ npm install @platform-blocks/react-ui-library');
     const argument = line[line.length - 1];
-    expect(argument.text).toBe(' @platform-blocks/ui');
+    expect(argument.text).toBe(' @platform-blocks/react-ui-library');
     expect(argument.color).toBe(theme.text.primary);
   });
 

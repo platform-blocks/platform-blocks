@@ -53,7 +53,7 @@ describe('Card - rendering', () => {
     const { toJSON } = render(
       <Card {...({ testID: 'filled-card' } as any)} p="lg" style={{ gap: 8 }}>
         <Text accessibilityRole="header">Project Alpha</Text>
-        <Text>Craft delightful experiences with Platform Blocks components.</Text>
+        <Text>Craft delightful experiences with React UI Library components.</Text>
       </Card>
     );
 

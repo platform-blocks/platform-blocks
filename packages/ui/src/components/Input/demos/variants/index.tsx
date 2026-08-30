@@ -1,4 +1,4 @@
-import { Block, Input } from '@platform-blocks/ui';
+import { Block, Input } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

@@ -1,4 +1,4 @@
-import { Block, Button, DataList, KeyCap, Row, Text, useThemeMode, useToggleColorScheme } from '@platform-blocks/ui';
+import { Block, Button, DataList, KeyCap, Row, Text, useThemeMode, useToggleColorScheme } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const { mode, cycleMode, actualColorScheme } = useThemeMode();

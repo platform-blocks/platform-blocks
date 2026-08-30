@@ -1,4 +1,4 @@
-import { QRCode, Row, useTheme } from '@platform-blocks/ui';
+import { QRCode, Row, useTheme } from '@platform-blocks/react-ui-library';
 import { LOGO_EXAMPLES } from './data';
 
 export function Demo() {

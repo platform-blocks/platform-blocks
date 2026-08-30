@@ -1,5 +1,5 @@
-import { DataTable } from '@platform-blocks/ui';
-import type { DataTableColumn } from '@platform-blocks/ui';
+import { DataTable } from '@platform-blocks/react-ui-library';
+import type { DataTableColumn } from '@platform-blocks/react-ui-library';
 
 import { sales as rows, type Sale } from '../data';
 

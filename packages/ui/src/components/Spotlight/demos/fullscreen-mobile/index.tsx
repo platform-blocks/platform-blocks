@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { Block, Button, Card, Spotlight, Text, type SpotlightProps, useSpotlightStoreInstance } from '@platform-blocks/ui';
+import { Block, Button, Card, Spotlight, Text, type SpotlightProps, useSpotlightStoreInstance } from '@platform-blocks/react-ui-library';
 
 // Reuse a moderate list to showcase vertical scroll in fullscreen
 const actions: SpotlightProps['actions'] = Array.from({ length: 18 }).map((_, index) => ({

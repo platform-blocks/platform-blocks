@@ -1,4 +1,4 @@
-import { Block, CodeBlock, Text } from '@platform-blocks/ui';
+import { Block, CodeBlock, Text } from '@platform-blocks/react-ui-library';
 
 const componentExample = `import { View, Text } from 'react-native';
 
@@ -38,7 +38,7 @@ export function Demo() {
           </Text>
           <CodeBlock
             title="Basic component"
-            githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/packages/ui/src/components/Button/Button.tsx"
+            githubUrl="https://github.com/platform-blocks/react-ui-library/blob/main/packages/ui/src/components/Button/Button.tsx"
           >
             {componentExample}
           </CodeBlock>
@@ -50,7 +50,7 @@ export function Demo() {
           </Text>
           <CodeBlock
             files={[{ name: 'example.tsx' }]}
-            githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/packages/ui/src/components/Text/Text.tsx"
+            githubUrl="https://github.com/platform-blocks/react-ui-library/blob/main/packages/ui/src/components/Text/Text.tsx"
           >
             {inlineExample}
           </CodeBlock>
@@ -63,7 +63,7 @@ export function Demo() {
           <CodeBlock
             variant="terminal"
             title="Terminal example"
-            githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/apps/platform-blocks.com/eas-build-post-install.sh"
+            githubUrl="https://github.com/platform-blocks/react-ui-library/blob/main/apps/react-ui-library.com/eas-build-post-install.sh"
           >
             {terminalExample}
           </CodeBlock>
@@ -73,7 +73,7 @@ export function Demo() {
           <Text size="sm" weight="semibold">
             Floating controls
           </Text>
-          <CodeBlock githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/packages/ui/src/components/CodeBlock/CodeBlock.tsx">
+          <CodeBlock githubUrl="https://github.com/platform-blocks/react-ui-library/blob/main/packages/ui/src/components/CodeBlock/CodeBlock.tsx">
             {floatingExample}
           </CodeBlock>
         </Block>

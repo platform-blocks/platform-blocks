@@ -1,4 +1,4 @@
-import { Block, Card, Title } from '@platform-blocks/ui';
+import { Block, Card, Title } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

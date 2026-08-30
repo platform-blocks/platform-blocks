@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Card, Block, Row, Stepper, Text } from '@platform-blocks/ui';
+import { Button, Card, Block, Row, Stepper, Text } from '@platform-blocks/react-ui-library';
 
 const totalSteps = 3;
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, DataList, Knob } from '@platform-blocks/ui';
+import { Block, DataList, Knob } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [value, setValue] = useState(32);

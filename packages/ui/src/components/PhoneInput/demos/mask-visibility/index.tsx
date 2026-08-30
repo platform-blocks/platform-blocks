@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, PhoneInput, Text } from '@platform-blocks/ui';
+import { Block, PhoneInput, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [withCountryCode, setWithCountryCode] = useState('');

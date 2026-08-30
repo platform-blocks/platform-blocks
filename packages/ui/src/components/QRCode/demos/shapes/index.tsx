@@ -1,4 +1,4 @@
-import { Block, QRCode, Row, Text } from '@platform-blocks/ui';
+import { Block, QRCode, Row, Text } from '@platform-blocks/react-ui-library';
 import { SHAPES } from './data';
 
 export function Demo() {

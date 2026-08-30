@@ -1,7 +1,7 @@
 ---
 title: Tooltip
 description: A contextual information overlay that appears on hover, focus, or press to provide additional details without cluttering the interface.
-source: "@platform-blocks/ui"
+source: "@platform-blocks/react-ui-library"
 status: "stable"
 category: overlay
 playground: true

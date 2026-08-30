@@ -1,4 +1,4 @@
-import { Badge, Block, Input, Text, useMaskedInput } from '@platform-blocks/ui';
+import { Badge, Block, Input, Text, useMaskedInput } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const { value, unmaskedValue, isComplete, handleChangeText, handleSelectionChange } = useMaskedInput({

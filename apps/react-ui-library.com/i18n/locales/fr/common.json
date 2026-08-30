@@ -1,0 +1,77 @@
+{
+  "app": {
+    "title": "React UI Library",
+    "tagline": "Un système d'interface pour chaque écran",
+    "version": "Version",
+    "libraryDescription": "Bibliothèque UI React Native pour iOS, Android et le Web"
+  },
+  "nav": {
+    "gettingStarted": "Commencer",
+    "overview": "Vue d'ensemble",
+    "installation": "Installation",
+    "platforms": "Plateformes",
+    "faq": "FAQ",
+    "faqs": "FAQs",
+    "components": "Composants",
+    "allComponents": "Tous les composants",
+    "examples": "Exemples",
+    "spotlight": "Spotlight",
+    "icons": "Icônes SVG",
+    "demos": "Démos",
+    "theming": "Thématisation",
+    "textSizeTest": "Test Taille Texte",
+    "changelog": "Journal des modifications",
+    "docs": "Docs"
+  },
+  "actions": {
+    "searchPlaceholder": "Rechercher composants, démos, documentation...",
+    "github": "GitHub",
+    "npm": "NPM",
+    "toggleTheme": "Changer thème",
+    "switchLocale": "Changer de langue",
+    "starOnGithub": "Star sur GitHub",
+    "joinDiscord": "Rejoindre Discord",
+    "followOnX": "Suivre sur X",
+    "githubShort": "GitHub",
+    "discordShort": "Discord"
+  },
+  "footer": {
+      "app": {
+      "title": "react-ui-library",
+      "tagline": "Plus de 100 composants accessibles et personnalisables pour iOS, Android et le Web.",
+      "version": "Version",
+      "libraryDescription": "Bibliothèque UI React Native pour iOS, Android et le Web"
+    },
+    "versionLine": "{{version}} - Créé avec React Native",
+    "builtBy": "Créé par"
+  },
+  "languages": {
+    "en": "Anglais",
+    "fr": "Français"
+  },
+  "spotlight": {
+    "noResults": "Aucun résultat pour \"{{query}}\""
+  },
+  "button":{
+    "demo":{
+      "submit": "Soumettre"
+    }
+  },
+  "localization": {
+    "title": "Localisation",
+    "intro": "React UI Library inclut une couche i18n légère. Fournissez des ressources par langue, enveloppez votre app avec I18nProvider, puis utilisez la prop tx ou le hook useI18n.",
+    "current": "Langue actuelle : {{locale}}",
+    "exampleGreeting": "Bonjour {{name}} !",
+    "helloWorld": "Bonjour, le monde !",
+    "steps": {
+      "resources": "Créez des fichiers JSON de ressources par langue (clés plates ou imbriquées).",
+      "aggregate": "Agrégez-les dans un objet resources passé à I18nProvider.",
+      "provider": "Enveloppez la racine avec <I18nProvider initial={{ resources, locale: 'en', fallbackLocale: 'en' }}>.",
+      "usageTx": "Utilisez <Text tx=\"localization.exampleGreeting\" txParams={{ name: 'Ada' }} /> pour afficher le texte traduit.",
+      "usageHook": "Ou appelez const { t, setLocale, locale } = useI18n(); puis t('localization.exampleGreeting', { name: 'Ada' }).",
+      "switch": "Changez de langue avec setLocale('fr'), etc. Les composants se mettent à jour automatiquement.",
+      "format": "7. Utilisez formatDate / formatNumber / formatRelativeTime pour les formats localisés.",
+      "missing": "8. Les clés manquantes utilisent fallbackLocale puis renvoient le nom de la clé."
+    }
+  }
+}

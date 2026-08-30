@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Block, Tabs, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Tabs, Text, useTheme } from '@platform-blocks/react-ui-library';
 
 const NAV_ITEMS = [
   { key: 'home', label: 'Home' },

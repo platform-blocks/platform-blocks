@@ -1,4 +1,4 @@
-import { Chip, Row } from '@platform-blocks/ui'
+import { Chip, Row } from '@platform-blocks/react-ui-library'
 
 export function Demo() {
   return (

@@ -21,7 +21,7 @@ Built-in lightweight internationalization layer.
 
 ## Manual Hook Usage
 ```tsx
-import { useI18n } from '@platform-blocks/ui';
+import { useI18n } from '@platform-blocks/react-ui-library';
 const { t, setLocale, formatNumber } = useI18n();
 ```
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Row, ShimmerText, Slider, Switch, Text } from '@platform-blocks/ui';
+import { Block, Row, ShimmerText, Slider, Switch, Text } from '@platform-blocks/react-ui-library';
 
 const MIN_SPREAD = 1;
 const MAX_SPREAD = 4;

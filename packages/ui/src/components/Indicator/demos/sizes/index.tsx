@@ -1,4 +1,4 @@
-import { Block, Card, Indicator, Row, Text } from '@platform-blocks/ui';
+import { Block, Card, Indicator, Row, Text } from '@platform-blocks/react-ui-library';
 
 const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', 24] as const;
 

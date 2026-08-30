@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Button, Card, Row, Stepper, Text } from '@platform-blocks/ui';
+import { Block, Button, Card, Row, Stepper, Text } from '@platform-blocks/react-ui-library';
 
 import { onboardingSteps as steps } from '../data';
 

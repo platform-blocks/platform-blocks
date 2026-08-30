@@ -1,4 +1,4 @@
-import { Block, Carousel, Text } from '@platform-blocks/ui';
+import { Block, Carousel, Text } from '@platform-blocks/react-ui-library';
 
 const slides = ['#1E3A8A', '#047857', '#9333EA', '#B91C1C', '#B45309', '#0F766E'];
 

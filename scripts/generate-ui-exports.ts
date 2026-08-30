@@ -1,8 +1,8 @@
 /**
- * Generates the per-component subpath `exports` map for @platform-blocks/ui.
+ * Generates the per-component subpath `exports` map for @platform-blocks/react-ui-library.
  *
  * The build preserves the source module graph (see packages/ui/rollup.config.js),
- * so `@platform-blocks/ui/Button` can pull just that component's subtree instead
+ * so `@platform-blocks/react-ui-library/Button` can pull just that component's subtree instead
  * of the whole barrel — which matters because Metro does virtually no
  * tree-shaking of its own.
  *

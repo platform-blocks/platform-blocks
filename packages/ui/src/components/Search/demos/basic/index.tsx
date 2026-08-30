@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Search, Text } from '@platform-blocks/ui';
+import { Block, Search, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [query, setQuery] = useState('');

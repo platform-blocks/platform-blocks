@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Block, Icon, Knob } from '@platform-blocks/ui';
+import { Block, Icon, Knob } from '@platform-blocks/react-ui-library';
 
 import { STATUS_SCENES } from './data';
 

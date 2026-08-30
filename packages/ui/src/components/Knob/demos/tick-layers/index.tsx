@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Knob } from '@platform-blocks/ui';
+import { Block, Knob } from '@platform-blocks/react-ui-library';
 
 const LEVEL_MARKS = [
   { value: 0, label: 'Mute' },

@@ -1,4 +1,4 @@
-import { Accordion } from '@platform-blocks/ui';
+import { Accordion } from '@platform-blocks/react-ui-library';
 import { faqItems } from '../data';
 
 export function Demo() {

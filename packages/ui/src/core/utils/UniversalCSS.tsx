@@ -1,5 +1,5 @@
 /**
- * Universal CSS styles for Platform Blocks universal props
+ * Universal CSS styles for React UI Library universal props
  * Optimized for React Native (Expo) with web compatibility
  */
 

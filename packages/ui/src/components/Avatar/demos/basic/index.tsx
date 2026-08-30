@@ -1,4 +1,4 @@
-import { Avatar } from '@platform-blocks/ui'
+import { Avatar } from '@platform-blocks/react-ui-library'
 
 export function Demo() {
   return (

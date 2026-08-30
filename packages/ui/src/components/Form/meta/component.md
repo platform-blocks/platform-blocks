@@ -4,7 +4,7 @@ title: Form
 category: input
 tags: [form, fields, validation, submit]
 playground: true
-source: "@platform-blocks/ui"
+source: "@platform-blocks/react-ui-library"
 status: "stable"
 related:
   - "Input"

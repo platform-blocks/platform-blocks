@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { Block, Card, Image, Text } from '@platform-blocks/ui';
+import { Block, Card, Image, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

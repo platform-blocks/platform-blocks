@@ -1,4 +1,4 @@
-import { Block, Card, Grid, GridItem, Text } from '@platform-blocks/ui';
+import { Block, Card, Grid, GridItem, Text } from '@platform-blocks/react-ui-library';
 
 // Responsive props match the breakpoint configuration used in Grid
 

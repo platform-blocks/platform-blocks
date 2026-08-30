@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { View, ScrollView, Pressable, TextInput as RNTextInput, Platform } from 'react-native';
-import type { ListRenderItemInfo } from '@shopify/flash-list';
 import { resolveOptionalModule } from '../../utils/optionalModule';
 
 /**
@@ -1960,7 +1959,7 @@ export const DataTable = <T,>({
     visibleColumns: visibleColumns.map(col => col.key)
   }), [columnWidths, expandedRows, rowSelection.selectedRows, visibleColumns]);
 
-  const renderVirtualRow = useCallback(({ item, index }: ListRenderItemInfo<T>) => {
+  const renderVirtualRow = useCallback(({ item, index }: { item: T; index: number }) => {
     const { element } = buildRow(item, index);
     return <React.Fragment>{element}</React.Fragment>;
   }, [buildRow]);

@@ -13,7 +13,7 @@ const ROOT = path.resolve(__dirname, '..');
 const DEFAULT_ACCESS = 'public';
 const PACKAGES: PackageTarget[] = [
   {
-    name: '@platform-blocks/ui',
+    name: '@platform-blocks/react-ui-library',
     dir: path.join(ROOT, 'packages', 'ui'),
     workspace: 'packages/ui',
   },
@@ -201,7 +201,7 @@ const main = () => {
   // Generate SEO files (sitemap.xml and llms.txt) before publishing
   console.log('Generating SEO files...');
   try {
-    runCommand('npm --prefix apps/platform-blocks.com run generate-seo', ROOT, options.dryRun);
+    runCommand('npm --prefix apps/react-ui-library.com run generate-seo', ROOT, options.dryRun);
     console.log('SEO files generated successfully.');
   } catch (error) {
     console.warn('Warning: Failed to generate SEO files. Continuing with publish...');

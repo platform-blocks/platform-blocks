@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, Block, Button, KeyCap, Row, useSpotlightToggle } from '@platform-blocks/ui';
+import { Alert, Block, Button, KeyCap, Row, useSpotlightToggle } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [open, setOpen] = useState(false);

@@ -1,4 +1,4 @@
-import { CodeBlock, Flex } from '@platform-blocks/ui';
+import { CodeBlock, Flex } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

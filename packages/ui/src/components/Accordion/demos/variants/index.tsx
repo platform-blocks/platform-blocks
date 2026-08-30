@@ -1,4 +1,4 @@
-import { Accordion, Block, Text } from '@platform-blocks/ui';
+import { Accordion, Block, Text } from '@platform-blocks/react-ui-library';
 import { onboardingSteps } from '../data';
 
 const variants = ['default', 'separated', 'bordered'] as const;

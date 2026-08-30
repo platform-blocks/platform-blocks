@@ -1,5 +1,5 @@
-import { Masonry, Card, Text, Button, Row, useTheme } from '@platform-blocks/ui';
-import type { MasonryItem } from '@platform-blocks/ui';
+import { Masonry, Card, Text, Button, Row, useTheme } from '@platform-blocks/react-ui-library';
+import type { MasonryItem } from '@platform-blocks/react-ui-library';
 import { useState } from 'react';
 
 export function Demo() {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RangeSlider, Text, Block, Card, Flex } from '@platform-blocks/ui';
+import { RangeSlider, Text, Block, Card, Flex } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [priceRange, setPriceRange] = useState<[number, number]>([25, 75]);

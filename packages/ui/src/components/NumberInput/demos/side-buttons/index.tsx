@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { Block, NumberInput, Row, Text } from '@platform-blocks/ui';
+import { Block, NumberInput, Row, Text } from '@platform-blocks/react-ui-library';
 
 const EnhancedNumberInput = NumberInput as any;
 

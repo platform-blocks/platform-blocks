@@ -1,4 +1,4 @@
-import { SegmentedControl, Text } from '@platform-blocks/ui';
+import { SegmentedControl, Text } from '@platform-blocks/react-ui-library';
 import { frameworks } from '../data';
 
 export function Demo() {

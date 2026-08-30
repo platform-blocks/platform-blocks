@@ -1,4 +1,4 @@
-import { Block, Progress, Row, Text } from '@platform-blocks/ui';
+import { Block, Progress, Row, Text } from '@platform-blocks/react-ui-library';
 
 const CHANNELS = [
   { label: 'Kick', value: 82, color: 'primary' as const },

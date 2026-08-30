@@ -1,4 +1,4 @@
-import { Block, KeyCap, Row, Search, Text, useToast } from '@platform-blocks/ui';
+import { Block, KeyCap, Row, Search, Text, useToast } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const toast = useToast();

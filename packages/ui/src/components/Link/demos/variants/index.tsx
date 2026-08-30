@@ -1,4 +1,4 @@
-import { Block, Card, Link, Text } from '@platform-blocks/ui';
+import { Block, Card, Link, Text } from '@platform-blocks/react-ui-library';
 
 const linkVariants = [
   { label: 'Default underline', variant: 'default' as const, description: 'Underline is always visible for maximum affordance.' },

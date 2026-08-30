@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { Block, Knob, Text } from '@platform-blocks/ui';
+import { Block, Knob, Text } from '@platform-blocks/react-ui-library';
 
 // The split arc reads the same on both sides of center: direction is carried by which way
 // the arc grows and by the L/R label, not by a color change.

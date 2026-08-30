@@ -1,4 +1,4 @@
-import { Block, ShimmerText } from '@platform-blocks/ui';
+import { Block, ShimmerText } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

@@ -1,6 +1,6 @@
 import React from 'react';
 import { AccessibilityInfo, findNodeHandle, Platform } from 'react-native';
-import { useOptionalAccessibility } from '../../core/accessibility/context';
+import { useOptionalAccessibility } from './context';
 
 /**
  * Hook for managing announcement queues with priorities

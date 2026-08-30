@@ -1,4 +1,4 @@
-import { Block, DataList, Text } from '@platform-blocks/ui';
+import { Block, DataList, Text } from '@platform-blocks/react-ui-library';
 
 const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
 

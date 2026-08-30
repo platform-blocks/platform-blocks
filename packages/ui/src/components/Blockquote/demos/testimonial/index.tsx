@@ -1,4 +1,4 @@
-import { Blockquote } from '@platform-blocks/ui';
+import { Blockquote } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (
@@ -18,7 +18,7 @@ export function Demo() {
       date="2024-06-12"
       verified
     >
-      Platform Blocks helped us ship an entirely new settings experience in a single sprint. The components feel native on every platform.
+      React UI Library helped us ship an entirely new settings experience in a single sprint. The components feel native on every platform.
     </Blockquote>
   );
 }

@@ -8,7 +8,7 @@ status: beta
 ## Usage
 
 ```tsx
-import { KeyboardAwareLayout, Input, Button } from '@platform-blocks/ui';
+import { KeyboardAwareLayout, Input, Button } from '@platform-blocks/react-ui-library';
 
 export function SignInScreen() {
   return (

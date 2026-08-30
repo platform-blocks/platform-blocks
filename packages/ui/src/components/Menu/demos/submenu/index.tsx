@@ -7,7 +7,7 @@ import {
   MenuItem,
   MenuLabel,
   MenuSub,
-} from '@platform-blocks/ui';
+} from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

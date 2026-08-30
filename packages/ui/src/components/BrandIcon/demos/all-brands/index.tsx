@@ -1,4 +1,4 @@
-import { Block, BrandIcon, Grid, GridItem, Text } from '@platform-blocks/ui';
+import { Block, BrandIcon, Grid, GridItem, Text } from '@platform-blocks/react-ui-library';
 import { ALL_BRANDS } from '../data';
 
 export function Demo() {

@@ -1,4 +1,4 @@
-import { Badge, Icon, Row, Text, Tree, type TreeNode } from '@platform-blocks/ui';
+import { Badge, Icon, Row, Text, Tree, type TreeNode } from '@platform-blocks/react-ui-library';
 
 import { STATUS_BADGES, TREE_DATA, TYPE_ICONS, type CustomNodeData } from './data';
 

@@ -1,4 +1,4 @@
-import { Block, Button, Row, Text, useHaptics } from '@platform-blocks/ui';
+import { Block, Button, Row, Text, useHaptics } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const { impactPressIn, impactPressOut, notifySuccess, notifyWarning, notifyError, selection } = useHaptics({ throttleMs: 80 });

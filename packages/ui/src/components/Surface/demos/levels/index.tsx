@@ -1,4 +1,4 @@
-import { Block, Surface, Text } from '@platform-blocks/ui';
+import { Block, Surface, Text } from '@platform-blocks/react-ui-library';
 
 const LEVELS = [
   { level: 0 as const, label: 'Level 0 — the page' },

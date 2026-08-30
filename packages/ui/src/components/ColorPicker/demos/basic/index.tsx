@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, ColorPicker, Row, Text } from '@platform-blocks/ui';
+import { Block, ColorPicker, Row, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [color, setColor] = useState('#4ECDC4');

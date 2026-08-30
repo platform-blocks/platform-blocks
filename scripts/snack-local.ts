@@ -4,10 +4,10 @@
  * through Expo Go before anything is published to npm.
  *
  * The app is pinned to Expo SDK 54 (React 19.1.0 / React Native 0.81.5) — the
- * same runtime a Snack gets — and consumes @platform-blocks/ui as a packed
+ * same runtime a Snack gets — and consumes @platform-blocks/react-ui-library as a packed
  * tarball, so the published `exports` map and `files` list are exercised rather
  * than the workspace source. App.tsx and the import rewrite come from
- * apps/platform-blocks.com/utils/snackUrl.ts, so what you test locally is what
+ * apps/react-ui-library.com/utils/snackUrl.ts, so what you test locally is what
  * the "Try in Expo Go" buttons ship.
  *
  * Usage:
@@ -25,10 +25,10 @@ import {
   buildComponentBundle,
   buildDemoBundle,
   isSnackSupported,
-} from '../apps/platform-blocks.com/utils/snackUrl';
+} from '../apps/react-ui-library.com/utils/snackUrl';
 
 const ROOT = path.resolve(__dirname, '..');
-const GENERATED_DIR = path.join(ROOT, 'apps', 'platform-blocks.com', 'data', 'generated');
+const GENERATED_DIR = path.join(ROOT, 'apps', 'react-ui-library.com', 'data', 'generated');
 const APP_DIR = path.join(ROOT, 'examples', 'snack-local');
 const UI_DIR = path.join(ROOT, 'packages', 'ui');
 const TARBALL = path.join(APP_DIR, 'platform-blocks-ui.tgz');
@@ -137,7 +137,7 @@ function packPackage(name: string, dir: string, tarball: string) {
  * exist either way, but rebuilding ~950 KB for a Button demo is wasted time.
  */
 function packPackages(needsCharts: boolean) {
-  packPackage('@platform-blocks/ui', UI_DIR, TARBALL);
+  packPackage('@platform-blocks/react-ui-library', UI_DIR, TARBALL);
   if (needsCharts || !fs.existsSync(CHARTS_TARBALL)) {
     packPackage('@platform-blocks/charts', CHARTS_DIR, CHARTS_TARBALL);
   }

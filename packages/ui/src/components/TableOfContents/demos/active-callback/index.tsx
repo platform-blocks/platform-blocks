@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Block, Chip, Row, TableOfContents, Text, Title, TitleRegistryProvider } from '@platform-blocks/ui';
+import { Block, Chip, Row, TableOfContents, Text, Title, TitleRegistryProvider } from '@platform-blocks/react-ui-library';
 
 const SECTIONS = [
   { id: 'overview', title: 'Overview', summary: 'Explain when the progress indicator should appear.' },

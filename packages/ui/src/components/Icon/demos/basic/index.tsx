@@ -1,5 +1,5 @@
 import { ScrollView, View } from 'react-native';
-import { Icon, Text, Card, Flex, Title } from '@platform-blocks/ui';
+import { Icon, Text, Card, Flex, Title } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

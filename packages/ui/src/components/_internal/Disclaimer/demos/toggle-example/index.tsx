@@ -13,7 +13,7 @@ import {
   Text,
   Block,
   Icon
-} from '@platform-blocks/ui';
+} from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [view, setView] = useState('list');

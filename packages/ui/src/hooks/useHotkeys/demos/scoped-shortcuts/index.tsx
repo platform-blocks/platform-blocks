@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Block, KeyCap, Row, Text, useHotkeys } from '@platform-blocks/ui';
+import { Block, KeyCap, Row, Text, useHotkeys } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [log, setLog] = useState<string[]>([]);

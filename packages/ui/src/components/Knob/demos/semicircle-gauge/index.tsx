@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { Block, Knob, Text } from '@platform-blocks/ui';
+import { Block, Knob, Text } from '@platform-blocks/react-ui-library';
 
 const TEMPERATURE_STOPS = [0, 25, 50, 75, 100];
 

@@ -1,4 +1,4 @@
-import { Block, Row, Switch, Text } from '@platform-blocks/ui';
+import { Block, Row, Switch, Text } from '@platform-blocks/react-ui-library';
 
 const COLOR_VARIANTS = [
   { label: 'Primary', color: 'primary' },

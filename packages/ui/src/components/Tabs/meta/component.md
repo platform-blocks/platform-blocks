@@ -1,7 +1,7 @@
 ---
 title: Tabs
 description: A tab navigation component for organizing content into switchable sections with support for multiple variants and orientations.
-source: "@platform-blocks/ui"
+source: "@platform-blocks/react-ui-library"
 status: "stable"
 category: navigation
 playground: true

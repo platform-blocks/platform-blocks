@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Slider, Text } from '@platform-blocks/ui';
+import { Block, Slider, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [position, setPosition] = useState(0.25);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Block, Text, TimePicker } from '@platform-blocks/ui';
-import type { TimePickerValue } from '@platform-blocks/ui';
+import { Block, Text, TimePicker } from '@platform-blocks/react-ui-library';
+import type { TimePickerValue } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [value, setValue] = useState<TimePickerValue>({ hours: 0, minutes: 15 });

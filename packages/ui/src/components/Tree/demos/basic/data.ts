@@ -1,4 +1,4 @@
-import type { TreeNode } from '@platform-blocks/ui';
+import type { TreeNode } from '@platform-blocks/react-ui-library';
 
 /** A small file-manager hierarchy: folders deep enough to show nested expansion. */
 export const TREE_DATA: TreeNode[] = [

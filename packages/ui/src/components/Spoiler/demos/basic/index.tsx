@@ -1,4 +1,4 @@
-import { Block, Card, Spoiler, Text } from '@platform-blocks/ui';
+import { Block, Card, Spoiler, Text } from '@platform-blocks/react-ui-library';
 
 const paragraphs = [
   'Spoilers collapse long sections of copy while keeping the content accessible to screen readers and keyboard users.',

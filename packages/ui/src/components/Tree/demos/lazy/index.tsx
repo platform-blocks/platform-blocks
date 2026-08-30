@@ -1,4 +1,4 @@
-import { Tree, type TreeNode } from '@platform-blocks/ui';
+import { Tree, type TreeNode } from '@platform-blocks/react-ui-library';
 
 import { TREE_DATA, fetchInstances, fetchVolumes } from './data';
 

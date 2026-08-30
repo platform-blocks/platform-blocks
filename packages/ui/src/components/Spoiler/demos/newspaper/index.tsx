@@ -1,4 +1,4 @@
-import { Card, Spoiler, Text } from '@platform-blocks/ui';
+import { Card, Spoiler, Text } from '@platform-blocks/react-ui-library';
 import { Image, Platform, View } from 'react-native';
 
 const paragraphs = [

@@ -1,17 +1,17 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CHART_DOCS } from '../apps/platform-blocks.com/config/charts';
+import { CHART_DOCS } from '../apps/react-ui-library.com/config/charts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
-const docsDir = path.join(repoRoot, 'apps', 'platform-blocks.com');
+const docsDir = path.join(repoRoot, 'apps', 'react-ui-library.com');
 const publicDir = path.join(docsDir, 'public');
 const generatedDir = path.join(docsDir, 'data', 'generated');
 const outputPath = path.join(publicDir, 'sitemap.xml');
 
-const BASE_URL = 'https://platform-blocks.com';
+const BASE_URL = 'https://react-ui-library.com';
 
 interface SitemapUrl {
   loc: string;

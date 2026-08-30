@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Button, RadioGroup, Text } from '@platform-blocks/ui';
+import { Block, Button, RadioGroup, Text } from '@platform-blocks/react-ui-library';
 
 const PLANS = [
   {

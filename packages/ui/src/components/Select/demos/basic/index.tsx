@@ -1,4 +1,4 @@
-import { Select } from '@platform-blocks/ui'
+import { Select } from '@platform-blocks/react-ui-library'
 import { sports } from '../data'
 
 export function Demo() {

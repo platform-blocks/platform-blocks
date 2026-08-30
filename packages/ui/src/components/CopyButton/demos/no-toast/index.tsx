@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CopyButton, Card, Flex, Text } from '@platform-blocks/ui';
+import { CopyButton, Card, Flex, Text } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   const [copiedValue, setCopiedValue] = useState<string | null>(null);

@@ -2,7 +2,7 @@
 playground: true
 title: DatePicker
 description: Inline calendar component for selecting single dates, ranges, and multiple values without an input trigger.
-source: "@platform-blocks/ui"
+source: "@platform-blocks/react-ui-library"
 status: "stable"
 category: dates
 accessibility: "Supports keyboard navigation, ARIA attributes, screen readers, and date format announcements."

@@ -1,4 +1,4 @@
-import { Image, Card, Text, Row, Icon, Block } from '@platform-blocks/ui';
+import { Image, Card, Text, Row, Icon, Block } from '@platform-blocks/react-ui-library';
 
 export function Demo() {
   return (

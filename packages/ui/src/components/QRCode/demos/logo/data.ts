@@ -1,7 +1,7 @@
 export const LOGO_EXAMPLES = [
   {
     label: 'Rounded modules',
-    value: 'https://platform-blocks.com/events/media-day',
+    value: 'https://react-ui-library.com/events/media-day',
     moduleShape: 'rounded' as const,
     cornerRadius: 0.4,
     logo: {
@@ -12,7 +12,7 @@ export const LOGO_EXAMPLES = [
   },
   {
     label: 'Square modules',
-    value: 'https://platform-blocks.com/support/app',
+    value: 'https://react-ui-library.com/support/app',
     moduleShape: 'square' as const,
     cornerRadius: undefined,
     logo: {
