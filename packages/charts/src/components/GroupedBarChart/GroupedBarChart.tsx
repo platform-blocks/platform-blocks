@@ -337,6 +337,7 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
   }, [categories, categoryIndexMap, outerScale, innerScale, resolvedSeries, outerBandwidth, valueScale, baseline]);
 
   const animationProgress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = React.useRef(false);
 
   const dataSignature = useMemo(() => {
     return resolvedSeries
@@ -351,6 +352,10 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
   }, [resolvedSeries, categories]);
 
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (disabled) {
       animationProgress.value = 1;
       return;

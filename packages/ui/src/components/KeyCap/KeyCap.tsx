@@ -61,11 +61,11 @@ const KEY_CAP_ALLOWED_SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
 const KEY_CAP_ALLOWED_SIZES_ARRAY: ComponentSize[] = [...KEY_CAP_ALLOWED_SIZES];
 
 const KEY_CAP_SIZE_SCALE: Partial<Record<ComponentSize, KeyCapMetrics>> = {
-  xs: { height: 20, minWidth: 20, paddingHorizontal: 6, fontSize: 10 },
-  sm: { height: 24, minWidth: 24, paddingHorizontal: 8, fontSize: 11 },
-  md: { height: 28, minWidth: 28, paddingHorizontal: 10, fontSize: 12 },
-  lg: { height: 32, minWidth: 32, paddingHorizontal: 12, fontSize: 13 },
-  xl: { height: 36, minWidth: 36, paddingHorizontal: 14, fontSize: 14 },
+  xs: { height: 20, minWidth: 20, paddingHorizontal: 4, fontSize: 10 },
+  sm: { height: 24, minWidth: 24, paddingHorizontal: 6, fontSize: 11 },
+  md: { height: 28, minWidth: 28, paddingHorizontal: 8, fontSize: 12 },
+  lg: { height: 32, minWidth: 32, paddingHorizontal: 10, fontSize: 13 },
+  xl: { height: 36, minWidth: 36, paddingHorizontal: 12, fontSize: 14 },
 };
 
 const BASE_KEY_CAP_METRICS: KeyCapMetrics = KEY_CAP_SIZE_SCALE.md ?? {
@@ -247,7 +247,9 @@ export const KeyCap = factory<{
       paddingHorizontal,
       ...webContainerStyle
     } = Object.assign({}, ...containerStyle);
-    const borderSideColor = theme.colors.surface[3];
+    const surfaceColor = (index: number) =>
+      `var(--platform-blocks-palette-surface-${index}, ${theme.colors.surface[index]})`;
+    const borderSideColor = surfaceColor(3);
 
     return (
       <kbd
@@ -272,8 +274,8 @@ export const KeyCap = factory<{
           cursor: 'default',
           // Enhanced keycap styling
           background: finalPressed 
-            ? theme.colors.surface[3]
-            : `linear-gradient(180deg, ${theme.colors.surface[1]} 0%, ${theme.colors.surface[2]} 50%, ${theme.colors.surface[3]} 100%)`,
+            ? surfaceColor(3)
+            : `linear-gradient(180deg, ${surfaceColor(1)} 0%, ${surfaceColor(2)} 50%, ${surfaceColor(3)} 100%)`,
           borderStyle: 'solid',
           borderTopWidth: '1px',
           borderRightWidth: '1px',
@@ -282,7 +284,7 @@ export const KeyCap = factory<{
           borderTopColor: borderSideColor,
           borderRightColor: borderSideColor,
           borderLeftColor: borderSideColor,
-          borderBottomColor: theme.colors.surface[4],
+          borderBottomColor: surfaceColor(4),
           borderRadius: radiusStyles.borderRadius ?? styles.container.borderRadius ?? 6,
           boxShadow: finalPressed 
             ? 'inset 0 1px 2px rgba(0, 0, 0, 0.1)'

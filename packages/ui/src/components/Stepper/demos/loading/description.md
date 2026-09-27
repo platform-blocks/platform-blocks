@@ -3,7 +3,6 @@ title: Loading Indicator
 category: feedback
 order: 50
 tags: [stepper, feedback]
-highlightLines: [42-51]
 status: stable
 since: 1.0.0
 hidden: false

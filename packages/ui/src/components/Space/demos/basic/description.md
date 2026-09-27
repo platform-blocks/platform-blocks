@@ -4,7 +4,6 @@ description: Compare token-based and numeric vertical gaps between stacked conte
 tags: [spacing, layout]
 category: basics
 order: 10
-highlightLines: [24-33]
 status: stable
 since: 1.0.0
 hidden: false

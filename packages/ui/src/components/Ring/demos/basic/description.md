@@ -3,7 +3,6 @@ title: Interactive Presets
 category: usage
 order: 10
 tags: [ring]
-highlightLines: [9-12]
 status: stable
 since: 1.0.0
 hidden: false

@@ -4,7 +4,6 @@ description: Advanced gallery configurations with custom handlers.
 tags: [advanced, customization, handlers, minimal]
 category: features
 order: 20
-highlightLines: [22-38]
 status: stable
 since: 1.0.0
 hidden: false

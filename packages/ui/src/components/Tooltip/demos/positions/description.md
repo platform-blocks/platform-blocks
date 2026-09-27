@@ -6,7 +6,6 @@ title: Positions
 category: behavior
 order: 30
 tags: [positioning]
-highlightLines: [12-31]
 status: stable
 since: 1.0.0
 hidden: false

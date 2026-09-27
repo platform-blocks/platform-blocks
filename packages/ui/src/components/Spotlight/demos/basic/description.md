@@ -3,7 +3,6 @@ title: Keyboard Palette
 category: usage
 order: 10
 tags: [spotlight]
-highlightLines: [31-44]
 status: stable
 since: 1.0.0
 hidden: false

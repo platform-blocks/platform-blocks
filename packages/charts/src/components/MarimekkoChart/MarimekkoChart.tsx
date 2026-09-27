@@ -508,7 +508,12 @@ export const MarimekkoChart: React.FC<MarimekkoChartProps> = (props) => {
   }, [normalizedCategories]);
 
   const animationProgress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = React.useRef(false);
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (disabled) {
       animationProgress.value = 1;
       return;

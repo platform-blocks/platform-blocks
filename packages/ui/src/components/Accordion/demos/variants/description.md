@@ -3,7 +3,6 @@ title: Visual Variants
 category: appearance
 order: 30
 tags: [accordion, appearance]
-highlightLines: [44-52]
 status: stable
 since: 1.0.0
 hidden: false

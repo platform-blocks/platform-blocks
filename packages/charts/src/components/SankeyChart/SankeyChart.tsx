@@ -274,6 +274,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
   
   // Animation state
   const animationProgress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = React.useRef(false);
   
   // Data signature for memoization
   const dataSignature = React.useMemo(() => {
@@ -285,7 +286,14 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
 
   // Start animation when data changes
   React.useEffect(() => {
-    if (disabled) return;
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
+    if (disabled) {
+      animationProgress.value = 1;
+      return;
+    }
     
     animationProgress.value = 0;
     animationProgress.value = withDelay(

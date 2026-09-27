@@ -3,7 +3,6 @@ title: Basic Usage
 category: usage
 order: 10
 tags: [menu]
-highlightLines: [20-38]
 status: stable
 since: 1.0.0
 hidden: false

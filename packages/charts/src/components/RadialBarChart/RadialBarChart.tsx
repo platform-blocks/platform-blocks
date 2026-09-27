@@ -235,11 +235,16 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
 
   // Animation
   const animationProgress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = React.useRef(false);
   const dataSignature = useMemo(() => {
     return data.map(d => `${d.id || 'auto'}-${d.value}-${d.max || ''}`).join('|');
   }, [data]);
 
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (disabled) {
       animationProgress.value = 1;
       return;

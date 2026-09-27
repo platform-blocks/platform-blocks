@@ -6,7 +6,6 @@ tags: [timeline, appearance]
 status: stable
 since: 1.0.0
 hidden: false
-highlightLines: [32-46]
 highlightLines: []
 ---
 

@@ -3,7 +3,6 @@ title: Data Prop
 category: usage
 order: 10
 tags: [table]
-highlightLines: [19]
 status: stable
 since: 1.0.0
 hidden: false

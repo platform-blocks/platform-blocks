@@ -3,7 +3,6 @@ title: Size Options
 category: appearance
 order: 30
 tags: [link, sizing]
-highlightLines: [20-27]
 status: stable
 since: 1.0.0
 hidden: false

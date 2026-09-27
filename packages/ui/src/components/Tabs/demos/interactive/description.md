@@ -3,7 +3,6 @@ title: Controlled state
 category: behavior
 order: 40
 tags: [tabs, controlled]
-highlightLines: [22-27]
 status: stable
 since: 1.0.0
 hidden: false

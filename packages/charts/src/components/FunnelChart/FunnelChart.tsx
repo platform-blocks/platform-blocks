@@ -572,12 +572,17 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
   }, [layout?.connectors, segments]);
 
   const animationProgress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = React.useRef(false);
   const dataSignature = useMemo(
     () => segments.map((segment) => `${segment.id}-${segment.value}-${segment.color}`).join('|'),
     [segments]
   );
 
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (disabled) {
       animationProgress.value = 1;
       return;

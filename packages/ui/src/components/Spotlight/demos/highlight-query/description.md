@@ -3,7 +3,6 @@ title: Highlight Matches
 category: feedback
 order: 40
 tags: [spotlight]
-highlightLines: [39-52]
 status: stable
 since: 1.0.0
 hidden: false

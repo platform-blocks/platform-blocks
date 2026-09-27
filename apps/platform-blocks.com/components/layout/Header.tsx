@@ -1,4 +1,5 @@
 import React from 'react';
+import { usePathname } from 'expo-router';
 import { Flex, Text, Breadcrumbs, Image, Search, Row, KeyCap } from '@platform-blocks/ui';
 import { HeaderThemeToggle } from './ToggleTheme';
 import { ToggleDirection } from './ToggleDirection';
@@ -7,6 +8,8 @@ import { RouteLink } from '../RouteLink';
 
 export const AppHeader: React.FC = () => {
   const breadcrumbs = useBreadcrumbs();
+  const pathname = usePathname();
+  const isHome = pathname === '/';
 
   // CMD+K shortcut component
   const shortcutComponent = (
@@ -39,11 +42,27 @@ export const AppHeader: React.FC = () => {
               </Text>
             </Flex>
           </RouteLink>
-         <Breadcrumbs
-            items={breadcrumbs}
-            size="xs"
-            maxItems={4}
-          />
+          {isHome ? (
+            <Flex direction="row" gap="lg" align="center">
+              {[
+                ['Docs', '/getting-started'],
+                ['Components', '/components'],
+                ['Charts', '/charts'],
+                ['Hooks', '/hooks'],
+                ['Examples', '/examples'],
+              ].map(([label, href]) => (
+                <RouteLink key={href} href={href}>
+                  <Text size="sm" color="secondary" weight="medium">{label}</Text>
+                </RouteLink>
+              ))}
+            </Flex>
+          ) : (
+            <Breadcrumbs
+              items={breadcrumbs}
+              size="xs"
+              maxItems={4}
+            />
+          )}
         </Flex>
 
         <Flex direction="row" gap="sm" align="center">

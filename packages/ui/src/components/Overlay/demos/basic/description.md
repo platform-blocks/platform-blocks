@@ -3,7 +3,6 @@ title: Overlay patterns
 category: surfaces
 order: 10
 tags: [overlays, effects]
-highlightLines: [24-74]
 status: stable
 since: 1.0.0
 hidden: false

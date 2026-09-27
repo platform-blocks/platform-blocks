@@ -336,6 +336,7 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
   }, [layoutResult.categories, xScale, valueScale, categories.length, plotWidth]);
 
   const animationProgress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = React.useRef(false);
 
   const dataSignature = useMemo(() => {
     const seriesSignature = resolvedSeries
@@ -353,6 +354,10 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
   }, [resolvedSeries, categories, layoutResult.segmentLookup, layoutResult.valueDomain]);
 
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (disabled) {
       animationProgress.value = 1;
       return;

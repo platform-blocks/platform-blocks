@@ -376,6 +376,7 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
 
   // Animation
   const animationProgress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = React.useRef(false);
   const dataSignature = useMemo(() => {
     return layers.map(l => 
       `${l.id}-${l.color}-${l.points.map(p => `${p.x}:${p.y1}`).join(',')}`
@@ -383,6 +384,10 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
   }, [layers]);
 
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (disabled) {
       animationProgress.value = 1;
       return;

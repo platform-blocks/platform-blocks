@@ -3,7 +3,6 @@ title: Grouped Actions
 category: organization
 order: 30
 tags: [spotlight]
-highlightLines: [36-47]
 status: stable
 since: 1.0.0
 hidden: false

@@ -3,7 +3,6 @@ title: External Destinations
 category: usage
 order: 20
 tags: [link, external]
-highlightLines: [18-20]
 status: stable
 since: 1.0.0
 hidden: false

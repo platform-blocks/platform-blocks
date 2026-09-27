@@ -3,7 +3,6 @@ title: Context Trigger
 category: behavior
 order: 20
 tags: [menu, contextmenu]
-highlightLines: [17-40]
 status: stable
 since: 1.0.0
 hidden: false

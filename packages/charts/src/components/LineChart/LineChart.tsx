@@ -261,6 +261,7 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
   const isWeb = Platform.OS === 'web';
   const defaultScheme = colorSchemes.default;
   const animationProgress = useSharedValue(0);
+  const hasPlayedIntro = React.useRef(false);
   const [selectedPoint, setSelectedPoint] = useState<ChartDataPoint | null>(null);
   // Store the full chart-space point (with chartX/chartY & color) for rendering highlight even when showPoints=false
   const [highlightPoint, setHighlightPoint] = useState<{ chartX: number; chartY: number; color: string; id?: any; seriesId?: any } | null>(null);
@@ -351,6 +352,10 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
   }, [animation?.type]);
 
   React.useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (!supportsDrawAnimation || disableAnimations) {
       animationProgress.value = 1;
       return;

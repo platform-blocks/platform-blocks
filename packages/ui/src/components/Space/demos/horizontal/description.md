@@ -4,7 +4,6 @@ description: Use `Space` to control gutters between inline buttons with tokens o
 tags: [spacing, layout]
 category: layout
 order: 20
-highlightLines: [26-38]
 status: stable
 since: 1.0.0
 hidden: false

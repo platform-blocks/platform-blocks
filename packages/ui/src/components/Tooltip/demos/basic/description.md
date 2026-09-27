@@ -6,7 +6,6 @@ title: Basic Usage
 category: usage
 order: 10
 tags: [tooltip]
-highlightLines: [9-15]
 status: stable
 since: 1.0.0
 hidden: false

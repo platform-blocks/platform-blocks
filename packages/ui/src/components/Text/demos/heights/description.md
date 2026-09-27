@@ -3,7 +3,6 @@ title: Heights
 category: usage
 order: 50
 tags: [line-height, spacing]
-highlightLines: [12-15, 19-22, 26-29, 33-36, 40-43]
 status: stable
 since: 1.0.0
 hidden: false

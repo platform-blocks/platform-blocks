@@ -6,7 +6,6 @@ title: Delays and Content
 category: behavior
 order: 40
 tags: [delays, wrapping]
-highlightLines: [11-44]
 status: stable
 since: 1.0.0
 hidden: false

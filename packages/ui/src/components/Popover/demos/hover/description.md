@@ -3,7 +3,6 @@ title: Hover Trigger
 category: usage
 order: 15
 tags: [popover, hover, trigger]
-highlightLines: [7]
 status: stable
 since: 1.0.0
 hidden: false

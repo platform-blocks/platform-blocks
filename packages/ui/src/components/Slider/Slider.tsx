@@ -312,11 +312,9 @@ export const Slider = factory<{
             height: fullWidth && orientation === 'vertical' ? '100%' : orientationProps.containerHeight,
             justifyContent: 'center',
             position: 'relative',
-            // With fullWidth the real container size isn't known until onLayout
-            // measures it, so ticks/thumb/active-track are first placed against a
-            // default width and would visibly jump into place. Keep the content
-            // hidden for that first frame so it pops in already positioned.
-            opacity: fullWidth && !actualContainerSize ? 0 : 1,
+            // Render immediately using the fallback geometry. `onLayout` updates
+            // positions to the measured fullWidth size as soon as native layout
+            // reports it; hiding here made the whole control flash in on mount.
           },
           // touch-action / selection / cursor — see core/gestures.
           drag.surfaceStyle,
@@ -673,9 +671,9 @@ export const RangeSlider = factory<{
             height: fullWidth && orientation === 'vertical' ? '100%' : orientationProps.containerHeight,
             justifyContent: 'center',
             position: 'relative',
-            // See the single-slider note: hide until measured so fullWidth ticks
-            // and thumbs pop in already positioned instead of jumping.
-            opacity: fullWidth && !actualRangeContainerSize ? 0 : 1,
+            // Render immediately using the fallback geometry. `onLayout` updates
+            // positions to the measured fullWidth size as soon as native layout
+            // reports it; hiding here made the whole control flash in on mount.
           },
           drag.surfaceStyle,
         ]}

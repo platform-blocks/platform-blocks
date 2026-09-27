@@ -152,6 +152,14 @@ export const themeColorVariables = (theme: PlatformBlocksTheme): Record<string, 
     }
   }
 
+  // Publish indexed palettes for components whose computed inline styles use
+  // literal shades, so the browser can resolve the active scheme before hydration.
+  Object.entries(theme.colors ?? {}).forEach(([palette, shades]) => {
+    shades.forEach((value, index) => {
+      variables[`--platform-blocks-palette-${palette}-${index}`] = value;
+    });
+  });
+
   const chrome = shellChromeColors(theme);
   for (const [token, name] of Object.entries(SHELL_CHROME_VAR_NAMES) as [ShellChromeToken, string][]) {
     const value = chrome[token];
@@ -276,3 +284,26 @@ export const literalBackgrounds = (theme: PlatformBlocksTheme): PlatformBlocksTh
 /** Surface tokens as literal colors — safe to measure, and safe outside CSS. */
 export const literalSurfaces = (theme: PlatformBlocksTheme): SurfaceScale | undefined =>
   theme.literalColors?.surfaces ?? theme.surfaces;
+
+/** Return a scheme-aware CSS color when a rendered color comes from a theme palette. */
+export const themeColorForFirstPaint = (theme: PlatformBlocksTheme, value: string | undefined): string | undefined => {
+  if (Platform.OS !== 'web' || !value || value === 'transparent') return value;
+
+  const rgba = value.match(/^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)$/i);
+  const rgb = rgba ? rgba.slice(1, 4).map(Number) : null;
+  for (const [palette, shades] of Object.entries(theme.colors ?? {})) {
+    const index = shades.findIndex((shade) => {
+      if (!rgba) return shade.toLowerCase() === value.toLowerCase();
+      const hex = shade.replace(/^#/, '');
+      if (!/^[\da-f]{6}$/i.test(hex)) return false;
+      return [0, 2, 4].every((offset, channel) => parseInt(hex.slice(offset, offset + 2), 16) === rgb?.[channel]);
+    });
+    if (index >= 0) {
+      const reference = `var(--platform-blocks-palette-${palette}-${index}, ${shades[index]})`;
+      return rgba
+        ? `color-mix(in srgb, ${reference} ${Number(rgba[4]) * 100}%, transparent)`
+        : reference;
+    }
+  }
+  return value;
+};

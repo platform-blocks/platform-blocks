@@ -251,6 +251,7 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
   const [pressedIndex, setPressedIndex] = useState<number | null>(null);
 
   const animationProgress = useSharedValue(0);
+  const hasPlayedIntro = React.useRef(false);
 
   const resolvedSeries = useMemo<BarChartSeries[]>(() => {
     if (series && series.length > 0) {
@@ -721,6 +722,8 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
   }, [disabled, animation?.duration, animationDuration, animationProgress]);
 
   useEffect(() => {
+    if (hasPlayedIntro.current) return;
+    hasPlayedIntro.current = true;
     startAnimation();
   }, [startAnimation, dataSignature]);
 

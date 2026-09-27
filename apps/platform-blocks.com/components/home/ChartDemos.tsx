@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, type LayoutChangeEvent } from 'react-native';
-import { Card, Grid, GridItem, type ResponsiveProp } from '@platform-blocks/ui';
+import { type LayoutChangeEvent } from 'react-native';
+import { Block, Card, Grid, GridItem, type ResponsiveProp } from '@platform-blocks/ui';
 import { AreaChart, BarChart, PieChart } from '@platform-blocks/charts';
 
 /* ------------------------------------------------------------------ */
@@ -57,9 +57,9 @@ function ChartCard({ children }: { title: string; children: (width: number) => R
   // `width` is 0 — the chart is the only thing gated on the measurement.
   return (
     <Card variant="ghost">
-      <View style={{ width: '100%', height: CHART_CARD_HEIGHT }} onLayout={handleLayout}>
+      <Block {...({ onLayout: handleLayout } as any)} gap={0} w="full" h={CHART_CARD_HEIGHT}>
         {width > 0 ? children(width) : null}
-      </View>
+      </Block>
     </Card>
   );
 }
@@ -71,7 +71,7 @@ export interface ChartDemosProps {
 
 export default function ChartDemos({ cols }: ChartDemosProps) {
   return (
-    <Grid columns={cols} gap="lg" style={{ width: '100%', marginBottom: 32 }}>
+    <Grid columns={cols} gap="lg" fullWidth mb="xl">
       <GridItem span={1}>
         <ChartCard title="Revenue trend">
           {(width) => (

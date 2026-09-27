@@ -3,7 +3,6 @@ title: Visual Variants
 category: appearance
 order: 40
 tags: [link, appearance]
-highlightLines: [20-21]
 status: stable
 since: 1.0.0
 hidden: false

@@ -3,7 +3,6 @@ title: Multiple Expansion
 category: behavior
 order: 20
 tags: [accordion, controlled]
-highlightLines: [45-55]
 status: stable
 since: 1.0.0
 hidden: false

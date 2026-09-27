@@ -336,11 +336,16 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
 
   // Animation
   const animationProgress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = React.useRef(false);
   const dataSignature = useMemo(() => {
     return bins.map((b: HistogramBin) => `${b.start}-${b.end}-${b.count}`).join('|');
   }, [bins]);
 
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (disabled) {
       animationProgress.value = 1;
       return;

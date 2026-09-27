@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { Pressable, View, Animated, LayoutChangeEvent } from 'react-native';
+import { Pressable, View, Animated, LayoutChangeEvent, Platform } from 'react-native';
 import { useTheme } from '../../core/theme';
 import { resolveGradientStops, type VariantRoles } from '../../core/theme/variantRoles';
 import { getHeight } from '../../core/theme/sizes';
@@ -13,6 +13,7 @@ import { useHaptics } from '../../hooks/useHaptics';
 import { useFocus, useAnnouncer } from '../../core/accessibility/hooks';
 import { createAccessibilityProps } from '../../core/accessibility/utils';
 import { resolveLinearGradient } from '../../utils/optionalDependencies';
+import { themeColorForFirstPaint } from '../../core/theme/cssVariableTheme';
 import { useButtonAnimation } from './animation';
 import {
   getButtonFillStyle,
@@ -187,7 +188,7 @@ export const Button = React.forwardRef<View, ButtonProps>((allProps, ref) => {
     [theme, resolvedRoleColor],
   );
 
-  const buttonStyles = getButtonStyles({
+  const resolvedButtonStyles = getButtonStyles({
     theme,
     variant: effectiveVariant,
     size,
@@ -198,6 +199,13 @@ export const Button = React.forwardRef<View, ButtonProps>((allProps, ref) => {
     roles,
     isIconButton,
   });
+  const buttonStyles = Platform.OS === 'web'
+    ? {
+        ...resolvedButtonStyles,
+        backgroundColor: themeColorForFirstPaint(theme, resolvedButtonStyles.backgroundColor),
+        borderColor: themeColorForFirstPaint(theme, resolvedButtonStyles.borderColor),
+      }
+    : resolvedButtonStyles;
 
   const textColor = useMemo(
     () =>
@@ -211,6 +219,7 @@ export const Button = React.forwardRef<View, ButtonProps>((allProps, ref) => {
       }),
     [textColorProp, roles, effectiveVariant, hasExplicitColor, accentText, theme],
   );
+  const renderedTextColor = themeColorForFirstPaint(theme, textColor);
 
   // Memoize text props. The base styling is the Button's defaults; if the
   // consumer passes `labelProps`, those win (weight/ff/color/style)
@@ -222,17 +231,17 @@ export const Button = React.forwardRef<View, ButtonProps>((allProps, ref) => {
           size,
           weight: '600' as const,
           align: 'center' as const,
-          color: textColor,
+          color: renderedTextColor,
           selectable: false,
           style: getButtonLabelStyle(size),
         },
         labelProps,
       ),
-    [size, textColor, labelProps],
+    [size, renderedTextColor, labelProps],
   );
 
   // Loader shares the text color so it reads on every variant.
-  const loaderColor = textColor;
+  const loaderColor = renderedTextColor;
 
   // Helper function to inject color into icon components
   const renderIconWithColor = (iconElement: React.ReactNode) => {
@@ -249,7 +258,7 @@ export const Button = React.forwardRef<View, ButtonProps>((allProps, ref) => {
         if (shouldInjectColor) {
           return React.cloneElement(iconElement as any, {
             ...iconProps,
-            color: textColor
+            color: renderedTextColor
           });
         }
       }
@@ -356,7 +365,7 @@ export const Button = React.forwardRef<View, ButtonProps>((allProps, ref) => {
                 }}
               >
                 <OptionalLinearGradient
-                  colors={gradientStops}
+                  colors={gradientStops.map((stop) => themeColorForFirstPaint(theme, stop)) as [string, string]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={{ flex: 1 }}

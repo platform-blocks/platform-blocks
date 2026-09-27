@@ -6,7 +6,6 @@ title: Trigger Modes
 category: behavior
 order: 20
 tags: [events, interaction]
-highlightLines: [13-33]
 status: stable
 since: 1.0.0
 hidden: false

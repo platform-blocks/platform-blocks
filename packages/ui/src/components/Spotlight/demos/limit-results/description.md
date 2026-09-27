@@ -3,7 +3,6 @@ title: Limit Results
 category: behavior
 order: 50
 tags: [spotlight]
-highlightLines: [15-27]
 status: stable
 since: 1.0.0
 hidden: false

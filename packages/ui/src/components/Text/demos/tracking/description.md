@@ -3,7 +3,6 @@ title: Tracking
 category: styling
 order: 60
 tags: [tracking, letter-spacing]
-highlightLines: [7-12, 17-21, 26-33, 38-46, 51-57, 62-67]
 status: stable
 since: 1.0.0
 hidden: false

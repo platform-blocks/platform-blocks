@@ -69,7 +69,12 @@ const toNativePointerEvent = (event: any) => {
 
 const useComboAnimation = (disabled: boolean, duration: number, signature: string) => {
   const progress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = useRef(false);
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (disabled) {
       progress.value = 1;
       return;

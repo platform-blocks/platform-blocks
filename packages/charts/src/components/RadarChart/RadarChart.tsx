@@ -408,6 +408,7 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
 
   // Animation
   const animationProgress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = React.useRef(false);
   const dataSignature = useMemo(() => {
     return series
       .map(s => 
@@ -417,6 +418,10 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
   }, [series]);
 
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (disabled) {
       animationProgress.value = 1;
       return;

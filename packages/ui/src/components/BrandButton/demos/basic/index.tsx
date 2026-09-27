@@ -6,7 +6,7 @@ export function Demo() {
   brand="facebook"
     onPress={() => toast.warn({ 
       title: 'What the Zuck!',
-      message: 'This is a Facebook brand button',
+      message: 'I love Sweet Baby Ray\'s',
       position: 'top-center'
     })}
   />
