@@ -7,16 +7,13 @@ export function Demo() {
         {Array.from({ length: 12 }).map((_, index) => (
           <GridItem key={index} span={1}>
             <Card variant="outline">
-              <Text size="sm" align="center">
+              <Text size="sm" ta="center">
                 {index + 1}
               </Text>
             </Card>
           </GridItem>
         ))}
       </Grid>
-      <Text size="sm" color="secondary">
-        Twelve even columns, each spanning a single track
-      </Text>
     </Block>
   );
 }

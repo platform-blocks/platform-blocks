@@ -46,7 +46,7 @@ describe('Progress - behavior', () => {
     const { getByTestId } = render(<Progress value={150} testID="progress-bar" />);
 
     const track = getByTestId('progress-bar');
-    expect(track.props.accessibilityValue).toEqual({ min: 0, max: 100, now: 100 });
+    expect([track.props['aria-valuemin'], track.props['aria-valuemax'], track.props['aria-valuenow']]).toEqual([0, 100, 100]);
   });
 
   it('uses a custom hex color when provided', () => {
@@ -56,9 +56,9 @@ describe('Progress - behavior', () => {
 
     const track = getByTestId('progress-color');
     const fill = track.props.children;
-    const baseStyle = Array.isArray(fill.props.style) ? fill.props.style[0] : fill.props.style;
+    const fillStyles = (Array.isArray(fill.props.style) ? fill.props.style : [fill.props.style]).flat();
 
-    expect(baseStyle.backgroundColor).toBe('#123456');
+    expect(fillStyles.map((entry: { backgroundColor?: string } | null) => entry?.backgroundColor)).toContain('#123456');
   });
 
   it('composes sections with the provided values inside Progress.Root', () => {
@@ -74,11 +74,11 @@ describe('Progress - behavior', () => {
     );
 
     const sections = UNSAFE_getAllByType(View).filter(
-      (instance) => instance.props.accessibilityRole === 'progressbar'
+      (instance) => instance.props.role === 'progressbar'
     );
     expect(sections).toHaveLength(2);
-    expect(sections[0].props.accessibilityValue.now).toBe(30);
-    expect(sections[1].props.accessibilityValue.now).toBe(70);
+    expect(sections[0].props['aria-valuenow']).toBe(30);
+    expect(sections[1].props['aria-valuenow']).toBe(70);
   });
 
   it('exposes the sub-components as statics on Progress', () => {
@@ -96,8 +96,21 @@ describe('Progress - label field', () => {
 
     expect(getByText('Upload')).toBeTruthy();
     expect(getByText('3 of 8 files')).toBeTruthy();
-    // The label doubles as the accessibility label when no aria-label is set
-    expect(getByTestId('labelled').props.accessibilityLabel).toBe('Upload');
+    // The label names the bar when no aria-label is set (native: its text; web: aria-labelledby)
+    expect(getByTestId('labelled').props['aria-label']).toBe('Upload');
+    expect(getByTestId('labelled').props.role).toBe('progressbar');
+  });
+
+  it('describes the bar with the error and announces it politely', () => {
+    const { getByTestId, getByText } = render(
+      <Progress value={40} label="Upload" error="Upload failed" testID="errored" />
+    );
+
+    // Native has no id references: the error becomes the hint.
+    expect(getByTestId('errored').props.accessibilityHint).toBe('Upload failed');
+    let node: any = getByText('Upload failed');
+    while (node && node.props?.role !== 'alert') node = node.parent;
+    expect(node?.props.role).toBe('alert');
   });
 
   it('replaces the description with the error message', () => {
@@ -126,6 +139,15 @@ describe('Progress - label field', () => {
 
     const plain = render(<Progress value={40} mt={24} testID="plain-bar" />);
     expect(StyleSheet.flatten(plain.getByTestId('plain-bar').props.style).marginTop).toBe(24);
+  });
+
+  it('sizes the root the same way; an explicit `w` wins over `fullWidth`', () => {
+    const labelled = render(<Progress value={40} label="Upload" fullWidth w={240} testID="labelled-bar" />);
+    expect(StyleSheet.flatten(labelled.getByTestId('labelled-bar').props.style).width).toBeUndefined();
+    expect(StyleSheet.flatten((labelled.toJSON() as any).props.style).width).toBe(240);
+
+    const plain = render(<Progress value={40} fullWidth w={240} testID="plain-bar" />);
+    expect(StyleSheet.flatten(plain.getByTestId('plain-bar').props.style).width).toBe(240);
   });
 
   it('supports labels on Progress.Root', () => {
@@ -205,7 +227,22 @@ describe('Progress.Section - interaction', () => {
     expect(wrapperStyle.height).toBe('100%');
 
     // The tooltip label doubles as the section's accessibility label
-    expect(getByTestId('tooltip-section').props.accessibilityLabel).toBe('Documents — 35%');
+    // (Pressable hands `aria-label` to its host view as accessibilityLabel.)
+    const host = getByTestId('tooltip-section').props;
+    expect(host.accessibilityLabel ?? host['aria-label']).toBe('Documents — 35%');
+    // …so the tooltip doesn't repeat it as the hint.
+    expect(host.accessibilityHint).toBeUndefined();
+  });
+
+  it('keeps the tooltip as the hint when the section has its own aria-label', () => {
+    const { getByTestId } = render(
+      <ProgressRoot>
+        <ProgressSection value={35} tooltip="Documents — 35%" aria-label="Documents" testID="named-section" />
+      </ProgressRoot>
+    );
+    const host = getByTestId('named-section').props;
+    expect(host.accessibilityLabel ?? host['aria-label']).toBe('Documents');
+    expect(host.accessibilityHint).toBe('Documents — 35%');
   });
 
   it('becomes pressable when onPress is provided', () => {

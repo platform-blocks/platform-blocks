@@ -25,20 +25,17 @@ export function Demo() {
   );
 
   return (
-    <Block>
+    <Block fullWidth>
       <Tabs
         items={items}
-        activeTab={activeTab}
-        onTabChange={(tabKey) => setActiveTab(tabKey as typeof NAV_ITEMS[number]['key'])}
+        value={activeTab}
+        onChange={(tabKey) => setActiveTab(tabKey as typeof NAV_ITEMS[number]['key'])}
         variant="chip"
         navigationOnly
       />
       <Block bg={theme.backgrounds.surface} borderColor={theme.backgrounds.border} radius="lg" p="lg">
         <Text>{CONTENT_COPY[activeTab]}</Text>
       </Block>
-      <Text variant="small" color="muted">
-        `navigationOnly` renders just the triggers so you can manage layout and transitions for the content area yourself.
-      </Text>
     </Block>
   );
 }

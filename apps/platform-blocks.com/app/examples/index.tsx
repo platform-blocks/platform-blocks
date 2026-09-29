@@ -28,7 +28,7 @@ export default function ExamplesScreen() {
               <Flex direction="column" justify="space-between" gap="md" style={{ flex: 1 }}>
                 <Column gap="sm">
                   <Title order={3}>{example.title}</Title>
-                  <Text color="secondary">{example.description}</Text>
+                  <Text c="secondary">{example.description}</Text>
                   <Flex direction="row" gap="xs" wrap="wrap">
                     {example.components.map(component => (
                       <Chip key={component} size="sm" variant="surface">{component}</Chip>
@@ -54,7 +54,7 @@ export default function ExamplesScreen() {
           ))}
         </Flex>
 
-        <Text variant="small" color="secondary">
+        <Text variant="small" c="secondary">
           Each example is a single self-contained file — copy it into your app and adjust. More
           examples land here regularly; suggestions are welcome on GitHub.
         </Text>

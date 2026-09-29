@@ -1,134 +1,130 @@
-import React, { useEffect, useRef, ReactNode } from 'react';
-import { View, Modal, Platform, ViewStyle, StyleSheet, Pressable } from 'react-native';
-import { useOverlay } from './OverlayProvider';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { I18nManager, Modal, Pressable, StyleSheet, View } from 'react-native';
+import type { StyleProp, ViewProps, ViewStyle } from 'react-native';
+
+import { OverlayProvider, useOverlay } from './OverlayProvider';
+import type { OverlayConfig } from './OverlayProvider';
 import { useTheme } from '../theme/ThemeProvider';
+import { getZIndex } from '../theme/zIndices';
+import { isNative, isWeb } from '../platform';
+import { handleModalRequestClose } from '../overlay/layerStack';
+import type { LayerDismissReason } from '../overlay/layerStack';
+import { LayerScope, useLayer } from '../overlay/useLayer';
+import { getViewport } from '../utils/positioning-enhanced';
+import { pointerEventsStyles } from '../platform/pointerEvents';
 
 export interface OverlayRendererProps {
-  /** Additional styles for the overlay container */
-  style?: ViewStyle;
+  /** Additional styles for each overlay's full-screen container */
+  style?: StyleProp<ViewStyle>;
+  /**
+   * Set by `OverlayHost`: this renderer lives inside a modal's window, so
+   * `'portal'` overlays render as plain views here instead of opening yet
+   * another native Modal (which iOS can't present from outside the modal).
+   */
+  hosted?: boolean;
 }
 
-export function OverlayRenderer({ style }: OverlayRendererProps = {}) {
+/** Page-coordinate frame of the renderer's parent (native), used to convert anchor coordinates. */
+interface HostFrame {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+// `pointerEvents` as a style (RN ≥ 0.71); the View prop is deprecated on react-native-web.
+const PROBE_STYLE: StyleProp<ViewStyle> = [StyleSheet.absoluteFill, { pointerEvents: 'none' }];
+
+type MeasurableNode = {
+  measure?: (
+    callback: (x: number, y: number, width: number, height: number, pageX: number, pageY: number) => void
+  ) => void;
+};
+
+/**
+ * Renders the overlays of the nearest OverlayProvider.
+ *
+ * Every overlay is registered in the global layer stack (`core/overlay`),
+ * which owns Escape (web), Android back and outside presses (web) and gives
+ * each only to the topmost layer. Native: a transparent backdrop catches taps
+ * outside; `'portal'` overlays open in an RN Modal whose `onRequestClose`
+ * (Android back) goes to the layer stack.
+ */
+export function OverlayRenderer({ style, hosted = false }: OverlayRendererProps = {}) {
   const { overlays, closeOverlay } = useOverlay();
-  const theme = useTheme();
 
-  // Maps each overlay id -> its content DOM node (web) for outside-click hit-testing.
-  const contentNodesRef = useRef<Map<string, any>>(new Map());
+  // Native: overlay coordinates are page coordinates (from `measure`), but the
+  // renderer's views are laid out inside its parent. A zero-interaction probe
+  // filling the parent tells us where that parent sits so the two agree even
+  // when the renderer isn't at the window origin (inside a SafeAreaView, or an
+  // OverlayHost in a modal card).
+  const probeRef = useRef<View>(null);
+  const [frame, setFrame] = useState<HostFrame | null>(null);
+  const measureFrame = useCallback(() => {
+    const node = probeRef.current as unknown as MeasurableNode | null;
+    node?.measure?.((_x, _y, width, height, pageX, pageY) => {
+      if (typeof pageX !== 'number' || typeof pageY !== 'number') return;
+      setFrame(prev =>
+        prev && prev.x === pageX && prev.y === pageY && prev.width === width && prev.height === height
+          ? prev
+          : { x: pageX, y: pageY, width, height }
+      );
+    });
+  }, []);
 
-  // Debug: uncomment to inspect overlay render cycles
-  // console.log('OverlayRenderer render:', overlays.length, 'overlays');
-
-  // Non-blocking outside-click detection (web).
-  //
-  // Previously a full-screen transparent <Pressable> backdrop caught outside
-  // clicks — but it also *swallowed* them, so clicking another trigger while a
-  // popover was open wasted a click (it only closed the first popover). Here we
-  // instead listen on the document, so the click still reaches whatever was
-  // clicked (the next trigger opens, a button fires) while the overlay closes.
-  //
-  // An overlay closes only when the pointer target is outside: (a) its own
-  // content, (b) its anchor/trigger — which handles its own toggle — and (c) any
-  // overlay stacked above it, so clicking inside a submenu never closes its parent.
+  const overlayCount = overlays.length;
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    if (overlays.length === 0) return;
+    if (isNative && overlayCount > 0) measureFrame();
+  }, [overlayCount, measureFrame]);
 
-    const handler = (event: any) => {
-      const target = event.target;
-      const nodes = contentNodesRef.current;
-      const contains = (node: any) => !!(node && typeof node.contains === 'function' && node.contains(target));
+  const probe = isNative ? (
+    <View
+      ref={probeRef}
+      style={PROBE_STYLE}
+      collapsable={false}
+      onLayout={measureFrame}
+    />
+  ) : null;
 
-      for (let i = 0; i < overlays.length; i++) {
-        const ov = overlays[i];
-        if (!ov.closeOnClickOutside || ov.trigger === 'hover') continue;
-        if (contains(nodes.get(ov.id))) continue;      // inside the overlay itself
-        if (contains(ov.anchorNode)) continue;         // on its trigger (trigger toggles itself)
-
-        // Inside an overlay stacked above this one? (e.g. a submenu of this menu)
-        let insideAbove = false;
-        for (let j = i + 1; j < overlays.length; j++) {
-          if (contains(nodes.get(overlays[j].id)) || contains(overlays[j].anchorNode)) {
-            insideAbove = true;
-            break;
-          }
-        }
-        if (insideAbove) continue;
-
-        closeOverlay(ov.id);
-      }
-    };
-
-    // Capture phase + no preventDefault → we detect the click without blocking it.
-    document.addEventListener('pointerdown', handler, true);
-    return () => document.removeEventListener('pointerdown', handler, true);
-  }, [overlays, closeOverlay]);
-
-  // Handle escape key for web
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        // Close topmost overlay that supports escape
-        const topOverlay = overlays
-          .filter(o => o.closeOnEscape)
-          .slice(-1)[0];
-        
-        if (topOverlay) {
-          closeOverlay(topOverlay.id);
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [overlays, closeOverlay]);
-
-  if (overlays.length === 0) return null;
+  if (overlayCount === 0) return probe;
 
   return (
     <>
-      {overlays.map((overlay, index) => {
-        const isTopmost = index === overlays.length - 1;
-        
-        if (overlay.strategy === 'portal' && Platform.OS !== 'web') {
-          // Use Modal for React Native
+      {probe}
+      {overlays.map((overlay) => {
+        const asNativeModal = isNative && !hosted && overlay.strategy === 'portal';
+
+        if (asNativeModal) {
           return (
             <Modal
               key={overlay.id}
-              visible={true}
-              transparent={true}
+              visible
+              transparent
               animationType="fade"
               statusBarTranslucent
+              // Android delivers the back button here rather than to
+              // BackHandler; the layer stack dismisses the topmost layer.
+              onRequestClose={handleModalRequestClose}
             >
-              <OverlayContent
-                overlay={overlay}
-                isTopmost={isTopmost}
-                nodesMap={contentNodesRef.current}
-                overlayId={overlay.id}
-                onBackdropPress={() => {
-                  if (overlay.closeOnClickOutside) {
-                    closeOverlay(overlay.id);
-                  }
-                }}
-              />
+              {/* A nested host (what OverlayHost does), so floating content
+                  opened from inside this overlay — a submenu, a select in a
+                  popover — renders in this Modal above it instead of trying to
+                  present a second root Modal, which iOS refuses. */}
+              <OverlayProvider>
+                <OverlayContent overlay={overlay} closeOverlay={closeOverlay} frame={null} style={style} />
+                <OverlayRenderer hosted />
+              </OverlayProvider>
             </Modal>
           );
         }
 
-        // Render overlays directly for web and other cases
         return (
           <OverlayContent
             key={overlay.id}
             overlay={overlay}
-            isTopmost={isTopmost}
-            nodesMap={contentNodesRef.current}
-            overlayId={overlay.id}
-            onBackdropPress={() => {
-              if (overlay.closeOnClickOutside) {
-                closeOverlay(overlay.id);
-              }
-            }}
+            closeOverlay={closeOverlay}
+            frame={isNative ? frame : null}
+            style={style}
           />
         );
       })}
@@ -136,45 +132,73 @@ export function OverlayRenderer({ style }: OverlayRendererProps = {}) {
   );
 }
 
+const FILL: ViewStyle = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 };
+
 interface OverlayContentProps {
-  overlay: any;
-  isTopmost: boolean;
-  onBackdropPress: () => void;
-  nodesMap?: Map<string, any>;
-  overlayId?: string;
+  overlay: OverlayConfig;
+  closeOverlay: (id: string) => void;
+  frame: HostFrame | null;
+  style?: StyleProp<ViewStyle>;
 }
 
-function OverlayContent({ overlay, isTopmost, onBackdropPress, nodesMap, overlayId }: OverlayContentProps) {
+function OverlayContent({ overlay, closeOverlay, frame, style }: OverlayContentProps) {
   const theme = useTheme();
-  const contentRef = useRef<any>(null);
+  const contentRef = useRef<View>(null);
 
-  // Register this overlay's content node so OverlayRenderer's outside-click
-  // listener can hit-test against it (web).
-  useEffect(() => {
-    if (!nodesMap || !overlayId) return;
-    nodesMap.set(overlayId, contentRef.current);
-    return () => {
-      nodesMap.delete(overlayId);
-    };
-  }, [nodesMap, overlayId]);
+  const layerOptions = overlay.layer;
+  const closeOnEscape = layerOptions?.closeOnEscape ?? overlay.closeOnEscape !== false;
+  const closeOnOutsidePress =
+    layerOptions?.closeOnOutsidePress ?? (overlay.closeOnClickOutside !== false && overlay.trigger !== 'hover');
+  const modal = layerOptions?.modal ?? false;
 
-  const DEBUG = (overlay as any).debug === true;
-  if (DEBUG) {
-    console.log('Rendering overlay content:');
-    console.log('- anchor:', overlay.anchor);
-    console.log('- placement:', overlay.placement);
-    console.log('- strategy:', overlay.strategy);
-    console.log('- zIndex:', overlay.zIndex);
-  }
+  const dismiss = (reason: LayerDismissReason) => {
+    if (overlay.onDismissRequest) {
+      overlay.onDismissRequest(reason);
+    } else {
+      closeOverlay(overlay.id);
+    }
+  };
 
-  const overlayStyle: ViewStyle & any = {
+  // The trigger toggles itself, so presses on it are not "outside".
+  const ignoreRefs = useMemo(() => [{ current: overlay.anchorNode as unknown }], [overlay.anchorNode]);
+
+  const { id: layerId } = useLayer({
+    active: true,
+    parentId: overlay.parentLayerId,
+    containerRef: contentRef,
+    outsidePressIgnoreRefs: ignoreRefs,
+    onDismiss: dismiss,
+    closeOnEscape,
+    closeOnBack: layerOptions?.closeOnBack ?? closeOnEscape,
+    closeOnOutsidePress,
+    modal,
+    trapFocus: layerOptions?.trapFocus ?? modal,
+    // Legacy overlays (no `layer` options) manage focus themselves.
+    autoFocus: layerOptions?.autoFocus ?? false,
+    initialFocus: layerOptions?.initialFocus,
+    initialFocusRef: layerOptions?.initialFocusRef,
+    restoreFocus: layerOptions?.restoreFocus ?? false,
+    restoreFocusRef: layerOptions?.restoreFocusRef,
+  });
+
+  const zIndex = overlay.zIndex ?? getZIndex(theme, 'popover');
+  const originX = frame?.x ?? 0;
+  const originY = frame?.y ?? 0;
+  const x = (overlay.anchor?.x || 0) - originX;
+
+  // With I18nManager RTL, RN swaps `left`/`right` by default; `right` is then
+  // the physical left edge. Coordinates here are physical, so undo the swap.
+  const swapsLeftRight = isNative && I18nManager.isRTL && I18nManager.doLeftAndRightSwapInRTL !== false;
+
+  const overlayStyle: ViewStyle = {
     // Use fixed positioning on web for viewport-anchored overlays
-    position: (Platform.OS === 'web' && overlay.strategy === 'fixed') ? ('fixed' as any) : 'absolute',
-    left: overlay.anchor?.x || 0,
-    zIndex: overlay.zIndex,
-    width: overlay.width || (overlay.anchor?.width ? overlay.anchor.width : undefined),
-    maxWidth: overlay.maxWidth,
-    maxHeight: overlay.maxHeight,
+    position: (isWeb && overlay.strategy === 'fixed') ? ('fixed' as ViewStyle['position']) : 'absolute',
+    ...(swapsLeftRight ? { right: x } : { left: x }),
+    zIndex,
+    pointerEvents: 'auto',
+    width: (overlay.width || (overlay.anchor?.width ? overlay.anchor.width : undefined)) as ViewStyle['width'],
+    maxWidth: overlay.maxWidth as ViewStyle['maxWidth'],
+    maxHeight: overlay.maxHeight as ViewStyle['maxHeight'],
   };
 
   // Pin to the trigger-adjacent viewport edge when the positioning layer supplied
@@ -186,59 +210,55 @@ function OverlayContent({ overlay, isTopmost, onBackdropPress, nodesMap, overlay
   // it replaces an earlier web-only `calc(100vh - …)` that derived the edge from
   // the overlay's *estimated* height and so mispositioned until re-measured.
   if (overlay.pinEdge === 'bottom' && typeof overlay.pinOffset === 'number') {
-    overlayStyle.top = undefined;
-    overlayStyle.bottom = overlay.pinOffset;
+    // The pin is measured from the viewport bottom; convert to the parent's bottom.
+    const parentBottomGap = frame ? getViewport().height - (frame.y + frame.height) : 0;
+    overlayStyle.bottom = overlay.pinOffset - parentBottomGap;
   } else if (overlay.pinEdge === 'top' && typeof overlay.pinOffset === 'number') {
-    overlayStyle.top = overlay.pinOffset;
+    overlayStyle.top = overlay.pinOffset - originY;
   } else {
-    overlayStyle.top = overlay.anchor?.y || 0;
-  }
-
-  if (DEBUG) {
-    console.log('- overlayStyle:', overlayStyle);
+    overlayStyle.top = (overlay.anchor?.y || 0) - originY;
   }
 
   const backdropStyle: ViewStyle = {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: overlay.zIndex - 1,
+    ...FILL,
+    zIndex: zIndex - 1,
     backgroundColor: 'transparent',
   };
 
-  // For web, use a container that properly positions overlays relative to viewport
-  const containerStyle: ViewStyle & any = Platform.OS === 'web' ? {
-    // Fixed container ensures overlay contents can anchor to viewport reliably
-    position: (overlay.strategy === 'fixed') ? ('fixed' as any) : 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    pointerEvents: 'box-none',
-  } : {
-    ...StyleSheet.absoluteFill,
-    pointerEvents: 'box-none',
-  };
+  // Web: a fixed container ensures overlay contents can anchor to the viewport reliably.
+  const containerStyle: ViewStyle = isWeb
+    ? {
+        position: (overlay.strategy === 'fixed' ? 'fixed' : 'absolute') as ViewStyle['position'],
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+      }
+    : FILL;
 
   return (
-    <View style={containerStyle} pointerEvents="box-none">
-      {/* Backdrop for click-outside detection.
-          Web uses a non-blocking document listener in OverlayRenderer instead, so
-          the click isn't swallowed — only native keeps the tap-catcher backdrop. */}
-      {Platform.OS !== 'web' && overlay.closeOnClickOutside && overlay.trigger !== 'hover' && (
+    <View style={[containerStyle, pointerEventsStyles.boxNone, style]}>
+      {/* Backdrop for tap-outside on native. Web uses the layer stack's
+          non-blocking document listener instead, so the click isn't swallowed. */}
+      {!isWeb && closeOnOutsidePress && (
         <Pressable
           style={backdropStyle}
-          onPress={onBackdropPress}
-          accessibilityRole="button"
-          accessibilityLabel="Close overlay"
+          onPress={() => dismiss('outside-press')}
+          role="button"
+          aria-label="Close overlay"
         />
       )}
 
-      {/* Overlay content */}
-      <View ref={contentRef} style={overlayStyle} pointerEvents="auto">
-        {overlay.content}
+      <View
+        ref={contentRef}
+        style={overlayStyle}
+        id={overlay.floatingId}
+        nativeID={overlay.floatingId}
+        role={overlay.role as ViewProps['role']}
+        aria-label={overlay.ariaLabel}
+        aria-modal={modal || undefined}
+      >
+        <LayerScope id={layerId}>{overlay.content}</LayerScope>
       </View>
     </View>
   );

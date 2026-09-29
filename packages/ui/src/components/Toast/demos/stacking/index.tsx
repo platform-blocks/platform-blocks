@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 
-import { Block, Button, Text, useToast } from '@platform-blocks/ui';
+import { Block, Button, useToast } from '@platform-blocks/ui';
 
 export function Demo() {
   const toast = useToast();
@@ -33,12 +33,6 @@ export function Demo() {
       <Button variant="outline" onPress={pushBurst}>
         Add five at once
       </Button>
-      <Button variant="outline" onPress={() => toast.hideAll()}>
-        Dismiss all
-      </Button>
-      <Text size="xs" color="secondary">
-        Hover the stack to hold every toast open.
-      </Text>
     </Block>
   );
 }

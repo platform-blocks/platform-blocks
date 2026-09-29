@@ -40,7 +40,7 @@ export const BrandLink: React.FC<BrandLinkProps> = ({ size = 'lg', onNavigate })
       resizeMode="contain"
       style={{ marginRight: 8 }}
     />
-    <Text size={size} weight="semibold">
+    <Text size={size} fw="semibold">
       Platform Blocks
     </Text>
   </RouteLink>

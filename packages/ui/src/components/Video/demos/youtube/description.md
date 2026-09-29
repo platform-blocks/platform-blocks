@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Point `Video` at a YouTube URL to stream hosted media while keeping the same control surface and status callbacks as native sources.
+Set `source.youtube` to a YouTube video ID or URL to stream hosted media with the same controls as native sources.

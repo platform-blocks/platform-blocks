@@ -22,15 +22,15 @@ describe('resolveTooltipProps', () => {
 
   it('lets the object form override host defaults', () => {
     expect(
-      resolveTooltipProps({ label: 'Copy', position: 'bottom', maxWidth: 320 }, { position: 'top' })
-    ).toEqual({ label: 'Copy', position: 'bottom', maxWidth: 320 });
+      resolveTooltipProps({ label: 'Copy', position: 'bottom', maw: 320 }, { position: 'top' })
+    ).toEqual({ label: 'Copy', position: 'bottom', maw: 320 });
   });
 });
 
 describe('getTooltipText', () => {
   it('reads the plain-text label from either form', () => {
     expect(getTooltipText('Copy')).toBe('Copy');
-    expect(getTooltipText({ label: 'Copy', maxWidth: 200 })).toBe('Copy');
+    expect(getTooltipText({ label: 'Copy', maw: 200 })).toBe('Copy');
   });
 
   it('is undefined when there is no string label', () => {

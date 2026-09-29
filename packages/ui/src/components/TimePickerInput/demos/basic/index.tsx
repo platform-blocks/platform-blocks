@@ -18,7 +18,7 @@ export function Demo() {
         format={12}
         fullWidth
       />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         {formatted ? `Selected: ${formatted}` : 'No time selected'}
       </Text>
     </Block>

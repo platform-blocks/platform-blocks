@@ -1,36 +1,49 @@
-import { ReactNode, RefObject } from 'react';
+import type { ReactNode, RefObject } from 'react';
+import type { StyleProp, View, ViewStyle } from 'react-native';
+
+import type { BaseProps } from '../../core/types/base';
 import type { TextProps } from '../Text';
 
-/**
- * Focus behaviour applied once the dialog's enter transition settles.
- * - `true` — focus the first focusable element inside the dialog body. Web
- *   only; native platforms have no way to enumerate focusable nodes, so pass a
- *   ref there instead.
- * - a ref — call `.focus()` on that element (e.g. an `Input`'s `inputRef`).
- *   Works on every platform.
- * - `false` — leave focus where it is.
- */
-export type DialogAutoFocus = boolean | RefObject<any>;
+/** Something that can take focus: a TextInput, an imperative field handle, a host view. */
+export interface DialogFocusable {
+  focus?: () => void;
+}
 
-// Public props for the imperative <Dialog /> component instance
-export interface DialogProps {
-  /** Controls whether the dialog is visible. */
-  visible: boolean;
-  /** Presentation style of the dialog. */
-  variant?: 'modal' | 'bottomsheet' | 'fullscreen';
-  /** Optional title text shown in the header area. */
+/**
+ * Where focus goes when the dialog opens. Focus always moves into the dialog
+ * (it is modal); this picks the element.
+ * - `false` (default) — the dialog itself, so screen readers announce it and
+ *   Tab enters it without popping an on-screen keyboard.
+ * - `true` — the first focusable element inside the dialog body (web).
+ * - a ref — that element (e.g. an `Input`'s `inputRef`), on every platform.
+ */
+export type DialogAutoFocus = boolean | RefObject<DialogFocusable | null>;
+
+export type DialogVariant = 'modal' | 'bottomsheet' | 'fullscreen';
+
+// Public props for the <Dialog /> component
+export interface DialogProps extends BaseProps {
+  /** Whether the dialog is shown. */
+  opened?: boolean;
+  /** @deprecated Use `opened`. */
+  visible?: boolean;
+  /** Presentation style of the dialog. @default 'modal' */
+  variant?: DialogVariant;
+  /** Title shown in the header; also the dialog's accessible name. */
   title?: string | null;
+  /** Accessible name when there is no `title`. */
+  accessibilityLabel?: string;
   /** Dialog body content. */
   children: ReactNode;
-  /** Allows the user to close the dialog via UI controls or escape/back. */
+  /** Allows the user to close the dialog via the close button, Escape and Android back. @default true */
   closable?: boolean;
-  /** Whether to render the dimming backdrop behind the dialog. */
+  /** Whether to render the dimming backdrop behind the dialog. @default true */
   backdrop?: boolean;
-  /** Whether tapping the backdrop should close the dialog. */
+  /** Whether tapping the backdrop should close the dialog. @default true */
   backdropClosable?: boolean;
-  /** Triggers close animation when set to true. */
+  /** Triggers the close animation when set to true. */
   shouldClose?: boolean;
-  /** Called when the dialog requests to close. */
+  /** Called when the dialog requests to close (after the exit transition). */
   onClose?: () => void;
   /** Optional explicit width for the dialog content (modal/bottomsheet). */
   w?: number;
@@ -38,9 +51,9 @@ export interface DialogProps {
   h?: number;
   /** Corner radius for the dialog container (bottom sheet rounds top corners only). */
   radius?: number;
-  /** Optional style overrides for the dialog container. */
-  style?: object;
-  /** Whether to show the styled header area with background and border (default true). */
+  /** Style overrides for the dialog body. */
+  style?: StyleProp<ViewStyle>;
+  /** Whether to paint the header area with the dialog surface. @default true */
   showHeader?: boolean;
   /** Controls which part of the bottom sheet responds to swipe-to-dismiss gestures */
   bottomSheetSwipeZone?: 'container' | 'handle' | 'none';
@@ -53,26 +66,33 @@ export interface DialogProps {
   transitionDuration?: number;
   /** Override props applied to the title `<Text>` (style, weight, ff, size, color). */
   titleProps?: Omit<TextProps, 'children'>;
+  /** Accessible label of the close button. @default 'Close dialog' */
+  closeButtonLabel?: string;
   /**
-   * Moves focus into the dialog once it has finished opening. See
-   * {@link DialogAutoFocus}.
+   * Where focus lands when the dialog opens. See {@link DialogAutoFocus}.
    * @default false
    */
   autoFocus?: DialogAutoFocus;
   /**
-   * Keeps Tab focus cycling inside the dialog while it is open and restores
-   * focus to the previously focused element when it closes. Web only.
+   * Keep Tab focus cycling inside the dialog while it is open (web). Focus
+   * always returns to the previously focused element when it closes.
    * @default true
    */
   trapFocus?: boolean;
 }
 
+export interface DialogFactoryPayload {
+  props: DialogProps;
+  ref: View;
+}
+
 // Internal configuration object stored in context for stacked dialogs
 export interface DialogConfig {
   id: string;
-  variant: 'modal' | 'bottomsheet' | 'fullscreen';
+  variant: DialogVariant;
   content: ReactNode;
   title?: string;
+  accessibilityLabel?: string;
   closable?: boolean;
   onClose?: () => void;
   backdrop?: boolean;
@@ -82,12 +102,12 @@ export interface DialogConfig {
   w?: number;
   h?: number;
   radius?: number;
-  style?: object;
+  style?: StyleProp<ViewStyle>;
   showHeader?: boolean;
   titleProps?: Omit<TextProps, 'children'>;
-  /** Moves focus into the dialog once it has finished opening. See {@link DialogAutoFocus}. */
+  /** Where focus lands when the dialog opens. See {@link DialogAutoFocus}. */
   autoFocus?: DialogAutoFocus;
-  /** Trap Tab focus inside the dialog and restore it on close (web only, default true). */
+  /** Trap Tab focus inside the dialog (web, default true). */
   trapFocus?: boolean;
 }
 

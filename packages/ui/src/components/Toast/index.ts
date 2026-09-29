@@ -1,26 +1,37 @@
-export {
-  Toast
-} from './Toast'
+export { Toast } from './Toast';
 
 export type {
   ToastProps,
   ToastVariant,
-  ToastSeverity
-} from './types'
+  ToastSeverity,
+  ToastDirection,
+  ToastAction,
+  ToastAnimationType,
+  ToastAnimationConfig,
+  ToastSwipeConfig,
+} from './types';
 
 export {
   ToastProvider,
   useToast,
+  useOptionalToast,
   useToastApi,
   useActiveToasts,
+  toasts,
+  onToastsRequested,
+  useToastViewportOffset,
+  setToastViewportOffset,
+} from './ToastProvider';
+
+export type {
   ToastOptions,
+  ToastStackPosition,
   ToastPosition,
+  ToastQueueOptions,
   SeverityToastOptions,
   ToastMessage,
   ToastShortcut,
-  onToastsRequested,
-  useToastViewportOffset,
-  setToastViewportOffset
+  ToastViewportOffset,
+  ToastItem,
+  ToastContextValue,
 } from './ToastProvider';
-
-export type { ToastViewportOffset, ToastItem } from './ToastProvider';

@@ -7,7 +7,7 @@ export function Demo() {
     <SankeyChart
       title="Analytics data lineage"
       subtitle="Daily load pipeline"
-      height={420}
+      h={420}
       nodes={NODES}
       links={LINKS}
     />

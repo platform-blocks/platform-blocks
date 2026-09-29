@@ -1,6 +1,3 @@
-title: Basic Tooltip
-description: Simple tooltip display on hover/press with different trigger events.
-tags: ["basic", "events", "hover", "focus", "touch", "triggers"]
 ---
 title: Basic Usage
 category: usage

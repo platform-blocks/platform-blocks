@@ -5,7 +5,7 @@ description: Inline calendar component for selecting single dates, ranges, and m
 source: "@platform-blocks/ui"
 status: "stable"
 category: dates
-accessibility: "Supports keyboard navigation, ARIA attributes, screen readers, and date format announcements."
+accessibility: "Days form a labelled grid on web (one tab stop; arrow keys, Home/End and PageUp/PageDown move focus, crossing months; Space/Enter select). Each day is named by its full localized date and exposes selected, today (aria-current=date) and disabled state. accessibilityLabel names the surrounding group without merging the days into one element."
 variants:
   - name: "inline"
     description: "Inline calendar selection for single dates"
@@ -44,7 +44,7 @@ props:
     description: "Identifier used for testing."
   - name: "accessibilityLabel"
     type: "string"
-    description: "Accessibility label for the calendar container."
+    description: "Accessible name of the group wrapping the calendar (days stay individually reachable)."
   - name: "accessibilityHint"
     type: "string"
     description: "Accessibility hint describing the calendar interaction."

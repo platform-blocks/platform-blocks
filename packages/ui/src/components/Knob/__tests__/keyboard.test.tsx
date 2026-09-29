@@ -10,11 +10,6 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { render } from '@testing-library/react-native';
 
-jest.mock('react-native-svg', () => {
-  const { View } = require('react-native');
-  return { __esModule: true, default: View, Svg: View, Circle: View, Line: View, Path: View };
-});
-
 // The shared jest setup pins direction to LTR for every suite, so RTL needs a local,
 // flippable override to be testable at all.
 let mockIsRTL = false;
@@ -24,6 +19,12 @@ jest.mock('../../../core/providers/DirectionProvider', () => ({
 }));
 
 import { Knob } from '../Knob';
+
+// `isWeb` & co. are module constants; these tests flip `Platform.OS` at runtime,
+// so the flags follow it instead.
+jest.mock('../../../core/platform/flags', () =>
+  require('../../../__test-utils__/platformFlags').livePlatformFlags()
+);
 
 const originalOS = Platform.OS;
 const setPlatform = (os: string) => {

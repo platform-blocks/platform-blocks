@@ -1,28 +1,63 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Platform, ScrollView, View } from 'react-native';
+import { ScrollView, View, type BlurEvent, type FocusEvent, type ViewStyle } from 'react-native';
 
-// NOTE: Direct component/theme imports to break circular dependency with barrel index.ts
-import { Text } from '../Text';
-import { resolveOptionalModule } from '../../utils/optionalModule';
-import { useTheme } from '../../core/theme';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { factory } from '../../core/factory/factory';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { hasDOM, isWeb } from '../../core/platform/flags';
+import { webProps, type WebKeyboardEvent } from '../../core/platform/webProps';
+import { webStyle } from '../../core/platform/webStyle';
+import { useDirection } from '../../core/providers/DirectionProvider';
+import { useTheme } from '../../core/theme/ThemeProvider';
 import { surfaceInteractionTint } from '../../core/theme/surfaces';
 import { resolveVariantRoles } from '../../core/theme/variantRoles';
-import { useDirection } from '../../core/providers/DirectionProvider';
-import { extractSpacingProps, getSpacingStyles } from '../../core/utils';
-import { Collapse } from '../Collapse';
-import { useControllableState } from '../../hooks/useControllableState';
+import type { VisibilityProps } from '../../core/types/base';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState/useControllableState';
+import { resolveOptionalModule } from '../../utils/optionalModule';
+import { Collapse } from '../Collapse/Collapse';
+import { Text } from '../Text/Text';
 
 import { TreeRow, type TreeRowColors } from './TreeRow';
+import {
+  flushPersistedExpansion,
+  readPersistedExpansion,
+  schedulePersistedExpansion,
+} from './treePersistence';
 import { resolveTreeMetrics } from './treeSizes';
+import {
+  findNode,
+  findNodeByHref,
+  getCheckState,
+  hasModifier,
+  idRange,
+  toggleCheckedIds,
+} from './treeUtils';
+import type {
+  TreeNode,
+  TreePressEvent,
+  TreeProps,
+  TreeRenderNode,
+  TreeRow as TreeRowMeta,
+} from './types';
 import { useTreeState } from './useTreeState';
-import { findNode, findNodeByHref, getCheckState, idRange, toggleCheckedIds } from './treeUtils';
-import { readPersistedExpansion, writePersistedExpansion } from './treePersistence';
-import type { TreeNode, TreeProps, TreeRenderNode, TreeRow as TreeRowMeta } from './types';
 
 export type { TreeNode, TreeProps } from './types';
 
-const web = Platform.OS === 'web';
 const TYPE_AHEAD_TIMEOUT = 800;
+
+/** The slice of FlashList's API this component uses (v1 and v2). */
+interface FlashListLikeProps {
+  data: readonly TreeRowMeta[];
+  keyExtractor: (row: TreeRowMeta) => string;
+  renderItem: (info: { item: TreeRowMeta }) => React.ReactElement | null;
+  /** Required by FlashList v1, ignored by v2 — the peer range allows both. */
+  estimatedItemSize?: number;
+  extraData?: unknown;
+  showsVerticalScrollIndicator?: boolean;
+}
+type FlashListLike = React.ComponentType<FlashListLikeProps>;
 
 /**
  * Only `virtualized` trees need FlashList, so it is resolved on demand rather
@@ -30,60 +65,30 @@ const TYPE_AHEAD_TIMEOUT = 800;
  * the dependency into the bundle, or require it to be installed at all.
  */
 const resolveFlashList = () =>
-  resolveOptionalModule<any>('@shopify/flash-list', {
-    accessor: (mod) => mod?.FlashList,
+  resolveOptionalModule<FlashListLike>('@shopify/flash-list', {
+    accessor: (mod: { FlashList?: FlashListLike } | null) => mod?.FlashList,
     devWarning:
       '@shopify/flash-list is not installed; <Tree virtualized> renders every row inside a ScrollView instead.',
   });
 
-/**
- * Wraps a branch's children so the collapse animation can play out. The
- * `onCollapsed` callback is read through a ref because `Collapse` lists
- * `onAnimationEnd` in its effect dependencies — a fresh closure per render
- * would restart the animation on every state change.
- *
- * Branches mount only while they are open, so `animateOnMount` is what plays
- * the unroll — see `openedByPress` for which mounts get it.
- */
-const AnimatedBranch = React.memo(function AnimatedBranch({
-  id,
-  expanded,
-  animateOnMount,
-  onCollapsed,
-  children,
-}: {
-  id: string;
-  expanded: boolean;
-  animateOnMount: boolean;
-  onCollapsed: (id: string) => void;
-  children: React.ReactNode;
-}) {
-  const expandedRef = useRef(expanded);
-  expandedRef.current = expanded;
-  const onCollapsedRef = useRef(onCollapsed);
-  onCollapsedRef.current = onCollapsed;
-  // Frozen at mount. `Collapse` reads it once, on its first pass, and letting
-  // the value change afterwards only re-runs that effect for nothing.
-  const [animateEntry] = useState(animateOnMount);
+const keyExtractor = (row: TreeRowMeta) => row.node.id;
 
-  const handleAnimationEnd = useCallback(() => {
-    if (!expandedRef.current) onCollapsedRef.current(id);
-  }, [id]);
+/** Animated rendering nests each branch in wrappers of its own; these keep them out of the tree semantics. */
+const PRESENTATION_PROPS = isWeb ? a11yProps({ role: 'none' }) : null;
+const GROUP_PROPS = isWeb ? a11yProps({ role: 'group' }) : null;
 
-  return (
-    <Collapse
-      isCollapsed={!expanded}
-      collapsedHeight={0}
-      animateOnMount={animateEntry}
-      onAnimationEnd={handleAnimationEnd}
-    >
-      <View>{children}</View>
-    </Collapse>
-  );
-});
+const STRETCH: ViewStyle = { alignSelf: 'stretch' };
+/** A virtualized list must be bounded: the tree's height unless `h` / `style` set one. */
+const VIRTUAL_HEIGHT: ViewStyle = { height: 320 };
+const FILL: ViewStyle = { flex: 1 };
+// The tree draws its own focus ring on the focused row (aria-activedescendant),
+// so the container's outline would only frame the whole list twice.
+const NO_OUTLINE = webStyle({ outlineStyle: 'none' });
 
-export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
-  const { spacingProps, otherProps } = extractSpacingProps(props as any);
+const selectorSafe = (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, '');
+
+const TreeBase = factory<{ props: TreeProps; ref: View }>((props, ref) => {
+  const { styleProps, otherProps } = extractStyleProps(props);
   const {
     data,
     onNavigate,
@@ -98,6 +103,7 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     renderLabel,
     renderEndSection,
     style,
+    testID,
     rowStyle,
     selectionMode = 'none',
     selectedIds,
@@ -123,7 +129,6 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     striped = false,
     useAnimations = true,
     virtualized = false,
-    height,
     keyboardNavigation = true,
     activeId: activeIdProp,
     activeHref,
@@ -132,20 +137,19 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     persistKey,
     selectionColor,
     accessibilityLabel,
-  } = otherProps as TreeProps;
+  } = otherProps;
 
-  const theme = useTheme?.() as any;
+  const theme = useTheme();
   const { isRTL } = useDirection();
-  const metrics = useMemo(() => resolveTreeMetrics(size), [size]);
+  const spacingStyle = useStyleProps(styleProps);
+  const metrics = useMemo(() => resolveTreeMetrics(theme, size), [theme, size]);
   const indentWidth = indent ?? metrics.indent;
 
   const reactId = useId();
-  const domId = `tree-${reactId.replace(/:/g, '')}`;
-  const rowDomId = useCallback((id: string) => `${domId}-row-${id}`, [domId]);
+  const domId = `tree-${selectorSafe(reactId)}`;
+  const rowDomId = useCallback((id: string) => `${domId}-row-${encodeURIComponent(id)}`, [domId]);
 
   const colors = useMemo<TreeRowColors>(() => {
-    const accent = selectionColor || theme?.colors?.primary?.[5] || '#2684FF';
-    const labelColor = theme?.text?.primary || theme?.colors?.gray?.[9] || '#1C1C1E';
     // The selected / active row is the shared `light` variant role — the same
     // fill, border and text a light Chip or Badge resolves — so the accent reads
     // identically wherever it appears, and the label is chosen by *measured*
@@ -160,17 +164,18 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
       variant: 'light',
       color: selectionColor ?? 'primary',
     });
+    const label = theme.text.primary;
     return {
       selectedBg: selection.fill,
       hoverBg: surfaceInteractionTint(theme, 'hover'),
       pressedBg: surfaceInteractionTint(theme, 'pressed'),
       stripeBg: surfaceInteractionTint(theme, 'band'),
       selectedBorder: selection.border,
-      focusRing: theme?.states?.focusRing || accent,
-      label: labelColor,
-      selectedLabel: selection.text || labelColor,
-      chevron: theme?.text?.secondary || theme?.text?.muted || theme?.colors?.gray?.[7] || '#666',
-      disabled: theme?.text?.disabled || theme?.colors?.gray?.[3] || '#C7C7CC',
+      focusRing: theme.states?.focusRing ?? selectionColor ?? theme.colors.primary[5],
+      label,
+      selectedLabel: selection.text || label,
+      chevron: theme.text.secondary,
+      disabled: theme.text.disabled,
       guide: surfaceInteractionTint(theme, 'selected'),
     };
   }, [selectionColor, theme]);
@@ -196,7 +201,9 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
   // every mount, and a tree inside an overlay mounts on every open.
   const openedByPress = useRef<Set<string>>(new Set());
 
-  const handleToggle = useCallback((node: TreeNode, expanded: boolean) => {
+  // Called from `setNodeExpanded` (an event-time callback), so it needs no
+  // stable identity of its own.
+  const handleToggle = (node: TreeNode, expanded: boolean) => {
     if (expanded) openedByPress.current.add(node.id);
     else openedByPress.current.delete(node.id);
 
@@ -209,7 +216,7 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
       dropCollapsed(node.id);
     }
     onToggle?.(node, expanded);
-  }, [dropCollapsed, onToggle, useAnimations, virtualized]);
+  };
 
   // `activeHref` resolves against `data` alone: a lazily loaded node does not
   // exist to match until its branch has been opened, at which point the reader
@@ -243,7 +250,20 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     expandToIds,
   });
 
-  const { rows, rowIds, rowIndexById, renderNodes, descendantMap, parentMap, loadingIds } = tree;
+  const {
+    rows,
+    rowIds,
+    rowIndexById,
+    renderNodes,
+    descendantMap,
+    parentMap,
+    loadingIds,
+    loadedChildren,
+    toggleNode,
+    setNodeExpanded,
+    setExpanded,
+    expandedIds: expandedIdList,
+  } = tree;
 
   /* ------------------------------------------------------------- persistence */
 
@@ -252,8 +272,7 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
   // reading it during the first render would hand React two different trees.
   // Effects do not run while rendering to a string and run after hydration on
   // the client, so the markup matches and the stored expansion lands right
-  // after — before paint, since this is a layout-affecting effect's sibling.
-  const { setExpanded, expandedIds: expandedIdList } = tree;
+  // after.
   const persistenceEnabled = !!persistKey && expandedIds === undefined;
   const [persistRestored, setPersistRestored] = useState(false);
 
@@ -268,8 +287,16 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
 
   useEffect(() => {
     if (!persistenceEnabled || !persistKey || !persistRestored) return;
-    writePersistedExpansion(persistKey, expandedIdList);
+    schedulePersistedExpansion(persistKey, expandedIdList);
   }, [expandedIdList, persistKey, persistRestored, persistenceEnabled]);
+
+  // Land a debounced write on unmount (or a key change) instead of dropping it.
+  useEffect(() => {
+    if (!persistKey) return undefined;
+    return () => flushPersistedExpansion(persistKey);
+  }, [persistKey]);
+
+  /* --------------------------------------------------------------- selection */
 
   const [effectiveSelected, commitSelected] = useControllableState<string[]>({
     value: selectedIds,
@@ -288,26 +315,32 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
   const checkedSet = useMemo(() => new Set(effectiveChecked), [effectiveChecked]);
 
   const anchorId = useRef<string | null>(null);
-  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [focusedIdState, setFocusedId] = useState<string | null>(null);
   const [containerFocused, setContainerFocused] = useState(false);
+  // A focused row that filtering or a collapse removed would otherwise keep the
+  // ring pointing at something invisible. Derived, not synced in an effect.
+  const focusedId = focusedIdState && rowIndexById.has(focusedIdState) ? focusedIdState : null;
 
   // A consumer that only asked for `onActiveNodeChange` still means "single".
   const effectiveSelectionMode =
     selectionMode === 'none' && onActiveNodeChange ? 'single' : selectionMode;
 
-  const setSelected = useCallback((ids: string[], node: TreeNode) => {
+  // The selection helpers below close over this render's state and are only
+  // called from event handlers, so they are plain functions.
+  const setSelected = (ids: string[], node: TreeNode) => {
     commitSelected(ids, node);
     const primaryId = ids[0];
-    const primaryNode = primaryId ? findNode(data, primaryId, tree.loadedChildren) || null : null;
+    const primaryNode = primaryId ? findNode(data, primaryId, loadedChildren) || null : null;
     onActiveNodeChange?.(primaryNode, ids);
-  }, [commitSelected, data, onActiveNodeChange, tree.loadedChildren]);
+  };
 
-  const selectableIds = useCallback((ids: string[]) => ids.filter(id => {
-    const found = findNode(data, id, tree.loadedChildren);
-    return !!found && (found.selectable ?? true) && !found.disabled;
-  }), [data, tree.loadedChildren]);
+  const selectableIds = (ids: string[]) =>
+    ids.filter(id => {
+      const found = findNode(data, id, loadedChildren);
+      return !!found && (found.selectable ?? true) && !found.disabled;
+    });
 
-  const applySelection = useCallback((node: TreeNode, event?: any) => {
+  const applySelection = (node: TreeNode, event?: TreePressEvent) => {
     if (effectiveSelectionMode === 'none' || (node.selectable ?? true) === false) return;
 
     if (effectiveSelectionMode === 'single') {
@@ -316,14 +349,8 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
       return;
     }
 
-    // Read each flag off both the event and its nativeEvent: RN Web puts them on
-    // the DOM event, RN on the native one, and a keyboard event carries them at
-    // the top level. `||` rather than `??` — a `false` metaKey must not stop the
-    // lookup before ctrlKey is considered.
-    const flag = (name: 'shiftKey' | 'metaKey' | 'ctrlKey') =>
-      !!(event?.[name] || event?.nativeEvent?.[name]);
-    const shiftKey = flag('shiftKey');
-    const modifierKey = flag('metaKey') || flag('ctrlKey');
+    const shiftKey = hasModifier(event, 'shiftKey');
+    const modifierKey = hasModifier(event, 'metaKey') || hasModifier(event, 'ctrlKey');
 
     if (shiftKey && anchorId.current && anchorId.current !== node.id) {
       // Ranges walk the visible row order, so a range taken while a filter is
@@ -343,9 +370,11 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
 
     setSelected([node.id], node);
     anchorId.current = node.id;
-  }, [effectiveSelected, effectiveSelectionMode, rowIds, selectableIds, selectedSet, setSelected]);
+  };
 
-  const handleRowPress = useCallback((node: TreeNode, isBranch: boolean, event?: any) => {
+  // Row callbacks keep one identity for the life of the tree, so the memoized
+  // rows only re-render when their own flags change.
+  const handleRowPress = useLatestCallback((node: TreeNode, isBranch: boolean, event?: TreePressEvent) => {
     if (node.disabled) return;
 
     const intercept = onNodePress?.(node, { isBranch, event });
@@ -354,204 +383,169 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     setFocusedId(node.id);
 
     if (isBranch && expandOnClick && collapsible) {
-      tree.toggleNode(node);
+      toggleNode(node);
     }
 
     applySelection(node, event);
 
-    // Documented behaviour, finally implemented: leaves activate, and any node
-    // carrying an href activates. The old guard required `href`, so the leaf
-    // case — the one every file-browser demo relies on — never fired.
+    // Leaves activate, and any node carrying an href activates.
     if (node.href || !isBranch) onNavigate?.(node);
-  }, [applySelection, collapsible, expandOnClick, onNavigate, onNodePress, tree]);
+  });
 
-  const handleCheck = useCallback((node: TreeNode) => {
+  const handleCheck = useLatestCallback((node: TreeNode) => {
     if (node.disabled) return;
+    setFocusedId(node.id);
     const next = toggleCheckedIds(node, effectiveChecked, descendantMap[node.id], cascadeCheck);
     commitChecked(next, node);
-  }, [cascadeCheck, commitChecked, descendantMap, effectiveChecked]);
+  });
 
-  const handleDisclosureToggle = useCallback((node: TreeNode) => {
+  const handleDisclosureToggle = useLatestCallback((node: TreeNode) => {
     setFocusedId(node.id);
-    tree.toggleNode(node);
-  }, [tree]);
+    toggleNode(node);
+  });
 
   /* ---------------------------------------------------------------- keyboard */
 
-  const keyboardEnabled = web && keyboardNavigation !== false;
-  const containerRef = useRef<any>(null);
+  const keyboardEnabled = isWeb && keyboardNavigation !== false;
+  const containerRef = useRef<View>(null);
+  const mergedRef = useMergedRef(containerRef, ref);
   const typeAhead = useRef<{ buffer: string; at: number }>({ buffer: '', at: 0 });
 
-  // Everything the key handler needs, refreshed each render so the listener can
-  // stay attached across re-renders without going stale.
-  const nav = useRef<any>(null);
-  nav.current = {
-    rows,
-    rowIds,
-    rowIndexById,
-    focusedId,
-    setFocusedId,
-    isRTL,
-    checkboxes,
-    selectionMode: effectiveSelectionMode,
-    parentMap,
-    setNodeExpanded: tree.setNodeExpanded,
-    handleRowPress,
-    handleCheck,
-    applySelection,
-    selectableIds,
-    setSelected,
-    anchorId,
-    collapsible,
-  };
+  const handleKeyDown = (event: WebKeyboardEvent) => {
+    if (!rows.length) return;
 
-  useEffect(() => {
-    if (!keyboardEnabled) return;
-    const node = containerRef.current as any;
-    if (!node || typeof node.addEventListener !== 'function') return;
+    // A row, caret or checkbox that a pointer focused. Hand focus back to the
+    // tree, so the ring and `aria-activedescendant` follow the keys from here.
+    // (Enter on such a control never gets here: its own press handles it.)
+    if (event.target !== event.currentTarget) containerRef.current?.focus();
 
-    node.tabIndex = 0;
-    if (node.style) node.style.outline = 'none';
+    const current = focusedId ? rowIndexById.get(focusedId) ?? -1 : -1;
+    const focusIndex = (index: number) => {
+      const clamped = Math.max(0, Math.min(rows.length - 1, index));
+      const target = rows[clamped];
+      setFocusedId(target.node.id);
+      return target;
+    };
+    const row = current >= 0 ? rows[current] : null;
+    // Arrow keys follow the reading direction, not the screen.
+    const forwardKey = isRTL ? 'ArrowLeft' : 'ArrowRight';
+    const backKey = isRTL ? 'ArrowRight' : 'ArrowLeft';
 
-    const onFocus = () => setContainerFocused(true);
-    const onBlur = () => setContainerFocused(false);
+    const extendTo = (target: TreeRowMeta) => {
+      if (effectiveSelectionMode !== 'multiple') return;
+      const anchor = anchorId.current ?? row?.node.id ?? target.node.id;
+      anchorId.current = anchor;
+      setSelected(selectableIds(idRange(rowIds, anchor, target.node.id)), target.node);
+    };
 
-    const onKeyDown = (event: KeyboardEvent) => {
-      const s = nav.current;
-      if (!s || !s.rows.length) return;
-
-      const current = s.focusedId ? s.rowIndexById.get(s.focusedId) ?? -1 : -1;
-      const focusIndex = (index: number) => {
-        const clamped = Math.max(0, Math.min(s.rows.length - 1, index));
-        const target = s.rows[clamped] as TreeRowMeta;
-        s.setFocusedId(target.node.id);
-        return target;
-      };
-      const row = current >= 0 ? (s.rows[current] as TreeRowMeta) : null;
-      const forwardKey = s.isRTL ? 'ArrowLeft' : 'ArrowRight';
-      const backKey = s.isRTL ? 'ArrowRight' : 'ArrowLeft';
-
-      const extendTo = (target: TreeRowMeta) => {
-        if (s.selectionMode !== 'multiple') return;
-        const anchor = s.anchorId.current ?? row?.node.id ?? target.node.id;
-        s.anchorId.current = anchor;
-        s.setSelected(s.selectableIds(idRange(s.rowIds, anchor, target.node.id)), target.node);
-      };
-
-      switch (event.key) {
-        case 'ArrowDown': {
-          event.preventDefault();
-          const target = focusIndex(current < 0 ? 0 : current + 1);
-          if (event.shiftKey) extendTo(target);
-          return;
-        }
-        case 'ArrowUp': {
-          event.preventDefault();
-          const target = focusIndex(current < 0 ? 0 : current - 1);
-          if (event.shiftKey) extendTo(target);
-          return;
-        }
-        case 'Home':
-          event.preventDefault();
-          focusIndex(0);
-          return;
-        case 'End':
-          event.preventDefault();
-          focusIndex(s.rows.length - 1);
-          return;
-        case forwardKey:
-          event.preventDefault();
-          if (!row) return;
-          if (row.isBranch && !row.expanded && s.collapsible) s.setNodeExpanded(row.node, true);
-          else if (row.isBranch && row.expanded) focusIndex(current + 1);
-          return;
-        case backKey: {
-          event.preventDefault();
-          if (!row) return;
-          if (row.isBranch && row.expanded && s.collapsible) {
-            s.setNodeExpanded(row.node, false);
-            return;
-          }
-          const parentId = row.parentId ?? s.parentMap[row.node.id];
-          const parentIndex = parentId ? s.rowIndexById.get(parentId) : undefined;
-          if (parentIndex !== undefined) focusIndex(parentIndex);
-          return;
-        }
-        case 'Enter':
-          event.preventDefault();
-          if (row) s.handleRowPress(row.node, row.isBranch, event);
-          return;
-        case ' ':
-        case 'Spacebar':
-          event.preventDefault();
-          if (!row) return;
-          if (s.checkboxes) s.handleCheck(row.node);
-          else s.handleRowPress(row.node, row.isBranch, event);
-          return;
-        default:
-          break;
-      }
-
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a') {
-        if (s.selectionMode !== 'multiple') return;
+    switch (event.key) {
+      case 'ArrowDown': {
         event.preventDefault();
-        const all = s.selectableIds(s.rowIds);
-        if (all.length) s.setSelected(all, s.rows[0].node);
+        const target = focusIndex(current < 0 ? 0 : current + 1);
+        if (event.shiftKey) extendTo(target);
         return;
       }
-
-      // Type-ahead: printable characters jump to the next row whose label starts
-      // with what has been typed, wrapping around the current position.
-      if (event.key.length !== 1 || event.metaKey || event.ctrlKey || event.altKey) return;
-      const now = Date.now();
-      const buffer =
-        now - typeAhead.current.at > TYPE_AHEAD_TIMEOUT
-          ? event.key.toLowerCase()
-          : typeAhead.current.buffer + event.key.toLowerCase();
-      typeAhead.current = { buffer, at: now };
-
-      const start = current < 0 ? 0 : current + 1;
-      const total = s.rows.length;
-      for (let step = 0; step < total; step += 1) {
-        const candidate = s.rows[(start + step) % total] as TreeRowMeta;
-        if (candidate.node.label.toLowerCase().startsWith(buffer)) {
-          event.preventDefault();
-          s.setFocusedId(candidate.node.id);
+      case 'ArrowUp': {
+        event.preventDefault();
+        const target = focusIndex(current < 0 ? 0 : current - 1);
+        if (event.shiftKey) extendTo(target);
+        return;
+      }
+      case 'Home':
+        event.preventDefault();
+        focusIndex(0);
+        return;
+      case 'End':
+        event.preventDefault();
+        focusIndex(rows.length - 1);
+        return;
+      case forwardKey:
+        event.preventDefault();
+        if (!row) return;
+        if (row.isBranch && !row.expanded && collapsible) setNodeExpanded(row.node, true);
+        else if (row.isBranch && row.expanded) focusIndex(current + 1);
+        return;
+      case backKey: {
+        event.preventDefault();
+        if (!row) return;
+        if (row.isBranch && row.expanded && collapsible) {
+          setNodeExpanded(row.node, false);
           return;
         }
+        const parentId = row.parentId ?? parentMap[row.node.id];
+        const parentIndex = parentId ? rowIndexById.get(parentId) : undefined;
+        if (parentIndex !== undefined) focusIndex(parentIndex);
+        return;
       }
-    };
-
-    node.addEventListener('keydown', onKeyDown);
-    node.addEventListener('focus', onFocus);
-    node.addEventListener('blur', onBlur);
-    return () => {
-      node.removeEventListener('keydown', onKeyDown);
-      node.removeEventListener('focus', onFocus);
-      node.removeEventListener('blur', onBlur);
-    };
-  }, [keyboardEnabled]);
-
-  // Mirror the roving focus to assistive tech and keep the focused row on screen.
-  useEffect(() => {
-    if (!keyboardEnabled) return;
-    const node = containerRef.current as any;
-    if (!node?.setAttribute) return;
-    if (focusedId && rowIndexById.has(focusedId)) {
-      node.setAttribute('aria-activedescendant', rowDomId(focusedId));
-      if (typeof document !== 'undefined') {
-        document.getElementById(rowDomId(focusedId))?.scrollIntoView({ block: 'nearest' });
-      }
-    } else {
-      node.removeAttribute('aria-activedescendant');
+      case 'Enter':
+        event.preventDefault();
+        if (row) handleRowPress(row.node, row.isBranch, event);
+        return;
+      case ' ':
+      case 'Spacebar':
+        event.preventDefault();
+        if (!row) return;
+        if (checkboxes) handleCheck(row.node);
+        else handleRowPress(row.node, row.isBranch, event);
+        return;
+      default:
+        break;
     }
-  }, [focusedId, keyboardEnabled, rowDomId, rowIndexById]);
 
-  // A focused row that filtering or a collapse removed would otherwise keep the
-  // ring pointing at something invisible.
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a') {
+      if (effectiveSelectionMode !== 'multiple') return;
+      event.preventDefault();
+      const all = selectableIds(rowIds);
+      if (all.length) setSelected(all, rows[0].node);
+      return;
+    }
+
+    // Type-ahead: printable characters jump to the next row whose label starts
+    // with what has been typed, wrapping around the current position.
+    if (event.key.length !== 1 || event.metaKey || event.ctrlKey || event.altKey) return;
+    const now = Date.now();
+    const buffer =
+      now - typeAhead.current.at > TYPE_AHEAD_TIMEOUT
+        ? event.key.toLowerCase()
+        : typeAhead.current.buffer + event.key.toLowerCase();
+    typeAhead.current = { buffer, at: now };
+
+    const start = current < 0 ? 0 : current + 1;
+    const total = rows.length;
+    for (let step = 0; step < total; step += 1) {
+      const candidate = rows[(start + step) % total];
+      if (candidate.node.label.toLowerCase().startsWith(buffer)) {
+        event.preventDefault();
+        setFocusedId(candidate.node.id);
+        return;
+      }
+    }
+  };
+
+  const handleFocus = (event: FocusEvent) => {
+    // Focus landing on a row a pointer pressed is not the tree taking focus.
+    if (event.target !== event.currentTarget) return;
+    setContainerFocused(true);
+    // WAI-ARIA tree pattern: on entry, focus the current / selected node, or
+    // the first one — so the ring is visible from the first Tab.
+    if (!focusedId) {
+      const initial = [activeId, ...effectiveSelected].find(
+        (id): id is string => !!id && rowIndexById.has(id)
+      );
+      setFocusedId(initial ?? rows[0]?.node.id ?? null);
+    }
+  };
+
+  const handleBlur = (event: BlurEvent) => {
+    if (event.target !== event.currentTarget) return;
+    setContainerFocused(false);
+  };
+
+  // Keep the focused row on screen.
   useEffect(() => {
-    if (focusedId && !rowIndexById.has(focusedId)) setFocusedId(null);
-  }, [focusedId, rowIndexById]);
+    if (!keyboardEnabled || !hasDOM || !focusedId) return;
+    document.getElementById(rowDomId(focusedId))?.scrollIntoView?.({ block: 'nearest' });
+  }, [focusedId, keyboardEnabled, rowDomId]);
 
   // Bring the active row on screen once it is actually rendered. The guard on
   // `rowIndexById` is what makes this wait for `expandToActive` to open the
@@ -559,12 +553,11 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
   // finds nothing, and the effect would not fire again.
   const scrolledToActive = useRef<string | null>(null);
   useEffect(() => {
-    if (!web || !scrollActiveIntoView || !activeId) return;
+    if (!hasDOM || !scrollActiveIntoView || !activeId) return;
     if (scrolledToActive.current === activeId) return;
     if (!rowIndexById.has(activeId)) return;
     scrolledToActive.current = activeId;
-    if (typeof document === 'undefined') return;
-    document.getElementById(rowDomId(activeId))?.scrollIntoView({ block: 'nearest' });
+    document.getElementById(rowDomId(activeId))?.scrollIntoView?.({ block: 'nearest' });
   }, [activeId, rowDomId, rowIndexById, scrollActiveIntoView]);
 
   /* ------------------------------------------------------------------ render */
@@ -573,6 +566,7 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
   // browser navigates — a tree handed links but no handler should still work as
   // links, rather than swallowing every click.
   const interceptLinks = !!onNavigate || !!onNodePress;
+  const selectable = effectiveSelectionMode !== 'none';
 
   const renderRow = useCallback((row: TreeRowMeta) => {
     const { node } = row;
@@ -586,7 +580,6 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
         metrics={metrics}
         indent={indentWidth}
         colors={colors}
-        isRTL={isRTL}
         selected={selectedSet.has(node.id)}
         active={activeId === node.id}
         focused={containerFocused && focusedId === node.id}
@@ -600,12 +593,12 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
           collapsible && disclosure !== 'none' && !(disclosure === 'nested' && row.depth === 0)
         }
         reserveDisclosure={disclosure === 'always'}
+        heading={disclosure === 'nested' && row.depth === 0 && row.isBranch}
         showGuides={showGuides}
         striped={striped && row.index % 2 === 1}
-        domId={web ? rowDomId(node.id) : undefined}
+        domId={isWeb ? rowDomId(node.id) : undefined}
         filterQuery={filterQuery}
-        multiSelectable={effectiveSelectionMode === 'multiple'}
-        selectable={effectiveSelectionMode !== 'none'}
+        selectable={selectable}
         keyboardNavigation={keyboardEnabled}
         interceptLinks={interceptLinks}
         rowStyle={rowStyle}
@@ -627,7 +620,6 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     containerFocused,
     descendantMap,
     disclosure,
-    effectiveSelectionMode,
     filterQuery,
     focusedId,
     handleCheck,
@@ -636,7 +628,6 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     highlight,
     indentWidth,
     interceptLinks,
-    isRTL,
     keyboardEnabled,
     loadingIds,
     metrics,
@@ -644,63 +635,75 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
     renderLabel,
     rowDomId,
     rowStyle,
+    selectable,
     selectedSet,
     showGuides,
     striped,
   ]);
 
   // Animated rendering nests each branch inside a `Collapse`, so the DOM gains
-  // the two generic wrappers `Collapse` needs to measure and clip. Rows keep
-  // their `treeitem` roles and the wrapper this component owns is presentational;
-  // the flat and virtualized paths emit the strictly-nested structure.
+  // the generic wrappers `Collapse` needs to measure and clip. Rows keep their
+  // `treeitem` roles and the wrapper this component owns is presentational; the
+  // flat and virtualized paths emit the strictly-nested structure.
   const renderAnimated = useCallback((nodes: TreeRenderNode[]): React.ReactNode =>
-    nodes.map(entry => (
-      <View key={entry.row.node.id} {...(web ? { role: 'none' } : {})}>
-        {renderRow(entry.row)}
-        {entry.mounted && (
-          <AnimatedBranch
-            id={entry.row.node.id}
-            expanded={entry.row.expanded}
-            animateOnMount={openedByPress.current.has(entry.row.node.id)}
-            onCollapsed={dropCollapsed}
-          >
-            <View {...(web ? { role: 'group' } : {})}>{renderAnimated(entry.children)}</View>
-          </AnimatedBranch>
-        )}
-      </View>
-    )), [dropCollapsed, renderRow]);
+    nodes.map(entry => {
+      const { row } = entry;
+      const id = row.node.id;
+      return (
+        <View key={id} {...PRESENTATION_PROPS}>
+          {renderRow(row)}
+          {entry.mounted && (
+            // Branches mount only while open (or while animating shut), so
+            // `animateOnMount` is what plays the unroll — only for branches the
+            // reader opened. Collapse reads its callbacks through a latest-ref
+            // and only animates on a new target, so neither prop restarts it.
+            <Collapse
+              isCollapsed={!row.expanded}
+              collapsedHeight={0}
+              animateOnMount={openedByPress.current.has(id)}
+              onAnimationEnd={row.expanded ? undefined : () => dropCollapsed(id)}
+            >
+              <View {...GROUP_PROPS}>{renderAnimated(entry.children)}</View>
+            </Collapse>
+          )}
+        </View>
+      );
+    }), [dropCollapsed, renderRow]);
 
-  const spacingStyle = useMemo(
-    () => getSpacingStyles(spacingProps, isRTL),
-    [spacingProps, isRTL]
+  const renderItem = useCallback(({ item }: { item: TreeRowMeta }) => renderRow(item), [renderRow]);
+  const extraData = useMemo(
+    () => ({ selectedSet, checkedSet, focusedId, containerFocused }),
+    [checkedSet, containerFocused, focusedId, selectedSet]
   );
 
-  // RN Web forwards `role` / `aria-*` to the DOM; native RN ignores them, so the
-  // web branch is cast rather than squeezed into RN's `Role` union.
-  const containerProps = {
-    ref: (instance: any) => {
-      containerRef.current = instance;
-      if (typeof ref === 'function') ref(instance);
-      else if (ref) (ref as React.MutableRefObject<any>).current = instance;
-    },
-    style: [spacingStyle as any, style],
-    ...((web
-      ? {
-          id: domId,
-          role: 'tree',
-          'aria-label': accessibilityLabel ?? 'Tree',
-          ...(effectiveSelectionMode === 'multiple' ? { 'aria-multiselectable': true } : {}),
-        }
-      : { accessibilityLabel }) as any),
-  } as any;
+  const empty = rows.length === 0;
+  const interactive = keyboardEnabled && !empty;
 
-  if (!rows.length) {
+  const containerProps = {
+    ref: mergedRef,
+    testID,
+    ...a11yProps({
+      role: isWeb ? 'tree' : undefined,
+      label: accessibilityLabel,
+      id: isWeb ? domId : undefined,
+      activeDescendant: interactive && focusedId ? rowDomId(focusedId) : undefined,
+    }),
+    // Web-only and tree-specific; react-native-web forwards any `aria-*`.
+    ...(isWeb && effectiveSelectionMode === 'multiple' ? { 'aria-multiselectable': true } : null),
+    ...webProps({
+      tabIndex: interactive ? 0 : undefined,
+      onKeyDown: interactive ? handleKeyDown : undefined,
+    }),
+    ...(interactive ? { onFocus: handleFocus, onBlur: handleBlur } : null),
+  };
+
+  if (empty) {
     return (
-      <View {...containerProps}>
+      <View {...containerProps} style={[spacingStyle, style]}>
         {noResultsFallback !== undefined ? (
           noResultsFallback
         ) : (
-          <Text size="sm" color="secondary">
+          <Text size="sm" c="secondary">
             No results
           </Text>
         )}
@@ -717,18 +720,16 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
       // collapsed to zero width and rendered as an empty box. Stretching the
       // container gives the list the definite width it measures rows against;
       // an explicit `style` from the caller still wins.
-      <View {...containerProps} style={[spacingStyle as any, { alignSelf: 'stretch' }, style]}>
-        <View style={{ height: height ?? 320 }}>
+      <View {...containerProps} style={[VIRTUAL_HEIGHT, spacingStyle, STRETCH, NO_OUTLINE, style]}>
+        <View style={FILL}>
           {FlashListComponent ? (
             <FlashListComponent
               data={rows}
-              keyExtractor={(row: TreeRowMeta) => row.node.id}
-              renderItem={({ item }: { item: TreeRowMeta }) => renderRow(item)}
-              // Required by FlashList v1, dropped in v2 — the peer range allows
-              // both, so it goes through untyped.
-              {...({ estimatedItemSize: metrics.rowHeight + 2 } as Record<string, unknown>)}
-              extraData={{ selectedSet, checkedSet, focusedId, containerFocused }}
-              showsVerticalScrollIndicator={web}
+              keyExtractor={keyExtractor}
+              renderItem={renderItem}
+              estimatedItemSize={metrics.rowHeight + 2}
+              extraData={extraData}
+              showsVerticalScrollIndicator={isWeb}
             />
           ) : (
             <ScrollView>{rows.map(renderRow)}</ScrollView>
@@ -739,12 +740,20 @@ export const Tree = React.forwardRef<View, TreeProps>((props, ref) => {
   }
 
   return (
-    <View {...containerProps}>
+    <View {...containerProps} style={[spacingStyle, NO_OUTLINE, style]}>
       {useAnimations ? renderAnimated(renderNodes) : rows.map(renderRow)}
     </View>
   );
-});
+}, { displayName: 'Tree' });
 
-Tree.displayName = 'Tree';
+/**
+ * A hierarchical list with expand/collapse, selection, checkboxes, filtering,
+ * lazy loading and virtualization. Generic over the node payload: `T` is
+ * inferred from `data` and flows into every callback.
+ */
+export const Tree = TreeBase as unknown as (<T = unknown>(
+  props: TreeProps<T> & VisibilityProps & React.RefAttributes<View>
+) => React.ReactElement | null) &
+  Pick<typeof TreeBase, 'displayName' | 'withProps' | 'extend'>;
 
 export default Tree;

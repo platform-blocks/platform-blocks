@@ -1,305 +1,278 @@
-import React from 'react';
-import { View, Pressable, StyleSheet, Platform } from 'react-native';
+import React, { useMemo } from 'react';
+import { Pressable, View, type TextStyle, type ViewStyle } from 'react-native';
 
-import { Text } from '../Text';
-import { useTheme } from '../../core/theme';
-import { SizeValue, getFontSize, getSpacing, getHeight } from '../../core/theme/sizes';
-import { createRadiusStyles } from '../../core/theme/radius';
-import { hexToRgb } from '../../core/theme/colorUtils';
-import { resolveVariantRoles, resolveGradientStops } from '../../core/theme/variantRoles';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
-import { getSpacingStyles, extractSpacingProps, extractShadowProps, getShadowStyles, mergeSlotProps } from '../../core/utils';
-import type { ChipProps } from './types';
-import { Icon } from '../Icon';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { getNodeText } from '../../core/accessibility/useA11yId';
+import { factory } from '../../core/factory';
+import type { KeyboardEventLike } from '../../core/accessibility/keyboard';
+import { webProps, webStyle } from '../../core/platform';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getControlSize, resolveRadius, resolveShadow, stepDown } from '../../core/theme/tokens';
+import { resolveGradientStops, resolveVariantRoles } from '../../core/theme/variantRoles';
+import { warnOnce } from '../../core/utils/logger';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState';
 import { resolveLinearGradient } from '../../utils/optionalDependencies';
+import { Text } from '../Text';
+import { RemoveButton } from './RemoveButton';
+import type { ChipProps, ChipVariant } from './types';
 
 const { LinearGradient: OptionalLinearGradient, hasLinearGradient } = resolveLinearGradient();
 
+const ABSOLUTE_FILL: ViewStyle = { position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 };
+const GRADIENT_START = { x: 0, y: 0 };
+const GRADIENT_END = { x: 1, y: 1 };
+
 /**
- * Circular remove ("×") button rendered inside a Chip. The icon inherits the
- * chip's resolved label color so it stays legible on every variant, and a
- * translucent scrim of that same color fades in on hover / press to give the
- * control a clear, tappable affordance.
- *
- * It's drawn deliberately light — a hairline stroke at partial opacity — so the
- * chip reads as its label first and the affordance second. Hover / press bring
- * it to full strength, so the control still announces itself when aimed at.
+ * Foreground row that must paint above the absolute gradient fill: on web,
+ * positioned elements paint above non-positioned in-flow siblings regardless of
+ * DOM order, so an opaque gradient would otherwise cover the label.
  */
-const CLOSE_ICON_STROKE = 1.75;
-const CLOSE_ICON_REST_OPACITY = 0.55;
-const ChipCloseButton: React.FC<{
-  size: SizeValue;
-  color: string;
-  onPress: () => void;
-  disabled?: boolean;
-  position: 'left' | 'right';
-  label?: string;
-}> = ({ size, color, onPress, disabled, position, label }) => {
-  // Track just above the label rather than a fixed 18px floor, which made the ×
-  // larger than the text it sat next to on sm/xs chips.
-  const iconSize = Math.max(12, Math.round(getFontSize(size) * 1.15));
-  const buttonSize = iconSize + 6;
-  const rgb = hexToRgb(color);
-  const scrim = (alpha: number) => (rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})` : `rgba(128, 128, 128, ${alpha})`);
-
-  return (
-    <Pressable
-      onPress={disabled ? undefined : onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={label ?? 'Remove'}
-      hitSlop={6}
-      style={({ hovered, pressed }: any) => [
-        {
-          width: buttonSize,
-          height: buttonSize,
-          borderRadius: buttonSize / 2,
-          alignItems: 'center' as const,
-          justifyContent: 'center' as const,
-          marginLeft: position === 'right' ? 1 : 0,
-          marginRight: position === 'left' ? 1 : 0,
-          opacity: disabled ? 0.5 : 1,
-          backgroundColor: pressed ? scrim(0.18) : hovered ? scrim(0.1) : 'transparent',
-          ...(Platform.OS === 'web'
-            ? ({ cursor: disabled ? 'not-allowed' : 'pointer', transition: 'background-color 0.12s ease' } as any)
-            : {}),
-        },
-      ]}
-    >
-      {/*
-        Function children give the icon the same interaction state the scrim uses.
-        `hovered` is web-only (undefined on native), so the rest → press step
-        still works everywhere.
-      */}
-      {({ hovered, pressed }: any) => (
-        <Icon
-          name="close"
-          size={iconSize}
-          stroke={CLOSE_ICON_STROKE}
-          color={color}
-          style={{
-            opacity: hovered || pressed ? 1 : CLOSE_ICON_REST_OPACITY,
-            ...(Platform.OS === 'web' ? ({ transition: 'opacity 0.12s ease' } as any) : {}),
-          }}
-        />
-      )}
-    </Pressable>
-  );
+const CONTENT_STYLE: ViewStyle = {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  position: 'relative',
+  zIndex: 1,
 };
 
-type ChipVariant = NonNullable<ChipProps['variant']>;
-
-const getChipStyles = (
-  theme: PlatformBlocksTheme,
-  variant: ChipProps['variant'] = 'filled',
-  color: ChipProps['color'] = 'primary',
-  size: SizeValue = 'md',
-  disabled: boolean = false,
-  height: number,
-  radiusStyles: any,
-  shadowStyles: any,
-  gradientStops?: [string, string]
-) => {
-  const horizontalSpacing = getSpacing(size);
-
-  const baseStyles = {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    height,
-    paddingHorizontal: horizontalSpacing,
-    borderWidth: 1,
-    opacity: disabled ? 0.5 : 1,
-    position: 'relative' as const,
-    ...radiusStyles
-  };
-
-  const roles = resolveVariantRoles(theme, { variant, color, gradientStops });
-
-  const styleForVariant = {
-    ...baseStyles,
-    backgroundColor: roles.fill,
-    borderColor: roles.border,
-    ...(variant === 'gradient' ? { overflow: 'hidden' as const } : {})
-  };
-
-  // Chips are flat unless the consumer opts in via `shadow`, in which case every
-  // variant honors it.
-  return { ...styleForVariant, ...shadowStyles };
-};
-
-const getChipTextStyles = (
-  theme: PlatformBlocksTheme,
-  variant: ChipProps['variant'] = 'filled',
-  color: ChipProps['color'] = 'primary',
-  size: SizeValue = 'md'
-) => {
-  const fontSize = getFontSize(size);
-
-  const roles = resolveVariantRoles(theme, { variant, color });
-
-  return {
-    fontSize,
-    textAlign: 'center' as const,
-    color: roles.text,
-  };
-};
-
-export const Chip = React.forwardRef<View, ChipProps>((props, ref) => {
+/**
+ * A compact label: a tag, a filter, an input token. Sized one step below a
+ * control of the same `size` (`getControlSize(theme, stepDown(size))`).
+ *
+ * - `onPress` makes it a button.
+ * - `checked` / `defaultChecked` / `onChange` make it selectable: a checkbox
+ *   (`aria-checked`) that toggles on press, drawn in `variant` when checked and
+ *   `uncheckedVariant` (default `outline`) when not.
+ * - `onRemove` adds a remove button named "Remove <label>".
+ */
+export const Chip = factory<{ props: ChipProps; ref: View }>((props, ref) => {
   const {
     children,
     size = 'md',
     variant = 'filled',
+    uncheckedVariant = 'outline',
     color = 'primary',
     onPress,
+    checked: checkedProp,
+    defaultChecked,
+    onChange,
     dot = false,
     dotColor,
+    startSection: startSectionProp,
+    endSection: endSectionProp,
     startIcon,
     endIcon,
     onRemove,
     removePosition = 'right',
+    removeButtonLabel,
     disabled = false,
     style,
     textStyle,
     labelProps,
-    radius,
-    shadow,
+    radius = 'full',
+    shadow = 'none',
+    testID,
     ...rest
   } = props;
 
-  const requestedVariant = variant;
-  const resolvedColor = color;
-  const isCustomColor = typeof resolvedColor === 'string' && !['primary', 'secondary', 'success', 'warning', 'error', 'gray'].includes(resolvedColor as string);
-  const shouldUseGradient = requestedVariant === 'gradient' && hasLinearGradient;
-  const effectiveVariant = shouldUseGradient ? 'gradient' : (requestedVariant === 'gradient' ? 'filled' : requestedVariant);
-
-  const { spacingProps, otherProps } = extractSpacingProps(rest);
-  const { shadowProps } = extractShadowProps({ shadow });
-  const spacingStyles = getSpacingStyles(spacingProps);
+  if (startIcon !== undefined) warnOnce('Chip.startIcon', 'Chip: `startIcon` is deprecated; use `startSection`.');
+  if (endIcon !== undefined) warnOnce('Chip.endIcon', 'Chip: `endIcon` is deprecated; use `endSection`.');
+  const startSection = startSectionProp ?? startIcon;
+  const endSection = endSectionProp ?? endIcon;
 
   const theme = useTheme();
+  const { styleProps, otherProps: a11yRest } = extractStyleProps(rest);
 
-  // Handle radius prop with 'chip' as default
-  const radiusStyles = createRadiusStyles(radius || 'chip');
+  const selectable = checkedProp !== undefined || defaultChecked !== undefined || onChange !== undefined;
+  const [checked, setChecked] = useControllableState<boolean>({
+    value: checkedProp,
+    defaultValue: defaultChecked,
+    finalValue: false,
+    onChange,
+  });
 
-  // Chips are flat by default on every variant; opt in with the `shadow` prop.
-  const effectiveShadow = shadowProps.shadow ?? 'none';
-  const shadowStyles = getShadowStyles({ shadow: effectiveShadow }, theme, 'chip');
+  const requestedVariant: ChipVariant = selectable && !checked ? uncheckedVariant : variant;
+  const shouldUseGradient = requestedVariant === 'gradient' && hasLinearGradient;
+  const effectiveVariant: ChipVariant =
+    requestedVariant === 'gradient' && !hasLinearGradient ? 'filled' : requestedVariant;
 
-  const height = getHeight(size);
-  const gradientStops = React.useMemo(() => (
-    shouldUseGradient ? resolveGradientStops(theme, resolvedColor as string) : undefined
-  ), [shouldUseGradient, theme, resolvedColor, isCustomColor]);
+  const control = getControlSize(theme, stepDown(size));
+  const borderRadius = resolveRadius(theme, radius);
 
-  const chipStyles = getChipStyles(theme, effectiveVariant, resolvedColor, size, disabled, height - 10, radiusStyles, shadowStyles, gradientStops);
-  const chipTextStyles = getChipTextStyles(theme, effectiveVariant, resolvedColor, size);
-  const iconSpacing = getSpacing(size) / 2;
+  const gradientStops = useMemo(
+    () => (shouldUseGradient ? resolveGradientStops(theme, color) : undefined),
+    [shouldUseGradient, theme, color]
+  );
+  const roles = useMemo(
+    () => resolveVariantRoles(theme, { variant: effectiveVariant, color, gradientStops }),
+    [theme, effectiveVariant, color, gradientStops]
+  );
+
+  const chipStyle: ViewStyle = {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: control.height,
+    paddingHorizontal: control.paddingX,
+    borderWidth: 1,
+    borderRadius,
+    backgroundColor: roles.fill,
+    borderColor: roles.border,
+    opacity: disabled ? 0.5 : 1,
+    position: 'relative',
+    ...(effectiveVariant === 'gradient' ? { overflow: 'hidden' } : null),
+    // Chips are flat unless the consumer opts in via `shadow`.
+    ...resolveShadow(theme, shadow),
+  };
+  const labelStyle: TextStyle = { fontSize: control.fontSize, textAlign: 'center', color: roles.text };
+  const gap = control.gap;
 
   // Leading status dot. Defaults to the resolved label color so it stays legible
   // across every variant + color scheme; caller can override via `dotColor`.
-  const dotSize = Math.max(6, Math.round(getFontSize(size) * 0.42));
+  const dotSize = Math.max(6, Math.round(control.fontSize * 0.42));
   const dotNode = dot ? (
     <View
       style={{
         width: dotSize,
         height: dotSize,
         borderRadius: dotSize / 2,
-        backgroundColor: dotColor ?? chipTextStyles.color,
+        backgroundColor: (dotColor && resolveAccentColor(theme, dotColor)) ?? roles.text,
         opacity: dotColor ? 1 : 0.9,
+        marginEnd: gap,
       }}
     />
   ) : null;
 
-  // Foreground row that must paint above the absolute gradient fill (see JSX below).
-  const contentStyles = {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    position: 'relative' as const,
-    zIndex: 1,
-  };
-
-  const Component = onPress ? Pressable : View;
-
+  const labelText = getNodeText(children);
   const removeButton = onRemove ? (
-    <ChipCloseButton
+    <RemoveButton
       size={size}
-      color={chipTextStyles.color}
+      color={roles.text}
       onPress={onRemove}
       disabled={disabled}
-      position={removePosition}
+      label={removeButtonLabel ?? (labelText ? `Remove ${labelText}` : 'Remove')}
+      testID={testID ? `${testID}-remove` : undefined}
     />
   ) : null;
 
   // Pull the remove button toward the chip edge by trimming the padding on its
-  // side (the circular button already carries its own internal breathing room).
-  const removeEdgeStyle = onRemove
+  // side (its touch target already carries its own breathing room).
+  const removeEdgeStyle: ViewStyle | null = onRemove
     ? removePosition === 'right'
-      ? { paddingRight: Math.max(2, getSpacing(size) - 6) }
-      : { paddingLeft: Math.max(2, getSpacing(size) - 6) }
+      ? { paddingEnd: Math.max(2, control.paddingX - 8) }
+      : { paddingStart: Math.max(2, control.paddingX - 8) }
     : null;
 
-  return (
-    <Component
-      ref={ref as any}
-      style={[chipStyles, removeEdgeStyle, spacingStyles, style]}
-      onPress={disabled ? undefined : onPress}
-      disabled={disabled}
-      {...otherProps}
-    >
-      {shouldUseGradient && gradientStops && (
-        <OptionalLinearGradient
-          pointerEvents="none"
-          colors={gradientStops}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[StyleSheet.absoluteFill, radiusStyles]}
-        />
-      )}
-      {/*
-        The gradient above is absolutely positioned. On web, positioned elements
-        paint above non-positioned in-flow siblings regardless of DOM order, so an
-        opaque gradient would cover the label. Keep the foreground content in a
-        positioned wrapper with a higher zIndex so it always sits above the fill.
-      */}
-      <View style={contentStyles}>
-        {removePosition === 'left' && removeButton && (
-          <View style={{ marginRight: iconSpacing }}>
-            {removeButton}
-          </View>
-        )}
+  const interactive = selectable || !!onPress;
+  const handlePress = () => {
+    if (disabled) return;
+    if (selectable) setChecked(!checked);
+    onPress?.();
+  };
 
-        {dotNode && (
-          <View style={{ marginRight: iconSpacing }}>
-            {dotNode}
-          </View>
-        )}
+  // react-native-web only activates `role="button"` on Space; a checkbox needs it too.
+  const handleKeyDown = (event: KeyboardEventLike) => {
+    if (event.key === ' ' && !event.defaultPrevented) {
+      event.preventDefault?.();
+      handlePress();
+    }
+  };
 
-        {startIcon && (
-          <View style={{ marginRight: iconSpacing }}>
-            {startIcon}
-          </View>
-        )}
+  const accessibility = interactive
+    ? {
+        ...a11yProps({
+          role: selectable ? 'checkbox' : 'button',
+          checked: selectable ? checked : undefined,
+          disabled,
+        }),
+        ...webProps({ onKeyDown: selectable ? handleKeyDown : undefined }),
+      }
+    : {};
 
-        <Text
-          {...mergeSlotProps(
-            { weight: '500' as const, style: [chipTextStyles, textStyle] },
-            labelProps,
-          )}
-        >
-          {children}
-        </Text>
+  const gradient =
+    shouldUseGradient && gradientStops ? (
+      <OptionalLinearGradient
+        pointerEvents="none"
+        colors={gradientStops}
+        start={GRADIENT_START}
+        end={GRADIENT_END}
+        style={[ABSOLUTE_FILL, { borderRadius }]}
+      />
+    ) : null;
 
-        {(endIcon || (onRemove && removePosition === 'right')) && (
-          <View style={{ marginLeft: iconSpacing }}>
-            {removePosition === 'right' && removeButton ? removeButton : endIcon}
-          </View>
-        )}
-      </View>
-    </Component>
+  const label = (
+    <>
+      {dotNode}
+      {startSection ? <View style={{ marginEnd: gap }}>{startSection}</View> : null}
+      <Text {...mergeSlotProps({ fw: '500' as const, style: [labelStyle, textStyle] }, labelProps)}>{children}</Text>
+      {endSection ? <View style={{ marginStart: gap }}>{endSection}</View> : null}
+    </>
   );
-});
 
-Chip.displayName = 'Chip';
+  const rootStyle = [chipStyle, removeEdgeStyle, resolveStyleProps(styleProps, theme), style];
+  const cursorStyle = webStyle({ cursor: disabled ? 'not-allowed' : 'pointer' });
+
+  // A pressable chip with a remove button: two sibling controls inside the chip
+  // shell, never a button nested in a button.
+  if (interactive && removeButton) {
+    return (
+      <View ref={ref} style={rootStyle} testID={testID}>
+        {gradient}
+        <View style={CONTENT_STYLE}>
+          {removePosition === 'left' ? <View style={{ marginEnd: gap / 2 }}>{removeButton}</View> : null}
+          <Pressable
+            style={[CONTENT_STYLE, cursorStyle]}
+            onPress={handlePress}
+            disabled={disabled}
+            testID={testID ? `${testID}-press` : undefined}
+            {...accessibility}
+            {...a11yRest}
+          >
+            {label}
+          </Pressable>
+          {removePosition === 'right' ? <View style={{ marginStart: gap / 2 }}>{removeButton}</View> : null}
+        </View>
+      </View>
+    );
+  }
+
+  const content = (
+    <>
+      {gradient}
+      <View style={CONTENT_STYLE}>
+        {removePosition === 'left' && removeButton ? <View style={{ marginEnd: gap / 2 }}>{removeButton}</View> : null}
+        {label}
+        {removePosition === 'right' && removeButton ? (
+          <View style={{ marginStart: gap / 2 }}>{removeButton}</View>
+        ) : null}
+      </View>
+    </>
+  );
+
+  if (!interactive) {
+    return (
+      <View ref={ref} style={rootStyle} testID={testID} {...a11yRest}>
+        {content}
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      ref={ref}
+      style={[rootStyle, cursorStyle]}
+      onPress={handlePress}
+      disabled={disabled}
+      testID={testID}
+      {...accessibility}
+      {...a11yRest}
+    >
+      {content}
+    </Pressable>
+  );
+}, { displayName: 'Chip' });
 
 export default Chip;

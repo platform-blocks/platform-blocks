@@ -1,4 +1,4 @@
-import { ContextMenu, Card, Text } from '@platform-blocks/ui';
+import { Card, ContextMenu, Text } from '@platform-blocks/ui';
 
 const ITEMS = [
   { id: 'copy', label: 'Copy' },
@@ -10,8 +10,8 @@ export function Demo() {
   return (
     <ContextMenu items={ITEMS}>
       {(triggerProps) => (
-        <Card {...triggerProps} style={{ padding: 24, alignItems: 'center' }}>
-          <Text variant="p">Right-click or long-press me</Text>
+        <Card {...triggerProps} padding="2xl">
+          <Text>Right-click or long-press me</Text>
         </Card>
       )}
     </ContextMenu>

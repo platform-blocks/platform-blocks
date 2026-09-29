@@ -14,7 +14,7 @@ export function Demo() {
         clearable
         fullWidth
       />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         {value
           ? value.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
           : 'No month selected'}

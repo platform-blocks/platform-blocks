@@ -22,7 +22,7 @@ export function Demo() {
         onChange={(dates) => setSelectedDates(dates as Date[])}
         highlightToday
       />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         {summary}
       </Text>
     </Block>

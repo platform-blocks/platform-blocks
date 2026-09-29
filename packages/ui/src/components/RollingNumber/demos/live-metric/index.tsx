@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, Flex, RollingNumber, Text } from '@platform-blocks/ui';
+import { Flex, RollingNumber, Text } from '@platform-blocks/ui';
 
 export function Demo() {
   const [requests, setRequests] = useState(84213);
@@ -12,18 +12,16 @@ export function Demo() {
   }, []);
 
   return (
-    <Card p="lg" style={{ minWidth: 220 }}>
-      <Flex direction="column" gap="xs">
-        <Text size="xs" c="dimmed" uppercase>Requests today</Text>
-        <RollingNumber
-          value={requests}
-          thousandSeparator
-          size={40}
-          weight="bold"
-          transitionDuration={500}
-          stagger={40}
-        />
-      </Flex>
-    </Card>
+    <Flex direction="column" gap="xs">
+      <Text size="xs" c="dimmed" tt="uppercase">Requests today</Text>
+      <RollingNumber
+        value={requests}
+        thousandSeparator
+        size={40}
+        fw="bold"
+        transitionDuration={500}
+        stagger={40}
+      />
+    </Flex>
   );
 }

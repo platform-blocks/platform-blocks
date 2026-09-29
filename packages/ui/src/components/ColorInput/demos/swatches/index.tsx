@@ -19,7 +19,7 @@ export function Demo() {
   return (
     <Block fullWidth>
       <Block fullWidth>
-        <Text size="sm" weight="semibold">
+        <Text size="sm" fw="semibold">
           Custom blue palette
         </Text>
         <ColorInput
@@ -32,7 +32,7 @@ export function Demo() {
       </Block>
 
       <Block fullWidth>
-        <Text size="sm" weight="semibold">
+        <Text size="sm" fw="semibold">
           Custom green palette
         </Text>
         <ColorInput
@@ -45,14 +45,14 @@ export function Demo() {
       </Block>
 
       <Block fullWidth>
-        <Text size="sm" weight="semibold">
+        <Text size="sm" fw="semibold">
           Without swatches
         </Text>
         <ColorInput
           value={color3}
           onChange={setColor3}
           withSwatches={false}
-          label="Color wheel only"
+          label="Hex input only"
           fullWidth
         />
       </Block>

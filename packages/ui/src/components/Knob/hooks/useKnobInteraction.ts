@@ -1,5 +1,7 @@
 import { MutableRefObject, useCallback, useEffect, useMemo, useRef } from 'react';
-import { PanResponder, Platform, View } from 'react-native';
+import { PanResponder, type GestureResponderEvent, type View } from 'react-native';
+
+import { isWeb } from '../../../core/platform';
 
 import type { KnobInteractionMode } from '../types';
 import type { LayoutState } from './useKnobGeometry';
@@ -11,6 +13,16 @@ import {
   releasePageScrollLock,
   releaseTextSelectionLock,
 } from '../../../core/gestures';
+
+/** The DOM event react-native-web wraps in a responder event. */
+type DomEventLike = { preventDefault?: () => void; stopPropagation?: () => void };
+
+/** The fields of a DOM `wheel` event the knob reads. */
+type WheelEventLike = DomEventLike & {
+  deltaX?: number;
+  deltaY?: number;
+  stopImmediatePropagation?: () => void;
+};
 
 type InteractionState = {
   mode: KnobInteractionMode | null;
@@ -152,13 +164,15 @@ export const useKnobInteraction = ({
   }, [setActiveInteractionMode, clearScrollModeTimer]);
 
   const handlePanGrant = useCallback(
-    (event: any) => {
+    (event: GestureResponderEvent) => {
       if (disabled || readOnly || !pointerGestureEnabled) return;
       onScrubStart?.();
       const native = event.nativeEvent;
-      if (Platform.OS === 'web') {
-        native?.preventDefault?.();
-        native?.stopPropagation?.();
+      if (isWeb) {
+        // On web the responder event wraps a DOM event.
+        const dom = native as unknown as DomEventLike;
+        dom.preventDefault?.();
+        dom.stopPropagation?.();
       }
       const pageX = native.pageX ?? native.locationX ?? 0;
       const pageY = native.pageY ?? native.locationY ?? 0;
@@ -212,11 +226,11 @@ export const useKnobInteraction = ({
   );
 
   const handlePanMove = useCallback(
-    (event: any) => {
+    (event: GestureResponderEvent) => {
       if (disabled || readOnly || !pointerGestureEnabled) return;
       const native = event.nativeEvent;
-      if (Platform.OS === 'web') {
-        native?.preventDefault?.();
+      if (isWeb) {
+        (native as unknown as DomEventLike).preventDefault?.();
       }
       const pageX = native.pageX ?? native.locationX ?? 0;
       const pageY = native.pageY ?? native.locationY ?? 0;
@@ -358,23 +372,20 @@ export const useKnobInteraction = ({
   ]);
 
   const handleWheel = useCallback(
-    (event: any) => {
-      if (Platform.OS !== 'web') return;
-      const native = event?.nativeEvent ?? event;
+    (event: WheelEventLike) => {
+      if (!isWeb) return;
       if (!interactionConfig.scroll.enabled) return;
 
       const shouldBlockScroll =
         interactionConfig.scroll.preventPageScroll && !disabled && !readOnly;
       if (shouldBlockScroll) {
-        event?.preventDefault?.();
-        event?.stopPropagation?.();
-        native?.preventDefault?.();
-        native?.stopPropagation?.();
-        native?.stopImmediatePropagation?.();
+        event.preventDefault?.();
+        event.stopPropagation?.();
+        event.stopImmediatePropagation?.();
       }
       if (disabled || readOnly) return;
-      const deltaY = native?.deltaY ?? 0;
-      const deltaX = native?.deltaX ?? 0;
+      const deltaY = event.deltaY ?? 0;
+      const deltaX = event.deltaX ?? 0;
       const dominantDelta = Math.abs(deltaY) >= Math.abs(deltaX) ? deltaY : deltaX;
       if (!dominantDelta) return;
       // Wheel input is a real interaction mode, so report it the way the pointer gestures do
@@ -396,12 +407,12 @@ export const useKnobInteraction = ({
   );
 
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
+    if (!isWeb) return;
     if (!interactionConfig.scroll.enabled) return;
     const node = hostRef.current as unknown as HTMLElement | null;
     if (!node?.addEventListener) return;
 
-    const listener = (event: WheelEvent) => {
+    const listener = (event: WheelEventLike) => {
       handleWheel(event);
     };
 

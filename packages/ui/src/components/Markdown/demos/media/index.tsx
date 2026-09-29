@@ -1,8 +1,6 @@
-import { Block, Markdown, Text } from '@platform-blocks/ui';
+import { Block, Markdown } from '@platform-blocks/ui';
 
-const CONTENT = `# Media in Markdown
-
-## Images
+const CONTENT = `## Images
 
 ![PlatformBlocks Logo](https://raw.githubusercontent.com/platform-blocks/platform-blocks/main/apps/platform-blocks.com/assets/favicon.png)
 
@@ -32,9 +30,6 @@ export function Demo() {
   return (
     <Block fullWidth>
       <Markdown>{CONTENT}</Markdown>
-      <Text size="sm" color="secondary">
-        Images, links, tables, and horizontal rules render inline
-      </Text>
     </Block>
   );
 }

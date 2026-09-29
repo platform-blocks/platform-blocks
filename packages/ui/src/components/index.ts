@@ -1,3 +1,7 @@
+// Internal convenience barrel — NOT a package entry point. The published
+// surface is src/index.ts plus each src/components/<Name>/index.ts subpath, and
+// nothing inside the package imports this file (importing it drags in every
+// component). It is kept only for in-repo consumers such as the docs app.
 // Component exports
 export { Alert } from './Alert';
 export { AppShell } from './AppShell';
@@ -227,8 +231,6 @@ export type { GalleryProps, GalleryModalProps, GalleryItem } from './Gallery';
 
 // Accessibility components
 export * from './_internal/Accessibility/AccessibilityHelpers';
-export * from './_internal/Accessibility/AccessibilityTesting';
-export * from './_internal/Accessibility/AccessibilityDemo';
 
 // Sound components
 export * from './Button/SoundButton';

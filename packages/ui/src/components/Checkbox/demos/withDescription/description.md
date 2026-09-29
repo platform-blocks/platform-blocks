@@ -8,4 +8,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Descriptions and helper text
+Use `description` for supporting copy under the label, and pair it with `error` to surface validation details.

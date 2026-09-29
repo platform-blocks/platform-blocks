@@ -1,157 +1,96 @@
-import React, { useCallback, useMemo, useState, forwardRef } from 'react';
-import { View, Pressable, Keyboard } from 'react-native';
-import { Input } from '../Input';
-import { Icon } from '../Icon';
-import { Dialog } from '../Dialog';
-import { YearPicker } from '../YearPicker';
-import { DESIGN_TOKENS } from '../../core';
-import type { YearPickerInputProps } from './types';
-import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
+import React, { useCallback, useState } from 'react';
+
+import { factory } from '../../core/factory/factory';
 import { useControllableState } from '../../hooks/useControllableState';
+import { PickerField } from '../DatePickerInput/PickerField';
+import { YearPicker } from '../YearPicker';
+import type { YearPickerInputHandle, YearPickerInputProps } from './types';
 
 const defaultFormat = (date: Date) => date.getFullYear().toString();
 
-export const YearPickerInput = forwardRef<View, YearPickerInputProps>(function YearPickerInput(
-  {
-    value,
-    defaultValue,
-    onChange,
-    formatValue,
-    placeholder = 'Select year',
-    clearable = false,
-    closeOnSelect = true,
-    yearPickerProps,
-    modalTitle = 'Select year',
-    size = 'md',
-    disabled = false,
-    withAsterisk,
-    onOpen,
-    onClose,
-    ...inputProps
-  },
-  ref
-) {
-  const [opened, setOpened] = useState(false);
-  const [selectedValue, setValue] = useControllableState<Date | null>({
-    value,
-    defaultValue: defaultValue ?? null,
-    finalValue: null,
-    onChange,
-  });
-  const currentValue = selectedValue ?? null;
-  const keyboardManager = useKeyboardManagerOptional();
+/**
+ * A form field that opens a year grid in a sheet (or a desktop dropdown with
+ * `dropdownType="popover"`). The field is a button announcing its label and
+ * the chosen year.
+ */
+export const YearPickerInput = factory<{ props: YearPickerInputProps; ref: YearPickerInputHandle }>(
+  function YearPickerInput(props, ref) {
+    const {
+      value,
+      defaultValue,
+      onChange,
+      formatValue = defaultFormat,
+      placeholder = 'Select year',
+      clearable = false,
+      closeOnSelect = true,
+      yearPickerProps,
+      modalTitle = 'Select year',
+      dropdownType = 'modal',
+      size = 'md',
+      onOpen,
+      onClose,
+      ...fieldProps
+    } = props;
 
-  const {
-    required = false,
-    endSection,
-    onFocus,
-    onBlur,
-    style,
-    ...restInputProps
-  } = inputProps;
+    const [opened, setOpened] = useState(false);
+    const [selectedValue, setValue] = useControllableState<Date | null>({
+      value,
+      defaultValue: defaultValue ?? null,
+      finalValue: null,
+      onChange,
+    });
+    const currentValue = selectedValue ?? null;
 
-  const inputClearable = (inputProps as { clearable?: boolean }).clearable;
-  const inputOnClear = (inputProps as { onClear?: () => void }).onClear;
+    const open = useCallback(() => {
+      setOpened(true);
+      onOpen?.();
+    }, [onOpen]);
 
-  const format = useMemo(() => formatValue ?? defaultFormat, [formatValue]);
+    const close = useCallback(() => {
+      setOpened(false);
+      onClose?.();
+    }, [onClose]);
 
-  const handleOpen = useCallback(() => {
-    if (disabled) return;
-    if (keyboardManager) {
-      keyboardManager.dismissKeyboard();
-    } else {
-      Keyboard.dismiss();
-    }
-    setOpened(true);
-    onFocus?.();
-    onOpen?.();
-  }, [disabled, onFocus, onOpen, keyboardManager]);
+    const { onChange: yearPickerOnChange, ...restYearPickerProps } = yearPickerProps ?? {};
 
-  const handleClose = useCallback(() => {
-    setOpened(false);
-    onBlur?.();
-    onClose?.();
-  }, [onBlur, onClose]);
+    const handleYearChange = useCallback(
+      (next: Date | null) => {
+        setValue(next);
+        yearPickerOnChange?.(next ?? null);
+        if (closeOnSelect && next) close();
+      },
+      [setValue, yearPickerOnChange, closeOnSelect, close]
+    );
 
-  const handleClear = useCallback(() => {
-    setValue(null);
-    inputOnClear?.();
-  }, [inputOnClear, setValue]);
+    const clearValue = useCallback(() => setValue(null), [setValue]);
+    const displayValue = currentValue ? formatValue(currentValue) : '';
 
-  const { onChange: yearPickerOnChange, ...restYearPickerProps } = yearPickerProps ?? {};
-
-  const handleYearChange = useCallback(
-    (next: Date | null) => {
-      setValue(next);
-      yearPickerOnChange?.(next ?? null);
-      if (closeOnSelect && next) {
-        handleClose();
-      }
-    },
-    [closeOnSelect, handleClose, setValue, yearPickerOnChange]
-  );
-
-  const inputValue = currentValue ? format(currentValue) : '';
-  const shouldShowClear = (clearable || inputClearable) && !!currentValue;
-  const showAsterisk = withAsterisk ?? required;
-  const resolvedSize = restYearPickerProps.size ?? size;
-
-  return (
-    <View ref={ref}>
-      <Pressable
-        onPress={handleOpen}
-        disabled={disabled}
-        accessibilityRole="button"
-        accessibilityLabel={inputValue || placeholder}
-        accessibilityHint="Opens year picker"
-        accessibilityState={{ disabled }}
-        style={{ width: '100%' }}
+    return (
+      <PickerField
+        {...fieldProps}
+        handleRef={ref}
+        size={size}
+        placeholder={placeholder}
+        clearable={clearable}
+        displayValue={displayValue}
+        hasValue={!!currentValue}
+        opened={opened}
+        onOpenRequest={open}
+        onCloseRequest={close}
+        onClearValue={clearValue}
+        dropdownType={dropdownType}
+        panelTitle={modalTitle}
+        panelWidth={360}
+        icon="calendar"
       >
-        <Input
-          {...restInputProps}
-          value={inputValue}
-          placeholder={placeholder}
-          disabled={disabled}
-          size={size}
-          required={required}
-          withAsterisk={showAsterisk}
-          clearable={shouldShowClear}
-          onClear={shouldShowClear ? handleClear : undefined}
-          endSection={endSection ?? <Icon name="calendar" size={16} />}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          style={style}
-          textInputProps={{
-            editable: false,
-            pointerEvents: 'none',
-            accessible: false,
-            focusable: false,
-          }}
+        <YearPicker
+          {...restYearPickerProps}
+          value={currentValue}
+          onChange={handleYearChange}
+          size={restYearPickerProps.size ?? size}
         />
-      </Pressable>
-
-      <Dialog
-        visible={opened}
-        variant="modal"
-        onClose={handleClose}
-        title={modalTitle}
-        w={360}
-      >
-        <View
-          style={{
-            padding: DESIGN_TOKENS.spacing.lg,
-          }}
-        >
-          <YearPicker
-            {...restYearPickerProps}
-            value={currentValue}
-            onChange={handleYearChange}
-            size={resolvedSize}
-          />
-        </View>
-      </Dialog>
-    </View>
-  );
-});
-
-YearPickerInput.displayName = 'YearPickerInput';
+      </PickerField>
+    );
+  },
+  { displayName: 'YearPickerInput' }
+);

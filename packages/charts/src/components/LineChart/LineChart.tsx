@@ -13,8 +13,6 @@ import Svg, {
   Path,
   Circle,
   Defs,
-  LinearGradient,
-  Stop,
   G
 } from 'react-native-svg';
 
@@ -189,6 +187,7 @@ const createFillPath = (points: Array<{ chartX: number; chartY: number }>, plotH
   return `${linePath} L ${lastPoint.chartX} ${plotHeight} L ${firstPoint.chartX} ${plotHeight} Z`;
 };
 import { useChartTheme } from '../../theme/ChartThemeContext';
+import { ChartGradientDef, isChartGradient, type ChartGradient } from '../../core/ChartFill';
 import { LineChartProps, ChartInteractionEvent, ChartDataPoint, LineChartSeries } from '../../types';
 import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
 import { resolveCartesianPadding } from '../../core/axisLayout';
@@ -209,8 +208,8 @@ import {
   dataToChartCoordinates,
   createSmoothPath,
   getColorFromScheme,
-  colorSchemes,
-  formatNumber
+  formatNumber,
+  createTickFormatter
 } from '../../utils';
 import { PointSeriesHitTester } from '../../core/hittest/point';
 import type { HitSeries, Mark } from '../../core/hittest/types';
@@ -221,8 +220,8 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
   const {
     data,
     series,
-    width = 400,
-    height = 300,
+    w: width = 400,
+    h: height = 300,
     lineColor,
     lineThickness = 2,
     lineStyle = 'solid',
@@ -259,7 +258,7 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
   }
   const chartInstanceId = chartInstanceIdRef.current;
   const isWeb = Platform.OS === 'web';
-  const defaultScheme = colorSchemes.default;
+  const defaultScheme = theme.colors.accentPalette;
   const animationProgress = useSharedValue(0);
   const hasPlayedIntro = React.useRef(false);
   const [selectedPoint, setSelectedPoint] = useState<ChartDataPoint | null>(null);
@@ -419,14 +418,19 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
     }
   }, [yDomain, props.yScaleType]);
 
-  const xTickLabels = React.useMemo(
-    () => xTicks.map((tick) => (xAxis?.labelFormatter ? xAxis.labelFormatter(Number(tick)) : formatNumber(Number(tick)))),
-    [xTicks, xAxis?.labelFormatter]
+  // Time ticks are timestamps, not magnitudes, so they're never abbreviated.
+  const xTickFormat = React.useMemo(
+    () => xAxis?.labelFormatter
+      ?? (props.xScaleType === 'time' ? (value: number) => formatNumber(value) : createTickFormatter(xTicks, theme.numberFormat)),
+    [xTicks, xAxis?.labelFormatter, props.xScaleType, theme.numberFormat]
   );
-  const yTickLabels = React.useMemo(
-    () => yTicks.map((tick) => (yAxis?.labelFormatter ? yAxis.labelFormatter(Number(tick)) : formatNumber(Number(tick)))),
-    [yTicks, yAxis?.labelFormatter]
+  const yTickFormat = React.useMemo(
+    () => yAxis?.labelFormatter
+      ?? (props.yScaleType === 'time' ? (value: number) => formatNumber(value) : createTickFormatter(yTicks, theme.numberFormat)),
+    [yTicks, yAxis?.labelFormatter, props.yScaleType, theme.numberFormat]
   );
+  const xTickLabels = React.useMemo(() => xTicks.map((tick) => xTickFormat(Number(tick))), [xTicks, xTickFormat]);
+  const yTickLabels = React.useMemo(() => yTicks.map((tick) => yTickFormat(Number(tick))), [yTicks, yTickFormat]);
 
   const legendLabels = React.useMemo(
     () => normalizedSeries.map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
@@ -543,9 +547,18 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
     return filledSeriesIndices.map(seriesIndex => {
       const seriesData = chartSeriesData[seriesIndex];
       const gradientId = `${chartInstanceId}-gradient-${seriesData.id ?? seriesIndex}`;
-      const gradientColor = seriesData.fillColor || fillColor || seriesData.color || theme.colors.accentPalette[seriesIndex % theme.colors.accentPalette.length];
-      const gradientOpacity = seriesData.fillOpacity ?? fillOpacity;
-      return { id: gradientId, color: gradientColor, opacity: gradientOpacity, seriesIndex };
+      const areaFill = seriesData.fillColor ?? fillColor;
+      if (isChartGradient(areaFill)) return { id: gradientId, gradient: areaFill, seriesIndex };
+      const color = areaFill || seriesData.color || theme.colors.accentPalette[seriesIndex % theme.colors.accentPalette.length];
+      // A plain color fades from fillOpacity at the line to nothing at the baseline.
+      const gradient: ChartGradient = {
+        angle: 90,
+        stops: [
+          { offset: 0, color, opacity: seriesData.fillOpacity ?? fillOpacity },
+          { offset: 1, color, opacity: 0 },
+        ],
+      };
+      return { id: gradientId, gradient, seriesIndex };
     });
   }, [chartSeriesData, chartInstanceId, filledSeriesIndices, fillColor, fillOpacity, theme]);
 
@@ -819,8 +832,8 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
 
   return (
     <ChartContainer
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       disabled={disabled}
       animationDuration={animationDuration}
       style={style}
@@ -872,9 +885,7 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
           tickLabelLines={axisPadding.xTickLabelLines}
           tickSize={xAxisTickSize}
           tickPadding={axisTickPadding}
-          tickFormat={(value) =>
-            xAxis?.labelFormatter ? xAxis.labelFormatter(Number(value)) : formatNumber(Number(value))
-          }
+          tickFormat={(value) => xTickFormat(Number(value))}
           showLabels={xAxis?.showLabels !== false}
           showTicks={xAxis?.showTicks !== false}
           stroke={xAxis?.color || theme.colors.grid}
@@ -897,9 +908,7 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
           tickLabelWidth={axisPadding.yTickLabelWidth}
           tickSize={yAxisTickSize}
           tickPadding={axisTickPadding}
-          tickFormat={(value) =>
-            yAxis?.labelFormatter ? yAxis.labelFormatter(Number(value)) : formatNumber(Number(value))
-          }
+          tickFormat={(value) => yTickFormat(Number(value))}
           showLabels={yAxis?.showLabels !== false}
           showTicks={yAxis?.showTicks !== false}
           stroke={yAxis?.color || theme.colors.grid}
@@ -1038,18 +1047,13 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
             {/* Define gradients for fills */}
             {shouldRenderGradients && (
               <Defs>
-                {gradientConfigs.map(({ id, color, opacity }) => (
-                  <LinearGradient
+                {gradientConfigs.map(({ id, gradient }) => (
+                  <ChartGradientDef
                     key={id}
                     id={id}
-                    x1="0%"
-                    y1="0%"
-                    x2="0%"
-                    y2="100%"
-                  >
-                    <Stop offset="0%" stopColor={color} stopOpacity={opacity} />
-                    <Stop offset="100%" stopColor={color} stopOpacity={0} />
-                  </LinearGradient>
+                    gradient={gradient}
+                    bounds={gradient.extent === 'plot' ? { x: 0, y: 0, width: plotWidth, height: plotHeight } : undefined}
+                  />
                 ))}
               </Defs>
             )}

@@ -1,194 +1,122 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import { AccessibilityInfo, findNodeHandle } from 'react-native';
-import { useOptionalAccessibility } from './context';
-import type { FocusOptions, AnnouncementOptions, ScreenReaderInfo } from './types';
+import type { View } from 'react-native';
+
+import { useReducedMotion as useReducedMotionPreference } from '../motion/useReducedMotion';
+import { isIOS, isAndroid, isWeb } from '../platform';
+import { devWarn } from '../utils/logger';
+import { useAnnounce, useFocusStore, useScreenReaderEnabled } from './context';
+import type { AnnouncementOptions, FocusOptions, ScreenReaderInfo } from './types';
+
+/** What `useFocus` calls on the attached node: a DOM element or a focusable native instance. */
+interface FocusableHost {
+  focus?: (options?: { preventScroll?: boolean }) => void;
+  blur?: () => void;
+}
 
 /**
- * Hook for managing focus state and restoration
- * Gracefully handles cases where AccessibilityProvider is not available (e.g., in overlays)
+ * Tracks and moves focus for the element `ref` is attached to. Works with or
+ * without an AccessibilityProvider; only this component re-renders when its own
+ * `isFocused` flips.
+ *
+ * `T` is the host type the ref is attached to (`View` by default; pass e.g.
+ * `TextInput` for an input). On web it is the DOM node.
  */
-export const useFocus = (id: string, options: FocusOptions = {}) => {
-  const accessibilityContext = useOptionalAccessibility();
-
-  useEffect(() => {
-    if (!accessibilityContext) {
-      console.warn('useFocus: AccessibilityProvider not available, focus management will be limited');
-    }
-  }, [accessibilityContext]);
-
-  const setFocus = accessibilityContext?.setFocus ?? (() => {});
-  const restoreFocus = accessibilityContext?.restoreFocus ?? (() => {});
-  const currentFocusId = accessibilityContext?.currentFocusId ?? null;
-
-  const elementRef = useRef<any>(null);
+export const useFocus = <T = View>(id: string, options: FocusOptions = {}) => {
+  const store = useFocusStore();
   const { preventScroll = false, restoreOnUnmount = false } = options;
+  const elementRef = useRef<T>(null);
+
+  const isFocused = useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().currentFocusId === id,
+    () => false
+  );
 
   const focus = useCallback(() => {
-    if (elementRef.current) {
-      setFocus(id);
-      
-      // Focus the actual element
-      try {
-        if ('focus' in elementRef.current) {
-          elementRef.current.focus({ preventScroll });
-        } else {
-          // For React Native components, use AccessibilityInfo
-          const node = findNodeHandle(elementRef.current);
-          if (node) {
-            AccessibilityInfo.setAccessibilityFocus(node);
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to set focus:', error);
+    const element: unknown = elementRef.current;
+    if (!element) return;
+    store.setFocus(id);
+    try {
+      const host = element as FocusableHost;
+      if (typeof host.focus === 'function') {
+        host.focus({ preventScroll });
+      } else {
+        const node = findNodeHandle(element as Parameters<typeof findNodeHandle>[0]);
+        if (node) AccessibilityInfo.setAccessibilityFocus(node);
       }
+    } catch (error) {
+      devWarn('Failed to set focus:', error);
     }
-  }, [id, setFocus, preventScroll]);
+  }, [id, store, preventScroll]);
 
   const blur = useCallback(() => {
-    if (elementRef.current && 'blur' in elementRef.current) {
-      elementRef.current.blur();
-    }
+    const element = elementRef.current as FocusableHost | null;
+    if (element && typeof element.blur === 'function') element.blur();
   }, []);
 
-  const isFocused = currentFocusId === id;
+  const isFocusedRef = useRef(isFocused);
+  isFocusedRef.current = isFocused;
 
-  // Handle restore focus on unmount
   useEffect(() => {
-    if (restoreOnUnmount) {
-      return () => {
-        if (isFocused) {
-          restoreFocus();
-        }
-      };
-    }
-  }, [restoreOnUnmount, isFocused, restoreFocus]);
+    if (!restoreOnUnmount) return undefined;
+    return () => {
+      if (isFocusedRef.current) store.restoreFocus();
+    };
+  }, [restoreOnUnmount, store]);
 
-  return {
-    ref: elementRef,
-    focus,
-    blur,
-    isFocused,
-  };
+  return { ref: elementRef, focus, blur, isFocused };
 };
 
 /**
- * Hook for making announcements to screen readers
- * Gracefully handles cases where AccessibilityProvider is not available (e.g., in overlays)
+ * Screen reader announcements. Works without a provider: messages go straight to
+ * `announce()` (native AccessibilityInfo / web live region).
  */
 export const useAnnouncer = () => {
-  const accessibilityContext = useOptionalAccessibility();
+  const announceFn = useAnnounce();
+  const screenReaderEnabled = useScreenReaderEnabled();
 
-  useEffect(() => {
-    if (!accessibilityContext) {
-      console.warn('useAnnouncer: AccessibilityProvider not available, announcements will be disabled');
-    }
-  }, [accessibilityContext]);
+  const announce = useCallback(
+    (message: string, options: AnnouncementOptions = {}) => {
+      announceFn(message, options.priority ?? 'polite');
+    },
+    [announceFn]
+  );
 
-  const announce = useCallback((
-    message: string,
-    options: AnnouncementOptions = {}
-  ) => {
-    // If no accessibility context, just return early
-    if (!accessibilityContext) {
-      return;
-    }
-
-    const {
-      priority = 'polite',
-      timeout = priority === 'assertive' ? 5000 : 3000,
-      clearPrevious = false,
-    } = options;
-
-    if (!accessibilityContext.screenReaderEnabled) return;
-
-    // Use context announce if available
-    if (accessibilityContext.announce) {
-      accessibilityContext.announce(message, priority);
-    }
-
-    // Auto-clear after timeout
-    if (timeout > 0) {
-      setTimeout(() => {
-        // Message will be auto-cleared by context
-      }, timeout);
-    }
-  }, [accessibilityContext]);
-
-  return {
-    announce,
-    screenReaderEnabled: accessibilityContext?.screenReaderEnabled ?? false,
-  };
+  return { announce, screenReaderEnabled };
 };
 
 /**
- * Hook for detecting reduced motion preferences
- * Gracefully handles cases where AccessibilityProvider is not available (e.g., in overlays)
+ * Reduced-motion helpers on top of the single `useReducedMotion()` source
+ * (core/motion). Works without a provider.
  */
 export const useReducedMotion = () => {
-  const accessibilityContext = useOptionalAccessibility();
+  const prefersReducedMotion = useReducedMotionPreference();
 
-  useEffect(() => {
-    if (!accessibilityContext) {
-      console.warn('useReducedMotion: AccessibilityProvider not available, using default motion preferences');
-    }
-  }, [accessibilityContext]);
+  const getDuration = useCallback(
+    (normalDuration: number) => (prefersReducedMotion ? 0 : normalDuration),
+    [prefersReducedMotion]
+  );
+  const getScale = useCallback(
+    (normalScale: number) => (prefersReducedMotion ? 1 : normalScale),
+    [prefersReducedMotion]
+  );
 
-  const prefersReducedMotion = accessibilityContext?.prefersReducedMotion ?? false;
-
-  const getDuration = useCallback((normalDuration: number) => {
-    return prefersReducedMotion ? 0 : normalDuration;
-  }, [prefersReducedMotion]);
-
-  const getScale = useCallback((normalScale: number) => {
-    return prefersReducedMotion ? 1 : normalScale;
-  }, [prefersReducedMotion]);
-
-  return {
-    prefersReducedMotion,
-    getDuration,
-    getScale,
-  };
+  return useMemo(
+    () => ({ prefersReducedMotion, getDuration, getScale }),
+    [prefersReducedMotion, getDuration, getScale]
+  );
 };
 
-/**
- * Hook for screen reader detection and information
- * Gracefully handles cases where AccessibilityProvider is not available (e.g., in overlays)
- */
+/** Screen reader state. Works without a provider. */
 export const useScreenReader = (): ScreenReaderInfo => {
-  const accessibilityContext = useOptionalAccessibility();
-
-  useEffect(() => {
-    if (!accessibilityContext) {
-      console.warn('useScreenReader: AccessibilityProvider not available, using default screen reader detection');
+  const enabled = useScreenReaderEnabled();
+  return useMemo<ScreenReaderInfo>(() => {
+    let type: ScreenReaderInfo['type'] = 'unknown';
+    if (enabled && !isWeb) {
+      if (isIOS) type = 'voiceover';
+      else if (isAndroid) type = 'talkback';
     }
-  }, [accessibilityContext]);
-
-  const screenReaderEnabled = accessibilityContext?.screenReaderEnabled ?? false;
-  const [screenReaderType, setScreenReaderType] = useState<'voiceover' | 'talkback' | 'nvda' | 'jaws' | 'unknown'>('unknown');
-
-  useEffect(() => {
-    const detectScreenReaderType = async () => {
-      try {
-        // This is a simplified detection - in reality, you'd need platform-specific detection
-        const isEnabled = await AccessibilityInfo.isScreenReaderEnabled();
-        if (isEnabled) {
-          // On iOS, it's likely VoiceOver
-          // On Android, it's likely TalkBack
-          // This would need more sophisticated detection in a real implementation
-          setScreenReaderType('unknown');
-        }
-      } catch (error) {
-        console.warn('Failed to detect screen reader type:', error);
-      }
-    };
-
-    if (screenReaderEnabled) {
-      detectScreenReaderType();
-    }
-  }, [screenReaderEnabled]);
-
-  return {
-    enabled: screenReaderEnabled,
-    type: screenReaderType,
-  };
+    return { enabled, type };
+  }, [enabled]);
 };

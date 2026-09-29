@@ -1,34 +1,27 @@
-import { Block, Card, Spoiler, Text } from '@platform-blocks/ui';
+import { Block, Spoiler, Text } from '@platform-blocks/ui';
 
-const longText =
-  'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Integer tincidunt condimentum risus, sit amet cursus massa fermentum non.';
-
-const examples = [
-  { key: 'small', label: '60px height', maxHeight: 60 },
-  { key: 'medium', label: '100px height', maxHeight: 100 },
-  { key: 'large', label: '150px height', maxHeight: 150 },
+const paragraphs = [
+  'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+  'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.',
 ];
+
+const MAX_HEIGHTS = [60, 100, 150];
 
 export function Demo() {
   return (
-    <Card p="md">
-      <Block>
-        <Text size="sm" color="secondary">
-          Adjust maxHeight to control how much text stays visible before the rest collapses behind the toggle.
-        </Text>
-        <Block>
-          {examples.map((example) => (
-            <Block key={example.key}>
-              <Text size="xs" color="secondary">
-                {example.label}
-              </Text>
-              <Spoiler maxHeight={example.maxHeight}>
-                <Text size="sm">{longText}</Text>
-              </Spoiler>
+    <Block fullWidth>
+      {MAX_HEIGHTS.map((maxHeight) => (
+        <Block key={maxHeight}>
+          <Text variant="small" c="secondary">{maxHeight}px</Text>
+          <Spoiler mah={maxHeight}>
+            <Block>
+              {paragraphs.map((paragraph) => (
+                <Text key={paragraph}>{paragraph}</Text>
+              ))}
             </Block>
-          ))}
+          </Spoiler>
         </Block>
-      </Block>
-    </Card>
+      ))}
+    </Block>
   );
 }

@@ -11,7 +11,7 @@ const COLOR_VARIANTS = [
 export function Demo() {
   return (
     <Block>
-      <Text variant="small" color="muted">
+      <Text variant="small" c="muted">
         Semantic color variants
       </Text>
       <Row gap="md" wrap="wrap">

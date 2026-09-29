@@ -1,4 +1,6 @@
-import type { ImageSourcePropType } from 'react-native';
+import type { ImageSourcePropType, ViewStyle } from 'react-native';
+
+import type { BaseProps } from '../../core/types/base';
 
 export interface GalleryItem {
   id: string;
@@ -15,11 +17,12 @@ export interface GalleryItem {
     dateCreated?: string;
     camera?: string;
     location?: string;
-    [key: string]: any;
+    /** Extra fields are listed in the metadata panel as `Key: String(value)`. */
+    [key: string]: unknown;
   };
 }
 
-export interface GalleryProps {
+export interface GalleryProps extends BaseProps<ViewStyle> {
   /** Array of images to display in the gallery. */
   images: GalleryItem[];
   /**
@@ -49,7 +52,8 @@ export interface GalleryProps {
    */
   showDownloadButton?: boolean;
   /**
-   * Whether arrow keys and Escape can be used to navigate and close the gallery.
+   * Whether the arrow keys move between images (web). Escape always closes the
+   * gallery, and the thumbnail strip always supports arrow keys.
    * @default true
    */
   allowKeyboardNavigation?: boolean;
@@ -59,24 +63,32 @@ export interface GalleryProps {
    */
   allowSwipeNavigation?: boolean;
   /**
-   * Opacity of the backdrop overlay behind the gallery, from 0 to 1.
+   * Opacity of the backdrop behind the gallery, from 0 to 1 — applied to the
+   * theme scrim's color (`theme.backgrounds.scrim`).
    * @default 0.9
    */
   overlayOpacity?: number;
   /**
-   * Duration of open/close and transition animations, in milliseconds.
+   * `0` opens and closes the gallery without animation; any other value uses
+   * the platform's modal fade. Reduced motion also turns the fade off.
    * @default 250
    */
   animationDuration?: number;
+  /** Accessible name of the gallery dialog. @default 'Image gallery' */
+  accessibilityLabel?: string;
 }
 
 export interface GalleryModalProps extends GalleryProps {
-  visible: boolean;
+  /** Whether the gallery is open. */
+  opened?: boolean;
+  /** @deprecated Use `opened`. */
+  visible?: boolean;
 }
 
 export interface GalleryThumbnailProps {
   images: GalleryItem[];
   currentIndex: number;
+  /** Called when a thumbnail is pressed, or focused with the arrow keys. */
   onThumbnailPress: (index: number) => void;
   thumbnailSize?: number;
 }

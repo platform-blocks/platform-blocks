@@ -1,18 +1,20 @@
 import type { ReactNode } from 'react';
-import type { TextProps } from '../Text';
+import type { StyleProp, ViewStyle } from 'react-native';
+
+import type { TextProps } from '../Text/Text';
 
 export type ShimmerDirection = 'ltr' | 'rtl';
 
-export interface ShimmerTextProps extends Omit<TextProps, 'children' | 'color' | 'onLayout' | 'value'> {
+export interface ShimmerTextProps extends Omit<TextProps, 'children' | 'c' | 'onLayout' | 'value'> {
   /** Text node children. Overrides `text` when provided */
   children?: ReactNode;
   /** Text content to render when not using children */
   text?: string;
-  /** Base text color rendered underneath the shimmer */
-  color?: string;
+  /** Base text color rendered underneath the shimmer. Default: `theme.text.muted`. */
+  c?: string;
   /** Optional gradient stops override */
   colors?: string[];
-  /** Highlight color used for the shimmer pass */
+  /** Highlight color used for the shimmer pass. Default: `theme.text.primary`. */
   shimmerColor?: string;
   /**
    * Width of the highlight band as a multiple of the text width (higher = wider
@@ -40,8 +42,6 @@ export interface ShimmerTextProps extends Omit<TextProps, 'children' | 'color' |
   startOnView?: boolean;
   /** `rootMargin` for the `startOnView` IntersectionObserver (web only) */
   inViewMargin?: string;
-  /** Optional container style */
-  containerStyle?: any;
-  /** Optional test identifier */
-  testID?: string;
+  /** Style for the wrapping container view (style props apply here too). */
+  containerStyle?: StyleProp<ViewStyle>;
 }

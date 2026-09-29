@@ -13,7 +13,7 @@ props:
   borderWidth / borderColor: Custom border
   shadow: Shadow depth
   opacity: 0–1
-  w / h / minW / maxW / minH / maxH: Dimension props
+  w / h / miw / maw / mih / mah: Dimension props
   fullWidth: Stretch to 100% width
   fluid: flex 1 (full available height)
   direction / align / justify / wrap / gap / grow / shrink / basis: Flexbox layout

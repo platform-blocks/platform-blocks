@@ -1,13 +1,18 @@
-import { BaseInputProps } from '../Input/types';
-import { SizeValue } from '../../core/theme/types';
+import type { FieldHandle } from '../../core/types/base';
 import type {
   CalendarProps as CoreCalendarProps,
   CalendarType,
   CalendarValue,
   CalendarLevel,
 } from '../Calendar/types';
+import type { PickerFieldBaseProps } from './PickerField';
 
-export interface DatePickerInputProps extends Omit<BaseInputProps, 'value' | 'onChangeText'> {
+/**
+ * A form field that opens a calendar. Extends the shared field props (label,
+ * description, error, helperText, required, disabled, readOnly, size, radius,
+ * variant, …) plus placeholder / clearable / sections.
+ */
+export interface DatePickerInputProps extends PickerFieldBaseProps {
   /** Selected value; type depends on `type` prop */
   value?: CalendarValue;
   /** Initial value for uncontrolled usage */
@@ -18,31 +23,24 @@ export interface DatePickerInputProps extends Omit<BaseInputProps, 'value' | 'on
   type?: CalendarType;
   /** Pass-through customization for underlying Calendar */
   calendarProps?: Partial<CoreCalendarProps>;
-
-  /** Input placeholder text */
-  placeholder?: string;
-  /** Format string for displaying value in the input */
+  /** Format string for displaying value in the input (tokens: yyyy, yy, MMMM, MMM, MM, M, dd, d). */
   displayFormat?: string;
-  /** Serialization/parsing format (reserved for future) */
-  valueFormat?: string;
-  /** Show a clear button */
-  clearable?: boolean;
-  /** Visual size */
-  size?: SizeValue;
-  /** Disable interaction */
-  disabled?: boolean;
-  /** Show required indicator */
-  withAsterisk?: boolean;
-  /** Presentation modality */
+  /**
+   * `modal` (default): a centered sheet. `popover`: a dropdown anchored to the
+   * field on desktop web (the sheet on native and small screens).
+   */
   dropdownType?: 'modal' | 'popover';
-  /** Close picker after single selection (for single mode) */
+  /** Close the picker after a selection completes. @default true for `single` */
   closeOnSelect?: boolean;
-
-  /** Lifecycle events */
+  /** Title of the picker sheet / name of the popover. Defaults by `type` ("Select date", …). */
+  modalTitle?: string;
+  /** Called when the picker opens. */
   onOpen?: () => void;
+  /** Called when the picker closes. */
   onClose?: () => void;
-  onFocus?: () => void;
-  onBlur?: () => void;
 }
+
+/** Ref of DatePickerInput: focus / blur the field, clear the value. */
+export type DatePickerInputHandle = FieldHandle;
 
 export type { CalendarType, CalendarValue, CalendarLevel };

@@ -62,3 +62,7 @@ Pass `orientation="vertical"` to `Progress` or `Progress.Root` to fill from the 
 ```tsx
 <Progress value={82} orientation="vertical" length={120} size="sm" />
 ```
+
+## Accessibility
+
+Each bar (and each `Progress.Section`) is a `progressbar` with `aria-valuemin/max/now`; pass `aria-valuetext` for a spoken value such as "3 of 8 files". The `label` names the bar (on web by reference, so rich labels work), `description` / `error` describe it, and the error is announced politely. A labelled `Progress.Root` is a named group of its sections. Fill transitions and animated stripes are skipped while reduced motion is on.

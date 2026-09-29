@@ -20,7 +20,6 @@ const mockTheme = {
   fontFamily: 'System',
 };
 
-jest.mock('../../../core/theme', () => ({ useTheme: () => mockTheme }));
 jest.mock('../../../core/theme/ThemeProvider', () => ({ useTheme: () => mockTheme }));
 
 // The tab strip and header rows only matter here as labels and press targets.
@@ -38,7 +37,7 @@ jest.mock('../header', () => {
             {
               key: file.name,
               testID: `tab-${file.name}`,
-              accessibilityState: { selected: file.name === activeName },
+              'aria-selected': file.name === activeName,
               onPress: () => onSelect(file.name),
             },
             React.createElement(Text, null, file.name)

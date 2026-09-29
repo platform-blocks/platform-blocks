@@ -1,10 +1,11 @@
-import React from 'react';
-import { ViewStyle, StyleProp } from 'react-native';
-import { SpacingProps } from '../../core/utils';
+import type React from 'react';
+import type { ViewStyle, StyleProp } from 'react-native';
+
+import type { BaseProps } from '../../core/types/base';
 import type { ResponsiveSize } from '../AppShell/types';
 import type { ComponentSizeValue } from '../../core/theme/componentSize';
 
-export interface CarouselProps extends SpacingProps {
+export interface CarouselProps extends BaseProps<ViewStyle> {
   /** Array of carousel slide elements */
   children: React.ReactNode[];
   /** Orientation of the carousel */
@@ -13,11 +14,15 @@ export interface CarouselProps extends SpacingProps {
   showArrows?: boolean;
   /** Show navigation dots */
   showDots?: boolean;
-  /** Enable autoplay */
+  /**
+   * Advance slides automatically. A pause / play button is shown whenever
+   * autoplay is on; autoplay pauses while the carousel is hovered or has focus,
+   * and starts paused when the user prefers reduced motion (they can press play).
+   */
   autoPlay?: boolean;
   /** Autoplay interval in ms */
   autoPlayInterval?: number;
-  /** Pause autoplay on user interaction */
+  /** Pause autoplay while the carousel is being touched. @default true */
   autoPlayPauseOnTouch?: boolean;
   /** Enable looping */
   loop?: boolean;
@@ -59,25 +64,35 @@ export interface CarouselProps extends SpacingProps {
   slideGap?: ResponsiveSize;
   /** Gap between slides in pixels */
   itemGap?: number;
-  /** Fixed height of the carousel container */
-  height?: number;
+  /**
+   * Height of the slides in px — the dots below them are extra. A vertical
+   * carousel's dots sit beside the slides, so there it sizes the root.
+   * @default 200 (horizontal)
+   */
+  h?: number;
   /** Callback fired when the active slide changes */
   onSlideChange?: (index: number) => void;
-  /** Style override for the carousel container */
-  style?: StyleProp<ViewStyle>;
+  /** Accessible name of the carousel region. @default 'Carousel' */
+  accessibilityLabel?: string;
   /** Style override applied to each slide item */
   itemStyle?: StyleProp<ViewStyle>;
   /** Enable snapping to individual items */
   snapToItem?: boolean;
-  /** Position of navigation arrows relative to the carousel */
+  /**
+   * Arrows over the slides (`inside`) or beside them (`outside`, which insets
+   * the slides to make room). @default 'inside'
+   */
   arrowPosition?: 'inside' | 'outside';
   /** Size of the navigation arrow buttons */
   arrowSize?: ComponentSizeValue;
   /** Size of the navigation dots */
   dotSize?: ComponentSizeValue;
-  /** Enable or disable scroll gestures */
+  /** Enable or disable swipe gestures (arrows, dots and autoplay still work). @default true */
   scrollEnabled?: boolean;
-  /** Disable animated width/color transitions for dots and snapping */
+  /**
+   * Shorten slide transitions and keep autoplay paused. Defaults to the user's
+   * reduced-motion preference (`useReducedMotion()`); pass a boolean to override.
+   */
   reducedMotion?: boolean;
   /** Number of logical pages to render for virtualization */
   windowSize?: number;

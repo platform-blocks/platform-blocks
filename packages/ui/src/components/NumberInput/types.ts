@@ -1,12 +1,23 @@
-import React from 'react';
-import { TextInputProps as RNTextInputProps } from 'react-native';
-import { BaseInputProps, ExtendedTextInputProps } from '../Input/types';
+import type { TextInputProps as RNTextInputProps } from 'react-native';
+import type { TextFieldBaseProps } from '../_internal/Field/fieldProps';
+import type { ExtendedTextInputProps } from '../Input/types';
+import type { NumberFormat, ThousandsGroupStyle } from './numberFormat';
 
-export interface NumberInputProps extends Omit<BaseInputProps, 'value' | 'onChangeText'> {
-  /** Number value */
+export interface NumberInputProps extends Omit<TextFieldBaseProps, 'value' | 'defaultValue' | 'onChangeText'> {
+  /** Id of the TextInput; label/error ids derive from it. Generated when omitted. */
+  id?: string;
+
+  /**
+   * Controlled value. Passing the prop at all (even `undefined`, meaning
+   * "empty") makes the field controlled; omit it and use `defaultValue` for an
+   * uncontrolled field.
+   */
   value?: number;
-  
-  /** Change handler */
+
+  /** Initial value while uncontrolled. */
+  defaultValue?: number;
+
+  /** Called with the new number, or `undefined` when the field is cleared. */
   onChange?: (value: number | undefined) => void;
 
   /** Allow decimal values */
@@ -49,7 +60,7 @@ export interface NumberInputProps extends Omit<BaseInputProps, 'value' | 'onChan
   thousandSeparator?: string | boolean;
 
   /** Thousand grouping strategy */
-  thousandsGroupStyle?: 'none' | 'thousand' | 'lakh' | 'wan';
+  thousandsGroupStyle?: ThousandsGroupStyle;
 
   /** Prefix string appended before the value when displayed */
   prefix?: string;
@@ -58,7 +69,7 @@ export interface NumberInputProps extends Omit<BaseInputProps, 'value' | 'onChan
   suffix?: string;
   
   /** Number format */
-  format?: 'integer' | 'decimal' | 'currency' | 'percentage';
+  format?: NumberFormat;
   
   /** Currency code for currency format */
   currency?: string;
@@ -75,7 +86,7 @@ export interface NumberInputProps extends Omit<BaseInputProps, 'value' | 'onChan
   /** Interval or function controlling step-hold cadence */
   stepHoldInterval?: number | ((stepCount: number) => number);
 
-  /** Enable keyboard arrow interactions */
+  /** ArrowUp / ArrowDown step the value (Shift multiplies by `shiftMultiplier`). Default true. */
   withKeyboardEvents?: boolean;
   
   /** Show increment/decrement buttons */
@@ -158,8 +169,12 @@ export interface NumberInputProps extends Omit<BaseInputProps, 'value' | 'onChan
   /** Whether to show the soft keyboard on focus */
   showSoftInputOnFocus?: boolean;
 
-  /** Whether the field is editable */
+  /** Passthrough to the TextInput. Prefer `readOnly`; `editable={false}` behaves the same. */
   editable?: boolean;
+
+  /** Accessible names of the step buttons. */
+  incrementLabel?: string;
+  decrementLabel?: string;
 }
 
 export interface NumberInputStyleProps {

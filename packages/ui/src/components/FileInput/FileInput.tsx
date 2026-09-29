@@ -1,819 +1,535 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-  Image,
-} from 'react-native';
-import { FileInputProps, FileInputFile } from './types';
-import type { DocumentPickerAssetLike } from './types';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Image, Pressable, Text, View, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
+import { a11yProps, type A11yProps } from '../../core/accessibility/a11yProps';
+import { announce } from '../../core/accessibility/announce';
+import { getNodeText, useA11yId } from '../../core/accessibility/useA11yId';
+import { factory } from '../../core/factory/factory';
+import { createThemedStyles } from '../../core/hooks/useThemedStyles';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { isWeb } from '../../core/platform';
+import { webStyle } from '../../core/platform/webStyle';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getControlSize, onColor, resolveFontSize, resolveRadius, resolveSpacing } from '../../core/theme/tokens';
+import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { RadiusValue } from '../../core/types/base';
+import { getLayoutStyles, extractLayoutProps } from '../../core/utils/layout';
+import { devWarn } from '../../core/utils/logger';
+import { resolveStyleProps, extractStyleProps } from '../../core/utils/spacing';
+import { useDisclaimer, extractDisclaimerProps } from '../_internal/Disclaimer/disclaimerUtils';
+import { Field, type FieldRenderProps } from '../_internal/Field/Field';
 import { Icon } from '../Icon';
-import { DESIGN_TOKENS } from '../../core/design-tokens';
-import { useTheme } from '../../core/theme';
-import { FieldHeader } from '../_internal/FieldHeader';
-import { resolveDocumentPicker } from '../../utils/optionalDependencies';
+import { attachFileDropTarget, createImagePreview, pickFiles, preventWindowFileDrop } from './filePicker';
+import type { DocumentPickerAssetLike, FileInputFile, FileInputProps, FileInputSource } from './types';
+import { uploadFiles } from './upload';
 
-const { DocumentPicker: DocumentPickerModule, hasDocumentPicker } = resolveDocumentPicker();
+const EMPTY_ACCEPT: string[] = [];
+const DEFAULT_IMAGE_PREVIEW: NonNullable<FileInputProps['imagePreview']> = {
+  enabled: true,
+  maxWidth: 200,
+  maxHeight: 200,
+  quality: 0.8,
+};
 
-const FILE_INPUT_VARIANTS = {
-  /** Standard file input with browse button */
-  standard: 'standard',
-  /** Drag-and-drop zone */
-  dropzone: 'dropzone',
-  /** Compact button style */
-  compact: 'compact',
-} as const;
-
-type NativeSelectableFile = File | DocumentPickerAssetLike;
-
-const isDocumentPickerAsset = (file: NativeSelectableFile): file is DocumentPickerAssetLike =>
+const isDocumentPickerAsset = (file: FileInputSource): file is DocumentPickerAssetLike =>
   typeof (file as DocumentPickerAssetLike)?.uri === 'string';
 
-const getFileMetadata = (file: NativeSelectableFile) => {
+const getFileMetadata = (file: FileInputSource) => {
   if (isDocumentPickerAsset(file)) {
     const nameFromUri = file.uri?.split('/').pop();
     return {
       name: file.name ?? nameFromUri ?? 'Untitled file',
       size: file.size ?? 0,
       type: file.mimeType ?? '',
-      uri: file.uri,
+      uri: file.uri ?? undefined,
     };
   }
-
-  return {
-    name: file.name,
-    size: file.size,
-    type: file.type,
-    uri: undefined as string | undefined,
-  };
+  const domFile = file as File;
+  return { name: domFile.name, size: domFile.size, type: domFile.type, uri: undefined };
 };
 
-export const FileInput = React.memo(React.forwardRef<View, FileInputProps>(({
-  accept = [],
-  multiple = false,
-  maxSize = 10 * 1024 * 1024, // 10MB
-  maxFiles = 10,
-  onUpload,
-  onProgress,
-  onFilesChange,
-  onFileRemove,
-  PreviewComponent,
-  children,
-  showFileList = true,
-  enableDragDrop = Platform.OS === 'web',
-  validateFile,
-  imagePreview = {
-    enabled: true,
-    maxWidth: 200,
-    maxHeight: 200,
-    quality: 0.8,
-  },
-  uploadSettings,
-  variant = 'standard',
-  disabled = false,
-  error,
-  helperText,
-  style,
-  label,
-  description,
-  required,
-  withAsterisk,
-  size = 'md',
-  labelProps,
-  descriptionProps,
-  ...props
-}, ref) => {
-  const theme = useTheme();
-  const [files, setFiles] = useState<FileInputFile[]>([]);
-  const [isDragOver, setIsDragOver] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const dropZoneRef = useRef<any>(null);
+/** `1536` → `'1.5 KB'`. */
+export const formatFileSize = (bytes: number): string => {
+  if (!bytes) return '0 Bytes';
+  const k = 1024;
+  const units = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(k)));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${units[i]}`;
+};
 
-  // Prevent default browser drag and drop behavior on the document
-  useEffect(() => {
-    if (Platform.OS === 'web' && enableDragDrop) {
-      const preventDefault = (e: DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-      };
+/** Validation message for `file`, or null when it passes size / type / custom checks. */
+export function validateFileAgainst(
+  file: FileInputSource,
+  { maxSize, accept, validateFile }: Pick<FileInputProps, 'maxSize' | 'accept' | 'validateFile'>
+): string | null {
+  const { size, type, name } = getFileMetadata(file);
 
-      // Prevent default drag over and drop on the entire document
-      document.addEventListener('dragover', preventDefault);
-      document.addEventListener('drop', preventDefault);
+  if (maxSize !== undefined && size > maxSize) {
+    return `File size exceeds ${(maxSize / 1024 / 1024).toFixed(1)}MB limit`;
+  }
 
-      return () => {
-        document.removeEventListener('dragover', preventDefault);
-        document.removeEventListener('drop', preventDefault);
-      };
-    }
-  }, [enableDragDrop]);
-
-  const generateFileId = useCallback(() => {
-    return Math.random().toString(36).substring(2) + Date.now().toString(36);
-  }, []);
-
-  const validateFileInput = useCallback((file: NativeSelectableFile): string | null => {
-    const { size, type, name } = getFileMetadata(file);
-
-    if (size > maxSize) {
-      return `File size exceeds ${(maxSize / 1024 / 1024).toFixed(1)}MB limit`;
-    }
-
-    if (accept.length > 0) {
-      const normalizedType = type || '';
-      const fileName = (name || '').toLowerCase();
-
-      const isAccepted = accept.some(acceptType => {
-        if (acceptType.startsWith('.')) {
-          return fileName.endsWith(acceptType.toLowerCase());
-        }
-
-        if (!normalizedType) {
-          return false;
-        }
-
-        const pattern = acceptType.replace('*', '.*');
-        try {
-          return new RegExp(`^${pattern}$`).test(normalizedType);
-        } catch (regexError) {
-          console.warn('FileInput: invalid accept pattern', acceptType, regexError);
-          return normalizedType.includes(acceptType.replace('*', ''));
-        }
-      });
-
-      if (!isAccepted) {
-        return `File type not accepted. Accepted types: ${accept.join(', ')}`;
+  if (accept && accept.length > 0) {
+    const fileName = (name || '').toLowerCase();
+    const isAccepted = accept.some((acceptType) => {
+      if (acceptType.startsWith('.')) return fileName.endsWith(acceptType.toLowerCase());
+      if (!type) return false;
+      try {
+        return new RegExp(`^${acceptType.replace('*', '.*')}$`).test(type);
+      } catch (regexError) {
+        devWarn('FileInput: invalid accept pattern', acceptType, regexError);
+        return type.includes(acceptType.replace('*', ''));
       }
-    }
-
-    if (validateFile) {
-      return validateFile(file);
-    }
-
-    return null;
-  }, [accept, maxSize, validateFile]);
-
-  const createFilePreview = useCallback(async (file: NativeSelectableFile): Promise<string | undefined> => {
-    if (Platform.OS !== 'web' || !imagePreview?.enabled) {
-      return undefined;
-    }
-
-    if (typeof File === 'undefined' || !(file instanceof File) || !file.type.startsWith('image/')) {
-      return undefined;
-    }
-
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = document.createElement('img');
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-
-          if (!ctx) {
-            resolve(undefined);
-            return;
-          }
-
-          const { maxWidth = 200, maxHeight = 200, quality = 0.8 } = imagePreview;
-
-          let { width, height } = img;
-          if (width > maxWidth || height > maxHeight) {
-            const ratio = Math.min(maxWidth / width, maxHeight / height);
-            width *= ratio;
-            height *= ratio;
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          ctx.drawImage(img, 0, 0, width, height);
-
-          resolve(canvas.toDataURL('image/jpeg', quality));
-        };
-        img.onerror = () => resolve(undefined);
-        img.src = (e.target?.result as string) ?? '';
-      };
-      reader.readAsDataURL(file);
     });
-  }, [imagePreview]);
+    if (!isAccepted) return `File type not accepted. Accepted types: ${accept.join(', ')}`;
+  }
 
-  const processFiles = useCallback(async (fileList: FileList | NativeSelectableFile[]) => {
-    const filesToProcess: NativeSelectableFile[] = Array.isArray(fileList)
-      ? [...fileList]
-      : Array.from(fileList ?? []);
-    const newFiles: FileInputFile[] = [];
+  return validateFile ? validateFile(file) : null;
+}
 
-    // Check file count limit
-    if (!multiple && filesToProcess.length > 1) {
-      filesToProcess.splice(1);
-    }
+const generateFileId = () => Math.random().toString(36).substring(2) + Date.now().toString(36);
 
-    const totalFiles = files.length + filesToProcess.length;
-    if (totalFiles > maxFiles) {
-      const allowedCount = maxFiles - files.length;
-      filesToProcess.splice(allowedCount);
-    }
+const getFileInputStyles = createThemedStyles(
+  (theme: PlatformBlocksTheme, size: SizeValue, radius: RadiusValue | undefined, dragOver: boolean) => {
+    const metrics = getControlSize(theme, size);
+    const onPrimary = theme.text.onPrimary ?? onColor(theme, theme.colors.primary[5]);
+    const space = (token: 'xs' | 'sm' | 'md' | '3xl') => resolveSpacing(theme, token) as number;
+    const buttonRadius = resolveRadius(theme, radius ?? 'md');
+    const text = (fontSize: number, color: string, weight?: TextStyle['fontWeight']): TextStyle => ({
+      fontSize,
+      color,
+      fontFamily: theme.fontFamily,
+      ...(weight ? { fontWeight: weight } : null),
+    });
 
-    for (const file of filesToProcess) {
-      const validationError = validateFileInput(file);
-      let previewUrl = await createFilePreview(file);
-      const metadata = getFileMetadata(file);
-
-      if (!previewUrl && Platform.OS !== 'web' && isDocumentPickerAsset(file) && metadata.type?.startsWith('image/')) {
-        previewUrl = metadata.uri ?? undefined;
-      }
-
-      const fileInput: FileInputFile = {
-        file,
-        id: generateFileId(),
-        name: metadata.name,
-        size: metadata.size,
-        type: metadata.type,
-        uri: metadata.uri ?? undefined,
-        previewUrl,
-        status: validationError ? 'error' : 'pending',
-        error: validationError || undefined,
-      };
-
-      newFiles.push(fileInput);
-    }
-
-    const updatedFiles = multiple ? [...files, ...newFiles] : newFiles;
-    setFiles(updatedFiles);
-    onFilesChange?.(updatedFiles);
-
-    // Auto-upload if handler provided and no errors
-    if (onUpload) {
-      const validFiles = newFiles.filter(f => !f.error);
-      if (validFiles.length > 0) {
-        await handleUpload(validFiles);
-      }
-    }
-  }, [files, multiple, maxFiles, validateFileInput, createFilePreview, onFilesChange, onUpload]);
-
-  const handleUpload = useCallback(async (filesToUpload: FileInputFile[]) => {
-    if (!onUpload) return;
-
-    // Update status to uploading
-    setFiles(prev => prev.map(f => 
-      filesToUpload.find(uploadFile => uploadFile.id === f.id)
-        ? { ...f, status: 'uploading' as const, progress: 0 }
-        : f
-    ));
-
-    try {
-      await onUpload(filesToUpload);
-      
-      // Update status to success
-      setFiles(prev => prev.map(f => 
-        filesToUpload.find(uploadFile => uploadFile.id === f.id)
-          ? { ...f, status: 'success' as const, progress: 100 }
-          : f
-      ));
-    } catch (error) {
-      // Update status to error
-      setFiles(prev => prev.map(f => 
-        filesToUpload.find(uploadFile => uploadFile.id === f.id)
-          ? { ...f, status: 'error' as const, error: error instanceof Error ? error.message : 'Upload failed' }
-          : f
-      ));
-    }
-  }, [onUpload]);
-
-  const handleFileRemove = useCallback((fileId: string) => {
-    const updatedFiles = files.filter(f => f.id !== fileId);
-    setFiles(updatedFiles);
-    onFileRemove?.(fileId);
-    onFilesChange?.(updatedFiles);
-  }, [files, onFileRemove, onFilesChange]);
-
-  const handleBrowseFiles = useCallback(async () => {
-    if (disabled) {
-      return;
-    }
-
-    if (Platform.OS === 'web') {
-      if (fileInputRef.current) {
-        fileInputRef.current.click();
-      }
-      return;
-    }
-
-    const picker = DocumentPickerModule;
-    if (!hasDocumentPicker || !picker?.getDocumentAsync) {
-      console.warn('FileInput: expo-document-picker not installed, native file picker is disabled.');
-      return;
-    }
-
-    try {
-      const pickerTypes = accept.filter(type => !type.startsWith('.'));
-
-      const result = await picker.getDocumentAsync({
-        multiple,
-        copyToCacheDirectory: true,
-        type: pickerTypes.length > 0 ? pickerTypes : undefined,
-      });
-
-      if (result.canceled) {
-        return;
-      }
-
-      if (result.assets?.length) {
-        await processFiles(result.assets as DocumentPickerAssetLike[]);
-        return;
-      }
-
-      if (result.output?.length) {
-        await processFiles(result.output);
-      }
-    } catch (pickerError) {
-      console.warn('FileInput: native document picker error', pickerError);
-    }
-  }, [accept, disabled, multiple, processFiles]);
-
-  const handleFileInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      processFiles(files);
-    }
-    // Reset input value to allow selecting same file again
-    event.target.value = '';
-  }, [processFiles]);
-
-  // HTML5 Drag and drop handlers (web only)
-  const handleDragOver = useCallback((event: any) => {
-    if (!enableDragDrop || Platform.OS !== 'web') return;
-    
-    event.preventDefault();
-    event.stopPropagation();
-    
-    // Check if the drag contains files
-    if (event.dataTransfer && event.dataTransfer.types && event.dataTransfer.types.includes('Files')) {
-      event.dataTransfer.dropEffect = 'copy';
-      
-      if (!isDragOver) {
-        setIsDragOver(true);
-      }
-    }
-  }, [enableDragDrop, isDragOver]);
-
-  const handleDragLeave = useCallback((event: any) => {
-    if (!enableDragDrop || Platform.OS !== 'web') return;
-    
-    event.preventDefault();
-    event.stopPropagation();
-    
-    // Only trigger drag leave if we're leaving the dropzone completely
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = event.clientX;
-    const y = event.clientY;
-    
-    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-      setIsDragOver(false);
-    }
-  }, [enableDragDrop]);
-
-  const handleDragEnter = useCallback((event: any) => {
-    if (!enableDragDrop || Platform.OS !== 'web') return;
-    
-    event.preventDefault();
-    event.stopPropagation();
-    
-    // Check if the drag contains files
-    if (event.dataTransfer && event.dataTransfer.types && event.dataTransfer.types.includes('Files')) {
-      event.dataTransfer.dropEffect = 'copy';
-    }
-  }, [enableDragDrop]);
-
-  const handleDrop = useCallback((event: any) => {
-    if (!enableDragDrop || Platform.OS !== 'web') return;
-    
-    event.preventDefault();
-    event.stopPropagation();
-    
-    setIsDragOver(false);
-
-    const files = event.dataTransfer && event.dataTransfer.files;
-    if (files && files.length > 0) {
-      processFiles(files);
-    }
-  }, [enableDragDrop, processFiles]);
-
-  // Set up drag and drop event listeners for the dropzone
-  useEffect(() => {
-    if (Platform.OS === 'web' && enableDragDrop && dropZoneRef.current) {
-      const element = dropZoneRef.current;
-      
-      // Get the actual DOM element if it's a React Native Web component
-      const domElement = element._nativeTag ? element._nativeTag : element;
-      
-      if (domElement && domElement.addEventListener) {
-        domElement.addEventListener('dragover', handleDragOver);
-        domElement.addEventListener('dragenter', handleDragEnter);
-        domElement.addEventListener('dragleave', handleDragLeave);
-        domElement.addEventListener('drop', handleDrop);
-
-        return () => {
-          domElement.removeEventListener('dragover', handleDragOver);
-          domElement.removeEventListener('dragenter', handleDragEnter);
-          domElement.removeEventListener('dragleave', handleDragLeave);
-          domElement.removeEventListener('drop', handleDrop);
-        };
-      }
-    }
-  }, [enableDragDrop, handleDragOver, handleDragEnter, handleDragLeave, handleDrop]);
-
-  const formatFileSize = useCallback((bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }, []);
-
-  const getStatusIcon = useCallback((status?: string) => {
-    switch (status) {
-      case 'uploading':
-        return 'plus'; // Using available icon
-      case 'success':
-        return 'check';
-      case 'error':
-        return 'close';
-      default:
-        return 'star'; // Using available icon as file placeholder
-    }
-  }, []);
-
-  const getStatusColor = useCallback((status?: string) => {
-    switch (status) {
-      case 'uploading':
-        return theme.colors.primary[5];
-      case 'success':
-        return theme.colors.success[5];
-      case 'error':
-      case 'close':
-        return theme.colors.error[5];
-      default:
-        return theme.text.secondary;
-    }
-  }, [theme]);
-
-  const renderFilePreview = useCallback((file: FileInputFile) => {
-    if (PreviewComponent) {
-      return (
-        <PreviewComponent
-          key={file.id}
-          file={file}
-          onRemove={() => handleFileRemove(file.id)}
-        />
-      );
-    }
-
-    const previewSource = file.previewUrl ?? ((file.type || '').startsWith('image/') ? file.uri : undefined);
-
-    return (
-      <View key={file.id} style={styles.fileItem}>
-        {previewSource ? (
-          <Image
-            source={{ uri: previewSource }}
-            style={styles.filePreview}
-            resizeMode="cover"
-            accessible
-            accessibilityLabel={file.name}
-          />
-        ) : (
-          <Icon
-            name="star"
-            size={24}
-            color={getStatusColor(file.status)}
-          />
-        )}
-
-        <View style={styles.fileInfo}>
-          <Text style={[styles.fileName, { color: theme.text.primary }]}>
-            {file.name}
-          </Text>
-          <Text style={[styles.fileSize, { color: theme.text.secondary }]}>
-            {formatFileSize(file.size)}
-          </Text>
-          {file.error && (
-            <Text style={[styles.fileError, { color: theme.colors.error[5] }]}>
-              {file.error}
-            </Text>
-          )}
-        </View>
-
-        <View style={styles.fileActions}>
-          <Icon
-            name={getStatusIcon(file.status)}
-            size={16}
-            color={getStatusColor(file.status)}
-          />
-          
-          {!disabled && (
-            <TouchableOpacity
-              onPress={() => handleFileRemove(file.id)}
-              style={styles.removeButton}
-            >
-              <Icon
-                name="close"
-                size={16}
-                color={theme.colors.error[5]}
-              />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    );
-  }, [PreviewComponent, handleFileRemove, getStatusColor, getStatusIcon, formatFileSize, theme, disabled]);
-
-  const renderDropZone = () => {
-    const dropZoneStyle = [
-      styles.dropZone,
-      {
-        borderColor: isDragOver ? theme.colors.primary[5] : theme.colors.gray[2],
-        backgroundColor: isDragOver ? `${theme.colors.primary[5]}10` : theme.colors.gray[0],
+    const styles = StyleSheet.create({
+      standardContainer: { gap: space('sm') },
+      standardButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: space('sm'),
+        minHeight: metrics.height,
+        paddingHorizontal: space('md'),
+        paddingVertical: space('sm'),
+        borderRadius: buttonRadius,
+        borderWidth: 1,
+        borderColor: theme.backgrounds.borderStrong,
+        backgroundColor: theme.backgrounds.subtle,
+        ...webStyle({ cursor: 'pointer' }),
       },
-      disabled && styles.disabled,
-    ];
+      buttonText: text(metrics.fontSize, theme.text.primary, '500'),
+      fileCount: text(resolveFontSize(theme, 'xs'), theme.text.secondary),
+      compactButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        gap: space('xs'),
+        minHeight: metrics.height,
+        paddingHorizontal: space('md'),
+        paddingVertical: space('sm'),
+        borderRadius: buttonRadius,
+        backgroundColor: theme.colors.primary[5],
+        ...webStyle({ cursor: 'pointer' }),
+      },
+      compactText: text(metrics.fontSize, onPrimary, '500'),
+      dropZone: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 200,
+        padding: space('3xl'),
+        borderRadius: resolveRadius(theme, radius ?? 'lg'),
+        borderStyle: 'dashed',
+        borderWidth: 2,
+        borderColor: dragOver ? theme.colors.primary[5] : theme.backgrounds.borderStrong,
+        backgroundColor: dragOver ? theme.backgrounds.selected : theme.backgrounds.subtle,
+        ...webStyle({ cursor: 'pointer' }),
+      },
+      dropZoneContent: { alignItems: 'center', gap: space('md') },
+      dropZoneText: text(resolveFontSize(theme, 'md'), theme.text.primary, '500'),
+      dropZoneSubtext: text(resolveFontSize(theme, 'sm'), theme.text.secondary),
+      browseChip: {
+        borderRadius: buttonRadius,
+        borderWidth: 1,
+        borderColor: theme.colors.primary[5],
+        paddingHorizontal: space('md'),
+        paddingVertical: space('sm'),
+      },
+      browseText: text(resolveFontSize(theme, 'sm'), theme.colors.primary[5], '500'),
+      pressed: { opacity: 0.85 },
+      disabled: { opacity: 0.5, ...webStyle({ cursor: 'not-allowed' }) },
+      fileList: { gap: space('sm'), marginTop: space('md') },
+      fileItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: space('md'),
+        padding: space('md'),
+        borderRadius: resolveRadius(theme, 'md'),
+        borderWidth: 1,
+        borderColor: theme.backgrounds.border,
+      },
+      filePreview: { width: 40, height: 40, borderRadius: resolveRadius(theme, 'sm') },
+      fileInfo: { flex: 1, gap: space('xs') },
+      fileName: text(resolveFontSize(theme, 'sm'), theme.text.primary, '500'),
+      fileSize: text(resolveFontSize(theme, 'xs'), theme.text.secondary),
+      fileError: text(resolveFontSize(theme, 'xs'), theme.colors.error[5]),
+      fileActions: { flexDirection: 'row', alignItems: 'center', gap: space('sm') },
+      removeButton: {
+        minWidth: 24,
+        minHeight: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 12,
+        ...webStyle({ cursor: 'pointer' }),
+      } as ViewStyle,
+    });
+    return styles;
+  }
+);
 
-    const content = children || (
-      <View style={styles.dropZoneContent}>
-        <Icon
-          name="plus"
-          size={32}
-          color={isDragOver ? theme.colors.primary[5] : theme.text.secondary}
-        />
-        <Text style={[styles.dropZoneText, { color: theme.text.primary }]}>
-          {isDragOver ? 'Drop files here' : 'Drag and drop files here'}
-        </Text>
-        <Text style={[styles.dropZoneSubtext, { color: theme.text.secondary }]}>
-          or
-        </Text>
-        <TouchableOpacity
+const STATUS_ICON: Record<NonNullable<FileInputFile['status']>, { name: string; label: string } | null> = {
+  pending: null,
+  uploading: { name: 'loader', label: 'Uploading' },
+  success: { name: 'check', label: 'Uploaded' },
+  error: { name: 'alert-circle', label: 'Failed' },
+};
+
+/**
+ * File picker field: a button (`standard`, `compact`) or a drop zone
+ * (`dropzone`, with drag-and-drop on web), validation by type/size, image
+ * previews, and optional upload with progress. Label / description / error /
+ * helper text come from the shared `Field` frame. `ref` points at the root View.
+ */
+export const FileInput = factory<{ props: FileInputProps; ref: View }>(
+  (props, ref) => {
+    const { styleProps, otherProps: propsAfterSpacing } = extractStyleProps(props);
+    const { layoutProps, otherProps: propsAfterLayout } = extractLayoutProps(propsAfterSpacing);
+    const { disclaimerProps: disclaimerData, otherProps } = extractDisclaimerProps(propsAfterLayout);
+    const {
+      id,
+      accept = EMPTY_ACCEPT,
+      multiple = false,
+      maxSize = 10 * 1024 * 1024, // 10MB
+      maxFiles = 10,
+      onUpload,
+      onProgress,
+      onFilesChange,
+      onFileRemove,
+      PreviewComponent,
+      children,
+      showFileList = true,
+      enableDragDrop = isWeb,
+      validateFile,
+      imagePreview = DEFAULT_IMAGE_PREVIEW,
+      uploadSettings,
+      variant = 'standard',
+      placeholder,
+      disabled = false,
+      readOnly = false,
+      error,
+      helperText,
+      style,
+      testID,
+      label,
+      description,
+      required,
+      withAsterisk,
+      size = 'md',
+      radius,
+      labelProps,
+      descriptionProps,
+      accessibilityLabel,
+      accessibilityHint,
+    } = otherProps;
+
+    const theme = useTheme();
+    const renderDisclaimer = useDisclaimer(disclaimerData.disclaimer, disclaimerData.disclaimerProps);
+    const [files, setFiles] = useState<FileInputFile[]>([]);
+    const filesRef = useRef<FileInputFile[]>(files);
+    const [isDragOver, setIsDragOver] = useState(false);
+    const dropZoneRef = useRef<View>(null);
+    const buttonTextId = useA11yId(undefined, 'file-input-action');
+    const inactive = disabled || readOnly;
+
+    const styles = getFileInputStyles(theme, size, radius, isDragOver);
+
+    /** Updates the list (ref first, so async steps see the latest). */
+    const updateFiles = useCallback((next: (previous: FileInputFile[]) => FileInputFile[]) => {
+      const updated = next(filesRef.current);
+      filesRef.current = updated;
+      setFiles(updated);
+      return updated;
+    }, []);
+
+    const reportProgress = useCallback(
+      (fileId: string, progress: number) => {
+        updateFiles((previous) => previous.map((f) => (f.id === fileId ? { ...f, progress } : f)));
+        onProgress?.(fileId, progress);
+      },
+      [updateFiles, onProgress]
+    );
+
+    const handleUpload = useCallback(
+      async (toUpload: FileInputFile[]) => {
+        const ids = new Set(toUpload.map((f) => f.id));
+        const setStatus = (patch: Partial<FileInputFile>) =>
+          updateFiles((previous) => previous.map((f) => (ids.has(f.id) ? { ...f, ...patch } : f)));
+
+        setStatus({ status: 'uploading', progress: 0 });
+        try {
+          if (onUpload) {
+            await onUpload(toUpload, { onProgress: reportProgress });
+          } else if (uploadSettings?.url) {
+            await uploadFiles(toUpload, uploadSettings, reportProgress);
+          }
+          setStatus({ status: 'success', progress: 100 });
+        } catch (uploadError) {
+          const message = uploadError instanceof Error ? uploadError.message : 'Upload failed';
+          setStatus({ status: 'error', error: message });
+          announce(`Upload failed: ${message}`, { politeness: 'assertive' });
+        }
+      },
+      [onUpload, uploadSettings, reportProgress, updateFiles]
+    );
+
+    const processFiles = useCallback(
+      async (sources: FileInputSource[]) => {
+        const room = multiple ? Math.max(0, maxFiles - filesRef.current.length) : Math.min(1, maxFiles);
+        const toProcess = sources.slice(0, room);
+        if (toProcess.length === 0) return;
+
+        const newFiles: FileInputFile[] = [];
+        for (const file of toProcess) {
+          const validationError = validateFileAgainst(file, { maxSize, accept, validateFile });
+          const metadata = getFileMetadata(file);
+          let previewUrl = imagePreview?.enabled ? await createImagePreview(file, imagePreview) : undefined;
+          if (!previewUrl && metadata.uri && metadata.type.startsWith('image/')) {
+            previewUrl = metadata.uri;
+          }
+          newFiles.push({
+            file,
+            id: generateFileId(),
+            name: metadata.name,
+            size: metadata.size,
+            type: metadata.type,
+            uri: metadata.uri,
+            previewUrl,
+            status: validationError ? 'error' : 'pending',
+            error: validationError || undefined,
+          });
+        }
+
+        const updated = updateFiles((previous) => (multiple ? [...previous, ...newFiles] : newFiles));
+        onFilesChange?.(updated);
+        announce(`${newFiles.length} file${newFiles.length === 1 ? '' : 's'} selected`);
+
+        const validFiles = newFiles.filter((f) => !f.error);
+        if (validFiles.length > 0 && (onUpload || uploadSettings?.url)) {
+          await handleUpload(validFiles);
+        }
+      },
+      [multiple, maxFiles, maxSize, accept, validateFile, imagePreview, updateFiles, onFilesChange, onUpload, uploadSettings, handleUpload]
+    );
+
+    const handleFileRemove = useCallback(
+      (fileId: string) => {
+        const updated = updateFiles((previous) => previous.filter((f) => f.id !== fileId));
+        onFileRemove?.(fileId);
+        onFilesChange?.(updated);
+      },
+      [updateFiles, onFileRemove, onFilesChange]
+    );
+
+    const handleBrowseFiles = useCallback(async () => {
+      if (inactive) return;
+      try {
+        const picked = await pickFiles({ accept, multiple });
+        if (picked && picked.length > 0) await processFiles(picked);
+      } catch (pickerError) {
+        devWarn('FileInput: file picker error', pickerError);
+      }
+    }, [inactive, accept, multiple, processFiles]);
+
+    // Web drag-and-drop on the drop zone (no-ops on native).
+    const dropFiles = useLatestCallback((dropped: FileInputSource[]) => {
+      void processFiles(dropped);
+    });
+    const dragDropActive = enableDragDrop && variant === 'dropzone' && !inactive;
+    useEffect(() => {
+      if (!dragDropActive) return undefined;
+      const detachTarget = attachFileDropTarget(dropZoneRef.current, {
+        onDragStateChange: setIsDragOver,
+        onDrop: dropFiles,
+      });
+      const restoreWindow = preventWindowFileDrop();
+      return () => {
+        detachTarget();
+        restoreWindow();
+        setIsDragOver(false);
+      };
+    }, [dragDropActive, dropFiles]);
+
+    const actionText =
+      variant === 'dropzone'
+        ? 'Browse files'
+        : (placeholder ?? (variant === 'compact' ? 'Upload' : `Choose ${multiple ? 'Files' : 'File'}`));
+    const dropPrompt = placeholder ?? (enableDragDrop ? 'Drag and drop files here' : 'Select files');
+
+    /** Button semantics for the picker trigger, named by the field label plus the action. */
+    const triggerA11y = (field: FieldRenderProps): A11yProps => {
+      const { 'aria-labelledby': _labelledBy, 'aria-label': _label, ...controlRest } = field.controlProps;
+      const labelText = getNodeText(label);
+      return {
+        ...controlRest,
+        ...a11yProps({
+          role: 'button',
+          disabled: inactive,
+          label: accessibilityLabel ?? (isWeb ? undefined : [labelText, actionText].filter(Boolean).join(', ')),
+          labelledBy: isWeb && !accessibilityLabel ? [labelText ? field.ids.label : null, buttonTextId] : undefined,
+        }),
+      };
+    };
+
+    const renderStandard = (field: FieldRenderProps) => (
+      <View style={styles.standardContainer}>
+        <Pressable
           onPress={handleBrowseFiles}
-          disabled={disabled}
-          style={[styles.browseButton, { borderColor: theme.colors.primary[5] }]}
+          disabled={inactive}
+          {...triggerA11y(field)}
+          style={({ pressed }) => [styles.standardButton, pressed && styles.pressed, inactive && styles.disabled]}
         >
-          <Text style={[styles.browseButtonText, { color: theme.colors.primary[5] }]}>
-            Browse Files
+          <Icon name="upload" size={getControlSize(theme, size).iconSize} color={theme.text.secondary} />
+          <Text id={buttonTextId} style={styles.buttonText}>
+            {actionText}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
+        {files.length > 0 ? (
+          <Text style={styles.fileCount}>
+            {files.length} file{files.length !== 1 ? 's' : ''} selected
+          </Text>
+        ) : null}
       </View>
     );
 
-    if (Platform.OS !== 'web') {
+    const renderCompact = (field: FieldRenderProps) => (
+      <Pressable
+        onPress={handleBrowseFiles}
+        disabled={inactive}
+        {...triggerA11y(field)}
+        style={({ pressed }) => [styles.compactButton, pressed && styles.pressed, inactive && styles.disabled]}
+      >
+        <Icon name="upload" size={getControlSize(theme, size).iconSize} color={theme.text.onPrimary ?? onColor(theme, theme.colors.primary[5])} />
+        <Text id={buttonTextId} style={styles.compactText}>
+          {actionText}
+        </Text>
+      </Pressable>
+    );
+
+    const renderDropZone = (field: FieldRenderProps) => (
+      // The whole zone opens the picker (and, on web, takes dropped files).
+      <Pressable
+        ref={dropZoneRef}
+        onPress={handleBrowseFiles}
+        disabled={inactive}
+        {...triggerA11y(field)}
+        style={({ pressed }) => [styles.dropZone, pressed && styles.pressed, inactive && styles.disabled]}
+      >
+        {children ?? (
+          <View style={styles.dropZoneContent}>
+            <Icon name="upload" size={32} color={isDragOver ? theme.colors.primary[5] : theme.text.secondary} />
+            <Text style={styles.dropZoneText}>
+              {isDragOver ? 'Drop files here' : dropPrompt}
+            </Text>
+            {enableDragDrop ? <Text style={styles.dropZoneSubtext}>or</Text> : null}
+            <View style={styles.browseChip}>
+              <Text id={buttonTextId} style={styles.browseText}>
+                {actionText}
+              </Text>
+            </View>
+          </View>
+        )}
+      </Pressable>
+    );
+
+    const renderFile = (file: FileInputFile) => {
+      if (PreviewComponent) {
+        return <PreviewComponent key={file.id} file={file} onRemove={() => handleFileRemove(file.id)} />;
+      }
+
+      const previewSource = file.previewUrl ?? ((file.type || '').startsWith('image/') ? file.uri : undefined);
+      const status = file.status ? STATUS_ICON[file.status] : null;
+      const statusColor =
+        file.status === 'success'
+          ? theme.colors.success[5]
+          : file.status === 'error'
+            ? theme.colors.error[5]
+            : theme.colors.primary[5];
+
       return (
-        <TouchableOpacity
-          activeOpacity={0.9}
-          disabled={disabled}
-          style={dropZoneStyle}
-          onPress={handleBrowseFiles}
-        >
-          {content}
-        </TouchableOpacity>
+        <View key={file.id} style={styles.fileItem} {...a11yProps({ role: 'listitem' })}>
+          {previewSource ? (
+            <Image source={{ uri: previewSource }} style={styles.filePreview} resizeMode="cover" {...a11yProps({ hidden: true })} />
+          ) : (
+            <Icon name="file" size={24} color={theme.text.secondary} />
+          )}
+
+          <View style={styles.fileInfo}>
+            <Text style={styles.fileName}>{file.name}</Text>
+            <Text style={styles.fileSize}>
+              {formatFileSize(file.size)}
+              {file.status === 'uploading' && typeof file.progress === 'number' ? ` · ${file.progress}%` : ''}
+            </Text>
+            {file.error ? <Text style={styles.fileError}>{file.error}</Text> : null}
+          </View>
+
+          <View style={styles.fileActions}>
+            {status ? <Icon name={status.name} size={16} color={statusColor} label={status.label} /> : null}
+            {!inactive ? (
+              <Pressable
+                onPress={() => handleFileRemove(file.id)}
+                {...a11yProps({ role: 'button', label: `Remove ${file.name}` })}
+                hitSlop={isWeb ? undefined : 10}
+                style={({ pressed }) => [styles.removeButton, pressed && styles.pressed]}
+              >
+                <Icon name="close" size={16} color={theme.colors.error[5]} />
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
       );
-    }
+    };
 
     return (
-      <View
-        ref={dropZoneRef}
-        style={dropZoneStyle}
-      >
-        {content}
-      </View>
-    );
-  };
-
-  const renderStandardInput = () => (
-    <View style={styles.standardContainer}>
-      <TouchableOpacity
-        onPress={handleBrowseFiles}
-        disabled={disabled}
-        style={[
-          styles.standardButton,
-          {
-            borderColor: theme.colors.gray[2],
-            backgroundColor: theme.colors.gray[0],
-          },
-          disabled && styles.disabled,
-        ]}
-      >
-        <Icon name="plus" size={16} color={theme.text.secondary} />
-        <Text style={[styles.standardButtonText, { color: theme.text.primary }]}>
-          Choose {multiple ? 'Files' : 'File'}
-        </Text>
-      </TouchableOpacity>
-      
-      {files.length > 0 && (
-        <Text style={[styles.fileCount, { color: theme.text.secondary }]}>
-          {files.length} file{files.length !== 1 ? 's' : ''} selected
-        </Text>
-      )}
-    </View>
-  );
-
-  const renderCompactInput = () => (
-    <TouchableOpacity
-      onPress={handleBrowseFiles}
-      disabled={disabled}
-      style={[
-        styles.compactButton,
-        { backgroundColor: theme.colors.primary[5] },
-        disabled && styles.disabled,
-      ]}
-    >
-      <Icon name="plus" size={16} color="#FFFFFF" />
-      <Text style={[styles.compactButtonText, { color: '#FFFFFF' }]}>
-        Upload
-      </Text>
-    </TouchableOpacity>
-  );
-
-  return (
-    <View ref={ref} style={[styles.container, style]}>
-      {/* Hidden file input for web */}
-      {Platform.OS === 'web' && (
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple={multiple}
-          accept={accept.join(',')}
-          onChange={handleFileInputChange}
-          style={{ display: 'none' }}
-        />
-      )}
-
-      <FieldHeader
+      <Field
+        id={id}
         label={label}
         description={description}
+        error={error}
+        helperText={helperText}
         required={required}
-        withAsterisk={withAsterisk ?? required}
+        withAsterisk={withAsterisk}
         disabled={disabled}
-        error={!!error}
-        size={size as any}
+        readOnly={readOnly}
+        size={size}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
         labelProps={labelProps}
         descriptionProps={descriptionProps}
-      />
-
-      {/* File input UI */}
-      {variant === 'dropzone' && renderDropZone()}
-      {variant === 'standard' && renderStandardInput()}
-      {variant === 'compact' && renderCompactInput()}
-
-      {/* Error message */}
-      {error && (
-        <Text style={[styles.errorText, { color: theme.colors.error[5] }]}>
-          {error}
-        </Text>
-      )}
-
-      {/* Helper text */}
-      {helperText && !error && (
-        <Text style={[styles.helperText, { color: theme.text.secondary }]}>
-          {helperText}
-        </Text>
-      )}
-
-      {/* File list */}
-      {showFileList && files.length > 0 && (
-        <View style={styles.fileList}>
-          {files.map(renderFilePreview)}
-        </View>
-      )}
-    </View>
-  );
-}));
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
+        testID={testID}
+        rootRef={ref}
+        // `fullWidth` first, so an explicit `w` wins.
+        style={[getLayoutStyles(layoutProps), resolveStyleProps(styleProps, theme), style]}
+      >
+        {(field) => (
+          <>
+            {variant === 'dropzone' ? renderDropZone(field) : variant === 'compact' ? renderCompact(field) : renderStandard(field)}
+            {renderDisclaimer()}
+            {showFileList && files.length > 0 ? (
+              <View style={styles.fileList} {...a11yProps({ role: 'list' })}>
+                {files.map(renderFile)}
+              </View>
+            ) : null}
+          </>
+        )}
+      </Field>
+    );
   },
-  
-  // Drop zone styles
-  dropZone: {
-    alignItems: 'center',
-    borderRadius: DESIGN_TOKENS.radius.lg,
-    borderStyle: 'dashed',
-    borderWidth: DESIGN_TOKENS.radius.xs,
-    justifyContent: 'center',
-    minHeight: 200,
-    padding: DESIGN_TOKENS.spacing['3xl'],
-  },
-  dropZoneContent: {
-    alignItems: 'center',
-    gap: DESIGN_TOKENS.spacing.md,
-  },
-  dropZoneText: {
-    fontSize: DESIGN_TOKENS.typography.fontSize.md,
-    fontWeight: DESIGN_TOKENS.typography.fontWeight.medium as any,
-  },
-  dropZoneSubtext: {
-    fontSize: DESIGN_TOKENS.typography.fontSize.sm,
-  },
-  browseButton: {
-    borderRadius: DESIGN_TOKENS.radius.md,
-    borderWidth: 1,
-    paddingHorizontal: DESIGN_TOKENS.spacing.md,
-    paddingVertical: DESIGN_TOKENS.spacing.sm,
-  },
-  browseButtonText: {
-    fontSize: DESIGN_TOKENS.typography.fontSize.sm,
-    fontWeight: DESIGN_TOKENS.typography.fontWeight.medium as any,
-  },
-
-  // Standard input styles
-  standardContainer: {
-    gap: DESIGN_TOKENS.spacing.sm,
-  },
-  standardButton: {
-    alignItems: 'center',
-    borderRadius: DESIGN_TOKENS.radius.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: DESIGN_TOKENS.spacing.sm,
-    padding: DESIGN_TOKENS.spacing.md,
-  },
-  standardButtonText: {
-    fontSize: DESIGN_TOKENS.typography.fontSize.sm,
-    fontWeight: DESIGN_TOKENS.typography.fontWeight.medium as any,
-  },
-  fileCount: {
-    fontSize: DESIGN_TOKENS.typography.fontSize.xs,
-  },
-
-  // Compact input styles
-  compactButton: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    borderRadius: DESIGN_TOKENS.radius.md,
-    flexDirection: 'row',
-    gap: DESIGN_TOKENS.spacing.xs,
-    paddingHorizontal: DESIGN_TOKENS.spacing.md,
-    paddingVertical: DESIGN_TOKENS.spacing.sm,
-  },
-  compactButtonText: {
-    fontSize: DESIGN_TOKENS.typography.fontSize.sm,
-    fontWeight: DESIGN_TOKENS.typography.fontWeight.medium as any,
-  },
-
-  // File list styles
-  fileList: {
-    gap: DESIGN_TOKENS.spacing.sm,
-    marginTop: DESIGN_TOKENS.spacing.md,
-  },
-  fileItem: {
-    alignItems: 'center',
-    borderRadius: DESIGN_TOKENS.radius.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: DESIGN_TOKENS.spacing.md,
-    padding: DESIGN_TOKENS.spacing.md,
-  },
-  filePreview: {
-    borderRadius: DESIGN_TOKENS.radius.sm,
-    height: 40,
-    width: 40,
-  },
-  fileInfo: {
-    flex: 1,
-    gap: DESIGN_TOKENS.spacing.xs,
-  },
-  fileName: {
-    fontSize: DESIGN_TOKENS.typography.fontSize.sm,
-    fontWeight: DESIGN_TOKENS.typography.fontWeight.medium as any,
-  },
-  fileSize: {
-    fontSize: DESIGN_TOKENS.typography.fontSize.xs,
-  },
-  fileError: {
-    fontSize: DESIGN_TOKENS.typography.fontSize.xs,
-  },
-  fileActions: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: DESIGN_TOKENS.spacing.sm,
-  },
-  removeButton: {
-    padding: DESIGN_TOKENS.component.clearButton.padding,
-  },
-
-  // State styles
-  disabled: {
-    opacity: DESIGN_TOKENS.opacity.disabled,
-  },
-
-  // Message styles
-  errorText: {
-    fontSize: DESIGN_TOKENS.typography.fontSize.xs,
-    marginTop: DESIGN_TOKENS.spacing.xs,
-  },
-  helperText: {
-    fontSize: DESIGN_TOKENS.typography.fontSize.xs,
-    marginTop: DESIGN_TOKENS.spacing.xs,
-  },
-});
-
-FileInput.displayName = 'FileInput';
+  { displayName: 'FileInput' }
+);

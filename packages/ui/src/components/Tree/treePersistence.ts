@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { hasDOM } from '../../core/platform/flags';
 
 const STORAGE_PREFIX = 'platform-blocks-tree:';
 
@@ -16,7 +16,8 @@ const STORAGE_PREFIX = 'platform-blocks-tree:';
  * remember its state must still render.
  */
 const storage = (): Storage | null => {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
+  // `hasDOM`, not `typeof window`: React Native defines a global `window` too.
+  if (!hasDOM) return null;
   try {
     return window.localStorage ?? null;
   } catch {
@@ -30,7 +31,7 @@ export const readPersistedExpansion = (key: string): string[] | null => {
   try {
     const raw = store.getItem(`${STORAGE_PREFIX}${key}`);
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
     // A hand-edited or version-skewed entry is discarded rather than trusted —
     // a non-string id would flow straight into the expanded set.
     if (!Array.isArray(parsed)) return null;
@@ -49,4 +50,32 @@ export const writePersistedExpansion = (key: string, ids: string[]): void => {
     // Quota exceeded, or storage disabled mid-session. Expansion is a
     // convenience; losing it is not worth an exception in a render effect.
   }
+};
+
+/**
+ * Writes are debounced: expanding a few branches in a row (or a filter opening
+ * a dozen) costs one `localStorage` write, not one per branch. Pending writes
+ * are keyed by storage key, and `flushPersistedExpansion` lands one right away
+ * — on unmount, so the last toggle before navigating away is not lost.
+ */
+const WRITE_DELAY_MS = 250;
+const pendingWrites = new Map<string, { ids: string[]; timer: ReturnType<typeof setTimeout> }>();
+
+export const schedulePersistedExpansion = (key: string, ids: string[]): void => {
+  if (!hasDOM) return;
+  const existing = pendingWrites.get(key);
+  if (existing) clearTimeout(existing.timer);
+  const timer = setTimeout(() => {
+    pendingWrites.delete(key);
+    writePersistedExpansion(key, ids);
+  }, WRITE_DELAY_MS);
+  pendingWrites.set(key, { ids, timer });
+};
+
+export const flushPersistedExpansion = (key: string): void => {
+  const entry = pendingWrites.get(key);
+  if (!entry) return;
+  clearTimeout(entry.timer);
+  pendingWrites.delete(key);
+  writePersistedExpansion(key, entry.ids);
 };

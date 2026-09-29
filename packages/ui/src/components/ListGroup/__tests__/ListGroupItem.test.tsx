@@ -4,7 +4,8 @@ import { render, fireEvent } from '@testing-library/react-native';
 
 import { ListGroup, ListGroupItem } from '../ListGroup';
 
-jest.mock('../../../core/theme', () => ({
+jest.mock('../../../core/theme/ThemeProvider', () => ({
+  ...jest.requireActual('../../../core/theme/ThemeProvider'),
   useTheme: () => ({
     colorScheme: 'light',
     colors: {
@@ -87,7 +88,7 @@ describe('ListGroupItem', () => {
       </ListGroupItem>,
     );
     expect(flatStyle(getByText('English'))).toEqual(
-      expect.arrayContaining([expect.objectContaining({ marginLeft: 'auto' })]),
+      expect.arrayContaining([expect.objectContaining({ marginStart: 'auto' })]),
     );
   });
 
@@ -96,7 +97,7 @@ describe('ListGroupItem', () => {
       <ListGroupItem label="Language" description="App language" value="English" />,
     );
     expect(flatStyle(getByText('English'))).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ marginLeft: 'auto' })]),
+      expect.arrayContaining([expect.objectContaining({ marginStart: 'auto' })]),
     );
   });
 

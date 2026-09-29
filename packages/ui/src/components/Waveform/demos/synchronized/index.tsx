@@ -1,19 +1,13 @@
 import { useState } from 'react';
-import { Block, Button, Row, Text, Waveform } from '@platform-blocks/ui';
+import { Block, Text, Waveform } from '@platform-blocks/ui';
 
 import { TRACK_TWO_PEAKS, WAVEFORM_DEMO_PEAKS } from '../data';
-
-const CUE_POINTS: number[] = [0, 0.25, 0.5, 0.75, 1];
 
 export function Demo() {
   const [progress, setProgress] = useState<number>(0.35);
 
-  const handleSeek = (value: number) => {
-    setProgress(value);
-  };
-
   return (
-    <Block>
+    <Block fullWidth>
       <Block>
         <Text variant="small">Narration track</Text>
         <Waveform
@@ -21,9 +15,8 @@ export function Demo() {
           progress={progress}
           h={80}
           fullWidth
-          color="primary"
           interactive
-          onSeek={handleSeek}
+          onSeek={setProgress}
         />
       </Block>
 
@@ -36,21 +29,9 @@ export function Demo() {
           fullWidth
           color="secondary"
           interactive
-          onSeek={handleSeek}
+          onSeek={setProgress}
         />
       </Block>
-
-      <Row gap="sm" wrap="wrap">
-        {CUE_POINTS.map((value) => (
-          <Button key={value} variant="outline" onPress={() => handleSeek(value)}>
-            {Math.round(value * 100)}%
-          </Button>
-        ))}
-      </Row>
-
-      <Text variant="small">Shared progress: {Math.round(progress * 100)}%</Text>
     </Block>
   );
 }
-
-

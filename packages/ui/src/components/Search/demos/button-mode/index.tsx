@@ -8,9 +8,9 @@ export function Demo() {
   };
 
   return (
-    <Block maxW={420} w="100%">
+    <Block maw={420} w="100%">
       <Block>
-        <Text size="xs" color="muted">
+        <Text size="xs" c="muted">
           Default Spotlight launcher
         </Text>
         <Search
@@ -26,7 +26,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text size="xs" color="muted">
+        <Text size="xs" c="muted">
           Custom handler with shortcut hint
         </Text>
         <Search

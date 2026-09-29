@@ -1,5 +1,8 @@
-import type { ViewStyle, StyleProp, ImageSourcePropType } from 'react-native';
+import type React from 'react';
+import type { ImageSourcePropType, ViewProps, ViewStyle } from 'react-native';
+
 import type { SizeValue } from '../../core/theme/types';
+import type { BaseProps } from '../../core/types/base';
 import type { BrandName } from '../BrandIcon/brands';
 
 export interface BlockquoteAuthor {
@@ -32,18 +35,21 @@ export interface BlockquoteSource {
   url?: string;
 }
 
-export interface BlockquoteProps {
+export interface BlockquoteProps extends BaseProps<ViewStyle>, Omit<ViewProps, 'style' | 'testID' | 'children'> {
   // Core content
   children: React.ReactNode;
   
   // Styling
   variant?: 'default' | 'testimonial' | 'featured' | 'minimal';
+  /** Quote text size. Quotes read two steps up the theme's font scale (`md` → `fontSizes.xl`). */
   size?: SizeValue;
   color?: string;
   
   // Quote icon
   quoteIcon?: string | React.ReactNode;
+  /** Glyph position. `left` / `right` are the leading / trailing corners (mirrored in RTL). */
   quoteIconPosition?: 'top-left' | 'top-center' | 'bottom-right' | 'none';
+  /** Glyph size token (`lg` = 32px with the default theme) or px. */
   quoteIconSize?: SizeValue;
   
   // Author attribution
@@ -73,8 +79,7 @@ export interface BlockquoteProps {
   border?: boolean;
   shadow?: boolean;
   
-  // Standard props
-  style?: StyleProp<ViewStyle>;
+  /** Makes the whole quote a button. */
   onPress?: () => void;
 }
 

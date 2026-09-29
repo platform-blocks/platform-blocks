@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { useControllableState } from '../../hooks/useControllableState';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { useControllableState } from '../../hooks/useControllableState/useControllableState';
 
 import type { TreeNode, TreeRenderNode, TreeRow } from './types';
 import {
@@ -58,12 +59,21 @@ export interface TreeStateResult {
   matchedIds: Set<string>;
   expandedSet: Set<string>;
   isExpanded: (id: string) => boolean;
+  /** Stable identity for the lifetime of the tree. */
   toggleNode: (node: TreeNode) => void;
+  /** Stable identity for the lifetime of the tree. */
   setNodeExpanded: (node: TreeNode, expanded: boolean) => void;
   childrenFor: (node: TreeNode) => TreeNode[] | undefined;
   isBranch: (node: TreeNode) => boolean;
 }
 
+/**
+ * Expansion, lazy loading, filtering and the flattened row model behind
+ * `Tree`. The returned object is memoized, and `toggleNode` / `setNodeExpanded`
+ * / `setExpanded` keep one identity for the life of the component, so they can
+ * sit in dependency arrays and be handed to memoized rows without re-rendering
+ * every row on each expansion.
+ */
 export function useTreeState(options: UseTreeStateOptions): TreeStateResult {
   const {
     data,
@@ -86,7 +96,14 @@ export function useTreeState(options: UseTreeStateOptions): TreeStateResult {
   const [loadingIds, setLoadingIds] = useState<Set<string>>(() => new Set());
   const inFlight = useRef<Set<string>>(new Set());
   const mounted = useRef(true);
-  useEffect(() => () => { mounted.current = false; }, []);
+  // Re-armed on mount so StrictMode's mount → unmount → mount cycle doesn't
+  // leave it false and silently drop every lazy load.
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const [expandedList, setExpandedList] = useControllableState<string[]>({
     value: expandedIds,
@@ -188,7 +205,10 @@ export function useTreeState(options: UseTreeStateOptions): TreeStateResult {
       });
   }, [loadChildren, loadedChildren]);
 
-  const setNodeExpanded = useCallback((node: TreeNode, expanded: boolean) => {
+  // Event-time handlers: read through useLatestCallback so their identity stays
+  // fixed while the expanded set, the sibling map and the consumer's inline
+  // `onToggle` / `loadChildren` change underneath them.
+  const setNodeExpanded = useLatestCallback((node: TreeNode, expanded: boolean) => {
     if (!collapsible) return;
     if (expanded) requestChildren(node);
     onToggle?.(node, expanded);
@@ -211,11 +231,11 @@ export function useTreeState(options: UseTreeStateOptions): TreeStateResult {
       next.add(node.id);
       return Array.from(next);
     });
-  }, [accordion, collapsible, onToggle, parentMap, requestChildren, setExpandedList, siblingMap]);
+  });
 
-  const toggleNode = useCallback((node: TreeNode) => {
+  const toggleNode = useLatestCallback((node: TreeNode) => {
     setNodeExpanded(node, !expandedSet.has(node.id));
-  }, [expandedSet, setNodeExpanded]);
+  });
 
   const setExpanded = useCallback((ids: string[]) => {
     setExpandedList(ids);
@@ -322,23 +342,46 @@ export function useTreeState(options: UseTreeStateOptions): TreeStateResult {
   }, [rows]);
   const isExpanded = useCallback((id: string) => expandedSet.has(id), [expandedSet]);
 
-  return {
-    expandedIds: expandedList,
-    setExpanded,
-    rows,
-    rowIds,
-    rowIndexById,
-    renderNodes,
-    descendantMap,
-    parentMap,
-    loadedChildren,
-    loadingIds,
-    matchedIds: filter.matched,
-    expandedSet,
-    isExpanded,
-    toggleNode,
-    setNodeExpanded,
-    childrenFor,
-    isBranch,
-  };
+  const matchedIds = filter.matched;
+
+  return useMemo<TreeStateResult>(
+    () => ({
+      expandedIds: expandedList,
+      setExpanded,
+      rows,
+      rowIds,
+      rowIndexById,
+      renderNodes,
+      descendantMap,
+      parentMap,
+      loadedChildren,
+      loadingIds,
+      matchedIds,
+      expandedSet,
+      isExpanded,
+      toggleNode,
+      setNodeExpanded,
+      childrenFor,
+      isBranch,
+    }),
+    [
+      expandedList,
+      setExpanded,
+      rows,
+      rowIds,
+      rowIndexById,
+      renderNodes,
+      descendantMap,
+      parentMap,
+      loadedChildren,
+      loadingIds,
+      matchedIds,
+      expandedSet,
+      isExpanded,
+      toggleNode,
+      setNodeExpanded,
+      childrenFor,
+      isBranch,
+    ]
+  );
 }

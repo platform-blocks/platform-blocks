@@ -35,7 +35,7 @@ export function Demo() {
           ))}
         </Row>
       ) : (
-        <Text size="sm" color="muted">No matches.</Text>
+        <Text size="sm" c="muted">No matches.</Text>
       )}
     </Block>
   );

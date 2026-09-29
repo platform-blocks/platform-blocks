@@ -23,7 +23,7 @@ describe('useControllableState', () => {
       );
 
       expect(result.current[0]).toBe('seeded');
-      rerender();
+      rerender(undefined);
       act(() => result.current[1]('changed'));
       expect(factory).toHaveBeenCalledTimes(1);
     });

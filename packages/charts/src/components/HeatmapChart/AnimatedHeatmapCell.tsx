@@ -2,9 +2,13 @@ import React, { useEffect } from 'react';
 import Animated, { useSharedValue, useAnimatedProps, withTiming, withDelay, Easing } from 'react-native-reanimated';
 import { Rect as SvgRect, Text as SvgText } from 'react-native-svg';
 import type { HeatmapCell } from '../../types';
+import { useNumberFormatter } from '../../theme/ChartThemeContext';
 
 const AnimatedRect = Animated.createAnimatedComponent(SvgRect);
 const AnimatedText = Animated.createAnimatedComponent(SvgText);
+
+// How a cell renders a value the theme's number format doesn't abbreviate.
+const formatCellValue = (value: number) => (value % 1 === 0 ? value.toString() : value.toFixed(1));
 
 // Utility to determine if text should be light or dark based on background color
 function getContrastColor(hexColor: string): string {
@@ -90,6 +94,7 @@ export const AnimatedHeatmapCell: React.FC<AnimatedHeatmapCellProps> = React.mem
 
   // Get text color for contrast
   const textColor = React.useMemo(() => getContrastColor(cell.color), [cell.color]);
+  const formatValue = useNumberFormatter(formatCellValue);
 
   useEffect(() => {
     if (disabled) {
@@ -181,11 +186,7 @@ export const AnimatedHeatmapCell: React.FC<AnimatedHeatmapCellProps> = React.mem
           pointerEvents="none"
           fontWeight={isHovered || fontSize <= 10 ? '600' : '500'} // Bolder text for small sizes
         >
-          {cell.displayValue ?? (typeof cell.value === 'number'
-            ? cell.value % 1 === 0
-              ? cell.value.toString()
-              : cell.value.toFixed(1)
-            : String(cell.value))}
+          {cell.displayValue ?? (typeof cell.value === 'number' ? formatValue(cell.value) : String(cell.value))}
         </AnimatedText>
       )}
     </>

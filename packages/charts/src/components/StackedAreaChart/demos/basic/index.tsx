@@ -7,7 +7,7 @@ export function Demo() {
     <StackedAreaChart
       title="Active users by surface"
       subtitle="Monthly totals"
-      height={340}
+      h={340}
       series={SERIES}
       stackOrder="normal"
       opacity={0.65}

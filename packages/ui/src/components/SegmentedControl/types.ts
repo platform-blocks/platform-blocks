@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
-import type { ViewStyle, StyleProp } from 'react-native';
-import type { SpacingProps, LayoutProps } from '../../core/utils';
+import type { StyleProp, ViewStyle } from 'react-native';
+
 import type { BorderRadiusProps } from '../../core/theme/radius';
 import type { SizeValue } from '../../core/theme/sizes';
+import type { BaseProps, ColorProp } from '../../core/types/base';
+import type { LayoutProps } from '../../core/utils/layout';
 
 export interface SegmentedControlItem {
   /** Unique value returned in change events */
@@ -11,7 +13,7 @@ export interface SegmentedControlItem {
   label: ReactNode;
   /** Disable this specific segment */
   disabled?: boolean;
-  /** Screen reader label override */
+  /** Screen reader label override (required when `label` isn't a string) */
   ariaLabel?: string;
   /** Optional test identifier for automation */
   testID?: string;
@@ -19,10 +21,7 @@ export interface SegmentedControlItem {
 
 export type SegmentedControlData = string | SegmentedControlItem;
 
-export interface SegmentedControlProps
-  extends SpacingProps,
-    LayoutProps,
-    BorderRadiusProps {
+export interface SegmentedControlProps extends BaseProps<ViewStyle>, LayoutProps, BorderRadiusProps {
   /** Data that defines the segments */
   data: SegmentedControlData[];
   /** Controlled value */
@@ -33,8 +32,8 @@ export interface SegmentedControlProps
   onChange?: (value: string) => void;
   /** Control size, maps to height and font size */
   size?: SizeValue;
-  /** Indicator color token or hex */
-  color?: string;
+  /** Indicator color: palette token, `'primary.6'` shade syntax, or CSS color */
+  color?: ColorProp;
   /** Layout orientation */
   orientation?: 'horizontal' | 'vertical';
   /** Stretch across available width */
@@ -51,7 +50,7 @@ export interface SegmentedControlProps
   transitionDuration?: number;
   /** Indicator transition easing */
   transitionTimingFunction?: string;
-  /** Optional radio group name hint */
+  /** Radio group name; also the group's accessible name when there is no label */
   name?: string;
   /** Visual style variant */
   variant?: 'default' | 'filled' | 'outline' | 'ghost';
@@ -59,16 +58,12 @@ export interface SegmentedControlProps
   indicatorStyle?: StyleProp<ViewStyle>;
   /** Custom style applied to every item */
   itemStyle?: StyleProp<ViewStyle>;
-  /** Style applied to the container */
-  style?: StyleProp<ViewStyle>;
-  /** Test identifier applied to container */
-  testID?: string;
   /** Accessibility label for the entire control */
   accessibilityLabel?: string;
   /** Optional label rendered alongside the control */
   label?: ReactNode;
   /** Supplementary description text rendered with the label */
   description?: ReactNode;
-  /** Placement of the label relative to the control */
+  /** Placement of the label relative to the control (`left` / `right` follow the reading direction) */
   labelPosition?: 'left' | 'right' | 'top' | 'bottom';
 }

@@ -39,7 +39,7 @@ export function BlockquoteAuthor({
       }}>
         {/* Name */}
         <Text
-          weight="semibold"
+          fw="semibold"
           size="sm"
           style={{ textAlign: alignment }}
         >
@@ -50,7 +50,7 @@ export function BlockquoteAuthor({
         {!!author.title && (
           <Text
             size="xs"
-            color="secondary"
+            c="secondary"
             style={{ textAlign: alignment }}
           >
             {author.title}
@@ -61,7 +61,7 @@ export function BlockquoteAuthor({
         {!!author.organization && (
           <Text
             size="xs"
-            color="muted"
+            c="muted"
             style={{ textAlign: alignment }}
           >
             {author.organization}

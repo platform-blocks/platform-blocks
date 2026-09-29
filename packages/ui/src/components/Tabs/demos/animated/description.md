@@ -8,4 +8,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Demonstrates motion-enabled tabs using the `animated` flag and custom duration to smooth the switch between panels.
+Enable `animated` and set `animationDuration` (in ms) to control how quickly the indicator slides between tabs.

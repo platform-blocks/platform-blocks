@@ -21,10 +21,7 @@ import Svg, {
   FeOffset,
   Filter,
   G,
-  LinearGradient,
   Path,
-  RadialGradient,
-  Stop,
   Text as SvgText,
   TSpan,
 } from 'react-native-svg';
@@ -44,7 +41,8 @@ import { useChartInteractionContext, usePointer } from '../../interaction/ChartI
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { AngularSliceHitTester } from '../../core/hittest/angular';
 import type { HitSeries, Mark } from '../../core/hittest/types';
-import { colorSchemes, formatPercentage, getColorFromScheme } from '../../utils';
+import { ChartGradientDef, useChartFillId } from '../../core/ChartFill';
+import { formatPercentage, getColorFromScheme } from '../../utils';
 import { platformShadow } from '../../utils/platformShadow';
 import type {
   PieChartDataPoint,
@@ -525,6 +523,8 @@ const computeLayerSlices = (
   palette: string[],
   hiddenKeys: Set<string>,
   defaultSliceStyle: PieChartSliceStyle | undefined,
+  // Per-chart prefix: SVG ids are page-global, so two pies must never share one.
+  defsIdPrefix: string,
 ): ComputedLayer => {
   const totalAngle = Math.max(layer.endAngle - layer.startAngle, 0);
 
@@ -593,8 +593,8 @@ const computeLayerSlices = (
       layerId: layer.id,
       layerIndex,
       visible: slice.visible,
-      gradientId: slice.style.gradient ? `pie-gradient-${layerIndex}-${slice.index}` : undefined,
-      shadowId: slice.style.shadow ? `pie-shadow-${layerIndex}-${slice.index}` : undefined,
+      gradientId: slice.style.gradient ? `${defsIdPrefix}-gradient-${layerIndex}-${slice.index}` : undefined,
+      shadowId: slice.style.shadow ? `${defsIdPrefix}-shadow-${layerIndex}-${slice.index}` : undefined,
     };
   });
 
@@ -816,8 +816,8 @@ const computeLabelLayouts = (
 export const PieChart: React.FC<PieChartProps> = (props) => {
   const {
     data,
-    width = 320,
-    height = 320,
+    w: width = 320,
+    h: height = 320,
     innerRadius = 0,
     outerRadius,
     startAngle = 0,
@@ -900,7 +900,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
     [normalisedData, hiddenKeys],
   );
 
-  const palette = theme.colors.accentPalette ?? colorSchemes.default;
+  const palette = theme.colors.accentPalette;
 
   const legendItems = useMemo(() => {
     if (legend?.items && legend.items.length > 0) {
@@ -972,6 +972,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
   const effectiveOuterRadius = requestedOuterRadius * radiusScale;
   const effectiveInnerRadius = clamp(innerRadius * radiusScale, 0, effectiveOuterRadius * 0.92);
 
+  const defsIdPrefix = useChartFillId('pie');
   const layoutLayers = useMemo<ComputedLayer[]>(() => {
     const baseLayer = computeLayerSlices(
       {
@@ -987,6 +988,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
       palette,
       hiddenKeys,
       defaultSliceStyle,
+      defsIdPrefix,
     );
 
     const overlayLayers = layers.map((layer, index) =>
@@ -1006,6 +1008,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
         palette,
         hiddenKeys,
         defaultSliceStyle,
+        defsIdPrefix,
       ),
     );
 
@@ -1043,7 +1046,14 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
     layoutLayers.forEach((layer) => {
       layer.slices.forEach((slice) => {
         if (slice.visible && slice.gradientId && slice.style.gradient) {
-          defs.push({ id: slice.gradientId, gradient: slice.style.gradient });
+          const gradient = slice.style.gradient;
+          // A linear slice gradient with no direction has always run corner to
+          // corner; the shared def would otherwise default to top → bottom.
+          const directionless = gradient.type !== 'radial' && gradient.angle == null && !gradient.from && !gradient.to;
+          defs.push({
+            id: slice.gradientId,
+            gradient: directionless ? { ...gradient, from: { x: 0, y: 0 }, to: { x: 1, y: 1 } } : gradient,
+          });
         }
       });
     });
@@ -1407,8 +1417,8 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
 
   return (
     <ChartContainer
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       disabled={disabled}
       animationDuration={animationDuration}
       style={style}
@@ -1424,49 +1434,9 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
           height={height}
         >
           <Defs>
-            {gradients.map(({ id, gradient }) => {
-              if (gradient.type === 'radial') {
-                return (
-                  <RadialGradient
-                    key={id}
-                    id={id}
-                    cx={(gradient.from?.x ?? 0.5).toString()}
-                    cy={(gradient.from?.y ?? 0.5).toString()}
-                    rx={(gradient.to?.x ?? 0.5).toString()}
-                    ry={(gradient.to?.y ?? 0.5).toString()}
-                  >
-                    {gradient.stops.map((stop, index) => (
-                      <Stop
-                        key={`${id}-stop-${index}`}
-                        offset={stop.offset}
-                        stopColor={stop.color}
-                        stopOpacity={stop.opacity ?? 1}
-                      />
-                    ))}
-                  </RadialGradient>
-                );
-              }
-
-              return (
-                <LinearGradient
-                  key={id}
-                  id={id}
-                  x1={(gradient.from?.x ?? 0).toString()}
-                  y1={(gradient.from?.y ?? 0).toString()}
-                  x2={(gradient.to?.x ?? 1).toString()}
-                  y2={(gradient.to?.y ?? 1).toString()}
-                >
-                  {gradient.stops.map((stop, index) => (
-                    <Stop
-                      key={`${id}-stop-${index}`}
-                      offset={stop.offset}
-                      stopColor={stop.color}
-                      stopOpacity={stop.opacity ?? 1}
-                    />
-                  ))}
-                </LinearGradient>
-              );
-            })}
+            {gradients.map(({ id, gradient }) => (
+              <ChartGradientDef key={id} id={id} gradient={gradient} />
+            ))}
 
             {shadows.map(({ id, shadow }) => (
               <Filter

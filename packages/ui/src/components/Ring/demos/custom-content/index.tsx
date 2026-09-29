@@ -7,7 +7,7 @@ export function Demo() {
         {({ percent }) => (
           <Block align="center">
             <Icon name="rocket" size="lg" color="primary" />
-            <Text weight="700">{Math.round(percent)}%</Text>
+            <Text fw="700">{Math.round(percent)}%</Text>
           </Block>
         )}
       </Ring>
@@ -15,7 +15,7 @@ export function Demo() {
       <Ring value={0} neutral caption="Design system">
         <Block align="center">
           <Icon name="clock" size="lg" color="gray" />
-          <Text size="xs" color="secondary">
+          <Text size="xs" c="secondary">
             On hold
           </Text>
         </Block>

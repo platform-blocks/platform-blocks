@@ -19,6 +19,11 @@ export interface UseSimpleDialogOptions {
   trapFocus?: boolean;
 }
 
+/** `width` / `height` are the friendly spellings of the dialog's `w` / `h`. */
+function toDialogOptions({ width, height, ...rest }: UseSimpleDialogOptions) {
+  return { ...rest, ...(width !== undefined ? { w: width } : null), ...(height !== undefined ? { h: height } : null) };
+}
+
 /**
  * Simple hook for opening dialogs with less boilerplate
  */
@@ -29,7 +34,7 @@ export function useSimpleDialog() {
     return openDialog({
       variant: 'modal',
       content,
-      ...options,
+      ...toDialogOptions(options),
     });
   };
 
@@ -37,7 +42,7 @@ export function useSimpleDialog() {
     return openDialog({
       variant: 'bottomsheet',
       content,
-      ...options,
+      ...toDialogOptions(options),
     });
   };
 
@@ -46,7 +51,7 @@ export function useSimpleDialog() {
       variant: 'fullscreen',
       content,
       backdrop: false, // Default to no backdrop for fullscreen
-      ...options,
+      ...toDialogOptions(options),
     });
   };
 
@@ -67,7 +72,9 @@ export function useSimpleDialog() {
       ...dialogOptions
     } = options;
 
-    return openDialog({
+    // Assigned before any button can be pressed, so the handlers close this dialog.
+    let dialogId = '';
+    dialogId = openDialog({
       variant: 'modal',
       title: 'Confirm',
       content: (
@@ -79,21 +86,22 @@ export function useSimpleDialog() {
               variant="outline"
               onPress={() => {
                 onCancel?.();
-                closeDialog(''); // Will be replaced with actual ID
+                closeDialog(dialogId);
               }}
             />
             <Button
               title={confirmText}
               onPress={() => {
                 onConfirm?.();
-                closeDialog(''); // Will be replaced with actual ID
+                closeDialog(dialogId);
               }}
             />
           </Flex>
         </View>
       ),
-      ...dialogOptions,
+      ...toDialogOptions(dialogOptions),
     });
+    return dialogId;
   };
 
   return {

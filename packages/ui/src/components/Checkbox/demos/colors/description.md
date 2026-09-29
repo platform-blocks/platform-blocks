@@ -8,4 +8,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Toggle checkboxes styled with semantic `color` options and a default-checked example.
+Pass a semantic `color` token (`primary`, `secondary`, `success`, `warning`, `error`) to match the checkbox accent to the message intent.

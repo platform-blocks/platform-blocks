@@ -21,33 +21,15 @@ jest.mock('../../Highlight', () => {
   const { View, Text } = require('react-native');
   return {
     Highlight: ({ children, highlightProps }: any) => (
-      <View testID="highlight" highlightColor={highlightProps?.color} highlightStyle={highlightProps?.style}>
+      <View testID="highlight" highlightColor={highlightProps?.c} highlightStyle={highlightProps?.style}>
         <Text>{children}</Text>
       </View>
     ),
   };
 });
-jest.mock('../../MenuItemButton', () => {
-  const { View } = require('react-native');
-  return { MenuItemButton: ({ children, ...props }: any) => <View {...props}>{children}</View> };
-});
-jest.mock('../../ListGroup', () => {
-  const { View } = require('react-native');
-  return {
-    ListGroup: ({ children, ...props }: any) => <View {...props}>{children}</View>,
-    ListGroupDivider: (props: any) => <View {...props} />,
-  };
-});
-jest.mock('../../_internal/FieldHeader', () => {
-  const { Text } = require('react-native');
-  return { FieldHeader: ({ label }: any) => <Text>{label}</Text> };
-});
-jest.mock('../../../core/components/ClearButton', () => {
-  const { View } = require('react-native');
-  return { ClearButton: (props: any) => <View {...props} /> };
-});
+jest.mock('../../../core/hooks/usePopoverPositioning', () => mockPositioning());
 
-import { OverlayProvider } from '../../../core/providers/OverlayProvider';
+import { mockPositioning, WithOverlays } from './testHarness';
 import { DEFAULT_THEME } from '../../../core/theme/defaultTheme';
 import { AutoComplete } from '../AutoComplete';
 
@@ -62,27 +44,20 @@ const data = [
 // color plumbing is observable either way.
 const openSuggestions = (props: Record<string, unknown> = {}) => {
   const utils = render(
-    <OverlayProvider>
-      <AutoComplete
-        data={data}
-        showSuggestionsOnFocus
-        useModal={false}
-        usePortal={false}
-        testID="ac-input"
-        {...props}
-      />
-    </OverlayProvider>
+    <WithOverlays>
+      <AutoComplete data={data} showSuggestionsOnFocus useModal={false} testID="ac-input" {...props} />
+    </WithOverlays>
   );
   fireEvent(utils.getByTestId('ac-input'), 'focus');
   return utils;
 };
 
 describe('AutoComplete highlight colors', () => {
-  it('defaults the match color to the primary ramp', () => {
+  it("defaults the match color to the theme's link (accent text) color", () => {
     const { getAllByTestId } = openSuggestions();
 
     const [first] = getAllByTestId('highlight');
-    expect(first.props.highlightColor).toBe(DEFAULT_THEME.colors.primary[6]);
+    expect(first.props.highlightColor).toBe(DEFAULT_THEME.text.link);
     expect(first.props.highlightStyle.backgroundColor).toBe('transparent');
   });
 

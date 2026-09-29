@@ -26,7 +26,7 @@ export function Demo() {
         onChange={(date: Date | null) => setSelectedDate(date)}
         numberOfDays={numberOfDays}
       />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         {selectedDate ? `Selected: ${selectedDate.toLocaleDateString()}` : 'No date selected'}
       </Text>
     </Block>

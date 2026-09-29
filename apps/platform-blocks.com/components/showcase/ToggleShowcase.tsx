@@ -16,7 +16,7 @@ const TogglePlayground = () => {
     <View>
        {/* Block Section */}
             <Title text="Block" variant="h2" afterline />
-            <Text variant="p" color="secondary">
+            <Text variant="p" c="secondary">
               Block is a low-level layout primitive with universal props. It can act as a flexible container or item.
             </Text>
             <Card>

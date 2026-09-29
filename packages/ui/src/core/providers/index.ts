@@ -20,8 +20,12 @@ export {
   KeyboardManagerProvider,
   useKeyboardManager,
   useKeyboardManagerOptional,
+  useKeyboardMetricsOptional,
+  useKeyboardFocusOptional,
 } from './KeyboardManagerProvider';
 export type {
   KeyboardManagerProviderProps,
   KeyboardManagerContextValue,
+  KeyboardMetrics,
+  KeyboardFocusApi,
 } from './KeyboardManagerProvider';

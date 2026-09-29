@@ -1,0 +1,230 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Grid - rendering matches snapshot for a responsive full-width grid on narrow screens 1`] = `
+<View
+  style={
+    [
+      {
+        "rowGap": 12,
+      },
+      {
+        "width": "100%",
+      },
+      {},
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "flexDirection": "row",
+        },
+        {
+          "columnGap": 12,
+        },
+      ]
+    }
+  >
+    <View
+      style={
+        {
+          "flexBasis": 12,
+          "flexGrow": 2,
+          "flexShrink": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        style={
+          [
+            {},
+            undefined,
+            {
+              "flex": 1,
+            },
+          ]
+        }
+      >
+        <Text>
+          Alpha
+        </Text>
+      </View>
+    </View>
+  </View>
+  <View
+    style={
+      [
+        {
+          "flexDirection": "row",
+        },
+        {
+          "columnGap": 12,
+        },
+      ]
+    }
+  >
+    <View
+      style={
+        {
+          "flexBasis": 0,
+          "flexGrow": 1,
+          "flexShrink": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        style={
+          [
+            {},
+            undefined,
+            {
+              "flex": 1,
+            },
+          ]
+        }
+      >
+        <Text>
+          Beta
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "flexBasis": 0,
+          "flexGrow": 1,
+          "flexShrink": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        style={
+          [
+            {},
+            undefined,
+            {
+              "flex": 1,
+            },
+          ]
+        }
+      >
+        <Text>
+          Gamma
+        </Text>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`Grid - rendering matches snapshot for a standard multi-column grid 1`] = `
+<View
+  style={
+    [
+      {
+        "rowGap": 8,
+      },
+      false,
+      {},
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "flexDirection": "row",
+        },
+        {
+          "columnGap": 8,
+        },
+      ]
+    }
+  >
+    <View
+      style={
+        {
+          "flexBasis": 24,
+          "flexGrow": 4,
+          "flexShrink": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        style={
+          [
+            {},
+            undefined,
+            {
+              "flex": 1,
+            },
+          ]
+        }
+      >
+        <Text>
+          Analytics
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "flexBasis": 24,
+          "flexGrow": 4,
+          "flexShrink": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        style={
+          [
+            {},
+            undefined,
+            {
+              "flex": 1,
+            },
+          ]
+        }
+      >
+        <Text>
+          Automation
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "flexBasis": 24,
+          "flexGrow": 4,
+          "flexShrink": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        style={
+          [
+            {},
+            undefined,
+            {
+              "flex": 1,
+            },
+          ]
+        }
+      >
+        <Text>
+          Engagement
+        </Text>
+      </View>
+    </View>
+  </View>
+</View>
+`;

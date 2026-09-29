@@ -31,7 +31,7 @@ export const TryInExpoGoButton: React.FC<TryInExpoGoButtonProps> = ({ snackUrl, 
       size={size}
       variant="secondary"
       radius="xl"
-      startIcon={<Icon name="qrcode" size="sm" />}
+      startSection={<Icon name="qrcode" size="sm" />}
       tooltip="Open these demos in Expo Snack and scan the QR code with Expo Go"
       onPress={openSnack}
     >

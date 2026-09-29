@@ -8,7 +8,7 @@ export function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Interactive states
         </Text>
         <Switch
@@ -23,14 +23,14 @@ export function Demo() {
         />
       </Block>
       <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Disabled states
         </Text>
         <Switch defaultChecked label="Lineup lock" disabled />
         <Switch label="Sound effects" disabled />
       </Block>
       <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Validation helpers
         </Text>
         <Switch

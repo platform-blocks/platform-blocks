@@ -1,87 +1,85 @@
-import React from 'react';
-import { TextInputProps, TextInputProps as RNTextInputProps } from 'react-native';
-import { BaseInputProps } from '../Input/types';
+import type { TextInputProps } from 'react-native';
 
-export interface PinInputProps extends Omit<BaseInputProps, 'value' | 'onChangeText'> {
-  /** Number of PIN digits */
+import type { FieldBaseProps } from '../_internal/Field/fieldProps';
+
+/**
+ * Props for `PinInput`: one cell per character, rendered through the shared
+ * `Field` frame (label / description above, error / helper text below). The
+ * cells are a labelled `role="group"`; each is named "<label>, digit n of N".
+ * `ref` is a `FieldHandle` (`focus()` → the first empty cell, `blur()`, `clear()`).
+ */
+export interface PinInputProps extends FieldBaseProps {
+  /** Number of cells. Default 4. */
   length?: number;
-  
-  /** Stable id used by KeyboardManager to restore focus */
-  keyboardFocusId?: string;
-  
-  /** PIN value (controlled) */
+
+  /** PIN value (controlled). */
   value?: string;
-
-  /** Uncontrolled initial value (used when `value` is not provided) */
+  /** Initial value (uncontrolled). */
   defaultValue?: string;
-
-  /** Change handler */
+  /** Called with the whole PIN on every change. */
   onChange?: (pin: string) => void;
-  
-  /** Whether to mask PIN */
-  mask?: boolean;
-  
-  /** Character to use for masking */
-  maskChar?: string;
-  
-  /** Whether to focus next input automatically */
-  manageFocus?: boolean;
-
-  /** Enforce sequential entry (forces focus to first empty). If false, user can edit any position after complete */
-  enforceOrderInitialOnly?: boolean;
-  
-  /** Type of input */
-  type?: 'alphanumeric' | 'numeric';
-  
-  /** Placeholder for each input */
-  placeholder?: string;
-  
-  /** Whether to allow paste */
-  allowPaste?: boolean;
-  
-  /** One-time code auto-complete */
-  oneTimeCode?: boolean;
-  
-  /** Input spacing */
-  spacing?: number;
-  
-  /** Input border radius */
-  borderRadius?: number;
-  
-  /** Complete handler - called when all digits are filled */
+  /**
+   * Called once when the PIN becomes complete (all cells filled) — not again on
+   * re-renders; again only after it was incomplete in between or a digit changed.
+   */
   onComplete?: (pin: string) => void;
-  
-  /** Additional TextInput props for each input */
-  textInputProps?: Omit<TextInputProps, keyof BaseInputProps>;
+
+  /** Mask the characters. */
+  mask?: boolean;
+  /** Character shown for a masked cell. Default `'•'`. */
+  maskChar?: string;
+  /** Move focus to the next cell as each character is typed. Default true. */
+  manageFocus?: boolean;
+  /**
+   * Sequential entry (focusing a later cell jumps back to the first empty one)
+   * is always enforced by default. With `enforceOrderInitialOnly`, it only
+   * applies until the PIN has been complete once; after that any cell can be
+   * edited directly.
+   */
+  enforceOrderInitialOnly?: boolean;
+
+  /** Accepted characters. Default `'numeric'`. */
+  type?: 'alphanumeric' | 'numeric';
+  /** Placeholder shown in each empty cell. */
+  placeholder?: string;
+  /** Allow pasting a whole code into a cell. Default true. */
+  allowPaste?: boolean;
+  /** Offer SMS one-time-code autofill. */
+  oneTimeCode?: boolean;
+  /** Gap between cells (px). Default 8. */
+  spacing?: number;
+  /** @deprecated Use `radius`. */
+  borderRadius?: number;
+
+  /** Extra TextInput props for every cell. */
+  textInputProps?: Omit<
+    TextInputProps,
+    'value' | 'defaultValue' | 'onChangeText' | 'onFocus' | 'onBlur' | 'style' | 'testID' | 'placeholder' | 'editable'
+  >;
 
   // --- Native TextInput passthrough props ---
 
-  /** Text auto-capitalization behavior */
-  autoCapitalize?: RNTextInputProps['autoCapitalize'];
-
-  /** Whether to enable auto-correct */
+  /** Text auto-capitalization behavior. */
+  autoCapitalize?: TextInputProps['autoCapitalize'];
+  /** Whether to enable auto-correct. */
   autoCorrect?: boolean;
-
-  /** Whether to auto-focus on first input on mount */
+  /** Focus the first cell on mount. */
   autoFocus?: boolean;
-
-  /** Select all text on focus */
+  /** Select a cell's text on focus. Default true. */
   selectTextOnFocus?: boolean;
-
-  /** iOS text content type for autofill */
-  textContentType?: RNTextInputProps['textContentType'];
-
-  /** Text alignment */
-  textAlign?: RNTextInputProps['textAlign'];
-
-  /** Whether spell check is enabled */
+  /** iOS text content type for autofill. */
+  textContentType?: TextInputProps['textContentType'];
+  /** Text alignment inside each cell. Default centered. */
+  textAlign?: TextInputProps['textAlign'];
+  /** Whether spell check is enabled. */
   spellCheck?: boolean;
-
-  /** Color of the text selection handles and highlight */
+  /** Color of the selection handles and highlight. */
   selectionColor?: string;
-
-  /** Whether to show the soft keyboard on focus */
+  /** Show the soft keyboard on focus. */
   showSoftInputOnFocus?: boolean;
+
+  /** Base id: the cell group gets it, the label/description/error get `${id}-label` etc. */
+  id?: string;
 }
 
 export interface PinInputStyleProps {

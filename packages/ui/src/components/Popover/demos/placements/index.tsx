@@ -1,16 +1,16 @@
 import { Button, Block, Popover, Text } from '@platform-blocks/ui';
 
 const OPTIONS = [
-  { label: 'Top', position: 'top', description: 'Appears above the trigger.' },
-  { label: 'Right', position: 'right', description: 'Anchors to the right edge.' },
-  { label: 'Bottom', position: 'bottom', description: 'Drops below the trigger.' },
-  { label: 'Left', position: 'left', description: 'Anchors to the left edge.' },
+  { label: 'Top', position: 'top' },
+  { label: 'Right', position: 'right' },
+  { label: 'Bottom', position: 'bottom' },
+  { label: 'Left', position: 'left' },
 ] as const;
 
 export function Demo() {
   return (
     <Block direction="row">
-      {OPTIONS.map(({ label, position, description }) => (
+      {OPTIONS.map(({ label, position }) => (
         <Popover key={position} position={position} withArrow>
           <Popover.Target>
             <Button>
@@ -18,11 +18,8 @@ export function Demo() {
             </Button>
           </Popover.Target>
           <Popover.Dropdown>
-            <Block p="sm" style={{ maxWidth: 220 }}>
-              <Text weight="semibold">{label} placement</Text>
-              <Text variant="small" color="secondary">
-                {description}
-              </Text>
+            <Block p="sm">
+              <Text fw="semibold">{label} placement</Text>
             </Block>
           </Popover.Dropdown>
         </Popover>

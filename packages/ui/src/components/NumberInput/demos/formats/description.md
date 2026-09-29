@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Showcases currency formatting, percentage suffixes, and a derived total.
+Set `format` to `currency` or `percentage` to show the currency symbol or percent sign once the field loses focus; `decimalScale` with `fixedDecimalScale` pins the decimal places.

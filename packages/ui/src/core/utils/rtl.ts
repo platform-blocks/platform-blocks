@@ -101,59 +101,37 @@ export function transformRTLStyle<T extends ViewStyle | TextStyle | ImageStyle>(
   isRTL: boolean
 ): T {
   if (!isRTL || !style) return style;
-  
-  const transformed = { ...style };
-  
-  // Swap margins
-  if ('marginLeft' in style || 'marginRight' in style) {
-    const left = style.marginLeft;
-    const right = style.marginRight;
-    if (left !== undefined) transformed.marginRight = left;
-    if (right !== undefined) transformed.marginLeft = right;
-  }
-  
-  // Swap padding
-  if ('paddingLeft' in style || 'paddingRight' in style) {
-    const left = style.paddingLeft;
-    const right = style.paddingRight;
-    if (left !== undefined) transformed.paddingRight = left;
-    if (right !== undefined) transformed.paddingLeft = right;
-  }
-  
-  // Swap borders
-  if ('borderLeftWidth' in style || 'borderRightWidth' in style) {
-    const left = style.borderLeftWidth;
-    const right = style.borderRightWidth;
-    if (left !== undefined) transformed.borderRightWidth = left;
-    if (right !== undefined) transformed.borderLeftWidth = right;
-  }
-  
-  if ('borderLeftColor' in style || 'borderRightColor' in style) {
-    const left = (style as any).borderLeftColor;
-    const right = (style as any).borderRightColor;
-    if (left !== undefined) (transformed as any).borderRightColor = left;
-    if (right !== undefined) (transformed as any).borderLeftColor = right;
-  }
-  
-  // Swap positions
-  if ('left' in style || 'right' in style) {
-    const left = style.left;
-    const right = style.right;
-    if (left !== undefined) transformed.right = left;
-    if (right !== undefined) transformed.left = right;
-  }
-  
+
+  // Style objects are plain records; work on them by key so one helper covers
+  // every left/right pair, including ones only some of the style types declare.
+  const source = style as Record<string, unknown>;
+  const transformed: Record<string, unknown> = { ...source };
+
+  const swapPair = (leftKey: string, rightKey: string) => {
+    if (!(leftKey in source) && !(rightKey in source)) return;
+    const left = source[leftKey];
+    const right = source[rightKey];
+    if (left !== undefined) transformed[rightKey] = left;
+    if (right !== undefined) transformed[leftKey] = right;
+  };
+
+  swapPair('marginLeft', 'marginRight');
+  swapPair('paddingLeft', 'paddingRight');
+  swapPair('borderLeftWidth', 'borderRightWidth');
+  swapPair('borderLeftColor', 'borderRightColor');
+  swapPair('left', 'right');
+
   // Flip flex direction
-  if ('flexDirection' in style && style.flexDirection) {
-    transformed.flexDirection = flipDirection(style.flexDirection as FlexDirection, isRTL);
+  if (source.flexDirection) {
+    transformed.flexDirection = flipDirection(source.flexDirection as FlexDirection, isRTL);
   }
-  
+
   // Flip text alignment
-  if ('textAlign' in style && (style as any).textAlign) {
-    (transformed as any).textAlign = flipAlignment((style as any).textAlign as any, isRTL) as any;
+  if (source.textAlign) {
+    transformed.textAlign = flipAlignment(source.textAlign as Alignment, isRTL);
   }
-  
-  return transformed;
+
+  return transformed as T;
 }
 
 /**
@@ -263,19 +241,19 @@ export function getIconMirrorTransform(
  * // Returns: { start: 20, end: 10 } in RTL
  * ```
  */
-export function swapStartEnd<T extends Record<string, any>>(
+export function swapStartEnd<T extends object>(
   obj: T,
   isRTL: boolean
 ): T {
   if (!isRTL) return obj;
-  
-  const result: any = { ...obj };
+
+  const result = { ...obj } as Record<string, unknown>;
   if ('start' in obj && 'end' in obj) {
     const temp = result.start;
     result.start = result.end;
     result.end = temp;
   }
-  
+
   return result as T;
 }
 

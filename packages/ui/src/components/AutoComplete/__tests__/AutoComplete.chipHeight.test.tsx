@@ -20,7 +20,7 @@ const data = [
 const renderField = (props: Record<string, unknown>) =>
   render(
     <OverlayProvider>
-      <AutoComplete data={data} size="md" useModal={false} usePortal={false} testID="ac-input" {...props} />
+      <AutoComplete data={data} size="md" useModal={false} testID="ac-input" {...props} />
     </OverlayProvider>
   );
 

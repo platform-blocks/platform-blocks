@@ -1,14 +1,20 @@
+import type React from 'react';
+import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
+
 import type { TextProps } from '../Text';
 
 /**
- * Props for the Title component.
- * Extends TextProps but omits the 'variant' property to provide its own variant system.
+ * Props for the Title component. Text props (color, size, weight, `aria-*`, …)
+ * go to the heading text; spacing and visibility props apply to the root.
  */
-export interface TitleProps extends Omit<TextProps, 'variant'> {
+export interface TitleProps extends Omit<TextProps, 'variant' | 'style'> {
   /** The text content to display in the title */
   text?: string;
   
-  /** The heading level (1-6), determines the semantic importance and default styling */
+  /**
+   * The heading level (1-6): the level exposed to assistive technology (web
+   * `<hN>`, native `role="heading"`) and the default typography.
+   */
   order?: 1 | 2 | 3 | 4 | 5 | 6;
   
   /** Whether to show an underline decoration below the title */
@@ -51,13 +57,16 @@ export interface TitleProps extends Omit<TextProps, 'variant'> {
   prefixRadius?: number;
   
   /** Additional styles to apply to the title text element */
-  style?: any;
+  style?: StyleProp<TextStyle>;
   
-  /** Text variant to use, inherits from TextProps variant system */
+  /**
+   * Typography variant for the text. Defaults to the `h<order>` variant; only
+   * changes the look — the heading level still follows `order`.
+   */
   variant?: TextProps['variant'];
   
   /** Additional styles to apply to the container wrapping the entire title */
-  containerStyle?: any;
+  containerStyle?: StyleProp<ViewStyle>;
   
   /** Icon element to display on the left side of the title */
   startIcon?: React.ReactNode;

@@ -8,31 +8,18 @@ export function Demo() {
       variant: 'modal',
       title: 'Confirm Action',
       content: (
-        <Block p="md">
+        <Block>
           <Text>Are you sure you want to delete this item?</Text>
-          <Text size="sm" color="secondary">
+          <Text size="sm" c="secondary">
             This action cannot be undone.
           </Text>
-
-          <Row gap="sm" mt="sm">
-            <Block grow={1}>
-              <Button fullWidth variant="subtle" onPress={() => closeDialog(dialogId)}>
-                Cancel
-              </Button>
-            </Block>
-            <Block grow={1}>
-              <Button
-                fullWidth
-                variant="filled"
-                color="error"
-                onPress={() => {
-                  console.log('Item has been deleted');
-                  closeDialog(dialogId);
-                }}
-              >
-                Delete
-              </Button>
-            </Block>
+          <Row gap="sm" justify="flex-end" mt="sm">
+            <Button variant="subtle" onPress={() => closeDialog(dialogId)}>
+              Cancel
+            </Button>
+            <Button variant="filled" color="error" onPress={() => closeDialog(dialogId)}>
+              Delete
+            </Button>
           </Row>
         </Block>
       )

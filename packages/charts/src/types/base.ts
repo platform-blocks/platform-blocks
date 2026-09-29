@@ -40,9 +40,9 @@ export interface BaseChartProps extends SpacingProps {
    * redrawing when that box changes. A number is honoured up to the width the
    * container can actually give it — a chart never draws wider than its slot.
    */
-  width?: number;
+  w?: number;
   /** Chart height in px. Defaults to the chart's resting height, or `width / aspectRatio`. */
-  height?: number;
+  h?: number;
   /**
    * Height as a fraction of the resolved width (`width / height`), used when
    * `height` is omitted. `2` keeps the chart twice as wide as it is tall at
@@ -50,13 +50,13 @@ export interface BaseChartProps extends SpacingProps {
    */
   aspectRatio?: number;
   /** Upper bound on the resolved width. Useful for radial charts in wide columns. */
-  maxWidth?: number;
+  maw?: number;
   /** Lower bound on the resolved width. */
-  minWidth?: number;
+  miw?: number;
   /** Upper bound on a height derived from `aspectRatio`. */
-  maxHeight?: number;
+  mah?: number;
   /** Lower bound on a height derived from `aspectRatio`. */
-  minHeight?: number;
+  mih?: number;
   /** Chart test ID for testing */
   testID?: string;
   /** Additional styles */

@@ -1,2 +1,2 @@
 export { MonthPickerInput } from './MonthPickerInput';
-export type { MonthPickerInputProps } from './types';
+export type { MonthPickerInputProps, MonthPickerInputHandle } from './types';

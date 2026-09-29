@@ -174,8 +174,9 @@ Control animation duration:
 
 ```tsx
 <Dialog
+  opened={opened}
   variant="modal"
-  animationDuration={300} // Custom duration in ms
+  transitionDuration={300} // Custom duration in ms (0 = instant; always 0 under reduced motion)
   // ... other props
 />
 ```
@@ -230,7 +231,7 @@ Returns an object with:
 
 The Dialog system includes:
 
-- **Focus management**: Automatically focuses first focusable element
+- **Focus management**: Focus moves into the dialog on open (the dialog itself, the first field with `autoFocus`, or a ref) and returns to the opener on close
 - **Focus trapping**: Keeps focus within the dialog
 - **Screen reader support**: Proper ARIA attributes
 - **Keyboard navigation**: Escape key, tab navigation

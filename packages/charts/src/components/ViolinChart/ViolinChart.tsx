@@ -15,7 +15,7 @@ import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
 import { kde, normalizeDensity } from '../../utils/density';
-import { getColorFromScheme, colorSchemes, formatNumber } from '../../utils';
+import { getColorFromScheme, formatNumber, createTickFormatter } from '../../utils';
 import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { BandCategoryHitTester } from '../../core/hittest/band';
@@ -112,8 +112,8 @@ const statsMarkersEnabled = (config?: ViolinStatsMarkersConfig) => {
 
 // ViolinChart: mirrored density for each series (vertical violins side by side)
 export const ViolinChart: React.FC<ViolinChartProps> = ({
-  width = 400,
-  height = 300,
+  w: width = 400,
+  h: height = 300,
   series,
   title,
   subtitle,
@@ -150,7 +150,7 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
       if (value > max) max = value;
     }));
     const values = Number.isFinite(min) && Number.isFinite(max)
-      ? domainTickLabels([min, max], (value) => formatNumber(value))
+      ? domainTickLabels([min, max], undefined, theme.numberFormat)
       : [];
     const measured = resolveCartesianPadding({
       // Categories run along whichever axis the violins are not measured on.
@@ -169,7 +169,7 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
     // baseline), so the title/subtitle need reserved headroom of their own.
     return { ...measured, top: Math.max(measured.top, topReserve) };
   }, [series, isHorizontal, yAxis?.title, xAxis?.title, yAxis?.show, xAxis?.show,
-      yAxis?.showLabels, xAxis?.showLabels, width, height, topReserve]);
+      yAxis?.showLabels, xAxis?.showLabels, width, height, topReserve, theme.numberFormat]);
   const resolvedLegend = React.useMemo(() => {
     if (legend) return legend;
     if (!showLegend) return undefined;
@@ -201,7 +201,7 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
   const plotHeight = Math.max(0, height - padding.top - padding.bottom);
   const seriesCount = series.length;
   const safeSeriesCount = Math.max(seriesCount, 1);
-  const defaultScheme = colorSchemes.default;
+  const defaultScheme = theme.colors.accentPalette;
   const widthRatio = clamp(violinWidthRatio ?? 0.9, 0.2, 1);
   const showStatsMarkers = statsMarkersEnabled(statsMarkers);
   const overlap = clamp(stackOverlap ?? 0, 0, series.length > 1 ? 0.95 : 0);
@@ -332,6 +332,7 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
     }
     return [];
   }, [valueAxisLength, valueScale]);
+  const valueTickFormat = React.useMemo(() => createTickFormatter(valueTicks, theme.numberFormat), [valueTicks, theme.numberFormat]);
 
   const normalizedCategoryTicks = React.useMemo(() => {
     if (categoryAxisLength <= 0 || !categoryCenters.length) return [];
@@ -539,8 +540,8 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
 
   return (
     <ChartContainer 
-      width={width} 
-      height={height} 
+      w={width} 
+      h={height} 
       style={style} 
       interactionConfig={{ multiTooltip: true, enableCrosshair: true }}
     >
@@ -1080,7 +1081,7 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
           tickFormat={(value) => {
             if (xAxis?.labelFormatter) return xAxis.labelFormatter(value);
             if (isHorizontal && typeof value === 'number') {
-              return formatNumber(value);
+              return valueTickFormat(value);
             }
             return String(value);
           }}
@@ -1110,7 +1111,7 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
           tickFormat={(value) => {
             if (yAxis?.labelFormatter) return yAxis.labelFormatter(value);
             if (!isHorizontal && typeof value === 'number') {
-              return formatNumber(value);
+              return valueTickFormat(value);
             }
             return String(value);
           }}

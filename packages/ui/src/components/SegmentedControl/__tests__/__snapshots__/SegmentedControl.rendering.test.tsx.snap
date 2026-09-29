@@ -1,0 +1,637 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`SegmentedControl - rendering matches snapshot for a filled segmented control with label content 1`] = `
+<View
+  style={
+    [
+      {
+        "alignItems": "stretch",
+        "display": "flex",
+        "flexDirection": "column",
+        "flexWrap": "nowrap",
+        "gap": 4,
+        "justifyContent": "flex-start",
+      },
+      {
+        "width": "100%",
+      },
+      {},
+      undefined,
+    ]
+  }
+>
+  <View>
+    <Text>
+      Traffic source
+    </Text>
+    <Text>
+      Last 7 days
+    </Text>
+  </View>
+  <View
+    aria-labelledby="pb-segmented-label-_r_0_"
+    onLayout={[Function]}
+    role="radiogroup"
+    style={
+      [
+        {
+          "alignItems": "stretch",
+          "backgroundColor": "rgba(59, 130, 246, 0.12)",
+          "borderColor": "transparent",
+          "borderRadius": 9999,
+          "borderWidth": 0,
+          "flexDirection": "row",
+          "opacity": 1,
+          "overflow": "hidden",
+          "pointerEvents": "auto",
+          "position": "relative",
+        },
+        {
+          "alignSelf": "flex-start",
+        },
+        undefined,
+      ]
+    }
+  >
+    <View
+      pointerEvents="none"
+      style={
+        [
+          {
+            "position": "absolute",
+            "start": 0,
+            "top": 0,
+            "zIndex": 0,
+          },
+          {
+            "backgroundColor": "#3B82F6",
+            "borderColor": "transparent",
+            "borderRadius": 9999,
+            "borderWidth": 0,
+          },
+          {
+            "height": 0,
+            "transform": [
+              {
+                "translateX": 0,
+              },
+              {
+                "translateY": 0,
+              },
+            ],
+            "width": 0,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      accessibilityLabel="Organic"
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": false,
+          "disabled": false,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      onBlur={[Function]}
+      onClick={[Function]}
+      onFocus={[Function]}
+      onLayout={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      role="radio"
+      style={
+        [
+          {
+            "alignItems": "center",
+            "flexBasis": undefined,
+            "flexDirection": "row",
+            "flexGrow": undefined,
+            "justifyContent": "center",
+            "minHeight": 44,
+            "paddingHorizontal": 14,
+            "paddingVertical": 7,
+            "zIndex": 1,
+          },
+          {},
+          undefined,
+          undefined,
+        ]
+      }
+      testID="seg-organic"
+    >
+      <View
+        style={
+          {
+            "position": "relative",
+          }
+        }
+      >
+        <Text
+          fw="600"
+          selectable={false}
+          size="lg"
+          style={
+            {
+              "fontSize": 16,
+              "fontWeight": "600",
+              "opacity": 0,
+            }
+          }
+        >
+          Organic
+        </Text>
+        <Text
+          fw="500"
+          selectable={false}
+          size="lg"
+          style={
+            {
+              "color": "#6E6E73",
+              "end": 0,
+              "fontSize": 16,
+              "position": "absolute",
+              "start": 0,
+              "top": 0,
+            }
+          }
+        >
+          Organic
+        </Text>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Paid"
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": true,
+          "disabled": false,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      onBlur={[Function]}
+      onClick={[Function]}
+      onFocus={[Function]}
+      onLayout={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      role="radio"
+      style={
+        [
+          {
+            "alignItems": "center",
+            "flexBasis": undefined,
+            "flexDirection": "row",
+            "flexGrow": undefined,
+            "justifyContent": "center",
+            "minHeight": 44,
+            "paddingHorizontal": 14,
+            "paddingVertical": 7,
+            "zIndex": 1,
+          },
+          {},
+          undefined,
+          undefined,
+        ]
+      }
+      testID="seg-paid"
+    >
+      <View
+        style={
+          {
+            "position": "relative",
+          }
+        }
+      >
+        <Text
+          fw="600"
+          selectable={false}
+          size="lg"
+          style={
+            {
+              "fontSize": 16,
+              "fontWeight": "600",
+              "opacity": 0,
+            }
+          }
+        >
+          Paid
+        </Text>
+        <Text
+          fw="600"
+          selectable={false}
+          size="lg"
+          style={
+            {
+              "color": "#1C1C1E",
+              "end": 0,
+              "fontSize": 16,
+              "position": "absolute",
+              "start": 0,
+              "top": 0,
+            }
+          }
+        >
+          Paid
+        </Text>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Referrals"
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": false,
+          "disabled": false,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      onBlur={[Function]}
+      onClick={[Function]}
+      onFocus={[Function]}
+      onLayout={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      role="radio"
+      style={
+        [
+          {
+            "alignItems": "center",
+            "flexBasis": undefined,
+            "flexDirection": "row",
+            "flexGrow": undefined,
+            "justifyContent": "center",
+            "minHeight": 44,
+            "paddingHorizontal": 14,
+            "paddingVertical": 7,
+            "zIndex": 1,
+          },
+          {},
+          undefined,
+          undefined,
+        ]
+      }
+      testID="seg-referrals"
+    >
+      <View
+        style={
+          {
+            "position": "relative",
+          }
+        }
+      >
+        <Text
+          fw="600"
+          selectable={false}
+          size="lg"
+          style={
+            {
+              "fontSize": 16,
+              "fontWeight": "600",
+              "opacity": 0,
+            }
+          }
+        >
+          Referrals
+        </Text>
+        <Text
+          fw="500"
+          selectable={false}
+          size="lg"
+          style={
+            {
+              "color": "#6E6E73",
+              "end": 0,
+              "fontSize": 16,
+              "position": "absolute",
+              "start": 0,
+              "top": 0,
+            }
+          }
+        >
+          Referrals
+        </Text>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`SegmentedControl - rendering matches snapshot for a vertical ghost segmented control with custom labels 1`] = `
+<View
+  style={
+    [
+      {
+        "alignItems": "center",
+        "display": "flex",
+        "flexDirection": "row",
+        "flexWrap": "nowrap",
+        "gap": 8,
+        "justifyContent": "flex-start",
+      },
+      {
+        "width": "100%",
+      },
+      {},
+      undefined,
+    ]
+  }
+>
+  <View>
+    <Text>
+      Notifications
+    </Text>
+    <Text>
+      Choose what to receive
+    </Text>
+  </View>
+  <View
+    aria-labelledby="pb-segmented-label-_r_1_"
+    onLayout={[Function]}
+    role="radiogroup"
+    style={
+      [
+        {
+          "alignItems": "stretch",
+          "backgroundColor": "transparent",
+          "borderColor": "transparent",
+          "borderRadius": 9999,
+          "borderWidth": 0,
+          "flexDirection": "column",
+          "opacity": 1,
+          "overflow": "hidden",
+          "pointerEvents": "auto",
+          "position": "relative",
+        },
+        {
+          "alignSelf": "stretch",
+        },
+        {
+          "flexBasis": 0,
+          "flexGrow": 1,
+          "flexShrink": 1,
+        },
+        undefined,
+      ]
+    }
+  >
+    <View
+      pointerEvents="none"
+      style={
+        [
+          {
+            "position": "absolute",
+            "start": 0,
+            "top": 0,
+            "zIndex": 0,
+          },
+          {
+            "backgroundColor": "rgba(59, 130, 246, 0.16)",
+            "borderColor": "rgba(59, 130, 246, 0.25)",
+            "borderRadius": 9999,
+            "borderWidth": 0.5,
+          },
+          {
+            "height": 0,
+            "transform": [
+              {
+                "translateX": 0,
+              },
+              {
+                "translateY": 0,
+              },
+            ],
+            "width": 0,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": false,
+          "disabled": false,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      onBlur={[Function]}
+      onClick={[Function]}
+      onFocus={[Function]}
+      onLayout={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      role="radio"
+      style={
+        [
+          {
+            "alignItems": "center",
+            "flexBasis": 0,
+            "flexDirection": "row",
+            "flexGrow": 1,
+            "justifyContent": "center",
+            "minHeight": 32,
+            "paddingHorizontal": 10,
+            "paddingVertical": 6,
+            "zIndex": 1,
+          },
+          {},
+          {
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 0.5,
+          },
+          undefined,
+        ]
+      }
+      testID="seg-mentions"
+    >
+      <Text>
+        Mentions
+      </Text>
+    </View>
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": true,
+          "disabled": false,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      onBlur={[Function]}
+      onClick={[Function]}
+      onFocus={[Function]}
+      onLayout={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      role="radio"
+      style={
+        [
+          {
+            "alignItems": "center",
+            "flexBasis": 0,
+            "flexDirection": "row",
+            "flexGrow": 1,
+            "justifyContent": "center",
+            "minHeight": 32,
+            "paddingHorizontal": 10,
+            "paddingVertical": 6,
+            "zIndex": 1,
+          },
+          {},
+          {
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 0.5,
+          },
+          undefined,
+        ]
+      }
+      testID="seg-replies"
+    >
+      <Text>
+        Replies
+      </Text>
+    </View>
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": false,
+          "disabled": false,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      onBlur={[Function]}
+      onClick={[Function]}
+      onFocus={[Function]}
+      onLayout={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      role="radio"
+      style={
+        [
+          {
+            "alignItems": "center",
+            "flexBasis": 0,
+            "flexDirection": "row",
+            "flexGrow": 1,
+            "justifyContent": "center",
+            "minHeight": 32,
+            "paddingHorizontal": 10,
+            "paddingVertical": 6,
+            "zIndex": 1,
+          },
+          {},
+          undefined,
+          undefined,
+        ]
+      }
+      testID="seg-follows"
+    >
+      <Text>
+        Follows
+      </Text>
+    </View>
+  </View>
+</View>
+`;

@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Demonstrates line numbers, full-width layouts, and copy button customization in a single CodeBlock showcase.
+Add a `title` and `showLineNumbers` for a labeled, numbered block, or set `showCopyButton={false}` to hide the copy button.

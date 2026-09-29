@@ -1,13 +1,10 @@
 import React from 'react';
-import { Pressable, PressableProps, ViewStyle } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  ReduceMotion,
-} from 'react-native-reanimated';
-import { useTheme } from '../../../core/theme';
-import { DESIGN_TOKENS } from '../../../core/design-tokens';
+import { Pressable, type GestureResponderEvent, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+
+import { useReducedMotion } from '../../../core/motion/useReducedMotion';
+import { parsePx } from '../../../core/theme/tokens';
+import { useTheme } from '../../../core/theme/ThemeProvider';
 
 export interface PressAnimationProps extends Omit<PressableProps, 'style'> {
   /** Scale factor when pressed (default: 0.97) */
@@ -17,16 +14,25 @@ export interface PressAnimationProps extends Omit<PressableProps, 'style'> {
   /** Animation type */
   variant?: 'scale' | 'opacity' | 'both';
   /** Custom style */
-  style?: ViewStyle;
-  /** Disable animation (respects reduced motion) */
+  style?: StyleProp<ViewStyle>;
+  /** Disable the animation */
   disableAnimation?: boolean;
   /** Children to render */
   children: React.ReactNode;
 }
 
+/** `'150ms'` → 150 (theme motion durations are CSS strings). */
+const toMs = (value: string | undefined, fallback: number): number => {
+  if (!value) return fallback;
+  const ms = /^\s*([\d.]+)\s*ms\s*$/i.exec(value);
+  if (ms) return parseFloat(ms[1]);
+  return parsePx(value) ?? fallback;
+};
+
 /**
- * Enhanced pressable component with consistent animations using theme motion tokens.
- * Automatically respects reduced motion preferences.
+ * Pressable with press feedback (scale and/or opacity) on Reanimated shared
+ * values, timed by the theme's motion tokens. Under reduced motion the press
+ * state applies instantly (no animation); `disableAnimation` turns it off.
  */
 export const PressAnimation: React.FC<PressAnimationProps> = ({
   pressScale = 0.97,
@@ -40,104 +46,60 @@ export const PressAnimation: React.FC<PressAnimationProps> = ({
   ...pressableProps
 }) => {
   const theme = useTheme();
+  const reducedMotion = useReducedMotion();
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
 
-  const animatedStyle = useAnimatedStyle(() => {
-    const shouldAnimate = !disableAnimation;
-    return {
-      transform: [
-        {
-          scale:
-            (variant === 'scale' || variant === 'both') && shouldAnimate
-              ? scale.value
-              : 1,
-        },
-      ],
-      opacity:
-        (variant === 'opacity' || variant === 'both') && shouldAnimate
-          ? opacity.value
-          : 1,
-    };
-  });
+  const animatesScale = !disableAnimation && (variant === 'scale' || variant === 'both');
+  const animatesOpacity = !disableAnimation && (variant === 'opacity' || variant === 'both');
+  const pressInDuration = reducedMotion ? 0 : toMs(theme.motion?.duration?.fast, 150);
+  const pressOutDuration = reducedMotion ? 0 : toMs(theme.motion?.duration?.normal, 250);
 
-  const handlePressIn = (event: any) => {
-    if (!disableAnimation) {
-      if (variant === 'scale' || variant === 'both') {
-        scale.value = withTiming(pressScale, {
-          duration: DESIGN_TOKENS.motion.duration.fast,
-          reduceMotion: ReduceMotion.System,
-        });
-      }
-      if (variant === 'opacity' || variant === 'both') {
-        opacity.value = withTiming(pressOpacity, {
-          duration: DESIGN_TOKENS.motion.duration.fast,
-          reduceMotion: ReduceMotion.System,
-        });
-      }
-    }
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: animatesScale ? scale.value : 1 }],
+    opacity: animatesOpacity ? opacity.value : 1,
+  }));
 
-    // Call the original callback directly since it's already on JS thread
-    if (onPressIn) {
-      onPressIn(event);
-    }
+  const animateTo = (target: { value: number }, toValue: number, duration: number) => {
+    target.value = duration === 0 ? toValue : withTiming(toValue, { duration });
   };
 
-  const handlePressOut = (event: any) => {
-    if (!disableAnimation) {
-      if (variant === 'scale' || variant === 'both') {
-        scale.value = withTiming(1, {
-          duration: DESIGN_TOKENS.motion.duration.normal,
-          reduceMotion: ReduceMotion.System,
-        });
-      }
-      if (variant === 'opacity' || variant === 'both') {
-        opacity.value = withTiming(1, {
-          duration: DESIGN_TOKENS.motion.duration.normal,
-          reduceMotion: ReduceMotion.System,
-        });
-      }
-    }
+  const handlePressIn = (event: GestureResponderEvent) => {
+    if (animatesScale) animateTo(scale, pressScale, pressInDuration);
+    if (animatesOpacity) animateTo(opacity, pressOpacity, pressInDuration);
+    onPressIn?.(event);
+  };
 
-    // Call the original callback directly since it's already on JS thread
-    if (onPressOut) {
-      onPressOut(event);
-    }
+  const handlePressOut = (event: GestureResponderEvent) => {
+    if (animatesScale) animateTo(scale, 1, pressOutDuration);
+    if (animatesOpacity) animateTo(opacity, 1, pressOutDuration);
+    onPressOut?.(event);
   };
 
   return (
-    <Pressable
-      {...pressableProps}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      style={style}
-    >
+    <Pressable {...pressableProps} onPressIn={handlePressIn} onPressOut={handlePressOut}>
       <Animated.View style={[animatedStyle, style]}>{children}</Animated.View>
     </Pressable>
   );
 };
 
 /**
- * Higher-order component to add press animations to any component
+ * Wraps a component in `PressAnimation`. Press props (`onPress`, …) go to the
+ * wrapper; everything else to the component.
  */
 export function withPressAnimation<T extends object>(
   Component: React.ComponentType<T>,
-  animationProps?: Partial<PressAnimationProps>
+  animationProps?: Partial<Omit<PressAnimationProps, 'children'>>
 ) {
-  const AnimatedComponent = React.forwardRef<any, T & Partial<PressAnimationProps>>(
-    (props, ref) => {
-      const { style, ...componentProps } = props as any;
-      return (
-        <PressAnimation {...animationProps} {...(props as any)} style={style}>
-          <Component {...(componentProps as T)} ref={ref} />
-        </PressAnimation>
-      );
-    }
-  );
-
-  AnimatedComponent.displayName = `withPressAnimation(${(Component as any).displayName ||
-    (Component as any).name})`;
-  return AnimatedComponent;
+  function WithPressAnimation(props: T & { style?: StyleProp<ViewStyle> }) {
+    return (
+      <PressAnimation {...animationProps} style={props.style}>
+        <Component {...props} />
+      </PressAnimation>
+    );
+  }
+  WithPressAnimation.displayName = `withPressAnimation(${Component.displayName || Component.name || 'Component'})`;
+  return WithPressAnimation;
 }
 
 /**

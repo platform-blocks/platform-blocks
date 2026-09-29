@@ -1,26 +1,95 @@
-import React, { useRef, useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { View, Text, Pressable, Alert } from 'react-native';
-import { Waveform } from '../Waveform/Waveform';
-import { useSound } from '../../core/sound/context';
-import { useTheme } from '../../core/theme';
-import { DESIGN_TOKENS } from '../../core';
-import { Icon } from '../Icon';
+import React, { useRef, useState, useEffect, useCallback, useImperativeHandle, useMemo } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+
+import { factory } from '../../core/factory/factory';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { useThemedStyles } from '../../core/hooks/useThemedStyles';
+import { isNative } from '../../core/platform';
+import type { WebKeyboardEvent } from '../../core/platform';
+import { useSoundOptional } from '../../core/sound/context';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import type { PlatformBlocksTheme } from '../../core/theme/types';
+import { onColor, resolveFontSize, resolveRadius, resolveSpacing } from '../../core/theme/tokens';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
+import { devWarn, devError } from '../../core/utils/logger';
 import { resolveOptionalModule } from '../../utils/optionalModule';
-import type { 
-  AudioPlayerProps, 
-  AudioPlayerRef, 
-  PlaybackState, 
+import { Waveform } from '../Waveform/Waveform';
+import { Icon } from '../Icon';
+import type {
+  AudioPlayerControls,
+  AudioPlayerProps,
+  AudioPlayerRef,
+  PlaybackState,
   ProgressData,
   AudioLoadData,
-  AudioError 
+  AudioError,
+  KeyboardShortcuts,
 } from './types';
 
-const ExpoAudio = resolveOptionalModule<any>('expo-audio', {
+type AudioSource = NonNullable<AudioPlayerProps['source']>;
+
+/** The expo-audio status fields AudioPlayer reads (seconds). */
+interface ExpoAudioStatus {
+  duration?: number;
+  currentTime?: number;
+  playing?: boolean;
+  isLoaded?: boolean;
+  isBuffering?: boolean;
+  playbackRate?: number;
+  loop?: boolean;
+  didJustFinish?: boolean;
+}
+
+/** The slice of expo-audio's `AudioPlayer` this component drives. */
+interface ExpoAudioPlayer {
+  volume: number;
+  loop: boolean;
+  muted?: boolean;
+  duration: number;
+  currentTime: number;
+  play(): void;
+  pause(): void;
+  seekTo(seconds: number): Promise<void> | void;
+  setPlaybackRate(rate: number): void;
+  addListener(event: 'playbackStatusUpdate', listener: (status: ExpoAudioStatus) => void): { remove(): void };
+  remove?(): void;
+}
+
+interface ExpoAudioModule {
+  createAudioPlayer?: (source: AudioSource, options?: { updateInterval?: number }) => ExpoAudioPlayer;
+}
+
+const ExpoAudio = resolveOptionalModule<ExpoAudioModule>('expo-audio', {
   devWarning: 'expo-audio not found; AudioPlayer renders its controls but cannot play audio',
 });
 
 /** How often expo-audio reports playback status, in ms. Tight enough for a moving waveform. */
 const STATUS_UPDATE_INTERVAL = 100;
+
+/** Skip buttons / J-L shortcuts jump this far, in ms. */
+const SKIP_INTERVAL_MS = 10_000;
+
+const PLAYBACK_RATES = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+
+const DEFAULT_CONTROLS: Required<AudioPlayerControls> = {
+  playPause: true,
+  skip: true,
+  volume: true,
+  speed: false,
+  waveform: true,
+};
+
+const DEFAULT_SHORTCUTS: KeyboardShortcuts = {
+  playPause: ' ',
+  skipForward: 'l',
+  skipBackward: 'j',
+  mute: 'm',
+};
+
+/** Icon-button footprint: ≥44pt touch target on native, 40px on web (≥24 required). */
+const PLAY_BUTTON_SIZE = isNative ? 44 : 40;
+const ICON_BUTTON_MIN = isNative ? 44 : 32;
 
 /**
  * `PlaybackState`, `ProgressData` and the ref methods are in milliseconds, while
@@ -28,65 +97,159 @@ const STATUS_UPDATE_INTERVAL = 100;
  */
 const toMs = (seconds: number | undefined) => Math.round((seconds ?? 0) * 1000);
 
-export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
-  source,
-  peaks: providedPeaks,
-  autoPlay = false,
-  loop = false,
-  volume = 1.0,
-  rate = 1.0,
-  showControls = true,
-  controls = {
-    playPause: true,
-    skip: true,
-    volume: true,
-    speed: false,
-    download: false,
-    share: false,
-    waveform: true,
-  },
-  controlsPosition = 'bottom',
-  variant = 'full',
-  colorScheme = 'auto',
-  generateWaveform = true,
-  waveformOptions = {
-    samples: 200,
-    precision: 4,
-    channel: 'mix',
-  },
-  showTime = true,
-  timeFormat = 'mm:ss',
-  showMetadata = false,
-  metadata,
-  showSpectrum = false,
-  spectrumOptions,
-  enableKeyboardShortcuts = true,
-  enableGestures = true,
-  onLoad,
-  onPlaybackStateChange,
-  onProgress,
-  onEnd,
-  onError,
-  onBuffer,
-  // Waveform props
-  w = 300,
-  h = 60,
-  color = 'primary',
-  interactive = true,
-  onSeek,
-  style,
-  ...waveformProps
-}, ref) => {
+function formatClock(milliseconds: number, withHours: boolean): string {
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (withHours) {
+    const hours = Math.floor(minutes / 60);
+    return `${hours}:${(minutes % 60).toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+const matchesKey = (pressed: string, binding: string | undefined) =>
+  !!binding && (pressed === binding || pressed.toLowerCase() === binding.toLowerCase());
+
+// Placeholder peaks. expo-audio exposes PCM frames only while `setAudioSamplingEnabled`
+// is on and playback is running, so there is no way to analyze a file up front —
+// pass measured `peaks` when the shape of the waveform matters.
+const placeholderPeaks = (samples: number): number[] =>
+  Array.from({ length: samples }, () => Math.random() * 0.8 + 0.1);
+
+/** Style table for one theme (memoized per theme by `useThemedStyles`). */
+function createAudioPlayerStyles(t: PlatformBlocksTheme) {
+  const styles = StyleSheet.create({
+    controlsRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: resolveSpacing(t, 'sm') as number,
+      paddingVertical: resolveSpacing(t, 'sm') as number,
+    },
+    overlay: {
+      alignItems: 'center',
+      bottom: 0,
+      end: 0,
+      justifyContent: 'center',
+      position: 'absolute',
+      start: 0,
+      top: 0,
+    },
+    iconButton: {
+      alignItems: 'center',
+      borderRadius: resolveRadius(t, 'full'),
+      justifyContent: 'center',
+      minHeight: ICON_BUTTON_MIN,
+      minWidth: ICON_BUTTON_MIN,
+      padding: 6,
+    },
+    playButton: {
+      alignItems: 'center',
+      backgroundColor: t.colors.primary[5],
+      borderRadius: PLAY_BUTTON_SIZE / 2,
+      height: PLAY_BUTTON_SIZE,
+      justifyContent: 'center',
+      width: PLAY_BUTTON_SIZE,
+    },
+    time: { alignItems: 'center', flexDirection: 'row', gap: 4 },
+    timeText: { color: t.text.secondary, fontFamily: t.fontFamilyMono, fontSize: resolveFontSize(t, 'sm') },
+    timeSeparator: { color: t.text.muted },
+    speedButton: {
+      backgroundColor: t.backgrounds.subtle,
+      borderRadius: resolveRadius(t, 'sm'),
+      justifyContent: 'center',
+      minHeight: isNative ? 44 : 24,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    speedText: { color: t.text.primary, fontSize: resolveFontSize(t, 'xs'), fontWeight: '600' },
+    metadata: {
+      borderBottomColor: t.backgrounds.border,
+      borderBottomWidth: 1,
+      marginBottom: resolveSpacing(t, 'sm') as number,
+      paddingVertical: resolveSpacing(t, 'sm') as number,
+    },
+    title: { color: t.text.primary, fontSize: resolveFontSize(t, 'md'), fontWeight: '600', marginBottom: 2 },
+    artist: { color: t.text.secondary, fontSize: resolveFontSize(t, 'sm') },
+    waveform: { marginVertical: resolveSpacing(t, 'sm') as number },
+    error: {
+      backgroundColor: t.colors.error[1],
+      borderColor: t.colors.error[3],
+      borderRadius: resolveRadius(t, 'md'),
+      borderWidth: 1,
+      padding: resolveSpacing(t, 'md') as number,
+    },
+    errorRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+    errorText: { color: t.colors.error[8], flex: 1 },
+    retry: {
+      alignSelf: 'flex-start',
+      backgroundColor: t.colors.error[6],
+      borderRadius: resolveRadius(t, 'sm'),
+      marginTop: resolveSpacing(t, 'sm') as number,
+      minHeight: isNative ? 44 : 24,
+      justifyContent: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    retryText: { color: onColor(t, t.colors.error[6]), fontSize: resolveFontSize(t, 'sm') },
+  });
+  return styles;
+}
+
+export const AudioPlayer = factory<{ props: AudioPlayerProps; ref: AudioPlayerRef }>((props, ref) => {
+  // `w` / `h` size the waveform, not the player, so they stay out of the
+  // style props applied to the root.
+  const { w = 300, h = 60, ...propsWithoutSize } = props;
+  const { styleProps, otherProps } = extractStyleProps(propsWithoutSize);
+  const {
+    source,
+    peaks: providedPeaks,
+    autoPlay = false,
+    loop = false,
+    volume = 1.0,
+    rate = 1.0,
+    showControls = true,
+    controls: controlsProp,
+    controlsPosition = 'bottom',
+    generateWaveform = true,
+    waveformOptions,
+    showTime = true,
+    timeFormat = 'mm:ss',
+    showMetadata = false,
+    metadata,
+    enableKeyboardShortcuts = true,
+    keyboardShortcuts,
+    onLoad,
+    onPlaybackStateChange,
+    onProgress,
+    onEnd,
+    onError,
+    // Waveform props
+    color = 'primary',
+    interactive = true,
+    onSeek,
+    selection: selectionProp,
+    onSelectionChange,
+    accessibilityLabel,
+    style,
+    testID,
+    ...waveformProps
+  } = otherProps;
+
   const theme = useTheme();
-  const { playSound } = useSound();
-  
+  const spacingStyles = useStyleProps(styleProps);
+  // UI click sounds only when the app mounted a SoundProvider.
+  const sound = useSoundOptional();
+  const controls = useMemo(() => ({ ...DEFAULT_CONTROLS, ...controlsProp }), [controlsProp]);
+  const samples = waveformOptions?.samples ?? 200;
+
+  const styles = useThemedStyles(createAudioPlayerStyles, []);
+
   // Refs
-  const audioRef = useRef<any>(null);
+  const audioRef = useRef<ExpoAudioPlayer | null>(null);
   const statusSubscriptionRef = useRef<{ remove: () => void } | null>(null);
   const hasLoadedRef = useRef<boolean>(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const waveformRef = useRef<any>(null);
-  
+
   // State
   const [playbackState, setPlaybackState] = useState<PlaybackState>({
     isPlaying: false,
@@ -94,23 +257,43 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     isBuffering: false,
     currentTime: 0,
     duration: 0,
-    volume: volume,
-    rate: rate,
-    loop: loop,
+    volume,
+    rate,
+    loop,
   });
-  
-  const [peaks, setPeaks] = useState<number[]>(providedPeaks || []);
+  const playbackStateRef = useRef(playbackState);
+  playbackStateRef.current = playbackState;
+
+  // Placeholder peaks, only used when `peaks` isn't provided.
+  const [generatedPeaks, setGeneratedPeaks] = useState<number[]>([]);
+  const peaks = providedPeaks ?? generatedPeaks;
   // Mirrors `peaks` for the status listener, which must not close over stale state.
-  const peaksRef = useRef<number[]>(providedPeaks || []);
+  const peaksRef = useRef<number[]>(peaks);
   peaksRef.current = peaks;
   const [progress, setProgress] = useState(0);
-  const [buffered, setBuffered] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [muted, setMuted] = useState(false);
+  /** Highlighted range in ms (`setSelection`, or Shift+drag on the waveform). */
+  const [selectionMs, setSelectionMs] = useState<{ start: number; end: number } | null>(null);
+
+  // Callback props run from the player's status listener: read the latest.
+  const emitLoad = useLatestCallback(onLoad);
+  const emitPlaybackState = useLatestCallback(onPlaybackStateChange);
+  const emitProgress = useLatestCallback(onProgress);
+  const emitEnd = useLatestCallback(onEnd);
+  const emitError = useLatestCallback(onError);
+
+  const releasePlayer = useCallback(() => {
+    statusSubscriptionRef.current?.remove();
+    statusSubscriptionRef.current = null;
+    audioRef.current?.remove?.();
+    audioRef.current = null;
+  }, []);
 
   // Audio loading and initialization
-  const loadAudio = useCallback(async (audioSource: typeof source) => {
+  const loadAudio = useCallback(async (audioSource: AudioPlayerProps['source']) => {
     if (!audioSource) {
-      console.warn('AudioPlayer: no audio source provided');
+      devWarn('AudioPlayer: no audio source provided');
       return;
     }
 
@@ -121,7 +304,7 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
         details: null,
       };
       setError(audioError.message);
-      onError?.(audioError);
+      emitError(audioError);
       return;
     }
 
@@ -131,14 +314,10 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
       hasLoadedRef.current = false;
 
       // Release the previous player and its listener before replacing them
-      statusSubscriptionRef.current?.remove();
-      statusSubscriptionRef.current = null;
-      audioRef.current?.remove?.();
+      releasePlayer();
 
       // expo-audio accepts a URI string, a `require()`d asset, or a source object directly
-      const player = ExpoAudio.createAudioPlayer(audioSource, {
-        updateInterval: STATUS_UPDATE_INTERVAL,
-      });
+      const player = ExpoAudio.createAudioPlayer(audioSource, { updateInterval: STATUS_UPDATE_INTERVAL });
 
       audioRef.current = player;
       player.loop = loop;
@@ -148,7 +327,7 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
       }
 
       // Status updates drive both the exposed state and the waveform progress
-      statusSubscriptionRef.current = player.addListener('playbackStatusUpdate', (status: any) => {
+      statusSubscriptionRef.current = player.addListener('playbackStatusUpdate', (status) => {
         const durationMs = toMs(status.duration);
         const currentTimeMs = toMs(status.currentTime);
 
@@ -164,7 +343,7 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
         };
 
         setPlaybackState(newState);
-        onPlaybackStateChange?.(newState);
+        emitPlaybackState(newState);
 
         if (durationMs > 0) {
           const newProgress = Math.min(1, currentTimeMs / durationMs);
@@ -175,31 +354,30 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
             duration: durationMs,
             progress: newProgress,
             position: newProgress,
-            buffered: buffered,
+            buffered: 0,
           };
-          onProgress?.(progressData);
+          emitProgress(progressData);
         }
 
         // `onLoad` fires once, on the first status that carries a real duration
         if (!hasLoadedRef.current && status.isLoaded) {
           hasLoadedRef.current = true;
-          onLoad?.({
+          const loadData: AudioLoadData = {
             duration: durationMs,
             sampleRate: 44100, // expo-audio does not expose these
             channels: 2,
             peaks: peaksRef.current,
-          } as AudioLoadData);
+          };
+          emitLoad(loadData);
         }
 
-        if (status.didJustFinish && !loop) {
-          onEnd?.();
+        if (status.didJustFinish && !player.loop) {
+          emitEnd();
         }
       });
 
-      // Generate waveform if not provided and enabled
       if (!providedPeaks && generateWaveform) {
-        const generatedPeaks = await generateWaveformFromAudio(player, waveformOptions);
-        setPeaks(generatedPeaks);
+        setGeneratedPeaks(placeholderPeaks(samples));
       }
 
       if (autoPlay) {
@@ -212,19 +390,11 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
         details: err,
       };
       setError(audioError.message);
-      onError?.(audioError);
+      emitError(audioError);
     } finally {
       setPlaybackState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [autoPlay, loop, volume, rate, providedPeaks, generateWaveform, waveformOptions, onLoad, onPlaybackStateChange, onProgress, onEnd, onError, buffered]);
-
-  // Placeholder peaks. expo-audio exposes PCM frames only while `setAudioSamplingEnabled`
-  // is on and playback is running, so there is no way to analyze a file up front —
-  // pass measured `peaks` when the shape of the waveform matters.
-  const generateWaveformFromAudio = async (_player: any, options: typeof waveformOptions): Promise<number[]> => {
-    const samples = options.samples || 200;
-    return Array.from({ length: samples }, () => Math.random() * 0.8 + 0.1);
-  };
+  }, [autoPlay, loop, volume, rate, providedPeaks, generateWaveform, samples, releasePlayer, emitError, emitPlaybackState, emitProgress, emitLoad, emitEnd]);
 
   // Playback controls
   const play = useCallback(async () => {
@@ -237,22 +407,27 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
         await player.seekTo(0);
       }
       player.play();
-      await playSound('button-press'); // UI feedback
+      await sound?.playSound('button-press'); // UI feedback
     } catch (err) {
-      console.error('Play error:', err);
+      devError('Play error:', err);
     }
-  }, [playSound]);
+  }, [sound]);
 
   const pause = useCallback(async () => {
     if (!audioRef.current) return;
 
     try {
       audioRef.current.pause();
-      await playSound('button-press'); // UI feedback
+      await sound?.playSound('button-press'); // UI feedback
     } catch (err) {
-      console.error('Pause error:', err);
+      devError('Pause error:', err);
     }
-  }, [playSound]);
+  }, [sound]);
+
+  const togglePlayback = useCallback(() => {
+    if (playbackStateRef.current.isPlaying) void pause();
+    else void play();
+  }, [play, pause]);
 
   const stop = useCallback(async () => {
     const player = audioRef.current;
@@ -262,11 +437,11 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
       player.pause();
       await player.seekTo(0);
       setProgress(0);
-      await playSound('button-press'); // UI feedback
+      await sound?.playSound('button-press'); // UI feedback
     } catch (err) {
-      console.error('Stop error:', err);
+      devError('Stop error:', err);
     }
-  }, [playSound]);
+  }, [sound]);
 
   /** `time` is in milliseconds, matching `PlaybackState`. */
   const seek = useCallback(async (time: number) => {
@@ -275,53 +450,97 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     try {
       await audioRef.current.seekTo(Math.max(0, time) / 1000);
     } catch (err) {
-      console.error('Seek error:', err);
+      devError('Seek error:', err);
     }
   }, []);
+
+  const skipBy = useCallback((deltaMs: number) => {
+    const { currentTime, duration } = playbackStateRef.current;
+    const target = Math.max(0, duration > 0 ? Math.min(duration, currentTime + deltaMs) : currentTime + deltaMs);
+    if (duration > 0) setProgress(target / duration);
+    void seek(target);
+  }, [seek]);
 
   const setVolumeLevel = useCallback(async (newVolume: number) => {
     if (!audioRef.current) return;
 
     try {
       audioRef.current.volume = Math.max(0, Math.min(1, newVolume));
+      setPlaybackState(prev => ({ ...prev, volume: Math.max(0, Math.min(1, newVolume)) }));
     } catch (err) {
-      console.error('Volume error:', err);
+      devError('Volume error:', err);
     }
   }, []);
+
+  const toggleMute = useCallback(() => {
+    const player = audioRef.current;
+    const next = !muted;
+    setMuted(next);
+    if (!player) return;
+    try {
+      if ('muted' in player) player.muted = next;
+      else player.volume = next ? 0 : playbackStateRef.current.volume || 1;
+    } catch (err) {
+      devError('Mute error:', err);
+    }
+  }, [muted]);
 
   const setPlaybackRate = useCallback(async (newRate: number) => {
     if (!audioRef.current) return;
 
     try {
-      audioRef.current.setPlaybackRate(Math.max(0.5, Math.min(2.0, newRate)));
+      const clamped = Math.max(0.5, Math.min(2.0, newRate));
+      audioRef.current.setPlaybackRate(clamped);
+      setPlaybackState(prev => ({ ...prev, rate: clamped }));
     } catch (err) {
-      console.error('Rate error:', err);
+      devError('Rate error:', err);
     }
   }, []);
 
+  const cycleRate = useCallback(() => {
+    const index = PLAYBACK_RATES.indexOf(playbackStateRef.current.rate);
+    void setPlaybackRate(PLAYBACK_RATES[(index + 1) % PLAYBACK_RATES.length]);
+  }, [setPlaybackRate]);
+
   // Waveform interaction
   const handleWaveformSeek = useCallback(async (position: number) => {
-    if (playbackState.duration > 0) {
-      const time = position * playbackState.duration;
-      await seek(time);
+    const { duration } = playbackStateRef.current;
+    if (duration > 0) {
+      setProgress(position);
+      await seek(position * duration);
       onSeek?.(position);
     }
-  }, [playbackState.duration, seek, onSeek]);
+  }, [seek, onSeek]);
 
-  // Format time display
-  const formatTime = useCallback((milliseconds: number): string => {
-    const totalSeconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    
-    if (timeFormat === 'hh:mm:ss') {
-      const hours = Math.floor(minutes / 60);
-      const remainingMinutes = minutes % 60;
-      return `${hours}:${remainingMinutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-    
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  }, [timeFormat]);
+  const handleSelectionChange = useCallback((range: [number, number]) => {
+    const { duration } = playbackStateRef.current;
+    if (duration > 0) setSelectionMs({ start: range[0] * duration, end: range[1] * duration });
+    onSelectionChange?.(range);
+  }, [onSelectionChange]);
+
+  const waveformSelection = useMemo<[number, number] | undefined>(() => {
+    if (selectionProp) return selectionProp;
+    const { duration } = playbackState;
+    if (!selectionMs || duration <= 0) return undefined;
+    const clamp = (v: number) => Math.max(0, Math.min(1, v / duration));
+    return [clamp(selectionMs.start), clamp(selectionMs.end)];
+  }, [selectionProp, selectionMs, playbackState]);
+
+  // Keyboard shortcuts, attached to the focused seek slider (web).
+  const shortcuts = useMemo(() => ({ ...DEFAULT_SHORTCUTS, ...keyboardShortcuts }), [keyboardShortcuts]);
+  const handleShortcut = useCallback((event: WebKeyboardEvent) => {
+    if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+    const { key } = event;
+    const volumeNow = playbackStateRef.current.volume;
+    if (matchesKey(key, shortcuts.playPause) || (shortcuts.playPause === ' ' && key === 'Spacebar')) togglePlayback();
+    else if (matchesKey(key, shortcuts.skipForward)) skipBy(SKIP_INTERVAL_MS);
+    else if (matchesKey(key, shortcuts.skipBackward)) skipBy(-SKIP_INTERVAL_MS);
+    else if (matchesKey(key, shortcuts.mute)) toggleMute();
+    else if (matchesKey(key, shortcuts.volumeUp)) void setVolumeLevel(volumeNow + 0.1);
+    else if (matchesKey(key, shortcuts.volumeDown)) void setVolumeLevel(volumeNow - 0.1);
+    else return;
+    event.preventDefault();
+  }, [shortcuts, togglePlayback, skipBy, toggleMute, setVolumeLevel]);
 
   // Expose ref methods
   useImperativeHandle(ref, () => ({
@@ -338,22 +557,19 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     },
     getCurrentTime: async () => toMs(audioRef.current?.currentTime),
     getDuration: async () => toMs(audioRef.current?.duration),
-    getPlaybackState: () => playbackState,
+    getPlaybackState: () => playbackStateRef.current,
     load: loadAudio,
     unload: async () => {
-      statusSubscriptionRef.current?.remove();
-      statusSubscriptionRef.current = null;
-      audioRef.current?.remove?.();
-      audioRef.current = null;
+      releasePlayer();
       hasLoadedRef.current = false;
     },
-    exportAudio: async () => {
-      throw new Error('Export not implemented');
+    getWaveformPeaks: () => peaksRef.current,
+    setSelection: (start: number, end: number) => {
+      setSelectionMs({ start: Math.max(0, Math.min(start, end)), end: Math.max(start, end) });
     },
-    getWaveformPeaks: () => peaks,
-    setSelection: () => {}, // TODO: Implement
-    clearSelection: () => {}, // TODO: Implement
-  }), [play, pause, stop, seek, setVolumeLevel, setPlaybackRate, playbackState, loadAudio, peaks]);
+    clearSelection: () => setSelectionMs(null),
+    getSelection: () => selectionMs,
+  }), [play, pause, stop, seek, setVolumeLevel, setPlaybackRate, loadAudio, releasePlayer, selectionMs]);
 
   // Load audio on mount or source change. `loadAudio` is called through a ref so that
   // prop or callback changes do not tear down and reload a playing clip.
@@ -362,16 +578,10 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
 
   useEffect(() => {
     if (source) {
-      loadAudioRef.current(source);
+      void loadAudioRef.current(source);
     }
-
-    return () => {
-      statusSubscriptionRef.current?.remove();
-      statusSubscriptionRef.current = null;
-      audioRef.current?.remove?.();
-      audioRef.current = null;
-    };
-  }, [source]);
+    return releasePlayer;
+  }, [source, releasePlayer]);
 
   // Keep a loaded player in sync with prop changes
   useEffect(() => {
@@ -386,197 +596,149 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     audioRef.current?.setPlaybackRate?.(rate);
   }, [rate]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, []);
+  const { isPlaying, isLoading, currentTime, duration } = playbackState;
+  const withHours = timeFormat === 'hh:mm:ss';
+  const elapsedText = formatClock(currentTime, withHours);
+  const totalText = timeFormat === 'relative'
+    ? `-${formatClock(Math.max(0, duration - currentTime), false)}`
+    : formatClock(duration, withHours);
+  const timeLabel = timeFormat === 'relative'
+    ? `${elapsedText} elapsed, ${formatClock(Math.max(0, duration - currentTime), false)} remaining`
+    : `${elapsedText} of ${totalText}`;
 
-  // Render controls
   const renderControls = () => {
     if (!showControls || controlsPosition === 'none') return null;
 
     return (
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: DESIGN_TOKENS.spacing.sm,
-        paddingVertical: DESIGN_TOKENS.spacing.sm,
-      }}>
-        {/* Play/Pause Button */}
+      <View style={styles.controlsRow} pointerEvents={controlsPosition === 'overlay' ? 'box-none' : 'auto'}>
+        {controls.skip && (
+          <Pressable
+            onPress={() => skipBy(-SKIP_INTERVAL_MS)}
+            style={styles.iconButton}
+            disabled={isLoading}
+            {...a11yProps({ role: 'button', label: 'Skip back 10 seconds', disabled: isLoading })}
+          >
+            <Icon name="undo" size={18} color={theme.text.secondary} />
+          </Pressable>
+        )}
+
         {controls.playPause && (
           <Pressable
-            onPress={playbackState.isPlaying ? pause : play}
-            disabled={playbackState.isLoading}
-            style={({ pressed }) => ({
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: theme.colors.primary[5],
-              justifyContent: 'center',
-              alignItems: 'center',
-              opacity: pressed ? 0.8 : playbackState.isLoading ? 0.5 : 1,
+            onPress={togglePlayback}
+            disabled={isLoading}
+            style={({ pressed }) => [styles.playButton, { opacity: pressed ? 0.8 : isLoading ? 0.5 : 1 }]}
+            {...a11yProps({
+              role: 'button',
+              label: isLoading ? 'Loading' : isPlaying ? 'Pause' : 'Play',
+              disabled: isLoading,
+              busy: isLoading,
             })}
-            accessibilityLabel={playbackState.isPlaying ? 'Pause' : 'Play'}
           >
             <Icon
-              name={playbackState.isLoading ? 'loader' : playbackState.isPlaying ? 'pause' : 'play'}
+              name={isLoading ? 'loader' : isPlaying ? 'pause' : 'play'}
               size={20}
-              color="white"
+              color={theme.text.onPrimary ?? onColor(theme, theme.colors.primary[5])}
             />
           </Pressable>
         )}
 
-        {/* Time Display */}
+        {controls.skip && (
+          <Pressable
+            onPress={() => skipBy(SKIP_INTERVAL_MS)}
+            style={styles.iconButton}
+            disabled={isLoading}
+            {...a11yProps({ role: 'button', label: 'Skip forward 10 seconds', disabled: isLoading })}
+          >
+            <Icon name="redo" size={18} color={theme.text.secondary} />
+          </Pressable>
+        )}
+
         {showTime && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Text style={{ 
-              color: theme.colors.gray[7], 
-              fontSize: DESIGN_TOKENS.typography.fontSize.sm,
-              fontFamily: 'monospace',
-            }}>
-              {formatTime(playbackState.currentTime)}
+          <View style={styles.time} {...a11yProps({ accessible: true, label: timeLabel })}>
+            <Text style={styles.timeText}>{elapsedText}</Text>
+            <Text style={[styles.timeText, styles.timeSeparator]} aria-hidden>
+              /
             </Text>
-            <Text style={{ color: theme.colors.gray[5] }}>/</Text>
-            <Text style={{ 
-              color: theme.colors.gray[6], 
-              fontSize: DESIGN_TOKENS.typography.fontSize.sm,
-              fontFamily: 'monospace',
-            }}>
-              {formatTime(playbackState.duration)}
-            </Text>
+            <Text style={styles.timeText}>{totalText}</Text>
           </View>
         )}
 
-        {/* Volume Control */}
         {controls.volume && (
           <Pressable
-            onPress={() => setVolumeLevel(playbackState.volume > 0 ? 0 : 1)}
-            style={{ padding: 8 }}
-            accessibilityLabel={playbackState.volume > 0 ? 'Mute' : 'Unmute'}
+            onPress={toggleMute}
+            style={styles.iconButton}
+            {...a11yProps({ role: 'button', label: muted ? 'Unmute' : 'Mute' })}
           >
-            <Icon
-              name={playbackState.volume > 0 ? 'volume-up' : 'volume-off'}
-              size={20}
-              color={theme.colors.gray[6]}
-            />
+            <Icon name={muted ? 'volume-off' : 'volume-up'} size={20} color={theme.text.secondary} />
           </Pressable>
         )}
 
-        {/* Speed Control */}
         {controls.speed && (
           <Pressable
-            onPress={() => {
-              const rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
-              const currentIndex = rates.indexOf(playbackState.rate);
-              const nextRate = rates[(currentIndex + 1) % rates.length];
-              setPlaybackRate(nextRate);
-            }}
-            style={{ 
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 4,
-              backgroundColor: theme.colors.gray[2],
-            }}
-            accessibilityLabel={`Playback speed: ${playbackState.rate}x`}
+            onPress={cycleRate}
+            style={styles.speedButton}
+            {...a11yProps({ role: 'button', label: `Playback speed ${playbackState.rate}x`, hint: 'Changes the playback speed' })}
           >
-            <Text style={{ 
-              color: theme.colors.gray[8], 
-              fontSize: DESIGN_TOKENS.typography.fontSize.xs,
-              fontWeight: '600',
-            }}>
-              {playbackState.rate}x
-            </Text>
+            <Text style={styles.speedText}>{playbackState.rate}x</Text>
           </Pressable>
         )}
       </View>
     );
   };
 
-  // Render metadata
   const renderMetadata = () => {
     if (!showMetadata || !metadata) return null;
 
     return (
-      <View style={{
-        paddingVertical: DESIGN_TOKENS.spacing.sm,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.colors.gray[2],
-        marginBottom: DESIGN_TOKENS.spacing.sm,
-      }}>
+      <View style={styles.metadata}>
         {metadata.title && (
-          <Text style={{
-            fontSize: DESIGN_TOKENS.typography.fontSize.md,
-            fontWeight: DESIGN_TOKENS.typography.fontWeight.semibold,
-            color: theme.colors.gray[9],
-            marginBottom: 2,
-          }}>
+          <Text style={styles.title} role="heading">
             {metadata.title}
           </Text>
         )}
-        {metadata.artist && (
-          <Text style={{
-            fontSize: DESIGN_TOKENS.typography.fontSize.sm,
-            color: theme.colors.gray[6],
-          }}>
-            {metadata.artist}
-          </Text>
-        )}
+        {metadata.artist && <Text style={styles.artist}>{metadata.artist}</Text>}
       </View>
     );
   };
 
+  const progressLineStyle = useMemo(
+    () => ({ color: theme.colors.primary[5], width: 2, opacity: 0.8 }),
+    [theme.colors.primary]
+  );
+
+  const playerName = accessibilityLabel ?? (metadata?.title ? `Audio player: ${metadata.title}` : 'Audio player');
+
   // Render error state
   if (error) {
     return (
-      <View style={[{
-        padding: DESIGN_TOKENS.spacing.md,
-        backgroundColor: theme.colors.error[1],
-        borderRadius: DESIGN_TOKENS.radius.md,
-        borderWidth: 1,
-        borderColor: theme.colors.error[3],
-      }, style]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <View style={[styles.error, spacingStyles, style]} testID={testID} role="alert">
+        <View style={styles.errorRow}>
           <Icon name="alert-circle" size={20} color={theme.colors.error[6]} />
-          <Text style={{ color: theme.colors.error[8], flex: 1 }}>
-            {error}
-          </Text>
+          <Text style={styles.errorText}>{error}</Text>
         </View>
         {source && (
-          <Pressable
-            onPress={() => loadAudio(source)}
-            style={{
-              marginTop: DESIGN_TOKENS.spacing.sm,
-              paddingVertical: 8,
-              paddingHorizontal: 12,
-              backgroundColor: theme.colors.error[6],
-              borderRadius: DESIGN_TOKENS.radius.sm,
-              alignSelf: 'flex-start',
-            }}
-          >
-            <Text style={{ color: 'white', fontSize: DESIGN_TOKENS.typography.fontSize.sm }}>
-              Retry
-            </Text>
+          <Pressable onPress={() => void loadAudio(source)} style={styles.retry} {...a11yProps({ role: 'button', label: 'Retry' })}>
+            <Text style={styles.retryText}>Retry</Text>
           </Pressable>
         )}
       </View>
     );
   }
 
+  const metadataOnTop = controlsPosition !== 'bottom';
+
   return (
-    <View style={[{ width: '100%' }, style]}>
-      {/* Metadata */}
-      {controlsPosition === 'top' && renderMetadata()}
-      
-      {/* Controls (Top) */}
+    <View
+      style={[{ width: '100%' }, spacingStyles, style]}
+      testID={testID}
+      {...a11yProps({ role: 'group', label: playerName })}
+    >
+      {metadataOnTop && renderMetadata()}
+
       {controlsPosition === 'top' && renderControls()}
 
-      {/* Waveform */}
       {controls.waveform && peaks.length > 0 && (
-        <View style={{ marginVertical: DESIGN_TOKENS.spacing.sm }}>
+        <View style={styles.waveform}>
           <Waveform
             peaks={peaks}
             w={w}
@@ -585,26 +747,30 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
             progress={progress}
             interactive={interactive}
             onSeek={handleWaveformSeek}
-            showProgressLine={true}
-            progressLineStyle={{
-              color: theme.colors.primary[5],
-              width: 2,
-              opacity: 0.8,
-            }}
-            accessibilityLabel="Audio waveform"
-            accessibilityHint="Tap to seek to a specific position"
+            selection={waveformSelection}
+            onSelectionChange={handleSelectionChange}
+            duration={duration > 0 ? duration / 1000 : undefined}
+            showProgressLine
+            progressLineStyle={progressLineStyle}
+            accessibilityLabel="Seek"
+            accessibilityHint="Tap or drag to seek"
+            onKeyDown={enableKeyboardShortcuts ? handleShortcut : undefined}
+            testID={testID ? `${testID}-waveform` : undefined}
             {...waveformProps}
           />
+          {controlsPosition === 'overlay' && (
+            <View style={styles.overlay} pointerEvents="box-none">
+              {renderControls()}
+            </View>
+          )}
         </View>
       )}
 
-      {/* Controls (Bottom) */}
+      {controlsPosition === 'overlay' && !(controls.waveform && peaks.length > 0) && renderControls()}
+
       {controlsPosition === 'bottom' && renderControls()}
-      
-      {/* Metadata */}
+
       {controlsPosition === 'bottom' && renderMetadata()}
     </View>
   );
-});
-
-AudioPlayer.displayName = 'AudioPlayer';
+}, { displayName: 'AudioPlayer' });

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { View, TouchableOpacity, ViewStyle, Platform, useWindowDimensions } from 'react-native';
+import { Pressable, View } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { Text } from '../Text';
 import Animated, {
   useSharedValue,
@@ -14,8 +15,21 @@ import Animated, {
 } from 'react-native-reanimated';
 import { resolveOptionalModule } from '../../utils/optionalModule';
 
+/** The pan gesture builder slice of react-native-gesture-handler used for swipe-to-dismiss. */
+interface PanGestureLike {
+  onUpdate(handler: (event: PanGestureEventLike) => void): PanGestureLike;
+  onEnd(handler: (event: PanGestureEventLike) => void): PanGestureLike;
+}
+
+/** The parts of react-native-gesture-handler (an optional dependency) Toast uses. */
+interface GestureHandlerModule {
+  Gesture?: { Pan(): PanGestureLike };
+  GestureDetector?: React.ComponentType<{ gesture: PanGestureLike; children?: React.ReactNode }>;
+  GestureHandlerRootView?: React.ComponentType<{ style?: StyleProp<ViewStyle>; children?: React.ReactNode }>;
+}
+
 // Optional gesture handler support with graceful fallback
-const gestureHandler = resolveOptionalModule<any>('react-native-gesture-handler', {
+const gestureHandler = resolveOptionalModule<GestureHandlerModule>('react-native-gesture-handler', {
   devWarning: 'react-native-gesture-handler not found. Swipe gestures will be disabled for Toast component.',
 });
 
@@ -24,22 +38,36 @@ const Gesture = gestureHandler?.Gesture;
 const GestureHandlerRootView = gestureHandler?.GestureHandlerRootView;
 
 import { factory } from '../../core/factory';
-import { createRadiusStyles } from '../../core/theme/radius';
 import {
   resolveComponentSize,
   type ComponentSize,
   type ComponentSizeValue,
 } from '../../core/theme/componentSize';
 import { useTheme } from '../../core/theme/ThemeProvider';
-import { readableTextOn } from '../../core/theme/colorUtils';
+import { readableTextOn, withAlpha } from '../../core/theme/colorUtils';
 import { resolveSurface } from '../../core/theme/surfaces';
-import { getShadowValue, COMPONENT_SHADOW_DEFAULTS } from '../../core/theme/shadow';
-import { getSpacingStyles, extractSpacingProps, mergeSlotProps } from '../../core/utils';
-import { ToastProps, ToastSeverity, ToastAnimationType, ToastSizeMetrics } from './types';
+import { resolveRadius, resolveShadow } from '../../core/theme/tokens';
+import { useStyleProps, extractStyleProps } from '../../core/utils/spacing';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { useViewport } from '../../core/responsive';
+import { isAndroid, isWeb, webProps, webStyle } from '../../core/platform';
+import type { WebKeyboardEvent } from '../../core/platform';
+import { announce } from '../../core/accessibility/announce';
+import { getNodeText } from '../../core/accessibility/useA11yId';
+import { useReducedMotion } from '../../core/motion/useReducedMotion';
+import type { ToastProps, ToastSeverity, ToastAnimationType, ToastSizeMetrics } from './types';
 import type { ThemeColor } from '../../core/theme/resolveColors';
 import { useHaptics } from '../../hooks/useHaptics';
-import { useReducedMotion } from './useReducedMotion';
 import { IconButton } from '../IconButton';
+import { devWarn } from '../../core/utils/logger';
+
+/** The fields of a gesture-handler pan event the swipe reads. */
+interface PanGestureEventLike {
+  translationX: number;
+  translationY: number;
+  velocityX: number;
+  velocityY: number;
+}
 
 interface ToastFactoryPayload {
   props: ToastProps;
@@ -181,7 +209,6 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
     radius,
     actions,
     dismissOnTap = false,
-    maxWidth,
     persistent = false,
     animationConfig,
     swipeConfig,
@@ -193,17 +220,18 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
     ...rest
   } = props;
 
-  const { spacingProps, otherProps } = extractSpacingProps(rest);
-  const spacingStyles = getSpacingStyles(spacingProps);
+  const { styleProps, otherProps } = extractStyleProps(rest);
+  const spacingStyles = useStyleProps(styleProps);
+  // A side-anchored toast slides in from past its own width (`maw` caps it).
+  const travelWidth = typeof styleProps.maw === 'number' ? styleProps.maw : HORIZONTAL_TRAVEL_FALLBACK;
 
   const theme = useTheme();
 
-  // Handle radius prop with 'md' as default for toasts
-  const radiusStyles = createRadiusStyles(radius || 'md');
+  const borderRadius = resolveRadius(theme, radius ?? 'md');
   const metrics = useMemo(() => resolveToastMetrics(size), [size]);
   const padding = metrics.padding;
 
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth } = useViewport();
   const reducedMotion = useReducedMotion();
 
   // ---- Motion configuration -------------------------------------------------
@@ -236,16 +264,16 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
   const travel = useMemo(() => {
     switch (position) {
       case 'left':
-        return -((maxWidth ?? HORIZONTAL_TRAVEL_FALLBACK) + HORIZONTAL_TRAVEL_GUTTER);
+        return -(travelWidth + HORIZONTAL_TRAVEL_GUTTER);
       case 'right':
-        return (maxWidth ?? HORIZONTAL_TRAVEL_FALLBACK) + HORIZONTAL_TRAVEL_GUTTER;
+        return travelWidth + HORIZONTAL_TRAVEL_GUTTER;
       case 'bottom':
         return VERTICAL_TRAVEL;
       case 'top':
       default:
         return -VERTICAL_TRAVEL;
     }
-  }, [position, maxWidth]);
+  }, [position, travelWidth]);
   const travelAxis: 'x' | 'y' = position === 'left' || position === 'right' ? 'x' : 'y';
   const scaleFrom = reducedMotion || motionType === 'fade'
     ? 1
@@ -312,7 +340,7 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
     const dragY = swipeY.value;
     const dragging = dragX !== 0 || dragY !== 0;
 
-    const transforms: any[] = [
+    const transforms: Array<{ translateX: number } | { translateY: number } | { rotate: string } | { scale: number }> = [
       { translateX: enterX + dragX },
       { translateY: enterY + dragY },
     ];
@@ -349,35 +377,40 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
   }, [travelAxis, travelDistance, scaleFrom, swipeDirection, swipeThreshold, screenWidth]);
 
   const haptics = useHaptics();
-  const notifySuccess = haptics.notifySuccess ?? (() => {});
-  const notifyWarning = haptics.notifyWarning ?? (() => {});
-  const notifyError = haptics.notifyError ?? (() => {});
 
   // Improved haptic feedback with error handling
   const triggerHapticFeedback = useCallback((severity?: ToastSeverity) => {
     try {
       switch (severity) {
         case 'success':
-          notifySuccess();
+          haptics.notifySuccess?.();
           break;
         case 'warning':
-          notifyWarning();
+          haptics.notifyWarning?.();
           break;
         case 'error':
-          notifyError();
+          haptics.notifyError?.();
           break;
         default:
-          notifySuccess(); // gentle default
+          haptics.notifySuccess?.(); // gentle default
       }
     } catch (error) {
       // Silently fail if haptics are not available
-      if (__DEV__) {
-        console.warn('Haptic feedback failed:', error);
-      }
+      devWarn('Haptic feedback failed:', error);
     }
-  }, [notifySuccess, notifyWarning, notifyError]);
+  }, [haptics]);
   const triggerHapticRef = useRef(triggerHapticFeedback);
   triggerHapticRef.current = triggerHapticFeedback;
+
+  // Plain text of the toast (never "[object Object]" for element children).
+  const accessibleText = [title, getNodeText(children)].filter(Boolean).join('. ');
+  const announceRef = useRef(() => {});
+  announceRef.current = () => {
+    if (!accessibleText) return;
+    announce(accessibleText, {
+      politeness: severity === 'error' || severity === 'warning' ? 'assertive' : 'polite',
+    });
+  };
 
   // ---- Enter / exit ---------------------------------------------------------
   // Keyed on `visible` and the resolved motion primitives only. Re-running this
@@ -392,6 +425,10 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
       swipeY.value = 0;
       swipeFade.value = 1;
       triggerHapticRef.current(severity);
+      // Screen readers: live regions are Android-only on native (and a toast
+      // may mount already visible), so every appearance is announced
+      // explicitly — assertive for errors and warnings, polite otherwise.
+      announceRef.current();
 
       if (enterDuration === 0) {
         progress.value = 1;
@@ -496,12 +533,12 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
     const tracksY = swipeDirection === 'vertical' || swipeDirection === 'both';
 
     return Gesture.Pan()
-      .onUpdate((event: any) => {
+      .onUpdate((event: PanGestureEventLike) => {
         'worklet';
         if (tracksX) swipeX.value = event.translationX;
         if (tracksY) swipeY.value = event.translationY;
       })
-      .onEnd((event: any) => {
+      .onEnd((event: PanGestureEventLike) => {
         'worklet';
         const pastX = tracksX
           && (Math.abs(event.translationX) > swipeThreshold
@@ -551,8 +588,8 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
   ]);
 
   // A toast floats above everything, so it sits at the top of the elevation
-  // ladder alongside Dialog. Previously this used `colors.gray[0]`, which is
-  // the *page base* in the dark theme (#0E0E11) — the toast fill matched the
+  // ladder alongside Dialog. (A gray palette shade used to be the fill; in the
+  // dark theme that is the page base itself —
   // background exactly and the message read as floating text with no container.
   const surface = resolveSurface(theme, 3);
 
@@ -569,44 +606,36 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
       : null;
 
     return { finalColor, isThemeColor, colorConfig };
-  }, [severity, color, theme.colors]);
+  }, [severity, color, theme]);
 
   const { finalColor, colorConfig } = memoizedColors;
 
-  const getToastStyles = () => {
+  const getToastStyles = (): ViewStyle => {
     const baseStyles: ViewStyle = {
-      ...radiusStyles,
+      borderRadius,
       padding,
       flexDirection: 'row',
       alignItems: 'center',
-      ...Platform.select({
-        android: {
+      ...(isAndroid
+        ? {
           minHeight: metrics.minHeight - 4,
           maxHeight: metrics.minHeight * 2,
           width: '100%',
           alignSelf: 'stretch',
           marginHorizontal: 0, // Ensure no horizontal margins
-        },
-        default: {
-          minHeight: metrics.minHeight,
-          width: maxWidth ? Math.min(maxWidth, 400) : '100%',
-          maxWidth: maxWidth || 400,
         }
-      }),
+        : {
+          minHeight: metrics.minHeight,
+          width: '100%',
+          maxWidth: 400,
+        }),
       // Theme-driven so the dark scale's heavier shadows apply; a fixed 25%
       // black shadow is invisible against a near-black page.
-      boxShadow: getShadowValue(COMPONENT_SHADOW_DEFAULTS.toast, theme),
-      elevation: 5,
+      ...resolveShadow(theme, 'lg'),
       // Press-and-hold on a toast should swipe/dismiss it, never start a text
-      // selection or raise the iOS callout menu. Text slots opt out too, but the
-      // container covers the padding and non-text chrome as well.
-      ...(Platform.OS === 'web' && !selectable
-        ? {
-          userSelect: 'none' as any,
-          WebkitUserSelect: 'none' as any,
-          WebkitTouchCallout: 'none' as any,
-        }
-        : {}),
+      // selection. Text slots opt out too, but the container covers the padding
+      // and non-text chrome as well.
+      ...(selectable ? null : webStyle({ userSelect: 'none', WebkitUserSelect: 'none' })),
     };
 
     if (colorConfig) {
@@ -633,8 +662,8 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
             // through the border, since the shadow barely registers there.
             borderWidth: 1,
             borderColor: surface.border,
-            borderLeftWidth: 4,
-            borderLeftColor: colorConfig[5]
+            borderStartWidth: 4,
+            borderStartColor: colorConfig[5]
           };
       }
     } else {
@@ -660,8 +689,8 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
             backgroundColor: surface.background,
             borderWidth: 1,
             borderColor: surface.border,
-            borderLeftWidth: 4,
-            borderLeftColor: customColor
+            borderStartWidth: 4,
+            borderStartColor: customColor
           };
       }
     }
@@ -714,13 +743,24 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
   // The transform lives on the outermost node so the toast's hit area travels
   // with it. Previously the touch target stayed at the untranslated position for
   // the whole entrance, so clicks during the transition landed nowhere.
+  // Escape dismisses a toast while focus is inside it (web). Toasts are not
+  // layers: they trap nothing, and must not take Escape / Android back away
+  // from the dialog or menu the user is actually in.
+  const handleKeyDown = (event: WebKeyboardEvent) => {
+    if (event.key !== 'Escape' || event.defaultPrevented) return;
+    event.preventDefault();
+    event.stopPropagation();
+    requestClose();
+  };
+
   const toastContent = (
-    <Animated.View style={[{ width: '100%' }, animatedStyle]} pointerEvents="box-none">
-      <TouchableOpacity
-        activeOpacity={dismissOnTap ? 0.8 : 1}
+    <Animated.View style={[FULL_WIDTH, animatedStyle]} pointerEvents="box-none">
+      <Pressable
         onPress={dismissOnTap ? requestClose : undefined}
         disabled={!dismissOnTap}
-        style={{ width: '100%' }}
+        // Not a tab stop of its own; the close / action buttons are.
+        tabIndex={-1}
+        style={({ pressed }) => [FULL_WIDTH, dismissOnTap && pressed ? PRESSED : null]}
       >
         <View
           ref={ref}
@@ -730,15 +770,17 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
             style
           ]}
           testID={testID}
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
-          accessibilityLabel={title ? `${title}. ${children || ''}` : String(children || '')}
+          // Announced with announce() when it appears; the group gives screen
+          // reader users browsing to it the whole message as one name.
+          role="group"
+          aria-label={accessibleText || undefined}
+          {...webProps({ onKeyDown: handleKeyDown })}
           {...otherProps}
         >
       {/* Icon or Loading */}
       {(icon || loading) && (
         <View style={{
-          marginRight: metrics.gap,
+          marginEnd: metrics.gap,
           // Inherit the row's alignItems:'center' on every platform. (Android
           // previously forced alignSelf:'flex-start', which pinned the icon to
           // the top instead of centering it like web.)
@@ -763,8 +805,8 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
               />
             </View>
           ) : icon ? (
-            React.isValidElement(icon)
-              ? React.cloneElement(icon as React.ReactElement<any>, {
+            React.isValidElement<{ color?: string; size?: number }>(icon)
+              ? React.cloneElement(icon, {
                 color: iconColor,
                 size: metrics.iconSize
               })
@@ -774,28 +816,19 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
       )}
 
       {/* Content */}
-      <View style={{ 
-        flex: 1, 
-        ...Platform.select({
-          android: {
-            paddingVertical: 4, // Add padding for Android text rendering
-          }
-        })
-      }}>
+      <View style={isAndroid ? ANDROID_CONTENT : FLEX_1}>
         {title && (
           <Text
             {...mergeSlotProps(
               {
                 size: metrics.titleSize,
-                weight: '600',
+                fw: '600',
                 numberOfLines: 2,
                 selectable,
                 style: {
                   color: textColor,
                   marginBottom: children ? metrics.titleGap : 0,
-                  ...Platform.select({
-                    android: { lineHeight: Math.round(metrics.titleSize * 1.25) },
-                  }),
+                  ...(isAndroid ? { lineHeight: Math.round(metrics.titleSize * 1.25) } : null),
                 },
               },
               titleProps
@@ -810,14 +843,12 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
             {...mergeSlotProps(
               {
                 size: metrics.bodySize,
-                lineHeight: metrics.bodyLineHeight,
+                lh: metrics.bodyLineHeight,
                 numberOfLines: 3,
                 selectable,
                 style: {
                   color: textColor,
-                  ...Platform.select({
-                    android: { includeFontPadding: false },
-                  }),
+                  ...(isAndroid ? { includeFontPadding: false } : null),
                 },
               },
               bodyProps
@@ -832,21 +863,28 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
       {actions && actions.length > 0 && (
         <View style={{
           flexDirection: 'row',
-          marginLeft: metrics.gap,
+          marginStart: metrics.gap,
           gap: Math.max(2, Math.round(metrics.gap / 2))
         }}>
-          {actions.map((action, index) => (
-            <TouchableOpacity
-              key={index}
+          {actions.map((action) => (
+            <Pressable
+              key={action.label}
               onPress={action.onPress}
-              style={{
-                paddingHorizontal: metrics.actionPaddingHorizontal,
-                paddingVertical: metrics.actionPaddingVertical,
-                borderRadius: 4,
-                backgroundColor: action.color || (variant === 'filled' ? 'rgba(255,255,255,0.2)' : iconColor + '20'),
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={action.label}
+              style={({ pressed }) => [
+                {
+                  paddingHorizontal: metrics.actionPaddingHorizontal,
+                  paddingVertical: metrics.actionPaddingVertical,
+                  // ≥24px web / ≥44pt native touch area without growing the chip visually.
+                  minHeight: isWeb ? 24 : 32,
+                  justifyContent: 'center',
+                  borderRadius: 4,
+                  backgroundColor: action.color || withAlpha(variant === 'filled' ? textColor : iconColor, 0.15),
+                },
+                pressed ? PRESSED : null,
+              ]}
+              hitSlop={isWeb ? undefined : 6}
+              role="button"
+              aria-label={action.label}
             >
               <Text
                 selectable={selectable}
@@ -858,7 +896,7 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
               >
                 {action.label}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
       )}
@@ -876,21 +914,21 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
           iconColor={closeIconColor}
           accessibilityLabel={closeButtonLabel || 'Close notification'}
           style={{
-            marginLeft: metrics.gap,
+            marginStart: metrics.gap,
             marginTop: -Math.round(metrics.gap / 2),
-            marginRight: -Math.round(metrics.gap / 2),
+            marginEnd: -Math.round(metrics.gap / 2),
           }}
         />
       )}
         </View>
-      </TouchableOpacity>
+      </Pressable>
     </Animated.View>
   );
 
   // Conditionally wrap with gesture handling
   if (needsGestureHandler) {
     return (
-      <GestureHandlerRootView style={{ width: '100%' }}>
+      <GestureHandlerRootView style={FULL_WIDTH}>
         <GestureDetector gesture={panGesture}>
           {toastContent}
         </GestureDetector>
@@ -901,6 +939,10 @@ function ToastBase(props: ToastProps, ref: React.Ref<View>) {
   return toastContent;
 }
 
-export const Toast = factory<ToastFactoryPayload>(ToastBase);
+const FULL_WIDTH: ViewStyle = { width: '100%' };
+const FLEX_1: ViewStyle = { flex: 1 };
+// Extra vertical room for Android's text rendering.
+const ANDROID_CONTENT: ViewStyle = { flex: 1, paddingVertical: 4 };
+const PRESSED: ViewStyle = { opacity: 0.8 };
 
-Toast.displayName = 'Toast';
+export const Toast = factory<ToastFactoryPayload>(ToastBase, { displayName: 'Toast' });

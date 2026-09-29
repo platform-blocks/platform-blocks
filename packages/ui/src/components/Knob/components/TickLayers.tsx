@@ -3,6 +3,8 @@ import { View, StyleSheet } from 'react-native';
 import type { StyleProp, TextStyle } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
 
+import { literalText } from '../../../core/theme/cssVariableTheme';
+import type { PlatformBlocksTheme } from '../../../core/theme/types';
 import { Icon } from '../../Icon';
 import { Text } from '../../Text';
 import type { KnobAppearance, KnobMark, KnobTickLayer } from '../types';
@@ -56,7 +58,7 @@ export type TickLayersProps = {
   layoutState: LayoutState;
   ringRadius: number;
   ringThickness: number;
-  theme: any;
+  theme: PlatformBlocksTheme;
   boundedRatio: number;
   size: number;
   thumbSize: number;
@@ -197,7 +199,7 @@ export const TickLayers: React.FC<TickLayersProps> = ({
   const markLabelDistance = markRadius + thumbSize / 2 + 16;
   const markLabelWidth = Math.max(48, Math.round(size * 0.55));
   const markLabelHeight = Math.max(20, Math.round(size * 0.18));
-  const markColor = disabled ? theme.colors.gray[4] : theme.colors.gray[6];
+  const markColor = disabled ? literalText(theme).muted : literalText(theme).secondary;
 
   if (hasTickLayers) {
     return (
@@ -245,9 +247,8 @@ export const TickLayers: React.FC<TickLayersProps> = ({
             }
             if (isActive && tick.mark?.accentColor) return tick.mark.accentColor;
             if (typeof input === 'string') return input;
-            return isActive
-              ? theme.text.primary
-              : theme.colors.gray?.[4] ?? 'rgba(0,0,0,0.4)';
+            // SVG strokes: literal colors (on web the tokens are `var()` references).
+            return isActive ? literalText(theme).primary : literalText(theme).muted;
           };
 
           // Line ticks share one SVG per layer. An SVG clips to its own viewport, so the
@@ -425,7 +426,7 @@ export const TickLayers: React.FC<TickLayersProps> = ({
                           {typeof labelContent === 'string' || typeof labelContent === 'number' ? (
                             <Text
                               size="xs"
-                              weight="500"
+                              fw="500"
                               selectable={false}
                               style={[styles.tickLabelText, labelConfig.style]}
                             >
@@ -508,7 +509,7 @@ export const TickLayers: React.FC<TickLayersProps> = ({
                 {typeof mark.label === 'string' ? (
                   <Text
                     size="xs"
-                    weight="500"
+                    fw="500"
                     selectable={false}
                     style={[
                       styles.markLabelText,

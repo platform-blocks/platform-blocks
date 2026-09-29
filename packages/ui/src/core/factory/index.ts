@@ -1,5 +1,22 @@
-export type { Factory, FactoryPayload, PlatformBlocksComponent, FactoryOptions } from './factory';
-export { factory } from './factory';
+export type {
+  Factory,
+  FactoryPayload,
+  FactoryComponent,
+  FactoryStatics,
+  FactoryExtendInput,
+  PlatformBlocksComponent,
+  FactoryOptions,
+  ComponentWithProps,
+  WithFixedProps,
+} from './factory';
+export { factory, withStatics } from './factory';
+export {
+  useVisibility,
+  VisibilityGate,
+  hasVisibilityProps,
+  splitVisibilityProps,
+  isHiddenBy,
+} from './visibility';
 export type {
   PolymorphicFactory,
   PolymorphicFactoryPayload,

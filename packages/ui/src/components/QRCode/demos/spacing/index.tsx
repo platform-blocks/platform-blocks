@@ -1,9 +1,12 @@
-import { Block, QRCode, Text, useTheme } from '@platform-blocks/ui';
-import { QUIET_ZONES } from './data';
+import { Block, QRCode } from '@platform-blocks/ui';
+
+const QUIET_ZONES = [
+  { label: 'Default quiet zone (4)', quietZone: undefined },
+  { label: 'Minimal quiet zone (1)', quietZone: 1 },
+  { label: 'No quiet zone (0)', quietZone: 0 }
+] as const;
 
 export function Demo() {
-  const theme = useTheme();
-
   return (
     <Block align="center">
       {QUIET_ZONES.map(({ label, quietZone }) => (
@@ -15,18 +18,13 @@ export function Demo() {
           label={label}
         />
       ))}
-      <Block align="center">
-        <Block bg={theme.backgrounds.subtle} radius="lg" p="sm">
-          <QRCode
-            value="https://platform-blocks.com"
-            size={150}
-            quietZone={0}
-            m="xs"
-          />
-        </Block>
-        <Text variant="small" color="muted">
-          Use spacing props and container styling to pad the QR code externally.
-        </Text>
+      <Block bg="subtle" radius="lg" p="sm">
+        <QRCode
+          value="https://platform-blocks.com"
+          size={150}
+          quietZone={0}
+          m="xs"
+        />
       </Block>
     </Block>
   );

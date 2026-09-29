@@ -1,40 +1,50 @@
-import { ViewStyle, StyleProp } from 'react-native';
+import type { ViewStyle } from 'react-native';
+
 import type { ComponentSizeValue } from '../../core/theme/componentSize';
+import type { BaseProps, ColorProp } from '../../core/types/base';
 import type { TooltipPropValue } from '../Tooltip';
 
-export interface CopyButtonProps {
+export type CopyButtonVariant = 'none' | 'default' | 'secondary' | 'ghost' | 'filled' | 'outline' | 'gradient';
+
+export interface CopyButtonProps extends BaseProps<ViewStyle> {
   /** The text to copy to clipboard */
   value: string;
-  /** Callback fired after copy action */
+  /** Called with the value once it has been copied (not when copying failed) */
   onCopy?: (value: string) => void;
-  /** If true, only the icon is shown (no button chrome or label) */
+  /** Called when copying failed (no clipboard access, permission denied, …) */
+  onCopyError?: (error: Error) => void;
+  /**
+   * Icon-only control (the default). `false` renders a button with the icon and
+   * the `label` text.
+   * @default true
+   */
   iconOnly?: boolean;
-  /** Accessible label for the button */
+  /** Accessible name (and visible text when `iconOnly={false}`). @default 'Copy' */
   label?: string;
-  /** Title for the toast */
+  /** Label / announcement once the value is copied. @default 'Copied' */
+  copiedLabel?: string;
+  /** Title for the toast (web) */
   toastTitle?: string;
-  /** Detailed message for the toast */
+  /** Detailed message for the toast (web) */
   toastMessage?: string;
-  /** Visual size token */
+  /** Visual size token, or the control height in px */
   size?: ComponentSizeValue;
-  /** Style overrides for the button container */
-  style?: StyleProp<ViewStyle>;
-  /** Disable the "copied to clipboard" toast */
+  /** Disable the "copied to clipboard" toast (the copy is then announced to screen readers instead) */
   disableToast?: boolean;
-  /** Tooltip text, or a full Tooltip config (`{ label, maxWidth, … }`) */
+  /** Tooltip text, or a full Tooltip config (`{ label, maw, … }`). Icon-only controls default to the label. */
   tooltip?: TooltipPropValue;
   /** Tooltip position when the string form of `tooltip` is used */
   tooltipPosition?: 'top' | 'bottom' | 'left' | 'right';
-  /** Presentation mode: default button (legacy) or bare icon */
+  /** Presentation: a button (default) or a bare icon with no chrome */
   mode?: 'button' | 'icon';
-  /** Button variant override when in button mode */
-  buttonVariant?: 'none' | 'secondary' | 'ghost' | 'filled' | 'outline' | 'gradient' | undefined;
-  /** Icon name to display (defaults to copy) when in icon mode */
+  /** Button variant in button mode */
+  buttonVariant?: CopyButtonVariant;
+  /** Icon name to display (defaults to copy) */
   iconName?: string;
-  /** Icon name to display after copy (default check) in icon mode */
+  /** Icon name to display after copy (default check) */
   copiedIconName?: string;
-  /** Base icon color (icon mode) */
-  iconColor?: string;
-  /** Copied state icon color (icon mode) */
-  copiedIconColor?: string;
+  /** Base icon color */
+  iconColor?: ColorProp;
+  /** Copied state icon color (default: the success palette) */
+  copiedIconColor?: ColorProp;
 }

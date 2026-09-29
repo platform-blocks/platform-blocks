@@ -1,2 +1,2 @@
 export { CopyButton } from './CopyButton';
-export type { CopyButtonProps } from './types';
+export type { CopyButtonProps, CopyButtonVariant } from './types';

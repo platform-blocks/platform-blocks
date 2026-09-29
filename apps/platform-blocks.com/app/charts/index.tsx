@@ -1,28 +1,29 @@
 // TODO: refactor this to programatically generate from chart docs metadata
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { GlobalChartsRoot } from '@platform-blocks/charts';
 import { DocsPage } from '../../components/DocsPage';
 import { RouteLink } from '../../components/RouteLink';
-import { Text, Flex, Card, Tabs, Icon, Button, Chip } from '@platform-blocks/ui';
+import { Text, Flex, Card, Tabs, Icon, Skeleton, useHover, useTheme } from '@platform-blocks/ui';
 import type { TabItem } from '@platform-blocks/ui';
 import { CHART_CATEGORIES, CHART_CATEGORY_ORDER, getAllChartDocs, getChartsByCategory, type ChartDocEntry, type ChartCategoryKey } from '../../config/charts';
-import { hasNewDemosArtifacts, getNewDemos } from '../../utils/demosLoader';
+import { hasNewDemosArtifacts, getNewDemos, loadDemoComponentNew } from '../../utils/demosLoader';
+import { DOCS_CHART_INTERACTION_CONFIG } from '../../config/chartInteraction';
 import { useBrowserTitle, formatPageTitle } from '../../hooks/useBrowserTitle';
 
-interface ChartCategorySectionProps {
-  charts: ChartDocEntry[];
-  onExplore: (slug: string) => void;
-  demoCounts: Record<string, number>;
-  demosReady: boolean;
+/** Height held for a preview while its demo loads, so the grid doesn't jump. */
+const PREVIEW_PLACEHOLDER_HEIGHT = 260;
+
+interface ChartDemoInfo {
+  count: number;
+  /** The chart's lead demo — first in authored order — shown as the card's preview. */
+  previewId?: string;
 }
 
 interface ChartCardProps {
   chart: ChartDocEntry;
-  demoCount: number;
-  demosReady: boolean;
-  onExplore: (slug: string) => void;
+  demo: ChartDemoInfo;
 }
 
 const styles = StyleSheet.create({
@@ -46,22 +47,18 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   card: {
-    minHeight: 220,
-    flexBasis: 280,
+    // Two across once there's room for charts to breathe, one below that.
+    flexBasis: 420,
     flexGrow: 1,
+    // RN defaults this to 0, which would hold the basis past a phone's width.
+    flexShrink: 1,
+    minWidth: 0,
   },
-  iconBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
+  preview: {
+    flex: 1,
+    width: '100%',
+    // Short charts (sparklines) sit in the middle of a row sized by its tallest.
     justifyContent: 'center',
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
   },
   emptyState: {
     padding: 24,
@@ -69,89 +66,103 @@ const styles = StyleSheet.create({
   },
 });
 
-const ChartCard = ({ chart, demoCount, demosReady, onExplore }: ChartCardProps) => (
-  <Card p={20} style={styles.card}>
-    <Flex direction="column" gap={16} style={{ flex: 1 }}>
-      {/* The anchor wraps the heading block rather than the whole card: `Button`
-          renders a real <button> on web, and a button nested inside a link is
-          invalid HTML that browsers repair by splitting the anchor. Keeping the
-          link over inert content leaves one valid, crawlable href per card. */}
-      <RouteLink href={`/charts/${chart.slug}`} accessibilityLabel={chart.title}>
-        <Flex direction="row" align="center" gap={12}>
-          <View style={styles.iconBadge}>
-            <Icon name={chart.icon as any} size={28} />
-          </View>
-          <Flex direction="column" gap={4} style={{ flex: 1 }}>
-            <Text size="md" weight="semibold">{chart.title}</Text>
-            <Text size="sm" color="muted">{chart.summary}</Text>
-          </Flex>
-        </Flex>
-      </RouteLink>
-      {chart.tags.length > 0 && (
-        <View style={styles.tagsRow}>
-          {chart.tags.slice(0, 4).map((tag: string) => (
-            <Chip key={tag} size="xs" variant="light">
-              {tag}
-            </Chip>
-          ))}
-        </View>
-      )}
-      <Flex direction="row" justify="space-between" align="center" style={{ marginTop: 'auto' }}>
-        <Button
-          title="View details"
-          size="sm"
-          variant="outline"
-          onPress={() => onExplore(chart.slug)}
-        />
-        {demoCount > 0 ? (
-          <Chip size="xs" variant="filled">
-            {demoCount} demo{demoCount === 1 ? '' : 's'}
-          </Chip>
-        ) : (
-          <Text size="xs" color="muted">
-            {demosReady ? 'No demos yet' : 'Demos pending build'}
-          </Text>
-        )}
+/**
+ * Demo components already resolved, so switching back to a tab renders its
+ * charts straight away instead of flashing the placeholders again.
+ */
+const loadedPreviews = new Map<string, React.ComponentType>();
+
+const ChartPreview = ({ slug, demoId }: { slug: string; demoId: string }) => {
+  const key = `${slug}.${demoId}`;
+  const [Demo, setDemo] = useState<React.ComponentType | null>(() => loadedPreviews.get(key) ?? null);
+
+  useEffect(() => {
+    if (Demo) return;
+    let cancelled = false;
+    loadDemoComponentNew(slug, demoId)
+      .then((mod) => {
+        if (!mod) return;
+        loadedPreviews.set(key, mod);
+        // Updater form: handing a component straight to the setter would have
+        // React call it as a state updater.
+        if (!cancelled) setDemo(() => mod);
+      })
+      .catch(() => { /* leave the placeholder up */ });
+    return () => { cancelled = true; };
+  }, [Demo, key, slug, demoId]);
+
+  if (!Demo) {
+    return <Skeleton h={PREVIEW_PLACEHOLDER_HEIGHT} w="100%" radius="md" />;
+  }
+
+  return (
+    <GlobalChartsRoot
+      // Charts size themselves from this box; `alignItems` centres the ones that
+      // cap their width (radial charts).
+      style={{ width: '100%', alignItems: 'center' }}
+      config={DOCS_CHART_INTERACTION_CONFIG}
+    >
+      <Demo />
+    </GlobalChartsRoot>
+  );
+};
+
+/** Quiet way through to the chart's page: muted until hovered. */
+const ChartPageLink = ({ chart, demoCount }: { chart: ChartDocEntry; demoCount: number }) => {
+  const theme = useTheme();
+  const [hovered, hoverHandlers] = useHover();
+  const color = hovered ? theme.text.link : theme.text.muted;
+
+  return (
+    <RouteLink
+      href={`/charts/${chart.slug}`}
+      accessibilityLabel={`${chart.title} docs and examples`}
+      onHoverIn={hoverHandlers.onHoverIn}
+      onHoverOut={hoverHandlers.onHoverOut}
+    >
+      <Flex direction="row" align="center" gap={4}>
+        <Text size="xs" c={color}>
+          {demoCount > 1 ? `${demoCount} examples` : 'Docs'}
+        </Text>
+        <Icon name="arrow-right" size={12} color={color} />
       </Flex>
+    </RouteLink>
+  );
+};
+
+const ChartCard = ({ chart, demo }: ChartCardProps) => (
+  <Card p={16} style={styles.card}>
+    <Flex direction="column" gap={16} style={{ flex: 1 }}>
+      <Flex direction="row" align="center" justify="space-between" gap={12} style={{ width: '100%' }}>
+        <Text size="md" fw="semibold">{chart.title}</Text>
+        <ChartPageLink chart={chart} demoCount={demo.count} />
+      </Flex>
+      <View style={styles.preview}>
+        {demo.previewId ? (
+          <ChartPreview slug={chart.slug} demoId={demo.previewId} />
+        ) : (
+          <Text size="sm" c="muted">{chart.summary}</Text>
+        )}
+      </View>
     </Flex>
   </Card>
 );
 
-const ChartCategorySection = ({ charts, onExplore, demoCounts, demosReady }: ChartCategorySectionProps) => (
-  <Flex direction="column" gap={20}>
-    <View style={styles.cardsGrid}>
-      {charts.map((chart: ChartDocEntry) => (
-        <ChartCard
-          key={chart.slug}
-          chart={chart}
-          demoCount={demoCounts[chart.slug] ?? 0}
-          demosReady={demosReady}
-          onExplore={onExplore}
-        />
-      ))}
-    </View>
-  </Flex>
-);
-
 export default function ChartsScreen() {
-  const router = useRouter();
   useBrowserTitle(formatPageTitle('Charts'));
 
   const allCharts = useMemo(() => getAllChartDocs(), []);
   const chartsByCategory = useMemo(() => getChartsByCategory(), []);
   const demosReady = hasNewDemosArtifacts();
 
-  const demoCounts = useMemo(() => {
-    if (!demosReady) return {} as Record<string, number>;
-    return allCharts.reduce<Record<string, number>>((acc, chart) => {
-      acc[chart.slug] = getNewDemos(chart.slug).length;
+  const demoInfo = useMemo(() => {
+    if (!demosReady) return {} as Record<string, ChartDemoInfo>;
+    return allCharts.reduce<Record<string, ChartDemoInfo>>((acc, chart) => {
+      const demos = getNewDemos(chart.slug);
+      acc[chart.slug] = { count: demos.length, previewId: demos[0]?.id };
       return acc;
     }, {});
   }, [allCharts, demosReady]);
-
-  const handleExplore = useCallback((slug: string) => {
-    router.push(`/charts/${slug}`);
-  }, [router]);
 
   const tabItems: TabItem[] = useMemo(() => CHART_CATEGORY_ORDER.map((categoryKey: ChartCategoryKey) => {
     const meta = CHART_CATEGORIES[categoryKey];
@@ -161,23 +172,26 @@ export default function ChartsScreen() {
       label: (
         <Flex direction="row" align="center" gap={8}>
           <Icon name={meta.icon as any} size={16} />
-          <Text size="sm" weight="medium">{meta.label}</Text>
+          <Text size="sm" fw="medium">{meta.label}</Text>
         </Flex>
       ),
       content: (
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.categoryWrapper}>
-            <Text size="sm" color="muted">{meta.description}</Text>
+            <Text size="sm" c="muted">{meta.description}</Text>
             {charts.length > 0 ? (
-              <ChartCategorySection
-                charts={charts}
-                demoCounts={demoCounts}
-                demosReady={demosReady}
-                onExplore={handleExplore}
-              />
+              <View style={styles.cardsGrid}>
+                {charts.map((chart: ChartDocEntry) => (
+                  <ChartCard
+                    key={chart.slug}
+                    chart={chart}
+                    demo={demoInfo[chart.slug] ?? { count: 0 }}
+                  />
+                ))}
+              </View>
             ) : (
               <Card variant="outline" style={styles.emptyState}>
-                <Text size="sm" color="muted">
+                <Text size="sm" c="muted">
                   No charts available in this category yet.
                 </Text>
               </Card>
@@ -186,15 +200,15 @@ export default function ChartsScreen() {
         </ScrollView>
       ),
     } as TabItem;
-  }), [chartsByCategory, demoCounts, demosReady, handleExplore]);
+  }), [chartsByCategory, demoInfo]);
 
   return (
     <DocsPage>
       <View style={styles.root}>
         <View style={styles.hero}>
           <Text variant="h1">Charts</Text>
-          <Text size="lg" color="muted">
-            Explore {allCharts.length} production-ready visualisations powered by <Text size="lg" weight="semibold">@platform-blocks/charts</Text>.
+          <Text size="lg" c="muted">
+            Explore {allCharts.length} production-ready visualisations powered by <Text size="lg" fw="semibold">@platform-blocks/charts</Text>.
           </Text>
         </View>
         <Tabs

@@ -105,6 +105,10 @@ export function surfaceInteractionTint(
   theme: PlatformBlocksTheme,
   state: SurfaceInteractionState = 'hover'
 ): string {
+  // The theme's own hover / pressed roles win (the built-in themes define
+  // them as exactly these washes); older themes without them get the wash.
+  if (state === 'hover' && theme.backgrounds?.hover) return theme.backgrounds.hover;
+  if (state === 'pressed' && theme.backgrounds?.pressed) return theme.backgrounds.pressed;
   const alpha = INTERACTION_ALPHA[state] ?? INTERACTION_ALPHA.hover;
   return theme.colorScheme === 'dark'
     ? `rgba(255, 255, 255, ${alpha.dark})`

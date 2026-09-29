@@ -1,69 +1,77 @@
 import React from 'react';
-import { View, ViewStyle, StyleSheet } from 'react-native';
-import { useTheme } from '../../core/theme';
-import { Avatar } from './Avatar';
-import { Tooltip } from '../Tooltip';
-import type { AvatarGroupProps } from './types';
+import { View, type ViewStyle } from 'react-native';
 
-export function AvatarGroup({
-  children,
-  limit,
-  spacing = -8,
-  style,
-  size,
-  bordered = true,
-  surplusTooltip,
-}: AvatarGroupProps) {
+import { factory } from '../../core/factory';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
+import { Tooltip } from '../Tooltip';
+import { Avatar } from './Avatar';
+import type { AvatarGroupProps, AvatarProps } from './types';
+
+const ROW: ViewStyle = { flexDirection: 'row', alignItems: 'center' };
+
+/**
+ * Overlapping avatars. With `limit`, the rest collapse into a `+N` avatar
+ * (named "N more" for screen readers).
+ */
+export const AvatarGroup = factory<{ props: AvatarGroupProps; ref: View }>((props, ref) => {
+  const {
+    children,
+    limit,
+    spacing = -8,
+    style,
+    size,
+    bordered = true,
+    surplusTooltip,
+    surplusLabel,
+    testID,
+    ...rest
+  } = props;
+
   const theme = useTheme();
-  
-  const childrenArray = React.Children.toArray(children);
+  const { styleProps } = extractStyleProps(rest);
+
+  const childrenArray = React.Children.toArray(children).filter(React.isValidElement);
   const visibleChildren = limit ? childrenArray.slice(0, limit) : childrenArray;
   const remainingCount = limit ? Math.max(0, childrenArray.length - limit) : 0;
-  
-  const containerStyle: ViewStyle = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    ...StyleSheet.flatten(style),
-  };
 
-  const avatarWrapperStyle = (index: number): ViewStyle => ({
-    marginLeft: index > 0 ? spacing : 0,
-    zIndex: visibleChildren.length - index, // Stack avatars with decreasing z-index
-    ...(bordered && {
-      borderWidth: 2,
-      borderColor: theme.colors.gray[0],
-      borderRadius: 100, // Large value to ensure circular border
-    }),
+  const wrapperStyle = (index: number): ViewStyle => ({
+    marginStart: index > 0 ? spacing : 0,
+    // Earlier avatars stack above later ones.
+    zIndex: visibleChildren.length - index,
+    ...(bordered ? { borderWidth: 2, borderColor: theme.backgrounds.surface, borderRadius: 9999 } : null),
   });
 
+  const surplus =
+    remainingCount > 0 ? (
+      <View style={wrapperStyle(visibleChildren.length)}>
+        <Avatar
+          fallback={`+${remainingCount}`}
+          bg={theme.text.secondary}
+          size={size}
+          accessibilityLabel={surplusLabel ?? `${remainingCount} more`}
+        />
+      </View>
+    ) : null;
+
   return (
-    <View style={containerStyle}>
-      {visibleChildren.map((child, index) => {
-        if (React.isValidElement(child)) {
-          return (
-            <View key={index} style={avatarWrapperStyle(index)}>
-              {size ? React.cloneElement(child, { size, ...(child.props as any) }) : child}
-            </View>
-          );
-        }
-        return null;
-      })}
-      
-      {remainingCount > 0 && (() => {
-        const surplus = (
-          <View style={avatarWrapperStyle(visibleChildren.length)}>
-            <Avatar
-              fallback={`+${remainingCount}`}
-              backgroundColor={theme.colors.gray[6]}
-              textColor={theme.colors.gray[0]}
-              size={size}
-            />
-          </View>
-        );
-        return surplusTooltip
-          ? <Tooltip label={surplusTooltip} maxWidth={220}>{surplus}</Tooltip>
-          : surplus;
-      })()}
+    <View ref={ref} style={[ROW, resolveStyleProps(styleProps, theme), style]} testID={testID}>
+      {visibleChildren.map((child, index) => (
+        <View key={child.key ?? index} style={wrapperStyle(index)}>
+          {size !== undefined
+            ? React.cloneElement(child as React.ReactElement<AvatarProps>, {
+                size: (child.props as AvatarProps).size ?? size,
+              })
+            : child}
+        </View>
+      ))}
+      {surplus && surplusTooltip ? (
+        <Tooltip label={surplusTooltip} maw={220}>
+          {surplus}
+        </Tooltip>
+      ) : (
+        surplus
+      )}
     </View>
   );
-}
+}, { displayName: 'AvatarGroup' });

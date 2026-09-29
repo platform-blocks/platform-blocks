@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Demonstrates showing or hiding the country code prefix while preserving raw digits.
+Set `showCountryCode={false}` to hide the dial-code prefix; the raw digits reported by `onChange` stay the same.

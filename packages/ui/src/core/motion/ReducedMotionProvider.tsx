@@ -1,60 +1,66 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { AccessibilityInfo, Platform } from 'react-native';
+import React, { useContext } from 'react';
 
-export interface ReducedMotionContextValue { reduced: boolean; }
+import { warnOnce } from '../utils/logger';
+import { ReducedMotionOverrideContext, useReducedMotion } from './useReducedMotion';
 
-const ReducedMotionContext = createContext<ReducedMotionContextValue>({ reduced: false });
+/** `true`/`false` force reduced motion on/off for the subtree; `'system'` follows the OS. */
+export type ReducedMotionSetting = boolean | 'system';
 
-export interface ReducedMotionProviderProps { children: React.ReactNode; forcedValue?: boolean; }
+/** @deprecated The provider's context now holds only the override; use `useReducedMotion()`. */
+export interface ReducedMotionContextValue {
+  reduced: boolean;
+}
 
-export const ReducedMotionProvider: React.FC<ReducedMotionProviderProps> = ({ children, forcedValue }) => {
-  const [reduced, setReduced] = useState<boolean>(false);
-  const forcedRef = useRef(forcedValue);
-  forcedRef.current = forcedValue;
+export interface ReducedMotionProviderProps {
+  children: React.ReactNode;
+  /**
+   * `true` / `false` force the value for this subtree; `'system'` follows the OS
+   * preference. Omitted: inherit the parent provider's setting (or the OS).
+   */
+  reducedMotion?: ReducedMotionSetting;
+  /** @deprecated Use `reducedMotion`. */
+  forcedValue?: boolean;
+}
 
-  useEffect(() => {
-    let mounted = true;
-    // Native (iOS/Android)
-    AccessibilityInfo.isReduceMotionEnabled?.().then((value) => {
-      if (mounted && forcedRef.current === undefined) setReduced(!!value);
-    }).catch(() => {
-      console.warn('AccessibilityInfo.isReduceMotionEnabled is not available on this platform');
-    });
+/**
+ * Optional override for `useReducedMotion()`. Not needed for the OS preference
+ * (the hook reads that without a provider); use it to force motion off (or on)
+ * for a subtree, e.g. screenshots, tests, or an in-app "reduce motion" setting.
+ * `PlatformBlocksProvider` mounts one from its `reducedMotion` prop.
+ *
+ * @example
+ * <ReducedMotionProvider reducedMotion>
+ *   <App />
+ * </ReducedMotionProvider>
+ */
+export const ReducedMotionProvider: React.FC<ReducedMotionProviderProps> = ({
+  children,
+  reducedMotion,
+  forcedValue,
+}) => {
+  const parentOverride = useContext(ReducedMotionOverrideContext);
 
-    const sub = (AccessibilityInfo as any).addEventListener?.('reduceMotionChanged', (value: boolean) => {
-      if (forcedRef.current === undefined) setReduced(!!value);
-    });
+  if (forcedValue !== undefined) {
+    warnOnce(
+      'ReducedMotionProvider:forcedValue',
+      '[platform-blocks] ReducedMotionProvider `forcedValue` is deprecated; use `reducedMotion` instead.'
+    );
+  }
 
-    // Web
-    let mql: MediaQueryList | undefined;
-    if (Platform.OS === 'web' && typeof window !== 'undefined' && 'matchMedia' in window) {
-      mql = window.matchMedia('(prefers-reduced-motion: reduce)');
-      const apply = () => {
-        if (forcedRef.current === undefined) setReduced(mql!.matches);
-      };
-      try {
-        if (mql.addEventListener) mql.addEventListener('change', apply); else (mql as any).addListener(apply);
-      } catch {
-        console.warn('MediaQueryList.addEventListener is not supported, falling back to deprecated addListener');
-      }
-      apply();
-    }
+  let override: boolean | undefined;
+  if (typeof reducedMotion === 'boolean') override = reducedMotion;
+  else if (reducedMotion === 'system') override = undefined;
+  else if (forcedValue !== undefined) override = forcedValue;
+  else override = parentOverride;
 
-    return () => {
-      mounted = false;
-      try { sub?.remove?.(); } catch {
-        console.warn('AccessibilityInfo.removeEventListener is not supported, falling back to deprecated remove');
-      }
-      if (mql) {
-        try { if (mql.removeEventListener) mql.removeEventListener('change', () => {}); else (mql as any).removeListener(() => {}); } catch {
-          console.warn('MediaQueryList.removeEventListener is not supported, falling back to deprecated removeListener');
-        }
-      }
-    };
-  }, []);
-
-  const value: ReducedMotionContextValue = { reduced: forcedValue !== undefined ? forcedValue : reduced };
-  return <ReducedMotionContext.Provider value={value}>{children}</ReducedMotionContext.Provider>;
+  // The value is a primitive, so consumers only re-render when it actually changes.
+  return (
+    <ReducedMotionOverrideContext.Provider value={override}>
+      {children}
+    </ReducedMotionOverrideContext.Provider>
+  );
 };
 
-export function useReducedMotion(): boolean { return useContext(ReducedMotionContext).reduced; }
+ReducedMotionProvider.displayName = 'ReducedMotionProvider';
+
+export { useReducedMotion };

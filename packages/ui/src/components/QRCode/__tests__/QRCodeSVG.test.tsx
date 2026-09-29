@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { render } from '@testing-library/react-native';
 
 import { QRCodeSVG } from '../QRCodeSVG';
@@ -20,9 +20,11 @@ const mockTheme = {
   colors: {
     gray: ['#f5f5f5', '#e5e5e5', '#d5d5d5', '#c5c5c5'],
   },
+  backgrounds: { subtle: '#f5f5f5' },
 };
 
-jest.mock('../../../core/theme', () => ({
+jest.mock('../../../core/theme/ThemeProvider', () => ({
+  ...jest.requireActual('../../../core/theme/ThemeProvider'),
   useTheme: () => mockTheme,
 }));
 
@@ -66,6 +68,19 @@ describe('QRCodeSVG', () => {
     mockSvgElements.length = 0;
     mockEncode.mockReturnValue({ segments: [] });
     mockBuildMatrix.mockReturnValue(buildMatrixWithDataModules());
+  });
+
+  it('sizes its container with the box props; an explicit `w` wins over `fullWidth`', () => {
+    const { getByTestId } = render(<QRCodeSVG value="x" size={100} testID="qr-svg" fullWidth w={150} maw="100%" />);
+    expect(StyleSheet.flatten(getByTestId('qr-svg').props.style)).toMatchObject({ width: 150, height: 100, maxWidth: '100%' });
+  });
+
+  it('resolves a `bg` token for the code background', () => {
+    const { getByTestId } = render(<QRCodeSVG value="x" size={100} testID="qr-svg" bg="subtle" />);
+    const fill = mockTheme.backgrounds.subtle;
+    expect(getSvgElementsByName('Rect')[0].props.fill).toBe(fill);
+    const layers = [getByTestId('qr-svg').props.style].flat(Infinity).filter(Boolean);
+    expect(layers.filter((s: { backgroundColor?: string }) => s.backgroundColor !== undefined)).toHaveLength(1);
   });
 
   it('renders square modules path with provided color when no gradient is set', () => {
@@ -139,5 +154,26 @@ describe('QRCodeSVG', () => {
     expect(mockEncode).not.toHaveBeenCalled();
     expect(getByText(/Generation\s+Error/)).toBeTruthy();
     expect(mockSvgElements.length).toBe(0);
+  });
+
+  it('exposes the code as a named image and forwards the ref', () => {
+    const ref = React.createRef<View>();
+    const { getByTestId, rerender } = render(<QRCodeSVG ref={ref} value="https://example.com" testID="qr" />);
+    const root = getByTestId('qr');
+    expect(ref.current).not.toBeNull();
+    expect(root.props.role).toBe('img');
+    expect(root.props['aria-label']).toBe('QR code: https://example.com');
+
+    rerender(<QRCodeSVG value="https://example.com" testID="qr" accessibilityLabel="Ticket code" />);
+    expect(getByTestId('qr').props['aria-label']).toBe('Ticket code');
+  });
+
+  it('summarizes long values in the default label', () => {
+    const value = 'x'.repeat(100);
+    const { getByTestId } = render(<QRCodeSVG value={value} testID="qr" />);
+    const label = getByTestId('qr').props['aria-label'] as string;
+    expect(label.startsWith('QR code: xxx')).toBe(true);
+    expect(label.endsWith('…')).toBe(true);
+    expect(label.length).toBeLessThan(60);
   });
 });

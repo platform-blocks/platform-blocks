@@ -1,8 +1,12 @@
 export { Icon } from './Icon';
-export type { 
-  IconProps, 
-  IconSize, 
-  IconVariant, 
-  IconDefinition, 
-  IconRegistry 
+export { registerIcon, registerIcons, getIconNames, hasIcon } from './registry';
+export type {
+  IconProps,
+  IconSize,
+  IconVariant,
+  IconDefinition,
+  IconRegistry,
+  ExternalIconProps,
+  ExternalIconComponent,
+  LegacyIconComponentProps,
 } from './types';

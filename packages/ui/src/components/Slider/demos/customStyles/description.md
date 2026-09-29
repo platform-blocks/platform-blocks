@@ -1,1 +1,1 @@
-Showcases how to restyle the Slider using the new color scheme, sizing, and style override props for both single-value and range scenarios.
+Restyle the slider with `color`, `trackSize` / `thumbSize`, and the `trackStyle`, `activeTrackStyle`, and `thumbStyle` overrides. `RangeSlider` accepts the same props.

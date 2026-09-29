@@ -3,38 +3,33 @@ import { fireEvent, render } from '@testing-library/react-native';
 
 import { TimePicker } from '../TimePicker';
 
-const mockTheme = {
-  colors: {
-    gray: ['#f8fafc', '#f1f5f9', '#e2e8f0', '#cbd5f5', '#94a3b8', '#64748b', '#475569', '#334155', '#1e293b'],
-    primary: ['#eef2ff', '#e0e7ff', '#c7d2fe', '#a5b4fc', '#818cf8', '#6366f1', '#4f46e5'],
-  },
-  text: { primary: '#0f172a', secondary: '#475569', disabled: '#94a3b8' },
-};
-
-jest.mock('../../../core/theme', () => {
-  const actual = jest.requireActual('../../../core/theme');
-  return {
-    ...actual,
-    useTheme: () => mockTheme,
-  };
-});
-
 describe('TimePicker - inline panel', () => {
   it('renders hour and minute columns, and no field chrome', () => {
-    const { getByText, queryByText } = render(<TimePicker />);
+    const { getByLabelText, queryByLabelText, queryByText } = render(<TimePicker />);
 
-    expect(getByText('Hour')).toBeTruthy();
-    expect(getByText('Minute')).toBeTruthy();
+    // One group named "Time" (not collapsed into one element), one adjustable
+    // wheel per column (named by the column).
+    const group = getByLabelText('Time');
+    expect(group.props.role).toBe('group');
+    expect(group.props.accessible).not.toBe(true);
+    expect(getByLabelText('Hour')).toBeTruthy();
+    expect(getByLabelText('Minute')).toBeTruthy();
     // The panel is selection-only: no Done button, no seconds unless asked.
     expect(queryByText('Done')).toBeNull();
-    expect(queryByText('Second')).toBeNull();
+    expect(queryByLabelText('Second')).toBeNull();
+  });
+
+  it('hides the visible column captions from assistive technology (the wheels carry the names)', () => {
+    const { getByText } = render(<TimePicker />);
+    const caption = getByText('Hour', { includeHiddenElements: true });
+    expect(caption.props['aria-hidden']).toBe(true);
   });
 
   it('adds the seconds and meridiem columns on request', () => {
-    const { getByText } = render(<TimePicker withSeconds format={12} />);
+    const { getByLabelText, getByText } = render(<TimePicker withSeconds format={12} />);
 
-    expect(getByText('Second')).toBeTruthy();
-    expect(getByText('Period')).toBeTruthy();
+    expect(getByLabelText('Second')).toBeTruthy();
+    expect(getByLabelText('Period')).toBeTruthy();
     expect(getByText('AM')).toBeTruthy();
     expect(getByText('PM')).toBeTruthy();
   });

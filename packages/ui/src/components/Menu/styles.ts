@@ -1,102 +1,67 @@
-import { ViewStyle } from 'react-native';
+import type { ViewStyle } from 'react-native';
 
-import { useTheme } from '../../core/theme';
-import { surfaceInteractionTint } from '../../core/theme/surfaces';
-import { useSurfaceStyles } from '../Surface/useSurfaceStyles';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveSurface, surfaceInteractionTint } from '../../core/theme/surfaces';
+import { resolveRadius, resolveShadow, resolveSpacing } from '../../core/theme/tokens';
+import type { ShadowToken } from '../../core/theme/tokens';
+import { createThemedStyles } from '../../core/hooks/useThemedStyles';
+import type { RadiusValue } from '../../core/types/base';
+
+export interface MenuStyleOptions {
+  radius?: RadiusValue;
+  shadow?: ShadowToken;
+}
 
 /**
- * Styles for menu/dropdown surfaces.
+ * Styles for menu/dropdown surfaces, cached per theme + radius + shadow.
  *
  * The dropdown sits at level 2 — floating over content — and takes its
- * background, border and shadow from the theme's elevation ladder. It used to
- * index `theme.colors.surface[4]`, which is a mid-grey step of a 10-shade
- * *palette* rather than a semantic background, so light-mode dropdowns rendered
- * grey while popovers next to them rendered white.
+ * background, border and shadow from the theme's elevation ladder. Overlays
+ * always take the hairline, in both schemes: they float over arbitrary
+ * content, so they need a defined edge even in light mode.
  */
-export function useMenuStyles() {
-  const theme = useTheme();
-
-  const surface = useSurfaceStyles({
-    level: 2,
-    radius: 'md',
-    // Overlays always take the hairline, in both schemes: they float over
-    // arbitrary content, so they need a defined edge even in light mode.
-    withBorder: true,
-  });
+export const getMenuStyles = createThemedStyles((theme, radius: RadiusValue, shadow: ShadowToken) => {
+  const surface = resolveSurface(theme, 2);
+  const gapSm = resolveSpacing(theme, 'sm') as number;
+  const gapMd = resolveSpacing(theme, 'md') as number;
 
   const dropdown: ViewStyle = {
-    ...surface.style,
-    ...surface.shadowStyle,
+    backgroundColor: surface.background,
+    borderColor: surface.border,
+    borderWidth: 1,
+    borderRadius: resolveRadius(theme, radius),
+    ...resolveShadow(theme, shadow),
     minWidth: 180,
     maxWidth: 320,
     overflow: 'hidden',
   };
 
-  const item: ViewStyle = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    minHeight: 36,
-  };
-
-  const itemHovered: ViewStyle = {
-    backgroundColor: surfaceInteractionTint(theme, 'hover'),
-  };
-
-  const itemPressed: ViewStyle = {
-    backgroundColor: surfaceInteractionTint(theme, 'pressed'),
-  };
-
-  const itemSelected: ViewStyle = {
-    backgroundColor: surfaceInteractionTint(theme, 'selected'),
-  };
-
-  const itemDisabled: ViewStyle = {
-    opacity: 0.5,
-  };
-
-  const itemDanger: ViewStyle = {
-    backgroundColor: theme.colors.error[0],
-  };
-
-  const itemDangerPressed: ViewStyle = {
-    backgroundColor: theme.colors.error[1],
-  };
-
-  const label: ViewStyle = {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  };
-
-  const divider: ViewStyle = {
-    height: 1,
-    backgroundColor: surface.token.border,
-  };
-
-  const startSection: ViewStyle = {
-    marginRight: 8,
-  };
-
-  const endSection: ViewStyle = {
-    marginLeft: 'auto',
-    paddingLeft: 12,
-  };
-
   return {
     dropdown,
-    item,
-    itemHovered,
-    itemPressed,
-    itemSelected,
-    itemDisabled,
-    itemDanger,
-    itemDangerPressed,
-    label,
-    divider,
-    startSection,
-    endSection,
+    item: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: gapSm,
+      paddingHorizontal: gapMd,
+      minHeight: 36,
+    } as ViewStyle,
+    itemHovered: { backgroundColor: surfaceInteractionTint(theme, 'hover') } as ViewStyle,
+    itemPressed: { backgroundColor: surfaceInteractionTint(theme, 'pressed') } as ViewStyle,
+    itemSelected: { backgroundColor: surfaceInteractionTint(theme, 'selected') } as ViewStyle,
+    itemDisabled: { opacity: 0.5 } as ViewStyle,
+    itemDanger: { backgroundColor: theme.colors.error[0] } as ViewStyle,
+    itemDangerPressed: { backgroundColor: theme.colors.error[1] } as ViewStyle,
+    label: { paddingVertical: 6, paddingHorizontal: gapMd } as ViewStyle,
+    divider: { height: 1, backgroundColor: surface.border } as ViewStyle,
+    startSection: { marginEnd: gapSm } as ViewStyle,
+    endSection: { marginStart: 'auto', paddingStart: gapMd } as ViewStyle,
     /** The resolved level-2 token, for callers that need the raw colors. */
-    surfaceToken: surface.token,
+    surfaceToken: surface,
   };
+});
+
+/** Hook form of {@link getMenuStyles} for the current theme (also used by Select). */
+export function useMenuStyles(options: MenuStyleOptions = {}) {
+  const theme = useTheme();
+  return getMenuStyles(theme, options.radius ?? 'md', options.shadow ?? 'md');
 }

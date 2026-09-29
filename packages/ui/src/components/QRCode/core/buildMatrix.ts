@@ -8,7 +8,7 @@ export interface BuildResultMatrix { matrix: number[][]; mask: number; baseMatri
 export function buildMatrix(enc: EncodedQR): number[][];
 export function buildMatrix(enc: EncodedQR, debug?: false): number[][];
 export function buildMatrix(enc: EncodedQR, debug: true): BuildResultMatrix;
-export function buildMatrix(enc: EncodedQR, debug = false): any {
+export function buildMatrix(enc: EncodedQR, debug = false): number[][] | BuildResultMatrix {
   const { size, version } = enc;
   const matrix = Array(size).fill(null).map(()=>Array(size).fill(0));
   const reserved = Array(size).fill(null).map(()=>Array(size).fill(false));

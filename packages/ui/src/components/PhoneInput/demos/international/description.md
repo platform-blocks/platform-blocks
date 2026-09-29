@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Compare auto-detected formats with a manual international configuration.
+With `autoDetect`, typing or pasting a `+` dial code switches the country and mask to match. The second field uses the catch-all `country="INTL"` format instead.

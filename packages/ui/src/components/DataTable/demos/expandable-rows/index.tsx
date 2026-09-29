@@ -29,7 +29,7 @@ export function Demo() {
       onExpandedRowsChange={setExpandedRows}
       expandableRowRender={(project) => (
         <Block p="md">
-          <Text color="muted">{project.summary}</Text>
+          <Text c="muted">{project.summary}</Text>
         </Block>
       )}
       searchable={false}

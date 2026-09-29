@@ -1,9 +1,20 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { isIOS } from '../../core/platform';
 import { Text } from '../Text';
 import { Icon } from '../Icon';
 import type { GalleryControlsProps } from './types';
 
+// Media chrome: white on a translucent black scrim reads over any photo.
+const CHROME = '#FFFFFF';
+const CHROME_DISABLED = 'rgba(255, 255, 255, 0.5)';
+
+/**
+ * The gallery's overlay chrome: close, title + counter, download, and the
+ * previous / next buttons (at the start / end edge, so they swap in RTL).
+ */
 export const GalleryControls: React.FC<GalleryControlsProps> = ({
   currentIndex,
   totalImages,
@@ -14,58 +25,62 @@ export const GalleryControls: React.FC<GalleryControlsProps> = ({
   showDownloadButton = true,
   image,
 }) => {
+  const atStart = currentIndex === 0;
+  const atEnd = currentIndex === totalImages - 1;
+
   return (
     <>
       {/* Top Controls */}
       <View style={styles.topControls}>
-        <TouchableOpacity style={styles.controlButton} onPress={onClose}>
-          <Icon name="x" size={24} color="#fff" />
-        </TouchableOpacity>
-        
+        <Pressable style={styles.controlButton} onPress={onClose} {...a11yProps({ role: 'button', label: 'Close gallery' })}>
+          <Icon name="x" size={24} color={CHROME} />
+        </Pressable>
+
         <View style={styles.titleContainer}>
-          {image?.title && (
-            <Text style={styles.title}>
+          {image?.title ? (
+            <Text style={styles.title} role="heading">
               {image.title}
             </Text>
-          )}
+          ) : null}
           <Text style={styles.counter}>
             {currentIndex + 1} / {totalImages}
           </Text>
         </View>
 
-        {showDownloadButton && onDownload && (
-          <TouchableOpacity style={styles.controlButton} onPress={onDownload}>
-            <Icon name="copy" size={24} color="#fff" />
-          </TouchableOpacity>
+        {showDownloadButton && onDownload ? (
+          <Pressable
+            style={styles.controlButton}
+            onPress={onDownload}
+            {...a11yProps({ role: 'button', label: 'Download image' })}
+          >
+            <Icon name="download" size={24} color={CHROME} />
+          </Pressable>
+        ) : (
+          // Keeps the title centered when there's no download button.
+          <View style={styles.controlButtonPlaceholder} />
         )}
       </View>
 
       {/* Navigation Controls */}
       {totalImages > 1 && (
         <>
-          <TouchableOpacity
+          <Pressable
             style={[styles.navButton, styles.prevButton]}
             onPress={onPrevious}
-            disabled={currentIndex === 0}
+            disabled={atStart}
+            {...a11yProps({ role: 'button', label: 'Previous image', disabled: atStart })}
           >
-            <Icon 
-              name="chevron-left" 
-              size={32} 
-              color={currentIndex === 0 ? 'rgba(255,255,255,0.5)' : '#fff'} 
-            />
-          </TouchableOpacity>
+            <Icon name="chevron-left" size={32} color={atStart ? CHROME_DISABLED : CHROME} />
+          </Pressable>
 
-          <TouchableOpacity
+          <Pressable
             style={[styles.navButton, styles.nextButton]}
             onPress={onNext}
-            disabled={currentIndex === totalImages - 1}
+            disabled={atEnd}
+            {...a11yProps({ role: 'button', label: 'Next image', disabled: atEnd })}
           >
-            <Icon 
-              name="chevron-right" 
-              size={32} 
-              color={currentIndex === totalImages - 1 ? 'rgba(255,255,255,0.5)' : '#fff'} 
-            />
-          </TouchableOpacity>
+            <Icon name="chevron-right" size={32} color={atEnd ? CHROME_DISABLED : CHROME} />
+          </Pressable>
         </>
       )}
     </>
@@ -79,6 +94,10 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     height: 44,
     justifyContent: 'center',
+    width: 44,
+  },
+  controlButtonPlaceholder: {
+    height: 44,
     width: 44,
   },
   counter: {
@@ -99,13 +118,13 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   nextButton: {
-    right: 20,
+    end: 20,
   },
   prevButton: {
-    left: 20,
+    start: 20,
   },
   title: {
-    color: '#fff',
+    color: CHROME,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
@@ -117,13 +136,13 @@ const styles = StyleSheet.create({
   },
   topControls: {
     alignItems: 'center',
+    end: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    left: 0,
     paddingHorizontal: 20,
     position: 'absolute',
-    right: 0,
-    top: Platform.OS === 'ios' ? 50 : 30,
+    start: 0,
+    top: isIOS ? 50 : 30,
     zIndex: 10,
   },
 });

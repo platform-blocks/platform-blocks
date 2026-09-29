@@ -1,20 +1,29 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Platform, View } from 'react-native';
-import type { ViewStyle } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { View, type AccessibilityActionEvent, type ViewStyle } from 'react-native';
+import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
-import { Text } from '../Text';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { consumeEvent, readKey, type KeyboardEventLike } from '../../core/accessibility/keyboard';
+import { useFieldA11y } from '../../core/accessibility/useFieldA11y';
 import { factory } from '../../core/factory';
-import { useTheme } from '../../core/theme';
-import { resolveAccentColor } from '../../core/theme/resolveColors';
-import { resolveComponentSize } from '../../core/theme/componentSize';
-import { createFocusStyles } from '../../core/interactive-states';
+import { useDragGesture } from '../../core/gestures/useDragGesture';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { useThemedStyles } from '../../core/hooks/useThemedStyles';
 import { useTransitionDuration } from '../../core/motion/useTransitionDuration';
-import { useDragGesture } from '../../core/gestures';
+import { webProps } from '../../core/platform';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveComponentSize } from '../../core/theme/componentSize';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
+import { resolveShadow } from '../../core/theme/tokens';
+import type { PlatformBlocksTheme } from '../../core/theme/types';
+import { warnOnce } from '../../core/utils/logger';
+import { useStyleProps } from '../../core/utils/spacing';
 import { useControllableState } from '../../hooks/useControllableState';
-import { extractSpacingProps, getSpacingStyles } from '../../core/utils';
+import { Text } from '../Text';
 import type { JoystickProps, JoystickValue, JoystickVariant } from './types';
-import { clampUnit, resolveJoystickValue, roundValue, valuesEqual, valueToOffset } from './utils';
+import { clampUnit, resolveJoystickValue, valuesEqual, valueToOffset } from './utils';
 
+/** Pad diameters. A joystick is a large surface, not a control-height box, so it keeps its own ladder. */
 const SIZE_SCALE = {
   xs: 88,
   sm: 112,
@@ -27,10 +36,15 @@ const SIZE_SCALE = {
 
 const CENTER: JoystickValue = { x: 0, y: 0 };
 
-const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+/**
+ * The spring the handle has always used — RN `Animated.spring({ speed: 20,
+ * bounciness })` — in reanimated's stiffness/damping terms: a small overshoot
+ * when springing back to centre, none when an XY pad settles.
+ */
+const SPRING_BACK = { stiffness: 512, damping: 30, mass: 1 };
+const SPRING_SETTLE = { stiffness: 512, damping: 45, mass: 1 };
 
-const defaultValueLabel = (value: JoystickValue) =>
-  `x ${value.x.toFixed(2)}  y ${value.y.toFixed(2)}`;
+const defaultValueLabel = (value: JoystickValue) => `x ${value.x.toFixed(2)}  y ${value.y.toFixed(2)}`;
 
 interface VariantVisuals {
   base: ViewStyle;
@@ -40,7 +54,7 @@ interface VariantVisuals {
 
 const getVariantVisuals = (
   variant: JoystickVariant,
-  theme: any,
+  theme: PlatformBlocksTheme,
   baseColor: string,
   handleColor: string
 ): VariantVisuals => {
@@ -48,51 +62,42 @@ const getVariantVisuals = (
     case 'filled':
       return {
         base: { backgroundColor: baseColor, borderWidth: 0 },
-        handle: {
-          backgroundColor: handleColor,
-          borderWidth: 0,
-          boxShadow: '0 4px 10px rgba(0, 0, 0, 0.28)',
-          elevation: 5,
-        },
+        handle: { backgroundColor: handleColor, borderWidth: 0, ...resolveShadow(theme, 'md') },
         guideOpacity: 0.35,
       };
     case 'outline':
       return {
-        base: {
-          backgroundColor: 'transparent',
-          borderWidth: 2,
-          borderColor: baseColor,
-        },
+        base: { backgroundColor: 'transparent', borderWidth: 2, borderColor: baseColor },
         handle: {
-          backgroundColor: theme.backgrounds?.surface ?? '#fff',
+          backgroundColor: theme.backgrounds.surface,
           borderWidth: 2,
           borderColor: handleColor,
-          elevation: 0,
+          ...resolveShadow(theme, 'none'),
         },
         guideOpacity: 0.45,
       };
     case 'minimal':
       return {
         base: { backgroundColor: 'transparent', borderWidth: 0 },
-        handle: { backgroundColor: handleColor, borderWidth: 0, elevation: 0 },
+        handle: { backgroundColor: handleColor, borderWidth: 0, ...resolveShadow(theme, 'none') },
         guideOpacity: 0.5,
       };
     case 'unstyled':
       return {
         base: { backgroundColor: 'transparent', borderWidth: 0 },
-        handle: { backgroundColor: 'transparent', borderWidth: 0, elevation: 0 },
+        handle: { backgroundColor: 'transparent', borderWidth: 0, ...resolveShadow(theme, 'none') },
         guideOpacity: 0,
       };
     case 'default':
     default:
       return {
-        base: { backgroundColor: baseColor, borderWidth: 1, borderColor: theme.semantic?.borderSubtle ?? theme.colors.gray[3] },
+        base: { backgroundColor: baseColor, borderWidth: 1, borderColor: theme.backgrounds.border },
         handle: {
           backgroundColor: handleColor,
           borderWidth: 2,
-          borderColor: '#fff',
-          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
-          elevation: 4,
+          // The ring around the handle matches the surface it sits on.
+          borderColor: theme.backgrounds.surface,
+          ...resolveShadow(theme, 'sm'),
         },
         guideOpacity: 0.4,
       };
@@ -104,12 +109,15 @@ const getVariantVisuals = (
  * pad that holds where it is left.
  *
  * The gesture runs on the shared `useDragGesture`, so a drag that leaves the pad
- * keeps tracking the finger instead of handing the touch back to the page.
+ * keeps tracking the finger instead of handing the touch back to the page; the
+ * handle rides reanimated shared values, so a drag never waits on a React
+ * commit and the spring back to centre runs on the UI thread (skipped under
+ * reduced motion). For assistive technology the pad is an adjustable control
+ * named by its label, whose value text reads both axes; increment / decrement
+ * move it along x, and on the web arrow keys move it on both axes (Home /
+ * Escape recentre).
  */
-export const Joystick = factory<{
-  props: JoystickProps;
-  ref: View;
-}>((props, ref) => {
+export const Joystick = factory<{ props: JoystickProps; ref: View }>((props, ref) => {
   const {
     value,
     defaultValue,
@@ -142,12 +150,10 @@ export const Joystick = factory<{
     valueLabelStyle,
     accessibilityLabel,
     testID,
-    ...rest
   } = props;
 
   const theme = useTheme();
-  const { spacingProps } = extractSpacingProps(rest as any);
-  const spacingStyles = getSpacingStyles(spacingProps);
+  const spacingStyles = useStyleProps(props);
 
   const [currentValue, setCurrentValue] = useControllableState<JoystickValue>({
     value,
@@ -158,7 +164,8 @@ export const Joystick = factory<{
 
   const inputLocked = disabled || readOnly;
   const springsBack = returnToCenter ?? shape === 'circle';
-  const [isFocused, setIsFocused] = useState(false);
+  const emitStart = useLatestCallback(onChangeStart);
+  const emitEnd = useLatestCallback(onChangeEnd);
 
   const resolvedSize = resolveComponentSize(size, SIZE_SCALE, { fallback: 'md' });
   const padSize = typeof resolvedSize === 'number' ? resolvedSize : SIZE_SCALE.md;
@@ -167,53 +174,66 @@ export const Joystick = factory<{
   // remaining space. Everything downstream is expressed in these units.
   const travel = Math.max(1, (padSize - handleSize) / 2);
 
+  // 0 under reduced motion (or `transitionDuration={0}`): the handle jumps.
   const duration = useTransitionDuration(transitionDuration, 220);
 
-  const accentColor = handleColorProp
-    ?? resolveAccentColor(theme, color)
-    ?? theme.colors.primary[5];
-  const surfaceColor = baseColorProp
-    ?? (theme.colorScheme === 'dark' ? theme.colors.gray[7] : theme.colors.gray[2]);
+  const accentColor = handleColorProp ?? resolveAccentColor(theme, color) ?? theme.colors.primary[5];
+  const surfaceColor = baseColorProp ?? theme.backgrounds.subtle;
 
   const visuals = useMemo(
-    () => getVariantVisuals(variant, theme, surfaceColor, disabled ? theme.colors.gray[4] : accentColor),
+    () => getVariantVisuals(variant, theme, surfaceColor, disabled ? theme.text.disabled : accentColor),
     [variant, theme, surfaceColor, accentColor, disabled]
   );
 
-  // Handle position in normalized screen units (Y down), kept on the animated
-  // layer so a drag never waits on a React commit and the spring back to centre
-  // runs off the JS thread on native.
-  const offset = useRef(new Animated.ValueXY(valueToOffset(currentValue, invertY))).current;
+  // Handle position in normalized screen units (Y down).
+  const initialOffset = valueToOffset(currentValue, invertY);
+  const offsetX = useSharedValue(initialOffset.x);
+  const offsetY = useSharedValue(initialOffset.y);
+  // Press state only drives the handle's scale, so it lives on the UI thread too.
+  const pressed = useSharedValue(0);
   const draggingRef = useRef(false);
   const valueRef = useRef(currentValue);
   valueRef.current = currentValue;
 
-  const commit = useCallback((next: JoystickValue) => {
-    if (valuesEqual(next, valueRef.current)) return;
-    setCurrentValue(next);
-  }, [setCurrentValue]);
+  const commit = useCallback(
+    (next: JoystickValue) => {
+      if (valuesEqual(next, valueRef.current)) return;
+      valueRef.current = next;
+      setCurrentValue(next);
+    },
+    [setCurrentValue]
+  );
 
-  const pointToValue = useCallback((x: number, y: number, width: number, height: number) => {
-    // Fall back to the configured size until the first layout lands, so a press
-    // that arrives before onLayout still maps to a sane position.
-    const boxWidth = width || padSize;
-    const boxHeight = height || padSize;
-    const radiusX = Math.max(1, (boxWidth - handleSize) / 2);
-    const radiusY = Math.max(1, (boxHeight - handleSize) / 2);
-    return resolveJoystickValue(
-      (x - boxWidth / 2) / radiusX,
-      (y - boxHeight / 2) / radiusY,
-      { shape, deadZone, step, lockAxis, invertY }
-    );
-  }, [padSize, handleSize, shape, deadZone, step, lockAxis, invertY]);
+  const pointToValue = useCallback(
+    (x: number, y: number, width: number, height: number) => {
+      // Fall back to the configured size until the first layout lands, so a
+      // press that arrives before onLayout still maps to a sane position.
+      const boxWidth = width || padSize;
+      const boxHeight = height || padSize;
+      const radiusX = Math.max(1, (boxWidth - handleSize) / 2);
+      const radiusY = Math.max(1, (boxHeight - handleSize) / 2);
+      return resolveJoystickValue((x - boxWidth / 2) / radiusX, (y - boxHeight / 2) / radiusY, {
+        shape,
+        deadZone,
+        step,
+        lockAxis,
+        invertY,
+      });
+    },
+    [padSize, handleSize, shape, deadZone, step, lockAxis, invertY]
+  );
 
-  const applyPoint = useCallback((point: { x: number; y: number; width: number; height: number }) => {
-    const next = pointToValue(point.x, point.y, point.width, point.height);
-    const screen = valueToOffset(next, invertY);
-    offset.setValue(screen);
-    commit(next);
-    return next;
-  }, [pointToValue, invertY, offset, commit]);
+  const applyPoint = useCallback(
+    (point: { x: number; y: number; width: number; height: number }) => {
+      const next = pointToValue(point.x, point.y, point.width, point.height);
+      const screen = valueToOffset(next, invertY);
+      offsetX.value = screen.x;
+      offsetY.value = screen.y;
+      commit(next);
+      return next;
+    },
+    [pointToValue, invertY, offsetX, offsetY, commit]
+  );
 
   const drag = useDragGesture({
     enabled: !inputLocked,
@@ -221,255 +241,229 @@ export const Joystick = factory<{
     // constrains the *value* rather than the directions the pad consumes.
     // Leaving the perpendicular direction to the page let a browser start a
     // scroll under a diagonal touch drag; the gesture then refused to be
-    // terminated, so the pad kept tracking the finger while the page scrolled
-    // underneath it and react-native-web logged "ScrollView doesn't take
-    // rejection well" for every rejected hand-over.
+    // terminated, so the pad kept tracking the finger while the page scrolled.
     axis: 'both',
     cursor: inputLocked ? 'default' : 'grab',
     activeCursor: 'grabbing',
     onStart: (point) => {
       draggingRef.current = true;
-      // A spring back to centre may still be in flight from the previous
-      // gesture; left running it would fight the new drag for a frame or two.
-      offset.stopAnimation();
-      // Applied on its own line: `onChangeStart?.(applyPoint(point))` would skip
-      // the whole call expression — argument included — whenever no
-      // `onChangeStart` was passed, so the press would land no value at all.
-      const next = applyPoint(point);
-      onChangeStart?.(next);
+      pressed.value = 1;
+      // A spring back to centre may still be in flight from the previous gesture.
+      cancelAnimation(offsetX);
+      cancelAnimation(offsetY);
+      emitStart(applyPoint(point));
     },
     onMove: (point) => {
       applyPoint(point);
     },
     onEnd: (point) => {
       draggingRef.current = false;
+      pressed.value = 0;
       const settled = springsBack ? CENTER : applyPoint(point);
       if (springsBack) commit(CENTER);
-      onChangeEnd?.(settled);
+      emitEnd(settled);
     },
     onCancel: () => {
       draggingRef.current = false;
+      pressed.value = 0;
       if (springsBack) commit(CENTER);
-      onChangeEnd?.(springsBack ? CENTER : valueRef.current);
+      emitEnd(springsBack ? CENTER : valueRef.current);
     },
   });
 
-  // Animate the handle for every change the drag did not already paint:
-  // the spring back to centre, keyboard nudges, and controlled updates.
-  // Depends on the two components rather than the object, so a controlled
-  // parent that rebuilds `{ x, y }` each render does not restart the spring.
+  // Animate the handle for every change the drag did not already paint: the
+  // spring back to centre, keyboard nudges, and controlled updates. Depends on
+  // the two components rather than the object, so a controlled parent that
+  // rebuilds `{ x, y }` each render does not restart the spring.
   const { x: valueX, y: valueY } = currentValue;
   useEffect(() => {
     if (draggingRef.current) return;
     const target = valueToOffset({ x: valueX, y: valueY }, invertY);
     if (duration <= 0) {
-      offset.setValue(target);
+      cancelAnimation(offsetX);
+      cancelAnimation(offsetY);
+      offsetX.value = target.x;
+      offsetY.value = target.y;
       return;
     }
-    const animation = Animated.spring(offset, {
-      toValue: target,
-      useNativeDriver: USE_NATIVE_DRIVER,
-      speed: 20,
-      bounciness: springsBack ? 8 : 0,
-    });
-    animation.start();
-    return () => animation.stop();
-  }, [valueX, valueY, invertY, duration, offset, springsBack]);
+    const spring = springsBack ? SPRING_BACK : SPRING_SETTLE;
+    offsetX.value = withSpring(target.x, spring);
+    offsetY.value = withSpring(target.y, spring);
+  }, [valueX, valueY, invertY, duration, springsBack, offsetX, offsetY]);
 
-  const nudge = useCallback((dx: number, dy: number) => {
-    if (inputLocked) return;
-    const amount = keyboardStep ?? (step > 0 ? step : 0.1);
-    const previous = valueRef.current;
-    const next = resolveJoystickValue(
-      clampUnit(previous.x + dx * amount),
-      // resolveJoystickValue works in screen space, so an "up" nudge has to be
-      // expressed the same way the pointer would express it.
-      clampUnit(invertY ? -(previous.y + dy * amount) : previous.y + dy * amount),
-      { shape, deadZone: 0, step, lockAxis, invertY }
-    );
-    onChangeStart?.(previous);
-    commit(next);
-    onChangeEnd?.(next);
-  }, [inputLocked, keyboardStep, step, invertY, shape, lockAxis, commit, onChangeStart, onChangeEnd]);
+  const nudge = useCallback(
+    (dx: number, dy: number) => {
+      if (inputLocked) return;
+      const amount = keyboardStep ?? (step > 0 ? step : 0.1);
+      const previous = valueRef.current;
+      const next = resolveJoystickValue(
+        clampUnit(previous.x + dx * amount),
+        // resolveJoystickValue works in screen space, so an "up" nudge has to be
+        // expressed the same way the pointer would express it.
+        clampUnit(invertY ? -(previous.y + dy * amount) : previous.y + dy * amount),
+        { shape, deadZone: 0, step, lockAxis, invertY }
+      );
+      emitStart(previous);
+      commit(next);
+      emitEnd(next);
+    },
+    [inputLocked, keyboardStep, step, invertY, shape, lockAxis, commit, emitStart, emitEnd]
+  );
 
   const recenter = useCallback(() => {
     if (inputLocked) return;
     commit(CENTER);
-    onChangeEnd?.(CENTER);
-  }, [inputLocked, commit, onChangeEnd]);
+    emitEnd(CENTER);
+  }, [inputLocked, commit, emitEnd]);
 
-  const handleKeyDown = useCallback((event: any) => {
-    if (inputLocked) return;
-    switch (event?.key) {
-      case 'ArrowLeft': event.preventDefault?.(); nudge(-1, 0); break;
-      case 'ArrowRight': event.preventDefault?.(); nudge(1, 0); break;
-      case 'ArrowUp': event.preventDefault?.(); nudge(0, 1); break;
-      case 'ArrowDown': event.preventDefault?.(); nudge(0, -1); break;
-      case 'Home':
-      case 'Escape': event.preventDefault?.(); recenter(); break;
-      default: break;
-    }
-  }, [inputLocked, nudge, recenter]);
-
-  const translateX = useMemo(() => Animated.multiply(offset.x, travel), [offset.x, travel]);
-  const translateY = useMemo(() => Animated.multiply(offset.y, travel), [offset.y, travel]);
-
-  // Rebuilt as one array so the drag scale composes with the translation
-  // instead of a second style object replacing the whole transform.
-  const handleTransform = useMemo(
-    () => (drag.isDragging
-      ? [{ translateX }, { translateY }, { scale: 1.08 }]
-      : [{ translateX }, { translateY }]),
-    [drag.isDragging, translateX, translateY]
+  // Arrows move the handle in the direction pressed (a physical 2-D pad, so they
+  // don't swap under RTL); Home / Escape recentre.
+  const handleKeyDown = useCallback(
+    (event: KeyboardEventLike) => {
+      if (inputLocked) return;
+      const { key } = readKey(event);
+      const moves: Record<string, [number, number]> = {
+        ArrowLeft: [-1, 0],
+        ArrowRight: [1, 0],
+        ArrowUp: [0, 1],
+        ArrowDown: [0, -1],
+      };
+      if (moves[key]) {
+        consumeEvent(event);
+        nudge(moves[key][0], moves[key][1]);
+      } else if (key === 'Home' || key === 'Escape') {
+        consumeEvent(event);
+        recenter();
+      }
+    },
+    [inputLocked, nudge, recenter]
   );
 
-  const borderRadius = shape === 'circle' ? padSize / 2 : Math.round(padSize * 0.12);
-  const guideColor = theme.colorScheme === 'dark' ? theme.colors.gray[5] : theme.colors.gray[4];
+  const handleAccessibilityAction = useCallback(
+    (event: AccessibilityActionEvent) => {
+      if (event.nativeEvent.actionName === 'increment') nudge(1, 0);
+      else if (event.nativeEvent.actionName === 'decrement') nudge(-1, 0);
+    },
+    [nudge]
+  );
 
-  const labelText = valueLabel
-    ? (typeof valueLabel === 'function' ? valueLabel(currentValue) : defaultValueLabel(currentValue))
-    : null;
+  const labelText = defaultValueLabel(currentValue);
+  const field = useFieldA11y({ label, accessibilityLabel, disabled, readOnly });
+  if (!label && !accessibilityLabel) {
+    warnOnce('Joystick.accessibilityLabel', '[Joystick] Pass `label` or `accessibilityLabel` so the pad has an accessible name.');
+  }
 
-  const keyboardProps = Platform.OS === 'web' && !inputLocked
-    ? {
-      tabIndex: 0 as const,
-      onKeyDown: handleKeyDown,
-      onFocus: () => setIsFocused(true),
-      onBlur: () => setIsFocused(false),
-    }
-    : {};
+  const handleAnimatedStyle = useAnimatedStyle(
+    () => ({
+      transform: [
+        { translateX: offsetX.value * travel },
+        { translateY: offsetY.value * travel },
+        { scale: 1 + 0.08 * pressed.value },
+      ],
+    }),
+    [travel]
+  );
+  const crosshairYStyle = useAnimatedStyle(() => ({ transform: [{ translateY: offsetY.value * travel }] }), [travel]);
+  const crosshairXStyle = useAnimatedStyle(() => ({ transform: [{ translateX: offsetX.value * travel }] }), [travel]);
+
+  const styles = useThemedStyles(
+    (t) => {
+      const center = padSize / 2 - 0.5;
+      const guide = { position: 'absolute', backgroundColor: t.text.muted, pointerEvents: 'none' } as const;
+      return {
+        root: { alignItems: 'flex-start' } as ViewStyle,
+        label: { marginBottom: 8 } as ViewStyle,
+        pad: {
+          width: padSize,
+          height: padSize,
+          borderRadius: shape === 'circle' ? padSize / 2 : Math.round(padSize * 0.12),
+          opacity: disabled ? 0.5 : 1,
+          overflow: 'hidden',
+        } as ViewStyle,
+        guideH: { ...guide, start: 0, end: 0, top: center, height: 1 } as ViewStyle,
+        guideV: { ...guide, top: 0, bottom: 0, start: center, width: 1 } as ViewStyle,
+        crosshairH: { position: 'absolute', start: 0, end: 0, top: center, height: 1, opacity: 0.45, pointerEvents: 'none' } as ViewStyle,
+        crosshairV: { position: 'absolute', top: 0, bottom: 0, start: center, width: 1, opacity: 0.45, pointerEvents: 'none' } as ViewStyle,
+        handle: {
+          position: 'absolute',
+          start: (padSize - handleSize) / 2,
+          top: (padSize - handleSize) / 2,
+          width: handleSize,
+          height: handleSize,
+          borderRadius: handleSize / 2,
+          pointerEvents: 'none',
+        } as ViewStyle,
+        readout: { marginTop: 8 },
+      };
+    },
+    [padSize, handleSize, shape, disabled]
+  );
+
+  const readout = valueLabel ? (typeof valueLabel === 'function' ? valueLabel(currentValue) : labelText) : null;
 
   return (
-    <View
-      ref={ref}
-      testID={testID}
-      style={[{ alignItems: 'flex-start' }, spacingStyles, style]}
-    >
+    <View ref={ref} testID={testID} style={[styles.root, spacingStyles, style]}>
       {label ? (
-        typeof label === 'string'
-          ? <Text size="sm" weight="medium" style={{ marginBottom: 8 }}>{label}</Text>
-          : <View style={{ marginBottom: 8 }}>{label}</View>
+        typeof label === 'string' ? (
+          <Text id={field.ids.label} size="sm" fw="medium" style={styles.label}>
+            {label}
+          </Text>
+        ) : (
+          <View nativeID={field.ids.label} style={styles.label}>
+            {label}
+          </View>
+        )
       ) : null}
 
       <View
         ref={drag.ref}
         onLayout={drag.onLayout}
-        accessibilityRole="adjustable"
-        accessibilityLabel={accessibilityLabel ?? 'Joystick'}
-        accessibilityState={{ disabled }}
-        accessibilityValue={{ text: defaultValueLabel(currentValue) }}
-        accessibilityActions={inputLocked ? undefined : [
-          { name: 'increment', label: 'Move right' },
-          { name: 'decrement', label: 'Move left' },
-        ]}
-        onAccessibilityAction={inputLocked ? undefined : (event) => {
-          if (event.nativeEvent.actionName === 'increment') nudge(1, 0);
-          if (event.nativeEvent.actionName === 'decrement') nudge(-1, 0);
-        }}
-        style={[
-          {
-            width: padSize,
-            height: padSize,
-            borderRadius,
-            opacity: disabled ? 0.5 : 1,
-            overflow: 'hidden',
-          },
-          visuals.base,
-          drag.surfaceStyle,
-          createFocusStyles(theme, isFocused),
-          baseStyle,
-        ]}
-        {...keyboardProps}
+        accessible
+        {...field.controlProps}
+        {...a11yProps({
+          role: 'slider',
+          disabled,
+          readOnly,
+          // Increment / decrement act on x; the text reads both axes.
+          value: { min: -1, max: 1, now: currentValue.x, text: labelText },
+          actions: inputLocked
+            ? undefined
+            : [
+                { name: 'increment', label: 'Move right' },
+                { name: 'decrement', label: 'Move left' },
+              ],
+          onAction: inputLocked ? undefined : handleAccessibilityAction,
+        })}
+        {...webProps({ tabIndex: disabled ? -1 : 0, onKeyDown: inputLocked ? undefined : handleKeyDown })}
+        style={[styles.pad, visuals.base, drag.surfaceStyle, baseStyle]}
         {...drag.panHandlers}
       >
         {showGuides && variant !== 'unstyled' ? (
           <>
-            <View
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                top: padSize / 2 - 0.5,
-                height: 1,
-                backgroundColor: guideColor,
-                opacity: visuals.guideOpacity,
-              }}
-            />
-            <View
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                top: 0,
-                bottom: 0,
-                left: padSize / 2 - 0.5,
-                width: 1,
-                backgroundColor: guideColor,
-                opacity: visuals.guideOpacity,
-              }}
-            />
+            <View style={[styles.guideH, { opacity: visuals.guideOpacity }]} />
+            <View style={[styles.guideV, { opacity: visuals.guideOpacity }]} />
           </>
         ) : null}
 
         {showCrosshair && variant !== 'unstyled' ? (
           // Full-width/height rules that track the handle on one axis each — the
-          // XY-pad readout. Both are pure translations, so they ride the same
-          // animated values as the handle and stay in sync with it frame for frame.
+          // XY-pad readout — on the same shared values as the handle.
           <>
-            <Animated.View
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                top: padSize / 2 - 0.5,
-                height: 1,
-                backgroundColor: accentColor,
-                opacity: 0.45,
-                transform: [{ translateY }],
-              }}
-            />
-            <Animated.View
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                top: 0,
-                bottom: 0,
-                left: padSize / 2 - 0.5,
-                width: 1,
-                backgroundColor: accentColor,
-                opacity: 0.45,
-                transform: [{ translateX }],
-              }}
-            />
+            <Animated.View style={[styles.crosshairH, { backgroundColor: accentColor }, crosshairYStyle]} />
+            <Animated.View style={[styles.crosshairV, { backgroundColor: accentColor }, crosshairXStyle]} />
           </>
         ) : null}
 
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            {
-              position: 'absolute',
-              left: (padSize - handleSize) / 2,
-              top: (padSize - handleSize) / 2,
-              width: handleSize,
-              height: handleSize,
-              borderRadius: handleSize / 2,
-              transform: handleTransform,
-            },
-            visuals.handle,
-            handleStyle,
-          ]}
-        />
+        <Animated.View style={[styles.handle, visuals.handle, handleStyle, handleAnimatedStyle]} />
       </View>
 
-      {labelText ? (
-        <Text size="xs" c="dimmed" style={[{ marginTop: 8 }, valueLabelStyle]}>
-          {labelText}
+      {readout ? (
+        <Text size="xs" c="dimmed" style={[styles.readout, valueLabelStyle]}>
+          {readout}
         </Text>
       ) : null}
     </View>
   );
-});
+}, { displayName: 'Joystick' });
 
 Joystick.displayName = 'Joystick';

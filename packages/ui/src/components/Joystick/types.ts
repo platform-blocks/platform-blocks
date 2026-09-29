@@ -1,6 +1,8 @@
+import type React from 'react';
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
+
 import type { ComponentSizeValue } from '../../core/theme/componentSize';
-import type { SpacingProps } from '../../core/utils';
+import type { BaseProps } from '../../core/types/base';
 
 /** Normalized position. `x` is right-positive, `y` is up-positive by default. */
 export interface JoystickValue {
@@ -12,7 +14,11 @@ export type JoystickShape = 'circle' | 'square';
 
 export type JoystickVariant = 'default' | 'filled' | 'outline' | 'minimal' | 'unstyled';
 
-export interface JoystickProps extends SpacingProps {
+/**
+ * Props for `Joystick`. `style`, spacing and `testID` apply to the root (label +
+ * pad + readout); `ref` goes to the root too.
+ */
+export interface JoystickProps extends BaseProps {
   /** Controlled value. Both axes are normalized to −1…1. */
   value?: JoystickValue;
   /** Initial value while uncontrolled. Default `{ x: 0, y: 0 }`. */
@@ -75,8 +81,6 @@ export interface JoystickProps extends SpacingProps {
   /** Spring-back / keyboard transition duration in ms. Default `220`. */
   transitionDuration?: number;
 
-  /** Root style. */
-  style?: StyleProp<ViewStyle>;
   /** Style for the pad surface. */
   baseStyle?: StyleProp<ViewStyle>;
   /** Style for the handle. */
@@ -84,6 +88,6 @@ export interface JoystickProps extends SpacingProps {
   /** Style for the value label text. */
   valueLabelStyle?: StyleProp<TextStyle>;
 
+  /** Accessible name when there is no visible `label`. */
   accessibilityLabel?: string;
-  testID?: string;
 }

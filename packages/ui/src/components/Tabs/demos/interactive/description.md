@@ -8,4 +8,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Demonstrates controlled tabs that surface the active label and rely on external state updates via `onTabChange`.
+Demonstrates controlled tabs that surface the active label and rely on external state updates via `onChange`.

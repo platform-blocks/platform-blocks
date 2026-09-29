@@ -15,6 +15,7 @@ export type {
 export type {
   CalendarProps,
   MiniCalendarProps,
+  MiniCalendarControlProps,
   MonthProps,
   DayProps,
 } from '../Calendar/types';

@@ -6,7 +6,7 @@ export function Demo() {
 	return (
 		<NetworkChart
 			title="Cross-team collaboration"
-			height={420}
+			h={420}
 			nodes={NODES}
 			links={LINKS}
 		/>

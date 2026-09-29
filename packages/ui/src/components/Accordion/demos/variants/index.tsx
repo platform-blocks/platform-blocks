@@ -8,7 +8,7 @@ export function Demo() {
     <Block>
       {variants.map((variant) => (
         <Block key={variant}>
-          <Text size="xs" weight="600" color="muted" uppercase tracking={1}>
+          <Text size="xs" fw="600" c="muted" tt="uppercase" lts={1}>
             {variant}
           </Text>
           <Accordion type="single" variant={variant} items={onboardingSteps} />

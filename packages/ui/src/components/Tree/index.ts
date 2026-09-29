@@ -15,4 +15,6 @@ export type {
   TreeRow,
   TreeRenderNode,
   TreeCheckState,
+  TreeDisclosure,
+  TreePressEvent,
 } from './types';

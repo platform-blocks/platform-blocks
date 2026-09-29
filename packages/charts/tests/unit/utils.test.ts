@@ -12,6 +12,9 @@ import {
   getColorFromScheme,
   formatNumber,
   formatPercentage,
+  formatCompactNumber,
+  resolveNumberFormatter,
+  createTickFormatter,
 } from '../../src/utils';
 
 describe('calculateChartDimensions', () => {
@@ -120,5 +123,90 @@ describe('formatters', () => {
 
   it('formats percentages', () => {
     expect(formatPercentage(5, 20, 0)).toBe('25%');
+  });
+});
+
+describe('formatCompactNumber', () => {
+  it('abbreviates thousands and up', () => {
+    expect(formatCompactNumber(9000)).toBe('9K');
+    expect(formatCompactNumber(9500)).toBe('9.5K');
+    expect(formatCompactNumber(1_250_000)).toBe('1.3M');
+    expect(formatCompactNumber(3_400_000_000)).toBe('3.4B');
+    expect(formatCompactNumber(2e12)).toBe('2T');
+  });
+
+  it('leaves values under 1,000 as formatNumber renders them', () => {
+    expect(formatCompactNumber(999)).toBe('999');
+    expect(formatCompactNumber(12.345)).toBe('12.35');
+    expect(formatCompactNumber(0)).toBe('0');
+  });
+
+  it('rolls over into the next unit instead of rendering 1000K', () => {
+    expect(formatCompactNumber(999_950)).toBe('1M');
+    expect(formatCompactNumber(999_999_999)).toBe('1B');
+  });
+
+  it('handles negatives and non-finite values', () => {
+    expect(formatCompactNumber(-9000)).toBe('-9K');
+    expect(formatCompactNumber(-1_500_000)).toBe('-1.5M');
+    expect(formatCompactNumber(NaN)).toBe('NaN');
+    expect(formatCompactNumber(Infinity)).toBe('Infinity');
+  });
+
+  it('respects the decimals argument', () => {
+    expect(formatCompactNumber(1_234_567, 2)).toBe('1.23M');
+    expect(formatCompactNumber(1_234_567, 0)).toBe('1M');
+  });
+});
+
+describe('resolveNumberFormatter', () => {
+  it('defaults to compact', () => {
+    expect(resolveNumberFormatter()(9000)).toBe('9K');
+  });
+
+  it('renders grouped digits under full', () => {
+    expect(resolveNumberFormatter('full')(9000)).toBe('9,000');
+  });
+
+  it('uses a custom function as-is', () => {
+    expect(resolveNumberFormatter((v) => `#${v}`)(9000)).toBe('#9000');
+  });
+
+  it('uses the fallback for anything it does not abbreviate', () => {
+    const fallback = (v: number) => v.toFixed(2);
+    expect(resolveNumberFormatter('compact', fallback)(150)).toBe('150.00');
+    expect(resolveNumberFormatter('compact', fallback)(9000)).toBe('9K');
+    expect(resolveNumberFormatter('full', fallback)(9000)).toBe('9000.00');
+  });
+});
+
+describe('createTickFormatter', () => {
+  const labels = (ticks: number[], ...rest: any[]) => {
+    const format = createTickFormatter(ticks, ...rest);
+    return ticks.map((t) => format(t));
+  };
+
+  it('abbreviates ticks that stay exact at one decimal', () => {
+    expect(labels([0, 2500, 5000, 7500, 10000])).toEqual(['0', '2.5K', '5K', '7.5K', '10K']);
+    expect(labels([0, 250, 500, 750, 1000])).toEqual(['0', '250', '500', '750', '1K']);
+  });
+
+  it('allows a second decimal once ticks are at least 1,000 apart', () => {
+    expect(labels([1_000_000, 1_050_000, 1_100_000])).toEqual(['1M', '1.05M', '1.1M']);
+  });
+
+  it('falls back to full numbers when abbreviating would round ticks together', () => {
+    expect(labels([1200, 1210, 1220])).toEqual(['1,200', '1,210', '1,220']);
+    expect(labels([2000, 2010, 2020])).toEqual(['2,000', '2,010', '2,020']);
+  });
+
+  it('renders unabbreviated ticks with the fallback', () => {
+    expect(labels([2019, 2020, 2021], 'compact', String)).toEqual(['2019', '2020', '2021']);
+    expect(labels([0, 500, 1000], 'compact', (v: number) => v.toFixed(2))).toEqual(['0.00', '500.00', '1K']);
+  });
+
+  it('follows full and custom formats', () => {
+    expect(labels([0, 5000, 10000], 'full')).toEqual(['0', '5,000', '10,000']);
+    expect(labels([0, 5000], (v: number) => `$${v}`)).toEqual(['$0', '$5000']);
   });
 });

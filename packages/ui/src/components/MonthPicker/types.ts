@@ -1,7 +1,8 @@
-import type { ComponentSizeValue } from '../../core/theme/componentSize';
 import type { ResponsiveProp } from '../../core/theme/breakpoints';
+import type { ComponentSizeValue } from '../../core/theme/componentSize';
+import type { BaseProps } from '../../core/types/base';
 
-export interface MonthPickerProps {
+export interface MonthPickerProps extends BaseProps {
   /** Currently selected date (uses the first day of the month) */
   value?: Date | null;
   /** Called when user picks a new month */
@@ -22,7 +23,7 @@ export interface MonthPickerProps {
   monthLabelFormat?: 'short' | 'long';
   /** Hide navigation header (used when embedded in Calendar) */
   hideHeader?: boolean;
-  /** Responsive override for the number of months rendered per row */
+  /** Responsive override for the number of months rendered per row (breakpoints from `theme.breakpoints`). */
   monthsPerRow?: ResponsiveProp<number>;
   /** Stretch to fill the container instead of sizing to the natural grid width. Default `false`. */
   fullWidth?: boolean;

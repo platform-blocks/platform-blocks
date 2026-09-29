@@ -3,7 +3,8 @@ import { View, ViewStyle } from 'react-native';
 
 import { FieldHeader } from '../../_internal/FieldHeader';
 import { Row, Column } from '../../Layout';
-import type { SpacingProps, LayoutProps } from '../../../core/utils';
+import type { StyleProps } from '../../../core/utils/spacing';
+import type { LayoutProps } from '../../../core/utils/layout';
 import type { KnobProps, KnobValueLabelPosition } from '../types';
 import type { ValueLabelSlots } from '../hooks/useKnobValueLabels';
 
@@ -15,12 +16,16 @@ export type ValueLabelLayoutProps = {
   valueLabelSlots: ValueLabelSlots;
   spacingStyles?: ViewStyle;
   layoutStyles?: ViewStyle;
-  spacingProps: SpacingProps;
+  spacingProps: StyleProps;
   layoutProps: LayoutProps;
   hasLabelContent: boolean;
   label?: KnobProps['label'];
   description?: KnobProps['description'];
   labelPosition: KnobValueLabelPosition;
+  /** Id of the label text (the knob references it through aria-labelledby). */
+  labelId?: string;
+  /** Id of the description text (aria-describedby). */
+  descriptionId?: string;
 };
 
 export const ValueLabelLayout: React.FC<ValueLabelLayoutProps> = ({
@@ -34,6 +39,8 @@ export const ValueLabelLayout: React.FC<ValueLabelLayoutProps> = ({
   label,
   description,
   labelPosition,
+  labelId,
+  descriptionId,
 }) => {
   let composed = knobElement;
 
@@ -60,7 +67,8 @@ export const ValueLabelLayout: React.FC<ValueLabelLayoutProps> = ({
   if (!hasLabelContent) {
     const hasOuterStyles = hasStyleEntries(spacingStyles) || hasStyleEntries(layoutStyles);
     if (hasOuterStyles) {
-      return <View style={[spacingStyles, layoutStyles]}>{composed}</View>;
+      // `fullWidth` first, so an explicit `w` wins.
+      return <View style={[layoutStyles, spacingStyles]}>{composed}</View>;
     }
     return <>{composed}</>;
   }
@@ -71,6 +79,8 @@ export const ValueLabelLayout: React.FC<ValueLabelLayoutProps> = ({
       description={description}
       size="md"
       marginBottom={labelPosition === 'top' || labelPosition === 'bottom' ? undefined : 0}
+      labelId={label != null ? labelId : undefined}
+      descriptionId={description != null ? descriptionId : undefined}
     />
   );
 

@@ -1,13 +1,17 @@
-import React from 'react';
-import { SizeValue, ColorValue, SpacingProps } from '../../core/theme/types';
+import type React from 'react';
+import type { TextStyle, ViewStyle } from 'react-native';
+import type { BaseProps } from '../../core/types/base';
+import type { ColorValue } from '../../core/theme/types';
 
-export interface BaseComponentProps extends SpacingProps {
-  /** Component test ID for testing */
-  testID?: string;
-  
-  /** Additional CSS styles */
-  style?: any;
-}
+/**
+ * Shared props of the Gauge parts: spacing, visibility, a typed `style` for the
+ * part's root element, and `testID`.
+ * @deprecated Use `BaseProps` from the package root.
+ */
+export type BaseComponentProps<S = ViewStyle> = BaseProps<S>;
+
+/** Easing of the needle animation. Unknown strings fall back to `'ease-out'`. */
+export type GaugeEasing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out';
 
 export interface GaugeRange {
   /** Starting value for the range */
@@ -16,7 +20,10 @@ export interface GaugeRange {
   to: number;
   /** Color for this range */
   color: string;
-  /** Optional label for the range */
+  /**
+   * Name of the band (`'Normal'`, `'Danger'`). While the value falls inside the
+   * band, the name is appended to the gauge's spoken value text.
+   */
   label?: string;
 }
 
@@ -35,7 +42,7 @@ export interface GaugeTicks {
   minorLength?: number;
   /** Tick color */
   color?: string;
-  /** Tick width */
+  /** Tick width (stroke thickness). Defaults to 2 for major ticks and 1 for minor ticks. */
   width?: number;
 }
 
@@ -44,7 +51,7 @@ export interface GaugeLabels {
   show?: boolean;
   /** Custom label positions */
   positions?: number[];
-  /** Label formatter function */
+  /** Label formatter function. Also formats the gauge's spoken value. */
   formatter?: (value: number) => string;
   /** Label color */
   color?: string;
@@ -54,15 +61,17 @@ export interface GaugeLabels {
   offset?: number;
 }
 
+export type GaugeNeedleShape = 'line' | 'arrow' | 'triangle';
+
 export interface GaugeNeedle {
-  /** Needle color */
+  /** Needle color. Defaults to the gauge `color`. */
   color?: string;
   /** Needle width/thickness */
   width?: number;
   /** Needle length (0-1, percentage of radius) */
   length?: number;
   /** Needle shape */
-  shape?: 'line' | 'arrow' | 'triangle';
+  shape?: GaugeNeedleShape;
   /** Whether to show center dot */
   showCenter?: boolean;
   /** Center dot color */
@@ -71,61 +80,61 @@ export interface GaugeNeedle {
   centerSize?: number;
 }
 
-export interface GaugeProps extends BaseComponentProps {
+export interface GaugeProps extends BaseProps<ViewStyle> {
   /** Current value */
   value: number;
   /** Minimum value */
   min?: number;
   /** Maximum value */
   max?: number;
-  
-  /** Gauge size */
+
+  /** Gauge size in px (non-numeric values fall back to 200). */
   size?: number | string;
   /** Track thickness */
   thickness?: number;
-  
+
   /** Start angle in degrees (0° = top) */
   startAngle?: number;
   /** End angle in degrees */
   endAngle?: number;
   /** Rotation offset in degrees (rotates entire gauge) */
   rotationOffset?: number;
-  
-  /** Main gauge color */
+
+  /** Accent color of the needle and center dot: palette token, `'primary.6'`, or any CSS color. */
   color?: ColorValue | string;
-  /** Background track color */
-  backgroundColor?: string;
-  
+  /** Track color. Defaults to the theme's `backgrounds.borderStrong`. */
+  trackColor?: string;
+
   /** Color ranges */
   ranges?: GaugeRange[];
-  
+
   /** Tick configuration */
   ticks?: GaugeTicks;
-  
+
   /** Label configuration */
   labels?: GaugeLabels;
-  
+
   /** Needle configuration */
   needle?: GaugeNeedle;
-  
-  /** Animation duration in ms */
+
+  /** Needle animation duration in ms. `0` (and reduced motion) moves the needle instantly. */
   animationDuration?: number;
-  /** Animation easing */
-  animationEasing?: string;
-  
-  /** Whether the gauge is disabled */
+  /** Needle animation easing. */
+  animationEasing?: GaugeEasing | (string & {});
+
+  /** Dims the gauge. */
   disabled?: boolean;
-  
-  /** Accessibility label */
+
+  /** Accessible name of the gauge. */
   'aria-label'?: string;
-  
+
   /** Children for compound component pattern */
   children?: React.ReactNode;
 }
 
 // Compound component props
-export interface GaugeTrackProps extends BaseComponentProps {
-  /** Track color */
+export interface GaugeTrackProps extends BaseProps<ViewStyle> {
+  /** Track color. Defaults to the gauge's `backgroundColor`, else `backgrounds.borderStrong`. */
   color?: string;
   /** Track thickness */
   thickness?: number;
@@ -133,7 +142,7 @@ export interface GaugeTrackProps extends BaseComponentProps {
   opacity?: number;
 }
 
-export interface GaugeRangeProps extends BaseComponentProps {
+export interface GaugeRangeProps extends BaseProps<ViewStyle> {
   /** Range start value */
   from: number;
   /** Range end value */
@@ -142,11 +151,9 @@ export interface GaugeRangeProps extends BaseComponentProps {
   color: string;
   /** Range thickness (inherits from parent if not specified) */
   thickness?: number;
-  /** Range label */
-  label?: string;
 }
 
-export interface GaugeTicksProps extends BaseComponentProps {
+export interface GaugeTicksProps extends BaseProps<ViewStyle> {
   /** Tick configuration */
   config?: GaugeTicks;
   /** Major tick count */
@@ -159,13 +166,13 @@ export interface GaugeTicksProps extends BaseComponentProps {
   length?: number;
   /** Tick color */
   color?: string;
-  /** Tick width */
+  /** Tick width. Defaults to 2 for major ticks and 1 for minor ticks. */
   width?: number;
   /** Tick type */
   type?: 'major' | 'minor';
 }
 
-export interface GaugeLabelsProps extends BaseComponentProps {
+export interface GaugeLabelsProps extends BaseProps<ViewStyle> {
   /** Labels configuration */
   config?: GaugeLabels;
   /** Custom positions */
@@ -174,13 +181,15 @@ export interface GaugeLabelsProps extends BaseComponentProps {
   formatter?: (value: number) => string;
   /** Label color */
   color?: string;
-  /** Font size */
+  /** Font size in px. Defaults to the theme's `sm` font size. */
   fontSize?: number;
   /** Offset from edge */
   offset?: number;
+  /** Style applied to every label text. */
+  labelStyle?: TextStyle;
 }
 
-export interface GaugeNeedleProps extends BaseComponentProps {
+export interface GaugeNeedleProps extends BaseProps<ViewStyle> {
   /** Needle value (angle will be calculated) */
   value?: number;
   /** Direct angle override */
@@ -194,12 +203,12 @@ export interface GaugeNeedleProps extends BaseComponentProps {
   /** Needle length */
   length?: number;
   /** Needle shape */
-  shape?: 'line' | 'arrow' | 'triangle';
+  shape?: GaugeNeedleShape;
   /** Animation duration */
   animationDuration?: number;
 }
 
-export interface GaugeCenterProps extends BaseComponentProps {
+export interface GaugeCenterProps extends BaseProps<ViewStyle> {
   /** Center dot color */
   color?: string;
   /** Center dot size */
@@ -217,15 +226,20 @@ export interface GaugeContextValue {
   max: number;
   size: number;
   thickness: number;
-  startAngle: number; // Keep these as original angles
-  endAngle: number;   // Keep these as original angles
+  startAngle: number; // Rotation-adjusted
+  endAngle: number;   // Rotation-adjusted
   rotationOffset: number;
   center: { x: number; y: number };
   radius: number;
   innerRadius: number;
   disabled: boolean;
+  /** Needle animation duration (already 0 under reduced motion). */
   animationDuration: number;
   animationEasing: string;
+  /** Resolved accent color (needle, center dot). */
+  color: string;
+  /** Track color from the gauge's `backgroundColor` prop, if any. */
+  trackColor?: string;
 }
 
 export interface GaugeStyleProps {

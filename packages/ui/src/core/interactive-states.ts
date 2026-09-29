@@ -1,6 +1,7 @@
-import { Platform, ViewStyle } from 'react-native';
+import { ViewStyle } from 'react-native';
 import { PlatformBlocksTheme } from './theme/types';
 import { DESIGN_TOKENS } from './design-tokens';
+import { webStyle } from './platform/webStyle';
 
 /**
  * Utilities for consistent focus, hover, and interactive states
@@ -45,7 +46,7 @@ export function createHoverStyles(
 
   return {
     opacity: DESIGN_TOKENS.opacity.hover,
-    ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
+    ...webStyle({ cursor: 'pointer' }),
   } as ViewStyle;
 }
 
@@ -81,7 +82,7 @@ export function createDisabledStyles(
     opacity: DESIGN_TOKENS.opacity.disabled,
     backgroundColor: theme.colors.gray[1],
     color: theme.text.disabled,
-    ...(Platform.OS === 'web' && { cursor: 'not-allowed' as any }),
+    ...webStyle({ cursor: 'not-allowed' }),
   } as ViewStyle;
 }
 

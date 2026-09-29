@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Platform } from 'react-native';
+
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { hasDOM } from '../../core/platform/flags';
 import { useTitleRegistryOptional } from '../useTitleRegistration/contexts/TitleRegistryContext';
 
 export interface ScrollSpyOptions {
@@ -9,7 +11,11 @@ export interface ScrollSpyOptions {
   rootMargin?: string;
   /** Container to search for headings */
   container?: string | HTMLElement;
-  /** Function to get heading depth, defaults to h1=1, h2=2, etc. */
+  /**
+   * Function to get heading depth, defaults to h1=1, h2=2, etc. Accessors may
+   * be inline functions: the latest one is used on the next collection, and a
+   * new identity alone doesn't trigger one (call `reinitialize()` for that).
+   */
   getDepth?: (el: Element) => number;
   /** Function to get text value from element, defaults to textContent */
   getValue?: (el: Element) => string;
@@ -26,7 +32,7 @@ export interface TocItem {
   value: string;
   /** Heading depth, e.g. 1 for h1, 2 for h2, etc. */
   depth: number;
-  /** Function to get the underlying DOM node, if available */
+  /** Function to get the underlying DOM node, if available (web only) */
   getNode?: () => HTMLElement | null;
 }
 
@@ -42,165 +48,164 @@ export interface UseScrollSpyReturn {
 }
 
 const DEFAULT_SELECTOR = 'h1, h2, h3, h4, h5, h6';
+const DEFAULT_ROOT_MARGIN = '0px 0px -60% 0px';
 
+const defaultGetDepth = (el: Element): number => {
+  const match = el.tagName.toLowerCase().match(/h([1-6])/);
+  return match ? parseInt(match[1], 10) : 1;
+};
+const defaultGetValue = (el: Element): string => (el.textContent || '').trim();
+
+const asHTMLElement = (node: unknown): HTMLElement | null =>
+  hasDOM && node instanceof HTMLElement ? node : null;
+
+const resolveContainer = (container: ScrollSpyOptions['container']): ParentNode => {
+  if (!container) return document;
+  if (typeof container !== 'string') return container;
+  // A comma-separated list is tried in order; the first match wins.
+  for (const selector of container.split(',').map((s) => s.trim())) {
+    if (!selector) continue;
+    try {
+      const element = document.querySelector(selector);
+      if (element) return element;
+    } catch {
+      // Invalid selector: try the next one.
+    }
+  }
+  return document;
+};
+
+const sameItems = (a: TocItem[], b: TocItem[]): boolean =>
+  a.length === b.length &&
+  a.every(
+    (item, index) =>
+      item.id === b[index].id &&
+      item.value === b[index].value &&
+      item.depth === b[index].depth &&
+      item.getNode?.() === b[index].getNode?.()
+  );
+
+/**
+ * Collects headings (from the `TitleRegistryProvider` registry and, on web, the
+ * DOM) and tracks which one is currently in view.
+ *
+ * @example
+ * const { items, activeId } = useScrollSpy({ container: 'main' });
+ */
 export function useScrollSpy(options?: ScrollSpyOptions, initialData: TocItem[] = []): UseScrollSpyReturn {
   const [items, setItems] = useState<TocItem[]>(initialData);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
   const visibilityMap = useRef<Map<string, number>>(new Map());
-  const titleRegistry = useTitleRegistryOptional();
+  const titles = useTitleRegistryOptional()?.titles;
 
-  // Memoize options to prevent infinite re-renders
-  const stableOptions = useMemo(() => options, [
-    options?.selector,
-    options?.container,
-    options?.rootMargin,
-    options?.getDepth,
-    options?.getValue,
-    options?.getId,
-    options?.disableAutoUpdate,
-  ]);
+  const selector = options?.selector || DEFAULT_SELECTOR;
+  const container = options?.container;
+  const rootMargin = options?.rootMargin || DEFAULT_ROOT_MARGIN;
+  const disableAutoUpdate = !!options?.disableAutoUpdate;
+  const getDepth = useLatestCallback(options?.getDepth);
+  const getValue = useLatestCallback(options?.getValue);
+  const getId = useLatestCallback(options?.getId);
 
   const collectHeadings = useCallback(() => {
     let collectedItems: TocItem[] = [];
 
-    // Collect from Title registry if available (React Native or web with Title components)
-    if (titleRegistry && titleRegistry.titles.length > 0) {
-      collectedItems = titleRegistry.titles.map(title => ({
+    // Title registry first (native, or web pages built from Title components).
+    if (titles && titles.length > 0) {
+      collectedItems = titles.map((title) => ({
         id: title.id,
         value: title.text,
         depth: title.order,
-        getNode: () => title.ref?.current || null,
+        getNode: () => asHTMLElement(title.ref?.current),
       }));
     }
 
-    // On web, also collect from DOM headings if no Title registry or as fallback
-    if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      const sel = stableOptions?.selector || DEFAULT_SELECTOR;
-
-      // Determine the container to search within
-      let container: HTMLElement | Document = document;
-      if (stableOptions?.container) {
-        if (typeof stableOptions.container === 'string') {
-          // Try multiple selectors if provided as a comma-separated list
-          const selectors = stableOptions.container.split(',').map(s => s.trim());
-          for (const selector of selectors) {
-            const containerEl = document.querySelector(selector);
-            if (containerEl) {
-              container = containerEl as HTMLElement;
-              break;
-            }
-          }
-        } else {
-          container = stableOptions.container;
-        }
-      }
-
-      const nodeList = container.querySelectorAll(sel);
-      const getDepth = stableOptions?.getDepth || ((el: Element) => {
-        const tag = el.tagName.toLowerCase();
-        const match = tag.match(/h([1-6])/);
-        return match ? parseInt(match[1], 10) : 1;
-      });
-      const getValue = stableOptions?.getValue || ((el: Element) => (el.textContent || '').trim());
-      const getId = stableOptions?.getId || ((el: Element) => (el.getAttribute('id') || getValue(el).toLowerCase().replace(/\s+/g, '-')));
-
-      const domItems: TocItem[] = Array.from(nodeList).map(el => ({
-        id: getId(el),
-        value: getValue(el),
-        depth: getDepth(el),
-        getNode: () => el as HTMLElement
+    // Web: DOM headings too.
+    if (hasDOM) {
+      const valueOf = (el: Element) => getValue(el) ?? defaultGetValue(el);
+      const domItems: TocItem[] = Array.from(resolveContainer(container).querySelectorAll(selector)).map((el) => ({
+        id: getId(el) ?? (el.getAttribute('id') || valueOf(el).toLowerCase().replace(/\s+/g, '-')),
+        value: valueOf(el),
+        depth: getDepth(el) ?? defaultGetDepth(el),
+        getNode: () => asHTMLElement(el),
       }));
-
-      // Merge with Title registry items, preferring Title registry for duplicates
       collectedItems = [...collectedItems, ...domItems];
     }
 
-    // Ids are used as React keys and to look up elements, so keep the first
-    // occurrence of each id (registry items win over DOM headings, and repeated
-    // heading text on a page collapses to a single entry).
+    // Ids are React keys and element lookups: keep the first occurrence of each
+    // (registry items win over DOM headings; repeated heading text collapses).
     const seenIds = new Set<string>();
-    collectedItems = collectedItems.filter(item => {
+    collectedItems = collectedItems.filter((item) => {
       if (seenIds.has(item.id)) return false;
       seenIds.add(item.id);
       return true;
     });
 
-    setItems(collectedItems);
+    setItems((previous) => (sameItems(previous, collectedItems) ? previous : collectedItems));
 
-    // Set IDs on DOM elements if they don't have them (web only)
-    if (Platform.OS === 'web') {
-      collectedItems.forEach(item => {
+    // Give DOM headings without an id the one we generated, so links can target them.
+    if (hasDOM) {
+      collectedItems.forEach((item) => {
         const el = item.getNode?.();
         if (el && !el.id) el.id = item.id;
       });
     }
-  }, [stableOptions, titleRegistry]);
+  }, [titles, container, selector, getDepth, getValue, getId]);
 
-  // Initialize
+  // A new container: the active heading and visibility belong to the old one.
+  useEffect(() => {
+    setActiveId(null);
+    visibilityMap.current.clear();
+  }, [container]);
+
+  // Collect now, and again shortly after in case the headings render after this effect.
   useEffect(() => {
     collectHeadings();
+    const timeoutId = setTimeout(collectHeadings, 50);
+    return () => clearTimeout(timeoutId);
   }, [collectHeadings]);
 
-  // Clear items immediately when container changes to prevent stale data
+  // Track the heading nearest the top of the viewport (web).
   useEffect(() => {
-    setItems([]);
-    setActiveId(null);
-    // Small delay before re-collecting to ensure DOM is updated
-    const timeoutId = setTimeout(() => {
-      collectHeadings();
-    }, 50);
-    return () => clearTimeout(timeoutId);
-  }, [stableOptions?.container, collectHeadings]);
+    if (!hasDOM || typeof IntersectionObserver === 'undefined') return undefined;
+    if (!items.length) return undefined;
+    const visible = visibilityMap.current;
 
-  // Re-collect when Title registry changes
-  useEffect(() => {
-    if (titleRegistry) {
-      collectHeadings();
-    }
-  }, [titleRegistry?.titles, collectHeadings]);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (disableAutoUpdate) return;
 
-  // Observer logic
-  useEffect(() => {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
-    if (!items.length) return;
-    if (observerRef.current) observerRef.current.disconnect();
-    const rootMargin = stableOptions?.rootMargin || '0px 0px -60% 0px';
-    observerRef.current = new IntersectionObserver((entries) => {
-      // Skip automatic updates if disabled
-      if (stableOptions?.disableAutoUpdate) {
-        // Uncomment for debugging: console.log('ScrollSpy disabled during programmatic scroll');
-        return;
-      }
-
-      entries.forEach(entry => {
-        const id = (entry.target as HTMLElement).id;
-        if (!id) return;
-        if (entry.isIntersecting) visibilityMap.current.set(id, entry.boundingClientRect.top);
-        else visibilityMap.current.delete(id);
-      });
-      if (visibilityMap.current.size) {
-        interface Candidate { id: string; top: number }
-        let candidate: Candidate | null = null as Candidate | null;
-        visibilityMap.current.forEach((top, id) => {
-          if (candidate == null) candidate = { id, top };
-          else {
-            const cur = candidate.top;
-            if (top >= 0 && (cur < 0 || top < cur)) candidate = { id, top };
-            else if (top < 0 && cur < 0 && top > cur) candidate = { id, top };
-          }
+        entries.forEach((entry) => {
+          const id = (entry.target as HTMLElement).id;
+          if (!id) return;
+          if (entry.isIntersecting) visible.set(id, entry.boundingClientRect.top);
+          else visible.delete(id);
         });
-        if (candidate && candidate.id !== activeId) setActiveId(candidate.id);
-      }
-    }, { rootMargin, threshold: [0, 1] });
-    items.forEach(it => {
-      const el = it.getNode?.();
-      if (el) observerRef.current?.observe(el);
-    });
-    return () => observerRef.current?.disconnect();
-  }, [items, stableOptions?.rootMargin, stableOptions?.disableAutoUpdate, activeId]);
 
-  return { items, activeId, setActiveId, reinitialize: collectHeadings };
+        // Prefer the visible heading closest below the top edge; otherwise the
+        // one that scrolled past it most recently.
+        let candidate: { id: string; top: number } | null = null;
+        for (const [id, top] of Array.from(visible.entries())) {
+          if (candidate == null) candidate = { id, top };
+          else if (top >= 0 && (candidate.top < 0 || top < candidate.top)) candidate = { id, top };
+          else if (top < 0 && candidate.top < 0 && top > candidate.top) candidate = { id, top };
+        }
+        // setState bails out when the id is unchanged.
+        if (candidate) setActiveId(candidate.id);
+      },
+      { rootMargin, threshold: [0, 1] }
+    );
+
+    items.forEach((item) => {
+      const el = item.getNode?.();
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [items, rootMargin, disableAutoUpdate]);
+
+  return useMemo(
+    () => ({ items, activeId, setActiveId, reinitialize: collectHeadings }),
+    [items, activeId, collectHeadings]
+  );
 }
 
 export type { TocItem as UseScrollSpyItem };

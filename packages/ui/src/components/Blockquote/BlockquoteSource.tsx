@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Pressable, Linking } from 'react-native';
-import { useTheme } from '../../core/theme';
+import { Linking, Pressable } from 'react-native';
+import { useTheme } from '../../core/theme/ThemeProvider';
 import { Text } from '../Text';
 import { Icon } from '../Icon';
 import { BrandIcon } from '../BrandIcon';
@@ -15,7 +15,7 @@ export function BlockquoteSource({
 
   const handlePress = () => {
     if (source.url) {
-      Linking.openURL(source.url);
+      Linking.openURL(source.url).catch(() => {});
     }
   };
 
@@ -35,6 +35,7 @@ export function BlockquoteSource({
         <BrandIcon
           brand={source.brand}
           size="sm"
+          decorative
         />
       )}
 
@@ -43,14 +44,15 @@ export function BlockquoteSource({
         <Icon
           name={source.icon}
           size="sm"
-          color={theme.colors.gray[5]}
+          color={theme.text.muted}
+          decorative
         />
       )}
 
       {/* Source Name */}
       <Text 
         size="xs"
-        color="secondary"
+        c="secondary"
         style={{ 
           textAlign: alignment,
           ...(source.url && { textDecorationLine: 'underline' })
@@ -63,7 +65,7 @@ export function BlockquoteSource({
 
   if (source.url) {
     return (
-      <Pressable onPress={handlePress}>
+      <Pressable onPress={handlePress} role="link" aria-label={source.name}>
         {content}
       </Pressable>
     );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Text, Button, Card, Flex, Loader, Tabs, Markdown, useI18n, TableOfContents, Link, Block, useBreakpoint } from '@platform-blocks/ui';
+import { Text, Badge, Button, Card, Flex, Loader, Tabs, Markdown, useI18n, TableOfContents, Link, Block, useBreakpoint } from '@platform-blocks/ui';
 import { GlobalChartsRoot } from '@platform-blocks/charts';
 import { useBrowserTitle, formatPageTitle } from '../hooks/useBrowserTitle';
 import { useFragmentScroll } from '../hooks/useFragmentScroll';
@@ -139,7 +139,7 @@ const ComponentContent = React.memo(function ComponentContent({
   // Fragment id per demo, so every example heading is its own permalink.
   const demoAnchors = React.useMemo(() => buildDemoAnchors(effectiveDemos), [effectiveDemos]);
 
-  const tabItems: Array<{ key: string; label: string; content: React.ReactNode; subLabel?: string }> = [];
+  const tabItems: Array<{ key: string; label: string; content: React.ReactNode; subLabel?: React.ReactNode }> = [];
   const resourceLinks = Array.isArray(newMeta?.resources)
     ? (newMeta?.resources as Array<{ label?: string; href?: string }>).filter((entry) => typeof entry?.href === 'string')
     : [];
@@ -147,7 +147,7 @@ const ComponentContent = React.memo(function ComponentContent({
   tabItems.push({
     key: 'demos',
     label: 'Examples',
-    subLabel: hasDemos ? `(${effectiveDemos.length})` : undefined,
+    subLabel: hasDemos ? <Badge size="xs" variant="light" color="gray">{effectiveDemos.length}</Badge> : undefined,
     content: hasDemos ? (
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={{ gap: 24 }}>
@@ -175,7 +175,7 @@ const ComponentContent = React.memo(function ComponentContent({
                   });
                 }
                 preview = (
-                  <Text variant="p" color="error">
+                  <Text variant="p" c="error">
                     Demo "{demo.id}" failed: not a component export.
                   </Text>
                 );
@@ -198,7 +198,7 @@ const ComponentContent = React.memo(function ComponentContent({
                   // eslint-disable-next-line no-console
                   console.error('[DemoLoader] Error rendering demo', demo.id, err);
                   preview = (
-                    <Text variant="p" color="error">
+                    <Text variant="p" c="error">
                       Demo "{demo.id}" threw during render.
                     </Text>
                   );
@@ -208,7 +208,7 @@ const ComponentContent = React.memo(function ComponentContent({
               preview = (
                 <Flex direction="row" align="center" gap={8}>
                   <Loader size="sm" />
-                  <Text variant="p" color="muted">Loading demo…</Text>
+                  <Text variant="p" c="muted">Loading demo…</Text>
                 </Flex>
               );
             }
@@ -235,7 +235,7 @@ const ComponentContent = React.memo(function ComponentContent({
   tabItems.push({
     key: 'props',
     label: 'Properties',
-    subLabel: hasProps ? `(${componentProps.length})` : undefined,
+    subLabel: hasProps ? <Badge size="xs" variant="light" color="gray">{componentProps.length}</Badge> : undefined,
     content: hasProps ? <PropTable props={componentProps} /> : (
       <Card style={{ padding: 32, alignItems: 'center' }}>
         <Text style={{ fontSize: 16, color: '#666', textAlign: 'center' }}>No documented props yet.</Text>
@@ -306,7 +306,7 @@ const ComponentContent = React.memo(function ComponentContent({
           key={`tabs-${component}`}
           variant="line"
           items={tabItems}
-          onTabChange={onTabChange}
+          onChange={onTabChange}
           style={styles.tabsColumn}
           // Tab panels carry the page's own gutter, not a second one of their
           // own: demo cards and running text align to the same left edge as the
@@ -331,7 +331,7 @@ const ComponentContent = React.memo(function ComponentContent({
 
       {resourceLinks.length > 0 && (
         <Card style={{ padding: 20, marginTop: 24, gap: 12 }}>
-          <Text variant="h2" weight="semibold">Further reading</Text>
+          <Text variant="h2" fw="semibold">Further reading</Text>
           <Flex direction="column" gap={10}>
             {resourceLinks.map((resource) => (
               <Link

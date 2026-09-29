@@ -6,7 +6,7 @@ export function Demo() {
 	return (
 		<SankeyChart
 			title="Renewable energy flow"
-			height={360}
+			h={360}
 			nodes={NODES}
 			links={LINKS}
 		/>

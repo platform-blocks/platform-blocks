@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Pressable } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 
 import { QRCode } from '../QRCode';
@@ -22,7 +22,7 @@ jest.mock('../../CopyButton/CopyButton', () => ({
 
 const mockCopy = jest.fn();
 
-jest.mock('../../../hooks', () => ({
+jest.mock('../../../hooks/useClipboard', () => ({
   useClipboard: () => ({
     copy: mockCopy,
   }),
@@ -48,7 +48,7 @@ describe('QRCode component', () => {
         value="hello-world"
         size={240}
         color="#123456"
-        backgroundColor="#ffffff"
+        bg="#ffffff"
         errorCorrectionLevel="H"
         quietZone={6}
         testID="qr-test"
@@ -60,11 +60,44 @@ describe('QRCode component', () => {
         value: 'hello-world',
         size: 240,
         color: '#123456',
-        backgroundColor: '#ffffff',
+        bg: '#ffffff',
         errorCorrectionLevel: 'H',
         quietZone: 6,
-        testID: 'qr-test',
+        testID: 'qr-test-code',
       })
+    );
+  });
+
+  it('puts testID, spacing, style and the ref on the root view', () => {
+    const ref = React.createRef<View>();
+    const { getByTestId } = render(
+      <QRCode ref={ref} value="root" testID="qr" mt={12} style={{ opacity: 0.5 }} />
+    );
+    const root = getByTestId('qr');
+    expect(ref.current).not.toBeNull();
+    const flat = StyleSheet.flatten(root.props.style);
+    expect(flat.marginTop).toBe(12);
+    expect(flat.opacity).toBe(0.5);
+  });
+
+  it('sizes the root view with the box props; an explicit `w` wins over `fullWidth`', () => {
+    const { getByTestId } = render(<QRCode value="root" testID="qr" fullWidth w={180} h={220} />);
+    expect(StyleSheet.flatten(getByTestId('qr').props.style)).toMatchObject({ width: 180, height: 220 });
+    // …and only there: the code inside keeps its own size.
+    expect(mockQRCodeSVG.mock.lastCall?.[0].w).toBeUndefined();
+  });
+
+  it('paints `bg` on the code, not the root view', () => {
+    const { getByTestId } = render(<QRCode value="root" testID="qr" bg="#fef3c7" />);
+    expect(StyleSheet.flatten(getByTestId('qr').props.style).backgroundColor).toBeUndefined();
+    expect(mockQRCodeSVG.mock.lastCall?.[0].bg).toBe('#fef3c7');
+  });
+
+  it('defaults the accessible name to a summary of the value', () => {
+    render(<QRCode value="https://example.com/tickets" />);
+
+    expect(mockQRCodeSVG).toHaveBeenCalledWith(
+      expect.objectContaining({ accessibilityLabel: 'QR code: https://example.com/tickets' })
     );
   });
 
@@ -149,6 +182,7 @@ describe('QRCode component', () => {
     );
 
     const [pressable] = getAllByLabelText('Scan QR');
+    expect(pressable.props.role).toBe('button');
     fireEvent.press(pressable);
 
     await waitFor(() => {
@@ -191,7 +225,7 @@ describe('QRCode component', () => {
     const longValue = 'x'.repeat(80);
     const { getAllByLabelText } = render(<QRCode value={longValue} copyOnPress />);
 
-    const [pressable] = getAllByLabelText('QR code');
+    const [pressable] = getAllByLabelText(/^QR code: x+…$/);
     fireEvent.press(pressable);
 
     await waitFor(() => {

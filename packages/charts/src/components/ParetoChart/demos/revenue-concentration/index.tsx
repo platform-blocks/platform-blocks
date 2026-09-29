@@ -7,7 +7,7 @@ export function Demo() {
     <ParetoChart
       title="Annual revenue concentration"
       subtitle="Top enterprise accounts"
-      height={460}
+      h={460}
       data={ACCOUNT_REVENUE}
       valueSeriesLabel="ARR"
       cumulativeSeriesLabel="Cumulative revenue"

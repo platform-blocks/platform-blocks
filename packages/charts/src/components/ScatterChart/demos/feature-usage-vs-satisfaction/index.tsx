@@ -7,7 +7,7 @@ export function Demo() {
     <ScatterChart
       title="Feature usage vs. satisfaction"
       subtitle="Weekly feature interactions mapped to CSAT by cohort"
-      height={360}
+      h={360}
       data={SERIES.flatMap((serie) => serie.data)}
       series={SERIES}
       pointOpacity={0.85}

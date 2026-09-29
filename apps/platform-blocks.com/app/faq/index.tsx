@@ -16,7 +16,7 @@ const FAQ_DATA = [{
   id: 1,
   key: 'expo-compatibility',
   title: 'Is Platform Blocks compatible with Expo?',
-  content: <P>Yes! Platform Blocks is fully compatible with <Text variant="p" color="link" onPress={() => Linking.openURL('https://expo.dev')}>Expo</Text> and works out of the box. All components are designed to work in the Expo environment without requiring any native code modifications.</P>
+  content: <P>Yes! Platform Blocks is fully compatible with <Text variant="p" c="link" onPress={() => Linking.openURL('https://expo.dev')}>Expo</Text> and works out of the box. All components are designed to work in the Expo environment without requiring any native code modifications.</P>
 }, {
   id: 2,
   key: 'does-support',
@@ -31,7 +31,7 @@ const FAQ_DATA = [{
   id: 7,
   key: 'can-use-custom-fonts',
   title: 'Can I use custom fonts?',
-  content: <Flex><Text>Yes, you can configure <Text fontFamily="cursive">custom fonts</Text> through the theme system. Platform Blocks's typography system allows you to specify custom font families for different text variants.</Text></Flex>
+  content: <Flex><Text>Yes, you can configure <Text ff="cursive">custom fonts</Text> through the theme system. Platform Blocks's typography system allows you to specify custom font families for different text variants.</Text></Flex>
 }, {
   id: 8,
   key: 'how-report-bugs',

@@ -1,9 +1,14 @@
+import type React from 'react';
+
 import type {
+  AggregateType,
   ColumnDataType,
   DataTableColumn,
   DataTableFilter,
   DataTableProps,
+  DataTableRowFeatures,
   DataTableSort,
+  DataTableValue,
   FilterType,
 } from './types';
 
@@ -13,14 +18,14 @@ import type {
  * unit-tested and reused by the sub-components without dragging the table in.
  */
 
-export const getValue = <T,>(row: T, accessor: keyof T | ((row: T) => any)): any => {
+export const getValue = <T,>(row: T, accessor: keyof T | ((row: T) => DataTableValue)): DataTableValue => {
   if (typeof accessor === 'function') {
     return accessor(row);
   }
   return row[accessor];
 };
 
-export const formatValue = (value: any, dataType: ColumnDataType = 'text'): string => {
+export const formatValue = (value: DataTableValue, dataType: ColumnDataType = 'text'): string => {
   if (value === null || value === undefined) return '';
   
   switch (dataType) {
@@ -46,7 +51,7 @@ export const isNumericType = (dataType?: ColumnDataType): boolean =>
 // aggregates coerce values to numbers and ignore null/undefined; `count` is the
 // row count; a function receives the rows directly.
 export const computeAggregate = <T,>(
-  agg: import('./types').AggregateType<T>,
+  agg: AggregateType<T>,
   rows: T[],
   column: DataTableColumn<T>
 ): number | string => {
@@ -132,7 +137,7 @@ export const sortData = <T,>(data: T[], sortBy: DataTableSort[], columns: DataTa
 // null when the value cannot be parsed as a date. Plain date-only strings are
 // parsed literally to avoid the UTC-midnight shift `new Date('YYYY-MM-DD')`
 // introduces in negative-offset timezones.
-export const toDayKey = (value: any): number | null => {
+export const toDayKey = (value: unknown): number | null => {
   const fromDate = (d: Date) =>
     isNaN(d.getTime())
       ? null
@@ -160,7 +165,7 @@ export const filterData = <T,>(
   // Apply column filters
   if (filters.length > 0) {
     filteredData = filteredData.filter((row, idx) => {
-      const rowFeatures = rowFeatureToggle?.(row, idx) || {} as any;
+      const rowFeatures: DataTableRowFeatures = rowFeatureToggle?.(row, idx) || {};
       // If row is marked non-filterable, always keep it
       if (rowFeatures.filterable === false) return true;
       return filters.every(filter => {
@@ -229,7 +234,7 @@ export const filterData = <T,>(
   if (searchValue && searchValue.trim()) {
     const searchTerm = searchValue.toLowerCase().trim();
     filteredData = filteredData.filter((row, idx) => {
-      const rowFeatures = rowFeatureToggle?.(row, idx) || {} as any;
+      const rowFeatures: DataTableRowFeatures = rowFeatureToggle?.(row, idx) || {};
       if (rowFeatures.searchable === false) return true; // keep regardless of search
       return columns.some(column => {
         const value = getValue(row, column.accessor);
@@ -239,4 +244,48 @@ export const filterData = <T,>(
   }
 
   return filteredData;
+};
+
+/**
+ * Format an aggregate for a column: honor a per-column formatter, else use the
+ * column's dataType (rounding averages to 2 dp), else the raw value.
+ */
+export const formatAggregate = <T,>(column: DataTableColumn<T>, value: number | string): React.ReactNode => {
+  if (value === '' || value === null || value === undefined) return null;
+  if (column.aggregateFormat) return column.aggregateFormat(value);
+  if (typeof value === 'number' && column.aggregate === 'count') return String(value);
+  if (typeof value === 'number') {
+    const rounded = column.aggregate === 'avg' ? Math.round(value * 100) / 100 : value;
+    return formatValue(rounded, column.dataType);
+  }
+  return String(value);
+};
+
+/** RFC-4180 field escaping: quote when the value holds a comma, quote or newline. */
+const escapeCsvField = (value: unknown): string => {
+  const text = value == null ? '' : String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
+/**
+ * Build a CSV document (CRLF line endings) for `rows` using `columns`: a header
+ * line from each column's string header (or key), then one formatted line per row.
+ */
+export const buildCsv = <T,>(rows: T[], columns: DataTableColumn<T>[]): string => {
+  const headerLine = columns.map((c) => escapeCsvField(typeof c.header === 'string' ? c.header : c.key)).join(',');
+  const bodyLines = rows.map((row) =>
+    columns.map((c) => escapeCsvField(formatValue(getValue(row, c.accessor), c.dataType))).join(',')
+  );
+  return [headerLine, ...bodyLines].join('\r\n');
+};
+
+/**
+ * The sort state after activating `columnKey`'s header: none → asc → desc →
+ * none. The column moves to the front (primary sort); other sorts are kept.
+ */
+export const nextSort = (sortBy: DataTableSort[], columnKey: string): DataTableSort[] => {
+  const current = sortBy.find((s) => s.column === columnKey)?.direction;
+  const direction = current === 'asc' ? 'desc' : current === 'desc' ? null : 'asc';
+  const rest = sortBy.filter((s) => s.column !== columnKey);
+  return direction ? [{ column: columnKey, direction }, ...rest] : rest;
 };

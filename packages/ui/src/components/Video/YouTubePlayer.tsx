@@ -1,17 +1,67 @@
 import React, { forwardRef, useImperativeHandle, useRef, useEffect, useState, useCallback, useMemo } from 'react';
-import { View, StyleSheet, ImageStyle, StyleProp, Platform } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import type { ImageStyle, StyleProp, ViewStyle } from 'react-native';
+
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { hasDOM, isWeb } from '../../core/platform';
+import { devWarn } from '../../core/utils/logger';
+import { resolveOptionalModule } from '../../utils/optionalModule';
 import { Image } from '../Image';
 import { Text } from '../Text';
-import { resolveOptionalModule } from '../../utils/optionalModule';
-import type { VideoSource, VideoPlaybackRate, VideoQuality } from './types';
+import type { VideoSource, VideoPlaybackRate, VideoQuality, VideoPlayerHandle } from './types';
+
+/** The react-native-webview surface this player uses. */
+interface WebViewHandle {
+  postMessage(message: string): void;
+  injectJavaScript(script: string): void;
+}
+interface WebViewMessageEvent {
+  nativeEvent: { data: string };
+}
+interface WebViewProps {
+  source: { uri: string };
+  style?: StyleProp<ViewStyle>;
+  javaScriptEnabled?: boolean;
+  domStorageEnabled?: boolean;
+  startInLoadingState?: boolean;
+  onMessage?: (event: WebViewMessageEvent) => void;
+  onLoadStart?: () => void;
+  onError?: () => void;
+  allowsInlineMediaPlayback?: boolean;
+  mediaPlaybackRequiresUserAction?: boolean;
+  allowsFullscreenVideo?: boolean;
+  accessibilityLabel?: string;
+}
+type WebViewComponent = React.ComponentType<WebViewProps & React.RefAttributes<WebViewHandle>>;
 
 // Platform-specific imports
-const WebView = Platform.OS !== 'web'
-  ? resolveOptionalModule<any>('react-native-webview', {
-      accessor: module => module.WebView,
+const WebView = !isWeb
+  ? resolveOptionalModule<WebViewComponent>('react-native-webview', {
+      accessor: (module: { WebView?: WebViewComponent } | null | undefined) => module?.WebView,
       devWarning: 'react-native-webview not found. YouTube videos will only work on web platform.',
     })
   : null;
+
+/** A message from the hosted player page: an iframe `MessageEvent` or a WebView message. */
+type PlayerMessage = { data?: unknown; nativeEvent?: { data?: unknown } };
+
+interface PlayerEventData {
+  state?: number;
+  currentTime?: number;
+  duration?: number;
+  volume?: number;
+  muted?: boolean;
+  playing?: boolean;
+  quality?: VideoQuality;
+}
+
+interface PlayerEvent {
+  eventType?: string;
+  data?: PlayerEventData | number | string;
+}
+
+const eventData = (data: PlayerEvent['data']): PlayerEventData =>
+  data && typeof data === 'object' ? data : {};
 
 interface YouTubePlayerProps {
   source: VideoSource;
@@ -42,18 +92,24 @@ interface YouTubePlayerProps {
   onLoad?: () => void;
   onLoadStart?: () => void;
   onBuffer?: (buffering: boolean) => void;
+  onQualityChange?: (quality: VideoQuality) => void;
+  onFullscreenChange?: (fullscreen: boolean) => void;
   style?: StyleProp<ImageStyle>;
   accessibilityLabel?: string;
 }
 
-interface YouTubePlayerRef {
-  play: () => void;
-  pause: () => void;
-  seek: (time: number) => void;
-  setVolume: (volume: number) => void;
-  setPlaybackRate: (rate: VideoPlaybackRate) => void;
-  toggleFullscreen: () => void;
-  getVideoElement: () => HTMLVideoElement | null;
+/** The player handle plus YouTube-only extras (state polling snapshot, mute helpers). */
+interface YouTubePlayerRef extends VideoPlayerHandle {
+  mute: () => void;
+  unmute: () => void;
+  getState: () => {
+    currentTime: number;
+    duration: number;
+    playing: boolean;
+    muted: boolean;
+    volume: number;
+    loaded: boolean;
+  };
 }
 
 // Helper function to extract YouTube video ID from various URL formats
@@ -82,7 +138,7 @@ const extractYouTubeId = (input: string): string | null => {
 // `playerBaseUrl` prop (e.g. to self-host instead of depending on this domain).
 const DEFAULT_PLAYER_BASE_URL = 'https://joshstovall.github.io/yt/test.html';
 
-export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
+export const YouTubePlayer = forwardRef<VideoPlayerHandle, YouTubePlayerProps>(({
   source,
   poster,
   autoPlay = false,
@@ -104,6 +160,8 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
   onLoad,
   onLoadStart,
   onBuffer,
+  onQualityChange,
+  onFullscreenChange,
   style,
   accessibilityLabel,
 }, ref) => {
@@ -121,40 +179,31 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
   const currentVolumeRef = useRef(volume);
   const isMutedRef = useRef(muted);
 
-  const webViewRef = useRef<any>(null);
+  const webViewRef = useRef<WebViewHandle | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isFullscreenRef = useRef(false);
 
   // Refs for polling to avoid dependency issues
   const isPlayingRef = useRef(isPlaying);
   const isLoadedRef = useRef(isLoaded);
-
-  // Refs for callbacks so the message handler can stay referentially stable
-  // (deps: []) regardless of parents passing fresh inline callbacks each render.
-  const onPlayRef = useRef(onPlay);
-  const onPauseRef = useRef(onPause);
-  const onTimeUpdateRef = useRef(onTimeUpdate);
-  const onDurationChangeRef = useRef(onDurationChange);
-  const onVolumeChangeRef = useRef(onVolumeChange);
-  const onMuteRef = useRef(onMute);
-  const onUnmuteRef = useRef(onUnmute);
-  const onLoadRef = useRef(onLoad);
-  const onErrorRef = useRef(onError);
-  const onBufferRef = useRef(onBuffer);
-
-  // Update refs when props change
   isPlayingRef.current = isPlaying;
   isLoadedRef.current = isLoaded;
-  onPlayRef.current = onPlay;
-  onPauseRef.current = onPause;
-  onTimeUpdateRef.current = onTimeUpdate;
-  onDurationChangeRef.current = onDurationChange;
-  onVolumeChangeRef.current = onVolumeChange;
-  onMuteRef.current = onMute;
-  onUnmuteRef.current = onUnmute;
-  onLoadRef.current = onLoad;
-  onErrorRef.current = onError;
-  onBufferRef.current = onBuffer;
+
+  // The message handler stays referentially stable regardless of parents
+  // passing fresh inline callbacks: it calls the latest ones.
+  const emitPlay = useLatestCallback(onPlay);
+  const emitPause = useLatestCallback(onPause);
+  const emitTimeUpdate = useLatestCallback(onTimeUpdate);
+  const emitDurationChange = useLatestCallback(onDurationChange);
+  const emitVolumeChange = useLatestCallback(onVolumeChange);
+  const emitMute = useLatestCallback(onMute);
+  const emitUnmute = useLatestCallback(onUnmute);
+  const emitLoad = useLatestCallback(onLoad);
+  const emitError = useLatestCallback(onError);
+  const emitBuffer = useLatestCallback(onBuffer);
+  const emitQualityChange = useLatestCallback(onQualityChange);
+  const emitFullscreenChange = useLatestCallback(onFullscreenChange);
 
   // Extract YouTube video ID
   const videoId = useMemo(() =>
@@ -191,11 +240,11 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
   const hasValidSource = Boolean(videoId && youtubeUrl);
   useEffect(() => {
     if (hasValidSource) return;
-    onError?.('Invalid YouTube video ID or URL');
-  }, [hasValidSource, onError]);
+    emitError('Invalid YouTube video ID or URL');
+  }, [hasValidSource, emitError]);
 
   const invalidSourceContent = (
-    <View style={[styles.container, style]} accessibilityLabel={accessibilityLabel}>
+    <View style={[styles.container, style]} role="alert">
       <View style={styles.errorOverlay}>
         <Text style={styles.errorText}>Invalid YouTube URL</Text>
         <Text style={styles.errorSubtext}>Please provide a valid YouTube video ID or URL.</Text>
@@ -205,7 +254,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
 
   // Polling functions to get real-time state
   const requestPlayerState = useCallback(() => {
-    if (Platform.OS === 'web' && iframeRef.current?.contentWindow) {
+    if (isWeb && iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(JSON.stringify({ eventName: 'getPlayerState' }), '*');
     } else if (webViewRef.current) {
       webViewRef.current.postMessage(JSON.stringify({ eventName: 'getPlayerState' }));
@@ -231,10 +280,10 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
     }
   }, []);
 
-  // Start polling when loaded, adjust interval based on playing state
+  // Start polling when loaded; restart when `isPlaying` flips so the interval
+  // follows it (250ms playing, 1s paused). Both helpers are stable.
   useEffect(() => {
     if (isLoaded) {
-      // Restart polling to adjust interval based on playing state
       stopPolling();
       startPolling();
     } else {
@@ -242,121 +291,106 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
     }
 
     return stopPolling;
-  }, [isPlaying, isLoaded]); // Removed startPolling and stopPolling from dependencies
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopPolling();
-    };
-  }, []); // Removed stopPolling from dependencies
+  }, [isPlaying, isLoaded, startPolling, stopPolling]);
 
   // Handle messages from WebView/iframe
-  const handleWebViewMessage = useCallback((event: any) => {
+  const handleWebViewMessage = useCallback((event: PlayerMessage) => {
     try {
-      // Handle both string and object data
-      let data;
-      const rawData = event.nativeEvent?.data || event.data;
-
+      // WebView sends string data that needs parsing; the web iframe may send objects.
+      const rawData = event.nativeEvent?.data ?? event.data;
+      let data: PlayerEvent;
       if (typeof rawData === 'string') {
-        // WebView sends string data that needs parsing
-        data = JSON.parse(rawData);
+        data = JSON.parse(rawData) as PlayerEvent;
       } else if (typeof rawData === 'object' && rawData !== null) {
-        // Web iframe sends object data directly
-        data = rawData;
+        data = rawData as PlayerEvent;
       } else {
-        // Invalid data format
         return;
       }
+
+      const d = eventData(data.data);
 
       switch (data.eventType) {
         case 'playerReady':
           setIsLoaded(true);
-          if (data.data?.duration && data.data.duration !== durationRef.current) {
-            durationRef.current = data.data.duration;
-            onDurationChangeRef.current?.(data.data.duration);
+          if (d.duration && d.duration !== durationRef.current) {
+            durationRef.current = d.duration;
+            emitDurationChange(d.duration);
           }
-          onLoadRef.current?.();
+          emitLoad();
           break;
 
         case 'playerStateChange': {
-          const isNowPlaying = data.data?.state === 1 || data.data === 1; // YT.PlayerState.PLAYING
-          const isPaused = data.data?.state === 2 || data.data === 2; // YT.PlayerState.PAUSED
-          const isBuffering = data.data?.state === 3 || data.data === 3; // YT.PlayerState.BUFFERING
-          const isEnded = data.data?.state === 0 || data.data === 0; // YT.PlayerState.ENDED
+          const state = typeof data.data === 'number' ? data.data : d.state;
+          const isNowPlaying = state === 1; // YT.PlayerState.PLAYING
+          const isPaused = state === 2; // YT.PlayerState.PAUSED
+          const isBuffering = state === 3; // YT.PlayerState.BUFFERING
+          const isEnded = state === 0; // YT.PlayerState.ENDED
 
           setIsPlaying(isNowPlaying);
 
           // Update time/duration from additional data if available.
-          if (data.data?.currentTime !== undefined) {
-            currentTimeRef.current = data.data.currentTime;
-          }
-          if (data.data?.duration !== undefined) {
-            durationRef.current = data.data.duration;
-          }
+          if (d.currentTime !== undefined) currentTimeRef.current = d.currentTime;
+          if (d.duration !== undefined) durationRef.current = d.duration;
 
           if (isNowPlaying) {
-            onPlayRef.current?.();
-            onBufferRef.current?.(false);
+            emitPlay();
+            emitBuffer(false);
           } else if (isPaused || isEnded) {
-            onPauseRef.current?.();
+            emitPause();
           } else if (isBuffering) {
-            onBufferRef.current?.(true);
+            emitBuffer(true);
           }
           break;
         }
 
         case 'timeUpdate':
         case 'progress':
-        case 'playerState': { // Handle direct state polling response
+        case 'playerState': {
           // These arrive ~4x/sec while playing. They feed refs + callbacks
-          // only (no rendered state), so there's nothing to defer and no
-          // re-render — the logic runs plainly in this event handler.
-          const d = data.data ?? {};
+          // only (no rendered state), so there's no re-render.
 
           // Time — emit only on a meaningful change to avoid micro-updates.
           if (d.currentTime !== undefined && Math.abs(d.currentTime - currentTimeRef.current) > 0.1) {
             currentTimeRef.current = d.currentTime;
-            onTimeUpdateRef.current?.(d.currentTime);
+            emitTimeUpdate(d.currentTime);
           }
-          // Duration
           if (d.duration !== undefined && d.duration > 0 && d.duration !== durationRef.current) {
             durationRef.current = d.duration;
-            onDurationChangeRef.current?.(d.duration);
+            emitDurationChange(d.duration);
           }
           // Volume — YouTube sends 0-100, we use 0-1.
           if (d.volume !== undefined) {
             const volumeLevel = d.volume / 100;
             if (Math.abs(volumeLevel - currentVolumeRef.current) > 0.01) {
               currentVolumeRef.current = volumeLevel;
-              onVolumeChangeRef.current?.(volumeLevel);
+              emitVolumeChange(volumeLevel);
             }
           }
-          // Mute
           if (d.muted !== undefined && d.muted !== isMutedRef.current) {
             isMutedRef.current = d.muted;
-            (d.muted ? onMuteRef.current : onUnmuteRef.current)?.();
+            if (d.muted) emitMute();
+            else emitUnmute();
           }
-          // Playing — real state; drives the polling interval. Set with a
-          // plain value (no updater) and emit the matching callback.
+          // Playing — real state; drives the polling interval.
           if (d.playing !== undefined && d.playing !== isPlayingRef.current) {
             setIsPlaying(d.playing);
-            (d.playing ? onPlayRef.current : onPauseRef.current)?.();
+            if (d.playing) emitPlay();
+            else emitPause();
           }
           break;
         }
 
         case 'playerError': {
           setHasError(true);
-          const errorMessages = {
+          const errorMessages: Record<number, string> = {
             2: 'Invalid video ID',
             5: 'HTML5 player error',
             100: 'Video not found or private',
             101: 'Video not allowed in embedded players',
-            150: 'Video not allowed in embedded players'
+            150: 'Video not allowed in embedded players',
           };
-          const errorMsg = errorMessages[data.data as keyof typeof errorMessages] || `YouTube error: ${data.data}`;
-          onErrorRef.current?.(errorMsg);
+          const code = typeof data.data === 'number' ? data.data : Number(data.data);
+          emitError(errorMessages[code] || `YouTube error: ${String(data.data)}`);
           break;
         }
 
@@ -364,23 +398,22 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
           // Acknowledged; no local state mirrors the rate.
           break;
 
-        case 'playerQualityChange':
-          // Acknowledged; no local state mirrors the quality.
+        case 'playerQualityChange': {
+          const quality = typeof data.data === 'string' ? (data.data as VideoQuality) : d.quality;
+          if (quality) emitQualityChange(quality);
           break;
+        }
       }
-    } catch (error) {
-      console.warn('Failed to parse YouTube player message:', error);
+    } catch (err) {
+      devWarn('Failed to parse YouTube player message:', err);
     }
-    // Stable: all parent callbacks are read through refs, so the handler never
-    // needs to be recreated. This keeps the web `message` listener effect from
-    // re-subscribing whenever a parent passes a fresh inline callback.
-  }, []);
+  }, [emitDurationChange, emitLoad, emitPlay, emitBuffer, emitPause, emitTimeUpdate, emitVolumeChange, emitMute, emitUnmute, emitError, emitQualityChange]);
 
   // Send command to player
-  const sendCommand = useCallback((eventName: string, meta: any = {}) => {
+  const sendCommand = useCallback((eventName: string, meta: Record<string, unknown> = {}) => {
     const message = JSON.stringify({ eventName, meta });
 
-    if (Platform.OS === 'web' && iframeRef.current?.contentWindow) {
+    if (isWeb && iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(message, '*');
     } else if (webViewRef.current) {
       // React Native WebView uses injectJavaScript to trigger the message event
@@ -394,18 +427,18 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
             });
             window.dispatchEvent(event);
           } catch (e) {
-            console.error('[iframe] Error dispatching message:', e);
+            // Runs inside the WebView page, where library logging isn't available.
           }
         })();
         true;
       `);
     } else {
-      console.warn('[YouTubePlayer] No iframe or WebView ref available');
+      devWarn('[YouTubePlayer] No iframe or WebView ref available');
     }
   }, []);
 
   // Imperative API
-  useImperativeHandle(ref, () => ({
+  useImperativeHandle(ref, (): YouTubePlayerRef => ({
     play: () => {
       sendCommand('playVideo');
       // State will be updated via polling/events
@@ -417,11 +450,19 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
     seek: (time: number) => sendCommand('seekTo', { seconds: time, allowSeekAhead: true }),
     setVolume: (vol: number) => sendCommand('setVolume', { volume: vol * 100 }), // YouTube expects 0-100
     setPlaybackRate: (rate: VideoPlaybackRate) => sendCommand('setPlaybackRate', { playbackRate: rate }),
+    setMuted: (next: boolean) => sendCommand(next ? 'muteVideo' : 'unMuteVideo'),
     mute: () => sendCommand('muteVideo'),
     unmute: () => sendCommand('unMuteVideo'),
     toggleFullscreen: () => {
-      // Fullscreen handling would need additional implementation
-      console.warn('YouTube fullscreen toggle not yet implemented');
+      // Web: fullscreen the iframe. Native WebViews go fullscreen from the
+      // player's own UI (`allowsFullscreenVideo`).
+      const frame = iframeRef.current;
+      if (!frame || !hasDOM) return;
+      if (!isFullscreenRef.current) {
+        frame.requestFullscreen?.().catch((err: Error) => devWarn('YouTube fullscreen failed:', err));
+      } else {
+        document.exitFullscreen?.().catch((err: Error) => devWarn('YouTube exit fullscreen failed:', err));
+      }
     },
     getVideoElement: () => null, // YouTube player doesn't expose direct video element
     // Current state for debugging/synchronization — reads refs so the handle
@@ -454,23 +495,29 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
 
   // Set up message listener for web platform
   useEffect(() => {
-    if (Platform.OS === 'web') {
-      const handleMessage = (event: MessageEvent) => {
-        // Only accept messages from our iframe
-        if (event.source === iframeRef.current?.contentWindow) {
-          handleWebViewMessage({ data: event.data } as any);
-        }
-      };
-
-      if (typeof window !== 'undefined') {
-        window.addEventListener('message', handleMessage);
-
-        return () => {
-          window.removeEventListener('message', handleMessage);
-        };
+    if (!isWeb || !hasDOM) return;
+    const handleMessage = (event: MessageEvent) => {
+      // Only accept messages from our iframe
+      if (event.source === iframeRef.current?.contentWindow) {
+        handleWebViewMessage({ data: event.data });
       }
-    }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, [handleWebViewMessage]);
+
+  // Web fullscreen of the iframe
+  useEffect(() => {
+    if (!isWeb || !hasDOM) return;
+    const handleFullscreenChange = () => {
+      const isNowFullscreen = document.fullscreenElement === iframeRef.current && iframeRef.current !== null;
+      if (isNowFullscreen === isFullscreenRef.current) return;
+      isFullscreenRef.current = isNowFullscreen;
+      emitFullscreenChange(isNowFullscreen);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [emitFullscreenChange]);
 
   if (!hasValidSource) {
     return invalidSourceContent;
@@ -478,7 +525,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
 
   if (hasError) {
     return (
-      <View style={[styles.container, style]} accessibilityLabel={accessibilityLabel}>
+      <View style={[styles.container, style]} role="alert">
         <View style={styles.errorOverlay}>
           <Text style={styles.errorText}>Video Unavailable</Text>
           <Text style={styles.errorSubtext}>This video could not be played.</Text>
@@ -488,22 +535,16 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
     );
   }
 
-  if (Platform.OS === 'web') {
+  if (isWeb) {
     // Web implementation using iframe
-    const IFrameComponent = 'iframe' as any;
-
     return (
-      <View style={[styles.container, style]} accessibilityLabel={accessibilityLabel}>
-        <IFrameComponent
+      <View style={[styles.container, style]}>
+        <iframe
           ref={iframeRef}
-          src={youtubeUrl!}
-          style={{
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            backgroundColor: '#000',
-          }}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          src={youtubeUrl ?? undefined}
+          title={accessibilityLabel || 'YouTube video player'}
+          style={IFRAME_CSS}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
           allowFullScreen
         />
         {poster && !isLoaded && (
@@ -519,7 +560,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
     // React Native implementation using WebView
     if (!WebView) {
       return (
-        <View style={[styles.container, style]} accessibilityLabel={accessibilityLabel}>
+        <View style={[styles.container, style]} role="alert">
           <View style={styles.errorOverlay}>
             <Text style={styles.errorText}>WebView Required</Text>
             <Text style={styles.errorSubtext}>
@@ -539,15 +580,11 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
     }
 
     return (
-      <View style={[
-        // styles.container,
-        style,
-        {
-          flex: 1,
-        }]} accessibilityLabel={accessibilityLabel}>
+      <View style={[style, styles.fill]}>
         <WebView
           ref={webViewRef}
-          source={{ uri: youtubeUrl! }}
+          source={{ uri: youtubeUrl ?? '' }}
+          accessibilityLabel={accessibilityLabel || 'YouTube video player'}
           style={styles.webView}
           javaScriptEnabled={true}
           domStorageEnabled={true}
@@ -556,9 +593,10 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
           onLoadStart={() => onLoadStart?.()}
           onError={() => {
             setHasError(true);
-            onError?.('Failed to load YouTube player');
+            emitError('Failed to load YouTube player');
           }}
           allowsInlineMediaPlayback={true}
+          allowsFullscreenVideo={true}
           mediaPlaybackRequiresUserAction={false}
         />
         {poster && !isLoaded && (
@@ -573,10 +611,17 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
   }
 });
 
+// A DOM <iframe> takes CSS, not RN styles.
+const IFRAME_CSS: React.CSSProperties = { width: '100%', height: '100%', border: 'none', backgroundColor: '#000000' };
+
+// Media chrome: black letterbox and light text are the video surface, not theme roles.
 const styles = StyleSheet.create({
+  fill: {
+    flex: 1,
+  },
   container: {
     alignItems: 'center',
-    backgroundColor: '#000',
+    backgroundColor: '#000000',
     flex: 1,
     justifyContent: 'center',
     position: 'relative',
@@ -585,22 +630,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     bottom: 0,
+    end: 0,
     justifyContent: 'center',
-    left: 0,
     padding: 20,
     position: 'absolute',
-    right: 0,
+    start: 0,
     top: 0,
     zIndex: 2,
   },
   errorSubtext: {
-    color: '#ccc',
+    color: '#CCCCCC',
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
   },
   errorText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
@@ -608,14 +653,14 @@ const styles = StyleSheet.create({
   },
   poster: {
     bottom: 0,
-    left: 0,
+    end: 0,
     position: 'absolute',
-    right: 0,
+    start: 0,
     top: 0,
     zIndex: 1,
   },
   webView: {
-    backgroundColor: '#000',
+    backgroundColor: '#000000',
     flex: 1,
   },
 });

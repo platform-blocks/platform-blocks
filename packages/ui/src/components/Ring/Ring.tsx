@@ -2,12 +2,13 @@ import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
-import { factory } from '../../core/factory';
+import { factory } from '../../core/factory/factory';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { getNodeText } from '../../core/accessibility/useA11yId';
 import { useTheme } from '../../core/theme/ThemeProvider';
-import { extractSpacingProps, getSpacingStyles } from '../../core/utils';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 import { Text } from '../Text';
 import type { RingProps, RingRenderContext } from './types';
-import { getAccessibilityValueProps } from '../../core/accessibility/utils';
 
 interface RingFactoryPayload {
   props: RingProps;
@@ -53,7 +54,7 @@ const styles = StyleSheet.create({
   centerContent: {
     position: 'absolute',
     top: 0,
-    left: 0,
+    start: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -91,8 +92,8 @@ export const Ring = factory<RingFactoryPayload>((props, ref) => {
     ...rest
   } = props;
 
-  const { spacingProps, otherProps } = extractSpacingProps(rest);
-  const spacingStyles = getSpacingStyles(spacingProps);
+  const { styleProps, otherProps } = extractStyleProps(rest);
+  const spacingStyles = useStyleProps(styleProps);
   const theme = useTheme();
 
   const { clampedValue, percent, radius, circumference, dashOffset } = useMemo(() => {
@@ -116,17 +117,9 @@ export const Ring = factory<RingFactoryPayload>((props, ref) => {
     };
   }, [min, max, size, thickness, value]);
 
-  const defaultTrackColor = trackColor ?? (theme.colorScheme === 'dark' ? 'rgba(100,116,139,0.4)' : 'rgba(148,163,184,0.3)');
-
-  const secondaryTextColor = subLabelColor
-    ?? theme.text?.secondary
-    ?? theme.colors?.gray?.[5]
-    ?? '#94a3b8';
-
-  const captionTextColor = captionColor
-    ?? theme.text?.muted
-    ?? theme.colors?.gray?.[4]
-    ?? '#94a3b8';
+  const defaultTrackColor = trackColor ?? theme.backgrounds.border;
+  const secondaryTextColor = subLabelColor ?? theme.text.secondary;
+  const captionTextColor = captionColor ?? theme.text.muted;
 
   const resolvedProgressColor = useMemo(() => {
     if (neutral) {
@@ -146,8 +139,7 @@ export const Ring = factory<RingFactoryPayload>((props, ref) => {
       return stopColor;
     }
 
-    const palette = theme.colors?.primary;
-    return palette ? palette[5] : '#2563eb';
+    return theme.colors.primary[5];
   }, [colorStops, clampedValue, percent, progressColor, neutral, defaultTrackColor, theme.colors]);
 
   const formattedValue = useMemo(() => {
@@ -186,7 +178,7 @@ export const Ring = factory<RingFactoryPayload>((props, ref) => {
           React.isValidElement(primary) ? (
             primary
           ) : (
-            <Text variant="span" size="lg" weight="700" color={labelColor} style={labelStyle}>
+            <Text variant="span" size="lg" fw="700" c={labelColor} style={labelStyle}>
               {primary}
             </Text>
           )
@@ -195,7 +187,7 @@ export const Ring = factory<RingFactoryPayload>((props, ref) => {
           React.isValidElement(secondary) ? (
             secondary
           ) : (
-            <Text variant="span" size="sm" color={secondaryTextColor} weight="600" style={[{ marginTop: 2 }, subLabelStyle]}>
+            <Text variant="span" size="sm" c={secondaryTextColor} fw="600" style={[{ marginTop: 2 }, subLabelStyle]}>
               {secondary}
             </Text>
           )
@@ -204,14 +196,25 @@ export const Ring = factory<RingFactoryPayload>((props, ref) => {
     );
   }, [children, renderContext, label, formattedValue, subLabel, labelColor, labelStyle, subLabelStyle, secondaryTextColor]);
 
+  // Named by the explicit label, else the caption, else a text center label.
+  // The value itself travels as aria-value* (plus the displayed text, when it is text).
+  const accessibleName = accessibilityLabel ?? (getNodeText(caption) || getNodeText(label) || undefined);
+  const valueText = typeof formattedValue === 'string' || typeof formattedValue === 'number'
+    ? String(formattedValue)
+    : undefined;
+
   return (
     <View
       ref={ref}
       style={[styles.container, spacingStyles, style]}
       testID={testID}
-      accessibilityLabel={accessibilityLabel ?? `Ring value ${Math.round(percent)} percent`}
-      accessibilityRole="progressbar"
-      {...getAccessibilityValueProps({ min, max, now: Math.round(clampedValue) })}
+      {...a11yProps({
+        role: 'progressbar',
+        // One node on native, so the label and value are read together.
+        accessible: true,
+        label: accessibleName,
+        value: { min, max, now: clampedValue, text: valueText },
+      })}
       {...otherProps}
     >
       <View style={[styles.ringWrapper, { width: size, height: size }, ringStyle]}>
@@ -248,8 +251,8 @@ export const Ring = factory<RingFactoryPayload>((props, ref) => {
           <Text
             variant="span"
             size="xs"
-            color={captionTextColor}
-            weight="600"
+            c={captionTextColor}
+            fw="600"
             style={[{ marginTop: 6, letterSpacing: 1 }, captionStyle]}
           >
             {caption}

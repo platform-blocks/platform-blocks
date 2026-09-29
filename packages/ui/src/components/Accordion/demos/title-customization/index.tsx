@@ -5,7 +5,7 @@ export function Demo() {
   return (
     <Accordion
       items={setupSteps}
-      titleProps={{ uppercase: true, tracking: 1, weight: '700', size: 'sm' }}
+      titleProps={{ tt: 'uppercase', lts: 1, fw: '700', size: 'sm' }}
     />
   );
 }

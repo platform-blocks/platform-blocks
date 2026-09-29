@@ -19,6 +19,8 @@ interface WithUniversalPropsOptions {
 
 /**
  * Higher-order component that adds universal props support to any component
+ *
+ * @deprecated Unused by the library and not part of the root export surface; it will be removed in the next major.
  */
 export function withUniversalProps<P extends object>(
   Component: React.ComponentType<P>,
@@ -26,7 +28,7 @@ export function withUniversalProps<P extends object>(
 ) {
   const { useWrapper = Platform.OS !== 'web' } = options;
 
-  return React.forwardRef<any, P & UniversalSystemProps>((props, ref) => {
+  return React.forwardRef<unknown, P & UniversalSystemProps>((props, ref) => {
     const {
       lightHidden,
       darkHidden,
@@ -56,7 +58,7 @@ export function withUniversalProps<P extends object>(
     // For web or non-wrapper mode, apply CSS classes
     if (Platform.OS === 'web') {
       const classes = getUniversalClasses(universalProps);
-      const existingClassName = (componentProps as any).className || '';
+      const existingClassName = (componentProps as { className?: string }).className || '';
       const newClassName = [...classes, existingClassName].filter(Boolean).join(' ');
       
       return (

@@ -14,7 +14,7 @@ export function Demo() {
     <Flex wrap="wrap" align="flex-start" gap="lg" fullWidth>
       {ALIGNMENTS.map((value) => (
         <Block key={value} gap="xs">
-          <Text variant="span" size="sm" color="muted">align=&quot;{value}&quot;</Text>
+          <Text variant="span" size="sm" c="muted">align=&quot;{value}&quot;</Text>
           <Card variant="subtle" p="sm">
             {value === 'baseline' ? (
               <Flex direction="row" align="baseline" gap="sm" h={80}>

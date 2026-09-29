@@ -1,22 +1,31 @@
-import React, { useState, useRef, useCallback, useEffect, forwardRef, useMemo } from 'react';
-import { View, TextInput, Pressable, Modal } from 'react-native';
-import { Text } from '../Text';
-import { factory } from '../../core/factory';
-import { useTheme } from '../../core/theme';
-import { FieldHeader } from '../_internal/FieldHeader';
-import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
-import { useDropdownPositioning } from '../../core/hooks/useDropdownPositioning';
-import type { PlacementType } from '../../core/utils/positioning-enhanced';
-import { createRadiusStyles } from '../../core/theme/radius';
-import { clampComponentSize, resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
-import { getComponentSize } from '../../core/theme/unified-sizing';
-import { useColorInputStyles, type ColorInputSizeMetrics } from './styles';
-import { ColorInputProps } from './types';
-import { useControllableState, useOverlayMode } from '../../hooks';
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { Pressable, TextInput, View } from 'react-native';
+import type { LayoutChangeEvent, PressableProps, ViewProps } from 'react-native';
 
-import { isValidHex, normalizeHex } from './utils';
-import { ColorSwatch } from '../ColorSwatch';
-import { ClearButton } from '../../core/components/ClearButton';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { factory } from '../../core/factory/factory';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { useFloating } from '../../core/overlay/useFloating';
+import type { PlacementType } from '../../core/utils/positioning-enhanced';
+import { isNative } from '../../core/platform/flags';
+import { webProps } from '../../core/platform/webProps';
+import { useKeyboardFocusOptional } from '../../core/providers/KeyboardManagerProvider';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import type { FieldHandle } from '../../core/types/base';
+import { extractLayoutProps, getLayoutStyles } from '../../core/utils/layout';
+import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState/useControllableState';
+import { useOverlayMode } from '../../hooks/useOverlayMode';
+import { useDisclaimer, extractDisclaimerProps } from '../_internal/Disclaimer/disclaimerUtils';
+import { DropdownSheet } from '../_internal/DropdownSheet/DropdownSheet';
+import { Field, FieldBoundary } from '../_internal/Field/Field';
+import { SwatchGrid } from '../ColorSwatch/SwatchGrid';
+import { Icon } from '../Icon';
+import { FieldClearButton } from '../Select/FieldClearButton';
+import { useFieldControlStyles } from '../Select/fieldControlStyles';
+import { getColorInputStyles } from './styles';
+import type { ColorInputProps } from './types';
+import { isValidHex, normalizeHex, withHash } from './utils';
 
 // Common color swatches
 const DEFAULT_SWATCHES = [
@@ -28,128 +37,67 @@ const DEFAULT_SWATCHES = [
 
 const DEFAULT_FALLBACK_PLACEMENTS: PlacementType[] = ['bottom-start', 'bottom-end', 'top-start', 'top-end', 'bottom', 'top'];
 
-/** Tallest the swatch dropdown gets, and the height hint the positioner uses to pick a side. */
-const COLOR_INPUT_DROPDOWN_MAX_HEIGHT = 420;
+/** The anchored dropdown is at least this wide (it otherwise matches the field). */
+const DROPDOWN_MIN_WIDTH = 320;
+/** Minimum native touch target, pt. */
+const NATIVE_MIN_TARGET = 44;
 
-const COLOR_INPUT_ALLOWED_SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
-const COLOR_INPUT_ALLOWED_SIZES_ARRAY: ComponentSize[] = [...COLOR_INPUT_ALLOWED_SIZES];
+const SHOW_SWATCHES = 'Show color swatches';
+const HIDE_SWATCHES = 'Hide color swatches';
+const DEFAULT_SHEET_TITLE = 'Choose a color';
+const PB_INPUT_DATASET = { pbInput: 'true' } as const;
 
-const COLOR_INPUT_SIZE_SCALE: Partial<Record<ComponentSize, ColorInputSizeMetrics>> = {
-  xs: createMetricsForToken('xs'),
-  sm: createMetricsForToken('sm'),
-  md: createMetricsForToken('md'),
-  lg: createMetricsForToken('lg'),
-  xl: createMetricsForToken('xl'),
-};
+const hasContent = (node: React.ReactNode) =>
+  node !== undefined && node !== null && node !== false && node !== true && node !== '';
 
-const BASE_COLOR_INPUT_METRICS: ColorInputSizeMetrics = COLOR_INPUT_SIZE_SCALE.md ?? createMetricsForToken('md');
-
-const CLEAR_BUTTON_SIZE_THRESHOLDS: Array<{ max: number; token: ComponentSize }> = [
-  { max: 34, token: 'xs' },
-  { max: 38, token: 'sm' },
-  { max: 42, token: 'md' },
-  { max: 48, token: 'lg' },
-  { max: 54, token: 'xl' },
-  { max: 60, token: '2xl' },
-  { max: Number.POSITIVE_INFINITY, token: '3xl' },
-];
-
-function createMetricsForToken(size: ComponentSize): ColorInputSizeMetrics {
-  const config = getComponentSize(size);
-
-  return {
-    inputHeight: config.height,
-    paddingHorizontal: config.padding,
-    paddingVertical: Math.max(6, Math.round(config.padding * 0.65)),
-    previewSize: Math.max(18, Math.round(config.height * 0.6)),
-    previewBorderRadius: Math.max(4, Math.round(config.borderRadius * 0.5)),
-    previewMarginRight: Math.max(6, Math.round(config.padding * 0.7)),
-    textFontSize: Math.max(11, Math.round(config.fontSize * 0.875)),
-    textInputHeight: Math.max(16, Math.round(config.height * 0.5)),
-    dropdownIconSize: Math.max(12, Math.round(config.iconSize * 0.85)),
-    dropdownIconMarginLeft: Math.max(6, Math.round(config.padding * 0.7)),
-    swatchSize: Math.max(28, Math.round(config.height * 0.75)),
-    swatchGap: Math.max(6, Math.round(config.padding * 0.5)),
-  };
-}
-
-function resolveColorInputMetrics(value: ComponentSizeValue | undefined): ColorInputSizeMetrics {
-  const resolved = resolveComponentSize(value, COLOR_INPUT_SIZE_SCALE, {
-    allowedSizes: COLOR_INPUT_ALLOWED_SIZES_ARRAY,
-    fallback: 'md',
-  });
-
-  if (typeof resolved === 'number') {
-    return calculateNumericMetrics(resolved);
-  }
-
-  return resolved;
-}
-
-function calculateNumericMetrics(height: number): ColorInputSizeMetrics {
-  const scale = height / BASE_COLOR_INPUT_METRICS.inputHeight;
-
-  const clamp = (measurement: number, minimum: number) => Math.max(minimum, Math.round(measurement));
-
-  return {
-    inputHeight: height,
-    paddingHorizontal: clamp(BASE_COLOR_INPUT_METRICS.paddingHorizontal * scale, 6),
-    paddingVertical: clamp(BASE_COLOR_INPUT_METRICS.paddingVertical * scale, 4),
-    previewSize: clamp(BASE_COLOR_INPUT_METRICS.previewSize * scale, 12),
-    previewBorderRadius: clamp(BASE_COLOR_INPUT_METRICS.previewBorderRadius * scale, 2),
-    previewMarginRight: clamp(BASE_COLOR_INPUT_METRICS.previewMarginRight * scale, 4),
-    textFontSize: clamp(BASE_COLOR_INPUT_METRICS.textFontSize * scale, 10),
-    textInputHeight: clamp(BASE_COLOR_INPUT_METRICS.textInputHeight * scale, 14),
-    dropdownIconSize: clamp(BASE_COLOR_INPUT_METRICS.dropdownIconSize * scale, 10),
-    dropdownIconMarginLeft: clamp(BASE_COLOR_INPUT_METRICS.dropdownIconMarginLeft * scale, 4),
-    swatchSize: clamp(BASE_COLOR_INPUT_METRICS.swatchSize * scale, 20),
-    swatchGap: clamp(BASE_COLOR_INPUT_METRICS.swatchGap * scale, 4),
-  };
-}
-
-function mapClearButtonSize(height: number): ComponentSize {
-  for (const entry of CLEAR_BUTTON_SIZE_THRESHOLDS) {
-    if (height <= entry.max) {
-      return entry.token;
-    }
-  }
-
-  return 'md';
-}
-
-interface ColorInputFactoryPayload {
-  props: ColorInputProps;
-  ref: View;
-}
-
-const ColorInputBase = forwardRef<View, ColorInputProps>((props, ref) => {
+/**
+ * A color field: a hex text input with a live preview and a swatch palette
+ * (an anchored dropdown on desktop web, a sheet on native and small screens).
+ * Rendered through the shared `Field` frame, so label, description, error and
+ * helper text are linked to the hex input.
+ *
+ * @example
+ * <ColorInput label="Brand color" value={color} onChange={setColor} clearable />
+ */
+export const ColorInput = factory<{ props: ColorInputProps; ref: FieldHandle }>((props, ref) => {
+  const { styleProps, otherProps: afterSpacing } = extractStyleProps(props);
+  const { layoutProps, otherProps: afterLayout } = extractLayoutProps(afterSpacing);
+  const { disclaimerProps: disclaimerData, otherProps } = extractDisclaimerProps(afterLayout);
   const {
     value,
     defaultValue = '',
     onChange,
     label,
-    placeholder = 'Select color',
-    disabled = false,
-    required = false,
-    error,
     description,
+    error,
+    helperText,
+    required = false,
+    withAsterisk,
+    disabled = false,
+    readOnly = false,
     size = 'md',
-    variant = 'default',
-    // Undefined by design — the `input` radius token supplies the default.
     radius,
+    variant = 'default',
+    name,
+    accessibilityLabel,
+    accessibilityHint,
+    keyboardFocusId,
+    labelProps,
+    descriptionProps,
+    onFocus,
+    onBlur,
+    placeholder = 'Select color',
+    placeholderTextColor,
+    clearable = false,
+    clearButtonLabel = 'Clear color',
+    onClear,
+    startSection,
+    endSection,
     showPreview = true,
     showInput = true,
     swatches = DEFAULT_SWATCHES,
+    swatchLabels,
     withSwatches = true,
-    format = 'hex',
-    withAlpha = false,
-    style,
-    previewStyle,
-    inputStyle,
-  testID,
-  clearable = false,
-  clearButtonLabel = 'Clear color',
-    // Positioning props
     placement = 'bottom-start',
     flip = true,
     shift = true,
@@ -158,8 +106,15 @@ const ColorInputBase = forwardRef<View, ColorInputProps>((props, ref) => {
     autoReposition = true,
     fallbackPlacements = DEFAULT_FALLBACK_PLACEMENTS,
     keyboardAvoidance = true,
-    ...spacingProps
-  } = props;
+    previewStyle,
+    inputStyle,
+    style,
+    testID,
+  } = otherProps;
+
+  const theme = useTheme();
+  const { shouldUseModal } = useOverlayMode();
+  const renderDisclaimer = useDisclaimer(disclaimerData.disclaimer, disclaimerData.disclaimerProps);
 
   const [effectiveValue, setEffectiveValue] = useControllableState<string>({
     value,
@@ -168,323 +123,341 @@ const ColorInputBase = forwardRef<View, ColorInputProps>((props, ref) => {
     onChange,
   });
 
-  const [isOpen, setIsOpen] = useState(false);
+  // The text being edited; re-synced whenever the value changes (typing,
+  // swatches, or the controlled prop) — derived during render, not in an effect.
   const [inputValue, setInputValue] = useState(effectiveValue);
+  const [syncedValue, setSyncedValue] = useState(effectiveValue);
+  if (syncedValue !== effectiveValue) {
+    setSyncedValue(effectiveValue);
+    setInputValue(effectiveValue);
+  }
+
   const [focused, setFocused] = useState(false);
-  const { shouldUseModal, shouldUseOverlay } = useOverlayMode();
+  const [openedState, setOpenedState] = useState(false);
+  const canPick = withSwatches && !disabled && !readOnly;
+  const opened = openedState && canPick;
+  const close = useCallback(() => setOpenedState(false), []);
 
-  const theme = useTheme();
-  const sizeMetrics = useMemo(() => resolveColorInputMetrics(size), [size]);
-  const styles = useColorInputStyles(sizeMetrics);
-  const radiusStyles = useMemo(
-    () => createRadiusStyles(radius, sizeMetrics.inputHeight, 'input'),
-    [radius, sizeMetrics.inputHeight]
-  );
-  const clearButtonSize = useMemo<ComponentSize>(() => {
-    const clamped = clampComponentSize(size ?? 'md', COLOR_INPUT_ALLOWED_SIZES_ARRAY, 'md');
+  const inputRef = useRef<TextInput>(null);
+  const toggleRef = useRef<View>(null);
 
-    if (typeof clamped === 'number') {
-      return mapClearButtonSize(clamped);
-    }
+  const invalid = error !== undefined && error !== null && error !== false && error !== '';
+  const controlStyles = useFieldControlStyles({
+    size,
+    radius,
+    variant,
+    focused: focused || opened,
+    invalid,
+    disabled,
+  });
+  const { metrics, styles } = getColorInputStyles(theme, size);
 
-    return clamped;
-  }, [size]);
-  const spacingStyles = getSpacingStyles(extractSpacingProps(spacingProps).spacingProps);
+  // --- dropdown ---------------------------------------------------------------
+  const [frameWidth, setFrameWidth] = useState(0);
+  const handleFrameLayout = useCallback((event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    setFrameWidth((previous) => (previous === width ? previous : width));
+  }, []);
 
-  // Enhanced positioning system using shared dropdown hook
-  const {
-    position,
-    anchorRef,
-    popoverRef,
-    showOverlay,
-    hideOverlay,
-    updatePosition,
-  } = useDropdownPositioning({
-    isOpen: isOpen && shouldUseOverlay,
+  const dropdownWidth = Math.max(frameWidth, DROPDOWN_MIN_WIDTH);
+  // Expected height, so the first frame already opens on the side it fits.
+  const estimatedHeight = useMemo(() => {
+    const inner = dropdownWidth - metrics.dropdownPadding * 2 - 2;
+    const perRow = Math.max(1, Math.floor((inner + metrics.swatchGap) / (metrics.swatchSize + metrics.swatchGap)));
+    const rows = Math.max(1, Math.ceil(swatches.length / perRow));
+    return rows * metrics.swatchSize + (rows - 1) * metrics.swatchGap + metrics.dropdownPadding * 2 + 2;
+  }, [dropdownWidth, metrics, swatches.length]);
+
+  const floating = useFloating({
+    opened: opened && !shouldUseModal,
+    onDismiss: close,
     placement,
+    offset,
     flip,
     shift,
     boundary,
-    offset,
-    autoUpdate: autoReposition,
     fallbackPlacements,
     keyboardAvoidance,
-    // The picker's full height, so the side is chosen correctly on the very
-    // first pass instead of being corrected once the dropdown has been measured.
-    desiredHeight: COLOR_INPUT_DROPDOWN_MAX_HEIGHT,
-    onClose: () => setIsOpen(false),
+    autoUpdate: autoReposition,
+    desiredHeight: estimatedHeight,
+    layer: 'dropdown',
+    role: 'dialog',
+    // Focus lands on the selected swatch (the palette's only tab stop).
+    autoFocus: true,
+    initialFocus: 'first-tabbable',
   });
 
-  /**
-   * The dropdown is edge-pinned and height-capped by the positioner, so its own
-   * layout can no longer change where it sits — this just refreshes the reported
-   * size. The `setTimeout(…, 16)` it replaces was there to defer a corrective
-   * reposition until the DOM had settled; there is nothing left to correct.
-   */
-  const handleDropdownLayout = useCallback(() => {
-    updatePosition({ silent: true });
-  }, [updatePosition]);
-
-  // Sync inputValue when effectiveValue changes (controlled mode or defaultValue changes)
-  useEffect(() => {
-    setInputValue(effectiveValue);
-  }, [effectiveValue]);
-
-  const handleColorSelect = useCallback((color: string) => {
-    const normalizedColor = normalizeHex(color);
-    setInputValue(normalizedColor);
-    setEffectiveValue(normalizedColor);
-    setIsOpen(false);
-
-    // Close overlay
-    hideOverlay();
-  }, [setEffectiveValue, hideOverlay]);
-
-  const renderDropdownContent = useCallback(() => (
-    <>
-      {withSwatches && (
-        <View style={styles.colorPalette}>
-          {/* <Text style={styles.paletteTitle}>Color Swatches</Text> */}
-          <View style={styles.swatchGrid}>
-            {swatches.map((swatchColor) => (
-              <ColorSwatch
-                key={swatchColor}
-                color={swatchColor}
-                size={sizeMetrics.swatchSize}
-                borderRadius={Math.max(4, Math.round(sizeMetrics.previewBorderRadius))}
-                onPress={() => handleColorSelect(swatchColor)}
-                selected={effectiveValue === swatchColor}
-                showBorder={false}
-              />
-            ))}
-          </View>
-        </View>
-      )}
-    </>
-  ), [withSwatches, styles, swatches, handleColorSelect, effectiveValue, sizeMetrics.previewBorderRadius, sizeMetrics.swatchSize]);
-
-  const handleInputChange = useCallback((text: string) => {
-    setInputValue(text);
-    // Only update the value if it's a complete hex (3 or 6 chars after #)
-    // Don't normalize here to allow typing without interference
-    if (isValidHex(text)) {
-      // Deliberately un-normalized, so typing isn't rewritten mid-entry.
-      setEffectiveValue(text);
+  // --- value handling ---------------------------------------------------------
+  const commitInput = useCallback(() => {
+    const text = inputValue.trim();
+    if (text === '') {
+      // Emptying the field clears the color.
+      setInputValue('');
+      if (effectiveValue !== '') setEffectiveValue('');
+      return;
     }
-  }, [setEffectiveValue]);
-
-  const handleInputSubmit = useCallback(() => {
-    if (isValidHex(inputValue)) {
-      const normalizedColor = normalizeHex(inputValue);
-      setInputValue(normalizedColor);
-      setEffectiveValue(normalizedColor);
+    const candidate = withHash(text);
+    if (isValidHex(candidate)) {
+      const normalized = normalizeHex(candidate);
+      setInputValue(normalized);
+      if (normalized !== effectiveValue) setEffectiveValue(normalized);
     } else {
-      setInputValue(effectiveValue); // Reset to valid value
-    }
-    setFocused(false);
-    setIsOpen(false);
-
-    // Close overlay
-    hideOverlay();
-  }, [inputValue, effectiveValue, setEffectiveValue, hideOverlay]);
-
-  const handleInputBlur = useCallback(() => {
-    setFocused(false);
-
-    // Normalize the hex value when user finishes editing
-    if (isValidHex(inputValue)) {
-      const normalizedColor = normalizeHex(inputValue);
-      setInputValue(normalizedColor);
-      setEffectiveValue(normalizedColor);
-    } else if (inputValue !== effectiveValue) {
-      // Reset to valid value if invalid
+      // Not a color: fall back to the last valid value.
       setInputValue(effectiveValue);
     }
   }, [inputValue, effectiveValue, setEffectiveValue]);
 
-  const handleToggleDropdown = useCallback(() => {
-    if (disabled) return;
+  const handleChangeText = useCallback(
+    (text: string) => {
+      setInputValue(text);
+      // Complete hex values are reported while typing, un-normalized, so the
+      // text isn't rewritten mid-entry; blur / submit normalize.
+      const candidate = withHash(text);
+      if (isValidHex(candidate) && candidate !== effectiveValue) {
+        setEffectiveValue(candidate);
+      }
+    },
+    [effectiveValue, setEffectiveValue]
+  );
 
-    if (isOpen) {
-      setFocused(false);
-      hideOverlay();
-    }
+  const handleSubmitEditing = useCallback(() => {
+    commitInput();
+    close();
+  }, [commitInput, close]);
 
-    setIsOpen(!isOpen);
-  }, [disabled, hideOverlay, isOpen]);
+  const handleFocus = useCallback(() => {
+    setFocused(true);
+    onFocus?.();
+  }, [onFocus]);
 
-  const handleModalDismiss = useCallback(() => {
+  const handleBlur = useCallback(() => {
     setFocused(false);
-    setIsOpen(false);
-    hideOverlay();
-  }, [hideOverlay]);
+    commitInput();
+    onBlur?.();
+  }, [commitInput, onBlur]);
 
-  const handleClear = useCallback(() => {
-    if (disabled) return;
+  const handleSelect = useCallback(
+    (color: string) => {
+      const normalized = normalizeHex(color);
+      setInputValue(normalized);
+      setEffectiveValue(normalized);
+      close();
+    },
+    [setEffectiveValue, close]
+  );
 
+  const handleClear = useLatestCallback(() => {
+    if (disabled || readOnly) return;
     setInputValue('');
     setEffectiveValue('');
-    hideOverlay();
-    setIsOpen(false);
-  }, [disabled, hideOverlay, setEffectiveValue]);
+    close();
+    onClear?.();
+    // Keep the caret in the field for seamless editing.
+    if (showInput) requestAnimationFrame(() => inputRef.current?.focus());
+  });
 
-  const showClearButton = clearable && showInput && !disabled && (inputValue?.length ?? 0) > 0;
+  const toggle = useCallback(() => {
+    if (!canPick) return;
+    setOpenedState((isOpen) => !isOpen);
+  }, [canPick]);
 
-  // Handle opening/closing overlay with positioning
+  // --- imperative handle / keyboard manager -------------------------------------
+  useImperativeHandle(
+    ref,
+    (): FieldHandle => ({
+      focus: () => (inputRef.current ?? toggleRef.current)?.focus(),
+      blur: () => inputRef.current?.blur(),
+      clear: () => handleClear(),
+      isFocused: () => inputRef.current?.isFocused() ?? false,
+    }),
+    [handleClear]
+  );
+
+  const keyboardFocus = useKeyboardFocusOptional();
+  const pendingFocusTarget = keyboardFocus?.pendingFocusTarget;
+  const focusTargetId = keyboardFocusId ?? name;
   useEffect(() => {
-    if (!shouldUseOverlay || !isOpen || !position) {
-      return;
+    if (!keyboardFocus || !focusTargetId || pendingFocusTarget !== focusTargetId) return;
+    if (keyboardFocus.consumeFocusTarget(focusTargetId)) {
+      requestAnimationFrame(() => inputRef.current?.focus());
     }
+  }, [keyboardFocus, pendingFocusTarget, focusTargetId]);
 
-    const minimumWidth = typeof styles.dropdown.minWidth === 'number'
-      ? styles.dropdown.minWidth
-      : 320;
-    const dropdownWidth = Math.max(position.finalWidth ?? 0, minimumWidth);
-    const dropdownMaxHeight = position.maxHeight ?? COLOR_INPUT_DROPDOWN_MAX_HEIGHT;
+  // --- render -------------------------------------------------------------------
+  const showClearButton = clearable && !disabled && !readOnly && inputValue.length > 0;
+  const hasLabel = hasContent(label);
+  const toggleLabel = opened ? HIDE_SWATCHES : SHOW_SWATCHES;
+  const toggleHitSlop = isNative ? Math.ceil((NATIVE_MIN_TARGET - metrics.toggleSize) / 2) : undefined;
+  const sheetTitle = typeof label === 'string' && label ? label : DEFAULT_SHEET_TITLE;
+  const referenceProps = floating.getReferenceProps({}, { ref: false }) as PressableProps;
 
-    const dropdownContent = (
-      <View
-        ref={popoverRef}
-        onLayout={handleDropdownLayout}
-        style={[
-          styles.dropdown,
-          {
-            width: dropdownWidth,
-            maxHeight: dropdownMaxHeight,
-          },
-        ]}
-      >
-        {renderDropdownContent()}
-      </View>
-    );
-
-    showOverlay(dropdownContent, {
-      width: dropdownWidth,
-      maxHeight: dropdownMaxHeight,
-    });
-  }, [
-    shouldUseOverlay,
-    isOpen,
-    position,
-    showOverlay,
-    handleDropdownLayout,
-    renderDropdownContent,
-    styles.dropdown,
-  ]);
+  const grid = (
+    <SwatchGrid
+      swatches={swatches}
+      value={effectiveValue}
+      onSelect={handleSelect}
+      swatchSize={metrics.swatchSize}
+      swatchRadius={metrics.swatchRadius}
+      gap={metrics.swatchGap}
+      labels={swatchLabels}
+      testID={testID ? `${testID}-swatches` : undefined}
+    />
+  );
 
   return (
-    <View ref={ref} style={[spacingStyles, style]} testID={testID}>
-      {label && (
-        <FieldHeader
-          label={label}
-          required={required}
-          error={!!error}
-          description={description}
-        />
-      )}
+    <Field
+      label={label}
+      description={description}
+      error={error}
+      helperText={helperText}
+      required={required}
+      withAsterisk={withAsterisk}
+      disabled={disabled}
+      readOnly={readOnly}
+      size={size}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      labelProps={labelProps}
+      descriptionProps={descriptionProps}
+      style={[getLayoutStyles(layoutProps), resolveStyleProps(styleProps, theme), style]}
+      testID={testID}
+    >
+      {({ controlProps }) => (
+        <>
+          <View
+            ref={floating.refs.setReference}
+            onLayout={handleFrameLayout}
+            style={[controlStyles.frame, styles.frameGap, inputStyle]}
+          >
+            {focused && !disabled ? <View style={controlStyles.focusRing} /> : null}
 
-      <View ref={anchorRef} style={styles.wrapper}>
-        <View
-          style={[
-            styles.input,
-            radiusStyles,
-            focused && styles.inputFocused,
-            error && styles.inputError,
-            disabled && styles.inputDisabled,
-            inputStyle,
-          ]}
-        >
-          {showPreview && (
-            <View style={styles.previewWrapper}>
+            {startSection ? (
+              <FieldBoundary>
+                <View style={styles.section}>{startSection}</View>
+              </FieldBoundary>
+            ) : null}
+
+            {showPreview ? (
               <View
+                {...(showInput
+                  ? a11yProps({ hidden: true })
+                  : a11yProps({ role: 'img', label: effectiveValue ? `Color ${effectiveValue}` : 'No color', accessible: true }))}
                 style={[
                   styles.preview,
+                  { backgroundColor: effectiveValue || 'transparent' },
+                  effectiveValue ? null : styles.previewEmpty,
                   previewStyle,
-                  {
-                    backgroundColor: effectiveValue || 'transparent',
-                    // Show a subtle border when no color is selected
-                    ...((!effectiveValue) && {
-                      borderWidth: 1,
-                      borderColor: theme.colors.gray[3],
-                      borderStyle: 'dashed',
-                    })
-                  },
                 ]}
+                testID={testID ? `${testID}-preview` : undefined}
               />
-            </View>
-          )}
+            ) : null}
 
-          {showInput && (
-            <TextInput
-              value={inputValue}
-              onChangeText={handleInputChange}
-              onSubmitEditing={handleInputSubmit}
-              onFocus={() => setFocused(true)}
-              onBlur={handleInputBlur}
-              placeholder={placeholder}
-              placeholderTextColor={theme.text.secondary}
-              style={[
-                styles.textInput,
-                { flex: 1 }
-              ]}
-              autoCapitalize="characters"
-              autoComplete="off"
-              autoCorrect={false}
-              underlineColorAndroid="transparent"
-              maxLength={7}
-              editable={!disabled}
-            />
-          )}
+            {showInput ? (
+              <TextInput
+                ref={inputRef}
+                {...controlProps}
+                value={inputValue}
+                onChangeText={handleChangeText}
+                onSubmitEditing={handleSubmitEditing}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                placeholder={placeholder}
+                placeholderTextColor={placeholderTextColor ?? controlStyles.placeholderColor}
+                autoCapitalize="characters"
+                autoComplete="off"
+                autoCorrect={false}
+                spellCheck={false}
+                underlineColorAndroid="transparent"
+                maxLength={7}
+                editable={!disabled && !readOnly}
+                {...webProps({ dataSet: PB_INPUT_DATASET })}
+                style={[controlStyles.input, styles.hexInput]}
+                testID={testID ? `${testID}-input` : undefined}
+              />
+            ) : (
+              <View style={styles.spacer} />
+            )}
 
-          {showClearButton && (
-            <ClearButton
-              onPress={handleClear}
-              disabled={disabled}
-              size={clearButtonSize}
-              accessibilityLabel={clearButtonLabel}
-              hasRightSection={true}
-              style={{ marginRight: Math.max(4, Math.round(sizeMetrics.previewMarginRight * 0.5)) }}
-            />
-          )}
+            {showClearButton ? (
+              <FieldClearButton onPress={handleClear} size={size} label={clearButtonLabel} preventFocusSteal />
+            ) : null}
 
-          <Pressable
-            onPress={handleToggleDropdown}
-            disabled={disabled}
-            style={({ pressed }) => ([
-              styles.dropdownTrigger,
-              pressed ? styles.dropdownTriggerPressed : null,
-            ])}
-            accessibilityRole="button"
-            accessibilityLabel={isOpen ? 'Collapse color options' : 'Expand color options'}
-            accessibilityState={{ expanded: isOpen }}
-          >
-            <Text style={styles.dropdownIcon}>{isOpen ? '▲' : '▼'}</Text>
-          </Pressable>
-        </View>
-      </View>
-      {isOpen && shouldUseModal && (
-        <Modal
-          transparent
-          animationType="fade"
-          visible
-          onRequestClose={handleModalDismiss}
-        >
-          <Pressable
-            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', padding: 24, justifyContent: 'center' }}
-            onPress={handleModalDismiss}
-          >
-            <Pressable style={[styles.dropdown, { width: '100%', maxWidth: 360, alignSelf: 'center', maxHeight: '80%', minWidth: 0 }]}> 
-              {renderDropdownContent()}
-            </Pressable>
-          </Pressable>
-        </Modal>
+            {endSection ? (
+              <FieldBoundary>
+                <View style={styles.section}>{endSection}</View>
+              </FieldBoundary>
+            ) : null}
+
+            {withSwatches ? (
+              <Pressable
+                ref={toggleRef}
+                {...referenceProps}
+                // The sheet (native / small screens) is not the floating element,
+                // so the expanded state comes from our own flag.
+                aria-expanded={opened}
+                {...(showInput
+                  ? a11yProps({ role: 'button', label: toggleLabel, disabled: !canPick })
+                  : {
+                      // Without a hex input the toggle is the field's control.
+                      ...controlProps,
+                      ...a11yProps({
+                        role: 'button',
+                        label: hasLabel || accessibilityLabel ? undefined : toggleLabel,
+                        disabled: !canPick,
+                      }),
+                    })}
+                onPress={toggle}
+                disabled={!canPick}
+                hitSlop={toggleHitSlop}
+                style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+                  styles.toggle,
+                  !canPick ? styles.toggleDisabled : pressed ? styles.togglePressed : hovered ? styles.toggleHovered : null,
+                ]}
+                testID={testID ? `${testID}-toggle` : undefined}
+              >
+                <Icon
+                  name={opened ? 'chevron-up' : 'chevron-down'}
+                  size={metrics.iconSize}
+                  color={controlStyles.iconColor}
+                  decorative
+                />
+              </Pressable>
+            ) : null}
+
+            {/* Without an OverlayProvider this is the inline dropdown, placed against the frame. */}
+            {withSwatches && !shouldUseModal
+              ? floating.renderFloating(
+                  <View
+                    {...(floating.getFloatingProps({
+                      'aria-label': sheetTitle,
+                      style: [styles.dropdown, { width: dropdownWidth }],
+                      testID: testID ? `${testID}-dropdown` : undefined,
+                    }) as ViewProps)}
+                  >
+                    {grid}
+                  </View>,
+                  { width: dropdownWidth }
+                )
+              : null}
+          </View>
+
+          {withSwatches && shouldUseModal ? (
+            <DropdownSheet
+              opened={opened}
+              onClose={close}
+              title={sheetTitle}
+              scrollable
+              testID={testID ? `${testID}-sheet` : undefined}
+            >
+              <View style={styles.sheetBody}>{grid}</View>
+            </DropdownSheet>
+          ) : null}
+
+          {renderDisclaimer()}
+        </>
       )}
-    </View>
+    </Field>
   );
 });
-
-export const ColorInput = factory<ColorInputFactoryPayload>((props, ref) => (
-  <ColorInputBase {...props} ref={ref} />
-));
 
 ColorInput.displayName = 'ColorInput';

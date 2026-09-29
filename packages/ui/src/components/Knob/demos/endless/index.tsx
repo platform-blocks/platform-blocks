@@ -8,7 +8,7 @@ export function Demo() {
 
   return (
     <Block fullWidth>
-      <Knob
+      <Knob accessibilityLabel="Jog wheel"
         value={value}
         onChange={setValue}
         behavior="endless"

@@ -1,14 +1,17 @@
-import { Block, Chip, Table, Text } from '@platform-blocks/ui';
-import { rows } from './data';
+import { Block, Chip, Table } from '@platform-blocks/ui';
+
+const rows = [
+  { name: 'platform-blocks', stack: 'RN / Expo', status: 'stable', stars: 4210 },
+  { name: 'ignite', stack: 'RN', status: 'active', stars: 9230 },
+  { name: 'tamagui', stack: 'RN / Web', status: 'active', stars: 16000 },
+  { name: 'nativewind', stack: 'RN', status: 'active', stars: 7600 },
+];
 
 export function Demo() {
   return (
-    <Block>
-      <Text size="sm" color="secondary">
-        Compose tables manually for rich cells, spanning, or custom headers.
-      </Text>
-      <Table withTableBorder fullWidth>
-        <Table.Caption>Manually composed table with rich cell content</Table.Caption>
+    <Block fullWidth>
+      <Table withTableBorder>
+        <Table.Caption>React Native UI libraries</Table.Caption>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Name</Table.Th>

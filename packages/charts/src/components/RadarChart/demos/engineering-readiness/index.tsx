@@ -7,8 +7,8 @@ export function Demo() {
     <RadarChart
       title="Engineering readiness radar"
       subtitle="Security, reliability, scalability, performance, maintainability"
-      maxWidth={600}
-      height={440}
+      maw={600}
+      h={440}
       series={SERIES}
       maxValue={5}
       fill

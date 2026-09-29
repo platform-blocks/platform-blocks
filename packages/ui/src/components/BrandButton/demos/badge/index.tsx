@@ -27,12 +27,12 @@ export function Demo() {
         onPress={() => announce('Google Play')}
       />
 
-      {/* Badges default to a black shell whatever the brand — `backgroundColor` opts one out. */}
+      {/* Badges default to a black shell whatever the brand — `bg` opts one out. */}
       <BrandButton
         brand="spotify"
         primaryText="Listen on"
         secondaryText="Spotify"
-        backgroundColor="#1DB954"
+        bg="#1DB954"
         onPress={() => announce('Spotify')}
       />
     </Row>

@@ -13,7 +13,7 @@
  * This helper exists because hand-rolling the merge is error-prone:
  * historically several components (Alert, Toast, Tabs) shipped subtle bugs
  * where a hardcoded `fontWeight` in the base style array silently overrode a
- * user's slot `weight` prop. Centralizing the merge order makes that mistake
+ * user's slot `fw` prop. Centralizing the merge order makes that mistake
  * impossible.
  *
  * @example
@@ -25,17 +25,20 @@
  * </Text>
  */
 export function mergeSlotProps<
-  B extends Record<string, any>,
-  S extends Record<string, any> | undefined,
+  B extends object,
+  S extends object | undefined,
 >(base: B, slot?: S): B & (S extends undefined ? unknown : Partial<S>) {
-  if (!slot) return base as any;
+  type Merged = B & (S extends undefined ? unknown : Partial<S>);
+  if (!slot) return base as Merged;
 
-  const merged: Record<string, any> = { ...base, ...slot };
+  const merged = { ...base, ...slot } as Record<string, unknown>;
+  const baseStyle = (base as { style?: unknown }).style;
+  const slotStyle = (slot as { style?: unknown }).style;
 
   // Compose the style array unconditionally if either side has a style.
-  if (base.style !== undefined || slot.style !== undefined) {
-    merged.style = [base.style, slot.style];
+  if (baseStyle !== undefined || slotStyle !== undefined) {
+    merged.style = [baseStyle, slotStyle];
   }
 
-  return merged as any;
+  return merged as Merged;
 }

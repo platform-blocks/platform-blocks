@@ -116,7 +116,7 @@ Available parts:
 
 ## Keyboard & assistive tech
 
-The knob takes focus on web (`tabIndex=0`) and reports itself as an adjustable slider with its current value, so it is operable without a pointer:
+The knob takes focus on web (`tabIndex=0`) and reports itself as a slider (`role="slider"`, native adjustable) with `aria-valuemin/max/now` — bounds are omitted on endless knobs — so it is operable without a pointer. It is named by `label` (or `accessibilityLabel`) and described by `description`. The keyboard and accessibility actions come from the shared `useAdjustable` primitive:
 
 | Key | Effect |
 | --- | --- |

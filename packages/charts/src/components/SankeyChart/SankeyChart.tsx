@@ -11,10 +11,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SankeyChartProps, SankeyNode, SankeyLink, SankeyInconsistency } from './types';
 import { ChartContainer, ChartTitle, estimateChartTextWidth, measureChartTitleBand } from '../../ChartBase';
-import { useChartTheme } from '../../theme/ChartThemeContext';
+import { useChartTheme, useNumberFormatter } from '../../theme/ChartThemeContext';
 import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
 import type { ActiveTarget } from '../../core/hittest/types';
-import { getColorFromScheme, colorSchemes } from '../../utils';
+import { getColorFromScheme } from '../../utils';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
@@ -58,6 +58,8 @@ const LABEL_GAP = 8;
 const LABEL_FONT_SIZE = 11;
 /** Space between a node's name and its value. */
 const VALUE_GAP = 6;
+
+const formatFullValue = (value: number) => (Number.isFinite(value) ? value.toLocaleString() : '');
 
 // Animated Sankey Node Component
 interface AnimatedSankeyNodeProps {
@@ -250,8 +252,8 @@ AnimatedSankeyLink.displayName = 'AnimatedSankeyLink';
 
 export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
   const {
-    width = 600,
-    height = 400,
+    w: width = 600,
+    h: height = 400,
     nodes,
     links,
     title,
@@ -271,6 +273,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
     ...rest
   } = props;
   const theme = useChartTheme();
+  const formatNodeValue = useNumberFormatter(formatFullValue);
   
   // Animation state
   const animationProgress = useSharedValue(disabled ? 1 : 0);
@@ -308,7 +311,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
   // Defensive programming: handle empty data
   if (!nodes || nodes.length === 0) {
     return (
-      <ChartContainer {...rest} width={width} height={height} style={style}>
+      <ChartContainer {...rest} w={width} h={height} style={style}>
         {(title || subtitle) && <ChartTitle title={title} subtitle={subtitle} />}
         <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>No nodes provided</Text>
@@ -319,7 +322,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
   
   if (!links || links.length === 0) {
     return (
-      <ChartContainer {...rest} width={width} height={height} style={style}>
+      <ChartContainer {...rest} w={width} h={height} style={style}>
         {(title || subtitle) && <ChartTitle title={title} subtitle={subtitle} />}
         <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>No links provided</Text>
@@ -358,14 +361,16 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
     [labelFormatter, rawNodeMap]
   );
 
+  // Node labels drawn on the chart follow the theme's number format; tooltips
+  // keep the full value.
   const formatValueLabel = React.useCallback(
-    (nodeId: string, value: number) => {
+    (nodeId: string, value: number, fallback: (value: number) => string = formatFullValue) => {
       const raw = rawNodeMap.get(nodeId);
       if (valueFormatter) {
         const formatted = valueFormatter(value, raw);
         if (formatted !== undefined && formatted !== null) return formatted;
       }
-      return Number.isFinite(value) ? value.toLocaleString() : '';
+      return fallback(value);
     },
     [valueFormatter, rawNodeMap]
   );
@@ -509,7 +514,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
     const layerNodes: Record<number, InternalNode[]> = {};
     nodes.forEach((node, index) => {
       const layerIndex = layer[node.id];
-      const color = node.color || getColorFromScheme(index, colorSchemes.default);
+      const color = node.color || getColorFromScheme(index, theme.colors.accentPalette);
       const internalNode: InternalNode = {
         id: node.id,
         label: formatLabel(node.id),
@@ -566,7 +571,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
         node.height = Math.max(layerMinHeight, node.value * globalUnit);
         node.x = resolvedPadding.left + (layerCount > 1 ? layerIndex * colW : (plotW - resolvedNodeWidth) / 2);
         node.y = cursor;
-        node.valueLabel = formatValueLabel(node.id, node.value);
+        node.valueLabel = formatValueLabel(node.id, node.value, formatNodeValue);
         cursor += node.height + globalGap;
       });
     });
@@ -744,7 +749,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
       nodePadding: globalGap,
       inconsistencies,
     };
-  }, [nodes, links, width, height, paddingOverrides, title, subtitle, nodeWidthProp, nodePaddingProp, rawNodeMap, formatLabel, formatValueLabel]);
+  }, [nodes, links, width, height, paddingOverrides, title, subtitle, nodeWidthProp, nodePaddingProp, rawNodeMap, formatLabel, formatValueLabel, formatNodeValue, theme.colors.accentPalette]);
 
   const { internalNodes, internalLinks, nodeWidth: resolvedNodeWidth, inconsistencies, padding } = layout;
 
@@ -898,7 +903,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
   }, [handleNodeHover, handleLinkHover]);
 
   return (
-    <ChartContainer {...rest} width={width} height={height} style={style} interactionConfig={{ multiTooltip:true }}>
+    <ChartContainer {...rest} w={width} h={height} style={style} interactionConfig={{ multiTooltip:true }}>
       {(title||subtitle) && <ChartTitle title={title} subtitle={subtitle} />}
       <Svg
         width={width}

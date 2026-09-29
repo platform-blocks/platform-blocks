@@ -1,9 +1,14 @@
 import React from 'react';
-import { Dimensions, Platform } from 'react-native';
-import { AppShell } from '../AppShell';
+
+import { useReducedMotion } from '../../../core/motion/useReducedMotion';
+import { isNative } from '../../../core/platform/flags';
 import { useTheme } from '../../../core/theme/ThemeProvider';
-import { useReducedMotion } from '../../../core/motion/ReducedMotionProvider';
+import { devWarn } from '../../../core/utils/logger';
+import { AppShell } from '../AppShell';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { isMobileBreakpoint } from '../shellCssVars';
+import { selectIsLandscape, useViewportSelector } from '../shellUtils';
+import type { AsideConfig, BottomNavConfig, FooterConfig, HeaderConfig, NavbarConfig } from '../types';
 import { useAppLayoutContext } from './context';
 import type {
   AppLayoutRuntimeContext,
@@ -22,23 +27,8 @@ const DEFAULT_ASIDE_WIDTH = 320;
 const DEFAULT_FOOTER_HEIGHT = 56;
 const DEFAULT_BOTTOM_NAV_HEIGHT = 64;
 
-const readIsLandscape = () => {
-  const { width, height } = Dimensions.get('window');
-  return width > height;
-};
-
-const useIsLandscape = () => {
-  const [isLandscape, setIsLandscape] = React.useState(readIsLandscape);
-
-  React.useEffect(() => {
-    const subscription = Dimensions.addEventListener('change', ({ window }) => {
-      setIsLandscape(window.width > window.height);
-    });
-    return () => subscription?.remove();
-  }, []);
-
-  return isLandscape;
-};
+/** Orientation from the shared viewport store; re-renders only when it flips. */
+const useIsLandscape = (): boolean => useViewportSelector(selectIsLandscape);
 
 interface EvaluatedEntry {
   visible: boolean;
@@ -71,12 +61,12 @@ const evaluateEntry = (entry: LayoutEntry | undefined, ctx: AppLayoutRuntimeCont
     };
   }
 
-  const props = typeof entry.props === 'function' ? entry.props(ctx) : entry.props;
-  const Component = entry.component as React.ComponentType<any>;
+  const props: object | undefined = typeof entry.props === 'function' ? entry.props(ctx) : entry.props;
+  const Component: React.ComponentType<object> = entry.component;
 
   return {
     visible: true,
-    node: <Component {...(props as any)} />,
+    node: <Component {...props} />,
     key: entry.key,
     target,
   };
@@ -117,12 +107,8 @@ export const AppLayoutRenderer: React.FC<AppLayoutRendererProps> = ({ children }
 
   const isLandscape = useIsLandscape();
 
-  const isMobile = React.useMemo(() => {
-    if (Platform.OS !== 'web') {
-      return true;
-    }
-    return breakpoint === 'base' || breakpoint === 'xs' || breakpoint === 'sm';
-  }, [breakpoint]);
+  // Same rule as AppShell: native, or a web viewport below `md`.
+  const isMobile = isNative || isMobileBreakpoint(breakpoint);
 
   const ctx = React.useMemo<AppLayoutRuntimeContext>(() => ({
     blueprint,
@@ -154,9 +140,7 @@ export const AppLayoutRenderer: React.FC<AppLayoutRendererProps> = ({ children }
         try {
           cleanup();
         } catch (error) {
-          if (__DEV__) {
-            console.warn('AppLayout effect cleanup failed', error);
-          }
+          devWarn('AppLayout effect cleanup failed', error);
         }
       });
     };
@@ -230,13 +214,13 @@ export const AppLayoutRenderer: React.FC<AppLayoutRendererProps> = ({ children }
   const rootOverlaysBefore = overlayBuckets.rootBefore;
   const rootOverlaysAfter = overlayBuckets.rootAfter;
 
-  const headerConfig = headerVisible
+  const headerConfig: HeaderConfig | undefined = headerVisible
     ? {
       height: blueprint.breakpoints?.headerHeight ?? DEFAULT_HEADER_HEIGHT,
     }
     : undefined;
 
-  const navbarConfig = navbarVisible
+  const navbarConfig: NavbarConfig | undefined = navbarVisible
     ? {
       width: navbarEntry?.width ?? blueprint.breakpoints?.navbarWidth ?? DEFAULT_NAVBAR_WIDTH,
       collapsedWidth: navbarEntry?.collapsedWidth ?? 72,
@@ -247,19 +231,19 @@ export const AppLayoutRenderer: React.FC<AppLayoutRendererProps> = ({ children }
     }
     : undefined;
 
-  const asideConfig = asideVisible
+  const asideConfig: AsideConfig | undefined = asideVisible
     ? {
       width: asideEntry?.width ?? blueprint.breakpoints?.asideWidth ?? DEFAULT_ASIDE_WIDTH,
     }
     : undefined;
 
-  const footerConfig = footerVisible
+  const footerConfig: FooterConfig | undefined = footerVisible
     ? {
       height: footerEntry?.height ?? blueprint.breakpoints?.footerHeight ?? DEFAULT_FOOTER_HEIGHT,
     }
     : undefined;
 
-  const bottomNavConfig = bottomNavVisible
+  const bottomNavConfig: BottomNavConfig | undefined = bottomNavVisible
     ? {
       height: bottomNavEntry?.height ?? blueprint.breakpoints?.bottomNavHeight ?? DEFAULT_BOTTOM_NAV_HEIGHT,
     }
@@ -289,13 +273,13 @@ export const AppLayoutRenderer: React.FC<AppLayoutRendererProps> = ({ children }
         key="main"
         id={mainConfig?.id}
         role={mainConfig?.role}
-        maxWidth={mainConfig?.maxWidth}
+        maw={mainConfig?.maw}
         centerContent={mainConfig?.centerContent}
         tableOfContents={tableOfContentsEvaluated.visible ? tableOfContentsEvaluated.node : undefined}
         hideTocOnMobile={mainConfig?.hideTableOfContentsOnMobile}
         tocWidth={mainConfig?.tableOfContentsWidth}
         tocWithBorder={mainConfig?.tableOfContentsWithBorder}
-        {...(mainExtraProps as Record<string, any>)}
+        {...mainExtraProps}
       >
         {children}
       </AppShell.Main>
@@ -317,15 +301,15 @@ export const AppLayoutRenderer: React.FC<AppLayoutRendererProps> = ({ children }
       {rootOverlaysBefore}
       <AppShell
         header={headerConfig}
-        navbar={navbarConfig as any}
-        aside={asideConfig as any}
-        footer={footerConfig as any}
-        bottomNav={bottomNavConfig as any}
+        navbar={navbarConfig}
+        aside={asideConfig}
+        footer={footerConfig}
+        bottomNav={bottomNavConfig}
         padding={padding}
         cssGeometry={blueprint.layout?.cssGeometry}
         withSafeArea={blueprint.layout?.withSafeArea}
         withBorder={blueprint.layout?.withBorder}
-        backgroundColor={blueprint.layout?.backgroundColor}
+        bg={blueprint.layout?.bg}
         style={blueprint.layout?.style}
         statusBar={blueprint.layout?.statusBar}
         transitionDuration={blueprint.layout?.transitionDuration}

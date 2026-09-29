@@ -1,4 +1,5 @@
 import { ShadowProps, ShadowValue, createShadowStyles, COMPONENT_SHADOW_DEFAULTS } from '../theme/shadow';
+import type { ViewStyle } from 'react-native';
 import { PlatformBlocksTheme } from '../theme/types';
 
 /**
@@ -26,7 +27,7 @@ export function getShadowStyles(
   shadowProps: ShadowProps,
   theme: PlatformBlocksTheme,
   componentType?: keyof typeof COMPONENT_SHADOW_DEFAULTS
-): Record<string, any> {
+): ViewStyle {
   if (!shadowProps.shadow) {
     return {};
   }

@@ -25,7 +25,7 @@ export function Demo() {
           {SECTIONS.map((section, index) => (
             <Block key={section.id}>
               <Title order={index === 0 ? 1 : 2}>{section.title}</Title>
-              <Text color="secondary">{section.summary}</Text>
+              <Text c="secondary">{section.summary}</Text>
             </Block>
           ))}
         </Block>

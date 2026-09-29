@@ -1,12 +1,23 @@
-import React from 'react';
-import type { AccessibilityRole, AccessibilityState } from 'react-native';
-import type { PlatformBlocksTheme } from '../../core/theme';
-import type { SizeValue } from '../../core/theme/sizes';
-import { SpacingProps, LayoutProps } from '../../core/utils';
-import { BorderRadiusProps } from '../../core/theme/radius';
-import { ShadowProps } from '../../core/theme/shadow';
+import type React from 'react';
+import type { AccessibilityRole, AccessibilityState, ViewProps, ViewStyle } from 'react-native';
 
-export interface CardProps extends SpacingProps, LayoutProps, BorderRadiusProps, ShadowProps {
+import type { WebMouseEvent } from '../../core/platform/webProps';
+import type { BorderRadiusProps } from '../../core/theme/radius';
+import type { ShadowProps } from '../../core/theme/shadow';
+import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { BaseProps } from '../../core/types/base';
+import type { LayoutProps } from '../../core/utils/layout';
+
+/**
+ * Props for `Card`. Besides its own props, Card forwards every React Native
+ * `View` prop (`role`, `aria-*`, `accessibilityLabel`, `onLayout`, …) to its root.
+ */
+export interface CardProps
+  extends BaseProps<ViewStyle>,
+    LayoutProps,
+    BorderRadiusProps,
+    ShadowProps,
+    Omit<ViewProps, 'style' | 'testID' | 'children' | 'accessibilityRole' | 'accessibilityState'> {
   children?: React.ReactNode; // children optional to reduce noisy TS errors during composition
   /**
    * Visual variant. Each variant sets its own background + default shadow.
@@ -35,35 +46,27 @@ export interface CardProps extends SpacingProps, LayoutProps, BorderRadiusProps,
    */
   clip?: boolean;
   /**
-   * Background color override. Accepts any CSS color string or a theme color
-   * palette name (`'primary' | 'secondary' | 'gray' | 'success' | 'warning' | 'error'`),
-   * which resolves to that palette's shade-1 (subtle tint).
-   */
-  bg?: string;
-  /**
    * Internal padding. Accepts a size token (`'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl'`)
    * or a pixel number.
    */
   padding?: SizeValue;
-  style?: any;
-  // Interactive props
+  /** Makes the card a button (or the given `role`); it is focusable and activates with Enter/Space on web. */
   onPress?: () => void;
+  /** Disables `onPress` and marks the card `aria-disabled`. */
   disabled?: boolean;
-  // Web-only events passthrough
-  onContextMenu?: (e: any) => void;
-  testID?: string;
+  /** Web-only: context-menu (right-click) handler. */
+  onContextMenu?: (event: WebMouseEvent) => void;
   /**
-   * Accessibility role forwarded to the underlying element. Pressable cards
-   * default to a button; set `'link'` when the card navigates.
+   * @deprecated Use `role` (ARIA role). Mapped to `role` when it has an ARIA
+   * equivalent. Pressable cards default to `role="button"`; use `'link'` when
+   * the card navigates.
    */
   accessibilityRole?: AccessibilityRole;
-  /** Accessibility label forwarded to the underlying element. */
-  accessibilityLabel?: string;
   /**
-   * Accessibility state forwarded to the underlying element. Required for the
-   * selectable roles — a card with `accessibilityRole="radio"` or `"checkbox"`
-   * has to announce its `checked` state or screen readers read every option as
-   * unselected.
+   * @deprecated Use `aria-checked` / `aria-selected` / `aria-expanded` /
+   * `aria-busy` / `disabled` — react-native-web ignores accessibilityState.
+   * Still mapped to those props. Selectable roles (`radio`, `checkbox`) need a
+   * checked state or screen readers read every option as unselected.
    */
   accessibilityState?: AccessibilityState;
 }
@@ -76,7 +79,7 @@ export interface CardProps extends SpacingProps, LayoutProps, BorderRadiusProps,
  * sections so they only negate the relevant edges (a section in the middle
  * just escapes horizontal padding).
  */
-export interface CardSectionProps {
+export interface CardSectionProps extends Omit<ViewProps, 'style' | 'children'> {
   children?: React.ReactNode;
   /**
    * Adds a 1px theme border on the section. Top border appears when the
@@ -94,7 +97,7 @@ export interface CardSectionProps {
   py?: SizeValue;
   /** Horizontal padding inside the section (overrides `inheritPadding`). */
   px?: SizeValue;
-  style?: any;
+  style?: ViewProps['style'];
   /** @internal — populated by the parent Card; do not set directly. */
   _isFirst?: boolean;
   /** @internal — populated by the parent Card; do not set directly. */

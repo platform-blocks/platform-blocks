@@ -1,3 +1,5 @@
+import type { BaseProps } from '../../core/types/base';
+
 export interface TimePickerValue {
   hours: number; // 0-23 internal
   minutes: number; // 0-59
@@ -7,9 +9,10 @@ export interface TimePickerValue {
 /**
  * Props for the inline time panel. This is the selection surface only — the
  * hour / minute / (second) / meridiem columns, with no field and no dialog.
- * For a form field that opens this panel in a dialog, use `<TimePickerInput/>`.
+ * For a form field that opens this panel in a sheet, use `<TimePickerInput/>`.
  */
-export interface TimePickerProps {
+export interface TimePickerProps extends BaseProps {
+  /** Controlled value. `null` shows the default time (00:00, or 12:00 AM). */
   value?: TimePickerValue | null;
   defaultValue?: TimePickerValue | null;
   /** Fired on every column selection. */
@@ -29,5 +32,6 @@ export interface TimePickerProps {
   /** Max height of each scroll column. */
   columnHeight?: number;
   disabled?: boolean;
-  style?: any;
+  /** Accessible name of the column group. @default 'Time' */
+  accessibilityLabel?: string;
 }

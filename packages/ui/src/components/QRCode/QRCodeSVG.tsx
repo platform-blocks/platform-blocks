@@ -1,23 +1,37 @@
 import React, { useMemo } from 'react';
-import { Image, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import Svg, { Path, Rect, Defs, LinearGradient, Stop, RadialGradient, ClipPath } from 'react-native-svg';
 // Internal encoder implementation (replaces external dependency)
 import { encode as internalEncode } from './core/encoder';
 import { buildMatrix as internalBuildMatrix } from './core/buildMatrix';
-import { useTheme } from '../../core/theme';
-import { getSpacingStyles, extractSpacingProps, getLayoutStyles, extractLayoutProps } from '../../core/utils';
+import { factory } from '../../core/factory/factory';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { resolveBg } from '../../core/theme/resolveColors';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveRadius } from '../../core/theme/tokens';
+import { useStyleProps } from '../../core/utils/spacing';
+import { getLayoutStyles } from '../../core/utils/layout';
 import { Text } from '../Text';
 import type { QRCodeSVGProps } from './types';
 import { resolveImageSource } from '../../utils/imageSource';
+import { getQRCodeLabel } from './a11y';
 
-export function QRCodeSVG(props: QRCodeSVGProps) {
-  const { spacingProps, otherProps: propsAfterSpacing } = extractSpacingProps(props);
-  const { layoutProps, otherProps } = extractLayoutProps(propsAfterSpacing);
+/**
+ * Behind-the-logo fill. White (not a theme color) on purpose: scanners need the
+ * quiet area under a logo to read as "light" whatever the app's color scheme.
+ */
+const LOGO_BACKGROUND = '#FFFFFF';
 
+const styles = StyleSheet.create({
+  logoOverlay: { position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, alignItems: 'center', justifyContent: 'center' },
+});
+
+export const QRCodeSVG = factory<{ props: QRCodeSVGProps; ref: View }>((props, ref) => {
   const {
     value,
     size = 200,
-    backgroundColor = '#FFFFFF',
+    bg,
+    // Scanner-facing defaults: black on white reads everywhere.
     color = '#000000',
     errorCorrectionLevel = 'M',
     quietZone = 4,
@@ -27,16 +41,19 @@ export function QRCodeSVG(props: QRCodeSVGProps) {
     accessibilityLabel,
     onError,
     moduleShape = 'square',
-    finderShape = 'square',
     cornerRadius = 0.25,
     gradient,
-    ...rest
-  } = otherProps;
+    fullWidth,
+  } = props;
 
   const theme = useTheme();
+  const backgroundColor = resolveBg(theme, bg) ?? '#FFFFFF';
 
-  const spacingStyles = getSpacingStyles(spacingProps);
-  const layoutStyles = getLayoutStyles(layoutProps);
+  // `bg` fills the code itself (below), so it stays off the generic root style.
+  const spacingStyles = useStyleProps({ ...props, bg: undefined });
+  const layoutStyles = getLayoutStyles({ fullWidth });
+  const imageA11y = a11yProps({ role: 'img', label: getQRCodeLabel(value, accessibilityLabel), accessible: true });
+  const logoRadius = logo?.borderRadius ?? resolveRadius(theme, 'lg');
 
   // Generate QR code matrix (external library by default; internal experimental encoder if sentinel prefix)
   const qrData = useMemo(() => {
@@ -131,8 +148,9 @@ export function QRCodeSVG(props: QRCodeSVGProps) {
       justifyContent: 'center' as const,
       backgroundColor: backgroundColor,
     },
-    spacingStyles,
+    // `fullWidth` first, so an explicit `w` (in `spacingStyles`) wins.
     layoutStyles,
+    spacingStyles,
     style,
   ];
 
@@ -147,18 +165,17 @@ export function QRCodeSVG(props: QRCodeSVGProps) {
   // Error fallback – previously treated an empty path as failure which broke rounded / diamond shapes
   if (qrData.error || !hasGeometry) {
     return (
-      <View style={containerStyle} testID={testID} {...rest}>
+      <View ref={ref} style={containerStyle} testID={testID} {...imageA11y}>
         <View
           style={{
             width: size * 0.8,
             height: size * 0.8,
-            backgroundColor: theme.colors.gray[2],
+            backgroundColor: theme.backgrounds.subtle,
             alignItems: 'center',
-            // justifyContent: 'center',
-            borderRadius: 8,
+            borderRadius: resolveRadius(theme, 'lg'),
           }}
         >
-          <Text variant="caption" color="secondary" align="center">
+          <Text variant="caption" c="secondary" ta="center">
             QR Code
             {'\n'}
             Generation
@@ -176,13 +193,8 @@ export function QRCodeSVG(props: QRCodeSVGProps) {
   const logoY = (size - logoSize) / 2;
 
   return (
-    <View style={containerStyle} testID={testID} {...rest}>
-      <Svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        accessibilityLabel={accessibilityLabel || `QR Code containing: ${value}`}
-      >
+    <View ref={ref} style={containerStyle} testID={testID} {...imageA11y}>
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <Defs>
           {gradient && gradient.type !== 'radial' && (
             <LinearGradient id="qrGradient" x1="0%" y1="0%" x2={gradient.rotation ? '100%' : '100%'} y2={gradient.rotation ? '0%' : '100%'}>
@@ -203,8 +215,8 @@ export function QRCodeSVG(props: QRCodeSVGProps) {
                 y={logoY}
                 width={logoSize}
                 height={logoSize}
-                rx={logo.borderRadius || 8}
-                ry={logo.borderRadius || 8}
+                rx={logoRadius}
+                ry={logoRadius}
               />
             </ClipPath>
           )}
@@ -235,53 +247,39 @@ export function QRCodeSVG(props: QRCodeSVGProps) {
             y={logoY}
             width={logoSize}
             height={logoSize}
-            rx={logo.borderRadius || 8}
-            ry={logo.borderRadius || 8}
-            fill={logo.backgroundColor || '#FFFFFF'}
+            rx={logoRadius}
+            ry={logoRadius}
+            fill={logo.backgroundColor || LOGO_BACKGROUND}
           />
         )}
       </Svg>
 
-      {/* Logo overlay */}
+      {/* Logo overlay — centered by a full-cover flex box, so RTL can't offset it. */}
       {logo && (
-        <View
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: [
-              { translateX: -logoSize / 2 },
-              { translateY: -logoSize / 2 },
-            ],
-            width: logoSize,
-            height: logoSize,
-            backgroundColor: logo.backgroundColor || '#FFFFFF',
-            borderRadius: logo.borderRadius || 8,
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-            padding: 2,
-          }}
-        >
-          {logo.element ? (
-            logo.element
-          ) : (
-            <Image
-              source={resolveImageSource(logo.uri)}
-              style={{
-                width: logoSize,
-                height: logoSize,
-                borderRadius: logo.borderRadius || 8,
-              }}
-            />
-            // <Text variant="caption" color="secondary" align="center">
-            //   LOGO
-            // </Text>
-          )}
+        <View style={styles.logoOverlay} pointerEvents="none">
+          <View
+            style={{
+              width: logoSize,
+              height: logoSize,
+              backgroundColor: logo.backgroundColor || LOGO_BACKGROUND,
+              borderRadius: logoRadius,
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              padding: 2,
+            }}
+          >
+            {logo.element ? (
+              logo.element
+            ) : (
+              <Image
+                source={resolveImageSource(logo.uri)}
+                style={{ width: logoSize, height: logoSize, borderRadius: logoRadius }}
+              />
+            )}
+          </View>
         </View>
       )}
     </View>
   );
-}
-
-QRCodeSVG.displayName = 'QRCodeSVG';
+}, { displayName: 'QRCodeSVG' });

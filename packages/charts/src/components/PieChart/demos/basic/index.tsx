@@ -6,8 +6,8 @@ export function Demo() {
   return (
     <PieChart
       title="Traffic sources"
-      maxWidth={560}
-      height={360}
+      maw={560}
+      h={360}
       data={TRAFFIC_SOURCES}
       innerRadius={70}
       outerRadius={150}

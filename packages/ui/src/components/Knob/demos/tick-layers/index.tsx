@@ -15,7 +15,7 @@ export function Demo() {
 
   return (
     <Block align="center">
-      <Knob
+      <Knob accessibilityLabel="Level"
         value={level}
         onChange={setLevel}
         min={0}

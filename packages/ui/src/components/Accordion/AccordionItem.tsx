@@ -1,31 +1,34 @@
 import React from 'react';
-import { View, Pressable, Platform } from 'react-native';
+import { Pressable, View } from 'react-native';
+import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { Text } from '../Text';
-import { Icon } from '../Icon';
-import type { AccordionItem, AccordionProps } from './types';
-import { useAccordionItemAnimation } from './hooks/useAccordionItemAnimation';
-import type { AccordionAnimationProp } from './types';
-import type { AccordionAccentStyles } from './styles';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
 import { Collapse } from '../Collapse';
-import { mergeSlotProps } from '../../core/utils';
+import { Icon } from '../Icon';
+import { Text, type TextProps } from '../Text';
+import { useAccordionItemAnimation } from './hooks/useAccordionItemAnimation';
+import type { AccordionAccentStyles, AccordionStyles } from './styles';
+import type { AccordionAnimationProp, AccordionItem } from './types';
+
 export interface AccordionItemComponentProps {
   item: AccordionItem;
   isExpanded: boolean;
   isDisabled: boolean;
   isLast: boolean;
-  variant: AccordionProps['variant'];
-  onPress: () => void;
+  /** Called with the item's key. */
+  onPress: (key: string) => void;
   showChevron: boolean;
-  styles: any;
+  styles: AccordionStyles;
   /** Resolved expanded-item emphasis (accordion-level or per-item `color`). */
   accent: AccordionAccentStyles;
   chevronColor: string;
   disabledChevronColor: string;
-  headerStyle?: any;
-  contentStyle?: any;
-  headerTextStyle?: any;
-  titleProps?: any;
+  headerStyle?: StyleProp<ViewStyle>;
+  contentStyle?: StyleProp<ViewStyle>;
+  headerTextStyle?: StyleProp<TextStyle>;
+  titleProps?: Omit<TextProps, 'children'>;
   idPrefix: string;
   animated: AccordionAnimationProp;
   /** Explicit ms override for the chevron spin and height transition; `0` is instant. */
@@ -34,12 +37,14 @@ export interface AccordionItemComponentProps {
   chevronPosition?: 'start' | 'end';
 }
 
-export const AccordionItemComponent = React.forwardRef<View, AccordionItemComponentProps>(({
+/** Header ids are built from item keys, which may hold any characters. */
+const idSafe = (key: string) => key.replace(/[^A-Za-z0-9_-]/g, '_');
+
+const AccordionItemInner = React.forwardRef<View, AccordionItemComponentProps>(({
   item,
   isExpanded,
   isDisabled,
   isLast,
-  variant,
   onPress,
   showChevron,
   styles,
@@ -56,8 +61,8 @@ export const AccordionItemComponent = React.forwardRef<View, AccordionItemCompon
   reducedMotion,
   chevronPosition = 'end',
 }, ref) => {
-  const headerId = `${idPrefix}-header-${item.key}`;
-  const panelId = `${idPrefix}-panel-${item.key}`;
+  const headerId = `${idPrefix}-header-${idSafe(item.key)}`;
+  const panelId = `${idPrefix}-panel-${idSafe(item.key)}`;
   const { CollapseConfig, animatedChevronStyle } = useAccordionItemAnimation({
     expanded: isExpanded,
     animated,
@@ -74,35 +79,43 @@ export const AccordionItemComponent = React.forwardRef<View, AccordionItemCompon
       ? accent.activeChevronColor
       : chevronColor;
 
+  const chevron = (
+    <Animated.View
+      style={[styles.chevron, chevronPosition === 'end' && styles.chevronEnd, animatedChevronStyle]}
+      {...a11yProps({ hidden: true })}
+    >
+      <Icon name="chevron-down" size="md" color={resolvedChevronColor} />
+    </Animated.View>
+  );
+
   return (
-    <View ref={ref} style={[
-      styles.item,
-      isLast && variant === 'default' && { borderBottomWidth: 0 },
-      isExpanded && !isDisabled && accent.activeItem
-    ]}>
+    <View
+      ref={ref}
+      style={[styles.item, isLast && styles.lastItem, isExpanded && !isDisabled && accent.activeItem]}
+    >
       <Pressable
         style={[styles.header, headerStyle]}
-        onPress={onPress}
+        onPress={() => onPress(item.key)}
         disabled={isDisabled}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: isExpanded, disabled: isDisabled }}
-        {...(Platform.OS === 'web' ? {
+        {...a11yProps({
+          role: 'button',
           id: headerId,
-          'aria-controls': panelId,
-          'aria-expanded': isExpanded,
-        } as any : {})}
+          controls: panelId,
+          expanded: isExpanded,
+          disabled: isDisabled,
+        })}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-          {chevronPosition === 'start' && showChevron && (
-            <Animated.View style={[styles.chevron, animatedChevronStyle]}>
-              <Icon name="chevron-down" size="md" color={resolvedChevronColor} />
-            </Animated.View>
-          )}
-          {item.icon && <View style={{ marginRight: 12 }}>{item.icon}</View>}
+        <View style={styles.headerRow}>
+          {chevronPosition === 'start' && showChevron && chevron}
+          {item.icon ? (
+            <View style={styles.icon} {...a11yProps({ hidden: true })}>
+              {item.icon}
+            </View>
+          ) : null}
           <Text
             {...mergeSlotProps(
               {
-                weight: isExpanded ? '600' : '400',
+                fw: isExpanded ? '600' : '400',
                 selectable: false,
                 style: [
                   styles.headerText,
@@ -116,50 +129,28 @@ export const AccordionItemComponent = React.forwardRef<View, AccordionItemCompon
           >
             {item.title}
           </Text>
-          {chevronPosition === 'end' && showChevron && (
-            <Animated.View style={[
-              styles.chevron,
-              { marginLeft: 'auto' as const },
-              animatedChevronStyle,
-            ]}>
-              <Icon name="chevron-down" size="md" color={resolvedChevronColor} />
-            </Animated.View>
-          )}
+          {chevronPosition === 'end' && showChevron && chevron}
         </View>
       </Pressable>
       <View
-        style={[
-          { position: 'relative', zIndex: 1 },
-          !shouldAnimate && !isExpanded && { height: 0, overflow: 'hidden' as const },
-        ]}
-        {...(Platform.OS === 'web' ? {
-          id: panelId,
-          role: 'region',
-          'aria-labelledby': headerId,
-          hidden: !isExpanded,
-        } as any : {})}
+        style={[styles.panel, !shouldAnimate && !isExpanded && styles.panelClosed]}
+        {...a11yProps({ role: 'region', id: panelId, labelledBy: headerId })}
       >
         {shouldAnimate ? (
+          // Collapse hides fully collapsed content from assistive technology.
           <Collapse
             isCollapsed={!isExpanded}
-            duration={duration}
+            transitionDuration={duration}
             easing={easing}
             fadeContent={false}
             contentStyle={[styles.content, contentStyle]}
           >
-            <View pointerEvents="box-none">
-              {item.content}
-            </View>
+            <View pointerEvents="box-none">{item.content}</View>
           </Collapse>
         ) : (
           isExpanded && (
-            <View
-              pointerEvents="box-none"
-              style={[styles.content, contentStyle]}
-            >
-              <View>
-                {item.content}
-              </View>
+            <View pointerEvents="box-none" style={[styles.content, contentStyle]}>
+              <View>{item.content}</View>
             </View>
           )
         )}
@@ -168,6 +159,9 @@ export const AccordionItemComponent = React.forwardRef<View, AccordionItemCompon
   );
 });
 
-AccordionItemComponent.displayName = 'Accordion.Item';
+AccordionItemInner.displayName = 'Accordion.Item';
+
+/** One accordion section (header button + collapsible region). Memoized: rows re-render only when their inputs change. */
+export const AccordionItemComponent = React.memo(AccordionItemInner);
 
 export default AccordionItemComponent;

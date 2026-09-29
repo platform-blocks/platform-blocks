@@ -8,11 +8,6 @@
 import React from 'react';
 import { act, render } from '@testing-library/react-native';
 
-jest.mock('react-native-svg', () => {
-  const { View } = require('react-native');
-  return { __esModule: true, default: View, Svg: View, Circle: View, Line: View, Path: View };
-});
-
 import { Knob } from '../Knob';
 
 const SIZE = 200;

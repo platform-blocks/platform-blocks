@@ -16,7 +16,7 @@ export function Demo() {
 
   return (
     <Block align="center">
-      <Knob.Root
+      <Knob.Root accessibilityLabel="Pan"
         min={-100}
         max={100}
         value={pan}
@@ -47,7 +47,7 @@ export function Demo() {
           textStyle={{ fontSize: 30, fontWeight: '700', color: '#f8fafc' }}
         />
       </Knob.Root>
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         Stereo balance · {readout}
       </Text>
     </Block>

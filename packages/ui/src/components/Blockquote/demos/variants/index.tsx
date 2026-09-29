@@ -4,7 +4,7 @@ export function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="h5" weight="semibold">
+        <Text variant="h5" fw="semibold">
           Default
         </Text>
         <Blockquote author={{ name: 'Anonymous' }}>
@@ -13,7 +13,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="h5" weight="semibold">
+        <Text variant="h5" fw="semibold">
           Testimonial
         </Text>
         <Blockquote
@@ -31,7 +31,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="h5" weight="semibold">
+        <Text variant="h5" fw="semibold">
           Featured
         </Text>
         <Blockquote
@@ -47,7 +47,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="h5" weight="semibold">
+        <Text variant="h5" fw="semibold">
           Minimal
         </Text>
         <Blockquote

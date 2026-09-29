@@ -37,7 +37,7 @@ export function Demo() {
         fullWidth
       />
       {value && (
-        <Text size="sm" color="secondary">
+        <Text size="sm" c="secondary">
           Selected: {value.hours.toString().padStart(2, '0')}:{value.minutes.toString().padStart(2, '0')}
         </Text>
       )}

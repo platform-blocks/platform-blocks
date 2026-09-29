@@ -12,6 +12,7 @@ import path from 'path';
 import crypto from 'crypto';
 
 import { GITHUB_REPO, SITE_URL } from '../apps/platform-blocks.com/config/urls';
+import { LLMS_SHARED_PROPS_URL } from '../apps/platform-blocks.com/config/llmsDocs';
 
 const ROOT = path.resolve(__dirname, '..');
 const UI_COMPONENTS_DIR = path.join(ROOT, 'packages', 'ui', 'src', 'components');
@@ -50,6 +51,11 @@ interface DemoMeta {
 
 interface DemoFile { name: string; code: string; githubUrl?: string; }
 interface CodeEntry { code: string; hash: string; importPath: string; files?: DemoFile[]; githubUrl?: string; }
+
+/** A public export documented on its parent's page — RadioGroup on Radio, Form.Field on Form. */
+interface SubcomponentDoc { name: string; props: any[]; }
+/** A hook exported beside a component — useToast beside Toast. */
+interface RelatedHookDoc { name: string; signature?: string; summary?: string; }
 
 /**
  * Branch the docs site links source at. `main` rather than a tag or commit SHA:
@@ -130,6 +136,42 @@ function parseFrontmatter(raw: string): { frontmatter: any; body: string } {
     frontmatter[key] = value;
   }
   return { frontmatter, body };
+}
+
+/**
+ * Index of the next character that is code: skips comments and string
+ * literals, whose brackets would otherwise throw a bracket-depth scan off.
+ */
+function skipTrivia(source: string, index: number): number {
+  let i = index;
+  for (;;) {
+    if (source.startsWith('/*', i)) {
+      const end = source.indexOf('*/', i + 2);
+      i = end === -1 ? source.length : end + 2;
+    } else if (source.startsWith('//', i)) {
+      const end = source.indexOf('\n', i);
+      i = end === -1 ? source.length : end;
+    } else if (source[i] === "'" || source[i] === '"' || source[i] === '`') {
+      const quote = source[i];
+      let j = i + 1;
+      while (j < source.length && source[j] !== quote) j += source[j] === '\\' ? 2 : 1;
+      i = j + 1;
+    } else {
+      return i;
+    }
+  }
+}
+
+/**
+ * The frontmatter `description` one-liner, kept when a Markdown body replaces it
+ * as the component's description. The body is the richer text for the page, but
+ * it does not always open with a summary (Calendar's opens on its accessibility
+ * notes), so the one-liner is published alongside as the index fallback.
+ */
+function frontmatterTagline(frontmatter: any, body: string | undefined): string | undefined {
+  if (!(body || '').trim()) return undefined;
+  const value = typeof frontmatter?.description === 'string' ? frontmatter.description.trim() : '';
+  return value || undefined;
 }
 
 interface ComponentMetaRecord {
@@ -259,6 +301,8 @@ function collectDemos() {
         const title = typeof fm.title === 'string' && fm.title.trim() ? fm.title : comp;
         const playgroundMeta = normalizePlaygroundMeta(playgroundRaw, comp);
         const metaEntry: Record<string, any> = { ...restFm, name, title, description: desc || `${comp} component` };
+        const tagline = frontmatterTagline(fm, body);
+        if (tagline) metaEntry.tagline = tagline;
         if (playgroundMeta) metaEntry.playground = playgroundMeta;
         componentMeta[comp] = metaEntry;
       } catch {
@@ -452,6 +496,8 @@ function collectDemos() {
           const category = fm.category || 'charts';
           const playgroundMeta = normalizePlaygroundMeta(playgroundRaw, comp);
           const metaEntry: Record<string, any> = { ...restFm, name, title, description: desc || `${comp} component`, category };
+          const tagline = frontmatterTagline(fm, body);
+          if (tagline) metaEntry.tagline = tagline;
           if (playgroundMeta) metaEntry.playground = playgroundMeta;
           componentMeta[comp] = metaEntry;
         } catch {
@@ -703,7 +749,14 @@ function collectDemos() {
   // Global index of every named interface (name -> { body, extends clause }),
   // built lazily from shared type files so base interfaces such as
   // `BaseChartProps`, `SpacingProps`, `LineChartProps` can be resolved.
-  const ifaceIndex = new Map<string, { body: string; ext: string }>();
+  const ifaceIndex = new Map<string, { body: string; ext: string; alias?: boolean }>();
+  // Literal unions by alias name (`ButtonVariant` → `'default' | 'filled' | …`).
+  const unionIndex = new Map<string, string[]>();
+  // Declaration source by name, for the Types section of a component's page.
+  const declIndex = new Map<string, { text: string; file: string }>();
+  const recordDeclaration = (name: string, text: string, file: string) => {
+    if (!declIndex.has(name)) declIndex.set(name, { text: text.trim(), file });
+  };
   const scannedFiles = new Set<string>();
   const scanForInterfaces = (file: string) => {
     if (scannedFiles.has(file)) return;
@@ -721,6 +774,64 @@ function collectDemos() {
       for (let i = startIdx; i < src.length; i++) { const ch = src[i]; if (ch === '{') depth++; else if (ch === '}') { depth--; if (depth === 0) { end = i; break; } } }
       if (end === -1) continue;
       if (!ifaceIndex.has(name)) ifaceIndex.set(name, { body: src.substring(startIdx + 1, end), ext });
+      recordDeclaration(name, src.slice(m.index, end + 1), file);
+    }
+
+    // Intersection aliases — `type BaseProps<S> = SpacingProps & VisibilityProps
+    // & { style?: … }` — indexed in the same shape: inline object members become
+    // the body and every other operand an `extends` entry. Shared prop bags
+    // moved to this form, and an index that only knew `interface … extends`
+    // silently dropped every prop they carry.
+    const aliasRe = new RegExp(`(?:export\\s+)?type\\s+([A-Za-z0-9_]+)(?:\\s*${NESTED_GENERIC})?\\s*=`, 'g');
+    while ((m = aliasRe.exec(src))) {
+      const name = m[1];
+      if (ifaceIndex.has(name)) continue;
+      const start = m.index + m[0].length;
+      const operands: string[] = [];
+      let depth = 0, cur = '', end = -1, union = false;
+      for (let i = start; i < src.length; i++) {
+        // Comments and strings are copied through untouched: a `>` or `|` in a
+        // JSDoc line or a string literal is not structure.
+        const next = skipTrivia(src, i);
+        if (next !== i) { cur += src.slice(i, next); i = next - 1; continue; }
+        const ch = src[i];
+        if (ch === '>' && src[i - 1] === '=') { cur += ch; continue; } // `=>` is not a bracket
+        if ('{<(['.includes(ch)) depth++;
+        else if ('}>)]'.includes(ch)) depth--;
+        if (depth === 0 && ch === ';') { end = i; break; }
+        if (depth === 0 && ch === '|') union = true;
+        if (depth === 0 && ch === '&') { operands.push(cur); cur = ''; continue; }
+        cur += ch;
+      }
+      if (end === -1) continue;
+      recordDeclaration(name, src.slice(m.index, end + 1), file);
+      if (union) {
+        // A union is a value type, not a props shape — but a union of literals
+        // (`type ButtonVariant = 'default' | 'filled' | …`) is exactly what a
+        // prop's type needs spelled out, so it is kept for expansion.
+        const members: string[] = [];
+        let level = 0, member = '';
+        for (const ch of src.slice(start, end).replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')) {
+          if ('{<(['.includes(ch)) level++;
+          else if ('}>)]'.includes(ch)) level--;
+          if (level === 0 && ch === '|') { members.push(member.trim()); member = ''; } else member += ch;
+        }
+        members.push(member.trim());
+        const literal = /^(?:'[^']*'|"[^"]*"|-?\d+(?:\.\d+)?|true|false|null|[A-Z][A-Za-z0-9_]*)$/;
+        const cleaned = members.filter(Boolean);
+        if (cleaned.length && cleaned.every(m => literal.test(m)) && !unionIndex.has(name)) unionIndex.set(name, cleaned);
+        continue;
+      }
+      operands.push(cur);
+      const bodies: string[] = [];
+      const bases: string[] = [];
+      for (const operand of operands.map(o => o.trim()).filter(Boolean)) {
+        if (operand.startsWith('{') && operand.endsWith('}')) bodies.push(operand.slice(1, -1));
+        else if (/^[A-Za-z0-9_.]+(?:\s*<[\s\S]*>)?$/.test(operand)) bases.push(operand.replace(/\s+/g, ' '));
+      }
+      if (bodies.length || bases.length) {
+        ifaceIndex.set(name, { body: bodies.join('\n'), ext: bases.join(', '), alias: true });
+      }
     }
   };
   // Pre-scan shared type files: everything under packages/charts/src plus each UI
@@ -745,35 +856,57 @@ function collectDemos() {
   // from every prop table until this was scanned.
   const uiCore = path.join(ROOT, 'packages', 'ui', 'src', 'core');
   for (const f of walkTs(uiCore, f => f.endsWith('.ts') && !f.endsWith('.d.ts'))) scanForInterfaces(f);
+  // Then every other component source file. Bases increasingly live beside the
+  // implementation (`PickerFieldBaseProps` in DatePickerInput/PickerField.tsx,
+  // `FieldBaseProps` in _internal/Field/fieldProps.ts); the index is
+  // first-wins, so the `types.ts` files scanned above keep precedence.
+  for (const f of walkTs(UI_COMPONENTS_DIR, f => /\.tsx?$/.test(f) && !f.endsWith('.d.ts') && !/__(web_)?tests__/.test(f.replace(/\\/g, '/')))) scanForInterfaces(f);
 
-  // Split an `extends` clause into base specs, honouring `Omit<Base, 'k' | 'j'>`.
-  const splitExtends = (ext: string): Array<{ name: string; omit?: string[] }> => {
+  // Split an `extends` clause into base specs, honouring `Omit<Base, 'k' | 'j'>`,
+  // `Pick<Base, 'k' | 'j'>` and `Partial<Base>`.
+  type BaseSpec = { name: string; omit?: string[]; pick?: string[]; partial?: boolean };
+  const keysOf = (list: string) => (list.match(/'([^']+)'|"([^"]+)"/g) || []).map(k => k.replace(/['"]/g, ''));
+  const splitExtends = (ext: string): BaseSpec[] => {
     if (!ext) return [];
     const parts: string[] = []; let d = 0, cur = '';
     for (const ch of ext) { if (ch === '<') d++; else if (ch === '>') d--; if (ch === ',' && d === 0) { parts.push(cur); cur = ''; } else cur += ch; }
     if (cur.trim()) parts.push(cur);
-    const out: Array<{ name: string; omit?: string[] }> = [];
+    const out: BaseSpec[] = [];
     for (const raw of parts.map(s => s.trim()).filter(Boolean)) {
-      const omitM = raw.match(/^Omit\s*<\s*([A-Za-z0-9_]+)\s*,\s*([\s\S]+)>$/);
-      if (omitM) { const keys = (omitM[2].match(/'([^']+)'|"([^"]+)"/g) || []).map(k => k.replace(/['"]/g, '')); out.push({ name: omitM[1], omit: keys }); continue; }
+      const omitM = raw.match(/^Omit\s*<\s*([A-Za-z0-9_]+)(?:\s*<[^<>]*>)?\s*,\s*([\s\S]+)>$/);
+      if (omitM) { out.push({ name: omitM[1], omit: keysOf(omitM[2]) }); continue; }
+      const pickM = raw.match(/^Pick\s*<\s*([A-Za-z0-9_]+)(?:\s*<[^<>]*>)?\s*,\s*([\s\S]+)>$/);
+      if (pickM) { out.push({ name: pickM[1], pick: keysOf(pickM[2]) }); continue; }
+      const partialM = raw.match(/^Partial\s*<\s*([A-Za-z0-9_]+)(?:\s*<[\s\S]*>)?\s*>$/);
+      if (partialM) { out.push({ name: partialM[1], partial: true }); continue; }
       const bare = raw.replace(/\s*<[\s\S]*>\s*$/, '').trim();
       if (/^[A-Za-z0-9_]+$/.test(bare)) out.push({ name: bare });
     }
     return out;
   };
+  const narrowBase = (base: BaseSpec, props: any[]): any[] => {
+    let out = props;
+    if (base.omit) out = out.filter(p => !base.omit!.includes(p.name));
+    if (base.pick) out = out.filter(p => base.pick!.includes(p.name));
+    if (base.partial) out = out.map(p => ({ ...p, required: false }));
+    return out;
+  };
   // Recursively resolve all props inherited through an interface's `extends`
   // chain. Own props win over inherited; earlier bases win over later ones.
+  // Each inherited prop records the interface that declares it (`from`), which
+  // is how the Markdown folds the shared SpacingProps/LayoutProps bags into one
+  // line instead of repeating them on every component.
   const resolveBaseProps = (name: string, seen: Set<string>): any[] => {
     if (seen.has(name)) return [];
     seen.add(name);
     const entry = ifaceIndex.get(name);
     if (!entry) return [];
-    const own = parseBody(entry.body);
+    const own = parseBody(entry.body).map(prop => ({ ...prop, from: name }));
     const names = new Set(own.map(p => p.name));
     const result = [...own];
     for (const base of splitExtends(entry.ext)) {
       let baseProps = resolveBaseProps(base.name, seen);
-      if (base.omit) baseProps = baseProps.filter(p => !base.omit!.includes(p.name));
+      baseProps = narrowBase(base, baseProps);
       for (const p of baseProps) { if (!names.has(p.name)) { names.add(p.name); result.push(p); } }
     }
     return result;
@@ -806,12 +939,20 @@ function collectDemos() {
       // re-exports a base via `extends` (e.g. `interface FooProps extends BarProps {}`).
       if (parsed.length || extracted.ext) { collected = parsed; ownExt = extracted.ext; break; }
     }
+    // A props type declared as an intersection alias (`type FooProps = BaseProps
+    // & { … }`) never matches the object-literal pattern above; resolve it from
+    // the index instead, own members first.
+    const indexed = ifaceIndex.get(`${comp}Props`);
+    if (indexed?.alias && !ownExt) {
+      collected = resolveBaseProps(`${comp}Props`, new Set<string>())
+        .map(({ from, ...prop }) => (from === `${comp}Props` ? prop : { ...prop, from }));
+    }
     // Merge in props inherited through the `extends` chain (own props win).
     if (ownExt) {
       const dedupe = new Set(collected.map(p => p.name));
       for (const base of splitExtends(ownExt)) {
         let baseProps = resolveBaseProps(base.name, new Set<string>());
-        if (base.omit) baseProps = baseProps.filter(p => !base.omit!.includes(p.name));
+        baseProps = narrowBase(base, baseProps);
         for (const p of baseProps) { if (!dedupe.has(p.name)) { dedupe.add(p.name); collected.push(p); } }
       }
     }
@@ -903,7 +1044,213 @@ function collectDemos() {
     }
   }
 
-  return { demos, codeByComponent, componentMeta, propsMeta, componentSourceDir, warningCounts, componentWarnings };
+  // ---- Sub-components and related hooks ---------------------------------------
+  // Public exports that live in a component's folder beside it — RadioGroup next
+  // to Radio, MenuItem next to Menu — and the hooks that drive it (useToast,
+  // useDialog). Grouped by the package barrel, so only what a consumer can
+  // actually import is documented; examples reach for these constantly, and a
+  // page that documents only the parent leaves their props to guesswork.
+  const subcomponents: Record<string, SubcomponentDoc[]> = {};
+  const relatedHooks: Record<string, RelatedHookDoc[]> = {};
+
+  // Exports documented on another component's page: Row and Column live in
+  // components/Layout, but they are Flex with the direction fixed.
+  const SUBCOMPONENT_HOSTS: Record<string, string> = { Layout: 'Flex' };
+
+  const exportsByDir = new Map<string, string[]>();
+  try {
+    const barrel = fs.readFileSync(path.join(ROOT, 'packages', 'ui', 'src', 'index.ts'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '');
+    // `export { A, B } from './components/Dir'` — value exports only; the
+    // `export type { … }` form never matches `export\s*\{`.
+    for (const match of barrel.matchAll(/export\s*\{([^}]*)\}\s*from\s*'\.\/components\/([^'/]+)[^']*'/g)) {
+      const names = match[1].split(',').map(part => part.trim()).filter(part => part && !part.startsWith('type '))
+        .map(part => part.match(/\bas\s+([A-Za-z_$][\w$]*)$/)?.[1] ?? part);
+      exportsByDir.set(match[2], [...(exportsByDir.get(match[2]) ?? []), ...names]);
+    }
+  } catch { /* no barrel: nothing to add */ }
+
+  // `${name}Props`, interface or alias, with its `extends` chain resolved the
+  // same way as a component's own props. Every component source file is in the
+  // index by now, so the declaring file does not matter.
+  const resolveNamedProps = (name: string): any[] | null => {
+    const typeName = `${name}Props`;
+    if (!ifaceIndex.has(typeName)) return null;
+    return resolveBaseProps(typeName, new Set<string>())
+      .filter(prop => !prop.internal)
+      .map(({ from, ...prop }) => (from === typeName ? prop : { ...prop, from }));
+  };
+
+  for (const [dir, names] of exportsByDir) {
+    const host = SUBCOMPONENT_HOSTS[dir] ?? dir;
+    if (!componentMeta[host]) continue;
+    const files = walkTs(
+      path.join(UI_COMPONENTS_DIR, dir),
+      f => /\.tsx?$/.test(f) && !f.endsWith('.d.ts') && !/__(web_)?tests__/.test(f.replace(/\\/g, '/')),
+    );
+    const sources = files.map(f => fs.readFileSync(f, 'utf8'));
+
+    for (const name of new Set(names)) {
+      // Documented on its own page (Calendar is exported from DatePicker's folder).
+      if (name === host || componentMeta[name]) continue;
+      if (/^use[A-Z]/.test(name)) {
+        const hook = describeHook(name, sources);
+        (relatedHooks[host] ??= []).push(hook);
+        continue;
+      }
+      // PascalCase components only: no helpers (`buildNavTree`) or constants.
+      if (!/^[A-Z]/.test(name) || (/^[A-Z0-9_]+$/.test(name) && name.length > 3)) continue;
+      (subcomponents[host] ??= []).push({ name, props: resolveNamedProps(name) ?? [] });
+    }
+  }
+
+  // Compound members used as `<Form.Field>` rather than imported by name.
+  for (const [comp, entries] of Object.entries(codeByComponent)) {
+    if (!componentMeta[comp]) continue;
+    const members = new Set<string>();
+    for (const entry of Object.values(entries)) {
+      for (const match of entry.code.matchAll(new RegExp(`<${comp}\\.([A-Z]\\w*)`, 'g'))) members.add(match[1]);
+    }
+    if (!members.size) continue;
+    for (const member of [...members].sort()) {
+      const name = `${comp}.${member}`;
+      if (subcomponents[comp]?.some(sub => sub.name === name)) continue;
+      const props = resolveNamedProps(`${comp}${member}`) ?? resolveNamedProps(member) ?? [];
+      (subcomponents[comp] ??= []).push({ name, props });
+    }
+  }
+
+  // A prop typed with a named literal union tells a reader nothing on its own —
+  // `variant: ButtonVariant` — so the members are recorded beside the type.
+  // Only pure literal unions expand; shared vocabularies such as `SizeValue`
+  // and `ColorProp` include `number` / `string` and are left to the style guide.
+  const expandUnion = (name: string, seen = new Set<string>()): string[] | null => {
+    if (seen.has(name)) return null;
+    seen.add(name);
+    const members = unionIndex.get(name);
+    if (!members) return null;
+    const out: string[] = [];
+    for (const member of members) {
+      if (/^[A-Z]/.test(member)) {
+        const nested = expandUnion(member, seen);
+        if (!nested) return null;
+        out.push(...nested);
+      } else {
+        out.push(member);
+      }
+    }
+    return out;
+  };
+  const annotateValues = (props: any[]) => {
+    for (const prop of props) {
+      const type = typeof prop.type === 'string' ? prop.type.trim() : '';
+      if (!/^[A-Z][A-Za-z0-9_]*$/.test(type)) continue;
+      const values = expandUnion(type);
+      if (values && values.length <= 16) prop.values = values.join(' | ');
+    }
+  };
+  for (const props of Object.values(propsMeta)) annotateValues(props);
+  for (const subs of Object.values(subcomponents)) for (const sub of subs) annotateValues(sub.props);
+
+  // Named types a page's own props reference — RadioGroupOption,
+  // PieChartDataPoint — declared in the component's own folder, so the page
+  // spells out the shapes it asks for. Shared vocabulary (the core tokens, the
+  // chart-wide ChartAxis / ChartDataPoint) is documented once on the
+  // shared-props guide instead, and types inherited from another component's
+  // props belong on that component's page.
+  const typeDocs: Record<string, string[]> = {};
+  const MAX_TYPE_DECLARATION_CHARS = 2500;
+  const MAX_TYPES_PER_PAGE = 8;
+  const identifiers = (text: string) => text.match(/\b[A-Z][A-Za-z0-9_]*\b/g) ?? [];
+  for (const comp of Object.keys(componentMeta)) {
+    const dir = componentSourceDir[comp];
+    if (!dir) continue;
+    const inside = (file: string) => !path.relative(dir, file).startsWith('..');
+    const own = [...(propsMeta[comp] ?? []), ...(subcomponents[comp] ?? []).flatMap(sub => sub.props)]
+      .filter(prop => !prop.from && !prop.values && !prop.internal);
+    const pending = own.flatMap(prop => identifiers(String(prop.type ?? '')));
+    const seen = new Set<string>();
+    const picked: string[] = [];
+    while (pending.length && picked.length < MAX_TYPES_PER_PAGE) {
+      const id = pending.shift()!;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const declaration = declIndex.get(id);
+      if (!declaration || !inside(declaration.file) || declaration.text.length > MAX_TYPE_DECLARATION_CHARS) continue;
+      // A literal union a prop already spells out needs no declaration.
+      if (unionIndex.has(id) && !own.some(prop => new RegExp(`\\b${id}\\b`).test(String(prop.type)) && !prop.values)) continue;
+      picked.push(declaration.text);
+      // One hop further: the shapes this one is built from, from the same folder.
+      pending.push(...identifiers(declaration.text.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')));
+    }
+    if (picked.length) typeDocs[comp] = picked;
+  }
+
+  // Surface the names on the component meta too: the llms.txt index lists them
+  // beside the parent so an agent looking for RadioGroup finds the Radio page.
+  for (const [comp, subs] of Object.entries(subcomponents)) {
+    componentMeta[comp].subcomponents = subs.map(sub => sub.name);
+  }
+  for (const [comp, hooks] of Object.entries(relatedHooks)) {
+    componentMeta[comp].relatedHooks = hooks.map(hook => hook.name);
+  }
+
+  return { demos, codeByComponent, componentMeta, propsMeta, componentSourceDir, warningCounts, componentWarnings, subcomponents, relatedHooks, typeDocs };
+}
+
+/**
+ * A hook exported beside a component, reduced to what an agent needs to call
+ * it: the signature (parameters and declared return type) and the first
+ * sentence of its JSDoc. Parameters are cut at the matching parenthesis rather
+ * than the first `)`, so callback-typed options survive.
+ */
+function describeHook(name: string, sources: string[]): RelatedHookDoc {
+  const declaration = new RegExp(`^export\\s+(?:function\\s+${name}\\b|const\\s+${name}\\b\\s*=\\s*(?:async\\s*)?)`, 'm');
+  for (const source of sources) {
+    const match = declaration.exec(source);
+    if (!match) continue;
+
+    let signature: string | undefined;
+    const open = source.indexOf('(', match.index + match[0].length - 1);
+    if (open !== -1) {
+      let depth = 0;
+      let close = -1;
+      for (let i = open; i < source.length; i++) {
+        if (source[i] === '(') depth++;
+        else if (source[i] === ')' && --depth === 0) { close = i; break; }
+      }
+      if (close !== -1) {
+        const generics = source.slice(match.index + match[0].length, open).trim();
+        const params = source.slice(open, close + 1);
+        const rest = source.slice(close + 1, close + 400);
+        const returnType = rest.match(/^\s*:\s*([\s\S]+?)\s*(?:=>|\{)/)?.[1];
+        signature = `${name}${generics.startsWith('<') ? generics : ''}${params}${returnType ? `: ${returnType}` : ''}`
+          .replace(/\s+/g, ' ')
+          .replace(/\(\s+/g, '(')
+          .replace(/,?\s+\)/g, ')');
+      }
+    }
+
+    // The JSDoc block directly above the declaration, if there is one.
+    const before = source.slice(0, match.index).trimEnd();
+    let summary: string | undefined;
+    if (before.endsWith('*/')) {
+      const doc = before.slice(before.lastIndexOf('/**'));
+      const text = doc
+        .replace(/^\/\*\*|\*\/$/g, '')
+        .split('\n')
+        .map(line => line.replace(/^\s*\*\s?/, ''))
+        .join(' ')
+        .split(/\s@\w/)[0]
+        .replace(/\s+/g, ' ')
+        .trim();
+      const sentenceEnd = text.search(/\.\s/);
+      summary = (sentenceEnd > 0 ? text.slice(0, sentenceEnd + 1) : text) || undefined;
+    }
+    return { name, signature, summary };
+  }
+  return { name };
 }
 
 function collectHooks() {
@@ -1059,23 +1406,44 @@ ${cleaned}
 `.trim();
 }
 
-function sanitizeDemoCode(code: string): string {
-  const normalized = code.replace(/\r\n/g, '\n');
-  const lines = normalized.split('\n');
-  const filtered = lines.filter(line => {
-    const trimmed = line.trim();
-    if (!trimmed) return false;
-    if (trimmed.startsWith('import ')) return false;
-    if (trimmed.startsWith('export ')) return false;
-    return true;
-  });
-  return filtered.join('\n').trim();
+/**
+ * Demo source as published in the Markdown: the whole module, imports and all.
+ *
+ * Demos are written against the published package imports precisely so they can
+ * be copied as-is. Stripping `import` / `export` lines (as this once did) left
+ * every example without its imports and with a dangling `}` where the
+ * `export function Demo() {` line had been.
+ */
+function normalizeDemoCode(code: string): string {
+  return code.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
-function escapeTableCell(value: string | number | boolean | null | undefined): string {
-  if (value === null || value === undefined) return '';
-  const str = String(value);
-  return str.replace(/\r?\n/g, ' ').replace(/\|/g, '\\|').trim();
+/**
+ * A demo's sibling files (`data.ts`, fixtures) are shown beneath it so the
+ * example is self-contained. Large fixtures are cut to their opening lines —
+ * enough to show the shape of the data — with a link to the rest.
+ */
+const MAX_INLINE_FILE_CHARS = 3000;
+const TRIMMED_FILE_CHARS = 1500;
+// The compact variant keeps only enough of a fixture to show its shape, and
+// leaves out an example longer than this altogether.
+const COMPACT_TRIMMED_FILE_CHARS = 600;
+const MAX_COMPACT_EXAMPLE_CHARS = 1600;
+
+function inlineFileCode(file: DemoFile, compact = false): string {
+  const code = file.code.replace(/\r\n/g, '\n').trim();
+  const limit = compact ? COMPACT_TRIMMED_FILE_CHARS : TRIMMED_FILE_CHARS;
+  if (code.length <= (compact ? COMPACT_TRIMMED_FILE_CHARS * 2 : MAX_INLINE_FILE_CHARS)) return code;
+  const lines = code.split('\n');
+  const kept: string[] = [];
+  let size = 0;
+  for (const line of lines) {
+    if (kept.length && size + line.length > limit) break;
+    kept.push(line);
+    size += line.length + 1;
+  }
+  const pointer = file.githubUrl ? ` — full file: ${file.githubUrl}` : '';
+  return `${kept.join('\n')}\n// … ${lines.length - kept.length} more lines${pointer}`;
 }
 
 function compactParagraph(text?: string): string {
@@ -1084,6 +1452,13 @@ function compactParagraph(text?: string): string {
     .replace(/\r?\n/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/** The opening sentence, for the compact (llms-small) variant of a description. */
+function firstSentence(text?: string): string {
+  const flat = compactParagraph(text);
+  const end = flat.search(/[.!?]\s/);
+  return end > 20 ? flat.slice(0, end + 1) : flat;
 }
 
 /**
@@ -1124,103 +1499,292 @@ function formatTagList(tags: unknown): string | null {
   return null;
 }
 
-function buildPropsTable(props: Array<Record<string, any>>): string {
-  if (!props || props.length === 0) {
-    return '_No documented props yet._';
+/**
+ * Prop bags many components extend. Repeating their rows on every page cost
+ * tens of thousands of tokens across the docs, so a page names the ones it
+ * accepts in one line and links the guide that documents them once. Matched by
+ * the interface that declares the prop, never by name — PieChart's `radius` is
+ * not a border radius. `names` groups keep their prop names in the compact
+ * variant too: `label` / `error` are API an agent must know exists, where the
+ * spacing props are covered by the conventions.
+ */
+const SHARED_PROP_GROUPS: Array<{ from: string; label: string; names?: boolean }> = [
+  { from: 'FieldBaseProps', label: 'field', names: true },
+  { from: 'TextFieldBaseProps', label: 'text field', names: true },
+  { from: 'BaseChartProps', label: 'chart', names: true },
+  { from: 'ChartInteractionCallbacks', label: 'chart events', names: true },
+  { from: 'BaseProps', label: 'base' },
+  { from: 'SpacingProps', label: 'spacing' },
+  { from: 'LayoutProps', label: 'sizing' },
+  { from: 'BorderRadiusProps', label: 'radius' },
+  { from: 'ShadowProps', label: 'shadow' },
+  { from: 'VisibilityProps', label: 'visibility' },
+  { from: 'DisclaimerSupport', label: 'disclaimer' },
+];
+
+/** Cuts `text` to `max` characters on a word boundary, marking the cut. */
+function clip(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max - 1);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), max * 0.6)).trimEnd()}…`;
+}
+
+const FILLER_WORDS = new Set([
+  'a', 'an', 'the', 'to', 'of', 'for', 'is', 'be', 'on', 'in', 'or', 'and', 'this', 'it', 'its',
+  'whether', 'if', 'when', 'called', 'enable', 'enables', 'show', 'shows', 'set', 'sets', 'value',
+  'component', 'prop', 'optional', 'custom', 'use', 'should',
+]);
+
+/**
+ * True when a description only restates the prop name — `autoCorrect`,
+ * "Whether to enable auto-correct". The compact variant drops those: the name
+ * and type already say it.
+ */
+function restatesName(name: string, description: string): boolean {
+  const nameWords = new Set(name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
+  const words = description.toLowerCase().replace(/[`'"().,:;]/g, ' ').split(/[^a-z0-9]+/).filter(Boolean);
+  if (!words.length || words.length > 8) return false;
+  const content = words.filter(word => !FILLER_WORDS.has(word));
+  return content.every(word => nameWords.has(word) || nameWords.has(word.replace(/s$/, '')));
+}
+
+/**
+ * `compact` is the llms-small variant: types and descriptions clipped, and
+ * `descriptions: false` drops the description altogether (sub-component props,
+ * where the name and type carry most of the meaning).
+ */
+function formatProp(prop: Record<string, any>, compact: boolean, descriptions = true): string {
+  const flags = [prop.required ? 'required' : null, prop.deprecated ? 'deprecated' : null].filter(Boolean);
+  let type = compactParagraph(prop.values ?? prop.type);
+  // A literal union's members are the API, so only other types are clipped.
+  if (compact && !prop.values) type = clip(type, 100);
+  const defaultValue = compactParagraph(prop.defaultValue);
+  let description = !descriptions ? '' : compact ? clip(firstSentence(prop.description), 60) : compactParagraph(prop.description);
+  if (compact && restatesName(prop.name, description)) description = '';
+  return `- \`${prop.name}\`${flags.length ? ` (${flags.join(', ')})` : ''}${type ? `: ${type}` : ''}${defaultValue ? ` = ${compact ? clip(defaultValue, 40) : defaultValue}` : ''}${description ? ` — ${description}` : ''}`;
+}
+
+/**
+ * Props the compact variant names without a line of their own: press and hover
+ * lifecycle callbacks, passthrough prop and style objects, test and hint hooks.
+ * They matter when needed and are rarely what an agent reaches for first.
+ */
+const SECONDARY_PROP = /^(?:on(?:PressIn|PressOut|HoverIn|HoverOut|LongPress|Layout)|testID|accessibility(?:Hint|Role|State)|[a-z][A-Za-z]*(?:Props|Style))$/;
+
+interface PropsListOptions {
+  /** llms-small variant: clipped types and descriptions. */
+  compact?: boolean;
+  /** Include descriptions (off for compact sub-component lists). */
+  descriptions?: boolean;
+  /** The component the list belongs to — its own `${self}Props` never fold. */
+  self?: string;
+  /** Components with a page; props inherited from their `${Name}Props` fold into one line. */
+  pages?: Set<string>;
+  /** Name the props in the shared-group line (off where the parent already did). */
+  sharedNames?: boolean;
+}
+
+/**
+ * One line per prop — `name (required): Type = default — description` — rather
+ * than a five-column table whose Required and Default cells were empty on
+ * almost every row. `@internal` props are left out; deprecated ones are marked
+ * (and dropped from the compact variant) so they are not copied into new code.
+ *
+ * Inherited props fold into one line each: the shared bags into a pointer at
+ * the shared-props guide, and props inherited from another documented
+ * component (`PasswordInput` from `Input`, `IconButton` from `Button`) into a
+ * pointer at that component's page — instead of repeating its whole list.
+ */
+function buildPropsList(props: Array<Record<string, any>>, options: PropsListOptions = {}): string {
+  const { compact = false, descriptions = true, self, pages, sharedNames = true } = options;
+  const visible = props.filter(prop => !prop.internal && !(compact && prop.deprecated));
+  if (!visible.length) return '_No documented props yet._';
+
+  const shared = new Map<string, string[]>();
+  const inherited = new Map<string, string[]>();
+  const secondary: string[] = [];
+  const lines: string[] = [];
+  for (const prop of visible) {
+    const group = SHARED_PROP_GROUPS.find(candidate => candidate.from === prop.from);
+    const parent = typeof prop.from === 'string' ? prop.from.match(/^(\w+)Props$/)?.[1] : undefined;
+    if (group) shared.set(group.label, [...(shared.get(group.label) ?? []), prop.name]);
+    else if (parent && parent !== self && pages?.has(parent)) inherited.set(parent, [...(inherited.get(parent) ?? []), prop.name]);
+    else if (compact && SECONDARY_PROP.test(prop.name) && !prop.required) secondary.push(prop.name);
+    else lines.push(formatProp(prop, compact, descriptions));
   }
-  const header = ['| Name | Type | Required | Default | Description |', '| --- | --- | --- | --- | --- |'];
-  const rows = props.map(prop => {
-    const name = `\`${prop.name}\``;
-    const type = escapeTableCell(prop.type);
-    const required = prop.required ? 'Yes' : 'No';
-    const defaultValue = escapeTableCell(prop.defaultValue);
-    const description = escapeTableCell(prop.description);
-    return `| ${name} | ${type} | ${required} | ${defaultValue} | ${description} |`;
-  });
-  return [...header, ...rows].join('\n');
+
+  const notes: string[] = [];
+  if (secondary.length) notes.push(`Also: ${secondary.map(n => `\`${n}\``).join(' ')}`);
+  for (const [parent, names] of inherited) {
+    const list = compact ? '' : ` (${names.map(n => `\`${n}\``).join(' ')})`;
+    notes.push(`Plus the \`${parent}\` props${list}: ${SITE_URL}/llms/components/${parent}.md`);
+  }
+  if (shared.size) {
+    const groups = SHARED_PROP_GROUPS.filter(group => shared.has(group.label)).map(group => {
+      const names = shared.get(group.label)!;
+      if (!sharedNames || (compact && !group.names)) return group.label;
+      return names.length === 1 && names[0] === group.label
+        ? `\`${names[0]}\``
+        : `${group.label} (${names.map(n => `\`${n}\``).join(' ')})`;
+    });
+    notes.push(`Also accepts the shared props — ${groups.join(', ')}: ${LLMS_SHARED_PROPS_URL}`);
+  }
+  return [lines.join('\n'), notes.join('\n\n')].filter(Boolean).join('\n\n');
 }
 
 function formatDemoMarkdown(
   demo: DemoMeta,
   codeEntry: CodeEntry | undefined,
+  shownFiles: Map<string, string>,
+  compact = false,
 ): string {
-  const lines: string[] = [];
-  lines.push(`### ${demo.title || demo.demo}`);
-  const metaBits: string[] = [];
-  metaBits.push(`ID: \`${demo.id}\``);
-  const demoTags = formatTagList(demo.tags);
-  if (demoTags) metaBits.push(`Tags: ${demoTags}`);
-  if (demo.category) metaBits.push(`Category: ${demo.category}`);
-  if (demo.status) metaBits.push(`Status: ${demo.status}`);
-  if (demo.since) metaBits.push(`Since: ${demo.since}`);
-  lines.push(metaBits.join(' • '));
+  const title = demo.title || demo.demo;
+  const lines: string[] = [`### ${title}`];
   if (demo.description) {
-    lines.push('');
-    lines.push(compactParagraph(demo.description));
+    lines.push('', compactParagraph(demo.description));
   }
   if (codeEntry?.code) {
-    const sanitized = sanitizeDemoCode(codeEntry.code);
-    if (sanitized) {
-      lines.push('');
-      lines.push(withCodeBlock(sanitized));
+    const code = normalizeDemoCode(codeEntry.code);
+    if (code) lines.push('', withCodeBlock(code));
+    for (const file of codeEntry.files ?? []) {
+      if (file.name === 'index.tsx') continue;
+      // Every demo of a component often shares one `../data` fixture: print it
+      // once per page and point back at it after that.
+      const key = sha256(file.code);
+      const firstShownIn = shownFiles.get(key);
+      if (firstShownIn) {
+        lines.push('', `\`${file.name}\` is the same file shown under “${firstShownIn}” above.`);
+        continue;
+      }
+      shownFiles.set(key, title);
+      lines.push('', `\`${file.name}\``, '', withCodeBlock(inlineFileCode(file, compact), path.extname(file.name).slice(1) || 'ts'));
     }
   }
   return lines.join('\n');
 }
 
-function buildComponentMarkdown(
-  name: string,
-  meta: ComponentMetaRecord,
-  propsMap: Record<string, any[]>,
-  demosMap: Map<string, DemoMeta[]>,
-  codeMap: Record<string, Record<string, CodeEntry>>,
-): string {
-  const componentMeta = meta[name] || {};
+interface ComponentMarkdownContext {
+  meta: ComponentMetaRecord;
+  propsMap: Record<string, any[]>;
+  demosMap: Map<string, DemoMeta[]>;
+  codeMap: Record<string, Record<string, CodeEntry>>;
+  subcomponents: Record<string, SubcomponentDoc[]>;
+  relatedHooks: Record<string, RelatedHookDoc[]>;
+  typeDocs: Record<string, string[]>;
+}
+
+/**
+ * One component's Markdown page. `compact` is the llms-small variant: the lead
+ * paragraph, own props with one-sentence descriptions, sub-components, and the
+ * first example only — everything needed to write correct code, at a fraction
+ * of the size.
+ */
+function buildComponentMarkdown(name: string, context: ComponentMarkdownContext, compact = false): string {
+  const componentMeta = context.meta[name] || {};
   const lines: string[] = [];
   const title = componentMeta.title || name;
   lines.push(`# ${title}`);
-  if (componentMeta.description) {
+  const description = normalizeComponentDescription(componentMeta.description, title);
+  if (description) {
     lines.push('');
-    lines.push(normalizeComponentDescription(componentMeta.description, title));
+    if (compact) {
+      // The opening sentence of the first prose paragraph; the full page has the rest.
+      const lead = description.split(/\n\s*\n/).find(p => !/^[#\-*|>]/.test(p.trim()));
+      lines.push(firstSentence(lead ?? '') || firstSentence(componentMeta.tagline));
+    } else {
+      lines.push(description);
+    }
   }
 
   const packageName = componentMeta.packageName
     || (componentMeta.category === 'charts' ? '@platform-blocks/charts' : '@platform-blocks/ui');
+  if (compact) {
+    // One line in place of the Metadata section.
+    const status = componentMeta.status && componentMeta.status !== 'stable' ? ` · Status: ${componentMeta.status}` : '';
+    lines.push('', `\`import { ${name} } from '${packageName}';\`${status} · Full page: ${SITE_URL}/llms/components/${name}.md`);
+  }
   const metaList: string[] = [];
-  metaList.push(`- Canonical name: \`${name}\``);
-  metaList.push(`- Package: \`${packageName}\``);
   metaList.push(`- Import: \`import { ${name} } from '${packageName}';\``);
-  if (componentMeta.status) metaList.push(`- Status: ${componentMeta.status}`);
-  if (componentMeta.since) metaList.push(`- Since: ${componentMeta.since}`);
-  if (componentMeta.category) metaList.push(`- Category: ${componentMeta.category}`);
-  const componentTags = formatTagList(componentMeta.tags);
-  if (componentTags) metaList.push(`- Tags: ${componentTags}`);
-  metaList.push(`- Docs: ${SITE_URL}/components/${name}`);
-  if (componentMeta.sourcePath) {
-    metaList.push(`- Source: ${GITHUB_REPO}/tree/${GITHUB_BRANCH}/${componentMeta.sourcePath}`);
+  if (packageName === '@platform-blocks/charts') {
+    metaList.push('- Install: `npm install @platform-blocks/charts` — a separate package from `@platform-blocks/ui`');
   }
-  if (metaList.length) {
-    lines.push('');
-    lines.push('## Metadata');
-    lines.push('');
-    lines.push(...metaList);
+  if (componentMeta.status && componentMeta.status !== 'stable') metaList.push(`- Status: ${componentMeta.status}`);
+  if (!compact) {
+    const componentTags = formatTagList(componentMeta.tags);
+    if (componentTags) metaList.push(`- Tags: ${componentTags}`);
+    // Charts have their own detail route; everything else lives under /components.
+    metaList.push(`- Docs: ${SITE_URL}/${packageName === '@platform-blocks/charts' ? 'charts' : 'components'}/${name}`);
+    if (componentMeta.sourcePath) {
+      metaList.push(`- Source: ${GITHUB_REPO}/tree/${GITHUB_BRANCH}/${componentMeta.sourcePath}`);
+    }
+  }
+  if (!compact) lines.push('', '## Metadata', '', ...metaList);
+
+  const pages = new Set(Object.keys(context.propsMap));
+  lines.push('', '## Props', '', buildPropsList(context.propsMap[name] || [], { compact, self: name, pages }));
+
+  const subs = context.subcomponents[name] ?? [];
+  if (subs.length) {
+    lines.push('', '## Sub-components', '');
+    const importable = subs.filter(sub => !sub.name.includes('.')).map(sub => sub.name);
+    if (importable.length) {
+      lines.push(`\`import { ${importable.join(', ')} } from '${packageName}';\``, '');
+    }
+    const bare: string[] = [];
+    for (const sub of subs) {
+      if (!sub.props.length) { bare.push(sub.name); continue; }
+      lines.push(`### ${sub.name}`, '', buildPropsList(sub.props, {
+        compact,
+        descriptions: !compact,
+        self: sub.name.replace('.', ''),
+        pages,
+        // The parent's list above already named the shared props.
+        sharedNames: !compact,
+      }), '');
+    }
+    if (bare.length) {
+      lines.push(`${bare.map(n => `\`${n}\``).join(', ')} ${bare.length === 1 ? 'has' : 'have'} no props interface of ${bare.length === 1 ? 'its' : 'their'} own.`);
+    }
   }
 
-  lines.push('');
-  lines.push('## Props');
-  lines.push('');
-  lines.push(buildPropsTable(propsMap[name] || []));
+  const hooks = context.relatedHooks[name] ?? [];
+  if (hooks.length) {
+    lines.push('', '## Related hooks', '');
+    for (const hook of hooks) {
+      const signature = hook.signature ?? `${hook.name}()`;
+      lines.push(`- \`${signature}\`${hook.summary ? ` — ${hook.summary}` : ''}`);
+    }
+  }
 
-  const demos = (demosMap.get(name) || []).filter(d => !d.hidden);
+  // Full pages only: the compact variant leans on its example for data shapes.
+  const types = compact ? [] : context.typeDocs[name] ?? [];
+  if (types.length) {
+    lines.push('', '## Types', '', withCodeBlock(types.join('\n\n'), 'ts'));
+  }
+
+  const demos = (context.demosMap.get(name) || []).filter(d => !d.hidden);
   if (demos.length) {
-    lines.push('');
-    lines.push('## Examples');
-    lines.push('');
-    demos.forEach((demo, index) => {
+    lines.push('', compact ? '## Example' : '## Examples', '');
+    const shownFiles = new Map<string, string>();
+    const codeFor = (demo: DemoMeta) => context.codeMap[name]?.[demo.id] || context.codeMap[name]?.[`${name}.${demo.demo}`] || context.codeMap[name]?.[`${demo.component}.${demo.demo}`];
+    // The compact variant shows one example: the shortest of the first five
+    // that needs no fixture file, so it stands alone without a data dump.
+    const standalone = (demo: DemoMeta) => !(codeFor(demo)?.files ?? []).some(file => file.name !== 'index.tsx');
+    const size = (demo: DemoMeta) => codeFor(demo)?.code.length ?? Infinity;
+    const leading = demos.slice(0, 5);
+    const candidates = leading.some(standalone) ? leading.filter(standalone) : leading;
+    const shortest = candidates.reduce((best, demo) => (size(demo) < size(best) ? demo : best));
+    // A long example costs more than it teaches in the compact file; the full
+    // page has it.
+    const selected = compact ? (size(shortest) <= MAX_COMPACT_EXAMPLE_CHARS ? [shortest] : []) : demos;
+    selected.forEach((demo, index) => {
       if (index > 0) lines.push('');
-      const codeEntry = codeMap[name]?.[demo.id] || codeMap[name]?.[`${name}.${demo.demo}`] || codeMap[name]?.[`${demo.component}.${demo.demo}`];
-      lines.push(formatDemoMarkdown(demo, codeEntry));
+      lines.push(formatDemoMarkdown(demo, codeFor(demo), shownFiles, compact));
     });
+    const more = demos.length - selected.length;
+    if (compact && more > 0) {
+      lines.push('', `${more} ${selected.length ? 'more ' : ''}example${more > 1 ? 's' : ''} on the full page.`);
+    }
   }
 
   return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
@@ -1229,7 +1793,7 @@ function buildComponentMarkdown(
 function generate() {
   ensureDir(OUTPUT_DIR);
   ensureDir(COMPONENT_MARKDOWN_DIR);
-  const { demos, codeByComponent, componentMeta, propsMeta, componentSourceDir, warningCounts, componentWarnings } = collectDemos();
+  const { demos, codeByComponent, componentMeta, propsMeta, componentSourceDir, warningCounts, componentWarnings, subcomponents, relatedHooks, typeDocs } = collectDemos();
   const { hooks, codeByHook, hookMeta } = collectHooks();
 
   // Attach source provenance so docs pages can link to GitHub / npm without
@@ -1305,15 +1869,28 @@ function generate() {
   ]);
   const sortedComponentNames = Array.from(componentNames).sort((a, b) => a.localeCompare(b));
 
+  const markdownContext: ComponentMarkdownContext = {
+    meta: componentMeta,
+    propsMap: propsMeta,
+    demosMap: demosByComponent,
+    codeMap: codeByComponent,
+    subcomponents,
+    relatedHooks,
+    typeDocs,
+  };
   const markdownIndex: Record<string, string> = {};
+  // The compact variant feeds /llms-small.txt (scripts/generate-llms.ts).
+  const compactMarkdownIndex: Record<string, string> = {};
   for (const name of sortedComponentNames) {
     if (visibleComponentMeta[name]?.hidden === true) continue;
-    const markdown = buildComponentMarkdown(name, componentMeta, propsMeta, demosByComponent, codeByComponent);
+    const markdown = buildComponentMarkdown(name, markdownContext);
     markdownIndex[name] = markdown;
+    compactMarkdownIndex[name] = buildComponentMarkdown(name, markdownContext, true);
     const filePath = path.join(COMPONENT_MARKDOWN_DIR, `${name}.md`);
     writeTextFile(filePath, markdown);
   }
   writeJsonPretty(path.join(OUTPUT_DIR, 'component-markdown.json'), markdownIndex);
+  writeJsonPretty(path.join(OUTPUT_DIR, 'component-markdown-compact.json'), compactMarkdownIndex);
 
   // Write per-hook code shards
   for (const hook of Object.keys(codeByHook)) {

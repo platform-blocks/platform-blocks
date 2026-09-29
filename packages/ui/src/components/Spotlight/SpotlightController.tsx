@@ -2,12 +2,14 @@ import React from 'react';
 import { SpotlightProvider, spotlight } from '../../components/Spotlight/SpotlightStore';
 import { Spotlight } from '../../components/Spotlight';
 import { useHotkeys } from '../../hooks/useHotkeys';
+import type { HotkeyItem } from '../../hooks/useHotkeys';
+import type { SpotlightItem } from './SpotlightTypes';
 import type { HighlightProps as HighlightComponentProps } from '../Highlight';
 
 interface SpotlightControllerProps {
   config?: {
     shortcut?: string | string[] | null;
-    actions?: any[];
+    actions?: SpotlightItem[];
     alwaysMount?: boolean;
     highlightQuery?: boolean | HighlightComponentProps['highlight'];
     limit?: number;
@@ -26,7 +28,7 @@ export const SpotlightController = React.memo<SpotlightControllerProps>(function
 
   useHotkeys(
     shortcuts.length
-      ? shortcuts.map((hk) => [hk, () => spotlight.toggle()]) as any
+      ? shortcuts.map((hk): HotkeyItem => [hk, () => spotlight.toggle()])
       : [],
     [shortcuts.join('|')]
   );
@@ -41,8 +43,8 @@ export const SpotlightController = React.memo<SpotlightControllerProps>(function
   return (
     <SpotlightProvider>
       <Spotlight
-        actions={actions as any}
-        shortcut={shortcuts as any}
+        actions={actions}
+        shortcut={shortcuts}
         highlightQuery={resolvedConfig.highlightQuery}
         limit={resolvedConfig.limit}
         searchProps={{ placeholder: resolvedConfig.placeholder }}

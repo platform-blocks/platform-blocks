@@ -20,10 +20,10 @@ export function Demo() {
         minDate={minDate}
         maxDate={maxDate}
       />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         {selectedDate ? `Selected: ${selectedDate.toLocaleDateString()}` : 'No date selected'}
       </Text>
-      <Text size="xs" color="secondary">
+      <Text size="xs" c="secondary">
         Only the next seven days are enabled
       </Text>
     </Block>

@@ -1,40 +1,39 @@
-import React from 'react';
-import { SizeValue, SpacingProps } from '../../core/theme/types';
-import type { DisclaimerSupport } from '../_internal/Disclaimer';
+import type React from 'react';
+
 import type { ThemeColor } from '../../core/theme/resolveColors';
-import type { TextProps } from '../Text';
+import type { FieldBaseProps } from '../_internal/Field/fieldProps';
+import type { ChoiceLabelPosition } from '../Checkbox/ChoiceField';
 
-export interface BaseComponentProps extends SpacingProps {
-  /** Component test ID for testing */
-  testID?: string;
-  
-  /** Additional CSS styles */
-  style?: any;
-}
+/**
+ * Visual style of the switch.
+ * - `filled` (default): solid track that fills with `color` when on, light thumb.
+ * - `outline`: transparent track with a colored border and a colored thumb when on.
+ * - `ios`: iOS-style pill — a large light thumb that nearly fills a rounded track.
+ * - `android`: Material-3-style — an outlined track with a small dot thumb that
+ *   grows and turns light as the switch turns on.
+ */
+export type SwitchVariant = 'filled' | 'outline' | 'ios' | 'android';
 
-export interface SwitchProps extends BaseComponentProps, DisclaimerSupport {
-  /** Whether switch is on */
+export type SwitchLabelPosition = ChoiceLabelPosition;
+
+/**
+ * Props for `Switch`.
+ *
+ * `style`, spacing and layout props apply to the root (switch + label +
+ * footer); `ref` and `testID` go to the focusable switch itself.
+ */
+export interface SwitchProps extends Omit<FieldBaseProps, 'variant' | 'keyboardFocusId' | 'radius'> {
+  /** Controlled on state. */
   checked?: boolean;
-  /** Initial checked state for uncontrolled usage */
+  /** Initial on state for uncontrolled usage. */
   defaultChecked?: boolean;
-  
-  /** Change handler */
+  /** Called with the next on state. */
   onChange?: (checked: boolean) => void;
-  
-  /** Switch size */
-  size?: SizeValue;
 
-  /**
-   * Visual style of the switch.
-   * - `filled` (default): solid track that fills with `color` when on, white thumb.
-   * - `outline`: transparent track with a colored border and a colored thumb when on.
-   * - `ios`: iOS-style pill — a large white thumb that nearly fills a rounded track.
-   * - `android`: Material-3-style — an outlined track with a small dot thumb that
-   *   grows and turns white as the switch turns on.
-   */
-  variant?: 'filled' | 'outline' | 'ios' | 'android';
+  /** Visual style. Default `'filled'`. */
+  variant?: SwitchVariant;
 
-  /** Switch color when on. A palette token, `'primary.6'` shade syntax, or any CSS color. */
+  /** Track color when on: a palette token, `'primary.6'` shade syntax, or any CSS color. */
   color?: ThemeColor;
 
   /**
@@ -43,59 +42,29 @@ export interface SwitchProps extends BaseComponentProps, DisclaimerSupport {
    * (including 0) swaps it for a timing curve. Always 0 under reduced motion.
    */
   transitionDuration?: number;
-  
-  /** Switch label */
-  label?: React.ReactNode;
-  
-  /** Whether switch is disabled */
-  disabled?: boolean;
-  
-  /** Whether switch is required */
-  required?: boolean;
-  
-  /** Error message */
-  error?: string;
-  
-  /** Helper text */
-  description?: string;
-  
-  /** Label position relative to switch */
-  labelPosition?: 'left' | 'right' | 'top' | 'bottom';
-  
-  /** Switch content/children (alternative to label) */
+
+  /**
+   * Label position relative to the switch. `left` / `right` follow the reading
+   * direction (`right` = after the switch). Default `'right'`.
+   */
+  labelPosition?: SwitchLabelPosition;
+
+  /** Label content (alternative to `label`; wins when both are set). */
   children?: React.ReactNode;
-  
-  /** Icon to show when on */
+
+  /** Icon inside the thumb while on. */
   onIcon?: React.ReactNode;
-  
-  /** Icon to show when off */
+  /** Icon inside the thumb while off. */
   offIcon?: React.ReactNode;
-  
-  /** Labels for on/off states */
+
+  /** Spoken state while on (native). Default `'On'`. */
   onLabel?: string;
+  /** Spoken state while off (native). Default `'Off'`. */
   offLabel?: string;
-  
-  /** Controlled component to show/hide */
-  controls?: string; // ID of controlled element
-  
-  /** Custom accessibility label (overrides label-based default) */
-  accessibilityLabel?: string;
-  
-  /** Accessibility hint to describe what happens */
-  accessibilityHint?: string;
 
-  /** Override props applied to the label `<Text>` */
-  labelProps?: Omit<TextProps, 'children'>;
+  /** Id of the element the switch shows/hides (web `aria-controls`). */
+  controls?: string;
 
-  /** Override props applied to the description `<Text>` */
-  descriptionProps?: Omit<TextProps, 'children'>;
-}
-
-export interface SwitchStyleProps {
-  checked: boolean;
-  disabled: boolean;
-  error: boolean;
-  size: SizeValue;
-  color: ThemeColor;
-  variant?: 'filled' | 'outline' | 'ios' | 'android';
+  /** Base id: the control gets it, the label/description/error get `${id}-label` etc. */
+  id?: string;
 }

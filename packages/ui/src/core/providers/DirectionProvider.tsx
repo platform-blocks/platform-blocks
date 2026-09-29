@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { Platform, I18nManager } from 'react-native';
+import { devWarn, devError, warnOnce } from '../utils/logger';
 
 /**
  * Direction type - left-to-right or right-to-left
@@ -84,36 +85,16 @@ const updatePlatformDirection = (direction: Direction) => {
       I18nManager.allowRTL(isRTL);
       
       // Warn developer about reload requirement
-      if (__DEV__) {
-        console.warn(
-          '[DirectionProvider] Direction change on native requires app reload. ' +
-          'Please reload the app to see RTL changes take effect.'
-        );
-      }
+      devWarn(
+        '[DirectionProvider] Direction change on native requires app reload. ' +
+        'Please reload the app to see RTL changes take effect.'
+      );
     }
   }
 };
 
-/**
- * DirectionProvider Component
- * 
- * Provides direction context for the entire app. Manages LTR/RTL state
- * and syncs with platform-specific direction settings.
- * 
- * @example
- * ```tsx
- * import { DirectionProvider } from '@platform-blocks/ui';
- * 
- * function App() {
- *   return (
- *     <DirectionProvider initialDirection="ltr">
- *       <YourApp />
- *     </DirectionProvider>
- *   );
- * }
- * ```
- */
-export const DirectionProvider: React.FC<DirectionProviderProps> = ({
+/** The provider that owns direction state (see `DirectionProvider`). */
+const DirectionProviderRoot: React.FC<DirectionProviderProps> = ({
   initialDirection,
   storage,
   storageKey = 'app-direction',
@@ -133,9 +114,7 @@ export const DirectionProvider: React.FC<DirectionProviderProps> = ({
           updatePlatformDirection(stored);
         }
       }).catch((error) => {
-        if (__DEV__) {
-          console.error('[DirectionProvider] Failed to load direction from storage:', error);
-        }
+        devError('[DirectionProvider] Failed to load direction from storage:', error);
       });
     }
   }, [storage, storageKey]);
@@ -155,9 +134,7 @@ export const DirectionProvider: React.FC<DirectionProviderProps> = ({
       // Persist to storage if available
       if (storage) {
         storage.setItem(storageKey, newDirection).catch((error) => {
-          if (__DEV__) {
-            console.error('[DirectionProvider] Failed to persist direction:', error);
-          }
+          devError('[DirectionProvider] Failed to persist direction:', error);
         });
       }
     },
@@ -197,60 +174,73 @@ export const DirectionProvider: React.FC<DirectionProviderProps> = ({
 };
 
 /**
- * Hook to access direction context
- * 
- * @throws Error if used outside DirectionProvider
- * 
+ * DirectionProvider Component
+ *
+ * Provides direction context for the entire app. Manages LTR/RTL state
+ * and syncs with platform-specific direction settings.
+ *
+ * A nested DirectionProvider with neither `initialDirection` nor `storage`
+ * inherits its parent's direction (it renders nothing of its own) instead of
+ * resetting to the platform default. `PlatformBlocksProvider` mounts one, so an
+ * app-level provider above it keeps control.
+ *
  * @example
  * ```tsx
- * function MyComponent() {
- *   const { dir, isRTL, setDirection, toggleDirection } = useDirection();
- *   
+ * import { DirectionProvider } from '@platform-blocks/ui';
+ *
+ * function App() {
  *   return (
- *     <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row' }}>
- *       <Text>Direction: {dir}</Text>
- *       <Button onPress={toggleDirection}>Toggle</Button>
- *     </View>
+ *     <DirectionProvider initialDirection="ltr">
+ *       <YourApp />
+ *     </DirectionProvider>
  *   );
  * }
  * ```
  */
-export const useDirection = (): DirectionContextValue => {
-  const context = React.useContext(DirectionContext);
-  
-  if (!context) {
-    throw new Error(
-      'useDirection must be used within a DirectionProvider. ' +
-      'Wrap your app with <DirectionProvider> to use RTL features.'
-    );
+export const DirectionProvider: React.FC<DirectionProviderProps> = (props) => {
+  const parent = React.useContext(DirectionContext);
+  if (parent && props.initialDirection === undefined && props.storage === undefined) {
+    return <>{props.children}</>;
   }
-  
-  return context;
+  return <DirectionProviderRoot {...props} />;
 };
 
+DirectionProvider.displayName = 'DirectionProvider';
+
+const warnOutsideProvider = () =>
+  warnOnce(
+    'DirectionProvider:setDirection-outside',
+    '[platform-blocks] setDirection/toggleDirection called outside a DirectionProvider; ignored.'
+  );
+
+/** What `useDirection()` returns without a provider: LTR, and setters that do nothing. */
+const DEFAULT_DIRECTION: DirectionContextValue = Object.freeze({
+  dir: 'ltr' as const,
+  isRTL: false,
+  setDirection: warnOutsideProvider,
+  toggleDirection: warnOutsideProvider,
+});
+
 /**
- * Hook to safely access direction context with fallback
- * Use this if you want to support components outside DirectionProvider
+ * Hook to access direction context.
+ *
+ * Never throws: outside a DirectionProvider (e.g. `direction={false}` on
+ * PlatformBlocksProvider) it returns a stable LTR default whose setters are no-ops.
+ *
+ * @example
+ * ```tsx
+ * function MyComponent() {
+ *   const { dir, isRTL, toggleDirection } = useDirection();
+ *   return <Button onPress={toggleDirection}>Direction: {dir}</Button>;
+ * }
+ * ```
  */
-export const useDirectionSafe = (): DirectionContextValue => {
-  const context = React.useContext(DirectionContext);
-  
-  // Return default LTR context if no provider
-  return context || {
-    dir: 'ltr',
-    isRTL: false,
-    setDirection: () => {
-      if (__DEV__) {
-        console.warn('setDirection called outside DirectionProvider');
-      }
-    },
-    toggleDirection: () => {
-      if (__DEV__) {
-        console.warn('toggleDirection called outside DirectionProvider');
-      }
-    },
-  };
+export const useDirection = (): DirectionContextValue => {
+  return React.useContext(DirectionContext) ?? DEFAULT_DIRECTION;
 };
+
+/** Alias of `useDirection` (which no longer throws). Kept for compatibility. */
+export const useDirectionSafe = useDirection;
 
 // Export context for advanced use cases
 export { DirectionContext };

@@ -1,33 +1,50 @@
-import React from 'react';
-import { SpacingProps } from '../../core/utils';
-import { SizeValue } from '../../core/theme/sizes';
+import type React from 'react';
+import type { ViewStyle } from 'react-native';
+
+import type { SizeValue } from '../../core/theme/types';
+import type { BaseProps } from '../../core/types/base';
 import type { TextProps } from '../Text';
 
-export interface SpoilerProps extends SpacingProps {
+/** Arguments passed to `renderControl`. */
+export interface SpoilerControlArgs {
+  /** Whether the content is currently expanded. */
+  expanded: boolean;
+  /** @deprecated Use `expanded`. */
+  opened: boolean;
+  toggle: () => void;
+  showLabel: string;
+  hideLabel: string;
+}
+
+export interface SpoilerProps extends BaseProps<ViewStyle> {
   /** Content to hide/show */
   children: React.ReactNode;
-  /** Max height (in px) when collapsed */
-  maxHeight?: number;
-  /** Whether component starts initially opened */
+  /** Height in px the content collapses to — the content's, not the root's. @default 120 */
+  mah?: number;
+  /** Controlled expanded state. Pair with `onExpandedChange`. */
+  expanded?: boolean;
+  /** Initial expanded state when uncontrolled. @default false */
+  defaultExpanded?: boolean;
+  /** Called with the requested expanded state whenever the control is pressed. */
+  onExpandedChange?: (expanded: boolean) => void;
+  /** @deprecated Use `defaultExpanded` instead. */
   initiallyOpen?: boolean;
+  /** @deprecated Use `expanded` instead. */
+  opened?: boolean;
+  /** @deprecated Use `onExpandedChange` instead. */
+  onToggle?: (opened: boolean) => void;
   /** Label for show more */
   showLabel?: string;
   /** Label for hide */
   hideLabel?: string;
-  /** Transition duration ms */
+  /** Transition duration ms (`0` — or reduced motion — disables the transition). @default 180 */
   transitionDuration?: number;
   /** Size token for the show/hide control font size */
   size?: SizeValue;
-  /** Optional controlled open state */
-  opened?: boolean;
-  /** Callback when toggle */
-  onToggle?: (opened: boolean) => void;
   /** Disable toggle */
   disabled?: boolean;
-  /** Optional style */
-  style?: any;
-  /** Render custom control */
-  renderControl?: (args: { opened: boolean; toggle: () => void; showLabel: string; hideLabel: string }) => React.ReactNode;
+  /** Render custom control (it is wrapped in the toggle button, so render no pressable of your own) */
+  renderControl?: (args: SpoilerControlArgs) => React.ReactNode;
   /** If true (default) fade bottom of clamped content to transparent using CSS mask on web */
   transparentFade?: boolean;
   /** Fallback overlay gradient end color (used only when transparentFade=false) */

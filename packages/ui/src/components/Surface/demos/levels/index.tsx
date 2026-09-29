@@ -1,18 +1,13 @@
 import { Block, Surface, Text } from '@platform-blocks/ui';
 
-const LEVELS = [
-  { level: 0 as const, label: 'Level 0 — the page' },
-  { level: 1 as const, label: 'Level 1 — resting content' },
-  { level: 2 as const, label: 'Level 2 — floating over content' },
-  { level: 3 as const, label: 'Level 3 — takes over the screen' },
-];
+const LEVELS = [0, 1, 2, 3] as const;
 
 export function Demo() {
   return (
     <Block fullWidth>
-      {LEVELS.map(({ level, label }) => (
+      {LEVELS.map((level) => (
         <Surface key={level} level={level} padding="md" radius="lg" fullWidth>
-          <Text size="sm">{label}</Text>
+          <Text size="sm">Level {level}</Text>
         </Surface>
       ))}
     </Block>

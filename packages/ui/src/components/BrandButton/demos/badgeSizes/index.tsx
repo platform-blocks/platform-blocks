@@ -13,7 +13,7 @@ export function Demo() {
             secondaryText="App Store"
             size={size}
           />
-          <Text variant="small" color="secondary">
+          <Text variant="small" c="secondary">
             {size}
           </Text>
         </Block>

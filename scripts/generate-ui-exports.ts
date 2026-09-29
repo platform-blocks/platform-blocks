@@ -16,7 +16,7 @@ const UI_ROOT = join(process.cwd(), 'packages', 'ui');
 const PACKAGE_JSON = join(UI_ROOT, 'package.json');
 const COMPONENTS_DIR = join(UI_ROOT, 'src', 'components');
 
-type ExportEntry = Record<string, string>;
+type ExportEntry = Record<string, string | Record<string, string>>;
 
 /** Entries that are hand-maintained and always lead the map, in this order. */
 const BASE_EXPORTS = ['.', './snack', './package.json'] as const;
@@ -37,17 +37,22 @@ function findComponents(): string[] {
 }
 
 /**
- * Condition order matters: `types` first so TS resolves it, `react-native`
- * before `import` so Metro picks the ESM build, `default` last.
+ * Condition order matters: `react-native` before `import`/`require` so Metro
+ * (and TS with `customConditions: ["react-native"]`, as Expo sets) picks the
+ * ESM build, `default` last. Each branch carries the `types` that sit beside
+ * its JavaScript: lib/esm declarations are ES-module declarations with
+ * fully-specified imports, lib/cjs ones are CommonJS declarations (see
+ * packages/ui/scripts/emit-types.mjs), so both `moduleResolution: bundler`
+ * and `node16`/`nodenext` get real types.
  */
 function componentExport(name: string): ExportEntry {
-  const esm = `./lib/esm/components/${name}/index.js`;
+  const esm = { types: `./lib/esm/components/${name}/index.d.ts`, default: `./lib/esm/components/${name}/index.js` };
+  const cjs = { types: `./lib/cjs/components/${name}/index.d.ts`, default: `./lib/cjs/components/${name}/index.js` };
   return {
-    types: `./lib/components/${name}/index.d.ts`,
     'react-native': esm,
     import: esm,
-    require: `./lib/cjs/components/${name}/index.js`,
-    default: esm,
+    require: cjs,
+    default: esm.default,
   };
 }
 

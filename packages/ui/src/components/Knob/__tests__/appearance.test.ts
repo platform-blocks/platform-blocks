@@ -91,7 +91,7 @@ describe('resolveKnobAppearance - pointer', () => {
     expect(resolved.pointer?.color).toBe(resolved.thumb?.color);
   });
 
-  it.each([[false], [null]])('drops the arm when pointer is %p', (pointerInput: false | null) => {
+  it.each([[false], [null]])('drops the arm when pointer is %p', (pointerInput: boolean | null) => {
     const resolved = resolveKnobAppearance({
       appearance: { pointer: pointerInput as false | undefined },
       ...baseOptions,

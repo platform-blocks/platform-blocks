@@ -1,4 +1,4 @@
-import { Block, Button, Card, Spotlight, Text, type SpotlightProps, useSpotlightStoreInstance } from '@platform-blocks/ui';
+import { Block, Button, Spotlight, type SpotlightProps, useSpotlightStoreInstance } from '@platform-blocks/ui';
 
 const actions: SpotlightProps['actions'] = Array.from({ length: 25 }).map((_, index) => ({
   id: `command-${index}`,
@@ -13,17 +13,7 @@ export function Demo() {
 
   return (
     <Block>
-      <Card p="md">
-        <Block>
-          <Text size="sm" color="secondary">
-            Set the `limit` prop to constrain how many results render, even if more actions match the query.
-          </Text>
-          <Button onPress={() => store.open()}>Open spotlight</Button>
-          <Text size="xs" color="secondary">
-            This demo caps the list at 8 items.
-          </Text>
-        </Block>
-      </Card>
+      <Button onPress={() => store.open()}>Open spotlight</Button>
       <Spotlight actions={actions} limit={8} store={store} />
     </Block>
   );

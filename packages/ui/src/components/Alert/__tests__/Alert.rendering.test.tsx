@@ -135,7 +135,7 @@ describe('Alert - rendering', () => {
     const { getByText } = render(
       <Alert
         title="Slot test"
-        titleProps={{ weight: '700', style: { letterSpacing: 2 } }}
+        titleProps={{ fw: '700', style: { letterSpacing: 2 } }}
       >
         body
       </Alert>

@@ -1,11 +1,12 @@
 export { Video } from './Video';
-export type { 
-  VideoProps, 
-  VideoRef, 
-  VideoSource, 
-  VideoState, 
+export type {
+  VideoProps,
+  VideoRef,
+  VideoSource,
+  VideoState,
   VideoControls,
   VideoTimelineEvent,
+  VideoTimelineEventData,
   VideoQuality,
-  VideoPlaybackRate 
+  VideoPlaybackRate,
 } from './types';

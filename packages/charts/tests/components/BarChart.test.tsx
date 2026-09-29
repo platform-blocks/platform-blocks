@@ -22,7 +22,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, multiTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <BarChart series={SERIES} layout="grouped" width={400} height={300} />
+        <BarChart series={SERIES} layout="grouped" w={400} h={300} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );
@@ -63,5 +63,49 @@ describe('BarChart (band hit-test engine)', () => {
       expect(ctxRef?.activeTarget).toBeNull();
       expect(ctxRef?.activeSlice?.length).toBe(0);
     });
+  });
+});
+
+describe('BarChart color', () => {
+  const DATA = [
+    { category: 'Q1', value: -20 },
+    { category: 'Q2', value: 10 },
+    { category: 'Q3', value: 30 },
+  ];
+  const renderBars = (props: Partial<React.ComponentProps<typeof BarChart>>) =>
+    render(
+      <ChartThemeProvider>
+        <BarChart data={DATA} w={400} h={300} {...props} />
+      </ChartThemeProvider>
+    );
+  // react-native-svg is mocked to one component, so count elements by their props.
+  const countFill = (r: ReturnType<typeof renderBars>, fill: string) => r.UNSAFE_queryAllByProps({ fill }).length;
+
+  it('colors bars by value with a scale config, even alongside barColor', () => {
+    const r = renderBars({
+      barColor: '#123456',
+      colorScale: { type: 'threshold', thresholds: [0], colors: ['#cc0000', '#00aa00'] },
+    });
+    expect(countFill(r, '#cc0000')).toBeGreaterThan(0);
+    expect(countFill(r, '#00aa00')).toBeGreaterThan(0);
+    expect(countFill(r, '#123456')).toBe(0);
+  });
+
+  it('still lets a function scale fall through to barColor', () => {
+    const r = renderBars({
+      barColor: '#123456',
+      colorScale: ({ datum }) => (datum.value < 0 ? '#cc0000' : undefined),
+    });
+    expect(countFill(r, '#cc0000')).toBeGreaterThan(0);
+    expect(countFill(r, '#123456')).toBeGreaterThan(0);
+  });
+
+  it('paints bars with a gradient barColor', () => {
+    const r = renderBars({
+      barColor: { extent: 'plot', stops: [{ offset: 0, color: '#1c5cab' }, { offset: 1, color: '#86b6ef', opacity: 0.5 }] },
+    });
+    const gradientFills = r.UNSAFE_queryAllByProps({}).filter((n) => typeof n.props.fill === 'string' && n.props.fill.startsWith('url(#bar-fill-'));
+    expect(gradientFills.length).toBeGreaterThan(0);
+    expect(r.UNSAFE_queryAllByProps({ gradientUnits: 'userSpaceOnUse' }).length).toBeGreaterThan(0);
   });
 });

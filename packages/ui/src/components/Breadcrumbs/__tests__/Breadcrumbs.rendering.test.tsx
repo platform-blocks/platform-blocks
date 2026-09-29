@@ -13,8 +13,8 @@ const mockTheme = {
   },
 };
 
-jest.mock('../../../core/theme', () => {
-  const actual = jest.requireActual('../../../core/theme');
+jest.mock('../../../core/theme/ThemeProvider', () => {
+  const actual = jest.requireActual('../../../core/theme/ThemeProvider');
   return {
     ...actual,
     useTheme: () => mockTheme,
@@ -29,7 +29,7 @@ jest.mock('../../Text', () => {
   const React = require('react');
   const { Text } = require('react-native');
   return {
-    Text: ({ size, color, weight, style, children, ...rest }: any) => (
+    Text: ({ size, c, fw, style, children, ...rest }: any) => (
       React.createElement(
         Text,
         {
@@ -37,10 +37,10 @@ jest.mock('../../Text', () => {
           style: [
             {
               fontSize: size,
-              color: typeof color === 'string'
-                ? (mockTheme.text as Record<string, string>)[color] ?? color
-                : color,
-              fontWeight: weight,
+              color: typeof c === 'string'
+                ? (mockTheme.text as Record<string, string>)[c] ?? c
+                : c,
+              fontWeight: fw,
             },
             style,
           ].filter(Boolean),

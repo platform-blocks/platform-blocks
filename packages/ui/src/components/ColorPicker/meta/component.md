@@ -13,11 +13,14 @@ props:
     type: string
     description: Initial color value for uncontrolled usage
   - name: onChange
-    type: function
-    description: Callback fired when a swatch is selected
+    type: "(color: string) => void"
+    description: Callback fired with the normalized `#RRGGBB` value when a swatch is selected
   - name: swatches
     type: string[]
     description: Preset colors to choose from
+  - name: swatchLabels
+    type: Record<string, string>
+    description: Readable names for the swatches, keyed by color (defaults to the color string)
   - name: size
     type: number
     description: Size of the trigger + swatches in pixels
@@ -30,8 +33,16 @@ props:
     type: boolean
     description: Whether the picker is disabled
     default: false
+  - name: accessibilityLabel
+    type: string
+    description: Accessible name of the trigger (defaults to "Color <value>" or "Select a color")
 examples:
   - basic
 ---
 
-ColorPicker is a lightweight alternative to ColorInput for cases where a full hex input and dropdown chrome are unnecessary. It renders a single color preview that toggles a compact popover of preset swatches — no text input, no positioning engine.
+ColorPicker is a lightweight alternative to ColorInput for cases where a full hex input and field chrome are unnecessary. It renders a single color preview button that opens a compact palette of preset swatches — an anchored dropdown on desktop web, a sheet on native and small screens.
+
+## Accessibility
+
+- The trigger is a button named after the current color (or `accessibilityLabel`) and reports `aria-expanded`.
+- The palette is a `radiogroup` of `radio` swatches; on web it has one tab stop, arrow keys move in two dimensions, and Enter or Space picks a swatch. Escape closes the palette and returns focus to the trigger.

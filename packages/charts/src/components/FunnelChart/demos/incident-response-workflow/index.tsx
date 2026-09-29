@@ -1,21 +1,14 @@
-import { FunnelChart } from '@platform-blocks/charts';
+import { FunnelChart, formatCompactNumber } from '@platform-blocks/charts';
 
 import { INCIDENT_RESPONSE, IncidentMeta } from './data';
-
-const compact = (value: number) => {
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
-  if (abs >= 1_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
-  return `${value}`;
-};
 
 export function Demo() {
   return (
     <FunnelChart
       title="Incident response workflow"
       subtitle="Volume flowing through each stage"
-      maxWidth={520}
-      height={460}
+      maw={520}
+      h={460}
       series={INCIDENT_RESPONSE}
       layout={{
         shape: 'trapezoid',
@@ -24,7 +17,7 @@ export function Demo() {
         showConversion: false,
         connectors: { show: false },
       }}
-      valueFormatter={(value) => compact(value)}
+      valueFormatter={(value) => formatCompactNumber(value)}
       legend={{ show: false }}
       tooltip={{
         show: true,

@@ -8,7 +8,7 @@ export function Demo() {
         <GridItem key={brand} span={1}>
           <Block align="center">
             <BrandIcon brand={brand} size={36} />
-            <Text align="center" size={10}>
+            <Text ta="center" size={10}>
               {brand}
             </Text>
           </Block>

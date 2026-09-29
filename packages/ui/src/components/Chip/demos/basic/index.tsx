@@ -1,4 +1,4 @@
-import { Chip, Row } from '@platform-blocks/ui'
+import { Chip, Row } from '@platform-blocks/ui';
 
 export function Demo() {
   return (
@@ -7,5 +7,5 @@ export function Demo() {
       <Chip>Engineering</Chip>
       <Chip>Research</Chip>
     </Row>
-  )
+  );
 }

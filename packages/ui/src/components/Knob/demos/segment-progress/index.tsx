@@ -12,7 +12,7 @@ export function Demo() {
 
   return (
     <Block align="center">
-      <Knob
+      <Knob accessibilityLabel="Load"
         value={load}
         onChange={setLoad}
         variant="minimal"

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { ComboChart } from '../ComboChart';
 import type { ParetoChartProps, ParetoChartDatum } from './types';
-import { getColorFromScheme, colorSchemes } from '../../utils';
+import { getColorFromScheme } from '../../utils';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 
 const PERCENT_AXIS_FORMATTER = (value: number) => `${value.toFixed(0)}%`;
@@ -45,8 +45,8 @@ export const ParetoChart: React.FC<ParetoChartProps> = (props) => {
     enableCrosshair,
     multiTooltip,
     liveTooltip,
-    width = 640,
-    height = 360,
+    w: width = 640,
+    h: height = 360,
     title,
     subtitle,
     ...rest
@@ -70,9 +70,9 @@ export const ParetoChart: React.FC<ParetoChartProps> = (props) => {
   const totalValue = useMemo(() => ordered.reduce((acc, item) => acc + Math.max(0, item.value), 0), [ordered]);
   const total = totalValue > 0 ? totalValue : 1;
 
-  const palette = theme.colors.accentPalette?.length ? theme.colors.accentPalette : colorSchemes.default;
-  const baseBarColor = barColor ?? ordered[0]?.color ?? palette[0] ?? getColorFromScheme(0, colorSchemes.default);
-  const baseLineColor = lineColor ?? theme.colors.accentPalette?.[1] ?? getColorFromScheme(1, colorSchemes.default);
+  const palette = theme.colors.accentPalette;
+  const baseBarColor = barColor ?? ordered[0]?.color ?? getColorFromScheme(0, palette);
+  const baseLineColor = lineColor ?? getColorFromScheme(1, palette);
 
   const barColors = useMemo(() => {
     if (barColor) {
@@ -215,8 +215,8 @@ export const ParetoChart: React.FC<ParetoChartProps> = (props) => {
   return (
     <ComboChart
       {...rest}
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       title={title}
       subtitle={subtitle}
       layers={layers}

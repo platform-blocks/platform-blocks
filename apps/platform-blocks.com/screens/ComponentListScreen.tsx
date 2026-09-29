@@ -55,7 +55,7 @@ interface CategoryGroup {
  * Spreads the category cards over `columnCount` columns, always appending to the
  * column that is currently shortest.
  *
- * The cards are different heights — `charts` holds 25 components, `overlay` 5 —
+ * The cards are different heights — `input` holds 27 components, `overlay` 5 —
  * so handing them to a plain grid leaves every row padded out to its tallest
  * card. Walking them in order and filling the shortest column keeps the reading
  * order roughly left-to-right while ending the columns within a row or two of
@@ -83,6 +83,12 @@ function distributeGroups(
   });
 
   return columns.map(column => column.groups);
+}
+
+/** How many component tracks fit in a card `cardWidth` px wide. */
+function itemColumnsFor(cardWidth: number): number {
+  const usable = cardWidth - 16; // Card padding, both sides
+  return Math.max(1, Math.min(MAX_ITEM_COLUMNS, Math.floor(usable / MIN_ITEM_WIDTH)));
 }
 
 /**
@@ -122,9 +128,9 @@ const ComponentRow: React.FC<{ item: CatalogItem; width: DimensionValue }> = ({ 
         <Text
           variant="small"
           size={13}
-          weight="500"
+          fw="500"
           numberOfLines={1}
-          color={accent ?? theme.text.primary}
+          c={accent ?? theme.text.primary}
           style={{ flex: 1 }}
         >
           {item.name}
@@ -153,11 +159,11 @@ const CategoryCard: React.FC<{ group: CategoryGroup; itemColumns: number }> = ({
             <Icon name={group.icon as any} size={15} color={theme.text.secondary} />
             {/* An `h2` per category: the page's outline is now eleven category
                 headings rather than 125 component names. */}
-            <Text variant="h2" size={12} weight="600" uppercase tracking={0.6} color="secondary">
+            <Text variant="h2" size={12} fw="600" tt="uppercase" lts={0.6} c="secondary">
               {group.label}
             </Text>
           </Row>
-          <Text variant="small" size={12} color="muted">
+          <Text variant="small" size={12} c="muted">
             {group.items.length}
           </Text>
         </Row>
@@ -267,6 +273,13 @@ export default function ComponentListScreen() {
     [groups]
   );
 
+  // Charts close the catalog as one full-width card rather than joining the
+  // columns. They are its biggest card, and the balancer places cards in
+  // order, so a trailing 25-item card would land on whichever column was
+  // shortest and leave it running far past the others.
+  const chartsGroup = groups.find(group => group.key === 'charts');
+  const columnGroups = useMemo(() => groups.filter(group => group.key !== 'charts'), [groups]);
+
   // Card columns follow the viewport; the count is capped by how many cards
   // there are, so filtering down to one category widens that card instead of
   // stranding it beside three empty tracks.
@@ -278,21 +291,20 @@ export default function ComponentListScreen() {
     const effectiveWidth = width || BREAKPOINTS.xl;
     const byViewport =
       effectiveWidth >= BREAKPOINTS.xl ? 4 : effectiveWidth >= BREAKPOINTS.lg ? 3 : effectiveWidth >= BREAKPOINTS.sm ? 2 : 1;
-    return Math.max(1, Math.min(byViewport, groups.length));
-  }, [width, groups.length]);
+    return Math.max(1, Math.min(byViewport, columnGroups.length));
+  }, [width, columnGroups.length]);
 
   // A wider card holds more component tracks — the same reason a 4-up catalog
   // reads as a list and a single filtered card reads as a grid.
   const itemColumns = useMemo(() => {
     if (!catalogWidth) return 1;
-    const cardWidth = (catalogWidth - CARD_GAP * (columnCount - 1)) / columnCount;
-    const usable = cardWidth - 16; // Card padding, both sides
-    return Math.max(1, Math.min(MAX_ITEM_COLUMNS, Math.floor(usable / MIN_ITEM_WIDTH)));
+    return itemColumnsFor((catalogWidth - CARD_GAP * (columnCount - 1)) / columnCount);
   }, [catalogWidth, columnCount]);
+  const chartItemColumns = catalogWidth ? itemColumnsFor(catalogWidth) : 1;
 
   const columns = useMemo(
-    () => distributeGroups(groups, columnCount, itemColumns),
-    [groups, columnCount, itemColumns]
+    () => distributeGroups(columnGroups, columnCount, itemColumns),
+    [columnGroups, columnCount, itemColumns]
   );
 
   const handleCatalogLayout = (event: LayoutChangeEvent) => {
@@ -320,18 +332,18 @@ export default function ComponentListScreen() {
         <Column gap="xs">
           <Title
             variant="h1"
-            weight="bold"
+            fw="bold"
             action={
               <Search
                 placeholder="Search components..."
                 value={searchQuery}
-                onChange={setSearchQuery}
+                onChangeText={setSearchQuery}
               />
             }
           >
             Components
           </Title>
-          <Text variant="p" color="secondary">
+          <Text variant="p" c="secondary">
             Explore all {allComponents.length} components in the PlatformBlocks library
           </Text>
         </Column>
@@ -357,7 +369,7 @@ export default function ComponentListScreen() {
         {/* The full catalog is already labelled by its cards — only a narrowed
             one needs a count to explain what is missing. */}
         {(searchQuery.trim() !== '' || selectedCategory !== null) && (
-          <Text variant="small" color="muted">
+          <Text variant="small" c="muted">
             {matchCount} components
             {searchQuery && ` matching "${searchQuery}"`}
             {selectedCategory && ` in ${selectedCategory}`}
@@ -367,11 +379,11 @@ export default function ComponentListScreen() {
         {!demosReady && (
           <Card p="xl">
             <Column gap="xs">
-              <Text variant="p" color="muted" align="center">
+              <Text variant="p" c="muted" ta="center">
                 Component demos haven&apos;t been generated yet for this build.
               </Text>
-              <Text variant="small" color="secondary" align="center">
-                Run <Text variant="small" weight="bold">npm run demos:generate</Text> before building to include metadata and demo modules.
+              <Text variant="small" c="secondary" ta="center">
+                Run <Text variant="small" fw="bold">npm run demos:generate</Text> before building to include metadata and demo modules.
               </Text>
             </Column>
           </Card>
@@ -379,24 +391,26 @@ export default function ComponentListScreen() {
 
         {groups.length === 0 ? (
           <Card p="xl">
-            <Text variant="p" color="muted" align="center">
+            <Text variant="p" c="muted" ta="center">
               No components found matching your criteria.
             </Text>
           </Card>
         ) : (
-          <View
-            onLayout={handleCatalogLayout}
-            style={{ flexDirection: 'row', alignItems: 'flex-start', gap: CARD_GAP, width: '100%' }}
-          >
-            {columns.map((columnGroups, index) => (
-              // `stretch`, or a column holding one short card lets that card
-              // shrink to its text and break the grid's alignment.
-              <Column key={index} gap={CARD_GAP} align="stretch" style={{ flex: 1, minWidth: 0 }}>
-                {columnGroups.map(group => (
-                  <CategoryCard key={group.key} group={group} itemColumns={itemColumns} />
+          <View onLayout={handleCatalogLayout} style={{ gap: CARD_GAP, width: '100%' }}>
+            {columnGroups.length > 0 && (
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: CARD_GAP, width: '100%' }}>
+                {columns.map((cardsInColumn, index) => (
+                  // `stretch`, or a column holding one short card lets that card
+                  // shrink to its text and break the grid's alignment.
+                  <Column key={index} gap={CARD_GAP} align="stretch" style={{ flex: 1, minWidth: 0 }}>
+                    {cardsInColumn.map(group => (
+                      <CategoryCard key={group.key} group={group} itemColumns={itemColumns} />
+                    ))}
+                  </Column>
                 ))}
-              </Column>
-            ))}
+              </View>
+            )}
+            {chartsGroup && <CategoryCard group={chartsGroup} itemColumns={chartItemColumns} />}
           </View>
         )}
       </Column>

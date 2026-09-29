@@ -1,172 +1,108 @@
-import React, { useCallback, useMemo, useState, forwardRef } from 'react';
-import { View, Pressable, Keyboard } from 'react-native';
-import { Input } from '../Input';
-import { Icon } from '../Icon';
-import { Dialog } from '../Dialog';
-import { MonthPicker } from '../MonthPicker';
-import { DESIGN_TOKENS } from '../../core';
-import type { MonthPickerInputProps } from './types';
-import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
+import React, { useCallback, useMemo, useState } from 'react';
+
+import { factory } from '../../core/factory/factory';
 import { useControllableState } from '../../hooks/useControllableState';
+import { PickerField } from '../DatePickerInput/PickerField';
+import { MonthPicker } from '../MonthPicker';
+import type { MonthPickerInputHandle, MonthPickerInputProps } from './types';
 
 const DEFAULT_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
   month: 'long',
   year: 'numeric',
 };
 
-export const MonthPickerInput = forwardRef<View, MonthPickerInputProps>(function MonthPickerInput(
-  {
-    value,
-    defaultValue,
-    onChange,
-    locale = 'en-US',
-    formatOptions,
-    formatValue,
-    placeholder = 'Select month',
-    clearable = false,
-    closeOnSelect = true,
-    monthPickerProps,
-    modalTitle = 'Select month',
-    size = 'md',
-    disabled = false,
-    withAsterisk,
-    onOpen,
-    onClose,
-    ...inputProps
-  },
-  ref
-) {
-  const [opened, setOpened] = useState(false);
-  const [selectedValue, setValue] = useControllableState<Date | null>({
-    value,
-    defaultValue: defaultValue ?? null,
-    finalValue: null,
-    onChange,
-  });
-  const currentValue = selectedValue ?? null;
-  const keyboardManager = useKeyboardManagerOptional();
+/**
+ * A form field that opens a month grid in a sheet (or a desktop dropdown with
+ * `dropdownType="popover"`). The field is a button announcing its label and
+ * the chosen month.
+ */
+export const MonthPickerInput = factory<{ props: MonthPickerInputProps; ref: MonthPickerInputHandle }>(
+  function MonthPickerInput(props, ref) {
+    const {
+      value,
+      defaultValue,
+      onChange,
+      locale = 'en-US',
+      formatOptions,
+      formatValue,
+      placeholder = 'Select month',
+      clearable = false,
+      closeOnSelect = true,
+      monthPickerProps,
+      modalTitle = 'Select month',
+      dropdownType = 'modal',
+      size = 'md',
+      onOpen,
+      onClose,
+      ...fieldProps
+    } = props;
 
-  const {
-    required = false,
-    endSection,
-    onFocus,
-    onBlur,
-    style,
-    ...restInputProps
-  } = inputProps;
+    const [opened, setOpened] = useState(false);
+    const [selectedValue, setValue] = useControllableState<Date | null>({
+      value,
+      defaultValue: defaultValue ?? null,
+      finalValue: null,
+      onChange,
+    });
+    const currentValue = selectedValue ?? null;
 
-  const inputClearable = (inputProps as { clearable?: boolean }).clearable;
-  const inputOnClear = (inputProps as { onClear?: () => void }).onClear;
+    const formatter = useMemo(() => {
+      if (typeof formatValue === 'function') return formatValue;
+      const intl = new Intl.DateTimeFormat(locale, formatOptions ?? DEFAULT_FORMAT_OPTIONS);
+      return (date: Date) => intl.format(date);
+    }, [formatValue, formatOptions, locale]);
 
-  const formatter = useMemo(() => {
-    if (typeof formatValue === 'function') {
-      return formatValue;
-    }
-    const options = formatOptions ?? DEFAULT_FORMAT_OPTIONS;
-    const intl = new Intl.DateTimeFormat(locale, options);
-    return (date: Date) => intl.format(date);
-  }, [formatValue, formatOptions, locale]);
+    const open = useCallback(() => {
+      setOpened(true);
+      onOpen?.();
+    }, [onOpen]);
 
-  const handleOpen = useCallback(() => {
-    if (disabled) return;
-    if (keyboardManager) {
-      keyboardManager.dismissKeyboard();
-    } else {
-      Keyboard.dismiss();
-    }
-    setOpened(true);
-    onFocus?.();
-    onOpen?.();
-  }, [disabled, onFocus, onOpen, keyboardManager]);
+    const close = useCallback(() => {
+      setOpened(false);
+      onClose?.();
+    }, [onClose]);
 
-  const handleClose = useCallback(() => {
-    setOpened(false);
-    onBlur?.();
-    onClose?.();
-  }, [onBlur, onClose]);
+    const { onChange: monthPickerOnChange, ...restMonthPickerProps } = monthPickerProps ?? {};
 
-  const handleClear = useCallback(() => {
-    setValue(null);
-    inputOnClear?.();
-  }, [setValue, inputOnClear]);
+    const handleMonthChange = useCallback(
+      (next: Date | null) => {
+        setValue(next);
+        monthPickerOnChange?.(next ?? null);
+        if (closeOnSelect && next) close();
+      },
+      [setValue, monthPickerOnChange, closeOnSelect, close]
+    );
 
-  const { onChange: monthPickerOnChange, ...restMonthPickerProps } = monthPickerProps ?? {};
+    const clearValue = useCallback(() => setValue(null), [setValue]);
+    const displayValue = currentValue ? formatter(currentValue) : '';
 
-  const handleMonthChange = useCallback(
-    (next: Date | null) => {
-      setValue(next);
-      monthPickerOnChange?.(next ?? null);
-      if (closeOnSelect && next) {
-        handleClose();
-      }
-    },
-    [closeOnSelect, handleClose, monthPickerOnChange, setValue]
-  );
-
-  const inputValue = currentValue ? formatter(currentValue) : '';
-  const shouldShowClear = (clearable || inputClearable) && !!currentValue;
-  const showAsterisk = withAsterisk ?? required;
-
-  const resolvedLocale = restMonthPickerProps.locale ?? locale;
-  const resolvedSize = restMonthPickerProps.size ?? size;
-
-  return (
-    <View ref={ref} accessibilityElementsHidden={false}>
-      <Pressable
-        onPress={handleOpen}
-        disabled={disabled}
-        accessibilityRole="button"
-        accessibilityLabel={inputValue || placeholder}
-        accessibilityHint="Opens month picker"
-        accessibilityState={{ disabled }}
-        style={{ width: '100%' }}
+    return (
+      <PickerField
+        {...fieldProps}
+        handleRef={ref}
+        size={size}
+        placeholder={placeholder}
+        clearable={clearable}
+        displayValue={displayValue}
+        hasValue={!!currentValue}
+        opened={opened}
+        onOpenRequest={open}
+        onCloseRequest={close}
+        onClearValue={clearValue}
+        dropdownType={dropdownType}
+        panelTitle={modalTitle}
+        panelWidth={360}
+        icon="calendar"
       >
-        <Input
-          {...restInputProps}
-          value={inputValue}
-          placeholder={placeholder}
-          disabled={disabled}
-          size={size}
-          required={required}
-          withAsterisk={showAsterisk}
-          clearable={shouldShowClear}
-          onClear={shouldShowClear ? handleClear : undefined}
-          endSection={endSection ?? <Icon name="calendar" size={16} />}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          style={style}
-          textInputProps={{
-            editable: false,
-            pointerEvents: 'none',
-            accessible: false,
-            focusable: false,
-          }}
+        <MonthPicker
+          {...restMonthPickerProps}
+          value={currentValue}
+          onChange={handleMonthChange}
+          locale={restMonthPickerProps.locale ?? locale}
+          size={restMonthPickerProps.size ?? size}
         />
-      </Pressable>
-
-      <Dialog
-        visible={opened}
-        variant="modal"
-        onClose={handleClose}
-        title={modalTitle}
-        w={360}
-      >
-        <View
-          style={{
-            padding: DESIGN_TOKENS.spacing.lg,
-          }}
-        >
-          <MonthPicker
-            {...restMonthPickerProps}
-            value={currentValue}
-            onChange={handleMonthChange}
-            locale={resolvedLocale}
-            size={resolvedSize}
-          />
-        </View>
-      </Dialog>
-    </View>
-  );
-});
-
-MonthPickerInput.displayName = 'MonthPickerInput';
+      </PickerField>
+    );
+  },
+  { displayName: 'MonthPickerInput' }
+);

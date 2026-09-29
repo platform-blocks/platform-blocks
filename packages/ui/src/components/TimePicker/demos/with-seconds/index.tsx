@@ -10,7 +10,7 @@ export function Demo() {
   return (
     <Block fullWidth>
       <TimePicker value={value} onChange={setValue} withSeconds />
-      <Text size="sm" color="secondary">{`Selected: ${formatted}`}</Text>
+      <Text size="sm" c="secondary">{`Selected: ${formatted}`}</Text>
     </Block>
   );
 }

@@ -7,7 +7,7 @@ export function Demo() {
     <BubbleChart
       title="Revenue vs Growth"
       subtitle="Bubble size shows valuation (in millions)"
-      height={360}
+      h={360}
       data={companies}
       dataKey={{
         x: 'revenue',

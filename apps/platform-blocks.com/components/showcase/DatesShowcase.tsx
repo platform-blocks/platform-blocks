@@ -117,15 +117,15 @@ const DatesPlayground: React.FC = () => {
       <Block gap="lg">
         <Card padding={20}>
           <Block gap="md">
-            <Title order={3} size={24} weight="semibold">
+            <Title order={3} size={24} fw="semibold">
               Calendar surfaces
             </Title>
-            <Text size="sm" color="secondary">
+            <Text size="sm" c="secondary">
               Compare inline calendars, compact timelines, and range selection in one place.
             </Text>
             <Row gap="lg" wrap="wrap">
               <Block gap="sm" style={{ minWidth: 280, flex: 1 }}>
-                <Text size="sm" weight="medium">
+                <Text size="sm" fw="medium">
                   Single date calendar
                 </Text>
                 <Calendar
@@ -138,7 +138,7 @@ const DatesPlayground: React.FC = () => {
                 </Chip>
               </Block>
               <Block gap="sm" style={{ minWidth: 220, flex: 1 }}>
-                <Text size="sm" weight="medium">
+                <Text size="sm" fw="medium">
                   Mini calendar overview
                 </Text>
                 <MiniCalendar
@@ -151,7 +151,7 @@ const DatesPlayground: React.FC = () => {
                 </Chip>
               </Block>
               <Block gap="sm" style={{ minWidth: 320, flex: 1 }}>
-                <Text size="sm" weight="medium">
+                <Text size="sm" fw="medium">
                   Two month range
                 </Text>
                 <Calendar
@@ -172,15 +172,15 @@ const DatesPlayground: React.FC = () => {
 
         <Card padding={20}>
           <Block gap="md">
-            <Title order={3} size={24} weight="semibold">
+            <Title order={3} size={24} fw="semibold">
               Date pickers
             </Title>
-            <Text size="sm" color="secondary">
+            <Text size="sm" c="secondary">
               Stateful examples of the inline picker and multi-month range flows.
             </Text>
             <Row gap="lg" wrap="wrap">
               <Block gap="sm" style={{ minWidth: 280, flex: 1 }}>
-                <Text size="sm" weight="medium">
+                <Text size="sm" fw="medium">
                   Inline date picker
                 </Text>
                 <DatePicker
@@ -195,7 +195,7 @@ const DatesPlayground: React.FC = () => {
                 </Chip>
               </Block>
               <Block gap="sm" style={{ minWidth: 320, flex: 1 }}>
-                <Text size="sm" weight="medium">
+                <Text size="sm" fw="medium">
                   Range picker with quick context
                 </Text>
                 <DatePicker
@@ -218,15 +218,15 @@ const DatesPlayground: React.FC = () => {
 
         <Card padding={20}>
           <Block gap="md">
-            <Title order={3} size={24} weight="semibold">
+            <Title order={3} size={24} fw="semibold">
               Month and year grids
             </Title>
-            <Text size="sm" color="secondary">
+            <Text size="sm" c="secondary">
               Responsive pickers map to the same date helpers used in Calendar flows.
             </Text>
             <Row gap="lg" wrap="wrap">
               <Block gap="sm" style={{ minWidth: 260, flex: 1 }}>
-                <Text size="sm" weight="medium">
+                <Text size="sm" fw="medium">
                   Month picker
                 </Text>
                 <MonthPicker
@@ -240,7 +240,7 @@ const DatesPlayground: React.FC = () => {
                 </Chip>
               </Block>
               <Block gap="sm" style={{ minWidth: 260, flex: 1 }}>
-                <Text size="sm" weight="medium">
+                <Text size="sm" fw="medium">
                   Year picker
                 </Text>
                 <YearPicker
@@ -258,15 +258,15 @@ const DatesPlayground: React.FC = () => {
 
         <Card padding={20}>
           <Block gap="md">
-            <Title order={3} size={24} weight="semibold">
+            <Title order={3} size={24} fw="semibold">
               Dialog inputs
             </Title>
-            <Text size="sm" color="secondary">
+            <Text size="sm" c="secondary">
               Inputs wrap the same pickers in modal flows with formatting helpers.
             </Text>
             <Row gap="lg" wrap="wrap">
               <Block gap="sm" style={{ minWidth: 260, flex: 1 }}>
-                <Text size="sm" weight="medium">
+                <Text size="sm" fw="medium">
                   Date input
                 </Text>
                 <DatePickerInput
@@ -278,12 +278,12 @@ const DatesPlayground: React.FC = () => {
                   }}
                   clearable
                 />
-                <Text size="xs" color="secondary">
+                <Text size="xs" c="secondary">
                   Selected: {formatDate(dateInputValue)}
                 </Text>
               </Block>
               <Block gap="sm" style={{ minWidth: 260, flex: 1 }}>
-                <Text size="sm" weight="medium">
+                <Text size="sm" fw="medium">
                   Month input
                 </Text>
                 <MonthPickerInput
@@ -297,12 +297,12 @@ const DatesPlayground: React.FC = () => {
                     monthsPerRow: { base: 3, md: 4 },
                   }}
                 />
-                <Text size="xs" color="secondary">
+                <Text size="xs" c="secondary">
                   Selected: {formatDate(monthInputValue)}
                 </Text>
               </Block>
               <Block gap="sm" style={{ minWidth: 260, flex: 1 }}>
-                <Text size="sm" weight="medium">
+                <Text size="sm" fw="medium">
                   Year input
                 </Text>
                 <YearPickerInput
@@ -312,7 +312,7 @@ const DatesPlayground: React.FC = () => {
                   onChange={setYearInputValue}
                   clearable
                 />
-                <Text size="xs" color="secondary">
+                <Text size="xs" c="secondary">
                   Selected: {formatDate(yearInputValue)}
                 </Text>
               </Block>
@@ -320,7 +320,7 @@ const DatesPlayground: React.FC = () => {
             <Divider />
             <Row gap="lg" wrap="wrap">
               <Block gap="sm" style={{ minWidth: 260, flex: 1 }}>
-                <Text size="sm" weight="medium">
+                <Text size="sm" fw="medium">
                   Time picker panel
                 </Text>
                 <TimePicker
@@ -330,12 +330,12 @@ const DatesPlayground: React.FC = () => {
                   withSeconds
                   minuteStep={5}
                 />
-                <Text size="xs" color="secondary">
+                <Text size="xs" c="secondary">
                   Scheduled: {formatTime(timeValue, true)}
                 </Text>
               </Block>
               <Block gap="sm" style={{ minWidth: 260, flex: 1 }}>
-                <Text size="sm" weight="medium">
+                <Text size="sm" fw="medium">
                   Time input (24h)
                 </Text>
                 <TimePickerInput
@@ -347,7 +347,7 @@ const DatesPlayground: React.FC = () => {
                   fullWidth
                   clearable
                 />
-                <Text size="xs" color="secondary">
+                <Text size="xs" c="secondary">
                   Scheduled: {formatTime(timeInputValue)}
                 </Text>
               </Block>
@@ -357,10 +357,10 @@ const DatesPlayground: React.FC = () => {
 
         <Card padding={20}>
           <Block gap="md">
-            <Title order={3} size={24} weight="semibold">
+            <Title order={3} size={24} fw="semibold">
               Meeting builder
             </Title>
-            <Text size="sm" color="secondary">
+            <Text size="sm" c="secondary">
               Combine date and time inputs to assemble a quick event summary.
             </Text>
             <Row gap="lg" wrap="wrap">

@@ -21,7 +21,7 @@ export function Demo() {
 
       {/* Chrome stripped back to the image itself — swipe and arrow keys still navigate. */}
       <Gallery
-        visible={active === 'minimal'}
+        opened={active === 'minimal'}
         images={SAMPLE_IMAGES}
         onClose={() => setActive(null)}
         showThumbnails={false}
@@ -30,7 +30,7 @@ export function Demo() {
 
       {/* `onDownload` replaces the built-in behaviour, so the host app decides what saving means. */}
       <Gallery
-        visible={active === 'custom'}
+        opened={active === 'custom'}
         images={SAMPLE_IMAGES}
         onClose={() => setActive(null)}
         onDownload={(image: GalleryItem) => setDownloaded(image.title ?? image.id)}
@@ -38,7 +38,7 @@ export function Demo() {
       />
 
       {downloaded ? (
-        <Text size="sm" color="secondary">
+        <Text size="sm" c="secondary">
           Downloaded {downloaded}
         </Text>
       ) : null}

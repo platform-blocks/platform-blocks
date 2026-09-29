@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { 
   HapticsProvider, 
   PlatformBlocksProvider, 
@@ -211,48 +210,34 @@ export const AppProviders: React.FC<Props> = React.memo(({ children }) => {
   ), [children, dialogsEnabled, notificationsEnabled]);
 
   return (
-    <SafeAreaProvider initialMetrics={SSR_SAFE_AREA_METRICS}>
-      <HapticsProvider>
-        <DirectionProvider 
-          initialDirection="ltr"
-          storage={directionStorage}
-          storageKey="platform-blocks-direction"
+    <HapticsProvider>
+      <DirectionProvider 
+        initialDirection="ltr"
+        storage={directionStorage}
+        storageKey="platform-blocks-direction"
+      >
+        <PlatformBlocksProvider 
+          themeModeConfig={themeModeConfig}
+          withOverlays 
+          i18nResources={docsI18nResources}
+          // Colors resolve through the CSS variables defined in app/+html.tsx,
+          // so the prerendered HTML is already in the reader's scheme at first
+          // paint instead of waiting for hydration to restyle it.
+          colorsAsCssVariables
         >
-          <PlatformBlocksProvider 
-            themeModeConfig={themeModeConfig}
-            withOverlays 
-            i18nResources={docsI18nResources}
-            // Colors resolve through the CSS variables defined in app/+html.tsx,
-            // so the prerendered HTML is already in the reader's scheme at first
-            // paint instead of waiting for hydration to restyle it.
-            colorsAsCssVariables
-          >
-            <ThemeModeHydrator />
-            <ChartThemeBridge>
-              <KeyboardManagerProvider disabled={!keyboardManagerEnabled}>
-                {content}
-              </KeyboardManagerProvider>
-            </ChartThemeBridge>
-          </PlatformBlocksProvider>
-        </DirectionProvider>
-      </HapticsProvider>
-    </SafeAreaProvider>
+          <ThemeModeHydrator />
+          <ChartThemeBridge>
+            <KeyboardManagerProvider disabled={!keyboardManagerEnabled}>
+              {content}
+            </KeyboardManagerProvider>
+          </ChartThemeBridge>
+        </PlatformBlocksProvider>
+      </DirectionProvider>
+    </HapticsProvider>
   );
 });
 
 AppProviders.displayName = 'AppProviders';
-
-/**
- * Metrics used to seed SafeAreaProvider. On native, `initialWindowMetrics` is
- * populated synchronously; during web static rendering (Node) it is null, which
- * would leave insets null and make `useSafeAreaInsets()` throw — blanking the
- * whole prerendered tree. Falling back to zeroed metrics keeps insets defined so
- * every route renders real content into the static HTML.
- */
-const SSR_SAFE_AREA_METRICS = initialWindowMetrics ?? {
-  frame: { x: 0, y: 0, width: 0, height: 0 },
-  insets: { top: 0, left: 0, right: 0, bottom: 0 },
-};
 
 /**
  * Categorical series palette — a fixed hue order, assigned by slot and never cycled.

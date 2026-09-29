@@ -9,7 +9,7 @@ export function Demo() {
         <Button onPressIn={impactPressIn} onPressOut={impactPressOut}>Press feedback</Button>
         <Button variant="outline" onPress={selection}>Selection feedback</Button>
       </Row>
-      <Text size="sm" weight="semibold">Notifications</Text>
+      <Text size="sm" fw="semibold">Notifications</Text>
       <Row gap="sm" wrap="wrap">
         <Button size="sm" color="success" onPress={notifySuccess}>Success</Button>
         <Button size="sm" color="warning" onPress={notifyWarning}>Warning</Button>

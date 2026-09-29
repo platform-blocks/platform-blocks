@@ -7,13 +7,13 @@ export function Demo() {
     <Block fullWidth>
       {SIZES.map((size) => (
         <Block key={size} fullWidth>
-          <Text variant="small" color="secondary">{size}</Text>
+          <Text variant="small" c="secondary">{size}</Text>
           <Divider size={size} />
         </Block>
       ))}
 
       <Block fullWidth>
-        <Text variant="small" color="secondary">1 (numeric)</Text>
+        <Text variant="small" c="secondary">1 (numeric)</Text>
         <Divider size={1} />
       </Block>
     </Block>

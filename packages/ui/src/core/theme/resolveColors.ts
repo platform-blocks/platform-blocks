@@ -86,15 +86,20 @@ export function resolveColorProp(
 ): string | undefined {
   if (!value) return undefined;
 
+  // A consumer theme may define palettes beyond the declared ones (or, in
+  // older themes, a palette as a single color string), so read by name.
+  const palettes: Readonly<Record<string, unknown>> | undefined = theme.colors;
   const fromPalette = (name: string, preferred?: number): string | undefined => {
-    const palette = (theme.colors as any)?.[name];
+    const palette = palettes?.[name];
     if (typeof palette === 'string') return palette;
     if (!Array.isArray(palette)) return undefined;
+    const entries: readonly (string | null | undefined)[] = palette;
     const order = preferred === undefined ? shades : [preferred, ...shades];
     for (const shade of order) {
-      if (palette[shade] != null) return palette[shade];
+      const entry = entries[shade];
+      if (entry != null) return entry;
     }
-    return palette[0];
+    return entries[0] ?? undefined;
   };
 
   const shadeMatch = SHADE_SYNTAX.exec(value);
@@ -104,7 +109,8 @@ export function resolveColorProp(
   }
 
   for (const scope of scopes) {
-    const token = (theme as any)?.[scope]?.[value];
+    const tokens = theme?.[scope] as Readonly<Record<string, unknown>> | undefined;
+    const token = tokens?.[value];
     if (typeof token === 'string') return token;
   }
 
@@ -112,7 +118,7 @@ export function resolveColorProp(
 }
 
 /**
- * Resolve a text `color` (or its `c` shorthand):
+ * Resolve a text color (the `c` prop):
  *
  *   • `'dimmed'` → `theme.text.muted`
  *   • `'primary' | 'secondary' | 'muted' | 'disabled' | 'link'` → `theme.text.<key>`

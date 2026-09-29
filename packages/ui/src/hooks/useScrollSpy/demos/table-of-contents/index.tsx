@@ -13,8 +13,8 @@ function Section({ title, order, copy }: { title: string; order: number; copy: s
 
   return (
     <View ref={elementRef} nativeID={id}>
-      <Text weight="semibold">{title}</Text>
-      <Text size="sm" color="secondary">{copy}</Text>
+      <Text fw="semibold">{title}</Text>
+      <Text size="sm" c="secondary">{copy}</Text>
     </View>
   );
 }
@@ -23,7 +23,7 @@ function TocList() {
   const { items, activeId } = useScrollSpy();
 
   if (!items.length) {
-    return <Text size="sm" color="muted">No headings detected yet.</Text>;
+    return <Text size="sm" c="muted">No headings detected yet.</Text>;
   }
 
   return (
@@ -32,7 +32,7 @@ function TocList() {
         <Badge
           key={item.id}
           variant={activeId === item.id ? 'light' : 'outline'}
-          color={activeId === item.id ? 'primary' : 'gray'}
+          c={activeId === item.id ? 'primary' : 'gray'}
         >
           {item.value}
         </Badge>

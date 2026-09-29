@@ -1,13 +1,13 @@
-import React, {
-  useCallback,
-  useEffect,
-  useInsertionEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
-import { ColorValue, LayoutChangeEvent, Platform, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useInsertionEffect, useMemo, useRef, useState } from 'react';
+import {
+  StyleSheet,
+  View,
+  type ColorValue,
+  type LayoutChangeEvent,
+  type StyleProp,
+  type TextStyle,
+  type ViewStyle,
+} from 'react-native';
 import Animated, {
   Easing,
   cancelAnimation,
@@ -19,10 +19,17 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { extractSpacingProps, getSpacingStyles } from '../../core/utils';
+import { factory } from '../../core/factory/factory';
+import { useReducedMotion } from '../../core/motion/useReducedMotion';
+import { hasDOM, isWeb } from '../../core/platform/flags';
+import { webStyle, type WebStyle } from '../../core/platform/webStyle';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { isDev, devLog } from '../../core/utils/logger';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 import { resolveLinearGradient } from '../../utils/optionalDependencies';
-import { resolveOptionalModule } from '../../utils/optionalModule';
-import { Text } from '../Text';
+import { defaultExportOf, resolveOptionalModule } from '../../utils/optionalModule';
+import { Text } from '../Text/Text';
 import type { ShimmerTextProps } from './types';
 
 /**
@@ -70,14 +77,23 @@ import type { ShimmerTextProps } from './types';
  * @react-native-masked-view/masked-view nor need it installed. Without it, the
  * text renders without the shimmer overlay.
  */
+interface MaskedViewProps {
+  maskElement: React.ReactElement;
+  pointerEvents?: ViewStyle['pointerEvents'];
+  style?: StyleProp<ViewStyle>;
+  children?: React.ReactNode;
+}
+
 const resolveMaskedView = () =>
-  resolveOptionalModule<any>('@react-native-masked-view/masked-view', {
-    accessor: (mod) => mod?.default ?? mod,
+  resolveOptionalModule<React.ComponentType<MaskedViewProps>>('@react-native-masked-view/masked-view', {
+    accessor: (mod) => defaultExportOf<React.ComponentType<MaskedViewProps>>(mod),
     devWarning:
       '@react-native-masked-view/masked-view is not installed; <ShimmerText> renders static text without the shimmer effect.',
   });
 
-const { LinearGradient: OptionalLinearGradient } = resolveLinearGradient();
+/** Native only, and resolved on first use so web never looks for expo-linear-gradient. */
+let linearGradient: ReturnType<typeof resolveLinearGradient> | null = null;
+const getLinearGradient = () => (linearGradient ??= resolveLinearGradient());
 
 type GradientColors = [ColorValue, ColorValue, ...ColorValue[]];
 
@@ -100,7 +116,26 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  band: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
 });
+
+const WEB_CONTAINER_STYLE = webStyle({ display: 'inline-block' });
+
+/**
+ * Web-only CSS the sweep needs beyond `WebStyle`: background geometry and the
+ * `--pb-shimmer-band` custom property the keyframes read.
+ */
+interface ShimmerWebStyle extends WebStyle {
+  backgroundColor?: string;
+  backgroundRepeat?: 'no-repeat';
+  backgroundSize?: string;
+  backgroundPosition?: string;
+  '--pb-shimmer-band'?: string;
+}
 
 // ---------------------------------------------------------------------------
 // Web sweep keyframes
@@ -129,7 +164,7 @@ const sweepAnimationName = (holdTenths: number) =>
     : 'pb-shimmer-sweep';
 
 function ensureSweepKeyframes(holdTenths: number) {
-  if (typeof document === 'undefined') return;
+  if (!hasDOM) return;
 
   const name = sweepAnimationName(holdTenths);
   if (injectedSweeps.has(name)) return;
@@ -157,45 +192,6 @@ function ensureSweepKeyframes(holdTenths: number) {
 }
 
 // ---------------------------------------------------------------------------
-// Reduced motion
-// ---------------------------------------------------------------------------
-
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
-
-let reducedMotionQuery: MediaQueryList | null | undefined;
-
-/** Resolved once — `useSyncExternalStore` reads the snapshot on every render. */
-const matchReducedMotion = () => {
-  if (reducedMotionQuery === undefined) {
-    reducedMotionQuery = Platform.OS === 'web'
-      && typeof window !== 'undefined'
-      && typeof window.matchMedia === 'function'
-      ? window.matchMedia(REDUCED_MOTION_QUERY)
-      : null;
-  }
-  return reducedMotionQuery;
-};
-
-const subscribeToReducedMotion = (onChange: () => void) => {
-  const query = matchReducedMotion();
-  if (!query) return () => {};
-  query.addEventListener('change', onChange);
-  return () => query.removeEventListener('change', onChange);
-};
-
-/**
- * An indefinitely looping decorative animation is exactly what
- * `prefers-reduced-motion` is for, so the sweep parks itself off-box (leaving
- * plain `color`-coloured text) when the viewer has asked for less motion.
- */
-const usePrefersReducedMotion = () =>
-  useSyncExternalStore(
-    subscribeToReducedMotion,
-    () => matchReducedMotion()?.matches ?? false,
-    () => false,
-  );
-
-// ---------------------------------------------------------------------------
 // Colour helpers
 // ---------------------------------------------------------------------------
 
@@ -219,7 +215,6 @@ const parseHex = (hex: string) => {
 };
 
 const applyAlpha = (color: string, alpha: number) => {
-  if (!color) return `rgba(255,255,255,${alpha})`;
   if (color.startsWith('#')) {
     const parsed = parseHex(color);
     if (parsed) {
@@ -239,14 +234,10 @@ const applyAlpha = (color: string, alpha: number) => {
  * The default band fades in and out of full transparency so it reads as a
  * highlight passing over the base colour rather than a hard-edged swipe.
  */
-const createGradientStops = (
-  customColors: string[] | undefined,
-  shimmerColor: string | undefined,
-): GradientColors => {
+const createGradientStops = (customColors: string[] | undefined, highlight: string): GradientColors => {
   if (customColors && customColors.length >= 2) {
     return customColors as GradientColors;
   }
-  const highlight = shimmerColor ?? '#ffffff';
   return [
     applyAlpha(highlight, 0),
     applyAlpha(highlight, 0.7),
@@ -260,26 +251,27 @@ const createLocations = (stops: GradientColors) => {
   return stops.map((_, index) => index / divisor);
 };
 
-const stripColorFromStyle = (styleValue: any): any => {
+/** The mask only reads alpha: drop any colour so the mask text stays opaque. */
+const stripColorFromStyle = (styleValue: StyleProp<TextStyle>): StyleProp<TextStyle> => {
   if (!styleValue) return styleValue;
-  if (Array.isArray(styleValue)) return styleValue.map(stripColorFromStyle);
-  if (typeof styleValue === 'object') {
-    const { color: _ignored, ...rest } = styleValue;
-    return rest;
-  }
-  return styleValue;
+  const { color: _ignored, ...rest } = StyleSheet.flatten(styleValue) ?? {};
+  return rest;
 };
+
+/** Any opaque colour works as the mask: MaskedView only reads its alpha channel. */
+const MASK_COLOR = 'black';
 
 // ---------------------------------------------------------------------------
 
-export function ShimmerText(props: ShimmerTextProps) {
-  const { spacingProps, otherProps } = extractSpacingProps(props as any);
-  const spacingStyles = getSpacingStyles(spacingProps);
+export const ShimmerText = factory<{ props: ShimmerTextProps; ref: View }>((props, ref) => {
+  const { styleProps, otherProps } = extractStyleProps(props);
+  const spacingStyles = useStyleProps(styleProps);
+  const theme = useTheme();
 
   const {
     children,
     text,
-    color: baseColor = '#999999',
+    c: color,
     colors,
     shimmerColor,
     duration = 1.8,
@@ -297,38 +289,41 @@ export function ShimmerText(props: ShimmerTextProps) {
     testID,
     style,
     ...textProps
-  } = otherProps as ShimmerTextProps;
+  } = otherProps;
 
-  const isWeb = Platform.OS === 'web';
+  // Muted text with the foreground colour sweeping over it reads as a
+  // highlight in both colour schemes.
+  const baseColor = color ?? theme.text.muted;
+  const highlightColor = shimmerColor ?? theme.text.primary;
+
   const isRtl = direction === 'rtl';
   const content = children ?? text ?? null;
 
-  const prefersReducedMotion = usePrefersReducedMotion();
-  const containerRef = useRef<any>(null);
+  // An indefinitely looping decorative animation is exactly what the
+  // reduced-motion preference is for: the band stays parked off-box, leaving
+  // plain `color`-coloured text.
+  const prefersReducedMotion = useReducedMotion();
+  const containerRef = useRef<View>(null);
+  const mergedRef = useMergedRef(containerRef, ref);
   const [layout, setLayout] = useState({ width: 0, height: 0 });
 
-  // `startOnView` defers the first sweep until the text is on screen; without
-  // it the component is considered in view from the first render.
-  const [inView, setInView] = useState(!startOnView);
+  // `startOnView` defers the first sweep until the text is on screen. Without
+  // an observer to gate on (native, SSR, older browsers) the text animates
+  // rather than staying permanently static.
+  const canObserve = startOnView && hasDOM && typeof IntersectionObserver !== 'undefined';
+  const [seen, setSeen] = useState(false);
+  const inView = !canObserve || seen;
 
   useEffect(() => {
-    if (!startOnView) {
-      setInView(true);
-      return;
-    }
-    if (!isWeb || typeof IntersectionObserver === 'undefined') {
-      // No observer to gate on (native, SSR, older browsers) — animate rather
-      // than leave the text permanently static.
-      setInView(true);
-      return;
-    }
-    const node = containerRef.current;
+    if (!canObserve || seen) return;
+    // react-native-web's View ref is the DOM element.
+    const node = containerRef.current as unknown as Element | null;
     if (!node) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
-          setInView(true);
+          setSeen(true);
           observer.disconnect();
         }
       },
@@ -336,7 +331,7 @@ export function ShimmerText(props: ShimmerTextProps) {
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [startOnView, inViewMargin, isWeb]);
+  }, [canObserve, seen, inViewMargin]);
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
@@ -364,19 +359,19 @@ export function ShimmerText(props: ShimmerTextProps) {
   );
 
   const stops = useMemo(
-    () => createGradientStops(colors, shimmerColor),
-    [colors, shimmerColor],
+    () => createGradientStops(colors, highlightColor),
+    [colors, highlightColor],
   );
   const stopStrings = useMemo(
-    () => stops.map((color) => (typeof color === 'string' ? color : String(color))),
+    () => stops.map((stop) => (typeof stop === 'string' ? stop : String(stop))),
     [stops],
   );
   const locations = useMemo(() => createLocations(stops), [stops]);
 
   useEffect(() => {
-    if (!__DEV__ || !debug) return;
-    console.log('[ShimmerText]', {
-      platform: Platform.OS,
+    if (!isDev || !debug) return;
+    devLog('[ShimmerText]', {
+      platform: isWeb ? 'web' : 'native',
       width: layout.width,
       bandWidth,
       cycleMs,
@@ -393,16 +388,16 @@ export function ShimmerText(props: ShimmerTextProps) {
   useInsertionEffect(() => {
     if (!isWeb) return;
     ensureSweepKeyframes(holdTenths);
-  }, [isWeb, holdTenths]);
+  }, [holdTenths]);
 
-  const webShimmerStyle = useMemo(() => {
+  const webShimmerStyle = useMemo((): TextStyle | null => {
     if (!isWeb || bandWidth <= 0) return null;
 
     const stopList = stopStrings
-      .map((color, index) => `${color} ${(locations[index] * 100).toFixed(3)}%`)
+      .map((stop, index) => `${stop} ${(locations[index] * 100).toFixed(3)}%`)
       .join(', ');
 
-    return {
+    const css: ShimmerWebStyle = {
       // `background-clip: text` paints both of these through the glyphs only:
       // the flat colour is the resting text colour, the gradient is the band
       // riding over it. One element, one text node — no stacked second copy of
@@ -427,7 +422,7 @@ export function ShimmerText(props: ShimmerTextProps) {
           animationDuration: `${cycleMs}ms`,
           animationDelay: `${delayMs}ms`,
           animationTimingFunction: 'linear',
-          animationIterationCount: shouldRepeat ? 'infinite' : '1',
+          animationIterationCount: shouldRepeat ? 'infinite' : 1,
           // One keyframes rule serves both directions: rtl plays it backwards,
           // which also moves the hold to the head of the cycle — still parked
           // off-box, so it stays invisible.
@@ -437,9 +432,12 @@ export function ShimmerText(props: ShimmerTextProps) {
           animationFillMode: 'both',
         }
         : null),
-    } as any;
+    };
+    // Text renders a DOM element on web and passes CSS through; this is the
+    // one place the web-only keys cross into React Native's style type.
+    return css as unknown as TextStyle;
   }, [
-    isWeb, bandWidth, stopStrings, locations, baseColor, isRtl, wantsAnimation,
+    bandWidth, stopStrings, locations, baseColor, isRtl, wantsAnimation,
     holdTenths, cycleMs, delayMs, shouldRepeat,
   ]);
 
@@ -449,9 +447,9 @@ export function ShimmerText(props: ShimmerTextProps) {
   const startX = useSharedValue(0);
   const endX = useSharedValue(0);
 
-  const gradientModuleAvailable = Boolean(OptionalLinearGradient);
-  const nativeShimmerReady = !isWeb
-    && gradientModuleAvailable
+  const gradient = isWeb ? null : getLinearGradient();
+  const hasLinearGradient = !!gradient?.hasLinearGradient;
+  const nativeShimmerReady = hasLinearGradient
     && layout.width > 0
     && layout.height > 0;
 
@@ -465,7 +463,7 @@ export function ShimmerText(props: ShimmerTextProps) {
   }, [layout.width, bandWidth, isRtl, startX, endX]);
 
   useEffect(() => {
-    if (isWeb || !gradientModuleAvailable) return;
+    if (isWeb || !hasLinearGradient) return;
 
     cancelAnimation(progress);
     progress.value = 0;
@@ -489,10 +487,7 @@ export function ShimmerText(props: ShimmerTextProps) {
     );
 
     return () => cancelAnimation(progress);
-  }, [
-    isWeb, gradientModuleAvailable, wantsAnimation, shouldRepeat,
-    durationMs, delayMs, repeatDelayMs, progress,
-  ]);
+  }, [hasLinearGradient, wantsAnimation, shouldRepeat, durationMs, delayMs, repeatDelayMs, progress]);
 
   const bandAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: startX.value + (endX.value - startX.value) * progress.value }],
@@ -502,17 +497,12 @@ export function ShimmerText(props: ShimmerTextProps) {
 
   // --- render --------------------------------------------------------------
 
-  const resolvedContainerStyle = [
-    styles.container,
-    spacingStyles,
-    isWeb ? ({ display: 'inline-block' } as any) : null,
-    containerStyle,
-  ];
+  const resolvedContainerStyle = [styles.container, spacingStyles, WEB_CONTAINER_STYLE, containerStyle];
 
   if (isWeb) {
     return (
-      <View ref={containerRef} style={resolvedContainerStyle} onLayout={handleLayout} testID={testID}>
-        <Text {...(textProps as any)} color={baseColor} style={[style, webShimmerStyle]}>
+      <View ref={mergedRef} style={resolvedContainerStyle} onLayout={handleLayout} testID={testID}>
+        <Text {...textProps} c={baseColor} style={[style, webShimmerStyle]}>
           {content}
         </Text>
       </View>
@@ -520,41 +510,42 @@ export function ShimmerText(props: ShimmerTextProps) {
   }
 
   const MaskedView = nativeShimmerReady ? resolveMaskedView() : null;
+  const LinearGradient = gradient?.LinearGradient;
+  const size = { width: layout.width, height: layout.height };
 
   return (
-    <View style={resolvedContainerStyle} onLayout={handleLayout} testID={testID}>
-      <Text {...(textProps as any)} color={baseColor} style={style}>
+    <View ref={mergedRef} style={resolvedContainerStyle} onLayout={handleLayout} testID={testID}>
+      <Text {...textProps} c={baseColor} style={style}>
         {content}
       </Text>
-      {MaskedView ? (
+      {MaskedView && LinearGradient ? (
         <MaskedView
           pointerEvents="none"
-          style={[StyleSheet.absoluteFill, { width: layout.width, height: layout.height }]}
+          style={[StyleSheet.absoluteFill, size]}
           maskElement={(
             <View style={styles.maskWrapper}>
-              <Text {...(textProps as any)} color="#000000" selectable={false} style={maskTextStyle}>
+              {/* A duplicate of the text used only as a mask: hidden from assistive technology. */}
+              <Text
+                {...textProps}
+                c={MASK_COLOR}
+                selectable={false}
+                style={maskTextStyle}
+                aria-hidden
+                importantForAccessibility="no-hide-descendants"
+              >
                 {content}
               </Text>
             </View>
           )}
         >
-          <View style={[styles.bandClip, { width: layout.width, height: layout.height }]}>
+          <View style={[styles.bandClip, size]}>
             <Animated.View
               pointerEvents="none"
-              style={[
-                {
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: bandWidth,
-                  height: layout.height,
-                },
-                bandAnimatedStyle,
-              ]}
+              style={[styles.band, { width: bandWidth, height: layout.height }, bandAnimatedStyle]}
             >
-              <OptionalLinearGradient
+              <LinearGradient
                 colors={stopStrings}
-                locations={locations as any}
+                locations={locations}
                 start={{ x: isRtl ? 1 : 0, y: 0.5 }}
                 end={{ x: isRtl ? 0 : 1, y: 0.5 }}
                 style={styles.fill}
@@ -565,6 +556,6 @@ export function ShimmerText(props: ShimmerTextProps) {
       ) : null}
     </View>
   );
-}
+}, { displayName: 'ShimmerText' });
 
 export type { ShimmerTextProps } from './types';

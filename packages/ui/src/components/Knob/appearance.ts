@@ -1,3 +1,4 @@
+import { literalBackgrounds, literalText } from '../../core/theme/cssVariableTheme';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
 import type {
   KnobAppearance,
@@ -125,13 +126,16 @@ export const resolveKnobAppearance = ({
   );
 
   const resolvedRingThickness = appearance?.ring?.thickness ?? ringThicknessBase;
-  const ringColorFallback = disabled ? theme.colors.gray[4] : theme.colors.gray[3];
+  // Drawn as SVG strokes, so the literal colors (on web the tokens are `var()` references).
+  const text = literalText(theme);
+  const lines = literalBackgrounds(theme);
+  const ringColorFallback = disabled ? text.muted : text.disabled;
 
   const ring: ResolvedRingStyle = {
     thickness: resolvedRingThickness,
     color: appearance?.ring?.color ?? ringColorFallback,
     trailColor:
-      appearance?.ring?.trailColor ?? (disabled ? theme.colors.gray[2] : theme.colors.gray[2]),
+      appearance?.ring?.trailColor ?? lines.borderStrong ?? lines.border,
     backgroundColor: appearance?.ring?.backgroundColor ?? theme.backgrounds.surface,
     cap: appearance?.ring?.cap ?? 'round',
     radiusOffset: appearance?.ring?.radiusOffset ?? 0,
@@ -146,11 +150,7 @@ export const resolveKnobAppearance = ({
   const fill: ResolvedFillStyle | null = appearance?.fill === null
     ? null
     : {
-        color:
-          appearance?.fill?.color ??
-          (behavior === 'status'
-            ? theme.colors.surface?.[0] ?? theme.backgrounds.surface
-            : theme.backgrounds.surface),
+        color: appearance?.fill?.color ?? theme.backgrounds.surface,
         borderWidth: appearance?.fill?.borderWidth ?? 0,
         borderColor: appearance?.fill?.borderColor ?? 'transparent',
         radiusOffset:
@@ -164,7 +164,7 @@ export const resolveKnobAppearance = ({
         activeScale: Number.isFinite(appearance?.thumb?.activeScale as number)
           ? Math.max(0, appearance!.thumb!.activeScale as number)
           : DEFAULT_THUMB_ACTIVE_SCALE,
-        color: appearance?.thumb?.color ?? (disabled ? theme.colors.gray[4] : highlightColor),
+        color: appearance?.thumb?.color ?? (disabled ? text.muted : highlightColor),
         shape: appearance?.thumb?.shape ?? 'circle',
         strokeWidth: appearance?.thumb?.strokeWidth ?? 0,
         strokeColor: appearance?.thumb?.strokeColor ?? 'transparent',
@@ -193,7 +193,7 @@ export const resolveKnobAppearance = ({
     : {
         ...pointerInput,
         visible: pointerInput.visible ?? true,
-        color: pointerInput.color ?? (disabled ? theme.colors.gray[4] : highlightColor),
+        color: pointerInput.color ?? (disabled ? text.muted : highlightColor),
       };
 
   const ticksInput = appearance?.ticks;

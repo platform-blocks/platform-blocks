@@ -155,7 +155,7 @@ export function MediaShowcase() {
 
       <Block direction={isSmall ? 'column' : 'row'} gap="lg" wrap="wrap">
         <Card p={16} style={{ flexGrow: 1, minWidth: 320 }}>
-            <Text weight="semibold">Bars (Rounded) Variant</Text>
+            <Text fw="semibold">Bars (Rounded) Variant</Text>
             <Waveform
               peaks={peaks}
               fullWidth
@@ -167,12 +167,12 @@ export function MediaShowcase() {
               progress={progress}
               progressColor="success"
             />
-            <Text size="xs" color="muted">Rounded bars with animated playback progress.</Text>
+            <Text size="xs" c="muted">Rounded bars with animated playback progress.</Text>
         </Card>
      
         <Card style={{ flexGrow: 1, minWidth: 320 }} p={16}>
           <Block direction="column" gap={12}>
-            <Text weight="semibold">Line Variant</Text>
+            <Text fw="semibold">Line Variant</Text>
             <Waveform
               peaks={peaks}
               fullWidth
@@ -183,7 +183,7 @@ export function MediaShowcase() {
               progress={progress}
               progressColor="warning"
             />
-            <Text size="xs" color="muted">Continuous line waveform with animated progress overlay.</Text>
+            <Text size="xs" c="muted">Continuous line waveform with animated progress overlay.</Text>
           </Block>
         </Card>
       </Block>
@@ -191,7 +191,7 @@ export function MediaShowcase() {
       <Title afterline>Video</Title>
       <Block direction={isSmall ? 'column' : 'row'} gap="lg" wrap="wrap">
         <Card style={{ flexGrow: 1, minWidth: 320 }} p={16}>
-            <Text weight="semibold">Inline MP4 Player</Text>
+            <Text fw="semibold">Inline MP4 Player</Text>
             <Video
               source={{ url: Asset.fromModule(require('../../assets/video/demo-clip.mp4')).uri }}
               w="100%"
@@ -201,24 +201,24 @@ export function MediaShowcase() {
               timeline={videoChapters}
               onTimelineEvent={(event) => setLastTimelineMarker(event.data?.label ?? event.id)}
             />
-            <Text size="xs" color="muted">
+            <Text size="xs" c="muted">
               {lastTimelineMarker
                 ? `Latest chapter marker: ${lastTimelineMarker}`
                 : 'Timeline markers surface product chapters while playback runs.'}
             </Text>
         </Card>
         <Card style={{ flexGrow: 1, minWidth: 320 }} p={16}>
-            <Text weight="semibold">YouTube Embed</Text>
+            <Text fw="semibold">YouTube Embed</Text>
             <Video
               source={{ youtube: 'https://www.youtube.com/watch?v=jNQXAC9IVRw' }}
               w="100%"
               h={isSmall ? 200 : 220}
-              controls={{ playbackRate: true, quality: true }}
+              controls={{ playbackRate: true }}
               autoPlay={false}
               muted
             />
-            <Text size="xs" color="muted">
-              Supports native playback controls plus YouTube quality and speed options.
+            <Text size="xs" c="muted">
+              Supports native playback controls plus YouTube speed options.
             </Text>
         </Card>
       </Block>
@@ -227,7 +227,7 @@ export function MediaShowcase() {
       <Block direction={isSmall ? 'column' : 'row'} gap="lg" wrap="wrap">
         <Card style={{ flexGrow: 1, minWidth: 320 }} p={16}>
           <Block direction="column" gap={12}>
-            <Text weight="semibold">Interactive Lightbox</Text>
+            <Text fw="semibold">Interactive Lightbox</Text>
             <Block gap="sm" wrap="wrap">
               {galleryImages.slice(0, 4).map((image, index) => (
                 <Pressable
@@ -256,7 +256,7 @@ export function MediaShowcase() {
             </Block>
             <Block gap="sm" align="center" wrap="wrap">
               <Button size="sm" onPress={() => openGalleryAt(0)}>Open Gallery</Button>
-              <Text size="xs" color="muted">
+              <Text size="xs" c="muted">
                 Tap a thumbnail or use the button to launch the full-screen gallery.
               </Text>
             </Block>
@@ -265,7 +265,7 @@ export function MediaShowcase() {
       </Block>
 
       <Gallery
-        visible={galleryOpen}
+        opened={galleryOpen}
         images={galleryImages}
         initialIndex={galleryIndex}
         onClose={closeGallery}

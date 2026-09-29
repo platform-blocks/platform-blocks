@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react';
-import type { ViewProps } from 'react-native';
+import type { ReactElement, ReactNode } from 'react';
+import type { View, ViewProps } from 'react-native';
 import type { PlacementType, PositioningOptions } from '../../core/utils/positioning-enhanced';
 import type { RadiusValue } from '../../core/theme/radius';
 import type { ShadowValue } from '../../core/theme/shadow';
-import type { SpacingProps } from '../../core/utils';
+import type { BaseProps } from '../../core/types/base';
 
 export type FloatingStrategy = 'absolute' | 'fixed';
 export type ArrowPosition = 'center' | 'side';
@@ -14,7 +14,7 @@ export interface PopoverMiddlewares {
   inline?: boolean;
 }
 
-export interface PopoverProps extends SpacingProps {
+export interface PopoverProps extends BaseProps {
   children: ReactNode;
   /** Controlled open state */
   opened?: boolean;
@@ -34,39 +34,46 @@ export interface PopoverProps extends SpacingProps {
   disabled?: boolean;
   /** Close when clicking outside */
   closeOnClickOutside?: boolean;
-  /** Close when pressing Escape */
+  /**
+   * Close when pressing Escape (web) or the Android back button. Only the
+   * topmost open overlay closes, so Escape in a nested popover closes just that one.
+   */
   closeOnEscape?: boolean;
-  /** Events considered for outside click detection (web only) */
-  clickOutsideEvents?: string[];
-  /** Trap focus within dropdown (web only) */
+  /**
+   * Trap focus within the dropdown (web): focus moves to its first focusable
+   * element on open and Tab / Shift+Tab cycle inside it until it closes.
+   * Without it, a click-opened dropdown still receives focus (on the dropdown
+   * itself) so keyboard users can Tab into it.
+   */
   trapFocus?: boolean;
   /** Keep dropdown mounted when hidden */
   keepMounted?: boolean;
-  /** Return focus to target after close */
+  /**
+   * Return focus to the target after close (when focus was inside the
+   * dropdown — closing by clicking elsewhere never steals focus back).
+   * @default true
+   */
   returnFocus?: boolean;
-  /** Render dropdown within portal */
-  withinPortal?: boolean;
-  /** Render overlay/backdrop */
-  withOverlay?: boolean;
-  /** Overlay component props */
-  overlayProps?: Record<string, unknown>;
   /** Dropdown width, number or 'target' to match target width */
   w?: number | 'target';
   /** Dropdown max-width */
-  maxW?: number;
+  maw?: number;
   /** Dropdown max-height */
-  maxH?: number;
+  mah?: number;
   /** Dropdown min-width */
-  minW?: number;
+  miw?: number;
   /** Dropdown min-height */
-  minH?: number;
+  mih?: number;
   /** Border radius */
   radius?: RadiusValue | number;
   /** Box shadow */
   shadow?: ShadowValue;
-  /** Dropdown z-index */
+  /** Dropdown z-index. @default the theme's `popover` layer (`getZIndex(theme, 'popover')`) */
   zIndex?: number;
-  /** Popover position relative to target */
+  /**
+   * Popover position relative to target, written for left-to-right layouts:
+   * in RTL `left`/`right` and the `-start`/`-end` of `top`/`bottom` are mirrored.
+   */
   position?: PlacementType;
   /** Offset from target */
   offset?: number | { mainAxis?: number; crossAxis?: number };
@@ -76,8 +83,6 @@ export interface PopoverProps extends SpacingProps {
   middlewares?: PopoverMiddlewares;
   /** Prevent flipping/shifting when visible */
   preventPositionChangeWhenVisible?: boolean;
-  /** Hide dropdown when target becomes detached */
-  hideDetached?: boolean;
   /** Override viewport padding */
   viewport?: PositioningOptions['viewport'];
   /** Whether positioning should avoid the on-screen keyboard */
@@ -100,23 +105,28 @@ export interface PopoverProps extends SpacingProps {
   arrowOffset?: number;
   /** Arrow position for start/end placements */
   arrowPosition?: ArrowPosition;
-  /** Called when dropdown position changes */
+  /** Called when the dropdown's physical placement changes (after flipping / RTL mirroring) */
   onPositionChange?: (placement: PlacementType) => void;
-  /** Test identifier */
-  testID?: string;
 }
 
 export interface PopoverTargetProps {
-  children: React.ReactElement;
+  children: ReactElement;
   popupType?: 'dialog' | 'menu' | 'listbox' | 'tree' | 'grid';
   refProp?: string;
   /** Additional props merged onto target */
   targetProps?: Record<string, unknown>;
 }
 
+export interface PopoverFactoryPayload {
+  props: PopoverProps;
+  ref: View;
+}
+
 export interface PopoverDropdownProps extends ViewProps {
   children: ReactNode;
-  /** Whether dropdown content should trap focus (web only) */
+  /** ARIA role of the dropdown; the target's `aria-controls` points at it. @default 'dialog' */
+  role?: ViewProps['role'];
+  /** Whether dropdown content should trap focus (web only); same as Popover's `trapFocus` */
   trapFocus?: boolean;
   /** Keep dropdown mounted */
   keepMounted?: boolean;

@@ -1,48 +1,23 @@
-import { Block, Card, Spoiler, Text } from '@platform-blocks/ui';
+import { Block, Spoiler, Text } from '@platform-blocks/ui';
 
-const examples = [
-  {
-    key: 'open',
-    label: 'Initially open',
-    description:
-      'Starts expanded by default so the reader sees the full content on first render.',
-    props: { initiallyOpen: true },
-  },
-  {
-    key: 'closed',
-    label: 'Initially closed',
-    description:
-      'Keeps the section compact to emphasize surrounding UI until the user opts in.',
-    props: {},
-  },
-];
-
-const bodyCopy =
-  'Vivamus fermentum orci eget tortor facilisis, eu egestas eros maximus. Fusce vitae semper libero. Pellentesque habitant morbi tristique senectus et netus.';
+const content =
+  'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.';
 
 export function Demo() {
   return (
-    <Card p="md">
+    <Block fullWidth>
       <Block>
-        <Text size="sm" color="secondary">
-          Control whether the content renders expanded on mount or waits for user input. Both states remain accessible to assistive tech.
-        </Text>
-        <Block>
-          {examples.map((example) => (
-            <Block key={example.key}>
-              <Text size="xs" color="secondary">
-                {example.label}
-              </Text>
-              <Spoiler maxHeight={72} {...example.props}>
-                <Text size="sm">{bodyCopy}</Text>
-              </Spoiler>
-              <Text size="xs" color="muted">
-                {example.description}
-              </Text>
-            </Block>
-          ))}
-        </Block>
+        <Text variant="small" c="secondary">Initially open</Text>
+        <Spoiler mah={48} defaultExpanded>
+          <Text>{content}</Text>
+        </Spoiler>
       </Block>
-    </Card>
+      <Block>
+        <Text variant="small" c="secondary">Initially closed</Text>
+        <Spoiler mah={48}>
+          <Text>{content}</Text>
+        </Spoiler>
+      </Block>
+    </Block>
   );
 }

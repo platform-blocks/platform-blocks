@@ -1,7 +1,8 @@
-import type { SizeValue } from '../../core/theme/types';
 import type { ResponsiveProp } from '../../core/theme/breakpoints';
+import type { SizeValue } from '../../core/theme/types';
+import type { BaseProps } from '../../core/types/base';
 
-export interface YearPickerProps {
+export interface YearPickerProps extends BaseProps {
   /** Currently selected date */
   value?: Date | null;
   /** Called when a year is selected */
@@ -16,7 +17,7 @@ export interface YearPickerProps {
   maxDate?: Date;
   /** Typography size token */
   size?: SizeValue;
-  /** Responsive override for number of years per row */
+  /** Responsive override for number of years per row (breakpoints from `theme.breakpoints`). */
   yearsPerRow?: ResponsiveProp<number>;
   /** Hide navigation header when embedding the picker */
   hideHeader?: boolean;

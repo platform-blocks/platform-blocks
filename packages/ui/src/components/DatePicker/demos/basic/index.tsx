@@ -11,7 +11,7 @@ export function Demo() {
         onChange={(next) => setValue(next as Date | null)}
         calendarProps={{ numberOfMonths: 1, highlightToday: true }}
       />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         {value ? `Selected: ${value.toLocaleDateString()}` : 'No date selected'}
       </Text>
     </Block>

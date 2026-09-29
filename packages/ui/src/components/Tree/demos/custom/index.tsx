@@ -13,7 +13,7 @@ export function Demo() {
         <Text size="sm" style={{ flex: 1 }}>
           {node.label}
         </Text>
-        <Badge variant="outline" color={status.color}>
+        <Badge variant="outline" c={status.color}>
           {status.label}
         </Badge>
       </Row>

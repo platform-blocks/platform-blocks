@@ -23,10 +23,13 @@ examples:
   basic: Basic text usage and variants
   colors: Text color variations
   sizes: Different text sizes
-  weights: Font weight options
-  heights: Line height testing
-  ff: Font family override (ff shorthand or fontFamily long form)
-  c-shorthand: Theme color shorthand (`c="dimmed"`, `c="primary.6"`, `c="#a855f7"`)
+  weights: Font weight (`fw`)
+  heights: Line height (`lh`)
+  tracking: Letter spacing (`lts`)
+  ff: Font family (`ff`)
+  tt: Text transform (`tt="uppercase"`, `"lowercase"`, `"capitalize"`)
+  decoration: Font style and decoration (`fs="italic"`, `td="underline"`, `td="line-through"`)
+  textRole: Theme text role — `panelTitle`, `sectionLabel`, or one your theme adds (`theme.textRoles`); explicit props still win
 ---
 
-Text component provides consistent typography with various variants, colors, and styling options for displaying content.
+Render typography with various variants, colors, and styling options for displaying content.

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Block, Slider, RangeSlider, Text } from '@platform-blocks/ui';
 
 const milestoneTicks = [
@@ -13,7 +12,6 @@ const milestoneTicksWithHighlight = milestoneTicks.map((t) =>
   t.value === 50
     ? {
         ...t,
-        // per-tick override wins over the global tickStyle / activeTickStyle
         style: {
           width: 4,
           height: 14,
@@ -26,22 +24,13 @@ const milestoneTicksWithHighlight = milestoneTicks.map((t) =>
 );
 
 export function Demo() {
-  const [a, setA] = useState(35);
-  const [b, setB] = useState(60);
-  const [c, setC] = useState(50);
-  const [d, setD] = useState<[number, number]>([20, 80]);
-
   return (
-    <Block>
-      <Text weight="semibold">Slot styling</Text>
-
+    <Block fullWidth>
       <Block>
-        <Text size="sm" color="muted">
-          Track + thumb overrides — taller track, square thumb
-        </Text>
+        <Text variant="small" c="secondary">Track and thumb</Text>
         <Slider
-          value={a}
-          onChange={setA}
+          accessibilityLabel="Track and thumb overrides"
+          defaultValue={35}
           trackStyle={{ height: 10, borderRadius: 2 }}
           activeTrackStyle={{ height: 10, borderRadius: 2 }}
           thumbStyle={{ borderRadius: 4, borderWidth: 0 }}
@@ -49,46 +38,22 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" color="muted">
-          Branded thumb — gradient-style fill via solid color + shadow
-        </Text>
+        <Text variant="small" c="secondary">Ticks and tick labels</Text>
         <Slider
-          value={b}
-          onChange={setB}
-          activeTrackColor="#10b981"
-          thumbStyle={{
-            backgroundColor: '#0ea5e9',
-            borderColor: '#0369a1',
-            borderWidth: 2,
-            shadowColor: '#0ea5e9',
-            shadowOffset: { width: 0, height: 0 },
-            shadowOpacity: 0.4,
-            shadowRadius: 8,
-          }}
-        />
-      </Block>
-
-      <Block>
-        <Text size="sm" color="muted">
-          Tick + label styling (`tickStyle`, `activeTickStyle`, `tickLabelProps`)
-        </Text>
-        <Slider
-          value={c}
-          onChange={setC}
+          accessibilityLabel="Tick styling"
+          defaultValue={50}
           ticks={milestoneTicks}
           tickStyle={{ width: 3, height: 10, borderRadius: 1.5, top: 13 }}
           activeTickStyle={{ width: 3, height: 12, borderRadius: 1.5, top: 12 }}
-          tickLabelProps={{ ff: 'monospace', size: 'xs', weight: '700' }}
+          tickLabelProps={{ ff: 'monospace', size: 'xs', fw: '700' }}
         />
       </Block>
 
       <Block>
-        <Text size="sm" color="muted">
-          Per-tick override — the tick at 50 is taller and yellow
-        </Text>
+        <Text variant="small" c="secondary">Per-tick style</Text>
         <Slider
-          value={c}
-          onChange={setC}
+          accessibilityLabel="Per-tick override"
+          defaultValue={50}
           ticks={milestoneTicksWithHighlight}
           tickStyle={{ width: 3, height: 10, borderRadius: 1.5, top: 13 }}
           activeTickStyle={{ width: 3, height: 10, borderRadius: 1.5, top: 13 }}
@@ -97,12 +62,10 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" color="muted">
-          RangeSlider — same slot props work on both thumbs and the active band
-        </Text>
+        <Text variant="small" c="secondary">RangeSlider</Text>
         <RangeSlider
-          value={d}
-          onChange={setD}
+          accessibilityLabel="Range with slot styling"
+          defaultValue={[20, 80]}
           ticks={milestoneTicks}
           activeTrackColor="#a855f7"
           trackStyle={{ height: 8, borderRadius: 4 }}
@@ -110,9 +73,9 @@ export function Demo() {
           thumbStyle={{ backgroundColor: '#a855f7', borderColor: '#7e22ce', borderWidth: 2 }}
           tickStyle={{ width: 2, height: 8, top: 14 }}
           activeTickStyle={{ width: 2, height: 8, top: 14, backgroundColor: '#a855f7' }}
-          tickLabelProps={{ size: 'xs', color: 'muted' }}
+          tickLabelProps={{ size: 'xs', c: 'muted' }}
           valueLabelAlwaysOn
-          valueLabelProps={{ weight: '700', size: 'sm' }}
+          valueLabelProps={{ fw: '700', size: 'sm' }}
         />
       </Block>
     </Block>

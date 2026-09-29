@@ -882,52 +882,88 @@ export function getViewport(): Viewport {
   };
 }
 
+/** A web node `measureElement` can read (a DOM element, or a `PointAnchor`). */
+interface BoundingRectHost {
+  getBoundingClientRect: () => { left: number; top: number; width: number; height: number };
+}
+
+/** A native host instance (or `PointAnchor`) `measureElement` can read. */
+interface NativeMeasureHost {
+  measure: (
+    callback: (x: number, y: number, width: number, height: number, pageX: number, pageY: number) => void
+  ) => void;
+}
+
+function hasBoundingRect(node: unknown): node is BoundingRectHost {
+  return (
+    typeof node === 'object' &&
+    node !== null &&
+    typeof (node as Partial<BoundingRectHost>).getBoundingClientRect === 'function'
+  );
+}
+
+function hasNativeMeasure(node: unknown): node is NativeMeasureHost {
+  return (
+    typeof node === 'object' &&
+    node !== null &&
+    typeof (node as Partial<NativeMeasureHost>).measure === 'function'
+  );
+}
+
 /**
- * Measure element dimensions and position
+ * The first node, depth-first from `node`, that exposes
+ * `getBoundingClientRect` — a React Native Web ref can point at a wrapper that
+ * doesn't, with the DOM element among its children.
  */
-export function measureElement(ref: any): Promise<Rect> {
+function findBoundingRectHost(node: unknown): BoundingRectHost | null {
+  if (hasBoundingRect(node)) return node;
+  const children = typeof node === 'object' && node !== null
+    ? (node as { children?: ArrayLike<unknown> }).children
+    : undefined;
+  if (children) {
+    for (let i = 0; i < children.length; i++) {
+      const found = findBoundingRectHost(children[i]);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+const emptyRect = (): Rect => ({ x: 0, y: 0, width: 0, height: 0 });
+
+/**
+ * Measure element dimensions and position: viewport coordinates on web
+ * (`getBoundingClientRect`), page coordinates on native (`measure`). Resolves
+ * an empty rect when the ref is unset or its node can't be measured.
+ */
+export function measureElement(ref: { readonly current: unknown } | null | undefined): Promise<Rect> {
   return new Promise((resolve) => {
-    if (!ref?.current) {
-      resolve({ x: 0, y: 0, width: 0, height: 0 });
+    const node = ref?.current;
+    if (!node) {
+      resolve(emptyRect());
       return;
     }
 
     if (Platform.OS === 'web') {
-      const element = ref.current;
-      let targetElement = element;
-      
-      // Find DOM element for React Native Web
-      if (element._nativeTag || element._children || !element.getBoundingClientRect) {
-        const findDOMElement = (el: any): any => {
-          if (el && el.getBoundingClientRect) return el;
-          if (el && el.children) {
-            for (let i = 0; i < el.children.length; i++) {
-              const found = findDOMElement(el.children[i]);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-        
-        targetElement = findDOMElement(element) || element;
-      }
-
-      if (targetElement && targetElement.getBoundingClientRect) {
-        const rect = targetElement.getBoundingClientRect();
+      const target = findBoundingRectHost(node);
+      if (target) {
+        const rect = target.getBoundingClientRect();
         resolve({
           x: rect.left,
-          y: rect.top, 
+          y: rect.top,
           width: rect.width,
           height: rect.height
         });
       } else {
-        resolve({ x: 0, y: 0, width: 0, height: 0 });
+        resolve(emptyRect());
       }
-    } else {
+    } else if (hasNativeMeasure(node)) {
       // React Native
-      ref.current.measure((x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
+      node.measure((_x, _y, width, height, pageX, pageY) => {
         resolve({ x: pageX, y: pageY, width, height });
       });
+    } else {
+      resolve(emptyRect());
     }
   });
 }

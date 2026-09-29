@@ -1,60 +1,32 @@
 import { Block, Tabs, Text } from '@platform-blocks/ui';
 
-type Orientation = 'horizontal' | 'vertical';
+const ORIENTATIONS = ['horizontal', 'vertical'] as const;
 
-const buildItems = (orientation: Orientation) => [
+const ITEMS = [
   {
     key: 'general',
     label: 'General',
-    content: (
-      <Text>
-        Broad overview content rendered with a {orientation} tab list.
-      </Text>
-    )
+    content: <Text>Broad overview content.</Text>
   },
   {
     key: 'security',
     label: 'Security',
-    content: (
-      <Text>
-        Security controls and permissions laid out for a {orientation} arrangement.
-      </Text>
-    )
+    content: <Text>Security controls and permissions.</Text>
   },
   {
     key: 'notifications',
     label: 'Notifications',
-    content: (
-      <Text>
-        Configure alerts and digests with triggers stacked {orientation === 'vertical' ? 'in a column' : 'in a row'}.
-      </Text>
-    )
-  }
-];
-
-const ORIENTATIONS: Array<{ label: string; orientation: Orientation; helper: string }> = [
-  {
-    label: 'Horizontal orientation',
-    orientation: 'horizontal',
-    helper: 'Default layout presents tabs in a row for top-level navigation.'
-  },
-  {
-    label: 'Vertical orientation',
-    orientation: 'vertical',
-    helper: 'Vertical tab lists are ideal for settings sidebars and dense menus.'
+    content: <Text>Configure alerts and digests.</Text>
   }
 ];
 
 export function Demo() {
   return (
-    <Block>
-      {ORIENTATIONS.map(({ label, orientation, helper }) => (
-        <Block key={orientation}>
-          <Text weight="medium">{label}</Text>
-          <Tabs orientation={orientation} items={buildItems(orientation)} />
-          <Text variant="small" color="muted">
-            {helper}
-          </Text>
+    <Block fullWidth>
+      {ORIENTATIONS.map((orientation) => (
+        <Block key={orientation} fullWidth>
+          <Text variant="small" c="secondary">{orientation}</Text>
+          <Tabs orientation={orientation} items={ITEMS} />
         </Block>
       ))}
     </Block>

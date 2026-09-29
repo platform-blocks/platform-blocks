@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme } from '../../core/theme';
+import { useTheme } from '../../core/theme/ThemeProvider';
 import { Text } from '../Text';
 import { Icon } from '../Icon';
 import { Flex } from '../Flex';
@@ -30,7 +30,8 @@ export function BlockquoteMeta({
           name="star"
           variant={i <= value ? 'filled' : 'outlined'}
           size="xs"
-          color={i <= value ? theme.colors.warning[5] : theme.colors.gray[3]}
+          color={i <= value ? theme.colors.warning[5] : theme.text.disabled}
+          decorative
         />
       );
     }
@@ -51,11 +52,16 @@ export function BlockquoteMeta({
       {/* Rating */}
       {rating && (
         <Flex direction="row" align="center" gap="xs">
-          <Flex direction="row" gap={2}>
+          <Flex
+            direction="row"
+            gap={2}
+            role="img"
+            aria-label={`Rated ${rating.value} out of ${rating.max || 5}`}
+          >
             {renderStars(rating.value, rating.max || 5)}
           </Flex>
           {rating.showValue && (
-            <Text size="xs" color="secondary">
+            <Text size="xs" c="secondary" aria-hidden>
               {rating.value}/{rating.max || 5}
             </Text>
           )}
@@ -69,8 +75,9 @@ export function BlockquoteMeta({
             name="check"
             size="xs"
             color={theme.colors.primary[5]}
+            decorative
           />
-          <Text size="xs" color="primary">
+          <Text size="xs" c="primary">
             Verified
           </Text>
         </Flex>
@@ -78,7 +85,7 @@ export function BlockquoteMeta({
 
       {/* Date — `!!` so an empty string renders nothing instead of a bare text node */}
       {!!date && (
-        <Text size="xs" color="muted">
+        <Text size="xs" c="muted">
           {formatDate(date)}
         </Text>
       )}

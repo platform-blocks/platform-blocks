@@ -9,7 +9,7 @@ import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
 import { kde, normalizeDensity } from '../../utils/density';
-import { getColorFromScheme, colorSchemes } from '../../utils';
+import { getColorFromScheme, createTickFormatter } from '../../utils';
 import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { BandCategoryHitTester } from '../../core/hittest/band';
@@ -53,8 +53,8 @@ const STAT_LABEL_GAP = 6;
 
 // RidgeChart: vertically stacked kernel density curves (normalized) with baseline fill.
 export const RidgeChart: React.FC<RidgeChartProps> = ({ 
-  width = 600, 
-  height = 300, 
+  w: width = 600, 
+  h: height = 300, 
   series, 
   title, 
   subtitle, 
@@ -82,7 +82,7 @@ export const RidgeChart: React.FC<RidgeChartProps> = ({
     return resolveCartesianPadding({
       yTickLabels: series.map((entry, index) => String(entry.name ?? entry.id ?? index)),
       xTickLabels: finite
-        ? domainTickLabels([min, max], (value) => (xAxis?.labelFormatter ? xAxis.labelFormatter(value) : value.toFixed(1)))
+        ? domainTickLabels([min, max], xAxis?.labelFormatter, theme.numberFormat, defaultValueFormatter)
         : [],
       yTitle: yAxis?.title,
       xTitle: xAxis?.title,
@@ -94,7 +94,7 @@ export const RidgeChart: React.FC<RidgeChartProps> = ({
       containerHeight: height,
     });
   }, [series, xAxis?.labelFormatter, yAxis?.title, xAxis?.title, yAxis?.show, xAxis?.show,
-      yAxis?.showLabels, xAxis?.showLabels, width, height]);
+      yAxis?.showLabels, xAxis?.showLabels, width, height, theme.numberFormat]);
   // Grown so the plot clears the title overlay.
   const padding = React.useMemo(
     () => withChartBandPadding(basePadding, {
@@ -108,7 +108,7 @@ export const RidgeChart: React.FC<RidgeChartProps> = ({
   const plotWidth = Math.max(0, width - padding.left - padding.right);
   const plotHeight = Math.max(0, height - padding.top - padding.bottom);
   const count = Math.max(series.length, 1);
-  const defaultScheme = colorSchemes.default;
+  const defaultScheme = theme.colors.accentPalette;
   
   let interaction: ReturnType<typeof useChartInteractionContext> | null = null;
   try { interaction = useChartInteractionContext(); } catch { /* noop */ }
@@ -362,6 +362,10 @@ export const RidgeChart: React.FC<RidgeChartProps> = ({
       })
       .filter((value): value is number => value != null && Number.isFinite(value)) || [];
   }, [axisScaleX, plotWidth]);
+  const xTickFormat = React.useMemo(
+    () => createTickFormatter(axisScaleX.ticks?.() ?? [], theme.numberFormat, defaultValueFormatter),
+    [axisScaleX, theme.numberFormat]
+  );
 
   const normalizedYTicks = React.useMemo(() => {
     if (plotHeight <= 0) return [];
@@ -372,8 +376,8 @@ export const RidgeChart: React.FC<RidgeChartProps> = ({
 
   return (
     <ChartContainer 
-      width={width} 
-      height={height} 
+      w={width} 
+      h={height} 
       style={style} 
       interactionConfig={{ multiTooltip: true, enableCrosshair: true }}
     >
@@ -521,7 +525,7 @@ export const RidgeChart: React.FC<RidgeChartProps> = ({
           tickPadding={4}
           tickFormat={(value) => {
             if (xAxis?.labelFormatter) return xAxis.labelFormatter(value);
-            return typeof value === 'number' ? value.toFixed(1) : String(value);
+            return typeof value === 'number' ? xTickFormat(value) : String(value);
           }}
           showLabels={xAxis?.showLabels !== false}
           showTicks={xAxis?.showTicks !== false}

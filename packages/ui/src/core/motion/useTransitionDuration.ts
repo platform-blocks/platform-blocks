@@ -1,4 +1,4 @@
-import { useReducedMotion } from './ReducedMotionProvider';
+import { useReducedMotion } from './useReducedMotion';
 
 /**
  * Resolves a component's `transitionDuration` prop into the millisecond value

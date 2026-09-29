@@ -1,6 +1,3 @@
-title: Simple Tooltip
-description: Basic tooltip demonstration with different positions, arrows, and multiline text.
-tags: ["simple", "basic", "positions", "arrow", "multiline"]
 ---
 title: Trigger Modes
 category: behavior

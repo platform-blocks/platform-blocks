@@ -1,333 +1,82 @@
 import React, { useMemo, useCallback, useRef, useState, useEffect, memo } from 'react';
-import { View, Pressable, ViewStyle, Text as RNText, Platform, Dimensions } from 'react-native';
-import type { ICarouselInstance } from 'react-native-reanimated-carousel';
+import { View, Pressable, StyleSheet } from 'react-native';
+import type { LayoutChangeEvent, ViewStyle } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedReaction,
+  interpolateColor,
+  runOnJS,
+  type SharedValue,
+} from 'react-native-reanimated';
+
+import { factory } from '../../core/factory/factory';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { useReducedMotion } from '../../core/motion/useReducedMotion';
+import { isNative, isWeb } from '../../core/platform';
+import { useViewport, type Breakpoint } from '../../core/responsive';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getControlSize } from '../../core/theme/tokens';
+import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import { useStyleProps } from '../../core/utils/spacing';
+import { useMergedRef } from '../../core/utils/mergeRefs';
 import { resolveOptionalModule } from '../../utils/optionalModule';
+import { useHover } from '../../hooks/useHover/useHover';
+import { Button } from '../Button';
+import { Icon } from '../Icon';
+import type { CarouselProps } from './types';
+
+// ---------------------------------------------------------------------------
+// Engine (react-native-reanimated-carousel, an optional peer)
+// ---------------------------------------------------------------------------
+
+/** The engine instance methods Carousel calls. */
+interface CarouselEngineHandle {
+  scrollTo(options: { count?: number; index?: number; animated?: boolean }): void;
+  prev(): void;
+  next(): void;
+}
+
+/** Engine props are forwarded structurally; the optional peer's own types aren't referenced. */
+type CarouselEngine = React.ComponentType<Record<string, unknown> & React.RefAttributes<CarouselEngineHandle>>;
 
 /**
  * The carousel engine, resolved lazily so apps that never render a Carousel
  * neither bundle react-native-reanimated-carousel nor need it installed.
- * Without it the component warns in dev and renders nothing.
+ * Without it the component warns in dev and renders its chrome only.
  */
 const resolveCarouselEngine = () =>
-  resolveOptionalModule<any>('react-native-reanimated-carousel', {
-    accessor: (mod) => mod?.default ?? mod,
+  resolveOptionalModule<CarouselEngine>('react-native-reanimated-carousel', {
+    accessor: (mod: { default?: CarouselEngine } | CarouselEngine | null | undefined) =>
+      (mod && typeof mod === 'object' && 'default' in mod ? mod.default : (mod as CarouselEngine | null | undefined)) ?? null,
     devWarning:
       'react-native-reanimated-carousel is not installed; <Carousel> has no engine to render with. Install it to use this component.',
   });
-import Animated, { useSharedValue, useAnimatedStyle, useAnimatedReaction, interpolateColor, runOnJS, type SharedValue } from 'react-native-reanimated';
-import { useTheme } from '../../core/theme/ThemeProvider';
-import { useDirection } from '../../core/providers/DirectionProvider';
-import type { CarouselProps } from './types';
-import { getSpacingStyles, extractSpacingProps, useMergedRef } from '../../core/utils';
-import { Button } from '../Button';
-import { Icon } from '../Icon';
-import { resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
-import { getComponentSize } from '../../core/theme/unified-sizing';
 
-// Wrapper implementation using react-native-reanimated-carousel as the engine
-// Keeps PlatformBlocks Carousel API (subset) while delegating gesture/scroll physics.
+// ---------------------------------------------------------------------------
+// Responsive helpers
+// ---------------------------------------------------------------------------
 
-const ORDER: any[] = ['base', 'xs', 'sm', 'md', 'lg', 'xl'];
+type ResponsiveConfig<T> = T | Partial<Record<Breakpoint, T>> | null | undefined;
 
-const resolveResponsive = (config: any, breakpoint: string) => {
+const ORDER: readonly Breakpoint[] = ['base', 'xs', 'sm', 'md', 'lg', 'xl'];
+
+/**
+ * A value for the current breakpoint: the nearest defined entry at or below it.
+ * Below the `xs` width (`base`) an `xs` entry still applies, as it always has.
+ */
+function resolveResponsive<T extends string | number>(config: ResponsiveConfig<T>, breakpoint: Breakpoint): T | undefined {
   if (config == null) return undefined;
-  if (typeof config === 'number' || typeof config === 'string') return config;
-  const idx = ORDER.indexOf(breakpoint);
+  if (typeof config !== 'object') return config;
+  const idx = Math.max(ORDER.indexOf(breakpoint), ORDER.indexOf('xs'));
   for (let i = idx; i >= 0; i--) {
-    const k = ORDER[i];
-    if (config[k] != null) return config[k];
+    const value = config[ORDER[i]];
+    if (value != null) return value;
   }
   return undefined;
-};
-
-const CAROUSEL_ALLOWED_SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
-const CAROUSEL_ALLOWED_SIZES_ARRAY: ComponentSize[] = [...CAROUSEL_ALLOWED_SIZES];
-
-interface CarouselArrowMetrics {
-  buttonSizeToken: ComponentSize;
-  buttonHeight: number;
-  buttonRadius: number;
-  iconSize: number;
-  edgeOffset: number;
-  translate: number;
 }
 
-interface CarouselDotMetrics {
-  baseSize: number;
-  margin: number;
-  trackOffset: number;
-}
-
-const MIN_ARROW_METRICS = {
-  height: 28,
-  iconSize: 12,
-  edgeOffset: 6,
-} as const;
-
-const MIN_DOT_METRICS = {
-  baseSize: 4,
-  margin: 2,
-  trackOffset: 8,
-} as const;
-
-function createArrowMetricsForToken(size: ComponentSize): CarouselArrowMetrics {
-  const config = getComponentSize(size);
-  const buttonHeight = Math.max(MIN_ARROW_METRICS.height, config.height);
-
-  return {
-    buttonSizeToken: size,
-    buttonHeight,
-    buttonRadius: Math.round(buttonHeight / 2),
-    iconSize: Math.max(MIN_ARROW_METRICS.iconSize, Math.round(config.iconSize * 0.9)),
-    edgeOffset: Math.max(MIN_ARROW_METRICS.edgeOffset, Math.round(config.padding * 0.66)),
-    translate: Math.round(buttonHeight / 2),
-  };
-}
-
-function createDotMetricsForToken(size: ComponentSize): CarouselDotMetrics {
-  const config = getComponentSize(size);
-
-  return {
-    baseSize: Math.max(MIN_DOT_METRICS.baseSize, Math.round(config.iconSize * 0.5)),
-    margin: Math.max(MIN_DOT_METRICS.margin, Math.round(config.padding * 0.25)),
-    trackOffset: Math.max(MIN_DOT_METRICS.trackOffset, Math.round(config.padding)),
-  };
-}
-
-const CAROUSEL_ARROW_SCALE: Partial<Record<ComponentSize, CarouselArrowMetrics>> = CAROUSEL_ALLOWED_SIZES_ARRAY.reduce(
-  (acc, token) => {
-    acc[token] = createArrowMetricsForToken(token);
-    return acc;
-  },
-  {} as Partial<Record<ComponentSize, CarouselArrowMetrics>>
-);
-
-const CAROUSEL_DOT_SCALE: Partial<Record<ComponentSize, CarouselDotMetrics>> = CAROUSEL_ALLOWED_SIZES_ARRAY.reduce(
-  (acc, token) => {
-    acc[token] = createDotMetricsForToken(token);
-    return acc;
-  },
-  {} as Partial<Record<ComponentSize, CarouselDotMetrics>>
-);
-
-const BASE_ARROW_METRICS = CAROUSEL_ARROW_SCALE.md ?? createArrowMetricsForToken('md');
-const BASE_DOT_METRICS = CAROUSEL_DOT_SCALE.md ?? createDotMetricsForToken('md');
-
-function findClosestCarouselSize(height: number): ComponentSize {
-  let closest = CAROUSEL_ALLOWED_SIZES_ARRAY[0];
-  let smallestDiff = Number.POSITIVE_INFINITY;
-
-  for (const token of CAROUSEL_ALLOWED_SIZES_ARRAY) {
-    const diff = Math.abs(getComponentSize(token).height - height);
-    if (diff < smallestDiff) {
-      smallestDiff = diff;
-      closest = token;
-    }
-  }
-
-  return closest;
-}
-
-function resolveCarouselArrowMetrics(value: ComponentSizeValue | undefined): CarouselArrowMetrics {
-  const resolved = resolveComponentSize(value, CAROUSEL_ARROW_SCALE, {
-    allowedSizes: CAROUSEL_ALLOWED_SIZES_ARRAY,
-    fallback: 'md',
-  });
-
-  if (typeof resolved === 'number') {
-    return calculateNumericArrowMetrics(resolved);
-  }
-
-  return resolved;
-}
-
-function resolveCarouselDotMetrics(value: ComponentSizeValue | undefined): CarouselDotMetrics {
-  const resolved = resolveComponentSize(value, CAROUSEL_DOT_SCALE, {
-    allowedSizes: CAROUSEL_ALLOWED_SIZES_ARRAY,
-    fallback: 'md',
-  });
-
-  if (typeof resolved === 'number') {
-    return calculateNumericDotMetrics(resolved);
-  }
-
-  return resolved;
-}
-
-function calculateNumericArrowMetrics(height: number): CarouselArrowMetrics {
-  const normalizedHeight = Math.max(MIN_ARROW_METRICS.height, Math.round(height));
-  const scale = normalizedHeight / BASE_ARROW_METRICS.buttonHeight;
-
-  return {
-    buttonSizeToken: findClosestCarouselSize(normalizedHeight),
-    buttonHeight: normalizedHeight,
-    buttonRadius: Math.round(normalizedHeight / 2),
-    iconSize: Math.max(MIN_ARROW_METRICS.iconSize, Math.round(BASE_ARROW_METRICS.iconSize * scale)),
-    edgeOffset: Math.max(MIN_ARROW_METRICS.edgeOffset, Math.round(BASE_ARROW_METRICS.edgeOffset * scale)),
-    translate: Math.round(normalizedHeight / 2),
-  };
-}
-
-function calculateNumericDotMetrics(size: number): CarouselDotMetrics {
-  const normalizedSize = Math.max(MIN_DOT_METRICS.baseSize, Math.round(size));
-  const scale = normalizedSize / BASE_DOT_METRICS.baseSize;
-
-  return {
-    baseSize: normalizedSize,
-    margin: Math.max(MIN_DOT_METRICS.margin, Math.round(BASE_DOT_METRICS.margin * scale)),
-    trackOffset: Math.max(MIN_DOT_METRICS.trackOffset, Math.round(BASE_DOT_METRICS.trackOffset * scale)),
-  };
-}
-
-// How much wider (or taller) the active dot grows relative to its resting size.
-const DOT_ACTIVE_GROWTH = 1.4;
-
-// Optimized Dot component with memo to prevent unnecessary re-renders
-const CarouselDot = memo(({
-  index,
-  pageProgress,
-  metrics,
-  totalPages,
-  loop,
-  activeColor,
-  inactiveColor,
-  onPress,
-  isVertical = false
-}: {
-  index: number;
-  pageProgress: SharedValue<number>;
-  metrics: CarouselDotMetrics;
-  totalPages: number;
-  loop: boolean;
-  activeColor: string;
-  inactiveColor: string;
-  onPress: (index: number) => void;
-  isVertical?: boolean;
-}) => {
-  const baseDotSize = metrics.baseSize;
-  const maxDotSize = baseDotSize * (1 + DOT_ACTIVE_GROWTH);
-  // Drive the dot straight off scroll progress. Progress is already a smooth,
-  // UI-thread value, so wrapping these in withTiming only restarted a fresh
-  // animation on every frame — which is what made the dots lag the slide.
-  const animatedStyle = useAnimatedStyle(() => {
-    let current = pageProgress.value;
-    // Normalize for loop jitter: map absolute progress to logical page index space
-    if (loop && totalPages > 0) {
-      current = ((current % totalPages) + totalPages) % totalPages;
-    }
-    const rawDist = Math.abs(current - index);
-    const dist = loop ? Math.min(rawDist, totalPages - rawDist) : rawDist;
-    const active = 1 - Math.min(dist, 1); // clamp to [0,1]
-
-    const size = baseDotSize + (baseDotSize * DOT_ACTIVE_GROWTH) * active;
-
-    return {
-      width: isVertical ? baseDotSize : size,
-      height: isVertical ? size : baseDotSize,
-      opacity: 0.4 + 0.6 * active,
-      backgroundColor: interpolateColor(active, [0, 1], [inactiveColor, activeColor])
-    } as any;
-  }, [baseDotSize, isVertical, loop, totalPages, index, activeColor, inactiveColor]);
-
-  const handlePress = useCallback(() => {
-    onPress(index);
-  }, [index, onPress]);
-
-  // The hit area reserves room for the fully expanded dot so growing the active
-  // one never reflows the rest of the track mid-scroll.
-  const containerStyle = isVertical
-    ? {
-      marginVertical: metrics.margin,
-      width: baseDotSize,
-      height: maxDotSize,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    }
-    : {
-      marginHorizontal: metrics.margin,
-      width: maxDotSize,
-      height: baseDotSize,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    };
-
-  return (
-    <Pressable
-      onPress={handlePress}
-      accessibilityRole="button"
-      accessibilityLabel={`Go to slide ${index + 1}`}
-      style={containerStyle}
-    >
-      {/* Absolute so the width/height animation never triggers flow layout. */}
-      <Animated.View style={[{ position: 'absolute', borderRadius: baseDotSize / 2 }, animatedStyle]} />
-    </Pressable>
-  );
-});
-
-const BREAKPOINT_ORDER = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
-type BreakpointKey = typeof BREAKPOINT_ORDER[number];
-
-const getBreakpointName = (width: number): BreakpointKey => {
-  if (width >= 1200) return 'xl';
-  if (width >= 992) return 'lg';
-  if (width >= 768) return 'md';
-  if (width >= 576) return 'sm';
-  return 'xs';
-};
-
-const getViewportWidth = () => {
-  if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.innerWidth === 'number') {
-    return window.innerWidth;
-  }
-
-  const dimensions = Dimensions.get('window');
-  return typeof dimensions?.width === 'number' ? dimensions.width : 0;
-};
-
-// Optimized breakpoint hook with debouncing
-const useOptimizedBreakpoint = () => {
-  const computeState = () => {
-    const width = getViewportWidth();
-    return {
-      width,
-      breakpoint: getBreakpointName(width),
-    };
-  };
-
-  const [state, setState] = useState<{ breakpoint: BreakpointKey; width: number }>(computeState);
-
-  useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout>;
-
-    const update = () => {
-      const next = computeState();
-      setState(prev => (prev.breakpoint === next.breakpoint && prev.width === next.width) ? prev : next);
-    };
-
-    const debouncedUpdate = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(update, 100); // Debounce resize events
-    };
-
-    update();
-
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.addEventListener('resize', debouncedUpdate, { passive: true });
-      return () => {
-        window.removeEventListener('resize', debouncedUpdate);
-        clearTimeout(timeoutId);
-      };
-    }
-
-    const subscription = Dimensions.addEventListener('change', debouncedUpdate);
-    return () => {
-      subscription?.remove();
-      clearTimeout(timeoutId);
-    };
-  }, []);
-
-  return state;
-};
 const parseMediaQuery = (query: string) => {
   const minMatch = query.match(/min-width:\s*(\d+)px/);
   const maxMatch = query.match(/max-width:\s*(\d+)px/);
@@ -344,40 +93,260 @@ const matchQuery = (query: string, width: number) => {
   return true;
 };
 
-const mergeBreakpointProps = (baseProps: CarouselProps, breakpointProps?: Record<string, Partial<CarouselProps>>, width?: number) => {
+/** Applies `breakpoints` overrides (`'(min-width: 768px)': {...}`) for the viewport width, smallest first. */
+function mergeBreakpointProps(
+  baseProps: CarouselProps,
+  breakpointProps: Record<string, Partial<CarouselProps>> | undefined,
+  width: number
+): CarouselProps {
   if (!breakpointProps) return baseProps;
-  const sortedEntries = Object.entries(breakpointProps).sort((a, b) => {
-    const aMin = parseMediaQuery(a[0]).min ?? 0;
-    const bMin = parseMediaQuery(b[0]).min ?? 0;
-    return aMin - bMin;
-  });
+  const sortedEntries = Object.entries(breakpointProps).sort(
+    (a, b) => (parseMediaQuery(a[0]).min ?? 0) - (parseMediaQuery(b[0]).min ?? 0)
+  );
 
-  let resolvedProps: CarouselProps = { ...baseProps };
+  let resolvedProps: CarouselProps = baseProps;
   sortedEntries.forEach(([query, value]) => {
-    const shouldApply = width != null ? matchQuery(query, width) : (Platform.OS === 'web' && typeof window !== 'undefined' ? window.matchMedia(query).matches : false);
-    if (shouldApply) {
-      resolvedProps = { ...resolvedProps, ...value };
-    }
+    if (matchQuery(query, width)) resolvedProps = { ...resolvedProps, ...value };
   });
-
   return resolvedProps;
-};
+}
 
-export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, ref) => {
-  const { breakpoint, width: viewportWidth } = useOptimizedBreakpoint();
+// ---------------------------------------------------------------------------
+// Size metrics (derived from the theme's control-size table)
+// ---------------------------------------------------------------------------
+
+const SIZE_TOKENS = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
+
+interface ArrowMetrics {
+  buttonSize: SizeValue;
+  buttonHeight: number;
+  iconSize: number;
+  edgeOffset: number;
+}
+
+interface DotMetrics {
+  baseSize: number;
+  margin: number;
+  trackOffset: number;
+}
+
+function getArrowMetrics(theme: PlatformBlocksTheme, size: SizeValue): ArrowMetrics {
+  const control = getControlSize(theme, size);
+  const buttonHeight = Math.max(28, control.height);
+  // A numeric size maps to the nearest token so the Button keeps its own proportions.
+  let buttonSize: SizeValue = size;
+  if (typeof size === 'number') {
+    buttonSize = SIZE_TOKENS.reduce((best, token) =>
+      Math.abs(getControlSize(theme, token).height - buttonHeight) < Math.abs(getControlSize(theme, best).height - buttonHeight)
+        ? token
+        : best
+    );
+  }
+  return {
+    buttonSize,
+    buttonHeight,
+    iconSize: Math.max(12, Math.round(control.iconSize * 0.9)),
+    edgeOffset: Math.max(6, Math.round(control.paddingX * 0.66)),
+  };
+}
+
+function getDotMetrics(theme: PlatformBlocksTheme, size: SizeValue): DotMetrics {
+  const md = getControlSize(theme, 'md');
+  const mdMetrics = {
+    baseSize: Math.max(4, Math.round(md.iconSize * 0.5)),
+    margin: Math.max(2, Math.round(md.paddingX * 0.25)),
+    trackOffset: Math.max(8, Math.round(md.paddingX)),
+  };
+  // A numeric dot size is the resting dot diameter.
+  if (typeof size === 'number') {
+    const baseSize = Math.max(4, Math.round(size));
+    const scale = baseSize / mdMetrics.baseSize;
+    return {
+      baseSize,
+      margin: Math.max(2, Math.round(mdMetrics.margin * scale)),
+      trackOffset: Math.max(8, Math.round(mdMetrics.trackOffset * scale)),
+    };
+  }
+  const control = getControlSize(theme, size);
+  return {
+    baseSize: Math.max(4, Math.round(control.iconSize * 0.5)),
+    margin: Math.max(2, Math.round(control.paddingX * 0.25)),
+    trackOffset: Math.max(8, Math.round(control.paddingX)),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Pagination dots
+// ---------------------------------------------------------------------------
+
+// How much wider (or taller) the active dot grows relative to its resting size.
+const DOT_ACTIVE_GROWTH = 1.4;
+/** Dot press target: ≥24px on web; on native 44pt across the track, 24pt along it plus hitSlop. */
+const DOT_HIT_MAIN = 24;
+const DOT_HIT_CROSS = isNative ? 44 : 24;
+const DOT_HIT_SLOP = isNative ? 10 : 0;
+
+const styles = StyleSheet.create({
+  arrowColumn: { alignItems: 'center', end: 0, position: 'absolute', start: 0, zIndex: 10 },
+  arrowRow: { bottom: 0, justifyContent: 'center', position: 'absolute', top: 0, zIndex: 10 },
+  dotFill: { position: 'absolute' },
+  dotsColumn: { alignItems: 'center', flexDirection: 'column', justifyContent: 'center' },
+  dotsRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
+  dotTarget: { alignItems: 'center', justifyContent: 'center' },
+  fill: { flex: 1 },
+  pageRow: { alignItems: 'stretch', flex: 1, flexWrap: 'nowrap' },
+  root: { position: 'relative', width: '100%' },
+  rootVertical: { flexDirection: 'row' },
+  stage: { position: 'relative' },
+});
+
+interface CarouselDotProps {
+  index: number;
+  pageProgress: SharedValue<number>;
+  metrics: DotMetrics;
+  totalPages: number;
+  loop: boolean;
+  active: boolean;
+  activeColor: string;
+  inactiveColor: string;
+  onPress: (index: number) => void;
+  isVertical: boolean;
+}
+
+// Memoized so a page change re-renders only the two dots whose state flipped.
+const CarouselDot = memo(function CarouselDot({
+  index,
+  pageProgress,
+  metrics,
+  totalPages,
+  loop,
+  active,
+  activeColor,
+  inactiveColor,
+  onPress,
+  isVertical,
+}: CarouselDotProps) {
+  const baseDotSize = metrics.baseSize;
+  const maxDotSize = baseDotSize * (1 + DOT_ACTIVE_GROWTH);
+  // Drive the dot straight off scroll progress. Progress is already a smooth,
+  // UI-thread value, so wrapping these in withTiming only restarted a fresh
+  // animation on every frame — which is what made the dots lag the slide.
+  const animatedStyle = useAnimatedStyle(() => {
+    let current = pageProgress.value;
+    // Normalize for loop jitter: map absolute progress to logical page index space
+    if (loop && totalPages > 0) {
+      current = ((current % totalPages) + totalPages) % totalPages;
+    }
+    const rawDist = Math.abs(current - index);
+    const dist = loop ? Math.min(rawDist, totalPages - rawDist) : rawDist;
+    const activeAmount = 1 - Math.min(dist, 1); // clamp to [0,1]
+
+    const size = baseDotSize + baseDotSize * DOT_ACTIVE_GROWTH * activeAmount;
+
+    return {
+      width: isVertical ? baseDotSize : size,
+      height: isVertical ? size : baseDotSize,
+      opacity: 0.4 + 0.6 * activeAmount,
+      backgroundColor: interpolateColor(activeAmount, [0, 1], [inactiveColor, activeColor]),
+    };
+  }, [baseDotSize, isVertical, loop, totalPages, index, activeColor, inactiveColor]);
+
+  const handlePress = useCallback(() => {
+    onPress(index);
+  }, [index, onPress]);
+
+  // The target reserves room for the fully expanded dot so growing the active
+  // one never reflows the track mid-scroll, and is at least the minimum hit size.
+  const main = Math.max(maxDotSize, DOT_HIT_MAIN);
+  const cross = Math.max(baseDotSize, DOT_HIT_CROSS);
+  const targetStyle: ViewStyle = isVertical
+    ? { marginVertical: metrics.margin, width: cross, height: main }
+    : { marginHorizontal: metrics.margin, width: main, height: cross };
+  const hitSlop = isVertical
+    ? { top: DOT_HIT_SLOP, bottom: DOT_HIT_SLOP }
+    : { left: DOT_HIT_SLOP, right: DOT_HIT_SLOP };
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      hitSlop={hitSlop}
+      style={[styles.dotTarget, targetStyle]}
+      {...a11yProps({ role: 'button', label: `Go to slide ${index + 1}`, current: active || undefined })}
+    >
+      {/* Absolute so the width/height animation never triggers flow layout. */}
+      <Animated.View style={[styles.dotFill, { borderRadius: baseDotSize / 2 }, animatedStyle]} />
+    </Pressable>
+  );
+});
+
+interface CarouselPaginationProps extends Omit<CarouselDotProps, 'index' | 'active'> {
+  initialPage: number;
+  style: ViewStyle;
+  leading?: React.ReactNode;
+}
+
+/**
+ * The dots own the "current page" state, so a page flip re-renders the dots
+ * (for `aria-current`) and not the whole carousel.
+ */
+function CarouselPagination({ initialPage, style, leading, ...dotProps }: CarouselPaginationProps) {
+  const { pageProgress, totalPages } = dotProps;
+  const [activePage, setActivePage] = useState(initialPage);
+
+  useAnimatedReaction(
+    () => {
+      if (totalPages <= 0) return 0;
+      return ((Math.round(pageProgress.value) % totalPages) + totalPages) % totalPages;
+    },
+    (page, previous) => {
+      if (previous != null && page === previous) return;
+      runOnJS(setActivePage)(page);
+    },
+    [totalPages]
+  );
+
+  return (
+    <View style={style}>
+      {leading}
+      {Array.from({ length: totalPages }).map((_, i) => (
+        <CarouselDot key={i} index={i} active={i === activePage} {...dotProps} />
+      ))}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Carousel
+// ---------------------------------------------------------------------------
+
+const EMPTY_CHILDREN: React.ReactNode[] = [];
+
+/**
+ * Slides through its children with arrows, dots, swipe and optional autoplay.
+ *
+ * Accessibility: the root is a labelled region (`aria-roledescription`
+ * "carousel" on web) and each page a group named "n of N"; arrows are
+ * "Previous slide" / "Next slide"; dots are "Go to slide n" with
+ * `aria-current` on the active one. Autoplay stops under reduced motion
+ * (unless the user presses play), pauses while the carousel is hovered,
+ * focused or touched, and always shows a pause / play button.
+ */
+export const Carousel = factory<{ props: CarouselProps; ref: View }>((incomingProps, ref) => {
+  const { width: viewportWidth, breakpoint } = useViewport();
   const mergedProps = useMemo(
-    () => mergeBreakpointProps(incomingProps as CarouselProps, incomingProps.breakpoints, viewportWidth),
+    () => mergeBreakpointProps(incomingProps, incomingProps.breakpoints, viewportWidth),
     [incomingProps, viewportWidth]
   );
   const {
-    children,
+    children = EMPTY_CHILDREN,
     orientation = 'horizontal',
-    height = 200,
+    h,
     showDots = true,
     showArrows = true,
     loop = true,
     autoPlay = false,
     autoPlayInterval = 3000,
+    autoPlayPauseOnTouch = true,
     itemsPerPage = 1,
     slidesToScroll,
     slideSize,
@@ -391,22 +360,28 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
     dragThreshold,
     duration,
     transitionDuration,
-    breakpoints: _breakpoints,
     onSlideChange,
     style,
     itemStyle,
+    arrowPosition = 'inside',
     arrowSize = 'md',
     dotSize = 'md', // currently uniform size; active expands
     snapToItem = true, // kept for API parity (engine handles snapping)
+    scrollEnabled = true,
     windowSize = 0, // 0 means no virtualization
-    reducedMotion = false,
-    ...rest
-  } = mergedProps as any;
+    reducedMotion: reducedMotionProp,
+    accessibilityLabel,
+    testID,
+  } = mergedProps;
 
-  const { spacingProps, otherProps } = extractSpacingProps(rest);
-  const spacingStyles = getSpacingStyles(spacingProps);
+  const isVertical = orientation === 'vertical';
+  // `h` is the slides' height. Vertical dots sit beside the slides, so the root
+  // takes it; horizontal dots sit below, so it goes to the slides instead.
+  const slideHeight = h ?? 200;
+  const spacingStyles = useStyleProps(isVertical ? mergedProps : { ...mergedProps, h: undefined });
   const theme = useTheme();
-  const { isRTL } = useDirection();
+  const systemReducedMotion = useReducedMotion();
+  const reducedMotion = reducedMotionProp ?? systemReducedMotion;
 
   // `transitionDuration` is the cross-component spelling and wins over the
   // Carousel-specific `duration`; 0 jumps between slides with no animation.
@@ -415,7 +390,7 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
   const containerRef = useRef<View>(null);
   // Internal measurements need the node too, so compose rather than replace.
   const mergedContainerRef = useMergedRef<View>(containerRef, ref);
-  const carouselRef = useRef<ICarouselInstance>(null);
+  const carouselRef = useRef<CarouselEngineHandle>(null);
   const ReanimatedCarousel = resolveCarouselEngine();
   const [containerWidth, setContainerWidth] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
@@ -425,8 +400,7 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
   // the carousel mid-scroll is what dropped frames.
   const currentIndexRef = useRef(0);
   const hasInitializedRef = useRef(false);
-  const onSlideChangeRef = useRef(onSlideChange);
-  onSlideChangeRef.current = onSlideChange;
+  const emitSlideChange = useLatestCallback(onSlideChange);
 
   const itemsArray = useMemo(() => React.Children.toArray(children), [children]);
   const totalItems = itemsArray.length;
@@ -435,14 +409,10 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
     const raw = resolveResponsive(slideGap, breakpoint);
     if (raw == null) return itemGap;
     if (typeof raw === 'number') return raw;
-    if (typeof raw === 'string') {
-      const parsed = parseFloat(raw);
-      return isNaN(parsed) ? itemGap : parsed;
-    }
-    return itemGap;
+    const parsed = parseFloat(String(raw));
+    return isNaN(parsed) ? itemGap : parsed;
   }, [slideGap, breakpoint, itemGap]);
 
-  const isVertical = orientation === 'vertical';
   const containerSize = isVertical ? containerHeight : containerWidth;
 
   const desiredItemSize = useMemo(() => {
@@ -455,16 +425,14 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
       if (rawSize > 0 && rawSize <= 1) return containerSize * rawSize; // fraction
       return rawSize; // pixels
     }
-    if (typeof rawSize === 'string') {
-      if (rawSize.endsWith('%')) {
-        const p = parseFloat(rawSize.slice(0, -1));
-        return containerSize * (isNaN(p) ? 1 : p / 100);
-      }
-      const num = parseFloat(rawSize);
-      if (!isNaN(num)) {
-        if (num > 0 && num <= 1) return containerSize * num;
-        return num;
-      }
+    if (rawSize.endsWith('%')) {
+      const p = parseFloat(rawSize.slice(0, -1));
+      return containerSize * (isNaN(p) ? 1 : p / 100);
+    }
+    const num = parseFloat(rawSize);
+    if (!isNaN(num)) {
+      if (num > 0 && num <= 1) return containerSize * num;
+      return num;
     }
     return (containerSize - resolvedGap * (itemsPerPage - 1)) / itemsPerPage;
   }, [slideSize, breakpoint, containerSize, itemsPerPage, resolvedGap]);
@@ -472,16 +440,11 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
   const hasLayout = isVertical ? containerHeight > 0 : containerWidth > 0;
   const baseItemsPerPage = Math.max(1, itemsPerPage);
   const slidesToScrollValue = Math.max(1, slidesToScroll ?? baseItemsPerPage);
-  const containMode: 'trimSnaps' | 'keepSnaps' | 'none' = containScroll === false
-    ? 'none'
-    : containScroll === 'keepSnaps'
-      ? 'keepSnaps'
-      : 'trimSnaps';
+  const containMode: 'trimSnaps' | 'keepSnaps' | 'none' =
+    containScroll === false ? 'none' : containScroll === 'keepSnaps' ? 'keepSnaps' : 'trimSnaps';
   const isDragFree = !!dragFree;
   const allowSkipSnaps = skipSnaps ?? true;
-  const dragThresholdValue = typeof dragThreshold === 'number'
-    ? Math.max(dragThreshold, 0)
-    : undefined;
+  const dragThresholdValue = typeof dragThreshold === 'number' ? Math.max(dragThreshold, 0) : undefined;
 
   const visibleSlides = useMemo(() => {
     if (!hasLayout || containerSize <= 0) return baseItemsPerPage;
@@ -540,10 +503,7 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
     };
 
     for (let start = 0; start <= limit; start += scrollStep) {
-      const value = containMode === 'trimSnaps'
-        ? Math.min(start, lastStart)
-        : start;
-      addStart(value);
+      addStart(containMode === 'trimSnaps' ? Math.min(start, lastStart) : start);
     }
 
     if (containMode !== 'trimSnaps') {
@@ -588,10 +548,7 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
     if (loop) {
       return totalItems ? base % totalItems : 0;
     }
-    if (containMode === 'none') {
-      return Math.min(base, Math.max(totalItems - 1, 0));
-    }
-    if (containMode === 'keepSnaps') {
+    if (containMode === 'none' || containMode === 'keepSnaps') {
       return Math.min(base, Math.max(totalItems - 1, 0));
     }
     return Math.min(base, lastStart);
@@ -603,7 +560,9 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
     return idx >= 0 ? idx : 0;
   }, [pageStartIndices, initialPageStart]);
 
-  const handleLayout = useCallback((e: any) => {
+  // The viewport (not the root) is measured: arrows placed outside and the
+  // vertical dots column take room from it.
+  const handleLayout = useCallback((e: LayoutChangeEvent) => {
     setContainerWidth(e.nativeEvent.layout.width);
     setContainerHeight(e.nativeEvent.layout.height);
   }, []);
@@ -638,13 +597,11 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
   }, [scrollToPage]);
 
   const goPrev = useCallback(() => {
-    if (!carouselRef.current) return;
-    carouselRef.current.prev();
+    carouselRef.current?.prev();
   }, []);
 
   const goNext = useCallback(() => {
-    if (!carouselRef.current) return;
-    carouselRef.current.next();
+    carouselRef.current?.next();
   }, []);
 
   // Slide changes are detected on the UI thread and only cross to JS when the
@@ -652,8 +609,8 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
   const notifySlideChange = useCallback((pageIndex: number) => {
     if (pageIndex === currentIndexRef.current) return;
     currentIndexRef.current = pageIndex;
-    onSlideChangeRef.current?.(pageIndex);
-  }, []);
+    emitSlideChange(pageIndex);
+  }, [emitSlideChange]);
 
   useAnimatedReaction(
     () => {
@@ -667,146 +624,98 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
     [totalPages, notifySlideChange]
   );
 
-  const arrowMetrics = useMemo(() => resolveCarouselArrowMetrics(arrowSize), [arrowSize]);
-  const dotMetrics = useMemo(() => resolveCarouselDotMetrics(dotSize), [dotSize]);
-  const alignJustify = useMemo(() => {
-    switch (align) {
-      case 'center':
-        return 'center';
-      case 'end':
-        return 'flex-end';
-      default:
-        return 'flex-start';
-    }
-  }, [align]);
+  const arrowMetrics = useMemo(() => getArrowMetrics(theme, arrowSize), [theme, arrowSize]);
+  const dotMetrics = useMemo(() => getDotMetrics(theme, dotSize), [theme, dotSize]);
+  const alignJustify = align === 'center' ? 'center' : align === 'end' ? 'flex-end' : 'flex-start';
 
-  // Memoized render functions to prevent unnecessary re-renders
+  // --- Autoplay (WCAG 2.2.2: pausable, and off under reduced motion) ---
+  const [playPreference, setPlayPreference] = useState<'auto' | 'playing' | 'paused'>('auto');
+  const [hovered, hoverHandlers] = useHover();
+  const [focusWithin, setFocusWithin] = useState(false);
+  const [touching, setTouching] = useState(false);
+  const autoPlayAvailable = autoPlay && totalPages > 1;
+  // Reduced motion keeps autoplay off until the user explicitly presses play.
+  const wantsAutoPlay = playPreference === 'playing' || (playPreference === 'auto' && !reducedMotion);
+  const interactionPaused = hovered || focusWithin || (autoPlayPauseOnTouch && touching);
+  const isAutoPlaying = autoPlayAvailable && wantsAutoPlay && !interactionPaused;
+  const toggleAutoPlay = useCallback(() => {
+    setPlayPreference(wantsAutoPlay ? 'paused' : 'playing');
+  }, [wantsAutoPlay]);
+
   const dotActiveColor = theme.colors.primary[6];
-  const dotInactiveColor = theme.colors.gray[4];
-  const renderDots = useMemo(() => {
-    if (!showDots || totalPages <= 1) return null;
+  const dotInactiveColor = theme.text.muted;
 
-    const dotsStyle = isVertical
-      ? { flexDirection: 'column' as const, alignItems: 'center' as const, marginLeft: dotMetrics.trackOffset }
-      : {
-        flexDirection: (isRTL ? 'row-reverse' : 'row') as 'row' | 'row-reverse',
-        justifyContent: 'center' as const,
-        marginTop: dotMetrics.trackOffset
-      };
+  const autoPlayControl = autoPlayAvailable ? (
+    <Button
+      size="xs"
+      variant="subtle"
+      radius="full"
+      icon={<Icon name={wantsAutoPlay ? 'pause' : 'play'} size={arrowMetrics.iconSize} />}
+      onPress={toggleAutoPlay}
+      accessibilityLabel={wantsAutoPlay ? 'Pause slideshow' : 'Play slideshow'}
+      testID={testID ? `${testID}-autoplay` : undefined}
+    />
+  ) : null;
 
-    return (
-      <View style={dotsStyle}>
-        {Array.from({ length: totalPages }).map((_, i) => (
-          <CarouselDot
-            key={i}
-            index={i}
-            pageProgress={progress}
-            metrics={dotMetrics}
-            totalPages={totalPages}
-            loop={loop}
-            activeColor={dotActiveColor}
-            inactiveColor={dotInactiveColor}
-            onPress={goTo}
-            isVertical={isVertical}
-          />
-        ))}
+  const showPagination = showDots && totalPages > 1;
+  const pagination = showPagination || autoPlayControl ? (
+    showPagination ? (
+      <CarouselPagination
+        initialPage={initialPageIndex}
+        style={isVertical
+          ? { ...StyleSheet.flatten(styles.dotsColumn), marginStart: dotMetrics.trackOffset }
+          : { ...StyleSheet.flatten(styles.dotsRow), marginTop: dotMetrics.trackOffset }}
+        leading={autoPlayControl}
+        pageProgress={progress}
+        metrics={dotMetrics}
+        totalPages={totalPages}
+        loop={loop}
+        activeColor={dotActiveColor}
+        inactiveColor={dotInactiveColor}
+        onPress={goTo}
+        isVertical={isVertical}
+      />
+    ) : (
+      <View style={[isVertical ? styles.dotsColumn : styles.dotsRow, isVertical ? { marginStart: dotMetrics.trackOffset } : { marginTop: dotMetrics.trackOffset }]}>
+        {autoPlayControl}
       </View>
-    );
-  }, [showDots, totalPages, progress, dotMetrics, loop, dotActiveColor, dotInactiveColor, goTo, isVertical, isRTL]);
+    )
+  ) : null;
 
-  // Arrows
-  const renderArrows = () => {
-    if (!showArrows || totalPages <= 1) return null;
+  // --- Arrows ---
+  const outsideInset = arrowPosition === 'outside' ? arrowMetrics.buttonHeight + arrowMetrics.edgeOffset : 0;
+  const arrowOffset = arrowPosition === 'outside' ? 0 : arrowMetrics.edgeOffset;
 
-    const buttonSize = arrowMetrics.buttonSizeToken;
-    const iconSize = arrowMetrics.iconSize;
-    const edgeOffset = arrowMetrics.edgeOffset;
-    const translateValue = arrowMetrics.translate;
-
-    if (isVertical) {
-      return (
-        <>
-          <View
-            style={{
-              position: 'absolute',
-              top: edgeOffset,
-              left: '50%',
-              transform: [{ translateX: -translateValue }],
-              zIndex: 10,
-            }}
-          >
-            <Button
-              size={buttonSize}
-              variant="secondary"
-              icon={<Icon name="chevron-up" size={iconSize} />}
-              onPress={goPrev}
-              radius="full"
-            />
-          </View>
-          <View
-            style={{
-              position: 'absolute',
-              bottom: edgeOffset,
-              left: '50%',
-              transform: [{ translateX: -translateValue }],
-              zIndex: 10,
-            }}
-          >
-            <Button
-              size={buttonSize}
-              variant="secondary"
-              icon={<Icon name="chevron-down" size={iconSize} />}
-              onPress={goNext}
-              radius="full"
-            />
-          </View>
-        </>
-      );
-    }
-
-    // Horizontal arrows - swap positions and icons in RTL
+  const renderArrow = (direction: 'prev' | 'next') => {
+    const isPrev = direction === 'prev';
+    const iconName = isVertical ? (isPrev ? 'chevron-up' : 'chevron-down') : isPrev ? 'chevron-left' : 'chevron-right';
+    // Horizontal: a full-height column pinned to the start / end edge (logical,
+    // so RTL puts "previous" on the right; the chevron icons mirror themselves).
+    // Vertical: a full-width row pinned to the top / bottom edge.
+    const placement: ViewStyle = isVertical
+      ? isPrev ? { top: arrowOffset } : { bottom: arrowOffset }
+      : isPrev ? { start: arrowOffset } : { end: arrowOffset };
     return (
-      <>
-        <View
-          style={{
-            position: 'absolute',
-            top: '50%',
-            ...(isRTL ? { right: edgeOffset } : { left: edgeOffset }),
-            transform: [{ translateY: -translateValue }],
-            zIndex: 10,
-          }}
-        >
-          <Button
-            size={buttonSize}
-            variant="secondary"
-            icon={<Icon name={isRTL ? 'chevron-right' : 'chevron-left'} size={iconSize} />}
-            onPress={goPrev}
-            radius="full"
-          />
-        </View>
-        <View
-          style={{
-            position: 'absolute',
-            top: '50%',
-            ...(isRTL ? { left: edgeOffset } : { right: edgeOffset }),
-            transform: [{ translateY: -translateValue }],
-            zIndex: 10,
-          }}
-        >
-          <Button
-            size={buttonSize}
-            variant="secondary"
-            icon={<Icon name={isRTL ? 'chevron-left' : 'chevron-right'} size={iconSize} />}
-            onPress={goNext}
-            radius="full"
-          />
-        </View>
-      </>
+      <View style={[isVertical ? styles.arrowColumn : styles.arrowRow, placement]} pointerEvents="box-none">
+        <Button
+          size={arrowMetrics.buttonSize}
+          variant="secondary"
+          icon={<Icon name={iconName} size={arrowMetrics.iconSize} />}
+          onPress={isPrev ? goPrev : goNext}
+          radius="full"
+          accessibilityLabel={isPrev ? 'Previous slide' : 'Next slide'}
+          testID={testID ? `${testID}-${direction}` : undefined}
+        />
+      </View>
     );
   };
 
-  // Autoplay: if library autoPlay not sufficient for pause logic, we can just pass through for now.
-  const enableAutoPlay = autoPlay && totalPages > 1;
+  const arrows = showArrows && totalPages > 1 ? (
+    <>
+      {renderArrow('prev')}
+      {renderArrow('next')}
+    </>
+  ) : null;
 
   // A duration-based spring honours `transitionDuration`/`duration` (a stiffness
   // spring ignores it) and settles without the long overdamped crawl.
@@ -823,48 +732,33 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
   const renderItem = useCallback(({ item, index }: { item: React.ReactNode[]; index: number }) => {
     const pageItems = Array.isArray(item) ? item : [item];
     const pageWidth = containerWidth;
-    const pageHeight = isVertical ? containerHeight : height;
+    const pageHeight = isVertical ? containerHeight : slideHeight;
     const justify = containMode === 'trimSnaps' ? 'flex-start' : alignJustify;
 
     return (
       <View
-        style={[
-          {
-            width: pageWidth,
-            height: pageHeight,
-            justifyContent: 'center',
-          },
-          itemStyle,
-        ]}
-        accessibilityLabel={`Carousel item ${index + 1} of ${totalPages}`}
+        style={[{ width: pageWidth, height: pageHeight, justifyContent: 'center' }, itemStyle]}
+        {...a11yProps({ role: 'group', roleDescription: 'slide', label: `${index + 1} of ${totalPages}` })}
       >
-        <View
-          style={{
-            flexDirection: isVertical ? 'column' : 'row',
-            alignItems: 'stretch',
-            justifyContent: justify,
-            flexWrap: 'nowrap',
-            flex: 1,
-          }}
-        >
+        <View style={[styles.pageRow, { flexDirection: isVertical ? 'column' : 'row', justifyContent: justify }]}>
           {pageItems.map((child, childIndex) => (
             <View
               key={childIndex}
               style={{
                 width: isVertical ? '100%' : cardSize,
                 height: isVertical ? cardSize : '100%',
-                marginRight: !isVertical && childIndex < pageItems.length - 1 ? resolvedGap : 0,
+                marginEnd: !isVertical && childIndex < pageItems.length - 1 ? resolvedGap : 0,
                 marginBottom: isVertical && childIndex < pageItems.length - 1 ? resolvedGap : 0,
                 flexShrink: 0,
               }}
             >
-              {child as any}
+              {child}
             </View>
           ))}
         </View>
       </View>
     );
-  }, [containerWidth, containerHeight, height, isVertical, containMode, alignJustify, itemStyle, totalPages, cardSize, resolvedGap]);
+  }, [containerWidth, containerHeight, slideHeight, isVertical, containMode, alignJustify, itemStyle, totalPages, cardSize, resolvedGap]);
 
   useEffect(() => {
     if (!carouselRef.current || totalPages === 0 || !hasLayout) return;
@@ -881,56 +775,64 @@ export const Carousel = React.forwardRef<View, CarouselProps>((incomingProps, re
     }
   }, [scrollToPage, initialPageIndex, startIndex, totalPages, hasLayout]);
 
+  const viewportInsets: ViewStyle = isVertical
+    ? { marginVertical: outsideInset, flex: 1 }
+    : { marginHorizontal: outsideInset };
+
   return (
     <View
       ref={mergedContainerRef}
-      style={[
-        {
-          width: '100%',
-          position: 'relative',
-          ...(isVertical ? { flexDirection: 'row' } : {})
-        },
-        spacingStyles,
-        style as ViewStyle
-      ]}
-      onLayout={handleLayout}
-      {...otherProps}
+      style={[styles.root, isVertical && styles.rootVertical, spacingStyles, style]}
+      testID={testID}
+      {...a11yProps({ role: 'region', roleDescription: 'carousel', label: accessibilityLabel ?? 'Carousel' })}
+      {...hoverHandlers}
+      onFocus={() => setFocusWithin(true)}
+      onBlur={() => setFocusWithin(false)}
+      onTouchStart={() => setTouching(true)}
+      onTouchEnd={() => setTouching(false)}
+      onTouchCancel={() => setTouching(false)}
     >
-      <View style={{ flex: 1 }}>
-        {hasLayout && pagedItems.length > 0 && cardSize > 0 && ReanimatedCarousel && (
-          <ReanimatedCarousel
-            ref={carouselRef}
-            width={isVertical ? containerWidth : containerWidth}
-            height={isVertical ? containerHeight : height}
-            style={isVertical ? { height: containerHeight } : { width: containerWidth }}
-            vertical={isVertical}
-            loop={loop}
-            autoPlay={enableAutoPlay}
-            autoPlayInterval={autoPlayInterval}
-            data={pagedItems}
-            pagingEnabled={isDragFree ? false : snapToItem}
-            snapEnabled={isDragFree ? false : undefined}
-            windowSize={windowSize > 0 ? windowSize : undefined}
-            scrollAnimationDuration={resolvedScrollDuration}
-            // Performance optimizations
-            overscrollEnabled={false}
-            enabled={!reducedMotion}
-            withAnimation={carouselAnimation}
-            maxScrollDistancePerSwipe={maxScrollDistancePerSwipe}
-            minScrollDistancePerSwipe={dragThresholdValue}
-            // Handing the shared value straight to the engine keeps progress on
-            // the UI thread; a callback here would runOnJS once per frame.
-            onProgressChange={progress}
-            renderItem={renderItem}
-          />
-        )}
+      <View style={[styles.stage, isVertical && styles.fill]}>
+        <View
+          style={viewportInsets}
+          onLayout={handleLayout}
+          testID={testID ? `${testID}-viewport` : undefined}
+          // Announce slide changes the user makes; stay quiet while autoplaying.
+          {...a11yProps({ live: isAutoPlaying ? 'off' : 'polite' })}
+        >
+          {hasLayout && pagedItems.length > 0 && cardSize > 0 && ReanimatedCarousel && (
+            <ReanimatedCarousel
+              ref={carouselRef}
+              width={containerWidth}
+              height={isVertical ? containerHeight : slideHeight}
+              style={isVertical ? { height: containerHeight } : { width: containerWidth }}
+              vertical={isVertical}
+              loop={loop}
+              autoPlay={isAutoPlaying}
+              autoPlayInterval={autoPlayInterval}
+              data={pagedItems}
+              pagingEnabled={isDragFree ? false : snapToItem}
+              snapEnabled={isDragFree ? false : undefined}
+              windowSize={windowSize > 0 ? windowSize : undefined}
+              scrollAnimationDuration={resolvedScrollDuration}
+              // Performance optimizations
+              overscrollEnabled={false}
+              enabled={scrollEnabled}
+              withAnimation={carouselAnimation}
+              maxScrollDistancePerSwipe={maxScrollDistancePerSwipe}
+              minScrollDistancePerSwipe={dragThresholdValue}
+              // Handing the shared value straight to the engine keeps progress on
+              // the UI thread; a callback here would runOnJS once per frame.
+              onProgressChange={progress}
+              renderItem={renderItem}
+            />
+          )}
+        </View>
+        {arrows}
       </View>
-      {renderArrows()}
-      {renderDots}
+      {pagination}
     </View>
   );
-});
-
-Carousel.displayName = 'Carousel';
+}, { displayName: 'Carousel' });
 
 export default Carousel;

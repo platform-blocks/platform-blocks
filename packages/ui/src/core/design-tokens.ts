@@ -1,8 +1,20 @@
 import { SizeValue } from './theme/types';
+import {
+  DEFAULT_CONTROL_SIZES,
+  DEFAULT_LIGHT_SHADOWS,
+  DEFAULT_RADIUS_SCALE,
+  DEFAULT_SPACING_SCALE,
+} from './theme/scales';
 
 /**
- * Design tokens for consistent styling across the UI library
- * These tokens ensure visual consistency and make global changes easier
+ * Static design tokens.
+ *
+ * The spacing, radius, shadow and control-height numbers here are the default
+ * theme's own (both are built from `core/theme/scales.ts`), so there is one set
+ * of numbers. They are static, though — they never follow a custom theme or the
+ * dark scheme. Components resolve tokens against the current theme through
+ * `core/theme/tokens.ts` (`resolveSpacing`, `resolveRadius`, `getControlSize`,
+ * `resolveShadow`, …); reading `DESIGN_TOKENS` from a component is deprecated.
  */
 
 /**
@@ -24,47 +36,35 @@ export const MOTION_TOKENS = {
   },
 } as const;
 
-/** 
- * Shadow tokens for depth and elevation
+/**
+ * Shadow tokens for depth and elevation — the light theme's `shadows`.
+ * @deprecated use `resolveShadow(theme, token)`, which follows the dark theme too.
  */
-export const SHADOW_TOKENS = {
-  xs: '0 1px 2px rgba(0, 0, 0, 0.05)',
-  sm: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
-  md: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
-  lg: '0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05)',
-  xl: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04)',
-} as const;
+export const SHADOW_TOKENS = DEFAULT_LIGHT_SHADOWS;
 
 /**
- * Border radius tokens
+ * Border radius tokens — the default theme's `radii` plus `none` / `full`.
+ * @deprecated use `resolveRadius(theme, value)`.
  */
 export const RADIUS_TOKENS = {
   none: 0,
-  xs: 2,
-  sm: 4,
-  md: 6,
-  lg: 8,
-  xl: 12,
-  '2xl': 16,
-  '3xl': 24,
+  ...DEFAULT_RADIUS_SCALE,
   full: 9999,
 } as const;
 
 /**
- * Spacing tokens
+ * Spacing tokens — the default theme's `spacing`.
+ * @deprecated use `resolveSpacing(theme, value)`.
  */
-export const SPACING_TOKENS = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  '2xl': 24,
-  '3xl': 32,
-} as const;
+export const SPACING_TOKENS = DEFAULT_SPACING_SCALE;
 
 /**
- * Typography tokens
+ * Typography tokens.
+ *
+ * NOTE: this font-size ladder (md 16) is one step larger than the theme's
+ * `fontSizes` (md 14) — it is kept as-is because the components that still read
+ * it would visibly change size. They migrate to `resolveFontSize(theme, size)`.
+ * @deprecated use `resolveFontSize` / `resolveLineHeight`.
  */
 export const TYPOGRAPHY_TOKENS = {
   fontSize: {
@@ -97,15 +97,15 @@ export const TYPOGRAPHY_TOKENS = {
  * Interactive element tokens 
  */
 export const INTERACTIVE_TOKENS = {
-  // Consistent heights for interactive elements
+  // Consistent heights for interactive elements — the canonical control heights.
   height: {
-    xs: 28,
-    sm: 32,
-    md: 40,
-    lg: 44,
-    xl: 48,
-    '2xl': 52,
-    '3xl': 56,
+    xs: DEFAULT_CONTROL_SIZES.xs.height,
+    sm: DEFAULT_CONTROL_SIZES.sm.height,
+    md: DEFAULT_CONTROL_SIZES.md.height,
+    lg: DEFAULT_CONTROL_SIZES.lg.height,
+    xl: DEFAULT_CONTROL_SIZES.xl.height,
+    '2xl': DEFAULT_CONTROL_SIZES['2xl'].height,
+    '3xl': DEFAULT_CONTROL_SIZES['3xl'].height,
   },
   // Consistent padding for interactive elements
   padding: {
@@ -167,10 +167,10 @@ export const COMPONENT_TOKENS = {
 /**
  * Get design token value
  */
-export function getToken<T extends keyof typeof DESIGN_TOKENS>(
+export function getToken<T extends keyof typeof DESIGN_TOKENS, K extends keyof typeof DESIGN_TOKENS[T]>(
   category: T,
-  token: keyof typeof DESIGN_TOKENS[T]
-): any {
+  token: K
+): typeof DESIGN_TOKENS[T][K] {
   return DESIGN_TOKENS[category][token];
 }
 

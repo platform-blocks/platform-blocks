@@ -6,94 +6,13 @@
  */
 
 import React, { useState } from 'react';
-import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, screen, waitFor, configure } from '@testing-library/react-native';
 import { Switch } from '../Switch';
 import { Text, View } from 'react-native';
 
-// Mock hooks used by Switch component
-jest.mock('../../../core/theme', () => ({
-  useTheme: () => ({
-    colors: {
-      primary: {
-        0: '#e6f2ff',
-        1: '#cce5ff',
-        2: '#99cbff',
-        3: '#66b0ff',
-        4: '#3396ff',
-        5: '#007bff',
-        6: '#0056b3',
-        7: '#003d82',
-        8: '#002952',
-        9: '#001529'
-      },
-      secondary: { 6: '#6c757d' },
-      success: { 6: '#28a745' },
-      warning: { 6: '#ffc107' },
-      danger: { 6: '#dc3545' },
-      info: { 6: '#17a2b8' },
-      error: { 6: '#dc3545' },
-      gray: {
-        0: '#f8f9fa',
-        1: '#e9ecef',
-        2: '#dee2e6',
-        3: '#ced4da',
-        4: '#adb5bd',
-        5: '#6c757d',
-        6: '#495057',
-        7: '#343a40',
-        8: '#212529',
-        9: '#000000'
-      }
-    },
-    text: {
-      primary: '#212529',
-      secondary: '#6c757d',
-      disabled: '#adb5bd',
-      inverse: '#ffffff'
-    },
-    spacing: {
-      xs: 4,
-      sm: 8,
-      md: 16,
-      lg: 24,
-      xl: 32
-    },
-    fontSize: {
-      xs: 12,
-      sm: 14,
-      md: 16,
-      lg: 18,
-      xl: 20
-    },
-    fontSizes: {
-      xs: 12,
-      sm: 14,
-      md: 16,
-      lg: 18,
-      xl: 20
-    }
-  })
-}));
-
-// Mock factory
-jest.mock('../../../core/factory', () => ({
-  factory: (component: any) => component
-}));
-
-// Mock FieldHeader to avoid complex dependencies
-jest.mock('../../_internal/FieldHeader', () => ({
-  FieldHeader: ({ label, description, error }: any) => {
-    const React = require('react');
-    const { Text, View } = require('react-native');
-    return (
-      <View>
-        {label && <Text>{label}</Text>}
-        {description && <Text>{description}</Text>}
-        {error && <Text>{error}</Text>}
-      </View>
-    );
-  }
-}));
+// The visual label is hidden from native screen readers (the control's own
+// accessible name carries it), so text queries must include hidden elements.
+configure({ defaultIncludeHiddenElements: true });
 
 describe('Switch - Rendering & Behavior', () => {
   describe('Basic Rendering', () => {
@@ -326,16 +245,23 @@ describe('Switch - Rendering & Behavior', () => {
       expect(screen.getByText('This field is required')).toBeTruthy();
     });
 
-    it('should not display description when error is present', () => {
+    it('keeps the description and replaces helperText while an error is shown', () => {
       render(
         <Switch
           label="Field"
-          description="Helper text"
+          description="Description text"
+          helperText="Helper text"
           error="Error text"
         />
       );
       expect(screen.getByText('Error text')).toBeTruthy();
+      expect(screen.getByText('Description text')).toBeTruthy();
       expect(screen.queryByText('Helper text')).toBeFalsy();
+    });
+
+    it('announces the error with an alert role', () => {
+      render(<Switch label="Field" error="Error text" />);
+      expect(screen.getByRole('alert')).toBeTruthy();
     });
 
     it('should display description when no error', () => {
@@ -347,8 +273,9 @@ describe('Switch - Rendering & Behavior', () => {
   describe('Required Field', () => {
     it('should show required indicator', () => {
       render(<Switch label="Required field" required />);
-      expect(screen.getByText('Required field')).toBeTruthy();
-      // FieldHeader component should handle asterisk display
+      // The visual label carries an asterisk; the control announces "required".
+      expect(screen.getByText(/Required field/)).toBeTruthy();
+      expect(screen.getByRole('switch', { name: 'Required field, required' })).toBeTruthy();
     });
   });
 
@@ -479,7 +406,7 @@ describe('Switch - Rendering & Behavior', () => {
     it('should have switch role', () => {
       render(<Switch testID="switch" />);
       const switchElement = screen.getByTestId('switch');
-      expect(switchElement.props.accessibilityRole).toBe('switch');
+      expect(switchElement.props.role).toBe('switch');
     });
 
     it('should use label as accessibilityLabel by default', () => {
@@ -521,10 +448,10 @@ describe('Switch - Rendering & Behavior', () => {
       expect(switchElement.props.accessibilityState.checked).toBe(true);
     });
 
-    it('should include aria-controls when controls prop is provided', () => {
+    it('leaves aria-controls to the web (it has no native equivalent)', () => {
       render(<Switch testID="switch" controls="panel-1" />);
       const switchElement = screen.getByTestId('switch');
-      expect(switchElement.props['aria-controls']).toBe('panel-1');
+      expect(switchElement.props['aria-controls']).toBeUndefined();
     });
   });
 
@@ -598,8 +525,10 @@ describe('Switch - Rendering & Behavior', () => {
         />
       );
       
-      expect(screen.getByText('Accept terms')).toBeTruthy();
+      expect(screen.getByText(/Accept terms/)).toBeTruthy();
       expect(screen.getByText('You must accept to continue')).toBeTruthy();
+      // Native has no id references: the error reaches the control as its hint.
+      expect(screen.getByTestId('switch').props.accessibilityHint).toBe('You must accept to continue');
     });
   });
 

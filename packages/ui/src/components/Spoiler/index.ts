@@ -1,2 +1,2 @@
 export { Spoiler } from './Spoiler';
-export type { SpoilerProps } from './types';
+export type { SpoilerProps, SpoilerControlArgs } from './types';

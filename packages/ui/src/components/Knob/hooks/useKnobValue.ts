@@ -1,4 +1,4 @@
-import { MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { MutableRefObject, useCallback, useMemo, useRef, useState } from 'react';
 
 import type { KnobMark, KnobBehavior } from '../types';
 import { clamp } from '../utils/math';
@@ -74,14 +74,20 @@ export const useKnobValue = ({
     onChange,
   });
   const resolvedValue = normalizeValue(rawValue);
+  // What the dial draws: follows the (controlled or internal) value, but a drag
+  // paints its own samples immediately rather than waiting on a parent commit.
   const [displayValue, setDisplayValue] = useState(resolvedValue);
+  // Adjust the drawn value during render when the source value moves (instead of
+  // a post-commit effect, which painted one stale frame first).
+  const [syncedValue, setSyncedValue] = useState(resolvedValue);
+  if (!Object.is(syncedValue, resolvedValue)) {
+    setSyncedValue(resolvedValue);
+    setDisplayValue(isEndless ? resolvedValue : clampValue(resolvedValue));
+  }
 
-  useEffect(() => {
-    const next = isEndless ? resolvedValue : clampValue(resolvedValue);
-    setDisplayValue(next);
-  }, [resolvedValue, clampValue, isEndless]);
-
+  // Latest drawn value for gesture/keyboard handlers that fire between renders.
   const valueRef = useRef(displayValue);
+  valueRef.current = displayValue;
 
   const applyConstraints = useCallback(
     (rawValue: number) => {
@@ -121,10 +127,6 @@ export const useKnobValue = ({
     },
     [applyConstraints, setValue, onChangeEnd, valueRef]
   );
-
-  useEffect(() => {
-    valueRef.current = displayValue;
-  }, [displayValue]);
 
   return {
     marksNormalized,

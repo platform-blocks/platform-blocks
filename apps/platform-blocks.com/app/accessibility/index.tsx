@@ -40,7 +40,7 @@ const AccessibilityPage = () => {
       <Column gap="2xl">
         <Column gap="md">
           <DocsPageHeader>{ACCESSIBILITY_TITLE}</DocsPageHeader>
-          <Text variant="p" color="secondary">
+          <Text variant="p" c="secondary">
             {ACCESSIBILITY_INTRO}
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -54,7 +54,7 @@ const AccessibilityPage = () => {
           {ACCESSIBILITY_SECTIONS.map(({ title, lead, items }) => (
             <Column key={title} gap="md">
               <Text variant="h2">{title}</Text>
-              <Text variant="p" color="secondary">
+              <Text variant="p" c="secondary">
                 {lead}
               </Text>
               <BulletList items={items} />
@@ -64,7 +64,7 @@ const AccessibilityPage = () => {
 
         <Column gap="md">
           <Text variant="h2">{ACCESSIBILITY_EXAMPLE_TITLE}</Text>
-          <Text variant="p" color="secondary">
+          <Text variant="p" c="secondary">
             {ACCESSIBILITY_EXAMPLE_LEAD}
           </Text>
           <CodeBlock language="tsx" spoiler={false}>
@@ -76,14 +76,14 @@ const AccessibilityPage = () => {
 
         <Column gap="lg">
           <Text variant="h2">{ACCESSIBILITY_INTERACTIVE_TITLE}</Text>
-          <Text variant="p" color="secondary">
+          <Text variant="p" c="secondary">
             {ACCESSIBILITY_INTERACTIVE_LEAD}
           </Text>
           <SoundExample />
           <AccessibilityDemoWithProvider />
         </Column>
 
-        <Text variant="p" color="muted">
+        <Text variant="p" c="muted">
           {ACCESSIBILITY_OUTRO}
         </Text>
       </Column>

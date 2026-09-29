@@ -1,22 +1,35 @@
-import React, { useState, useEffect, useCallback, forwardRef } from 'react';
+import React, { useState } from 'react';
 import { View } from 'react-native';
-import { Calendar } from '../Calendar/Calendar';
-import { extractFirstDate } from './utils';
-import type { DatePickerProps, CalendarLevel, CalendarValue } from './types';
-import { useControllableState } from '../../hooks/useControllableState';
 
-export const DatePicker = forwardRef<View, DatePickerProps>(({
-  value,
-  defaultValue,
-  onChange,
-  type = 'single',
-  calendarProps,
-  style,
-  testID,
-  accessibilityLabel,
-  accessibilityHint,
-}, ref) => {
-  const calendarOverrides = calendarProps ?? {};
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { factory } from '../../core/factory';
+import { useStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState';
+import { Calendar } from '../Calendar/Calendar';
+import { monthDiff } from '../Calendar/utils';
+import type { CalendarLevel, CalendarValue, DatePickerProps } from './types';
+import { extractFirstDate } from './utils';
+
+const NO_PROPS = Object.freeze({});
+
+/**
+ * Inline calendar selection (no input). The calendar sits in a labelled
+ * `group` when `accessibilityLabel` is given; its days stay individually
+ * reachable by screen readers.
+ */
+export const DatePicker = factory<{ props: DatePickerProps; ref: View }>((props, ref) => {
+  const {
+    value,
+    defaultValue,
+    onChange,
+    type = 'single',
+    calendarProps,
+    style,
+    testID,
+    accessibilityLabel,
+    accessibilityHint,
+  } = props;
+  const spacingStyles = useStyleProps(props);
   const {
     level: calendarLevelProp,
     defaultLevel: calendarDefaultLevelProp,
@@ -27,7 +40,7 @@ export const DatePicker = forwardRef<View, DatePickerProps>(({
     numberOfMonths = 1,
     locale = 'en-US',
     ...calendarRest
-  } = calendarOverrides;
+  } = calendarProps ?? {};
 
   const [selectedValue, setValue] = useControllableState<CalendarValue>({
     value,
@@ -37,82 +50,45 @@ export const DatePicker = forwardRef<View, DatePickerProps>(({
   });
   const currentValue: CalendarValue = selectedValue ?? null;
 
-  const initialDate = calendarDateProp
-    ?? calendarDefaultDateProp
-    ?? extractFirstDate(currentValue)
-    ?? extractFirstDate(defaultValue ?? null)
-    ?? new Date();
+  const [viewLevel, setViewLevel] = useControllableState<CalendarLevel>({
+    value: calendarLevelProp,
+    defaultValue: calendarDefaultLevelProp ?? 'month',
+    finalValue: 'month',
+    onChange: calendarOnLevelChange,
+  });
 
-  const initialLevel = (calendarLevelProp ?? calendarDefaultLevelProp ?? 'month') as CalendarLevel;
+  // The visible month: `calendarProps.date` when controlled, else internal state.
+  const [internalViewDate, setInternalViewDate] = useState<Date>(
+    () => calendarDefaultDateProp ?? extractFirstDate(currentValue) ?? new Date()
+  );
+  const viewDate = calendarDateProp ?? internalViewDate;
+  const visibleMonths = Math.max(1, numberOfMonths);
 
-  const [viewDate, setViewDate] = useState<Date>(initialDate);
-  const [viewLevel, setViewLevel] = useState<CalendarLevel>(initialLevel);
-
-  useEffect(() => {
-    if (calendarDateProp) {
-      setViewDate(calendarDateProp);
+  // When the value moves somewhere not on screen (picked outside day, or a new
+  // controlled value), bring it into view. Derived during render, not in an effect.
+  const anchor = extractFirstDate(currentValue);
+  const anchorKey = anchor ? anchor.getTime() : null;
+  const [trackedAnchorKey, setTrackedAnchorKey] = useState(anchorKey);
+  if (trackedAnchorKey !== anchorKey) {
+    setTrackedAnchorKey(anchorKey);
+    if (!calendarDateProp && anchor) {
+      const offset = monthDiff(viewDate, anchor);
+      if (offset < 0 || offset >= visibleMonths) setInternalViewDate(anchor);
     }
-  }, [calendarDateProp]);
-
-  useEffect(() => {
-    if (!calendarDateProp && calendarDefaultDateProp) {
-      setViewDate(calendarDefaultDateProp);
-    }
-  }, [calendarDateProp, calendarDefaultDateProp]);
-
-  useEffect(() => {
-    if (calendarLevelProp) {
-      setViewLevel(calendarLevelProp as CalendarLevel);
-    }
-  }, [calendarLevelProp]);
-
-  useEffect(() => {
-    if (!calendarLevelProp && calendarDefaultLevelProp) {
-      setViewLevel(calendarDefaultLevelProp as CalendarLevel);
-    }
-  }, [calendarLevelProp, calendarDefaultLevelProp]);
-
-  useEffect(() => {
-    if (calendarDateProp) return;
-    const candidate = extractFirstDate(currentValue) ?? extractFirstDate(defaultValue ?? null);
-    if (candidate) {
-      setViewDate(candidate);
-    }
-  }, [calendarDateProp, currentValue, defaultValue]);
+  }
 
   const handleDateChange = (next: Date) => {
-    if (!calendarDateProp) {
-      setViewDate(next);
-    }
+    if (!calendarDateProp) setInternalViewDate(next);
     calendarOnDateChange?.(next);
   };
 
-  const handleLevelChange = (next: CalendarLevel) => {
-    if (!calendarLevelProp) {
-      setViewLevel(next);
-    }
-    calendarOnLevelChange?.(next);
-  };
-
-  const handleValueChange = (next: CalendarValue) => {
-    setValue(next);
-    if (!calendarDateProp) {
-      const candidate = extractFirstDate(next);
-      if (candidate) {
-        setViewDate(candidate);
-      }
-    }
-  };
+  const groupProps =
+    accessibilityLabel || accessibilityHint
+      ? a11yProps({ role: 'group', label: accessibilityLabel, hint: accessibilityHint })
+      : NO_PROPS;
 
   return (
-    <View
-      ref={ref}
-      style={style}
-      testID={testID}
-      accessible={!!(accessibilityLabel || accessibilityHint)}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityHint={accessibilityHint}
-    >
+    <View ref={ref} style={[spacingStyles, style]} testID={testID} {...groupProps}>
       <Calendar
         {...calendarRest}
         locale={locale}
@@ -120,13 +96,11 @@ export const DatePicker = forwardRef<View, DatePickerProps>(({
         date={viewDate}
         onDateChange={handleDateChange}
         level={viewLevel}
-        onLevelChange={handleLevelChange}
+        onLevelChange={setViewLevel}
         value={currentValue}
-        onChange={handleValueChange}
+        onChange={setValue}
         type={type}
       />
     </View>
   );
-});
-
-DatePicker.displayName = 'DatePicker';
+}, { displayName: 'DatePicker' });

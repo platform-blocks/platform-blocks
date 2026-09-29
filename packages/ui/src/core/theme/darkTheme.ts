@@ -1,25 +1,68 @@
-import { PlatformBlocksTheme } from './types';
+import type { PlatformBlocksTheme, ThemeBackgrounds } from './types';
+import { DEFAULT_FONT_FAMILY_MONO } from './defaultTheme';
+import {
+  DEFAULT_BREAKPOINT_VALUES,
+  DEFAULT_CONTROL_SIZES,
+  DEFAULT_DARK_SHADOWS,
+  DEFAULT_FONT_SIZE_SCALE,
+  DEFAULT_RADIUS_SCALE,
+  DEFAULT_SCRIM_COLORS,
+  DEFAULT_SPACING_SCALE,
+  toPxScale,
+} from './scales';
+import { deriveSemanticColors } from './semanticColors';
+import { DEFAULT_Z_INDICES } from './zIndices';
+
+const DARK_BACKGROUNDS: ThemeBackgrounds = {
+  base: '#0E0E11',
+  subtle: '#161619',
+  surface: '#1C1C1F',
+  elevated: '#26262A',
+  border: '#2A2A2E',
+  // gray[4]: a stroke that still reads on the elevated (#26262A) surface.
+  borderStrong: '#48484A',
+  // White washes lighten whatever elevation they sit on (a fixed gray would
+  // recede on a level-2 dropdown) — the values `surfaceInteractionTint` uses.
+  hover: 'rgba(255, 255, 255, 0.07)',
+  pressed: 'rgba(255, 255, 255, 0.12)',
+  // primary[2] of the dark ramp: clearly blue on every dark surface, ~10:1 under text.primary.
+  selected: '#1E3A8A',
+  // gray[2]: the fill disabled inputs use today.
+  disabled: '#2C2C2E',
+  // amber-800 — 6.3:1 under text.primary and visible on the page.
+  mark: '#92400E',
+  scrim: DEFAULT_SCRIM_COLORS.dark,
+};
+
+const DARK_STATES: NonNullable<PlatformBlocksTheme['states']> = {
+  focusRing: 'rgba(59,130,246,0.55)',
+  textSelection: 'rgba(10, 132, 255, 0.25)', // Primary blue for selection
+  highlightText: '#60A5FA', // primary[4] - bright blue for good contrast on dark
+  highlightBackground: 'rgba(59, 130, 246, 0.35)', // primary[5] with transparency
+};
+
+const DARK_PRIMARY = [
+  // Runs dark → light, the mirror of the light theme. Base moved to
+  // blue-600 to match DEFAULT_THEME so white label text clears 4.5:1
+  // (5.17:1, was 3.68:1); every step below it shifts one slot darker.
+  '#121833',
+  '#172554',
+  '#1E3A8A',
+  '#1E40AF',
+  '#1D4ED8',
+  '#2563EB', // Base color — unified brand blue
+  '#3B82F6',
+  '#60A5FA',
+  '#93C5FD',
+  '#BFDBFE',
+];
 
 export const DARK_THEME: PlatformBlocksTheme = {
   primaryColor: '#2563EB',
   colorScheme: 'dark',
 
   colors: {
-    primary: [
-      // Runs dark → light, the mirror of the light theme. Base moved to
-      // blue-600 to match DEFAULT_THEME so white label text clears 4.5:1
-      // (5.17:1, was 3.68:1); every step below it shifts one slot darker.
-      '#121833',
-      '#172554',
-      '#1E3A8A',
-      '#1E40AF',
-      '#1D4ED8',
-      '#2563EB', // Base color — unified brand blue
-      '#3B82F6',
-      '#60A5FA',
-      '#93C5FD',
-      '#BFDBFE'
-    ],
+    primary: DARK_PRIMARY,
     secondary: [
       '#0F172A',
       '#1E293B',
@@ -165,13 +208,7 @@ export const DARK_THEME: PlatformBlocksTheme = {
     link: '#3B82F6'
   },
 
-  backgrounds: {
-    base: '#0E0E11',
-    subtle: '#161619',
-    surface: '#1C1C1F',
-    elevated: '#26262A',
-    border: '#2A2A2E'
-  },
+  backgrounds: DARK_BACKGROUNDS,
 
   // Dark mode reads elevation through the fill getting lighter (shadows barely
   // register on a near-black page), with a hairline border doing the rest.
@@ -182,60 +219,26 @@ export const DARK_THEME: PlatformBlocksTheme = {
     3: { background: '#2F2F34', border: '#3A3A40', shadow: 'xl' },
   },
 
-  states: {
-    focusRing: 'rgba(59,130,246,0.55)',
-    textSelection: 'rgba(10, 132, 255, 0.25)', // Primary blue for selection
-    highlightText: '#60A5FA', // primary[4] - bright blue for good contrast on dark
-    highlightBackground: 'rgba(59, 130, 246, 0.35)' // primary[5] with transparency
-  },
+  states: DARK_STATES,
 
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
 
-  fontSizes: {
-    xs: '10px',
-    sm: '12px',
-    md: '14px',
-    lg: '16px',
-    xl: '18px',
-    '2xl': '20px',
-    '3xl': '24px'
-  },
+  fontFamilyMono: DEFAULT_FONT_FAMILY_MONO,
 
-  spacing: {
-    xs: '4px',
-    sm: '8px',
-    md: '12px',
-    lg: '16px',
-    xl: '20px',
-    '2xl': '24px',
-    '3xl': '32px'
-  },
+  controlSizes: DEFAULT_CONTROL_SIZES,
 
-  radii: {
-    xs: '2px',
-    sm: '4px',
-    md: '6px',
-    lg: '8px',
-    xl: '12px',
-    '2xl': '16px',
-    '3xl': '20px'
-  },
+  zIndices: DEFAULT_Z_INDICES,
 
-  shadows: {
-    xs: '0 1px 3px rgba(0, 0, 0, 0.3)',
-    sm: '0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.5)',
-    md: '0 3px 6px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3)',
-    lg: '0 10px 20px rgba(0, 0, 0, 0.4), 0 3px 6px rgba(0, 0, 0, 0.2)',
-    xl: '0 15px 25px rgba(0, 0, 0, 0.4), 0 5px 10px rgba(0, 0, 0, 0.1)'
-  },
+  fontSizes: toPxScale(DEFAULT_FONT_SIZE_SCALE),
 
-  breakpoints: {
-    xs: '480px',
-    sm: '768px',
-    md: '1024px',
-    lg: '1280px',
-    xl: '1536px'
-  },
+  spacing: toPxScale(DEFAULT_SPACING_SCALE),
+
+  radii: toPxScale(DEFAULT_RADIUS_SCALE),
+
+  shadows: { ...DEFAULT_DARK_SHADOWS },
+
+  // xs 480 · sm 576 · md 768 · lg 992 · xl 1200 — the only breakpoint table.
+  breakpoints: toPxScale(DEFAULT_BREAKPOINT_VALUES),
 
   motion: {
     easing: {
@@ -253,14 +256,12 @@ export const DARK_THEME: PlatformBlocksTheme = {
     }
   },
 
-  semantic: {
-    accent: '#2563EB', // primary[5] — unified brand blue
-    borderDefault: '#3A3A3E', // subtle elevated border
-    borderSubtle: '#2A2A2E',
-    surfaceElevated: '#26262A',
-    surfaceCard: '#1C1C1F',
-    focusRing: '#3B82F6' // primary[6] — needs 3:1 against the dark surface
-  },
+  // Deprecated aliases, derived so they can never drift from the roles above.
+  semantic: deriveSemanticColors({
+    colors: { primary: DARK_PRIMARY },
+    backgrounds: DARK_BACKGROUNDS,
+    states: DARK_STATES,
+  }),
 
   components: {},
   other: {

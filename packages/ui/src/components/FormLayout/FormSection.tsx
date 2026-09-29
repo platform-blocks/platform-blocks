@@ -1,85 +1,117 @@
-import React, { useState } from 'react';
-import { View, Pressable } from 'react-native';
-import { Text } from '../Text';
+import React, { useCallback } from 'react';
+import { Pressable, View } from 'react-native';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { factory } from '../../core/factory/factory';
+import { createThemedStyles } from '../../core/hooks/useThemedStyles';
+import { webStyle } from '../../core/platform/webStyle';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveSpacing } from '../../core/theme/tokens';
+import type { PlatformBlocksTheme } from '../../core/theme/types';
+import { warnOnce } from '../../core/utils/logger';
+import { resolveStyleProps, extractStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState/useControllableState';
 import { Icon } from '../Icon';
-import { DESIGN_TOKENS } from '../../core';
-import { useTheme } from '../../core/theme';
+import { Text } from '../Text';
 import type { FormSectionProps } from './types';
 
-export const FormSection = React.forwardRef<View, FormSectionProps>(({
-  title,
-  description,
-  children,
-  spacing = 'md',
-  collapsible = false,
-  defaultCollapsed = false,
-}, ref) => {
-  const theme = useTheme();
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+const getSectionStyles = createThemedStyles(
+  (theme: PlatformBlocksTheme, spacing: NonNullable<FormSectionProps['spacing']>) => {
+    const gap = resolveSpacing(theme, spacing) as number;
+    return {
+      root: { gap },
+      content: { gap },
+      header: {
+        paddingBottom: resolveSpacing(theme, 'sm') as number,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.backgrounds.border,
+      },
+      toggle: [
+        { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const },
+        webStyle({ cursor: 'pointer' }),
+      ],
+      pressed: { opacity: 0.7 },
+      headerText: { flex: 1 },
+      title: { color: theme.text.primary },
+      description: { color: theme.text.secondary, marginTop: resolveSpacing(theme, 'xs') as number },
+      chevron: { marginStart: resolveSpacing(theme, 'sm') as number },
+    };
+  }
+);
 
-  const getSpacing = () => {
-    switch (spacing) {
-      case 'sm': return DESIGN_TOKENS.spacing.sm;
-      case 'md': return DESIGN_TOKENS.spacing.md;
-      case 'lg': return DESIGN_TOKENS.spacing.lg;
-      default: return DESIGN_TOKENS.spacing.md;
+/** A titled block of form fields; `collapsible` lets the header expand/collapse it. */
+export const FormSection = factory<{ props: FormSectionProps; ref: View }>(
+  (props, ref) => {
+    const { styleProps, otherProps } = extractStyleProps(props);
+    const {
+      title,
+      description,
+      children,
+      spacing = 'md',
+      collapsible = false,
+      expanded,
+      defaultExpanded,
+      onExpandedChange,
+      defaultCollapsed,
+      style,
+      testID,
+    } = otherProps;
+
+    if (defaultCollapsed !== undefined) {
+      warnOnce('FormSection.defaultCollapsed', '[platform-blocks] FormSection: `defaultCollapsed` is deprecated. Use `defaultExpanded`.');
     }
-  };
 
-  const HeaderContent = () => (
-    <>
-      {title && (
-        <Text size="lg" weight="semibold" style={{ color: theme.colors.gray[9] }}>
-          {title}
-        </Text>
-      )}
-      {description && (
-        <Text size="sm" style={{ color: theme.colors.gray[6], marginTop: DESIGN_TOKENS.spacing.xs }}>
-          {description}
-        </Text>
-      )}
-    </>
-  );
+    const theme = useTheme();
+    const styles = getSectionStyles(theme, spacing);
+    const [isExpanded, setExpanded] = useControllableState<boolean>({
+      value: expanded,
+      defaultValue: defaultExpanded ?? (defaultCollapsed === undefined ? true : !defaultCollapsed),
+      finalValue: true,
+      onChange: onExpandedChange,
+    });
+    const toggle = useCallback(() => setExpanded((open) => !open), [setExpanded]);
 
-  return (
-    <View ref={ref} style={{ gap: getSpacing() }}>
-      {/* Header */}
-      {(title || description) && (
-        <View style={{ paddingBottom: DESIGN_TOKENS.spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.colors.gray[2] }}>
-          {collapsible ? (
-            <Pressable
-              onPress={() => setIsCollapsed(!isCollapsed)}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <View style={{ flex: 1 }}>
-                <HeaderContent />
-              </View>
-              <Icon
-                name={isCollapsed ? 'chevron-down' : 'chevron-up'}
-                size={20}
-                color={theme.colors.gray[6]}
-                style={{ marginLeft: DESIGN_TOKENS.spacing.sm }}
-              />
-            </Pressable>
-          ) : (
-            <HeaderContent />
-          )}
-        </View>
-      )}
+    const headerContent = (
+      <>
+        {title ? (
+          <Text size="lg" fw="semibold" style={styles.title}>
+            {title}
+          </Text>
+        ) : null}
+        {description ? (
+          <Text size="sm" style={styles.description}>
+            {description}
+          </Text>
+        ) : null}
+      </>
+    );
 
-      {/* Content */}
-      {(!collapsible || !isCollapsed) && (
-        <View style={{ gap: getSpacing() }}>
-          {children}
-        </View>
-      )}
-    </View>
-  );
-});
+    return (
+      <View ref={ref} testID={testID} style={[styles.root, resolveStyleProps(styleProps, theme), style]}>
+        {title || description ? (
+          <View style={styles.header}>
+            {collapsible ? (
+              <Pressable
+                onPress={toggle}
+                {...a11yProps({ role: 'button', expanded: isExpanded })}
+                style={({ pressed }) => [styles.toggle, pressed && styles.pressed]}
+              >
+                <View style={styles.headerText}>{headerContent}</View>
+                <Icon
+                  name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color={theme.text.secondary}
+                  style={styles.chevron}
+                />
+              </Pressable>
+            ) : (
+              headerContent
+            )}
+          </View>
+        ) : null}
 
-FormSection.displayName = 'FormSection';
+        {!collapsible || isExpanded ? <View style={styles.content}>{children}</View> : null}
+      </View>
+    );
+  },
+  { displayName: 'FormSection' }
+);

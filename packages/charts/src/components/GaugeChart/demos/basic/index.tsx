@@ -7,8 +7,8 @@ export function Demo() {
     <GaugeChart
       title="System Health"
       subtitle="Live CPU utilisation"
-      maxWidth={320}
-      height={240}
+      maw={320}
+      h={240}
       value={68}
       min={0}
       max={100}

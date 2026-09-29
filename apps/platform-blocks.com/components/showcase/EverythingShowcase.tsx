@@ -192,7 +192,7 @@ export const EverythingPlayground = () => {
               placeholder="Choose a starter"
               options={selectOptions}
               value={selectedFramework}
-              onChange={setSelectedFramework}
+              onChange={(next) => setSelectedFramework(next ?? '')}
               fullWidth
             />
             <PasswordInput
@@ -283,10 +283,10 @@ export const EverythingPlayground = () => {
           <Block direction="column" gap="md">
             {/* <Text variant="h4">Data display & people</Text> */}
             <AvatarGroup size="sm" spacing={-8}>
-              <Avatar fallback="JS" backgroundColor="#2563eb" />
-              <Avatar fallback="AG" backgroundColor="#e11d48" />
-              <Avatar fallback="LM" backgroundColor="#10b981" />
-              <Avatar fallback="+7" backgroundColor="#9333ea" />
+              <Avatar fallback="JS" bg="#2563eb" />
+              <Avatar fallback="AG" bg="#e11d48" />
+              <Avatar fallback="LM" bg="#10b981" />
+              <Avatar fallback="+7" bg="#9333ea" />
             </AvatarGroup>
           </Block>
         </Card>
@@ -308,7 +308,7 @@ export const EverythingPlayground = () => {
           title="Kickoff"
           bullet={<Icon name="calendar" size="sm" color="#fff" variant="filled" />}
         >
-          <Text size="sm" color="secondary">
+          <Text size="sm" c="secondary">
             Workshop with stakeholders to frame success metrics.
           </Text>
         </Timeline.Item>
@@ -316,7 +316,7 @@ export const EverythingPlayground = () => {
           title="Design sprint"
           bullet={<Icon name="form" size="sm" color="#fff" variant="filled" />}
         >
-          <Text size="sm" color="secondary">
+          <Text size="sm" c="secondary">
             Prototype flows and gather qualitative feedback early.
           </Text>
         </Timeline.Item>
@@ -325,7 +325,7 @@ export const EverythingPlayground = () => {
           bullet={<Icon name="code" size="sm" color="#fff" variant="filled" />}
           active
         >
-          <Text size="sm" color="secondary">
+          <Text size="sm" c="secondary">
             Ship accessible components, instrumentation, and docs.
           </Text>
         </Timeline.Item>
@@ -336,8 +336,8 @@ export const EverythingPlayground = () => {
       id: 'alert',
       content: (<Alert variant="light" color="primary" severity="info">
         <Block direction="column" gap="xs">
-          <Text weight="semibold">Live preview deployed</Text>
-          <Text size="sm" color="secondary">
+          <Text fw="semibold">Live preview deployed</Text>
+          <Text size="sm" c="secondary">
             Press <KeyCap>⌘</KeyCap> + <KeyCap>K</KeyCap> to open the <Code>Spotlight</Code> command palette.
             {/* Your documentation site was rebuilt 2 minutes ago. */}
           </Text>
@@ -351,7 +351,7 @@ export const EverythingPlayground = () => {
           <Block direction="column" gap="md">
             <Text variant="h4">Feedback & status</Text>
 
-            <Text size="sm" weight="medium">
+            <Text size="sm" fw="medium">
               Release progress — {progress}%
             </Text>
             <Progress value={progress} striped fullWidth />
@@ -380,7 +380,7 @@ export const EverythingPlayground = () => {
       content: (
         <Alert variant="light" color="primary" severity="warning" icon={false}>
           <Block direction="column" gap="sm" align="center">
-            <Text size="sm" weight="medium">
+            <Text size="sm" fw="medium">
               Delivery health — {gaugeValue}%
             </Text>
             <Gauge value={gaugeValue} size={120} />
@@ -416,12 +416,12 @@ export const EverythingPlayground = () => {
       content: (
         <Block direction="column" gap="md">
           <Block direction="column" gap="sm">
-            <Text size="sm" weight="medium">
+            <Text size="sm" fw="medium">
               Rating & icons
             </Text>
             <Row gap="sm" align="center">
               <Rating value={rating} onChange={setRating} />
-              <Text size="sm" color="secondary">
+              <Text size="sm" c="secondary">
                 {rating.toFixed(1)} / 5.0
               </Text>
             </Row>

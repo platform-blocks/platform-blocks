@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Demonstrates consistent width preservation, custom `loadingTitle`, and disabling actions while background work completes.
+Set `loading` to swap the label for a spinner and block presses. Add `loadingTitle` to keep text beside the spinner.

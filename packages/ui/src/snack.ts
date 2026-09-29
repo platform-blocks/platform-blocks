@@ -7,18 +7,17 @@
  * small enough to bundle, which is what the "Open in Snack" buttons on the
  * docs site depend on.
  *
- * Deliberately excluded — each statically imports a package that is neither
- * bundled into Expo Go nor worth its bundle weight here:
- *   DataTable, Masonry      -> @shopify/flash-list
- *   Carousel                -> react-native-reanimated-carousel
- *   ShimmerText             -> @react-native-masked-view/masked-view
- *   Waveform, Video         -> expo-asset / expo-audio
- *   BrandButton             -> full brand icon set
+ * Not exported here, to keep the graph small: DataTable, Masonry, Carousel,
+ * ShimmerText, Waveform, Video and BrandButton (which pulls in the full brand
+ * icon set). None of them imports an optional peer statically any more —
+ * @shopify/flash-list, react-native-reanimated-carousel,
+ * @react-native-masked-view/masked-view and react-native-webview are all
+ * loaded lazily through utils/optionalModule.ts and degrade when absent — so
+ * any of them can be added if the docs need it in Snack.
  *
- * CodeBlock and FileInput are *included* despite the heavy dependencies they
- * are documented as needing: both reach them through
- * utils/optionalModule.ts, which resolves at runtime and degrades when the
- * module is absent, so neither lands in this graph.
+ * CodeBlock and FileInput are included: their optional dependencies
+ * (react-syntax-highlighter, expo-document-picker) are likewise required
+ * lazily inside try/catch and fall back when the module is absent.
  *
  * Keep `SNACK_COMPONENTS` in apps/platform-blocks.com/utils/snackUrl.ts in sync
  * with what is exported here.

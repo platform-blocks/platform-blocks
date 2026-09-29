@@ -9,7 +9,7 @@ export function Demo() {
     <BubbleChart
       title="Epic Risk Landscape"
       subtitle="Story points vs defect density — bubble area communicates composite risk multiplier"
-      height={420}
+      h={420}
       data={epics}
       dataKey={{
         x: 'storyPoints',

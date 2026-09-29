@@ -16,9 +16,9 @@ export function Demo() {
   const hidden = TEAM.slice(LIMIT).map((member) => member.name);
 
   return (
-    <AvatarGroup limit={LIMIT} size="md" surplusTooltip={hidden.join(', ')}>
+    <AvatarGroup limit={LIMIT} surplusTooltip={hidden.join(', ')}>
       {TEAM.map(({ id, initials, color }) => (
-        <Avatar key={id} fallback={initials} backgroundColor={color} />
+        <Avatar key={id} fallback={initials} bg={color} />
       ))}
     </AvatarGroup>
   );

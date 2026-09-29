@@ -21,7 +21,7 @@ function StarPicker({ value, defaultValue, onChange }: StarPickerProps) {
   return (
     <Row gap="sm" align="center">
       <Rating value={rating} onChange={setRating} />
-      <Badge variant="light" color={isControlled ? 'primary' : 'gray'}>
+      <Badge variant="light" c={isControlled ? 'primary' : 'gray'}>
         {isControlled ? 'controlled' : 'uncontrolled'}
       </Badge>
     </Row>
@@ -34,12 +34,12 @@ export function Demo() {
   return (
     <Block gap="lg">
       <Block gap="xs">
-        <Text size="sm" color="muted">No value prop — the hook keeps the rating in internal state.</Text>
+        <Text size="sm" c="muted">No value prop — the hook keeps the rating in internal state.</Text>
         <StarPicker defaultValue={2} />
       </Block>
 
       <Block gap="xs">
-        <Text size="sm" color="muted">A value prop — the parent owns the rating, so it can drive it too.</Text>
+        <Text size="sm" c="muted">A value prop — the parent owns the rating, so it can drive it too.</Text>
         <StarPicker value={rating} onChange={setRating} />
         <Row gap="sm" wrap="wrap">
           <Button size="sm" variant="outline" onPress={() => setRating(5)}>Set 5 from the parent</Button>

@@ -1,23 +1,26 @@
 import { Block, Card, Markdown, Text } from '@platform-blocks/ui';
+import type { MarkdownComponentMap } from '@platform-blocks/ui';
 
-const CUSTOM_COMPONENTS = {
-  h1: ({ children, ...props }: any) => (
-    <Text size="xl" weight="bold" color="primary" mb={12} {...props}>
+// Keys match `MarkdownComponentMap`; anything not listed keeps the default renderer.
+const CUSTOM_COMPONENTS: Partial<MarkdownComponentMap> = {
+  heading: ({ level, children }) => (
+    <Text
+      variant={level === 1 ? 'h1' : 'h2'}
+      size={level === 1 ? 'xl' : 'lg'}
+      fw={level === 1 ? 'bold' : 'semibold'}
+      c={level === 1 ? 'primary' : 'secondary'}
+      mb={level === 1 ? 12 : 8}
+    >
       {children}
     </Text>
   ),
-  h2: ({ children, ...props }: any) => (
-    <Text size="lg" weight="semibold" color="accent" mb={8} {...props}>
+  paragraph: ({ children }) => (
+    <Text size="md" mb={8}>
       {children}
     </Text>
   ),
-  p: ({ children, ...props }: any) => (
-    <Text size="md" mb={8} {...props}>
-      {children}
-    </Text>
-  ),
-  blockquote: ({ children, ...props }: any) => (
-    <Card p={12} variant="outline" bg="muted" mb={8} {...props}>
+  blockquote: ({ children }) => (
+    <Card p={12} variant="outline" bg="muted" mb={8}>
       <Text size="sm" style={{ fontStyle: 'italic' }}>
         {children}
       </Text>
@@ -40,9 +43,6 @@ export function Demo() {
   return (
     <Block fullWidth>
       <Markdown components={CUSTOM_COMPONENTS}>{CONTENT}</Markdown>
-      <Text size="sm" color="secondary">
-        Headings, paragraphs, and quotes use custom renderers
-      </Text>
     </Block>
   );
 }

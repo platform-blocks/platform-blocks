@@ -1,9 +1,15 @@
 import type React from 'react';
-import type { PlatformOSType } from 'react-native';
-import type { ResponsiveSize, Breakpoint, StatusBarConfig } from '../types';
+import type { PlatformOSType, Role, StyleProp, ViewStyle } from 'react-native';
+
+import type { PlatformBlocksTheme } from '../../../core/theme/types';
+import type { AppShellMainProps, ResponsiveSize, Breakpoint, StatusBarConfig } from '../types';
 
 export type LayoutVisibilityFn = (ctx: AppLayoutRuntimeContext) => boolean;
 
+// `any` default: a blueprint mixes components with unrelated prop types
+// (header, navbar, overlays…), and `props` is checked against each entry's
+// own component where the entry is typed with an explicit `Props`.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface LayoutComponentEntry<Props = any> {
   component: React.ComponentType<Props>;
   props?: Props | ((ctx: AppLayoutRuntimeContext) => Props);
@@ -19,8 +25,10 @@ export interface LayoutRenderEntry {
   target?: 'shell' | 'root' | 'root-before' | 'root-after';
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- same heterogeneous default as LayoutComponentEntry
 export type LayoutEntry<Props = any> = LayoutComponentEntry<Props> | LayoutRenderEntry;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- same heterogeneous default as LayoutComponentEntry
 export type LayoutComponentOrRenderEntry<Props = any> = LayoutEntry<Props>;
 
 export interface LayoutBreakpointsConfig {
@@ -61,16 +69,20 @@ export interface LayoutBottomNavConfig extends LayoutComponentEntry {
   height?: ResponsiveSize;
 }
 
+/** Extra props for `AppShell.Main` (unknown keys are ignored). */
+export type LayoutMainExtraProps = Partial<AppShellMainProps> & Record<string, unknown>;
+
 export interface LayoutMainConfig {
   id?: string;
-  role?: string;
-  maxWidth?: number | string;
+  /** Landmark role of the main content. @default 'main' */
+  role?: Role;
+  maw?: number | string;
   centerContent?: boolean;
   tableOfContents?: LayoutEntry;
   hideTableOfContentsOnMobile?: boolean;
   tableOfContentsWidth?: number | string;
   tableOfContentsWithBorder?: boolean;
-  props?: Record<string, any> | ((ctx: AppLayoutRuntimeContext) => Record<string, any>);
+  props?: LayoutMainExtraProps | ((ctx: AppLayoutRuntimeContext) => LayoutMainExtraProps);
 }
 
 export interface LayoutOptions {
@@ -83,9 +95,9 @@ export interface LayoutOptions {
   cssGeometry?: boolean;
   withSafeArea?: boolean;
   withBorder?: boolean;
-  backgroundColor?: string;
+  bg?: string;
   padding?: ResponsiveSize;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
   statusBar?: StatusBarConfig;
   transitionDuration?: number;
   transitionTimingFunction?: string;
@@ -138,7 +150,7 @@ export interface AppLayoutRuntimeContext {
   isMobile: boolean;
   isLandscape: boolean;
   orientation: 'portrait' | 'landscape';
-  theme: any;
+  theme: PlatformBlocksTheme;
   colorScheme: string | undefined;
   reducedMotion: boolean;
   meta?: Record<string, unknown>;

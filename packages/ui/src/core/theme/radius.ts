@@ -1,6 +1,12 @@
 // Enhanced border radius system for Platform Blocks
-import { SizeValue, resolveSize } from './sizes';
+import { SizeValue } from './sizes';
+import { DEFAULT_RADIUS_SCALE } from './scales';
 
+/**
+ * Radius prop value: a size token, a number (px), `'none'`, `'full'`, or the
+ * legacy `'chip'` alias for `'full'`. The canonical type (without `'chip'`) is
+ * `RadiusValue` in `core/types/base.ts`.
+ */
 export type RadiusValue = 
   | SizeValue 
   | 'none' 
@@ -8,23 +14,20 @@ export type RadiusValue =
   | 'chip';
 
 /**
- * Enhanced radius scale with special values
+ * Enhanced radius scale with special values — the default theme's `radii`.
  */
 export const RADIUS_SCALE = {
   none: 0,
-  xs: 2,
-  sm: 4,
-  md: 6,
-  lg: 8,
-  xl: 12,
-  '2xl': 16,
-  '3xl': 24,
+  ...DEFAULT_RADIUS_SCALE,
   full: 9999, // Large enough to be fully rounded for any component
   chip: 9999  // Alias for full
 } as const;
 
 /**
- * Get border radius value from radius token or number
+ * Get border radius value from radius token or number.
+ *
+ * @deprecated Theme-less: always reads the default scale. Use
+ * `resolveRadius(theme, value)` from `core/theme/tokens.ts`.
  * @param value - Radius value (string token, number, or special value)
  * @param componentHeight - Height of component for chip/full calculation
  * @returns Resolved border radius as number

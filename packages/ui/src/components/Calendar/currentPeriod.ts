@@ -7,7 +7,7 @@ import type { PlatformBlocksTheme } from '../../core/theme/types';
  * The rule: the current period is drawn as a 1px ring, never a fill. Selection
  * owns the solid `primary[5]` fill, so the two can't be confused, and a filled
  * "today" no longer reads as a permanently-pressed cell (the grids all use
- * `gray[2]` as their pressed background).
+ * `backgrounds.pressed` as their pressed background).
  *
  * Selection always wins: a cell that is both current and selected shows only
  * the selected fill.

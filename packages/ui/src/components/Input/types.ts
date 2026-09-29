@@ -1,17 +1,26 @@
-import React from 'react';
-import { KeyboardTypeOptions, TextInputProps as RNTextInputProps, ViewProps } from 'react-native';
-import { SpacingProps } from '../../core/theme/types';
-import { LayoutProps } from '../../core/utils';
-import { BorderRadiusProps } from '../../core/theme/radius';
-import { SizeValue, ColorValue } from '../../core/theme/types';
-import type { DisclaimerSupport } from '../_internal/Disclaimer';
-import type { TextProps } from '../Text';
+import type React from 'react';
+import type { KeyboardTypeOptions, TextInput, TextInputProps as RNTextInputProps, ViewProps } from 'react-native';
+import type { WebKeyboardEvent } from '../../core/platform/webProps';
+import type { FieldVariant, TextFieldBaseProps } from '../_internal/Field/fieldProps';
+
+/** Values a validation rule compares against (`minLength`: number, `pattern`: RegExp or source string). */
+export type ValidationRuleValue = number | string | RegExp;
+
+/**
+ * A custom validation check. Parameters are checked bivariantly (the React
+ * `EventHandler` trick), so validators typed for a specific value
+ * (`(value: string) => boolean`) are accepted.
+ */
+export type ValidatorFunction = {
+  bivarianceHack(value: unknown, formValues?: Record<string, unknown>): boolean | Promise<boolean>;
+}['bivarianceHack'];
 
 export interface ValidationRule {
   type: 'required' | 'minLength' | 'maxLength' | 'pattern' | 'custom' | 'passwordStrength';
-  value?: any;
+  value?: ValidationRuleValue;
   message: string;
-  validator?: (value: any, formValues?: Record<string, any>) => boolean | Promise<boolean>;
+  /** Custom check for `type: 'custom'`. */
+  validator?: ValidatorFunction;
 }
 
 export interface PasswordStrengthRule extends Omit<ValidationRule, 'type'> {
@@ -25,125 +34,60 @@ export interface PasswordStrengthRule extends Omit<ValidationRule, 'type'> {
   };
 }
 
-export type InputVariant = 'default' | 'filled' | 'outline' | 'unstyled';
+/** Visual variant of a field: `default` (surface + border), `filled` (subtle fill, no border), `outline` (border only), `unstyled`. */
+export type InputVariant = FieldVariant;
 
-export interface BaseInputProps extends SpacingProps, LayoutProps, BorderRadiusProps, DisclaimerSupport {
-  /** Visual variant of the input. `default` (light surface + border), `filled` (gray fill, no border), `outline` (transparent fill, border only), `unstyled` (no border, no fill). */
-  variant?: InputVariant;
+/**
+ * @deprecated Use `TextFieldBaseProps` (text entry) or `FieldBaseProps` (other
+ * controls) from `components/_internal/Field/fieldProps`. Kept as an alias of
+ * `TextFieldBaseProps` minus `defaultValue`, so wrappers that declare their own
+ * typed `defaultValue` (Date, number, ...) keep extending it.
+ */
+export type BaseInputProps = Omit<TextFieldBaseProps, 'defaultValue'>;
 
-  /** Input value */
-  value?: string;
-  
-  /** Change handler */
-  onChangeText?: (text: string) => void;
-  
-  /** Input label (string or component) */
-  label?: React.ReactNode;
-  
-  /** Whether input is disabled */
-  disabled?: boolean;
-  
-  /** Whether input is required */
-  required?: boolean;
-  
-  /** Input placeholder */
-  placeholder?: string;
-  
-  /** Error message */
-  error?: string;
-  
-  /** Helper text */
-  helperText?: string;
-  /** Optional short description displayed directly under the label (above the field) */
-  description?: string;
-  
-  /** Input size */
-  size?: SizeValue;
-  
-  /** Whether to show required indicator */
-  withAsterisk?: boolean;
-  
-  /** Input name for form integration */
-  name?: string;
-  
-  /** Left section content */
-  startSection?: React.ReactNode;
-  
-  /** Right section content */
-  endSection?: React.ReactNode;
-  
-  /** Additional styling */
-  style?: any;
-  
-  /** Accessibility label */
-  accessibilityLabel?: string;
-  
-  /** Accessibility hint */
-  accessibilityHint?: string;
-  
-  /** Test ID for testing */
-  testID?: string;
-  
-  /** Debounce delay for validation in milliseconds */
-  debounceMs?: number;
-  
-  /** Focus handler */
-  onFocus?: () => void;
-  
-  /** Blur handler */
-  onBlur?: () => void;
-  
-  /** Enter key press handler */
-  onEnter?: () => void;
-
-  /** Show built-in clear button when input has value */
-  clearable?: boolean;
-
-  /** Accessible label for the clear button */
-  clearButtonLabel?: string;
-
-  /** Callback when the clear button is pressed */
-  onClear?: () => void;
-
-  /** Identifier used with KeyboardManagerProvider to request refocus */
-  keyboardFocusId?: string;
-
-  /** Override props applied to the field label `<Text>` (style, weight, ff, etc.) */
-  labelProps?: Omit<TextProps, 'children'>;
-
-  /** Override props applied to the field description `<Text>` */
-  descriptionProps?: Omit<TextProps, 'children'>;
-
-  /** Color of the placeholder text. Falls back to `theme.text.muted`. */
-  placeholderTextColor?: string;
-
-  /** Props applied to the wrapping `<View>` around `startSection` (style, accessibility, etc.). */
-  startSectionProps?: Omit<ViewProps, 'children'>;
-
-  /** Props applied to the wrapping `<View>` around `endSection`. */
-  endSectionProps?: Omit<ViewProps, 'children'>;
-}
-
-export type ExtendedTextInputProps = Omit<RNTextInputProps, keyof BaseInputProps> & {
-  onKeyDown?: (event: any) => void;
-  onKeyUp?: (event: any) => void;
+/** Props forwarded to the underlying `TextInput`, plus the web keyboard events react-native-web exposes. */
+export type ExtendedTextInputProps = Omit<RNTextInputProps, keyof TextFieldBaseProps> & {
+  /** Style of the TextInput itself, merged after the field's text style. */
+  style?: RNTextInputProps['style'];
+  onKeyDown?: (event: WebKeyboardEvent) => void;
+  onKeyUp?: (event: WebKeyboardEvent) => void;
 };
 
-export interface InputProps extends BaseInputProps {
+/** Props of the shared text-field shell (`TextInputBase`) that Input, NumberInput, PhoneInput and Search render. */
+export interface TextInputBaseProps extends TextFieldBaseProps {
+  /** Id of the TextInput (DOM `id` on web, `nativeID` on native); label/error ids derive from it. Generated when omitted. */
+  id?: string;
+  /** Force the focused look regardless of real focus. */
+  focused?: boolean;
+  /** Additional TextInput props. */
+  textInputProps?: ExtendedTextInputProps;
+  /** Extra ref to the TextInput; merged with `ref`. */
+  inputRef?: React.Ref<TextInput>;
+  /** Force secure entry regardless of type. */
+  secureTextEntry?: boolean;
+  /** Props for the root `View` (gesture handlers, onLayout, ...). */
+  containerProps?: Omit<ViewProps, 'style' | 'testID' | 'children'>;
+}
+
+export interface InputProps extends TextInputBaseProps {
   /** Input type - determines styling and behavior */
-  type?: 
-    | 'text' 
-    | 'password' 
-    | 'email' 
-    | 'tel' 
-    | 'number' 
+  type?:
+    | 'text'
+    | 'password'
+    | 'email'
+    | 'tel'
+    | 'number'
     | 'search';
-  
-  /** Input validation rules */
+
+  /**
+   * Validation rules, checked after the field is first blurred and then on
+   * every change (debounced by `debounceMs`). The first failing rule's message
+   * is shown as the error while no `error` prop is given.
+   */
   validation?: ValidationRule[];
-  
+
   /** Auto-complete type */
-  autoComplete?: 
+  autoComplete?:
     | 'off'
     | 'password'
     | 'email'
@@ -175,32 +119,24 @@ export interface InputProps extends BaseInputProps {
     | 'postal-code'
     | 'street-address'
     | 'username';
-  
+
   /** Keyboard type for mobile */
   keyboardType?: KeyboardTypeOptions;
-  
+
   /** Whether input is multiline */
   multiline?: boolean;
-  
+
   /** Number of lines for multiline input */
   numberOfLines?: number;
-  
+
   /** Minimum number of lines for multiline input (default: 1) */
   minLines?: number;
-  
+
   /** Maximum number of lines for multiline input */
   maxLines?: number;
-  
+
   /** Maximum length */
   maxLength?: number;
-  
-  /** Whether to secure text entry */
-  secureTextEntry?: boolean;
-  
-  /** Additional TextInput props */
-  textInputProps?: ExtendedTextInputProps;
-  /** Ref to underlying TextInput (focus control) */
-  inputRef?: React.Ref<any>;
 
   // --- Native TextInput passthrough props ---
 
@@ -243,27 +179,18 @@ export interface InputProps extends BaseInputProps {
   /** Whether to show the soft keyboard on focus */
   showSoftInputOnFocus?: boolean;
 
-  /** Whether the field is read-only (alias for !editable) */
+  /** Passthrough to the TextInput. Prefer `readOnly`; `editable={false}` behaves the same. */
   editable?: boolean;
 }
 
 export interface PasswordInputProps extends Omit<InputProps, 'type' | 'secureTextEntry'> {
   /** Whether to show password strength indicator */
   showStrengthIndicator?: boolean;
-  
+
   /** Whether to show toggle visibility button */
   showVisibilityToggle?: boolean;
-  
+
   /** Password strength validation rules */
   strengthValidation?: PasswordStrengthRule[];
 }
 
-export interface InputStyleProps {
-  error?: boolean;
-  disabled?: boolean;
-  focused?: boolean;
-  size: SizeValue;
-  hasLeftSection?: boolean;
-  hasRightSection?: boolean;
-  variant?: InputVariant;
-}

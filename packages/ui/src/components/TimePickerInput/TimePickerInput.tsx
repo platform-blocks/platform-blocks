@@ -1,240 +1,261 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { View, Pressable, Platform } from 'react-native';
-import { useMergedRef } from '../../core/utils';
-// NOTE: Using direct relative imports to avoid barrel (index.ts) circular dependency
-import { Text } from '../Text';
-import { Input } from '../Input';
-import { Dialog } from '../Dialog';
-import { Flex } from '../Flex';
+import React, { useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { Pressable, View } from 'react-native';
+import type { TextInput, ViewStyle } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { factory } from '../../core/factory/factory';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { isNative, webStyle } from '../../core/platform';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getControlSize } from '../../core/theme/tokens';
+import type { FieldHandle } from '../../core/types/base';
+import { useControllableState } from '../../hooks/useControllableState';
+import { DropdownSheet } from '../_internal/DropdownSheet/DropdownSheet';
+import { PickerActions } from '../DatePickerInput/PickerActions';
+import { PickerField } from '../DatePickerInput/PickerField';
 import { Icon } from '../Icon';
-import { useTheme } from '../../core/theme';
+import { Input } from '../Input';
 import { TimePicker, buildTimeValue } from '../TimePicker/TimePicker';
 import type { TimePickerValue } from '../TimePicker/types';
-import type { TimePickerInputProps } from './types';
+import type { TimePickerInputHandle, TimePickerInputProps } from './types';
 
 const pad = (n: number) => n.toString().padStart(2, '0');
+const TIME_PATTERN = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM|am|pm)?$/;
 
-export const TimePickerInput = React.forwardRef<View, TimePickerInputProps>(({
-  value,
-  defaultValue,
-  onChange,
-  format = 24,
-  withSeconds = false,
-  allowInput = true,
-  minuteStep = 5,
-  secondStep = 5,
-  panelWidth,
-  columnWidth = 88,
-  inputWidth,
-  disabled,
-  size = 'md',
-  label = 'Time',
-  error,
-  helperText,
-  style,
-  onOpen,
-  onClose,
-  title,
-  autoClose = false,
-  fullWidth,
-  clearable = false,
-  clearButtonLabel = 'Clear time',
-  description,
-  labelProps,
-  descriptionProps,
-  placeholderTextColor,
-  startSectionProps,
-  endSectionProps,
-}, ref) => {
-  const theme = useTheme();
-  const [open, setOpen] = useState(false);
-  const isControlled = value !== undefined;
-  const [internal, setInternal] = useState<TimePickerValue>(() =>
-    buildTimeValue(format, withSeconds, value ?? defaultValue ?? null)
-  );
-  const [hasValue, setHasValue] = useState<boolean>(() => (value ?? defaultValue) != null);
-  const containerRef = React.useRef<View | null>(null);
-  const is12h = format === 12;
+/** Parses typed text: a time, `null` for empty text, `undefined` when it isn't a (complete) time. */
+function parseTime(text: string, is12h: boolean, withSeconds: boolean): TimePickerValue | null | undefined {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(TIME_PATTERN);
+  if (!match) return undefined;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const seconds = match[3] ? parseInt(match[3], 10) : 0;
+  const meridiem = match[4]?.toLowerCase();
+  if (is12h && meridiem) {
+    if (hours < 1 || hours > 12) return undefined;
+    if (meridiem === 'pm' && hours < 12) hours += 12;
+    if (meridiem === 'am' && hours === 12) hours = 0;
+  }
+  if (hours > 23 || minutes > 59 || seconds > 59) return undefined;
+  return { hours, minutes, ...(withSeconds ? { seconds } : {}) };
+}
 
-  useEffect(() => {
-    if (!isControlled) return;
+/**
+ * A time field. With `allowInput` (default) it is a text field that accepts a
+ * typed time, with a clock button opening the wheel panel in a sheet; without
+ * it the whole field is a button opening the panel.
+ */
+export const TimePickerInput = factory<{ props: TimePickerInputProps; ref: TimePickerInputHandle }>(
+  function TimePickerInput(props, ref) {
+    const {
+      value,
+      defaultValue,
+      onChange,
+      format = 24,
+      withSeconds = false,
+      allowInput = true,
+      minuteStep = 5,
+      secondStep = 5,
+      panelWidth,
+      columnWidth = 88,
+      onOpen,
+      onClose,
+      title = 'Select time',
+      autoClose = false,
+      pickerButtonLabel = 'Choose time',
+      label = 'Time',
+      clearable = false,
+      clearButtonLabel = 'Clear time',
+      placeholder,
+      disabled = false,
+      readOnly = false,
+      size = 'md',
+      style,
+      ...fieldProps
+    } = props;
 
-    if (value) {
-      setInternal(buildTimeValue(format, withSeconds, value));
-      setHasValue(true);
-    } else if (value === null) {
-      setHasValue(false);
-    }
-  }, [isControlled, value?.hours, value?.minutes, value?.seconds, value, format, withSeconds]);
+    const theme = useTheme();
+    const is12h = format === 12;
+    const onChangeLatest = useLatestCallback(onChange);
 
-  const display = useMemo(() => {
-    if (!hasValue) return '';
-    const source = (isControlled ? value : internal) ?? internal;
-    const displayHours = is12h ? ((source.hours + 11) % 12) + 1 : source.hours;
-    const base = `${pad(displayHours)}:${pad(source.minutes)}${
-      withSeconds ? ':' + pad(source.seconds ?? 0) : ''
-    }`;
-    const suffix = is12h ? (source.hours >= 12 ? ' PM' : ' AM') : '';
-    return base + suffix;
-  }, [hasValue, isControlled, value?.hours, value?.minutes, value?.seconds, internal, is12h, withSeconds]);
+    const [current, setCurrent] = useControllableState<TimePickerValue | null>({
+      value,
+      defaultValue: defaultValue ?? null,
+      finalValue: null,
+      onChange: (next: TimePickerValue | null) => onChangeLatest(next),
+    });
+    const [opened, setOpened] = useState(false);
+    // Text being typed; `null` shows the formatted value.
+    const [draft, setDraft] = useState<string | null>(null);
+    const inputRef = useRef<TextInput | null>(null);
+    const handleRef = useRef<FieldHandle | null>(null);
 
-  const handleOpen = useCallback(() => {
-    if (disabled) return;
-    setOpen(true);
-    onOpen?.();
-  }, [disabled, onOpen]);
+    const display = useMemo(() => {
+      if (!current) return '';
+      const hours = is12h ? ((current.hours + 11) % 12) + 1 : current.hours;
+      const base = `${pad(hours)}:${pad(current.minutes)}${withSeconds ? `:${pad(current.seconds ?? 0)}` : ''}`;
+      return is12h ? `${base} ${current.hours >= 12 ? 'PM' : 'AM'}` : base;
+    }, [current, is12h, withSeconds]);
 
-  const handleClose = useCallback(() => {
-    setOpen(false);
-    onClose?.();
-  }, [onClose]);
+    const open = useCallback(() => {
+      if (disabled || readOnly) return;
+      setOpened(true);
+      onOpen?.();
+    }, [disabled, readOnly, onOpen]);
 
-  const commit = useCallback(
-    (next: TimePickerValue) => {
-      setInternal(next);
-      setHasValue(true);
-      onChange?.(next);
-    },
-    [onChange]
-  );
+    const close = useCallback(() => {
+      setOpened(false);
+      onClose?.();
+    }, [onClose]);
 
-  const clearValue = useCallback(() => {
-    if (disabled) return;
+    const commit = useCallback((next: TimePickerValue) => setCurrent(next), [setCurrent]);
 
-    const fallback = buildTimeValue(format, withSeconds, defaultValue ?? null);
-    setInternal(fallback);
-    setHasValue(false);
-    onChange?.(null);
-  }, [defaultValue, disabled, format, onChange, withSeconds]);
+    const clearValue = useCallback(() => {
+      if (disabled) return;
+      setDraft(null);
+      setCurrent(null);
+    }, [disabled, setCurrent]);
 
-  const containerStyles = { position: 'relative' as const };
+    const handleChangeText = useCallback(
+      (text: string) => {
+        setDraft(text);
+        const parsed = parseTime(text, is12h, withSeconds);
+        if (parsed === null) setCurrent(null);
+        else if (parsed) setCurrent(parsed);
+      },
+      [is12h, withSeconds, setCurrent]
+    );
 
-  const computedPanelWidth: number | string =
-    panelWidth !== undefined
-      ? panelWidth
-      : (() => {
-          const cols = withSeconds ? 3 : 2;
-          const meridiemWidth = format === 12 ? columnWidth : 0;
-          const padding = 48;
-          return cols * columnWidth + meridiemWidth + padding;
-        })();
+    // Leaving the field shows the committed value (an incomplete entry reverts).
+    const settleDraft = useCallback(() => setDraft(null), []);
 
-  return (
-    <View
-      ref={useMergedRef<View>(containerRef, ref) as any}
-      style={[containerStyles, inputWidth != null ? { width: inputWidth } : null, style]}
-    >
-      <Pressable onPress={handleOpen} disabled={disabled} {...(Platform.OS === 'web' ? { role: 'group' as any } : { accessibilityRole: 'button' })}>
-        <Input
-          value={display}
-          onChangeText={(text) => {
-            if (!allowInput) return;
-            const trimmed = text.trim();
+    useImperativeHandle(
+      ref,
+      (): FieldHandle => ({
+        focus: () => (allowInput ? inputRef.current?.focus() : handleRef.current?.focus()),
+        blur: () => (allowInput ? inputRef.current?.blur() : handleRef.current?.blur()),
+        clear: clearValue,
+        isFocused: () => (allowInput ? !!inputRef.current?.isFocused?.() : !!handleRef.current?.isFocused?.()),
+      }),
+      [allowInput, clearValue]
+    );
 
-            if (trimmed.length === 0) {
-              clearValue();
-              return;
-            }
-
-            const match = trimmed.match(
-              /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM|am|pm)?$/
-            );
-            if (match) {
-              let h = parseInt(match[1], 10);
-              const m = parseInt(match[2], 10);
-              const s = match[3] ? parseInt(match[3], 10) : internal.seconds ?? 0;
-              if (is12h) {
-                const mer = match[4]?.toLowerCase();
-                if (mer === 'pm' && h < 12) h += 12;
-                if (mer === 'am' && h === 12) h = 0;
-              }
-              if (h >= 0 && h < 24 && m < 60 && s < 60) {
-                commit({ hours: h, minutes: m, ...(withSeconds ? { seconds: s } : {}) });
-              }
-            }
-          }}
-          label={label}
-          description={description}
-          placeholder={is12h ? 'hh:mm AM' : 'hh:mm'}
-          endSection={
-            <Icon name="clock" size={16} color={disabled ? theme.text.disabled : theme.text.muted} />
-          }
-          disabled={disabled}
-          error={error}
-          helperText={helperText}
-          size={size}
-          fullWidth={fullWidth}
-          clearable={clearable && hasValue}
-          clearButtonLabel={clearButtonLabel}
-          onClear={clearValue}
-          labelProps={labelProps}
-          descriptionProps={descriptionProps}
-          placeholderTextColor={placeholderTextColor}
-          startSectionProps={startSectionProps}
-          endSectionProps={endSectionProps}
+    const panel = (
+      <View style={PANEL}>
+        <TimePicker
+          value={current ?? buildTimeValue(format, withSeconds, defaultValue ?? null)}
+          onChange={commit}
+          onChangeComplete={autoClose ? close : undefined}
+          format={format}
+          withSeconds={withSeconds}
+          minuteStep={minuteStep}
+          secondStep={secondStep}
+          columnWidth={columnWidth}
+          disabled={disabled || readOnly}
+          accessibilityLabel={title}
         />
-      </Pressable>
+        {!autoClose ? <PickerActions onDone={close} /> : null}
+      </View>
+    );
 
-      <Dialog
-        visible={open}
-        onClose={handleClose}
-        w={typeof computedPanelWidth === 'number' ? computedPanelWidth : 360}
-        title={title || 'Select Time'}
-      >
-        <Pressable
-          style={{
-            flex: 1,
-            width: '100%',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
+    const computedPanelWidth =
+      panelWidth ?? (withSeconds ? 3 : 2) * columnWidth + (is12h ? columnWidth : 0) + 48;
+    if (!allowInput) {
+      return (
+        <PickerField
+          {...fieldProps}
+          handleRef={handleRef}
+          label={label}
+          placeholder={placeholder ?? (is12h ? 'hh:mm AM' : 'hh:mm')}
+          disabled={disabled}
+          readOnly={readOnly}
+          size={size}
+          clearable={clearable}
+          clearButtonLabel={clearButtonLabel}
+          style={style}
+          displayValue={display}
+          hasValue={!!current}
+          opened={opened}
+          onOpenRequest={open}
+          onCloseRequest={close}
+          onClearValue={clearValue}
+          dropdownType="modal"
+          panelTitle={title}
+          panelWidth={computedPanelWidth}
+          icon="clock"
         >
-          <TimePicker
-            value={internal}
-            onChange={commit}
-            onChangeComplete={autoClose ? handleClose : undefined}
-            format={format}
-            withSeconds={withSeconds}
-            minuteStep={minuteStep}
-            secondStep={secondStep}
-            columnWidth={columnWidth}
-            disabled={disabled}
-          />
+          {panel}
+        </PickerField>
+      );
+    }
 
-          {!autoClose && (
-            <View
-              style={{
-                paddingHorizontal: 20,
-                paddingBottom: 20,
-                borderTopWidth: 1,
-                borderTopColor: theme.colors.gray[2],
-              }}
-            >
-              <Flex direction="row" justify="flex-end" gap={12} style={{ paddingTop: 16 }}>
-                <Pressable
-                  onPress={handleClose}
-                  style={({ pressed }) => ({
-                    paddingHorizontal: 24,
-                    paddingVertical: 12,
-                    borderRadius: 12,
-                    backgroundColor: pressed
-                      ? theme.colors.primary[6]
-                      : theme.colors.primary[5],
-                    minWidth: 80,
-                    alignItems: 'center',
-                  })}
-                >
-                  <Text size="md" weight="semibold" style={{ color: 'white' }}>
-                    Done
-                  </Text>
-                </Pressable>
-              </Flex>
-            </View>
-          )}
-        </Pressable>
-      </Dialog>
-    </View>
-  );
-});
+    const iconSize = getControlSize(theme, size).iconSize;
+    const pickerButton = (
+      <Pressable
+        onPress={open}
+        disabled={disabled || readOnly}
+        {...a11yProps({
+          role: 'button',
+          label: pickerButtonLabel,
+          hasPopup: 'dialog',
+          expanded: opened,
+          disabled: disabled || readOnly,
+        })}
+        hitSlop={isNative ? 10 : undefined}
+        style={[PICKER_BUTTON, webStyle({ cursor: disabled ? 'not-allowed' : 'pointer' })]}
+        testID={fieldProps.testID ? `${fieldProps.testID}-picker-button` : undefined}
+      >
+        <Icon name="clock" size={iconSize} color={disabled ? theme.text.disabled : theme.text.muted} decorative />
+      </Pressable>
+    );
 
-TimePickerInput.displayName = 'TimePickerInput';
+    return (
+      <View style={style}>
+        <Input
+          {...fieldProps}
+          ref={inputRef}
+          label={label}
+          value={draft ?? display}
+          onChangeText={handleChangeText}
+          onBlur={() => {
+            settleDraft();
+            fieldProps.onBlur?.();
+          }}
+          onEnter={settleDraft}
+          placeholder={placeholder ?? (is12h ? 'hh:mm AM' : 'hh:mm')}
+          disabled={disabled}
+          readOnly={readOnly}
+          size={size}
+          clearable={clearable && !!current}
+          clearButtonLabel={clearButtonLabel}
+          onClear={() => {
+            clearValue();
+            fieldProps.onClear?.();
+          }}
+          endSection={fieldProps.endSection ?? pickerButton}
+        />
+        <DropdownSheet
+          opened={opened}
+          onClose={close}
+          title={title}
+          withCloseButton
+          maxWidth={computedPanelWidth}
+          testID={fieldProps.testID ? `${fieldProps.testID}-sheet` : undefined}
+        >
+          {panel}
+        </DropdownSheet>
+      </View>
+    );
+  },
+  { displayName: 'TimePickerInput' }
+);
+
+const PANEL: ViewStyle = { alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16 };
+const PICKER_BUTTON: ViewStyle = {
+  minWidth: 24,
+  minHeight: 24,
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: 12,
+};

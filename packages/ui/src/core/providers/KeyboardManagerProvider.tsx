@@ -9,7 +9,8 @@ export interface KeyboardManagerProviderProps {
   disabled?: boolean;
 }
 
-export interface KeyboardManagerContextValue {
+/** On-screen keyboard geometry. Changes while the keyboard moves. */
+export interface KeyboardMetrics {
   /** Indicates if the on-screen keyboard is currently visible */
   isKeyboardVisible: boolean;
   /** Height of the keyboard in pixels when visible */
@@ -20,6 +21,10 @@ export interface KeyboardManagerContextValue {
   keyboardAnimationDuration: number;
   /** Reported animation easing from the native keyboard event */
   keyboardAnimationEasing?: KeyboardEvent['easing'];
+}
+
+/** Focus hand-off helpers. Stable apart from `pendingFocusTarget`. */
+export interface KeyboardFocusApi {
   /** Latest focus target requested via `setFocusTarget`; null when none pending */
   pendingFocusTarget: string | null;
   /** Imperative helper for dismissing the keyboard */
@@ -41,28 +46,29 @@ export interface KeyboardManagerContextValue {
   refocus: (componentId: string, options?: { dismiss?: boolean }) => void;
 }
 
-interface KeyboardState {
-  isVisible: boolean;
-  height: number;
-  endCoordinates?: KeyboardEvent['endCoordinates'];
-  duration: number;
-  easing?: KeyboardEvent['easing'];
-}
+export type KeyboardManagerContextValue = KeyboardMetrics & KeyboardFocusApi;
 
-const DEFAULT_STATE: KeyboardState = {
-  isVisible: false,
-  height: 0,
-  duration: 0,
-  easing: undefined,
+const DEFAULT_METRICS: KeyboardMetrics = {
+  isKeyboardVisible: false,
+  keyboardHeight: 0,
+  keyboardEndCoordinates: undefined,
+  keyboardAnimationDuration: 0,
+  keyboardAnimationEasing: undefined,
 };
 
-const KeyboardManagerContext = createContext<KeyboardManagerContextValue | null>(null);
+// Two contexts so the many inputs that only need the focus helpers don't
+// re-render on every keyboard frame, and layout that follows the keyboard
+// doesn't re-render on focus hand-offs.
+const KeyboardMetricsContext = createContext<KeyboardMetrics | null>(null);
+KeyboardMetricsContext.displayName = 'KeyboardMetricsContext';
+const KeyboardFocusContext = createContext<KeyboardFocusApi | null>(null);
+KeyboardFocusContext.displayName = 'KeyboardFocusContext';
 
 export const KeyboardManagerProvider: React.FC<KeyboardManagerProviderProps> = ({
   children,
   disabled = false,
 }) => {
-  const [state, setState] = useState<KeyboardState>(DEFAULT_STATE);
+  const [metrics, setMetrics] = useState<KeyboardMetrics>(DEFAULT_METRICS);
   const focusTargetRef = useRef<string | null>(null);
   const [pendingFocusTarget, setPendingFocusTarget] = useState<string | null>(null);
 
@@ -73,24 +79,22 @@ export const KeyboardManagerProvider: React.FC<KeyboardManagerProviderProps> = (
 
     const height = event.endCoordinates?.height ?? 0;
 
-    setState({
-      isVisible: true,
-      height,
-      endCoordinates: event.endCoordinates,
-      duration: event.duration ?? 0,
-      easing: event.easing,
+    // will/did pairs report the same frame twice: skip no-op updates so
+    // consumers render once per actual change.
+    setMetrics(prev => {
+      if (prev.isKeyboardVisible && prev.keyboardHeight === height) return prev;
+      return {
+        isKeyboardVisible: true,
+        keyboardHeight: height,
+        keyboardEndCoordinates: event.endCoordinates,
+        keyboardAnimationDuration: event.duration ?? 0,
+        keyboardAnimationEasing: event.easing,
+      };
     });
   }, []);
 
   const handleKeyboardHide = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      isVisible: false,
-      height: 0,
-      endCoordinates: undefined,
-      duration: 0,
-      easing: undefined,
-    }));
+    setMetrics(prev => (!prev.isKeyboardVisible && prev.keyboardHeight === 0 ? prev : DEFAULT_METRICS));
   }, []);
 
   useEffect(() => {
@@ -147,30 +151,50 @@ export const KeyboardManagerProvider: React.FC<KeyboardManagerProviderProps> = (
     setFocusTarget(componentId);
   }, [dismissKeyboard, setFocusTarget]);
 
-  const value = useMemo<KeyboardManagerContextValue>(() => ({
-    isKeyboardVisible: state.isVisible,
-    keyboardHeight: state.height,
-    keyboardEndCoordinates: state.endCoordinates,
-    keyboardAnimationDuration: state.duration,
-    keyboardAnimationEasing: state.easing,
+  const focusApi = useMemo<KeyboardFocusApi>(() => ({
     pendingFocusTarget,
     dismissKeyboard,
     setFocusTarget,
     consumeFocusTarget,
     refocus,
-  }), [state, pendingFocusTarget, dismissKeyboard, setFocusTarget, consumeFocusTarget, refocus]);
+  }), [pendingFocusTarget, dismissKeyboard, setFocusTarget, consumeFocusTarget, refocus]);
 
   return (
-    <KeyboardManagerContext.Provider value={value}>
-      {children}
-    </KeyboardManagerContext.Provider>
+    <KeyboardFocusContext.Provider value={focusApi}>
+      <KeyboardMetricsContext.Provider value={metrics}>
+        {children}
+      </KeyboardMetricsContext.Provider>
+    </KeyboardFocusContext.Provider>
   );
 };
 
 KeyboardManagerProvider.displayName = 'KeyboardManagerProvider';
 
+/** Keyboard geometry only; null outside a provider. Re-renders on keyboard moves only. */
+export function useKeyboardMetricsOptional(): KeyboardMetrics | null {
+  return useContext(KeyboardMetricsContext);
+}
+
+/** Focus hand-off helpers only; null outside a provider. Doesn't re-render on keyboard moves. */
+export function useKeyboardFocusOptional(): KeyboardFocusApi | null {
+  return useContext(KeyboardFocusContext);
+}
+
+function useCombined(): KeyboardManagerContextValue | null {
+  const metrics = useContext(KeyboardMetricsContext);
+  const focusApi = useContext(KeyboardFocusContext);
+  return useMemo(
+    () => (metrics && focusApi ? { ...metrics, ...focusApi } : null),
+    [metrics, focusApi]
+  );
+}
+
+/**
+ * Everything (metrics + focus helpers). Re-renders on both; prefer
+ * `useKeyboardMetricsOptional` / `useKeyboardFocusOptional` when you need one.
+ */
 export function useKeyboardManager(): KeyboardManagerContextValue {
-  const context = useContext(KeyboardManagerContext);
+  const context = useCombined();
   if (!context) {
     throw new Error('useKeyboardManager must be used within a KeyboardManagerProvider');
   }
@@ -178,5 +202,5 @@ export function useKeyboardManager(): KeyboardManagerContextValue {
 }
 
 export function useKeyboardManagerOptional(): KeyboardManagerContextValue | null {
-  return useContext(KeyboardManagerContext);
+  return useCombined();
 }

@@ -1,38 +1,28 @@
-import { Block, Card, Text } from '@platform-blocks/ui';
+import { Block, Text } from '@platform-blocks/ui';
 
 export function Demo() {
   return (
-    <Block>
-      <Card p="md">
-        <Block>
-          <Text variant="p" weight="medium">
-            Semantic colors
-          </Text>
-          <Text color="primary">Primary color text</Text>
-          <Text color="secondary">Secondary color text</Text>
-          <Text color="muted">Muted color text</Text>
-          <Text color="disabled">Disabled color text</Text>
-          <Text color="link">Link color text</Text>
-        </Block>
-      </Card>
-
-      <Card p="md">
-        <Block>
-          <Text variant="p" weight="medium">
-            Custom palette
-          </Text>
-          <Text color="#ff6b6b">Custom red text</Text>
-          <Text color="#4ecdc4">Custom teal text</Text>
-          <Text color="#45b7d1">Custom blue text</Text>
-          <Text color="#96ceb4">Custom green text</Text>
-          <Text color="#feca57">Custom yellow text</Text>
-        </Block>
-      </Card>
+    <Block gap="lg">
+      <Block>
+        <Text c="primary">primary</Text>
+        <Text c="secondary">secondary</Text>
+        <Text c="muted">muted</Text>
+        <Text c="disabled">disabled</Text>
+        <Text c="link">link</Text>
+      </Block>
+      <Block>
+        <Text c="success">success</Text>
+        <Text c="error">error</Text>
+        <Text c="primary.5">primary.5</Text>
+        <Text c="error.7">error.7</Text>
+      </Block>
+      <Block>
+        <Text c="#ff6b6b">#ff6b6b</Text>
+        <Text c="#4ecdc4">#4ecdc4</Text>
+        <Text c="#45b7d1">#45b7d1</Text>
+        <Text c="#96ceb4">#96ceb4</Text>
+        <Text c="#feca57">#feca57</Text>
+      </Block>
     </Block>
   );
 }
-
-
-
-
-

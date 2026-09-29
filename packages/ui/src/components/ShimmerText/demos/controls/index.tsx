@@ -33,14 +33,14 @@ export function Demo() {
         repeatDelay={0.6}
         duration={1.6}
         shimmerColor="#38bdf8"
-        weight="bold"
+        fw="bold"
         size="lg"
       >
         Interactive shimmer headline
       </ShimmerText>
 
       <Block w="100%">
-        <Text variant="small" weight="medium">
+        <Text variant="small" fw="medium">
           Spread: {spread.toFixed(1)}
         </Text>
         <Slider

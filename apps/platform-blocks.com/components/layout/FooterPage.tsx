@@ -46,10 +46,10 @@ export function FooterContent() {
                   resizeMode="contain"
                 />
               )}
-              size={36} weight="bold">{t('footer.app.title')}</Title>
+              size={36} fw="bold">{t('footer.app.title')}</Title>
             <Flex direction="column" gap="xs">
 
-              <Text size="sm" color="secondary">{t('footer.app.tagline')}</Text>
+              <Text size="sm" c="secondary">{t('footer.app.tagline')}</Text>
               <Flex direction="row" align="center" gap="sm">
                 <BrandButton title={t('actions.starOnGithub')} brand="github" variant="ghost" iconPosition="left" size="sm" onPress={() => handleLinkPress(GITHUB_REPO)} />
                 {/* <BrandButton title={t('actions.followOnX')} brand="x" variant="ghost" iconPosition="left" size="xs" onPress={() => handleLinkPress(TWITTER_PROFILE)} /> */}
@@ -62,13 +62,13 @@ export function FooterContent() {
           {/* Quick Links */}
           <GridItem span={responsive.isMobile ? 4 : 2}>
             <Flex direction="column" gap="sm">
-              <Text size="xs" weight="semibold" color="info" tracking={1} uppercase>Quick Links</Text>
+              <Text size="xs" fw="semibold" c="info" lts={1} tt="uppercase">Quick Links</Text>
               <Flex direction="column" gap="xs">
-                <Link {...routeLink('/components')} variant="hover-underline" size="sm" color="gray">Components</Link>
+                <Link {...routeLink('/components')} variant="hover-underline" size="sm" c="gray">Components</Link>
                 {/* Points at the dedicated /charts page, not a filtered /components view —
                     the charts index is its own indexable route with 25 detail pages under it. */}
-                <Link {...routeLink('/charts')} variant="hover-underline" size="sm" color="gray">Charts</Link>
-                <Link {...routeLink('/hooks')} variant="hover-underline" size="sm" color="gray">Hooks</Link>
+                <Link {...routeLink('/charts')} variant="hover-underline" size="sm" c="gray">Charts</Link>
+                <Link {...routeLink('/hooks')} variant="hover-underline" size="sm" c="gray">Hooks</Link>
               </Flex>
             </Flex>
           </GridItem>
@@ -76,11 +76,11 @@ export function FooterContent() {
           {/* Documentation */}
           <GridItem span={responsive.isMobile ? 4 : 2}>
             <Flex direction="column" gap="sm">
-              <Text size="xs" weight="semibold" color="info" tracking={1} uppercase>Documentation</Text>
+              <Text size="xs" fw="semibold" c="info" lts={1} tt="uppercase">Documentation</Text>
               <Flex direction="column" gap="xs">
-                <Link {...routeLink('/getting-started')} variant="hover-underline" size="sm" color="gray">Getting Started</Link>
-                <Link {...routeLink('/localization')} variant="hover-underline" size="sm" color="gray">Localization</Link>
-                <Link href="/llms" variant="hover-underline" size="sm" color="gray">llms.txt</Link>
+                <Link {...routeLink('/getting-started')} variant="hover-underline" size="sm" c="gray">Getting Started</Link>
+                <Link {...routeLink('/localization')} variant="hover-underline" size="sm" c="gray">Localization</Link>
+                <Link href="/llms" variant="hover-underline" size="sm" c="gray">llms.txt</Link>
               </Flex>
             </Flex>
           </GridItem>
@@ -88,15 +88,15 @@ export function FooterContent() {
           {/* Resources */}
           <GridItem span={responsive.isMobile ? 4 : 2}>
             <Flex direction="column" gap="sm">
-              <Text size="xs" weight="semibold" color="info" tracking={1} uppercase>Resources</Text>
+              <Text size="xs" fw="semibold" c="info" lts={1} tt="uppercase">Resources</Text>
               <Flex direction="column" gap="xs">
-                <Link {...routeLink('/faq')} variant="hover-underline" size="sm" color="gray">FAQ</Link>
+                <Link {...routeLink('/faq')} variant="hover-underline" size="sm" c="gray">FAQ</Link>
                 {/* Changelog and Sitemap leave the router: one is off-site, the other is a
                     static XML file. Both were previously handed to `router.push`, which
                     treated them as in-app routes and landed on the not-found screen. */}
-                <Link href={`${GITHUB_REPO}/releases`} target="_blank" variant="hover-underline" size="sm" color="gray">Changelog</Link>
-                <Link {...routeLink('/accessibility')} variant="hover-underline" size="sm" color="gray">Accessibility</Link>
-                <Link href="/sitemap.xml" target="_blank" variant="hover-underline" size="sm" color="gray">Sitemap</Link>
+                <Link href={`${GITHUB_REPO}/releases`} target="_blank" variant="hover-underline" size="sm" c="gray">Changelog</Link>
+                <Link {...routeLink('/accessibility')} variant="hover-underline" size="sm" c="gray">Accessibility</Link>
+                <Link href="/sitemap.xml" target="_blank" variant="hover-underline" size="sm" c="gray">Sitemap</Link>
               </Flex>
             </Flex>
           </GridItem>

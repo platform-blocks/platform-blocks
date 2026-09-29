@@ -1,14 +1,14 @@
 import { useRef } from 'react';
-import { Alert, TextInput } from 'react-native';
+import { TextInput } from 'react-native';
 
-import { Block, Button, Input, Row, Text, useDialog } from '@platform-blocks/ui';
+import { Block, Button, Input, Row, useDialog } from '@platform-blocks/ui';
 
 export function Demo() {
   const { openDialog, closeDialog } = useDialog();
   const nameRef = useRef<TextInput>(null);
 
   const showFormDialog = () => {
-    let formData = { name: '', email: '' };
+    const formData = { name: '', email: '' };
 
     const dialogId = openDialog({
       variant: 'modal',
@@ -18,11 +18,7 @@ export function Demo() {
       // works on every platform.
       autoFocus: nameRef,
       content: (
-        <Block p="md">
-          <Text size="sm" color="secondary">
-            Fill in your details to create an account.
-          </Text>
-
+        <Block>
           <Input
             inputRef={nameRef}
             placeholder="Your name"
@@ -41,29 +37,19 @@ export function Demo() {
             }}
           />
 
-          <Row gap="sm" mt="sm">
-            <Block grow={1}>
-              <Button fullWidth variant="secondary" onPress={() => closeDialog(dialogId)}>
-                Cancel
-              </Button>
-            </Block>
-            <Block grow={1}>
-              <Button
-                fullWidth
-                onPress={() => {
-                  if (!formData.name || !formData.email) {
-                    Alert.alert('Error', 'Please fill in all fields');
-                    return;
-                  }
-
-                  Alert.alert('Success', `Account created for ${formData.name}`);
-                  closeDialog(dialogId);
-                }}
-                variant="filled"
-              >
-                Create account
-              </Button>
-            </Block>
+          <Row gap="sm" justify="flex-end" mt="sm">
+            <Button variant="secondary" onPress={() => closeDialog(dialogId)}>
+              Cancel
+            </Button>
+            <Button
+              variant="filled"
+              onPress={() => {
+                if (!formData.name || !formData.email) return;
+                closeDialog(dialogId);
+              }}
+            >
+              Create account
+            </Button>
           </Row>
         </Block>
       )

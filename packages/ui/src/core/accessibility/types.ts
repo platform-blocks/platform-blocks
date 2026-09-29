@@ -27,7 +27,7 @@ export interface AccessibilityProviderProps {
 // Focus management types
 export interface FocusableElement {
   id: string;
-  ref: React.RefObject<any>;
+  ref: React.RefObject<unknown>;
   priority?: number;
 }
 

@@ -7,7 +7,7 @@ export function Demo() {
     <Block>
       {SIZES.map((size) => (
         <Block key={size}>
-          <Text variant="small" color="secondary">{size}</Text>
+          <Text variant="small" c="secondary">{size}</Text>
           <ToggleGroup size={size}>
             <ToggleButton value="left">Left</ToggleButton>
             <ToggleButton value="center">Center</ToggleButton>

@@ -8,7 +8,6 @@ const USAGE = [
 ];
 
 const TOTAL_GB = 500;
-const used = USAGE.reduce((sum, segment) => sum + segment.value, 0);
 
 const formatSize = (percent: number) => {
   const gb = (percent / 100) * TOTAL_GB;
@@ -18,13 +17,6 @@ const formatSize = (percent: number) => {
 export function Demo() {
   return (
     <Block gap="md" fullWidth>
-      <Row justify="space-between" align="center">
-        <Text weight="600">Project storage</Text>
-        <Text variant="small" color="muted">
-          {formatSize(used)} of {TOTAL_GB} GB used
-        </Text>
-      </Row>
-
       <Progress.Root size="lg" radius="xl">
         {USAGE.map((segment) => (
           <Progress.Section
@@ -46,7 +38,7 @@ export function Demo() {
           <Row key={segment.label} gap="xs" align="center">
             <ColorSwatch color={segment.color} size={12} />
             <Text variant="small">{segment.label}</Text>
-            <Text variant="small" color="muted">
+            <Text variant="small" c="muted">
               {segment.value}%
             </Text>
           </Row>

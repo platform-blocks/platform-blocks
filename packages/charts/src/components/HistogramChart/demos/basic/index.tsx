@@ -7,7 +7,7 @@ export function Demo() {
 		<HistogramChart
 			title="Session duration distribution"
 			subtitle="Product analytics cohort"
-			height={280}
+			h={280}
 			data={SESSION_DURATIONS}
 			bins={10}
 			showDensity

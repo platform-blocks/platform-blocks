@@ -57,4 +57,33 @@ describe('useDisclosure', () => {
     act(() => result.current[1].toggle());
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('keeps the handlers stable and calls the latest inline callbacks', () => {
+    const calls: string[] = [];
+    const { result, rerender } = renderHook(
+      ({ tag }: { tag: string }) =>
+        useDisclosure(false, { onOpen: () => calls.push(`${tag}:open`), onClose: () => calls.push(`${tag}:close`) }),
+      { initialProps: { tag: 'v1' } },
+    );
+    const handlers = result.current[1];
+
+    rerender({ tag: 'v2' });
+    expect(result.current[1]).toBe(handlers);
+
+    act(() => handlers.open());
+    act(() => handlers.toggle());
+    expect(calls).toEqual(['v2:open', 'v2:close']);
+  });
+
+  it('sees its own pending state when called twice in one event', () => {
+    const onOpen = jest.fn();
+    const { result } = renderHook(() => useDisclosure(false, { onOpen }));
+
+    act(() => {
+      result.current[1].open();
+      result.current[1].open();
+    });
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(result.current[0]).toBe(true);
+  });
 });

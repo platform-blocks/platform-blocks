@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useCallback } from 'react';
-import { useAccessibility } from '../accessibility/context';
+import React, { createContext, useContext, useCallback, useMemo } from 'react';
+import { useReducedMotion } from '../motion/useReducedMotion';
 import type { SoundContextType, SoundAsset, SoundOptions, SoundState, HapticFeedbackOptions } from './types';
+import { devLog } from '../utils/logger';
 
 /**
  * Mock sound context for environments without expo-audio support
@@ -22,58 +23,48 @@ export const MockSoundProvider: React.FC<MockSoundProviderProps> = ({
   initialSounds = [],
   enableLogging = true,
 }) => {
-  const log = useCallback((message: string, data?: any) => {
+  const log = useCallback((message: string, data?: unknown) => {
     if (enableLogging) {
-      console.log(`[Sound Mock] ${message}`, data || '');
+      devLog(`[Sound Mock] ${message}`, data || '');
     }
   }, [enableLogging]);
 
-  const contextValue: SoundContextType = {
+  const contextValue = useMemo<SoundContextType>(() => ({
     enabled: true,
     volume: 1.0,
     respectsReducedMotion: true,
-    
-    playSound: useCallback(async (soundId: string, options?: SoundOptions) => {
+    playSound: async (soundId: string, options?: SoundOptions) => {
       log(`Playing sound: ${soundId}`, options);
-    }, [log]),
-    
-    stopSound: useCallback(async (soundId: string) => {
+    },
+    stopSound: async (soundId: string) => {
       log(`Stopping sound: ${soundId}`);
-    }, [log]),
-    
-    stopAllSounds: useCallback(async () => {
+    },
+    stopAllSounds: async () => {
       log('Stopping all sounds');
-    }, [log]),
-    
-    preloadSounds: useCallback(async (soundIds: string[]) => {
+    },
+    preloadSounds: async (soundIds: string[]) => {
       log('Preloading sounds', soundIds);
-    }, [log]),
-    
-    registerSound: useCallback((sound: SoundAsset) => {
+    },
+    registerSound: (sound: SoundAsset) => {
       log(`Registering sound: ${sound.id}`, sound);
-    }, [log]),
-    
-    unregisterSound: useCallback(async (soundId: string) => {
+    },
+    unregisterSound: async (soundId: string) => {
       log(`Unregistering sound: ${soundId}`);
-    }, [log]),
-    
-    setEnabled: useCallback((enabled: boolean) => {
+    },
+    setEnabled: (enabled: boolean) => {
       log(`Setting sounds enabled: ${enabled}`);
-    }, [log]),
-    
-    setVolume: useCallback((volume: number) => {
+    },
+    setVolume: (volume: number) => {
       log(`Setting volume: ${volume}`);
-    }, [log]),
-    
-    setRespectsReducedMotion: useCallback((respects: boolean) => {
+    },
+    setRespectsReducedMotion: (respects: boolean) => {
       log(`Setting respects reduced motion: ${respects}`);
-    }, [log]),
-    
-    getSoundState: useCallback((soundId: string): SoundState | null => {
+    },
+    getSoundState: (soundId: string): SoundState | null => {
       log(`Getting sound state: ${soundId}`);
       return null;
-    }, [log]),
-  };
+    },
+  }), [log]);
 
   return (
     <MockSoundContext.Provider value={contextValue}>
@@ -97,18 +88,18 @@ export const useMockSound = (): SoundContextType => {
  * Mock haptic feedback hook
  */
 export const useMockHaptics = () => {
-  const { prefersReducedMotion } = useAccessibility();
+  const prefersReducedMotion = useReducedMotion();
 
   const triggerHaptic = useCallback(async (options: HapticFeedbackOptions = {}) => {
     const { type = 'light', respectsReducedMotion = true } = options;
 
     // Check reduced motion preferences
     if (respectsReducedMotion && prefersReducedMotion) {
-      console.log('[Haptic Mock] Skipped due to reduced motion preference');
+      devLog('[Haptic Mock] Skipped due to reduced motion preference');
       return;
     }
 
-    console.log(`[Haptic Mock] Triggering haptic: ${type}`);
+    devLog(`[Haptic Mock] Triggering haptic: ${type}`);
   }, [prefersReducedMotion]);
 
   return { triggerHaptic };

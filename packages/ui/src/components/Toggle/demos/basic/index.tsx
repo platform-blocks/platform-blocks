@@ -18,7 +18,7 @@ export function Demo() {
         <ToggleButton value="center">Center</ToggleButton>
         <ToggleButton value="right">Right</ToggleButton>
       </ToggleGroup>
-      <Text size="xs" color="secondary">
+      <Text size="xs" c="secondary">
         Selected alignment: {alignment}
       </Text>
     </Block>

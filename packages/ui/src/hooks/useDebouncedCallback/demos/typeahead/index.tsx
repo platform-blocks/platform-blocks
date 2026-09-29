@@ -31,7 +31,7 @@ export function Demo() {
           <Text key={index} ff="monospace" size="sm">{`#${index + 1} → "${call}"`}</Text>
         ))
       ) : (
-        <Text size="sm" color="muted">No invocations yet.</Text>
+        <Text size="sm" c="muted">No invocations yet.</Text>
       )}
     </Block>
   );

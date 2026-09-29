@@ -7,7 +7,7 @@ export function Demo() {
     <Row align="center" gap="lg" wrap="wrap">
       {SIZES.map((size) => (
         <Block key={size} align="center">
-          <Switch size={size} defaultChecked />
+          <Switch accessibilityLabel={`Switch ${size}`} size={size} defaultChecked />
           <Text variant="small">{size}</Text>
         </Block>
       ))}

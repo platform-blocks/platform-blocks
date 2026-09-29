@@ -5,7 +5,7 @@ import { ComponentWithProps, FactoryPayload } from './factory';
 type DefaultProps = Record<string, unknown>;
 
 // Polymorphic component types
-type ElementType = keyof React.JSX.IntrinsicElements | React.JSXElementConstructor<any>;
+type ElementType = React.ElementType;
 
 type PropsOf<C extends ElementType> = React.JSX.LibraryManagedAttributes<
   C,
@@ -33,88 +33,102 @@ export type PolymorphicComponentProps<C, Props = DefaultProps> = C extends React
 
 // Polymorphic factory payload
 export interface PolymorphicFactoryPayload extends FactoryPayload {
-  defaultComponent: any;
-  defaultRef: any;
+  defaultComponent: unknown;
+  defaultRef: unknown;
 }
 
-// Polymorphic component interface
+/**
+ * Polymorphic component interface
+ * @deprecated see `polymorphicFactory`.
+ */
 export interface PolymorphicComponent<Payload extends PolymorphicFactoryPayload>
   extends ComponentWithProps<Payload['props']> {
   <C = Payload['defaultComponent']>(
     props: PolymorphicComponentProps<C, Payload['props']>
   ): React.ReactElement;
-  extend: any;
+  /** Typed identity for theme component overrides. */
+  extend: <T>(input: T) => T;
   displayName?: string;
 }
 
-export interface PolymorphicFactoryOptions {
+export interface PolymorphicFactoryOptions<Props = object> {
   /** Optional display name applied to the resulting component */
   displayName?: string;
   /** Enable or disable memoization. Defaults to `true`. */
   memo?: boolean;
   /** Optional custom comparison used when memoization is enabled */
-  arePropsEqual?: (prevProps: Readonly<any>, nextProps: Readonly<any>) => boolean;
+  arePropsEqual?: (prevProps: Readonly<Props>, nextProps: Readonly<Props>) => boolean;
+}
+
+type AnyProps = Record<string, unknown>;
+type ErasedComponent = React.ForwardRefExoticComponent<AnyProps & React.RefAttributes<unknown>>;
+type PropsComparator = (prev: Readonly<AnyProps>, next: Readonly<AnyProps>) => boolean;
+interface PolymorphicHelperHost {
+  displayName?: string;
+  extend?: <T>(input: T) => T;
+  withProps?: (fixedProps: AnyProps) => PolymorphicHelperHost;
 }
 
 /**
  * Factory function for creating polymorphic PlatformBlocks components
+ *
+ * @deprecated No component in the library uses it (every component is built with `factory`); it will be removed in the next major.
  */
 export function polymorphicFactory<Payload extends PolymorphicFactoryPayload>(
   ui: React.ForwardRefRenderFunction<Payload['defaultRef'], Payload['props']>,
-  options: PolymorphicFactoryOptions = {}
+  options: PolymorphicFactoryOptions<Payload['props']> = {}
 ): PolymorphicComponent<Payload> {
-  const { displayName, memo: shouldMemo = true, arePropsEqual } = options;
+  const { displayName, memo: shouldMemo = true } = options;
+  const arePropsEqual = options.arePropsEqual as PropsComparator | undefined;
 
-  const ForwardComponent = forwardRef(ui) as any;
+  const ForwardComponent = forwardRef(ui) as unknown as ErasedComponent;
 
   if (displayName) {
     ForwardComponent.displayName = displayName;
   }
 
-  const MemoizedComponent = shouldMemo
+  const Component: PolymorphicHelperHost = shouldMemo
     ? memo(ForwardComponent, arePropsEqual)
     : ForwardComponent;
 
-  const Component = MemoizedComponent as any;
-
-  Component.withProps = (fixedProps: any) => {
-    const Extended = forwardRef((props, ref) => (
+  Component.withProps = (fixedProps: AnyProps) => {
+    const Extended: ErasedComponent = forwardRef<unknown, AnyProps>((props, ref) => (
       <ForwardComponent {...fixedProps} {...props} ref={ref} />
-    )) as any;
+    ));
 
     const baseName = ForwardComponent.displayName || ui.name || 'PolymorphicComponent';
     Extended.displayName = `WithProps(${baseName})`;
 
-    const ExtendedComponent = shouldMemo
+    const Result: PolymorphicHelperHost = shouldMemo
       ? memo(Extended, arePropsEqual)
       : Extended;
-
-    const Result = ExtendedComponent as any;
     Result.extend = Component.extend;
     Result.withProps = Component.withProps;
     return Result;
   };
 
-  Component.extend = ((input: any) => input) as any;
+  Component.extend = <T,>(input: T): T => input;
 
   return Component as PolymorphicComponent<Payload>;
 }
 
 /**
  * Creates a polymorphic component from a regular component
+ *
+ * @deprecated Unused by the library; build components with `factory`. It will be removed in the next major.
  */
 export function createPolymorphicComponent<
   ComponentDefaultType,
   Props,
   StaticComponents = Record<string, never>,
->(component: any) {
+>(component: unknown) {
   type ComponentProps<C> = PolymorphicComponentProps<C, Props>;
 
   type _PolymorphicComponent = <C = ComponentDefaultType>(
     props: ComponentProps<C>
   ) => React.ReactElement;
 
-  type ComponentProperties = Omit<React.FunctionComponent<ComponentProps<any>>, never>;
+  type ComponentProperties = Omit<React.FunctionComponent<ComponentProps<ComponentDefaultType>>, never>;
 
   type PolymorphicComponent = _PolymorphicComponent & ComponentProperties & StaticComponents;
 

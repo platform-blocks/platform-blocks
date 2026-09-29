@@ -1,30 +1,53 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { Text as RNText } from 'react-native';
+import { factory } from '../../core/factory/factory';
+import { useThemedStyles } from '../../core/hooks/useThemedStyles';
+import { isWeb } from '../../core/platform';
+import { resolveFontSize } from '../../core/theme/tokens';
 import { Text } from '../Text';
-import { FormLabelProps } from './types';
+import { formLabelId, useFormFieldContext } from './FormContext';
+import type { FormLabelProps } from './types';
 
-export const FormLabel = React.forwardRef<RNText, FormLabelProps>(({ 
-  htmlFor, 
-  required, 
-  children 
-}, ref) => {
-  return (
-    <Text 
-      ref={ref}
-      style={{ 
-        fontSize: 14, 
-        fontWeight: '600', 
-        marginBottom: 4 
-      }}
-    >
-      {children}
-      {required && (
-        <Text style={{ color: '#e53e3e' }}>
-          {' *'}
-        </Text>
-      )}
-    </Text>
-  );
-});
+/**
+ * A standalone label for a form field. Inside a `Form.Field` (or with
+ * `htmlFor`) it gets an id the field's `Form.Input` references
+ * (`aria-labelledby`), so it names the input.
+ */
+export const FormLabel = factory<{ props: FormLabelProps; ref: RNText }>(
+  ({ htmlFor, required: requiredProp, children, style, testID }, ref) => {
+    const fieldContext = useFormFieldContext();
+    const target = htmlFor ?? fieldContext?.name;
+    const id = target ? formLabelId(target) : undefined;
+    const required = requiredProp ?? fieldContext?.required ?? false;
+    const registerLabel = fieldContext?.registerLabel;
 
-FormLabel.displayName = 'FormLabel';
+    useEffect(() => {
+      if (!id || !registerLabel) return undefined;
+      return registerLabel(id);
+    }, [id, registerLabel]);
+
+    const styles = useThemedStyles(
+      (theme) => ({
+        label: { fontSize: resolveFontSize(theme, 'md'), fontWeight: '600' as const, marginBottom: 4 },
+        required: { color: theme.colors.error[5] },
+      }),
+      []
+    );
+
+    return (
+      <Text ref={ref} id={id} style={[styles.label, style]} testID={testID}>
+        {children}
+        {required ? (
+          isWeb ? (
+            <span aria-hidden="true" style={styles.required}>
+              {' *'}
+            </span>
+          ) : (
+            <Text style={styles.required}>{' *'}</Text>
+          )
+        ) : null}
+      </Text>
+    );
+  },
+  { displayName: 'FormLabel' }
+);

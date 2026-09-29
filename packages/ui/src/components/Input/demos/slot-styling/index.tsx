@@ -13,7 +13,7 @@ export function Demo() {
         placeholder="my-workspace"
         value={workspace}
         onChangeText={setWorkspace}
-        startSection={<Text ff="monospace" color="muted">https://</Text>}
+        startSection={<Text ff="monospace" c="muted">https://</Text>}
         startSectionProps={{ style: { paddingRight: 8 } }}
       />
 

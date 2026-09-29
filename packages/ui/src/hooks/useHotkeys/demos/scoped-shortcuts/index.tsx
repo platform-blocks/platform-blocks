@@ -29,7 +29,7 @@ export function Demo() {
           <Text key={`${entry}-${index}`} size="sm">{entry}</Text>
         ))
       ) : (
-        <Text size="sm" color="muted">No shortcuts fired yet.</Text>
+        <Text size="sm" c="muted">No shortcuts fired yet.</Text>
       )}
     </Block>
   );

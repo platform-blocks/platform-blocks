@@ -1,75 +1,58 @@
-import React from 'react';
-import { SizeValue, ColorValue, SpacingProps } from '../../core/theme/types';
-import type { TextProps } from '../Text';
+import type React from 'react';
 
-export interface BaseComponentProps extends SpacingProps {
-  /** Component test ID for testing */
-  testID?: string;
-
-  /** Additional CSS styles */
-  style?: any;
-}
+import type { WebKeyboardEvent } from '../../core/platform/webProps';
+import type { ThemeColor } from '../../core/theme/resolveColors';
+import type { SizeValue } from '../../core/theme/types';
+import type { FieldBaseProps } from '../_internal/Field/fieldProps';
 
 /**
  * Visual variant of a `RadioGroup`.
- * - `default` — stacked/inline radio dots with labels (current look)
- * - `card` — each option is a bordered/padded surface; selected card gets the colored border + tint
+ * - `default` — stacked/inline radio dots with labels
+ * - `card` — each option is a bordered/padded surface; the selected card gets the colored border + tint
  * - `segmented` — joined buttons sharing borders, like an iOS/macOS segmented control (forced horizontal)
  * - `chip` — compact rounded pills that wrap; great for filters and tag pickers
  */
 export type RadioGroupVariant = 'default' | 'card' | 'segmented' | 'chip';
 
-export interface RadioProps extends BaseComponentProps {
-  /** Radio value */
+/** Label side for a radio. Logical: `right` = after the dot (the left in RTL). */
+export type RadioLabelPosition = 'left' | 'right';
+
+/**
+ * Props for a single `Radio`.
+ *
+ * `style`, spacing and layout props apply to the root (dot + label + footer);
+ * `ref` and `testID` go to the focusable radio itself.
+ */
+export interface RadioProps extends Omit<FieldBaseProps, 'variant' | 'keyboardFocusId' | 'radius'> {
+  /** Value reported to `onChange` when this radio is picked. */
   value: string;
-  
-  /** Whether radio is selected */
+
+  /** Whether this radio is the selected one. */
   checked?: boolean;
-  
-  /** Change handler */
+
+  /** Called with `value` when the radio is picked. */
   onChange?: (value: string) => void;
-  
-  /** Radio group name */
-  name?: string;
-  
-  /** Radio size */
-  size?: SizeValue;
-  
-  /** Radio color theme */
-  color?: ColorValue;
-  
-  /** Radio label */
-  label?: React.ReactNode;
-  
-  /** Whether radio is disabled */
-  disabled?: boolean;
-  
-  /** Whether radio is required */
-  required?: boolean;
-  
-  /** Error message */
-  error?: string;
-  
-  /** Helper text */
-  description?: string;
-  
-  /** Label position relative to radio */
-  labelPosition?: 'left' | 'right';
-  
-  /** Radio content/children (alternative to label) */
+
+  /** Radio color: a palette token, `'primary.6'` shade syntax, or any CSS color. */
+  color?: ThemeColor;
+
+  /** Label side. Default `'right'`. */
+  labelPosition?: RadioLabelPosition;
+
+  /** Label content (alternative to `label`; wins when both are set). */
   children?: React.ReactNode;
 
-  /** Optional icon displayed alongside the label */
+  /** Icon shown before the label: an icon registry name or any element. */
   icon?: React.ReactNode | string;
 
-  /** Key handler for accessibility/keyboard support */
-  onKeyDown?: (event: any) => void;
+  /** Web key handler on the radio (RadioGroup uses it for arrow-key navigation). */
+  onKeyDown?: (event: WebKeyboardEvent) => void;
 
-  /** Override props applied to the label `<Text>` */
-  labelProps?: Omit<TextProps, 'children'>;
-
-  /** Override props applied to the description `<Text>` */
-  descriptionProps?: Omit<TextProps, 'children'>;
+  /**
+   * Web tab order of the radio. Groups manage it (only the selected radio is a
+   * tab stop); a standalone radio is always a tab stop.
+   */
+  tabIndex?: 0 | -1;
 
   /**
    * Length of the select/deselect animation in ms; the center dot grows in and
@@ -78,73 +61,58 @@ export interface RadioProps extends BaseComponentProps {
    * @default 160
    */
   transitionDuration?: number;
+
+  /** Base id: the control gets it, the label/description/error get `${id}-label` etc. */
+  id?: string;
 }
 
-export interface RadioGroupProps extends BaseComponentProps {
-  /** Available options */
-  options: Array<{ 
-    label: React.ReactNode; 
-    value: string; 
-    disabled?: boolean;
-    description?: string;
-    icon?: React.ReactNode | string;
-  }>;
-  
-  /** Selected value */
+export interface RadioGroupOption {
+  label: React.ReactNode;
+  value: string;
+  disabled?: boolean;
+  description?: React.ReactNode;
+  icon?: React.ReactNode | string;
+}
+
+/**
+ * Props for `RadioGroup`. The group renders through the shared `Field` frame:
+ * `label` / `description` above the options, `error` / `helperText` below, all
+ * linked to the `role="radiogroup"` container.
+ */
+export interface RadioGroupProps extends Omit<FieldBaseProps, 'variant' | 'keyboardFocusId' | 'radius'> {
+  /** Available options. */
+  options: RadioGroupOption[];
+
+  /** Selected value (controlled). */
   value?: string;
-  
-  /** Change handler */
+  /** Initially selected value (uncontrolled). */
+  defaultValue?: string;
+  /** Called with the newly selected value. */
   onChange?: (value: string) => void;
-  
-  /** Group name for form submission */
-  name?: string;
-  
+
   /** Group orientation. Ignored by `segmented` (always horizontal) and `chip` (wraps). */
   orientation?: 'vertical' | 'horizontal';
 
   /** Visual variant of the group. Defaults to `'default'`. */
   variant?: RadioGroupVariant;
-  
-  /** Radio size */
-  size?: SizeValue;
-  
-  /** Radio color theme */
-  color?: ColorValue;
-  
-  /** Group label */
-  label?: React.ReactNode;
-  
-  /** Whether group is disabled */
-  disabled?: boolean;
-  
-  /** Whether group is required */
-  required?: boolean;
-  
-  /** Error message */
-  error?: string;
-  
-  /** Helper text */
-  description?: string;
-  
-  /** Gap between radio options */
+
+  /** Radio color: a palette token, `'primary.6'` shade syntax, or any CSS color. */
+  color?: ThemeColor;
+
+  /** Gap between options: a spacing token or px. Default 8. */
   gap?: SizeValue | number;
 
-  /** Label position relative to each radio */
-  labelPosition?: 'left' | 'right';
+  /** Label position relative to each radio (default variant). */
+  labelPosition?: RadioLabelPosition;
 
   /**
    * Length of each radio's select/deselect animation in ms. `0` applies the
-   * state instantly. Only the `default` variant animates. Always 0 under
-   * reduced motion.
+   * state instantly. Always 0 under reduced motion.
    * @default 160
    */
   transitionDuration?: number;
+
+  /** Base id for the group; option radios get `${id}-option-${index}`. */
+  id?: string;
 }
 
-export interface RadioStyleProps {
-  checked: boolean;
-  disabled: boolean;
-  error: boolean;
-  size: SizeValue;
-  color: ColorValue;
-}

@@ -89,15 +89,15 @@ export default function GettingStartedScreen() {
           <Column gap="md">
             {/* An h2 like every other section on the page — the outline ran
                 h1 -> h4 -> h2 before, which skipped a level and left this
-                section out of the TOC. `size`/`lineHeight` reproduce the h4
+                section out of the TOC. `size`/`lh` reproduce the h4
                 metrics exactly, so only the tag changed. */}
-            <Title order={2} size={20} lineHeight={28} weight="bold">Prerequisites</Title>
+            <Title order={2} size={20} lh={28} fw="bold">Prerequisites</Title>
             <PrerequisitesList />
           </Column>
 
           {GETTING_STARTED_STEPS.map(({ title, lead, code, fileName, language, variant, note }) => (
             <Column key={title} gap="md">
-              <Title order={2} size={28} weight="bold">{title}</Title>
+              <Title order={2} size={28} fw="bold">{title}</Title>
               {/* Prose, not Text: steps carry inline markdown so the config can
                   hold a link without pulling JSX into a module Node imports. */}
               <Prose>{lead}</Prose>
@@ -117,19 +117,19 @@ export default function GettingStartedScreen() {
             <Title
               order={2}
               size={28}
-              weight="bold"
+              fw="bold"
               subtitle={TEMPLATES_SUBTITLE}
               subtitleProps={{ variant: 'p' }}
             >
               {TEMPLATES_TITLE}
             </Title>
 
-            <Text variant="p" color="secondary">{TEMPLATES_GUIDANCE}</Text>
+            <Text variant="p" c="secondary">{TEMPLATES_GUIDANCE}</Text>
 
             <TemplatesList />
 
             <Flex direction="row" align="center" gap="sm" wrap="wrap">
-              <Text variant="small" color="secondary">{TEMPLATES_COMMUNITY_INVITE}</Text>
+              <Text variant="small" c="secondary">{TEMPLATES_COMMUNITY_INVITE}</Text>
               <Button
                 title="Share your starter"
                 variant="subtle"
@@ -143,7 +143,7 @@ export default function GettingStartedScreen() {
             <Title
               order={2}
               size={28}
-              weight="bold"
+              fw="bold"
               subtitle="One component model. Native feel everywhere."
               subtitleProps={{ variant: 'p' }}
             >
@@ -157,11 +157,11 @@ export default function GettingStartedScreen() {
                     <Flex direction="column" justify="space-between" gap="md">
                       <Flex direction="row" align="center" gap="sm">
                         <BrandIcon brand={p.brand as any} size="xl" />
-                        <Text variant="h3" weight="semibold">{p.label}</Text>
-                        <Text variant="small" color="secondary">({p.note})</Text>
+                        <Text variant="h3" fw="semibold">{p.label}</Text>
+                        <Text variant="small" c="secondary">({p.note})</Text>
                         {p.tags?.map(renderTagChip)}
                       </Flex>
-                      <Text variant="p" color="secondary">
+                      <Text variant="p" c="secondary">
                         {p.description}
                       </Text>
                     </Flex>

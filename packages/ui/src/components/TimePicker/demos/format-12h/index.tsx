@@ -10,7 +10,7 @@ export function Demo() {
   return (
     <Block fullWidth>
       <TimePicker value={value} onChange={setValue} format={12} />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         {`Internal (24h): ${formatted}`}
       </Text>
     </Block>

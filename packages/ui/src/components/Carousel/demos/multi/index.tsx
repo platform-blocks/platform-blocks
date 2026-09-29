@@ -5,7 +5,7 @@ const slides = ['#1D4ED8', '#0F766E', '#C026D3', '#B45309', '#7C3AED'];
 export function Demo() {
   return (
     <Carousel
-      height={180}
+      h={180}
       loop
       showDots
       slideGap={12}
@@ -18,7 +18,7 @@ export function Demo() {
     >
       {slides.map((bg, index) => (
         <Block key={bg} bg={bg} radius="lg" h="full" align="center" justify="center">
-          <Text variant="h4" color="white">
+          <Text variant="h4" c="white">
             Slide {index + 1}
           </Text>
         </Block>

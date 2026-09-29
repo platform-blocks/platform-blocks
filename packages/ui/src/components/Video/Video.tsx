@@ -1,28 +1,29 @@
-import React, {
-  forwardRef,
-  useImperativeHandle,
-  useRef,
-  useState,
-  useEffect,
-  useCallback,
-  useMemo
-} from 'react';
-import {
-  View,
-  Platform,
-  Dimensions,
-  StyleSheet,
-  ViewStyle
-} from 'react-native';
-import { useTheme } from '../../core/theme';
-import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
+import React, { useImperativeHandle, useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { View, StyleSheet } from 'react-native';
+import type { ViewStyle } from 'react-native';
+
+import { factory } from '../../core/factory/factory';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { isWeb } from '../../core/platform';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveStyleProps, useStyleProps } from '../../core/utils/spacing';
+import { warnOnce } from '../../core/utils/logger';
 import { VideoControls } from './VideoControls';
 import { VideoTimeline } from './VideoTimeline';
 import { YouTubePlayer } from './YouTubePlayer';
 import { NativeVideoPlayer } from './NativeVideoPlayer';
-import type { VideoProps, VideoRef, VideoState, VideoTimelineEvent, VideoPlaybackRate, VideoQuality } from './types';
+import type {
+  VideoControls as VideoControlsConfig,
+  VideoPlayerHandle,
+  VideoProps,
+  VideoRef,
+  VideoState,
+  VideoPlaybackRate,
+  VideoQuality,
+} from './types';
 
-const DEFAULT_CONTROLS = {
+const DEFAULT_CONTROLS: Required<VideoControlsConfig> = {
   play: true,
   pause: true,
   progress: true,
@@ -35,44 +36,61 @@ const DEFAULT_CONTROLS = {
   autoHideTimeout: 3000,
 };
 
-export const Video = forwardRef<VideoRef, VideoProps>(({
-  source,
-  w,
-  h,
-  aspectRatio = 16 / 9,
-  poster,
-  autoPlay = false,
-  loop = false,
-  muted = false,
-  volume = 1,
-  playbackRate = 1,
-  quality = 'auto',
-  controls = true,
-  timeline = [],
-  youtubeOptions,
-  onPlay,
-  onPause,
-  onSeek,
-  onTimeUpdate,
-  onDurationChange,
-  onVolumeChange,
-  onPlaybackRateChange,
-  onQualityChange,
-  onFullscreenChange,
-  onError,
-  onLoad,
-  onLoadStart,
-  onBuffer,
-  onTimelineEvent,
-  style,
-  videoStyle,
-  controlsStyle,
-  accessibilityLabel,
-  testID,
-  ...rest
-}, ref) => {
+const EMPTY_TIMELINE: NonNullable<VideoProps['timeline']> = [];
+
+const styles = StyleSheet.create({
+  // Not `overflow: hidden`: the speed menu opens above the control bar and may
+  // extend past a short player.
+  root: { position: 'relative' },
+});
+
+/**
+ * Video player for `url` / `buffer` sources (web `<video>`) and YouTube
+ * (iframe on web, react-native-webview on native), with custom labelled
+ * controls, timeline events and an imperative `VideoRef`.
+ */
+export const Video = factory<{ props: VideoProps; ref: VideoRef }>((props, ref) => {
+  const {
+    source,
+    w: wProp,
+    h: hProp,
+    aspectRatio = 16 / 9,
+    poster,
+    autoPlay = false,
+    loop = false,
+    muted = false,
+    volume = 1,
+    playbackRate = 1,
+    quality = 'auto',
+    controls = true,
+    timeline = EMPTY_TIMELINE,
+    youtubeOptions,
+    onPlay,
+    onPause,
+    onSeek,
+    onTimeUpdate,
+    onDurationChange,
+    onVolumeChange,
+    onPlaybackRateChange,
+    onQualityChange,
+    onFullscreenChange,
+    onError,
+    onLoad,
+    onLoadStart,
+    onBuffer,
+    onTimelineEvent,
+    style,
+    videoStyle,
+    controlsStyle,
+    accessibilityLabel,
+    testID,
+    ...rest
+  } = props;
+
   const theme = useTheme();
-  const { spacingProps } = extractSpacingProps(rest);
+  // `w` / `h` go through `boxStyle` below (a missing one follows
+  // `aspectRatio`), not with the other style props.
+  const spacingStyles = useStyleProps(rest);
 
   // Internal state
   const [videoState, setVideoState] = useState<VideoState>({
@@ -90,33 +108,36 @@ export const Video = forwardRef<VideoRef, VideoProps>(({
   });
 
   const [showControls, setShowControls] = useState(true);
-  const [dimensions, setDimensions] = useState(Dimensions.get('window'));
-  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [focusWithin, setFocusWithin] = useState(false);
 
   // Refs
   const timelineProcessedEvents = useRef<Set<string>>(new Set());
   const hideControlsTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const videoPlayerRef = useRef<any>(null);
+  const videoPlayerRef = useRef<VideoPlayerHandle | null>(null);
   const hasCalledOnLoad = useRef<boolean>(false);
   const videoStateRef = useRef<VideoState>(videoState);
   const isScrubbingRef = useRef<boolean>(false);
 
-  // Update refs
-  isScrubbingRef.current = isScrubbing;
-
-  // Update state ref without causing re-renders
+  // Latest state for imperative reads, without re-creating callbacks.
   videoStateRef.current = videoState;
 
+  // Callback props are called from player events: always the latest ones.
+  const emitPlay = useLatestCallback(onPlay);
+  const emitPause = useLatestCallback(onPause);
+  const emitSeek = useLatestCallback(onSeek);
+  const emitTimeUpdate = useLatestCallback(onTimeUpdate);
+  const emitDurationChange = useLatestCallback(onDurationChange);
+  const emitVolumeChange = useLatestCallback(onVolumeChange);
+  const emitPlaybackRateChange = useLatestCallback(onPlaybackRateChange);
+  const emitQualityChange = useLatestCallback(onQualityChange);
+  const emitFullscreenChange = useLatestCallback(onFullscreenChange);
+  const emitError = useLatestCallback(onError);
+  const emitLoad = useLatestCallback(onLoad);
+  const emitBuffer = useLatestCallback(onBuffer);
+  const emitTimelineEvent = useLatestCallback(onTimelineEvent);
+
   // Determine video type
-  const videoType = useMemo(() => {
-    if (source.youtube) {
-      return 'youtube';
-    }
-    if (source.url || source.buffer) {
-      return 'native';
-    }
-    return null;
-  }, [source]);
+  const videoType = source.youtube ? 'youtube' : source.url || source.buffer ? 'native' : null;
 
   // Controls configuration
   const controlsConfig = useMemo(() => {
@@ -125,13 +146,13 @@ export const Video = forwardRef<VideoRef, VideoProps>(({
     return { ...DEFAULT_CONTROLS, ...controls };
   }, [controls]);
 
-  // Timeline event processing - use refs to avoid recreation
-  const timelineRef = useRef(timeline);
-  const onTimelineEventRef = useRef(onTimelineEvent);
+  if (controlsConfig && controlsConfig.quality) {
+    warnOnce('Video.controls.quality', 'Video: `controls.quality` has no effect — YouTube no longer lets players pick a quality.');
+  }
 
-  // Update refs without causing re-renders
+  // Timeline event processing reads the latest timeline without re-creating the updater.
+  const timelineRef = useRef(timeline);
   timelineRef.current = timeline;
-  onTimelineEventRef.current = onTimelineEvent;
 
   const processTimelineEvents = useCallback((currentTime: number, state: VideoState) => {
     timelineRef.current.forEach((event) => {
@@ -143,14 +164,8 @@ export const Video = forwardRef<VideoRef, VideoProps>(({
         !timelineProcessedEvents.current.has(eventKey)
       ) {
         timelineProcessedEvents.current.add(eventKey);
-
-        if (event.callback) {
-          event.callback(event, state);
-        }
-
-        if (onTimelineEventRef.current) {
-          onTimelineEventRef.current(event, state);
-        }
+        event.callback?.(event, state);
+        emitTimelineEvent(event, state);
       }
 
       // Clean up old events (more than 1 second ago)
@@ -158,7 +173,7 @@ export const Video = forwardRef<VideoRef, VideoProps>(({
         timelineProcessedEvents.current.delete(eventKey);
       }
     });
-  }, []); // Empty dependencies since we use refs
+  }, [emitTimelineEvent]);
 
   // State update handler
   const updateVideoState = useCallback((updates: Partial<VideoState>) => {
@@ -175,8 +190,10 @@ export const Video = forwardRef<VideoRef, VideoProps>(({
   }, [processTimelineEvents]);
 
   // Control visibility management
+  const autoHide = !!controlsConfig && controlsConfig.autoHide;
+  const autoHideTimeout = (controlsConfig && controlsConfig.autoHideTimeout) || 3000;
   const showControlsTemporarily = useCallback(() => {
-    if (!controlsConfig || !controlsConfig.autoHide) return;
+    if (!autoHide) return;
 
     setShowControls(true);
 
@@ -185,66 +202,66 @@ export const Video = forwardRef<VideoRef, VideoProps>(({
     }
 
     hideControlsTimeout.current = setTimeout(() => {
-      // Use state ref to avoid dependency on videoState.playing
       if (videoStateRef.current.playing) {
         setShowControls(false);
       }
-    }, controlsConfig.autoHideTimeout || 3000);
-  }, [controlsConfig]); // Removed videoState.playing dependency
+    }, autoHideTimeout);
+  }, [autoHide, autoHideTimeout]);
+
+  useEffect(
+    () => () => {
+      if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current);
+    },
+    []
+  );
 
   // Player control methods
   const play = useCallback(() => {
-    if (videoPlayerRef.current?.play) {
-      videoPlayerRef.current.play();
-    }
+    videoPlayerRef.current?.play();
   }, []);
 
   const pause = useCallback(() => {
-    if (videoPlayerRef.current?.pause) {
-      videoPlayerRef.current.pause();
-    }
+    videoPlayerRef.current?.pause();
   }, []);
 
   const seek = useCallback((time: number) => {
-    if (videoPlayerRef.current?.seek) {
-      videoPlayerRef.current.seek(time);
-    }
-    if (onSeek) {
-      // Use state ref to avoid dependency on videoState
-      onSeek(time, videoStateRef.current);
-    }
-  }, [onSeek]); // Removed videoState dependency
+    videoPlayerRef.current?.seek(time);
+    emitSeek(time, videoStateRef.current);
+  }, [emitSeek]);
 
   const setVolumeLevel = useCallback((vol: number) => {
-    if (videoPlayerRef.current?.setVolume) {
-      videoPlayerRef.current.setVolume(vol);
+    videoPlayerRef.current?.setVolume(vol);
+    const updates: Partial<VideoState> = { volume: vol };
+    // Raising the volume of a muted video unmutes it.
+    if (vol > 0 && videoStateRef.current.muted) {
+      videoPlayerRef.current?.setMuted(false);
+      updates.muted = false;
     }
-    updateVideoState({ volume: vol });
-    if (onVolumeChange) {
-      onVolumeChange(vol);
-    }
-  }, [updateVideoState, onVolumeChange]);
+    updateVideoState(updates);
+    emitVolumeChange(vol);
+  }, [updateVideoState, emitVolumeChange]);
+
+  const setMuted = useCallback((next: boolean) => {
+    videoPlayerRef.current?.setMuted(next);
+    updateVideoState({ muted: next });
+  }, [updateVideoState]);
+
+  const toggleMute = useCallback(() => {
+    setMuted(!(videoStateRef.current.muted || videoStateRef.current.volume === 0));
+  }, [setMuted]);
 
   const setPlaybackRateLevel = useCallback((rate: VideoPlaybackRate) => {
-    if (videoPlayerRef.current?.setPlaybackRate) {
-      videoPlayerRef.current.setPlaybackRate(rate);
-    }
+    videoPlayerRef.current?.setPlaybackRate(rate);
     updateVideoState({ playbackRate: rate });
-    if (onPlaybackRateChange) {
-      onPlaybackRateChange(rate);
-    }
-  }, [updateVideoState, onPlaybackRateChange]);
+    emitPlaybackRateChange(rate);
+  }, [updateVideoState, emitPlaybackRateChange]);
 
   const toggleFullscreen = useCallback(() => {
-    if (videoPlayerRef.current?.toggleFullscreen) {
-      videoPlayerRef.current.toggleFullscreen();
-    }
+    videoPlayerRef.current?.toggleFullscreen();
   }, []);
 
   const getVideoElement = useCallback(() => {
-    if (Platform.OS === 'web' && videoPlayerRef.current?.getVideoElement) {
-      return videoPlayerRef.current.getVideoElement();
-    }
+    if (isWeb) return videoPlayerRef.current?.getVideoElement() ?? null;
     return null;
   }, []);
 
@@ -254,150 +271,119 @@ export const Video = forwardRef<VideoRef, VideoProps>(({
     pause,
     seek,
     setVolume: setVolumeLevel,
+    setMuted,
     setPlaybackRate: setPlaybackRateLevel,
     toggleFullscreen,
-    getState: () => videoStateRef.current, // Use ref to avoid dependency
+    getState: () => videoStateRef.current,
     getVideoElement,
-  }), [play, pause, seek, setVolumeLevel, setPlaybackRateLevel, toggleFullscreen, getVideoElement]); // Removed videoState dependency
+  }), [play, pause, seek, setVolumeLevel, setMuted, setPlaybackRateLevel, toggleFullscreen, getVideoElement]);
 
-  // Store callback refs to avoid dependency cycles
-  const onPlayRef = useRef(onPlay);
-  const onPauseRef = useRef(onPause);
-  const onTimeUpdateRef = useRef(onTimeUpdate);
-
-  useEffect(() => {
-    onPlayRef.current = onPlay;
-    onPauseRef.current = onPause;
-    onTimeUpdateRef.current = onTimeUpdate;
-  }, [onPlay, onPause, onTimeUpdate]);
-
-  // Event handlers - avoid including videoState in dependencies to prevent infinite loops
+  // Player event handlers — stable, reading state through the ref.
   const handlePlay = useCallback(() => {
     updateVideoState({ playing: true });
-    // Use state ref to get current state without dependency cycle
-    if (onPlayRef.current) onPlayRef.current({ ...videoStateRef.current, playing: true });
-  }, [updateVideoState]);
+    emitPlay({ ...videoStateRef.current, playing: true });
+    showControlsTemporarily();
+  }, [updateVideoState, emitPlay, showControlsTemporarily]);
 
   const handlePause = useCallback(() => {
     updateVideoState({ playing: false });
     setShowControls(true);
-    // Use state ref to get current state without dependency cycle
-    if (onPauseRef.current) onPauseRef.current({ ...videoStateRef.current, playing: false });
-  }, [updateVideoState]);
+    emitPause({ ...videoStateRef.current, playing: false });
+  }, [updateVideoState, emitPause]);
 
   const handleTimeUpdate = useCallback((currentTime: number) => {
     // Skip time updates while user is scrubbing to prevent jittery behavior
-    if (!isScrubbingRef.current) {
-      updateVideoState({ currentTime });
-      // Use state ref to get current state without dependency cycle
-      if (onTimeUpdateRef.current) onTimeUpdateRef.current({ ...videoStateRef.current, currentTime });
-    }
-  }, [updateVideoState]);
+    if (isScrubbingRef.current) return;
+    updateVideoState({ currentTime });
+    emitTimeUpdate({ ...videoStateRef.current, currentTime });
+  }, [updateVideoState, emitTimeUpdate]);
 
   const handleDurationChange = useCallback((duration: number) => {
     updateVideoState({ duration });
-    if (onDurationChange) onDurationChange(duration);
-  }, [updateVideoState, onDurationChange]);
+    emitDurationChange(duration);
+  }, [updateVideoState, emitDurationChange]);
 
   const handleError = useCallback((error: string) => {
     updateVideoState({ error, loading: false });
-    if (onError) onError(error);
-  }, [updateVideoState, onError]);
+    emitError(error);
+  }, [updateVideoState, emitError]);
 
   const handleLoad = useCallback(() => {
     updateVideoState({ loading: false, error: null });
   }, [updateVideoState]);
 
-  // Handle onLoad callback separately to avoid circular dependencies
-  const onLoadRef = useRef(onLoad);
-  useEffect(() => {
-    onLoadRef.current = onLoad;
-  }, [onLoad]);
+  const handleBuffer = useCallback((buffering: boolean) => {
+    updateVideoState({ buffering });
+    emitBuffer(buffering);
+  }, [updateVideoState, emitBuffer]);
 
-  // Only depend on loading and error states, not the whole videoState object
-  useEffect(() => {
-    if (!videoState.loading && !videoState.error && onLoadRef.current && !hasCalledOnLoad.current) {
-      hasCalledOnLoad.current = true;
-      onLoadRef.current(videoState);
-    }
-  }, [videoState.loading, videoState.error]);
+  const handleQualityChange = useCallback((next: VideoQuality) => {
+    updateVideoState({ quality: next });
+    emitQualityChange(next);
+  }, [updateVideoState, emitQualityChange]);
 
-  // Reset the onLoad flag when loading starts
+  const handleFullscreenChange = useCallback((fullscreen: boolean) => {
+    updateVideoState({ fullscreen });
+    emitFullscreenChange(fullscreen);
+  }, [updateVideoState, emitFullscreenChange]);
+
+  // `onLoad` fires once per load, after loading finishes without an error.
   useEffect(() => {
     if (videoState.loading) {
       hasCalledOnLoad.current = false;
+      return;
     }
-  }, [videoState.loading]);
-
-  const handleBuffer = useCallback((buffering: boolean) => {
-    updateVideoState({ buffering });
-    if (onBuffer) onBuffer(buffering);
-  }, [updateVideoState, onBuffer]);
-
-  // Dimension tracking
-  useEffect(() => {
-    const subscription = Dimensions.addEventListener('change', ({ window }) => {
-      setDimensions(window);
-    });
-
-    return () => subscription?.remove();
-  }, []);
-
-  // Calculate container dimensions
-  const containerStyle: ViewStyle = useMemo(() => {
-    const baseStyle: ViewStyle = {
-      backgroundColor: theme.colors.surface[0],
-      // overflow: 'hidden',
-      // position: 'relative',
-    };
-
-    if (w && h) {
-      baseStyle.width = w as any;
-      baseStyle.height = h as any;
-    } else if (w) {
-      baseStyle.width = w as any;
-      baseStyle.height = typeof w === 'number' ? w / aspectRatio : '100%';
-    } else if (h) {
-      baseStyle.height = h as any;
-      baseStyle.width = typeof h === 'number' ? h * aspectRatio : '100%';
-    } else {
-      baseStyle.width = '100%';
-      baseStyle.aspectRatio = aspectRatio;
+    if (!videoState.error && !hasCalledOnLoad.current) {
+      hasCalledOnLoad.current = true;
+      emitLoad(videoStateRef.current);
     }
+  }, [videoState.loading, videoState.error, emitLoad]);
 
-    return baseStyle;
-  }, [theme.colors.surface, w, h, aspectRatio]);
+  // Box: explicit w/h win; a missing dimension follows `aspectRatio`.
+  const boxStyle = useMemo<ViewStyle>(() => {
+    const { width: w, height: h } = resolveStyleProps({ w: wProp, h: hProp });
+    if (w !== undefined && h !== undefined) return { width: w, height: h };
+    if (w !== undefined) return typeof w === 'number' ? { width: w, height: w / aspectRatio } : { width: w, aspectRatio };
+    if (h !== undefined) return typeof h === 'number' ? { width: h * aspectRatio, height: h } : { height: h, aspectRatio };
+    return { width: '100%', aspectRatio };
+  }, [wProp, hProp, aspectRatio]);
 
-  // Handle touch events for control visibility
-  const handleContainerPress = useCallback(() => {
-    if (controlsConfig && controlsConfig.autoHide) {
-      showControlsTemporarily();
-    }
-  }, [controlsConfig, showControlsTemporarily]);
-  
   const handleScrubbingChange = useCallback((scrubbing: boolean) => {
-    setIsScrubbing(scrubbing);
+    isScrubbingRef.current = scrubbing;
   }, []);
+
+  const rootA11y = a11yProps({ role: 'group', label: accessibilityLabel || 'Video player' });
 
   if (!videoType) {
     return (
-      <View style={[containerStyle, style, getSpacingStyles(spacingProps)]} testID={testID}>
-        {/* Error state for invalid source */}
-      </View>
+      <View
+        style={[boxStyle, { backgroundColor: theme.backgrounds.subtle }, spacingStyles, style]}
+        testID={testID}
+        {...rootA11y}
+      />
     );
   }
 
+  // Keyboard users keep the controls while focus is inside them.
+  const controlsVisible = showControls || !videoState.playing || focusWithin;
+
   return (
     <View
-      style={[
-        //   containerStyle, 
-        { width: '100%', aspectRatio },
-        style,
-        getSpacingStyles(spacingProps)]}
-      onTouchStart={handleContainerPress}
+      style={[styles.root, boxStyle, spacingStyles, style]}
+      // Any press (touch or mouse) inside brings the controls back; returning
+      // false leaves the press to whatever was pressed.
+      onStartShouldSetResponderCapture={() => {
+        showControlsTemporarily();
+        return false;
+      }}
+      onFocus={() => {
+        setFocusWithin(true);
+        showControlsTemporarily();
+      }}
+      onBlur={() => setFocusWithin(false)}
       testID={testID}
+      {...rootA11y}
     >
-      {/* Video Player */}
       {videoType === 'youtube' ? (
         <YouTubePlayer
           ref={videoPlayerRef}
@@ -418,6 +404,8 @@ export const Video = forwardRef<VideoRef, VideoProps>(({
           onLoad={handleLoad}
           onLoadStart={onLoadStart}
           onBuffer={handleBuffer}
+          onQualityChange={handleQualityChange}
+          onFullscreenChange={handleFullscreenChange}
           style={videoStyle}
           accessibilityLabel={accessibilityLabel}
         />
@@ -439,12 +427,12 @@ export const Video = forwardRef<VideoRef, VideoProps>(({
           onLoad={handleLoad}
           onLoadStart={onLoadStart}
           onBuffer={handleBuffer}
+          onFullscreenChange={handleFullscreenChange}
           style={videoStyle}
           accessibilityLabel={accessibilityLabel}
         />
       )}
 
-      {/* Timeline Markers */}
       {timeline.length > 0 && (
         <VideoTimeline
           timeline={timeline}
@@ -454,8 +442,7 @@ export const Video = forwardRef<VideoRef, VideoProps>(({
         />
       )}
 
-      {/* Controls Overlay */}
-      {controlsConfig && (showControls || !videoState.playing) && (
+      {controlsConfig && controlsVisible && (
         <VideoControls
           config={controlsConfig}
           state={videoState}
@@ -463,6 +450,7 @@ export const Video = forwardRef<VideoRef, VideoProps>(({
           onPause={pause}
           onSeek={seek}
           onVolumeChange={setVolumeLevel}
+          onToggleMute={toggleMute}
           onPlaybackRateChange={setPlaybackRateLevel}
           onToggleFullscreen={toggleFullscreen}
           onScrubbingChange={handleScrubbingChange}
@@ -471,6 +459,4 @@ export const Video = forwardRef<VideoRef, VideoProps>(({
       )}
     </View>
   );
-});
-
-Video.displayName = 'Video';
+}, { displayName: 'Video' });

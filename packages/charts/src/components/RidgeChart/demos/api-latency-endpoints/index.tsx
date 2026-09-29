@@ -7,7 +7,7 @@ export function Demo() {
     <RidgeChart
       title="API latency distribution by endpoint"
       subtitle="Density of response times across rolling deployments"
-      height={450}
+      h={450}
       series={SERIES}
       samples={128}
       bandwidth={16}

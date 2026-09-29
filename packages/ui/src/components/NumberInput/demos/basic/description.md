@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Controlled number input with simple step controls and live value preview.
+Keep the number in state with `value` and `onChange`; `min` stops it from going below zero.

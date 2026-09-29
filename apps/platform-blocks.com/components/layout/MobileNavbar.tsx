@@ -32,7 +32,7 @@ export const MobileNavbar: React.FC = () => {
 
   return (
     <Dialog
-      visible={navbarOpen}
+      opened={navbarOpen}
       onClose={closeNavbar}
       variant="fullscreen"
       closable

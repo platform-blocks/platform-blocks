@@ -1,36 +1,35 @@
-import React, { useEffect, useRef } from 'react';
+import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Ref } from 'react';
+import { Keyboard, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import type { LayoutChangeEvent, NativeSyntheticEvent, TextInputKeyPressEventData, ViewStyle } from 'react-native';
+
 import { Dialog } from '../Dialog';
 import { Icon } from '../Icon/Icon';
 import { Text } from '../Text/Text';
 import { Highlight } from '../Highlight';
-import { Platform, View, ScrollView, StyleSheet, Pressable, TextInput, useWindowDimensions, Keyboard } from 'react-native';
+import { Block } from '../Block';
+import { factory, withStatics } from '../../core/factory';
 import { useTheme } from '../../core/theme/ThemeProvider';
-import { surfaceInteractionTint } from '../../core/theme/surfaces';
-import { useSpotlightStore, setDefaultSpotlightStore } from './SpotlightStore';
-import { useGlobalHotkeys } from '../../hooks/useHotkeys';
+import { resolveSurface, surfaceInteractionTint } from '../../core/theme/surfaces';
+import { resolveShadow } from '../../core/theme/tokens';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
+import { useViewport } from '../../core/responsive';
+import { webStyle } from '../../core/platform';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { useStyleProps } from '../../core/utils/spacing';
 import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
-import { useOverlayMode } from '../../hooks';
-import {
-  SpotlightActionData,
-  SpotlightActionGroupData,
-  SpotlightItem,
-  filterActions,
-  isAction,
-  isActionGroup
-} from './SpotlightTypes';
-
-// Layout constants for precise height calculation
-const SPOTLIGHT_DIALOG_HEIGHT = 400;
-const SEARCH_PADDING_VERTICAL = 32; // 16px top + 16px bottom (paddingVertical: 16)
-// Updated for larger search input text (fontSize 24, lineHeight ~30, vertical padding 8)
-// Height approximation: 30 (lineHeight) + 16 (vertical padding) = 46 -> rounded to 48 for consistency
-const SEARCH_INPUT_HEIGHT = 48;
-const ACTIONS_LIST_BORDER = 1; // Border top width
-const ACTIONS_LIST_PADDING_BOTTOM = 8;
-
-// Calculated max height for actions list: 400 - 32 - 48 - 1 - 8 = 311px
-// This ensures the dialog is exactly filled with no awkward gap at the bottom
-
+import { useListNavigation } from '../../core/accessibility/useListNavigation';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useA11yId } from '../../core/accessibility/useA11yId';
+import { consumeEvent, readKey } from '../../core/accessibility/keyboard';
+import type { KeyboardEventLike } from '../../core/accessibility/keyboard';
+import { isDebugLogging, debugLog, devWarn } from '../../core/utils/logger';
+import { useGlobalHotkeys } from '../../hooks/useHotkeys';
+import { useOverlayMode } from '../../hooks/useOverlayMode';
+import { useHover } from '../../hooks/useHover';
+import { useSpotlightStore, setDefaultSpotlightStore } from './SpotlightStore';
+import { filterActions, isAction } from './SpotlightTypes';
+import type { SpotlightActionData, SpotlightItem } from './SpotlightTypes';
 import type {
   SpotlightProps,
   SpotlightRootProps,
@@ -39,59 +38,75 @@ import type {
   SpotlightActionProps,
   SpotlightActionsGroupProps,
   SpotlightEmptyProps,
+  SpotlightFactoryPayload,
 } from './types';
-import { Block } from '../Block';
 
-function SpotlightRoot({
-  query,
-  onQueryChange,
-  children,
-  opened = false,
-  onClose,
-  shortcut = ['cmd+k', 'ctrl+k'],
-  style,
-}: SpotlightRootProps) {
+// Layout constants for precise height calculation
+const SPOTLIGHT_DIALOG_HEIGHT = 400;
+const SEARCH_PADDING_VERTICAL = 32; // 16px top + 16px bottom (paddingVertical: 16)
+// Search input: lineHeight 30 + vertical padding 16 = 46 → 48 for consistency.
+const SEARCH_INPUT_HEIGHT = 48;
+const ACTIONS_LIST_BORDER = 1; // Border top width
+const ACTIONS_LIST_PADDING_BOTTOM = 8;
+// 400 - 32 - 48 - 1 - 8 = 311px: the list exactly fills the dialog.
+const ACTIONS_LIST_MAX_HEIGHT =
+  SPOTLIGHT_DIALOG_HEIGHT - SEARCH_PADDING_VERTICAL - SEARCH_INPUT_HEIGHT - ACTIONS_LIST_BORDER - ACTIONS_LIST_PADDING_BOTTOM;
+const MAX_DESCRIPTION_LENGTH = 80;
+const SCROLL_PADDING = 8;
+
+const SpotlightRoot = forwardRef<View, SpotlightRootProps>(function SpotlightRoot(
+  {
+    children,
+    opened = false,
+    onClose,
+    style,
+    initialFocusRef,
+    accessibilityLabel = 'Search',
+    testID,
+  },
+  ref
+) {
   const theme = useTheme();
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth } = useViewport();
   const { shouldUseModal } = useOverlayMode();
-  const horizontalMargin = 32;
-  const targetWidth = Math.min(560, Math.max(280, screenWidth - horizontalMargin));
-  // (Hotkey registration moved to main Spotlight component for access to store.toggle())
+  const targetWidth = Math.min(560, Math.max(280, screenWidth - 32));
+  // (Hotkey registration lives in Spotlight, which has the store.)
   const fullscreen = shouldUseModal;
+  const surface = resolveSurface(theme, 3);
+
+  const modalStyle = useMemo<ViewStyle>(() => ({
+    ...resolveShadow(theme, 'lg'),
+    backgroundColor: surface.background,
+    borderColor: surface.border,
+  }), [theme, surface.background, surface.border]);
 
   return (
     <Dialog
-      visible={opened}
+      ref={ref}
+      opened={opened}
       onClose={onClose}
       variant={fullscreen ? 'fullscreen' : 'modal'}
       backdrop
       backdropClosable
       w={fullscreen ? undefined : targetWidth}
       title={null}
+      accessibilityLabel={accessibilityLabel}
+      autoFocus={initialFocusRef ?? false}
+      testID={testID}
       style={[
         styles.spotlightModal,
-        fullscreen && { width: '100%', height: '100%', maxHeight: '100%', borderRadius: 0, position: 'fixed', top: 0, left: 0 },
-        !fullscreen && {
-          height: SPOTLIGHT_DIALOG_HEIGHT,
-          maxHeight: SPOTLIGHT_DIALOG_HEIGHT,
-          width: targetWidth,
-        },
-        {
-          backgroundColor: theme.colorScheme === 'dark'
-            ? 'rgba(40, 40, 40, 0.95)'
-            : 'rgba(255, 255, 255, 0.95)',
-          borderColor: theme.colorScheme === 'dark'
-            ? 'rgba(255, 255, 255, 0.1)'
-            : 'rgba(0, 0, 0, 0.1)',
-        }
+        modalStyle,
+        fullscreen
+          ? [styles.fullscreen, webStyle({ position: 'fixed', top: 0, left: 0 })]
+          : { height: SPOTLIGHT_DIALOG_HEIGHT, maxHeight: SPOTLIGHT_DIALOG_HEIGHT, width: targetWidth },
       ]}
     >
-      <View style={[styles.spotlightContainer, fullscreen && { flex: 1 }, style]}>
+      <View style={[styles.spotlightContainer, fullscreen && styles.fill, style]}>
         {children}
       </View>
     </Dialog>
   );
-}
+});
 
 function SpotlightSearch({
   value,
@@ -105,79 +120,66 @@ function SpotlightSearch({
   autoFocus = true,
   inputRef: forwardedRef,
   withCloseButton,
+  onKeyPress,
+  onFocus,
+  onBlur,
   ...props
 }: SpotlightSearchProps) {
   const theme = useTheme();
   const inputRef = useRef<TextInput | null>(null);
-  const [isFocused, setIsFocused] = React.useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const { isMobileExperience } = useOverlayMode();
-  const isMobile = isMobileExperience;
   // Mobile presents the spotlight fullscreen: there is no reachable backdrop and
   // no Escape key, so the search row carries the only way out.
-  const showCloseButton = (withCloseButton ?? isMobile) && !!onClose;
+  const showCloseButton = (withCloseButton ?? isMobileExperience) && !!onClose;
   let effectivePlaceholder = placeholder;
-  if (isMobile) {
+  if (isMobileExperience) {
     const verbosePattern = /components,\s*demos,\s*documentation/i;
     if (placeholder === 'Search...' || verbosePattern.test(placeholder) || placeholder.length > 32) {
       effectivePlaceholder = 'Search';
     }
   }
 
-  const assignInputRef = React.useCallback((node: TextInput | null) => {
+  const assignInputRef = useCallback((node: TextInput | null) => {
     inputRef.current = node;
     if (forwardedRef) {
-      forwardedRef.current = node;
+      (forwardedRef as React.MutableRefObject<TextInput | null>).current = node;
     }
   }, [forwardedRef]);
 
   useEffect(() => {
     const node = inputRef.current;
     if (!node) return;
-    if (autoFocus) {
-      node.focus();
-    } else if (typeof node.blur === 'function') {
-      node.blur();
-    }
+    if (autoFocus) node.focus();
+    else node.blur?.();
   }, [autoFocus]);
 
-  const handleFocus = () => {
-    setIsFocused(true);
-  };
-
-  const handleBlur = () => {
-    setIsFocused(false);
-  };
-
-  const handleKeyPress = (event: any) => {
-    const key = event.nativeEvent.key;
-    if (key === 'ArrowDown') {
-      event.preventDefault();
-      // Enter selection mode: if nothing selected yet, set first item by calling onNavigateDown twice logic externally
-      onNavigateDown?.();
-    } else if (key === 'ArrowUp') {
-      event.preventDefault();
-      onNavigateUp?.();
-    } else if (key === 'Enter') {
-      event.preventDefault();
-      onSelectAction?.();
-    } else if (key === 'Escape') {
-      event.preventDefault();
-      onClose?.();
-    }
+  const handleKeyPress = (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
+    onKeyPress?.(event);
+    const keyEvent = event as unknown as KeyboardEventLike;
+    if (keyEvent.defaultPrevented) return;
+    // Standalone use (a custom Spotlight.Root composition) wires these callbacks.
+    const { key } = readKey(keyEvent);
+    const handler = key === 'ArrowDown' ? onNavigateDown
+      : key === 'ArrowUp' ? onNavigateUp
+        : key === 'Enter' ? onSelectAction
+          : key === 'Escape' ? onClose
+            : undefined;
+    if (!handler) return;
+    consumeEvent(keyEvent);
+    handler();
   };
 
   return (
-    <View style={[
-      styles.searchContainer,
-      {
-        // Remove all focus styling - just keep consistent border
-        borderWidth: 1,
-        borderColor: theme.colorScheme === 'dark'
-          ? 'rgba(255, 255, 255, 0.1)'
-          : 'rgba(0, 0, 0, 0.1)',
-        backgroundColor: 'transparent',
-      }
-    ]}>
+    <View
+      style={[
+        styles.searchContainer,
+        { borderColor: theme.backgrounds.border },
+        isFocused && theme.states?.focusRing
+          ? { borderColor: theme.states.focusRing, borderWidth: 2, margin: -1 }
+          : null,
+      ]}
+    >
       <View style={styles.searchInputWrapper}>
         {startSection || <Icon name="search" size="md" color={theme.text.secondary} />}
         <TextInput
@@ -185,15 +187,18 @@ function SpotlightSearch({
           value={value}
           onChangeText={onChangeText}
           placeholder={effectivePlaceholder}
-          placeholderTextColor={theme.text.secondary}
-          style={[
-            styles.searchInput,
-            {
-              color: theme.text.primary,
-            }
-          ]}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
+          placeholderTextColor={theme.text.muted}
+          style={[styles.searchInput, { color: theme.text.primary }]}
+          // The row draws the focus ring; the raw input outline is suppressed.
+          dataSet={{ pbInput: 'true' }}
+          onFocus={(event) => {
+            setIsFocused(true);
+            onFocus?.(event);
+          }}
+          onBlur={(event) => {
+            setIsFocused(false);
+            onBlur?.(event);
+          }}
           onKeyPress={handleKeyPress}
           {...props}
         />
@@ -204,8 +209,8 @@ function SpotlightSearch({
               Keyboard.dismiss();
               onClose?.();
             }}
-            accessibilityRole="button"
-            accessibilityLabel="Close search"
+            role="button"
+            aria-label="Close search"
             hitSlop={12}
             style={styles.searchCloseButton}
           >
@@ -219,57 +224,28 @@ function SpotlightSearch({
 
 function SpotlightActionsList({
   children,
-  scrollable = true,
   maxHeight,
   style,
   scrollRef,
   onScrollChange,
+  id,
 }: SpotlightActionsListProps) {
   const theme = useTheme();
+  const calculatedMaxHeight = maxHeight || ACTIONS_LIST_MAX_HEIGHT;
 
-  // Calculate max height dynamically to eliminate awkward gap at bottom
-  // Total available space = Dialog height - Search container - Actions list borders/padding
-  const calculatedMaxHeight = maxHeight || (
-    SPOTLIGHT_DIALOG_HEIGHT -
-    SEARCH_PADDING_VERTICAL -
-    SEARCH_INPUT_HEIGHT -
-    ACTIONS_LIST_BORDER -
-    ACTIONS_LIST_PADDING_BOTTOM
-  );
-
-  // Debug logging to help identify height issues
-  if (__DEV__ && process.env.EXPO_PUBLIC_DEBUG) {
-    console.log('Spotlight Height Calculation:', {
-      dialogHeight: SPOTLIGHT_DIALOG_HEIGHT,
-      searchPadding: SEARCH_PADDING_VERTICAL,
-      searchInputHeight: SEARCH_INPUT_HEIGHT,
-      actionsBorder: ACTIONS_LIST_BORDER,
-      actionsPadding: ACTIONS_LIST_PADDING_BOTTOM,
-      calculatedMaxHeight,
-      providedMaxHeight: maxHeight
-    });
+  if (isDebugLogging) {
+    debugLog('Spotlight list height:', { calculatedMaxHeight, providedMaxHeight: maxHeight });
   }
 
-  const containerStyle = [
-    styles.actionsList,
-    {
-      borderTopColor: theme.colorScheme === 'dark'
-        ? 'rgba(255, 255, 255, 0.1)'
-        : 'rgba(0, 0, 0, 0.1)',
-      flex: 1, // Take remaining space after search bar
-    },
-    style,
-  ];
-
-  // Always use ScrollView for consistent behavior
   return (
     <ScrollView
       ref={scrollRef}
-      style={[containerStyle, { maxHeight: calculatedMaxHeight }]}
-      showsVerticalScrollIndicator={true}
+      style={[styles.actionsList, { borderTopColor: theme.backgrounds.border }, style, { maxHeight: calculatedMaxHeight }]}
+      showsVerticalScrollIndicator
       onScroll={onScrollChange ? (e) => onScrollChange(e.nativeEvent.contentOffset.y) : undefined}
       scrollEventThrottle={16}
-      contentContainerStyle={undefined}
+      // role="listbox" (native: a list) — what the search field's aria-controls names.
+      {...(id ? a11yProps({ role: 'listbox', id }) : null)}
     >
       {children}
     </ScrollView>
@@ -286,156 +262,96 @@ function SpotlightAction({
   selected = false,
   children,
   style,
+  testID,
   innerRef,
+  onLayout,
   highlightQuery,
+  optionProps,
 }: SpotlightActionProps) {
   const theme = useTheme();
-  const [isHovered, setIsHovered] = React.useState(false);
-  // Truncate long descriptions for cleaner list appearance
-  const MAX_DESC = 80; // Could be lifted to prop later
-  const truncatedDescription = React.useMemo(() => {
+  const [isHovered, hoverHandlers] = useHover();
+  const truncatedDescription = useMemo(() => {
     if (!description) return undefined;
-    const plain = typeof description === 'string' ? description : String(description);
-    return plain.length > MAX_DESC ? plain.slice(0, MAX_DESC - 1).trimEnd() + '…' : plain;
+    return description.length > MAX_DESCRIPTION_LENGTH
+      ? description.slice(0, MAX_DESCRIPTION_LENGTH - 1).trimEnd() + '…'
+      : description;
   }, [description]);
 
-  // Match AutoComplete's highlighted-text treatment: primary-colored bold text
-  // on a transparent background (rather than the default amber highlight fill).
-  const highlightColor = React.useMemo(() => {
-    const primaryPalette = theme.colors.primary || [];
-    if (theme.colorScheme === 'dark') {
-      return primaryPalette[5] || primaryPalette[4] || '#60A5FA';
-    }
-    return primaryPalette[6] || primaryPalette[5] || '#3B82F6';
-  }, [theme.colors.primary, theme.colorScheme]);
-
-  const labelHighlightProps = React.useMemo(() => ({
+  // Match AutoComplete's highlighted-text treatment: link-colored bold text on a
+  // transparent background (rather than the default highlight fill).
+  const highlightColor = theme.text.link ?? resolveAccentColor(theme, 'primary');
+  const labelHighlightProps = useMemo(() => ({
     color: highlightColor,
     style: [styles.actionLabel, styles.highlightText],
   }), [highlightColor]);
-
-  const descriptionHighlightProps = React.useMemo(() => ({
+  const descriptionHighlightProps = useMemo(() => ({
     color: highlightColor,
     style: [styles.actionDescription, styles.highlightText],
   }), [highlightColor]);
 
-  const actionStyle = [
-    styles.action,
-    {
-      backgroundColor: 'transparent',
-    },
-    disabled && { opacity: 0.5 },
-    style,
-  ];
-
-  // Spotlight had independently hand-rolled the same overlay approach the
-  // surface tints now provide; routing through the helper keeps it in step with
-  // menus and list rows instead of drifting.
-  const pressedStyle = {
-    backgroundColor: surfaceInteractionTint(theme, 'pressed'),
-  };
-
-  const hoverStyle = {
-    backgroundColor: surfaceInteractionTint(theme, 'hover'),
-  };
-
-  const selectedStyle = {
+  const selectedStyle: ViewStyle = {
     backgroundColor: surfaceInteractionTint(theme, 'selected'),
-    borderLeftWidth: 3,
-    borderLeftColor: theme.colors.primary[5],
-    paddingLeft: 13, // adjust for added border (original inner gap 16 - 3)
-  } as const;
-
-  const webHoverProps = React.useMemo(() => {
-    // Only add hover props on web
-    if (typeof window !== 'undefined') {
-      return {
-        onMouseEnter: () => setIsHovered(true),
-        onMouseLeave: () => setIsHovered(false),
-      };
-    }
-    return {};
-  }, []);
+    borderStartWidth: 3,
+    borderStartColor: resolveAccentColor(theme, 'primary'),
+    paddingStart: 13, // original inner gap 16 - the 3px border
+  };
 
   return (
     <Pressable
-      ref={innerRef as any}
+      ref={innerRef}
+      testID={testID}
       disabled={disabled}
       onPress={disabled ? undefined : onPress}
+      onLayout={onLayout}
+      onHoverIn={hoverHandlers.onHoverIn}
+      onHoverOut={hoverHandlers.onHoverOut}
+      // Options are reached with the arrow keys from the search field.
+      tabIndex={-1}
+      {...optionProps}
       style={({ pressed }) => [
-        actionStyle,
+        styles.action,
+        disabled && styles.disabled,
         selected && selectedStyle,
-        !selected && pressed && pressedStyle,
-        !selected && !pressed && isHovered && hoverStyle,
+        !selected && pressed && { backgroundColor: surfaceInteractionTint(theme, 'pressed') },
+        !selected && !pressed && isHovered && { backgroundColor: surfaceInteractionTint(theme, 'hover') },
         style,
       ]}
-      {...webHoverProps}
     >
       <Block direction="row" align="center" style={styles.actionContent}>
-        {startSection && (
-          <View style={styles.actionLeftSection}>
-            {startSection}
-          </View>
-        )}
-        <Block direction="column" style={{ flex: 1 }}>
-          <Highlight
-            highlight={highlightQuery}
-            style={styles.actionLabel}
-            highlightProps={labelHighlightProps}
-          >
+        {startSection && <View style={styles.actionStartSection}>{startSection}</View>}
+        <Block direction="column" style={styles.fill}>
+          <Highlight highlight={highlightQuery} style={styles.actionLabel} highlightProps={labelHighlightProps}>
             {label}
           </Highlight>
           {truncatedDescription ? (
-            <Highlight
-              highlight={highlightQuery}
-              style={styles.actionDescription}
-              highlightProps={descriptionHighlightProps}
-            >
+            <Highlight highlight={highlightQuery} style={styles.actionDescription} highlightProps={descriptionHighlightProps}>
               {truncatedDescription}
             </Highlight>
           ) : null}
           {children}
         </Block>
-        {endSection ? (
-          <View style={styles.actionRightSection}>
-            {endSection}
-          </View>
-        ) : null}
+        {endSection ? <View style={styles.actionEndSection}>{endSection}</View> : null}
       </Block>
     </Pressable>
   );
 }
 
-function SpotlightActionsGroup({
-  label,
-  children,
-  style,
-}: SpotlightActionsGroupProps) {
+function SpotlightActionsGroup({ label, children, style, labelProps }: SpotlightActionsGroupProps) {
   const theme = useTheme();
 
   return (
-    <View style={[styles.actionsGroup, style]}>
-      <View style={[
-        styles.groupHeader,
-        {
-          // A band on the spotlight surface, not a surface of its own — an
-          // opaque palette shade here was darker than the modal it sat on in
-          // dark mode.
-          backgroundColor: surfaceInteractionTint(theme, 'band'),
-          borderBottomColor: theme.colorScheme === 'dark'
-            ? 'rgba(255, 255, 255, 0.1)'
-            : 'rgba(0, 0, 0, 0.1)'
-        },
-    
-      ]}>
-        <Text
-          size="xs"
-          weight="900"
-          color="info"
-          style={styles.groupLabel}
-        >
-          {label.toUpperCase()}
-        </Text>
+    <View style={[styles.actionsGroup, style]} role="group" aria-label={label}>
+      <View
+        style={[
+          styles.groupHeader,
+          {
+            // A band on the spotlight surface, not a surface of its own.
+            backgroundColor: surfaceInteractionTint(theme, 'band'),
+            borderBottomColor: theme.backgrounds.border,
+          },
+        ]}
+      >
+        <Text {...mergeSlotProps({ textRole: 'sectionLabel', 'aria-hidden': true }, labelProps)}>{label}</Text>
       </View>
       {children}
     </View>
@@ -447,330 +363,249 @@ function SpotlightEmpty({ children, style }: SpotlightEmptyProps) {
 
   return (
     <View style={[styles.empty, style]}>
-      <Text
-        size="md"
-        color={theme.text.secondary}
-        style={styles.emptyText}
-      >
+      <Text size="md" c={theme.text.secondary} style={styles.emptyText} role="status">
         {children}
       </Text>
     </View>
   );
 }
 
+function renderIcon(icon: SpotlightActionData['icon'], color?: string) {
+  return typeof icon === 'string' ? <Icon name={icon} size="md" color={color} /> : icon;
+}
+
 // Main Spotlight component
-export function Spotlight({
-  actions,
-  nothingFound = 'Nothing found...',
-  highlightQuery = true,
-  limit,
-  scrollable = false,
-  maxHeight, // Remove default - let it be calculated dynamically
-  shortcut = ['cmd+k', 'ctrl+k'],
-  searchProps = {},
-  store,
-  variant = 'modal',
-  width = 600,
-  height,
-}: SpotlightProps) {
+function SpotlightBase(
+  {
+    actions,
+    nothingFound = 'Nothing found...',
+    highlightQuery = true,
+    limit,
+    scrollable = false,
+    maxHeight,
+    shortcut = ['cmd+k', 'ctrl+k'],
+    searchProps,
+    groupLabelProps,
+    store,
+    accessibilityLabel,
+    style,
+    testID,
+    ...spacingProps
+  }: SpotlightProps,
+  ref: Ref<View>
+) {
   const spotlightStore = useSpotlightStore();
+  const spacingStyles = useStyleProps(spacingProps);
 
   // Set as default store if no custom store provided
   useEffect(() => {
-    if (!store) {
-      setDefaultSpotlightStore(spotlightStore);
-    }
+    if (!store) setDefaultSpotlightStore(spotlightStore);
   }, [spotlightStore, store]);
 
   const currentStore = store || spotlightStore;
   const { opened, query, selectedIndex } = currentStore.state;
+  const { close: closeStore, toggle: toggleStore, setQuery, setSelectedIndex } = currentStore;
 
-  // Proper global hotkey registration (Cmd/Ctrl+K) to toggle spotlight.
-  // Normalize provided shortcuts; if any matches cmd+k/ctrl+k/mod+k we register a single 'mod+k'.
-  const normalized = React.useMemo(() => (
-    Array.isArray(shortcut) ? shortcut : (shortcut ? [shortcut] : [])
-  ), [shortcut]);
-  const shouldHandleToggleHotkey = React.useMemo(
-    () => normalized.some(sc => ['cmd+k', 'ctrl+k', 'mod+k'].includes(sc.toLowerCase())),
+  // Global hotkey (Cmd/Ctrl+K) to toggle the spotlight.
+  const normalized = useMemo(() => (Array.isArray(shortcut) ? shortcut : shortcut ? [shortcut] : []), [shortcut]);
+  const shouldHandleToggleHotkey = useMemo(
+    () => normalized.some((sc) => ['cmd+k', 'ctrl+k', 'mod+k'].includes(sc.toLowerCase())),
     [normalized]
   );
-  const handleToggleHotkey = React.useCallback((event: KeyboardEvent) => {
+  const handleToggleHotkey = useCallback((event: KeyboardEvent) => {
     if (!shouldHandleToggleHotkey) return;
     event.preventDefault?.();
-    currentStore.toggle();
-  }, [shouldHandleToggleHotkey, currentStore]);
+    toggleStore();
+  }, [shouldHandleToggleHotkey, toggleStore]);
   useGlobalHotkeys('spotlight-toggle', ['mod+k', handleToggleHotkey]);
 
-  const filteredActions = filterActions(actions, query, limit);
+  const filteredActions = useMemo(() => filterActions(actions, query, limit), [actions, query, limit]);
 
-  const highlightValue = React.useMemo(() => {
-    if (!highlightQuery) {
-      return undefined;
-    }
-
-    if (highlightQuery !== true) {
-      return highlightQuery;
-    }
-
-    const trimmed = query.trim();
-    if (!trimmed) {
-      return undefined;
-    }
-
-    const parts = trimmed.split(/\s+/).filter(Boolean);
-    if (parts.length === 0) {
-      return undefined;
-    }
-
+  const highlightValue = useMemo(() => {
+    if (!highlightQuery) return undefined;
+    if (highlightQuery !== true) return highlightQuery;
+    const parts = query.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return undefined;
     return parts.length === 1 ? parts[0] : parts;
   }, [highlightQuery, query]);
 
   // Flatten all actions for keyboard navigation
-  const flatActions = React.useMemo(() => {
+  const flatActions = useMemo(() => {
     const flat: SpotlightActionData[] = [];
-    filteredActions.forEach((item) => {
-      if (isAction(item)) {
-        flat.push(item);
-      } else {
-        flat.push(...item.actions);
-      }
+    filteredActions.forEach((item: SpotlightItem) => {
+      if (isAction(item)) flat.push(item);
+      else flat.push(...item.actions);
     });
     return flat;
   }, [filteredActions]);
 
-    const searchInputRef = React.useRef<TextInput | null>(null);
-    const keyboardManager = useKeyboardManagerOptional();
+  const searchInputRef = useRef<TextInput | null>(null);
+  const keyboardManager = useKeyboardManagerOptional();
 
-    const dismissSearchInput = React.useCallback(() => {
-      if (keyboardManager) {
-        keyboardManager.dismissKeyboard();
-      } else {
-        Keyboard.dismiss();
-      }
+  const dismissSearchInput = useCallback(() => {
+    if (keyboardManager) keyboardManager.dismissKeyboard();
+    else Keyboard.dismiss();
+    searchInputRef.current?.blur?.();
+  }, [keyboardManager]);
 
-      const node = searchInputRef.current;
-      if (node && typeof node.blur === 'function') {
-        node.blur();
-      }
-    }, [keyboardManager]);
-
-    const searchPropsSafe = searchProps ?? {};
-    const {
-      autoFocus: providedAutoFocus,
-      inputRef: providedInputRef,
-      ...restSearchProps
-    } = searchPropsSafe;
-    const mergedAutoFocus = providedAutoFocus ?? opened;
-    const mergedInputRef = providedInputRef ?? searchInputRef;
+  const {
+    autoFocus: providedAutoFocus,
+    inputRef: providedInputRef,
+    onKeyPress: userKeyPress,
+    ...restSearchProps
+  } = searchProps ?? {};
+  const mergedAutoFocus = providedAutoFocus ?? opened;
+  const mergedInputRef = providedInputRef ?? searchInputRef;
 
   // Reset selection when query changes
   useEffect(() => {
-    currentStore.setSelectedIndex(-1);
-  }, [query, currentStore.setSelectedIndex]);
+    setSelectedIndex(-1);
+  }, [query, setSelectedIndex]);
 
-  const handleNavigateUp = () => {
-    if (!flatActions.length) return;
-    const newIndex = selectedIndex <= 0 ? flatActions.length - 1 : selectedIndex - 1;
-    currentStore.setSelectedIndex(newIndex);
+  const runAction = useCallback((action: SpotlightActionData | undefined) => {
+    if (!action || action.disabled) return;
+    dismissSearchInput();
+    action.onPress?.();
+    closeStore();
+  }, [dismissSearchInput, closeStore]);
+
+  // Combobox: real focus stays in the search field; the highlighted option is
+  // announced through aria-activedescendant.
+  const listId = useA11yId(undefined, 'spotlight-list');
+  const getOptionId = useCallback((index: number) => `${listId}-option-${index}`, [listId]);
+  const isOptionDisabled = useCallback((index: number) => !!flatActions[index]?.disabled, [flatActions]);
+  const navigation = useListNavigation({
+    count: flatActions.length,
+    activeIndex: selectedIndex,
+    onActiveChange: setSelectedIndex,
+    onSelect: (index) => runAction(flatActions[index]),
+    getId: getOptionId,
+    isDisabled: isOptionDisabled,
+    listId,
+    loop: true,
+  });
+  const { onKeyDown: _navKeyDown, ...searchA11yProps } = navigation.inputProps;
+  void _navKeyDown;
+
+  const handleSearchKeyPress = (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
+    userKeyPress?.(event);
+    const keyEvent = event as unknown as KeyboardEventLike;
+    if (keyEvent.defaultPrevented) return;
+    if (navigation.handleKeyDown(keyEvent)) return;
+    // Enter with nothing highlighted runs the first result.
+    if (readKey(keyEvent).key === 'Enter' && flatActions.length > 0) {
+      consumeEvent(keyEvent);
+      runAction(flatActions.find((action) => !action.disabled));
+    }
   };
 
-  const handleNavigateDown = () => {
-    if (!flatActions.length) return;
-    const newIndex = selectedIndex === -1 || selectedIndex >= flatActions.length - 1 ? 0 : selectedIndex + 1;
-    currentStore.setSelectedIndex(newIndex);
-  };
+  const handleClose = useCallback(() => {
+    dismissSearchInput();
+    closeStore();
+  }, [dismissSearchInput, closeStore]);
 
-  // Auto-scroll selected item into view
-  const listRef = React.useRef<ScrollView | null>(null);
-  const itemRefs = React.useRef<(View | null)[]>([]);
-  const itemLayouts = React.useRef<{ y: number; height: number }[]>([]);
-  const VIEWPORT_PADDING = 8;
-  const scrollOffsetRef = React.useRef(0);
-  const [layoutVersion, setLayoutVersion] = React.useState(0);
-  const ensureVisible = React.useCallback((attempt = 0) => {
+  // Auto-scroll the highlighted option into view
+  const listRef = useRef<ScrollView | null>(null);
+  const itemLayouts = useRef<{ y: number; height: number }[]>([]);
+  const scrollOffsetRef = useRef(0);
+  const [layoutVersion, setLayoutVersion] = useState(0);
+  const ensureVisible = useCallback((attempt = 0) => {
     if (selectedIndex < 0) return;
     const layout = itemLayouts.current[selectedIndex];
     if (!layout || !listRef.current) {
       if (attempt < 6) requestAnimationFrame(() => ensureVisible(attempt + 1));
       return;
     }
-    const maxHeight = (SPOTLIGHT_DIALOG_HEIGHT - SEARCH_PADDING_VERTICAL - SEARCH_INPUT_HEIGHT - ACTIONS_LIST_BORDER - ACTIONS_LIST_PADDING_BOTTOM);
     const viewportTop = scrollOffsetRef.current;
-    const viewportBottom = viewportTop + maxHeight;
-    const itemTop = layout.y;
-    const itemBottom = layout.y + layout.height;
+    const viewportBottom = viewportTop + ACTIONS_LIST_MAX_HEIGHT;
     let target: number | null = null;
-    if (itemTop < viewportTop + VIEWPORT_PADDING) target = itemTop - VIEWPORT_PADDING;
-    else if (itemBottom > viewportBottom - VIEWPORT_PADDING) target = itemBottom - maxHeight + VIEWPORT_PADDING;
+    if (layout.y < viewportTop + SCROLL_PADDING) target = layout.y - SCROLL_PADDING;
+    else if (layout.y + layout.height > viewportBottom - SCROLL_PADDING) {
+      target = layout.y + layout.height - ACTIONS_LIST_MAX_HEIGHT + SCROLL_PADDING;
+    }
     if (target !== null) {
-      try { listRef.current.scrollTo({ y: Math.max(target, 0), animated: true }); } catch {
-        console.warn('Spotlight: scrollTo failed, ref may be invalid');
+      try {
+        listRef.current.scrollTo({ y: Math.max(target, 0), animated: true });
+      } catch {
+        devWarn('Spotlight: scrollTo failed, ref may be invalid');
       }
     }
   }, [selectedIndex]);
-  useEffect(() => { ensureVisible(); }, [selectedIndex, layoutVersion, ensureVisible]);
-
-  const handleSelectAction = () => {
-    let index = selectedIndex;
-    // If nothing explicitly selected yet, default to first result
-    if (index === -1 && flatActions.length > 0) index = 0;
-    if (index >= 0 && index < flatActions.length) {
-      const selectedAction = flatActions[index];
-      dismissSearchInput();
-      selectedAction.onPress?.();
-      currentStore.close();
-    }
-  };
-
-  const handleClose = () => {
-    dismissSearchInput();
-    currentStore.close();
-  };
-
-  // Global key handling (in addition to TextInput) to improve accessibility
   useEffect(() => {
-    if (!opened) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      // Avoid interfering with IME composition
-      if ((e as any).isComposing) return;
-      const tag = (e.target as HTMLElement)?.tagName;
-      // Let the search input handle arrows; global fallback when not in input
-      const isInput = tag === 'INPUT' || tag === 'TEXTAREA';
-      switch (e.key) {
-        case 'Escape':
-          e.preventDefault();
-          handleClose();
-          break;
-        case 'ArrowDown':
-          if (isInput) return; // search input already handles
-          e.preventDefault();
-          handleNavigateDown();
-          break;
-        case 'ArrowUp':
-          if (isInput) return;
-          e.preventDefault();
-          handleNavigateUp();
-          break;
-        case 'Enter':
-          // Allow Enter anywhere (unless focused button) to trigger selection
-          if (isInput) {
-            // Search input handles Enter via onKeyPress already; fall through harmlessly
-          }
-          e.preventDefault();
-          handleSelectAction();
-          break;
-        default:
-          break;
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [opened, handleNavigateDown, handleNavigateUp, handleSelectAction]);
+    ensureVisible();
+  }, [selectedIndex, layoutVersion, ensureVisible]);
+
+  const captureLayout = (index: number) => (event: LayoutChangeEvent) => {
+    const { y, height } = event.nativeEvent.layout;
+    itemLayouts.current[index] = { y, height };
+    setLayoutVersion((v) => v + 1);
+  };
+
+  const renderActionRow = (action: SpotlightActionData, index: number, iconColor?: string) => (
+    <SpotlightAction
+      key={action.id}
+      label={action.label}
+      description={action.description}
+      selected={index === selectedIndex}
+      onLayout={captureLayout(index)}
+      highlightQuery={highlightValue}
+      startSection={renderIcon(action.icon, iconColor)}
+      onPress={() => runAction(action)}
+      disabled={action.disabled}
+      optionProps={navigation.getOptionProps(index)}
+    >
+      {action.component}
+    </SpotlightAction>
+  );
 
   const renderActions = () => {
     if (filteredActions.length === 0) {
       return <SpotlightEmpty>{nothingFound}</SpotlightEmpty>;
     }
-
-    let flatIndex = 0; // Track the global index across all actions
-
+    let flatIndex = 0; // global index across groups
     return filteredActions.map((item, index) => {
       if (isAction(item)) {
-        const isSelected = flatIndex === selectedIndex;
-        flatIndex++; // Increment after checking
-        return (
-          <SpotlightAction
-            key={item.id}
-            label={item.label}
-            description={item.description}
-            selected={isSelected}
-            innerRef={(el: any) => { itemRefs.current[flatIndex - 1] = el; }}
-            onLayout={(e: any) => { itemLayouts.current[flatIndex - 1] = { y: e.nativeEvent.layout.y, height: e.nativeEvent.layout.height }; setLayoutVersion(v => v + 1); }}
-            highlightQuery={highlightValue}
-            startSection={
-              typeof item.icon === 'string' ? (
-                <Icon name={item.icon} size="md"
-                  color="pink" />
-              ) : (
-                item.icon
-              )
-            }
-            onPress={() => {
-              dismissSearchInput();
-              item.onPress?.();
-              currentStore.close();
-            }}
-            disabled={item.disabled}
-          >
-            {item.component}
-          </SpotlightAction>
-        );
-      } else {
-        return (
-          <SpotlightActionsGroup
-            key={`group-${index}`}
-            label={item.group}
-          >
-            {item.actions.map((action) => {
-              const isSelected = flatIndex === selectedIndex;
-              flatIndex++; // Increment after checking
-              return (
-                <SpotlightAction
-                  key={action.id}
-                  label={action.label}
-                  description={action.description}
-                  selected={isSelected}
-                  innerRef={(el: any) => { itemRefs.current[flatIndex - 1] = el; }}
-                  onLayout={(e: any) => { itemLayouts.current[flatIndex - 1] = { y: e.nativeEvent.layout.y, height: e.nativeEvent.layout.height }; setLayoutVersion(v => v + 1); }}
-                  highlightQuery={highlightValue}
-                  startSection={
-                    typeof action.icon === 'string' ? (
-                      <Icon name={action.icon} size="md" />
-                    ) : (
-                      action.icon
-                    )
-                  }
-                  onPress={() => {
-                    dismissSearchInput();
-                    action.onPress?.();
-                    currentStore.close();
-                  }}
-                  disabled={action.disabled}
-                >
-                  {action.component}
-                </SpotlightAction>
-              );
-            })}
-          </SpotlightActionsGroup>
-        );
+        return renderActionRow(item, flatIndex++, 'pink');
       }
+      return (
+        <SpotlightActionsGroup key={`group-${index}`} label={item.group} labelProps={groupLabelProps}>
+          {item.actions.map((action) => renderActionRow(action, flatIndex++))}
+        </SpotlightActionsGroup>
+      );
     });
   };
 
   return (
     <SpotlightRoot
+      ref={ref}
       query={query}
-      onQueryChange={currentStore.setQuery}
+      onQueryChange={setQuery}
       opened={opened}
-      onClose={currentStore.close}
+      onClose={closeStore}
       shortcut={shortcut}
+      initialFocusRef={mergedAutoFocus ? mergedInputRef : undefined}
+      accessibilityLabel={accessibilityLabel}
+      testID={testID}
+      style={[spacingStyles, style]}
     >
       <SpotlightSearch
         value={query}
-        onChangeText={currentStore.setQuery}
-        onNavigateUp={handleNavigateUp}
-        onNavigateDown={handleNavigateDown}
-        onSelectAction={handleSelectAction}
+        onChangeText={setQuery}
         onClose={handleClose}
         autoFocus={mergedAutoFocus}
         inputRef={mergedInputRef}
+        {...searchA11yProps}
+        onKeyPress={handleSearchKeyPress}
         {...restSearchProps}
       />
       <SpotlightActionsList
         scrollable={scrollable}
         maxHeight={maxHeight}
         scrollRef={listRef}
-        onScrollChange={(y) => { scrollOffsetRef.current = y; }}
+        onScrollChange={(y) => {
+          scrollOffsetRef.current = y;
+        }}
+        id={listId}
       >
         {renderActions()}
       </SpotlightActionsList>
@@ -778,24 +613,29 @@ export function Spotlight({
   );
 }
 
-// Compound components
-Spotlight.Root = SpotlightRoot;
-Spotlight.Search = SpotlightSearch;
-Spotlight.ActionsList = SpotlightActionsList;
-Spotlight.Action = SpotlightAction;
-Spotlight.ActionsGroup = SpotlightActionsGroup;
-Spotlight.Empty = SpotlightEmpty;
+const SpotlightComponent = factory<SpotlightFactoryPayload>(SpotlightBase, { displayName: 'Spotlight', memo: false });
+
+/** Command palette (Cmd/Ctrl+K). Compound parts: Root, Search, ActionsList, Action, ActionsGroup, Empty. */
+export const Spotlight = withStatics(SpotlightComponent, {
+  Root: SpotlightRoot,
+  Search: SpotlightSearch,
+  ActionsList: SpotlightActionsList,
+  Action: SpotlightAction,
+  ActionsGroup: SpotlightActionsGroup,
+  Empty: SpotlightEmpty,
+});
 
 const styles = StyleSheet.create({
   action: {
     borderRadius: 8,
     marginHorizontal: 8,
     marginVertical: 1,
+    backgroundColor: 'transparent',
   },
   actionContent: {
     paddingHorizontal: 16,
-    paddingVertical: 10, // Slightly reduced for more items
-    minHeight: 48, // Slightly reduced for more compact layout
+    paddingVertical: 10,
+    minHeight: 48,
   },
   actionDescription: {
     fontSize: 13,
@@ -814,21 +654,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: 0,
   },
-  actionLeftSection: {
+  actionStartSection: {
     alignItems: 'center',
     height: 32,
     justifyContent: 'center',
-    marginRight: 4,
+    marginEnd: 4,
     width: 32,
   },
-  actionRightSection: {
+  actionEndSection: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
-  },
-  actionText: {
-    flex: 1,
-    justifyContent: 'center',
+    marginStart: 8,
   },
   actionsGroup: {
     marginVertical: 4,
@@ -836,18 +672,28 @@ const styles = StyleSheet.create({
   actionsList: {
     borderTopWidth: 1, // Separator between search and results
     flex: 1, // Take remaining space
-    // paddingBottom: 8, // Bottom padding for scroll area
+  },
+  disabled: {
+    opacity: 0.5,
   },
   empty: {
-    padding: 20, // Reduced padding for fixed height
+    padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    // Removed flex: 1 to prevent taking extra space
   },
   emptyText: {
     fontSize: 15,
     opacity: 0.6,
     textAlign: 'center',
+  },
+  fill: {
+    flex: 1,
+  },
+  fullscreen: {
+    width: '100%',
+    height: '100%',
+    maxHeight: '100%',
+    borderRadius: 0,
   },
   groupHeader: {
     borderBottomWidth: 1,
@@ -855,13 +701,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 8,
   },
-  groupLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-    opacity: 0.7,
-  },
   searchContainer: {
+    borderWidth: 1,
+    backgroundColor: 'transparent',
     paddingHorizontal: 20,
     paddingVertical: 16,
     // Fixed at top - no flex growth
@@ -877,12 +719,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 30,
     fontWeight: '500',
-    // Remove any default styling
     backgroundColor: 'transparent',
-    // Web-specific outline removal
-    ...(Platform.OS === 'web' && {
-      outlineWidth: 0,
-    }),
   },
   searchInputWrapper: {
     alignItems: 'center',
@@ -891,9 +728,10 @@ const styles = StyleSheet.create({
   },
   searchCloseButton: {
     alignItems: 'center',
-    height: 32,
+    // ≥44pt touch target without growing the row.
+    minHeight: 44,
+    minWidth: 44,
     justifyContent: 'center',
-    width: 32,
   },
   spotlightContainer: {
     height: SPOTLIGHT_DIALOG_HEIGHT, // Fixed height
@@ -905,9 +743,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     overflow: 'hidden',
-    // macOS-style shadow - using modern boxShadow instead of deprecated shadow* props
-    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
-    elevation: 12, // Keep elevation for Android
   },
 });
 

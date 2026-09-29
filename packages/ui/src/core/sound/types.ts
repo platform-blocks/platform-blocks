@@ -11,11 +11,20 @@ export interface SoundOptions {
   seekTo?: number;
 }
 
+/**
+ * A sound's source, in the forms expo-audio accepts: a bundled asset
+ * (`require('./tap.mp3')`), a URL, or a source object (`{ uri, headers }`).
+ */
+export type SoundSource =
+  | number
+  | string
+  | { uri?: string; headers?: Record<string, string>; assetId?: number; name?: string };
+
 export interface SoundAsset {
   /** Unique identifier for the sound */
   id: string;
   /** Path to the sound file */
-  source: any;
+  source: SoundSource;
   /** Default options for this sound */
   defaultOptions?: SoundOptions;
   /** Human-readable name */

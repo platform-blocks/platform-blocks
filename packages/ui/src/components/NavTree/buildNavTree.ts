@@ -12,7 +12,7 @@ export const groupNodeId = (path: string[]): string =>
 /** True for an id `buildNavTree` minted for a group rather than an item. */
 export const isGroupNodeId = (id: string): boolean => id.startsWith(GROUP_ID_PREFIX);
 
-const toPath = (group: NavTreeItem['group']): string[] => {
+const toPath = (group: NavTreeItem<unknown>['group']): string[] => {
   if (!group) return [];
   const parts = Array.isArray(group) ? group : [group];
   // A blank level would otherwise nest everything under an unnamed branch —
@@ -42,13 +42,13 @@ const compareGroups = (a: string, b: string, path: string[], groupOrder?: string
   return delta !== 0 ? delta : a.localeCompare(b);
 };
 
-const compareItems = (a: NavTreeItem, b: NavTreeItem): number => {
-  const rank = (item: NavTreeItem) => item.order ?? Number.MAX_SAFE_INTEGER;
+const compareItems = <T,>(a: NavTreeItem<T>, b: NavTreeItem<T>): number => {
+  const rank = (item: NavTreeItem<T>) => item.order ?? Number.MAX_SAFE_INTEGER;
   const delta = rank(a) - rank(b);
   return delta !== 0 ? delta : a.label.localeCompare(b.label);
 };
 
-const leafNode = (item: NavTreeItem): TreeNode<NavTreeItem> => ({
+const leafNode = <T,>(item: NavTreeItem<T>): TreeNode<NavTreeItem<T>> => ({
   id: item.id ?? item.href,
   label: item.label,
   href: item.href,
@@ -66,20 +66,20 @@ const leafNode = (item: NavTreeItem): TreeNode<NavTreeItem> => ({
  * keeps a hand-picked section order while new entries still land somewhere
  * predictable on their own.
  */
-export function buildNavTree(
-  items: NavTreeItem[],
-  options: BuildNavTreeOptions = {}
-): TreeNode<NavTreeItem>[] {
+export function buildNavTree<T = unknown>(
+  items: NavTreeItem<T>[],
+  options: BuildNavTreeOptions<T> = {}
+): TreeNode<NavTreeItem<T>>[] {
   const { groupOrder, groupIcons, sortLeaves = 'alpha', openDepth = 1, openGroups, getGroupNode } = options;
 
   /** One level of the tree while it is being assembled. */
   interface Level {
     /** Items that stop here — rendered as leaves, in sibling order with groups. */
-    leaves: NavTreeItem[];
+    leaves: NavTreeItem<T>[];
     /** Child groups, keyed by label, in first-seen order until they are sorted. */
     groups: Map<string, Level>;
     /** Everything at or below this level, for `getGroupNode`. */
-    items: NavTreeItem[];
+    items: NavTreeItem<T>[];
   }
 
   const newLevel = (): Level => ({ leaves: [], groups: new Map(), items: [] });
@@ -103,12 +103,12 @@ export function buildNavTree(
 
   const openSet = new Set(openGroups ?? []);
 
-  const emit = (level: Level, path: string[], depth: number): TreeNode<NavTreeItem>[] => {
+  const emit = (level: Level, path: string[], depth: number): TreeNode<NavTreeItem<T>>[] => {
     const groupNodes = Array.from(level.groups.entries())
       .sort(([a], [b]) => compareGroups(a, b, path, groupOrder))
-      .map(([label, child]): TreeNode<NavTreeItem> => {
+      .map(([label, child]): TreeNode<NavTreeItem<T>> => {
         const childPath = [...path, label];
-        const base: TreeNode<NavTreeItem> = {
+        const base: TreeNode<NavTreeItem<T>> = {
           id: groupNodeId(childPath),
           label,
           icon: groupIcons?.[label],
@@ -124,7 +124,7 @@ export function buildNavTree(
       });
 
     const leaves = (sortLeaves === 'alpha' ? [...level.leaves].sort(compareItems) : level.leaves)
-      .map(leafNode);
+      .map(item => leafNode(item));
 
     // Groups first, then the loose items at this level. A branch buried between
     // two leaves is easy to miss; a block of branches above a block of links

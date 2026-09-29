@@ -9,7 +9,7 @@ export function Demo() {
     <BarChart
       title="SLA compliance by response team"
       subtitle="Rolling 12-month attainment"
-      height={420}
+      h={420}
       orientation="horizontal"
       data={SLA_COMPLIANCE}
       barSpacing={0.3}

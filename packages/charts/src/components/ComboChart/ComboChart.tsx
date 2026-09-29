@@ -13,7 +13,7 @@ import { useChartInteractionContext, usePointer, useActiveTarget } from '../../i
 import type { ActiveTarget } from '../../core/hittest/types';
 import { ChartInteractionEvent } from '../../types';
 import { linearScale, generateNiceTicks, type Scale } from '../../utils/scales';
-import { createSmoothPath } from '../../utils';
+import { createSmoothPath, createTickFormatter } from '../../utils';
 import { roundedBarPath, barCornerMask } from '../../utils/barPath';
 import { createColorAssigner } from '../../colors';
 
@@ -343,8 +343,8 @@ ComboLineSeries.displayName = 'ComboLineSeries';
 export const ComboChart: React.FC<ComboChartProps> = (props) => {
   const {
     layers,
-    width = 520,
-    height = 320,
+    w: width = 520,
+    h: height = 320,
     title,
     subtitle,
     enableCrosshair = true,
@@ -365,7 +365,7 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
   } = props;
 
   const theme = useChartTheme();
-  const assignColor = useMemo(() => createColorAssigner(), []);
+  const assignColor = useMemo(() => createColorAssigner({}, theme.colors.accentPalette), [theme.colors.accentPalette]);
 
   let interaction: ReturnType<typeof useChartInteractionContext> | null = null;
   try {
@@ -491,8 +491,8 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
   // gutter that a narrow chart could not afford.
   const axisPadding = useMemo(
     () => resolveCartesianPadding({
-      yTickLabels: domainTickLabels(yDomainLeft, (value) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : `${value}`)),
-      xTickLabels: domainTickLabels(xDomain, (value) => (xAxis?.labelFormatter ? xAxis.labelFormatter(value) : `${value}`)),
+      yTickLabels: domainTickLabels(yDomainLeft, yAxis?.labelFormatter, theme.numberFormat, String),
+      xTickLabels: domainTickLabels(xDomain, xAxis?.labelFormatter, theme.numberFormat, String),
       yTitle: yAxis?.title,
       xTitle: xAxis?.title,
       showYAxis: yAxis?.show !== false,
@@ -504,13 +504,14 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
       // A right-hand value axis needs its own label column.
       rightAllowance: hasRightAxis
         ? Math.ceil(measureWidestLabel(
-            domainTickLabels(yDomainRight, (value) => (yAxisRight?.labelFormatter ? yAxisRight.labelFormatter(value) : `${value}`)),
+            domainTickLabels(yDomainRight, yAxisRight?.labelFormatter, theme.numberFormat, String),
             11,
           )) + 12
         : 0,
     }),
     [yDomainLeft, yDomainRight, xDomain, yAxis?.labelFormatter, xAxis?.labelFormatter, yAxisRight?.labelFormatter,
-     yAxis?.title, xAxis?.title, yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, hasRightAxis, width, height]
+     yAxis?.title, xAxis?.title, yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, hasRightAxis, width, height,
+     theme.numberFormat]
   );
   const padding = useMemo(() => withChartBandPadding(
     axisPadding,
@@ -694,6 +695,9 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
   const xTicks = useMemo(() => xAxis?.ticks ?? generateNiceTicks(xDomain[0], xDomain[1], 6), [xAxis?.ticks, xDomain]);
   const yTicksLeft = useMemo(() => yAxis?.ticks ?? generateNiceTicks(yDomainLeft[0], yDomainLeft[1], 5), [yAxis?.ticks, yDomainLeft]);
   const yTicksRight = useMemo(() => yAxisRight?.ticks ?? generateNiceTicks(yDomainRight[0], yDomainRight[1], 5), [yAxisRight?.ticks, yDomainRight]);
+  const xTickFormat = useMemo(() => createTickFormatter(xTicks, theme.numberFormat, String), [xTicks, theme.numberFormat]);
+  const yTickFormatLeft = useMemo(() => createTickFormatter(yTicksLeft, theme.numberFormat, String), [yTicksLeft, theme.numberFormat]);
+  const yTickFormatRight = useMemo(() => createTickFormatter(yTicksRight, theme.numberFormat, String), [yTicksRight, theme.numberFormat]);
 
   const normalizedXTicks = useMemo(() => {
     if (plotWidth <= 0) return [] as number[];
@@ -730,8 +734,8 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
 
   return (
     <ChartContainer
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       padding={padding}
       disabled={disabled}
       animationDuration={800}
@@ -834,7 +838,7 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
           tickCount={xTicks.length}
           tickSize={xAxis?.tickLength ?? 4}
           tickPadding={8}
-          tickFormat={(value: number) => (xAxis?.labelFormatter ? xAxis.labelFormatter(value) : `${value}`)}
+          tickFormat={(value: number) => (xAxis?.labelFormatter ? xAxis.labelFormatter(value) : xTickFormat(value))}
           label={xAxis?.title}
           stroke={xAxis?.color || theme.colors.grid}
           strokeWidth={xAxis?.thickness ?? 1}
@@ -855,7 +859,7 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
           tickCount={yTicksLeft.length}
           tickSize={yAxis?.tickLength ?? 4}
           tickPadding={6}
-          tickFormat={(value: number) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : `${value}`)}
+          tickFormat={(value: number) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : yTickFormatLeft(value))}
           label={yAxis?.title}
           stroke={yAxis?.color || theme.colors.grid}
           strokeWidth={yAxis?.thickness ?? 1}
@@ -876,7 +880,7 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
           tickCount={yTicksRight.length}
           tickSize={yAxisRight?.tickLength ?? 4}
           tickPadding={6}
-          tickFormat={(value: number) => (yAxisRight?.labelFormatter ? yAxisRight.labelFormatter(value) : `${value}`)}
+          tickFormat={(value: number) => (yAxisRight?.labelFormatter ? yAxisRight.labelFormatter(value) : yTickFormatRight(value))}
           label={yAxisRight?.title}
           stroke={yAxisRight?.color || theme.colors.grid}
           strokeWidth={yAxisRight?.thickness ?? 1}

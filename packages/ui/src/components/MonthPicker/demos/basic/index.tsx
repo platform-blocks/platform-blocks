@@ -7,7 +7,7 @@ export function Demo() {
   return (
     <Block fullWidth>
       <MonthPicker value={value} onChange={setValue} monthLabelFormat="long" />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         {value
           ? value.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
           : 'No month selected'}

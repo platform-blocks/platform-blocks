@@ -1,4 +1,4 @@
-import { Avatar } from '@platform-blocks/ui'
+import { Avatar } from '@platform-blocks/ui';
 
 export function Demo() {
   return (
@@ -7,5 +7,5 @@ export function Demo() {
       fallback="JD"
       size="xl"
     />
-  )
+  );
 }

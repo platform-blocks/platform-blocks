@@ -6,8 +6,10 @@ Sitemap: https://platform-blocks.com/sitemap.xml
 
 # LLM-friendly documentation
 # See https://llmstxt.org for more info
-# /llms.txt indexes per-page Markdown under /llms/; /llms-full.txt is everything in one file.
+# /llms.txt indexes per-page Markdown under /llms/; /llms-small.txt is every API in one
+# compact file and /llms-full.txt everything in full. Docs pages also serve <route>.md.
 Allow: /llms.txt
+Allow: /llms-small.txt
 Allow: /llms-full.txt
 Allow: /llms/
 

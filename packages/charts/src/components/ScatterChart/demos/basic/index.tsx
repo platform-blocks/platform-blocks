@@ -7,7 +7,7 @@ export function Demo() {
     <ScatterChart
       title="Spend vs. qualified leads"
       subtitle="Campaign cohort"
-      height={340}
+      h={340}
       data={SERIES.flatMap((serie) => serie.data)}
       series={SERIES}
       showTrendline="per-series"

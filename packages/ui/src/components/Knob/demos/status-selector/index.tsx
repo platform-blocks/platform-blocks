@@ -23,7 +23,7 @@ export function Demo() {
 
   return (
     <Block>
-      <Knob
+      <Knob accessibilityLabel="Status"
         value={value}
         onChange={setValue}
         min={0}

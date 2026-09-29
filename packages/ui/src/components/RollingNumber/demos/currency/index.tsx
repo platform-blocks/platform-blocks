@@ -14,7 +14,7 @@ export function Demo() {
         fixedDecimalScale
         thousandSeparator
         size={36}
-        weight="semibold"
+        fw="semibold"
       />
       <Button variant="outline" onPress={() => setTotal((current) => current + 149.5)}>
         Add item

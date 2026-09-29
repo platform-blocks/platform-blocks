@@ -53,7 +53,7 @@ export function DashboardExample() {
     >
       <Column gap="xs">
         <Title order={2}>Overview</Title>
-        <Text variant="small" color="secondary">Last 12 weeks</Text>
+        <Text variant="small" c="secondary">Last 12 weeks</Text>
       </Column>
 
       <Flex direction="row" wrap="wrap" gap="md">
@@ -61,7 +61,7 @@ export function DashboardExample() {
           <Card key={stat.label} variant="elevated" p="lg" style={{ flexBasis: 240, flexGrow: 1 }}>
             <Column gap="sm">
               <Flex direction="row" align="center" justify="space-between">
-                <Text variant="small" color="secondary">{stat.label}</Text>
+                <Text variant="small" c="secondary">{stat.label}</Text>
                 <Chip
                   size="sm"
                   variant="light"
@@ -73,7 +73,7 @@ export function DashboardExample() {
               <Title order={3}>{stat.value}</Title>
               {/* No width: the sparkline takes the card it is in, which grows. */}
               <SparklineChart
-                height={48}
+                h={48}
                 data={stat.trend}
                 fill
                 fillOpacity={0.15}

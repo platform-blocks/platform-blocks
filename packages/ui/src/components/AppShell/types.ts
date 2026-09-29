@@ -1,8 +1,15 @@
-import React from 'react';
+import type React from 'react';
+import type { Role, ViewStyle } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
-import { SpacingProps } from '../../core/utils';
 
-// Responsive sizing
+import type { Breakpoint as ResponsiveBreakpoint } from '../../core/responsive';
+import type { BaseProps } from '../../core/types/base';
+
+/**
+ * A size that can change per breakpoint. Numbers are px; strings are parsed as
+ * px (`'240'`, `'240px'`). The navbar's drawer width also accepts viewport
+ * relative strings (`'100%'`, `'80vw'`, `'full'`).
+ */
 export type ResponsiveSize = number | string | {
   base?: number | string;
   xs?: number | string;
@@ -12,28 +19,52 @@ export type ResponsiveSize = number | string | {
   xl?: number | string;
 };
 
-export type Breakpoint = 'base' | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+/**
+ * Breakpoint names. Widths come from `theme.breakpoints` (xs 480, sm 576,
+ * md 768, lg 992, xl 1200 by default); `base` is everything below `xs`.
+ */
+export type Breakpoint = ResponsiveBreakpoint;
 
 export interface HeaderConfig {
   height: ResponsiveSize;
+  /** Hide the header: `AppShell.Header` renders nothing and reserves no height. @default false */
   collapsed?: boolean;
+  /**
+   * Whether the main content starts below the header. `false` lets content run
+   * underneath it (e.g. a translucent header over a hero image). @default true
+   */
   offset?: boolean;
+  /** Stacking order of `AppShell.Header`. @default theme.zIndices.header */
   zIndex?: number;
 }
 
 export interface NavbarConfig {
   width: ResponsiveSize;
-  breakpoint: Breakpoint;
+  /**
+   * Narrowest viewport at which the navbar is an inline rail (web). Below it the
+   * navbar is an overlay drawer. Native apps always use the drawer. @default 'md'
+   */
+  breakpoint?: Breakpoint;
+  /**
+   * Initial state. `mobile: false` starts the drawer open; `desktop: true`
+   * starts the desktop navbar collapsed to its rail (`startCollapsedDesktop`
+   * takes precedence). The state resets when the viewport crosses `breakpoint`.
+   */
   collapsed?: {
     mobile?: boolean;
     desktop?: boolean;
   };
+  /**
+   * Stacking order of the inline rail. @default theme.zIndices.sticky
+   * (The drawer uses `theme.zIndices.overlay`, above the header; set
+   * `AppShell.Navbar zIndex` to override both.)
+   */
   zIndex?: number;
   collapsedWidth?: number;
   expandOnHover?: boolean;
   /**
    * When paired with `expandOnHover`, hovering the collapsed rail pushes the
-   * main content to the right (flexing the page) instead of overlaying it.
+   * main content aside (flexing the page) instead of overlaying it.
    * Defaults to `false` (overlay) to preserve existing behavior.
    */
   expandOnHoverPush?: boolean;
@@ -49,25 +80,35 @@ export interface NavbarConfig {
 
 export interface AsideConfig {
   width: ResponsiveSize;
-  breakpoint: Breakpoint;
+  /** Narrowest viewport at which `collapsed.desktop` applies; below it `collapsed.mobile` does. @default 'md' */
+  breakpoint?: Breakpoint;
   collapsed?: {
+    /** @default true */
     mobile?: boolean;
+    /** @default false */
     desktop?: boolean;
   };
+  /** Stacking order of `AppShell.Aside`. @default theme.zIndices.sticky */
   zIndex?: number;
 }
 
 export interface FooterConfig {
   height: ResponsiveSize;
+  /** Hide the footer: `AppShell.Footer` renders nothing and reserves no height. @default false */
   collapsed?: boolean;
+  /** Whether the main content ends above the footer. `false` lets content run underneath it. @default true */
   offset?: boolean;
+  /** Stacking order of `AppShell.Footer`. @default theme.zIndices.sticky */
   zIndex?: number;
 }
 
 export interface BottomNavConfig {
   height: ResponsiveSize;
+  /** Only show the bottom navigation at mobile widths (and on native). @default true */
   showOnlyMobile?: boolean;
+  /** Hide the bottom navigation. @default false */
   collapsed?: boolean;
+  /** Stacking order of `AppShell.BottomNav`. @default theme.zIndices.sticky */
   zIndex?: number;
 }
 
@@ -105,7 +146,12 @@ export type LayoutStrategy =
   | 'mobile-bottom-nav'
   | 'adaptive';
 
-export interface AppShellProps extends SpacingProps {
+export interface AppShellProps extends BaseProps<ViewStyle> {
+  /**
+   * `'default'`: the header spans the full width and the navbar/aside sit
+   * below it. `'alt'`: the navbar and aside span the full height and the
+   * header sits between them. @default 'default'
+   */
   layout?: 'default' | 'alt';
   header?: HeaderConfig;
   navbar?: NavbarConfig;
@@ -141,22 +187,31 @@ export interface AppShellProps extends SpacingProps {
    */
   cssGeometry?: boolean;
   statusBar?: StatusBarConfig;
+  /**
+   * Padding inside the main content area: a spacing token (`'md'`), px
+   * number, or a per-breakpoint object. @default no padding
+   */
   padding?: ResponsiveSize;
+  /** Default `withBorder` for every section. @default true */
   withBorder?: boolean;
+  /** Stacking order for every section that doesn't set its own. @default each section's `theme.zIndices` layer */
   zIndex?: number;
+  /** Navbar/content transition length in ms (`0` = instant). Reduced motion forces `0`. @default 200 */
   transitionDuration?: number;
+  /**
+   * CSS timing function for the navbar/content transitions: `'linear'`,
+   * `'ease'`, `'ease-in'`, `'ease-out'`, `'ease-in-out'` or `'cubic-bezier(…)'`.
+   * @default a cubic ease-in-out
+   */
   transitionTimingFunction?: string;
   disabled?: boolean;
   children: React.ReactNode;
-  backgroundColor?: string;
   withSafeArea?: boolean;
-  style?: any;
-  testID?: string;
   /** Maximum width for main content area to prevent stretching on wide screens */
   maxContentWidth?: number | string;
   /** Center content when maxContentWidth is set */
   centerContent?: boolean;
-  /** Optional table of contents rendered to the right of the main content */
+  /** Optional table of contents rendered at the end side of the main content */
   tableOfContents?: React.ReactNode;
   /** Hide the table of contents automatically on mobile breakpoints */
   hideTableOfContentsOnMobile?: boolean;
@@ -164,6 +219,22 @@ export interface AppShellProps extends SpacingProps {
   tableOfContentsWidth?: number | string;
   /** Toggle border between content and table of contents */
   tableOfContentsWithBorder?: boolean;
+}
+
+/** Imperative navbar controls, from `useAppShellApi()`. */
+export interface AppShellApi {
+  openNavbar: () => void;
+  closeNavbar: () => void;
+  toggleNavbar: () => void;
+}
+
+/** Resolved section sizes, from `useAppShellLayout()`. */
+export interface AppShellLayoutValue {
+  headerHeight: number | string;
+  navbarWidth: number | string;
+  asideWidth: number | string;
+  footerHeight: number | string;
+  bottomNavHeight: number | string;
 }
 
 export interface AppShellContextValue {
@@ -182,12 +253,14 @@ export interface AppShellContextValue {
   isNavbarCollapsed: boolean;
   isNavbarRail: boolean;
   isAsideCollapsed: boolean;
+  /** Native, or a web viewport below `md`. */
   isMobile: boolean;
   breakpoint: Breakpoint;
   openNavbar: () => void;
   closeNavbar: () => void;
   toggleNavbar: () => void;
   navbarOpen: boolean;
+  /** Effective transition length in ms (`0` while reduced motion is on). */
   transitionDuration: number;
   /**
    * Emit the shell's geometry as `var(--pb-shell-*)` references instead of
@@ -217,35 +290,33 @@ export interface AppShellConfig {
   layoutSections?: LayoutVisibilityConfig;
 }
 
-// Sub-component prop interfaces (moved from AppShell.tsx for central typing)
-export interface AppShellHeaderProps {
+/** Props shared by the shell's chrome sections. */
+interface AppShellChromeProps extends BaseProps<ViewStyle> {
   children: React.ReactNode;
+  /** Draw the hairline between this section and the content. @default AppShell `withBorder` */
   withBorder?: boolean;
+  /** Stacking order; wins over the section config and the theme layer. */
   zIndex?: number;
-  style?: any;
+  /** Accessible name of the section's landmark. */
+  accessibilityLabel?: string;
 }
 
-export interface AppShellNavbarProps {
-  children: React.ReactNode;
-  withBorder?: boolean;
-  zIndex?: number;
-  style?: any;
-  drawerMode?: boolean; // Force temporary overlay drawer mode (defaults to auto on mobile)
+/** `AppShell.Header` — rendered as the page's `banner` landmark. */
+export type AppShellHeaderProps = AppShellChromeProps;
+
+/** `AppShell.Navbar` — rendered as a `navigation` landmark. */
+export interface AppShellNavbarProps extends AppShellChromeProps {
+  /** Force the overlay drawer (`true`) or the inline rail (`false`). Defaults to the drawer below `navbar.breakpoint`. */
+  drawerMode?: boolean;
+  /** Accessible name of the navigation landmark. @default 'Main' */
+  accessibilityLabel?: string;
 }
 
-export interface AppShellAsideProps {
-  children: React.ReactNode;
-  withBorder?: boolean;
-  zIndex?: number;
-  style?: any;
-}
+/** `AppShell.Aside` — rendered as a `complementary` landmark. */
+export type AppShellAsideProps = AppShellChromeProps;
 
-export interface AppShellFooterProps {
-  children: React.ReactNode;
-  withBorder?: boolean;
-  zIndex?: number;
-  style?: any;
-}
+/** `AppShell.Footer` — rendered as the page's `contentinfo` landmark. */
+export type AppShellFooterProps = AppShellChromeProps;
 
 export interface BottomAppBarItem {
   key: string;
@@ -256,7 +327,7 @@ export interface BottomAppBarItem {
   onPress?: () => void; // per-item override
 }
 
-export interface AppShellBottomNavProps {
+export interface AppShellBottomNavProps extends BaseProps<ViewStyle> {
   /** Provide custom children (legacy). If `items` provided, children are ignored. */
   children?: React.ReactNode;
   /** Structured items definition for standard navigation bar */
@@ -265,29 +336,34 @@ export interface AppShellBottomNavProps {
   activeKey?: string;
   /** Callback when an item is pressed (fires after per-item onPress) */
   onItemPress?: (key: string) => void;
-  /** Show labels under icons (default true). If false, shows tooltip-like behavior (future) */
+  /** Show labels under icons (default true). Items are still named for screen readers when hidden. */
   showLabels?: boolean;
   /** Visual variant */
   variant?: 'solid' | 'surface' | 'elevated' | 'translucent';
-  /** Elevation shadow level (only for elevated variant) */
+  /** Shadow strength for the `elevated` variant (Android-style elevation, 0–24). @default 4 */
   elevation?: number;
   /** Optional floating action button rendered centered & elevated */
   fab?: React.ReactNode;
   withBorder?: boolean;
   zIndex?: number;
-  style?: any;
+  /** Accessible name of the bar's `navigation` landmark (BottomAppBar). */
+  accessibilityLabel?: string;
 }
 
-export interface AppShellMainProps {
+export interface AppShellMainProps extends BaseProps<ViewStyle> {
   children: React.ReactNode;
-  style?: any;
-  id?: string; // Web only id attribute passthrough
-  role?: string; // Web only role attribute passthrough
-  /** Maximum width for main content area to prevent stretching on wide screens */
-  maxWidth?: number | string;
-  /** Center content when maxWidth is set */
+  /** Element id (DOM `id` on web, `nativeID` on native). */
+  id?: string;
+  /** Landmark role. @default 'main' */
+  role?: Role;
+  /**
+   * Maximum width of the content column inside the main area (the area itself
+   * still fills the space between the chrome), to prevent stretching on wide screens.
+   */
+  maw?: number | string;
+  /** Center content when `maw` is set */
   centerContent?: boolean;
-  /** Table of contents content to show in right sidebar */
+  /** Table of contents content to show at the end side of the content */
   tableOfContents?: React.ReactNode;
   /** Hide table of contents on mobile */
   hideTocOnMobile?: boolean;
@@ -297,9 +373,27 @@ export interface AppShellMainProps {
   tocWithBorder?: boolean;
 }
 
-export interface AppShellSectionProps {
+export interface AppShellSectionProps extends BaseProps<ViewStyle> {
   children: React.ReactNode;
+  /** Take the remaining space of the navbar/aside. */
   grow?: boolean;
+  /** Scroll the section's content when it overflows. */
   withScrollArea?: boolean;
-  style?: any;
+}
+
+export interface MobileMenuProps extends BaseProps<ViewStyle> {
+  /** Whether the menu is open. */
+  opened?: boolean;
+  /** @deprecated Use `opened` instead. */
+  visible?: boolean;
+  /** Called when the menu asks to close (backdrop press, Escape, Android back). */
+  onClose: () => void;
+  children?: React.ReactNode;
+  config?: MobileMenuConfig;
+  /** Accessible name of the menu dialog. @default 'Menu' */
+  accessibilityLabel?: string;
+}
+
+export interface StatusBarManagerProps extends StatusBarConfig {
+  children?: React.ReactNode;
 }

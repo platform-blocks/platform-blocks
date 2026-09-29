@@ -9,6 +9,7 @@ import type {
   ChartLegend,
   ChartTooltip,
 } from '../../types/base';
+import type { ChartFill } from '../../core/ChartFill';
 
 export interface LineChartSeries {
   /** Unique identifier for the series */
@@ -39,8 +40,11 @@ export interface LineChartSeries {
   metadata?: any;
   /** Override fill visibility for area charts */
   areaFill?: boolean;
-  /** Optional fill color for the series area */
-  fillColor?: string;
+  /**
+   * Area fill for this series. A color fades from `fillOpacity` at the line to
+   * transparent at the baseline; a gradient is used exactly as given.
+   */
+  fillColor?: ChartFill;
   /** Optional fill opacity for the series area */
   fillOpacity?: number;
   /** Override smooth setting per series */
@@ -70,8 +74,11 @@ export interface LineChartProps
   smooth?: boolean;
   /** Fill area under line */
   fill?: boolean;
-  /** Fill color */
-  fillColor?: string;
+  /**
+   * Area fill. A color fades from `fillOpacity` at the line to transparent at the
+   * baseline; a gradient is used exactly as given.
+   */
+  fillColor?: ChartFill;
   /** Fill opacity */
   fillOpacity?: number;
   /** How to distribute fill across series when multiple are present */

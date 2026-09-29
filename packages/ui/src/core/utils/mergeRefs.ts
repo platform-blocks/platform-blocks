@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useRef } from 'react';
 import type { MutableRefObject, Ref } from 'react';
 
 /**
@@ -31,5 +31,17 @@ export function mergeRefs<T>(...refs: Array<Ref<T> | undefined>) {
  * });
  */
 export function useMergedRef<T>(...refs: Array<Ref<T> | undefined>) {
-  return useCallback(mergeRefs(...refs), refs);
+  // Memoized on the refs themselves (a variable-length list, which a hook
+  // dependency array can't express): a new callback only when one changes.
+  const cache = useRef<{ refs: Array<Ref<T> | undefined>; merged: (value: T | null) => void } | null>(null);
+  let cached = cache.current;
+  if (
+    !cached ||
+    cached.refs.length !== refs.length ||
+    cached.refs.some((ref, index) => !Object.is(ref, refs[index]))
+  ) {
+    cached = { refs, merged: mergeRefs(...refs) };
+    cache.current = cached;
+  }
+  return cached.merged;
 }

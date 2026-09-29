@@ -7,6 +7,10 @@ const mockTheme = {
   colors: {
     gray: ['#f5f5f5', '#e0e0e0', '#cccccc'],
   },
+  backgrounds: {
+    border: '#e0e0e0',
+    borderStrong: '#cccccc',
+  },
 };
 
 jest.mock('../../../core/theme/ThemeProvider', () => ({

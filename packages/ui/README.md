@@ -44,17 +44,21 @@ All of these are required. `@tabler/icons-react-native` backs the `Icon` registr
 | Package | Version |
 | --- | --- |
 | `react` | `>=18.0.0 <20.0.0` |
-| `react-native` | `>=0.73.0` |
-| `react-native-reanimated` | `>=3.4.0` |
+| `react-native` | `>=0.79.0` |
+| `react-native-reanimated` | `>=3.5.0` |
 | `react-native-safe-area-context` | `>=4.5.0` |
 | `react-native-svg` | `>=13.0.0` |
-| `@tabler/icons-react-native` | `>=3.0.0` |
+| `@tabler/icons-react-native` | `>=3.35.0` |
+
+`Icon` deep-imports one module per glyph (`@tabler/icons-react-native/IconBell`), which needs the `./*` subpath export that `@tabler/icons-react-native` ships from 3.35.0, and a bundler that honors package `exports` — Metro does by default from React Native 0.79; if your `metro.config.js` sets `resolver.unstable_enablePackageExports = false`, remove that.
 
 ### Optional integrations
 
 These are lazily required and only needed when you use features that depend on them:
 
-`expo-audio` · `expo-document-picker` · `expo-haptics` · `expo-linear-gradient` · `expo-status-bar` · `react-native-worklets` · `react-syntax-highlighter` · `@react-native-masked-view/masked-view` · `@shopify/flash-list` · `react-native-reanimated-carousel`
+`expo-audio` · `expo-clipboard` · `expo-document-picker` · `expo-haptics` · `expo-linear-gradient` · `expo-navigation-bar` · `expo-status-bar` · `react-native-gesture-handler` · `react-native-webview` · `react-native-worklets` · `react-syntax-highlighter` · `@react-native-masked-view/masked-view` · `@shopify/flash-list` · `react-native-reanimated-carousel`
+
+They are declared as optional peer dependencies (see `peerDependenciesMeta` in `package.json`) with the minimum versions that work.
 
 ## Quick start
 
@@ -158,6 +162,58 @@ export function App() {
   );
 }
 ```
+
+A partial theme is merged onto the built-in theme of the current color scheme, so it keeps
+light/dark switching. For different overrides per scheme, pass a pair:
+`<PlatformBlocksProvider theme={{ light: lightOverrides, dark: darkOverrides }}>`.
+
+### Titles and group labels
+
+Text that labels a group of items, like a sheet title above options or a menu section header,
+steps back from the items it labels, so it never reads as one more option. Two text roles
+control it:
+
+| Role | Used by | Default |
+| --- | --- | --- |
+| `panelTitle` | Select / AutoComplete mobile sheet, DrawerNavigator, DataTable filter popover | secondary, `sm`, 600 |
+| `sectionLabel` | Menu.Label, AutoComplete and Spotlight groups, ControlField.Group, nested Tree headings | secondary, `sm`, 600, uppercase, 0.5 tracking |
+
+Change a role for every component at once through `textRoles`, field by field. For example,
+to restore primary-colored `md` sheet titles and turn off the caps on section labels:
+
+```tsx
+const theme = createTheme({
+  textRoles: {
+    panelTitle: { color: 'primary', fontSize: 'md' },
+    sectionLabel: { uppercase: false },
+  },
+});
+```
+
+`color` takes a `theme.text` role, a palette token, or any CSS color. Use a role in your own
+UI with `<Text textRole="sectionLabel">`, or with `resolveTextRole(theme, 'sectionLabel')` for
+a raw React Native `Text`. To restyle a single instance, use the component's slot prop
+(`groupLabelProps`, `titleProps`, `textProps`).
+
+### No-flash color scheme for static / server rendering
+
+Put the scheme variables and the color-scheme script in the document head, so a prerendered page
+is in the reader's scheme at first paint (before hydration):
+
+```tsx
+import { BUILT_IN_DARK_THEME, DEFAULT_THEME, createThemeColorVariablesCss, getColorSchemeScript } from '@platform-blocks/ui';
+
+<head>
+  <style dangerouslySetInnerHTML={{ __html: createThemeColorVariablesCss(DEFAULT_THEME, BUILT_IN_DARK_THEME) }} />
+  <script dangerouslySetInnerHTML={{ __html: getColorSchemeScript() }} />
+</head>
+```
+
+`getColorSchemeScript()` reads the mode `ThemeModeProvider` persists (`localStorage`
+`platform-blocks-theme-mode`, falling back to `prefers-color-scheme`) and stamps
+`<html data-platform-blocks-color-scheme="light|dark">` plus the `platform-blocks-light|dark` class
+for an explicit choice — the same marker the providers set after hydration. Pair it with
+`colorsAsCssVariables` on `PlatformBlocksProvider`.
 
 ## Documentation
 

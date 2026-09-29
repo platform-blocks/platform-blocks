@@ -252,3 +252,18 @@ export const findNodeByHref = (
   }
   return undefined;
 };
+
+type ModifierKey = 'shiftKey' | 'metaKey' | 'ctrlKey' | 'altKey';
+type ModifierFlags = Partial<Record<ModifierKey, unknown>>;
+
+/**
+ * Reads a modifier flag off a press or key event. RN Web puts the flags on the
+ * DOM event, RN on its `nativeEvent`, and a keyboard event carries them at the
+ * top level — so both places are checked. `||` rather than `??`: a `false`
+ * `metaKey` must not stop the lookup before the nested flag is considered.
+ */
+export const hasModifier = (event: unknown, key: ModifierKey): boolean => {
+  if (!event || typeof event !== 'object') return false;
+  const flags = event as ModifierFlags & { nativeEvent?: ModifierFlags };
+  return !!(flags[key] || flags.nativeEvent?.[key]);
+};

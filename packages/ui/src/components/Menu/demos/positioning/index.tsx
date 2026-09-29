@@ -1,4 +1,4 @@
-import { Button, Card, Menu, MenuDropdown, MenuItem, Row, Text } from '@platform-blocks/ui';
+import { Button, Menu, MenuDropdown, MenuItem, Row } from '@platform-blocks/ui';
 
 const POSITIONS = [
   { label: 'Bottom start', position: 'bottom-start' },

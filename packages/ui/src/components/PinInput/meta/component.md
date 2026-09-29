@@ -19,7 +19,11 @@ props:
   disabled: Whether the PIN input is disabled
   autoFocus: Whether to auto-focus the first input field
   mask: Whether to mask the input values
-  onComplete: Callback fired when all fields are filled
+  onComplete: Callback fired once when the PIN becomes complete (not on re-renders; again after an edit)
+  helperText: Text under the cells while there is no error
+  variant: Cell frame variant — 'default' | 'filled' | 'outline' | 'unstyled'
+  radius: Cell corner radius (token or px; deprecated alias `borderRadius`)
+  enforceOrderInitialOnly: Only force sequential entry until the PIN has been complete once
   labelProps: Override props applied to the label `<Text>`
   descriptionProps: Override props applied to the description `<Text>`
 related:
@@ -37,3 +41,5 @@ examples:
 ---
 
 A specialized input component designed for entering PIN codes, one-time passwords (OTP), verification codes, and other sequential character inputs. The component provides an intuitive interface with automatic focus management.
+
+The cells form a `role="group"` named by the label; each cell is named "<label>, digit n of N" and carries the field's error / helper / required wiring. Cells are sized from the theme's control height, so a PIN input lines up with the other fields in a form. The `ref` is a field handle: `focus()` (first empty cell), `blur()`, `clear()`.

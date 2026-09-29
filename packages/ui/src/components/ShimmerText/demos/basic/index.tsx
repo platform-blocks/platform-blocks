@@ -3,7 +3,7 @@ import { Block, ShimmerText } from '@platform-blocks/ui';
 export function Demo() {
   return (
     <Block align="flex-start">
-      <ShimmerText size="xl" weight="bold">
+      <ShimmerText size="xl" fw="bold">
         Weekly highlights go live
       </ShimmerText>
       <ShimmerText>

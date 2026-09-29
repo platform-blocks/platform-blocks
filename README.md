@@ -56,8 +56,9 @@ Full documentation and examples are available at [platform-blocks.com](https://p
 - [Accessibility](https://platform-blocks.com/accessibility)
 - [llms.txt](https://platform-blocks.com/llms.txt) — Documentation index for LLMs and AI assistants,
   linking a standalone Markdown page per component, chart, hook, guide, and FAQ entry.
-  [llms-full.txt](https://platform-blocks.com/llms-full.txt) is the same content in one file;
-  [platform-blocks.com/llms](https://platform-blocks.com/llms) explains the layout.
+  [llms-small.txt](https://platform-blocks.com/llms-small.txt) is every API in one compact file
+  (imports, own props, one example each), [llms-full.txt](https://platform-blocks.com/llms-full.txt)
+  is everything in full; [platform-blocks.com/llms](https://platform-blocks.com/llms) explains the layout.
 
 ## Contributing
 

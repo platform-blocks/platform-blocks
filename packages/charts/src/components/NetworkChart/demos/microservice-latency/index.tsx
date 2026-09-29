@@ -19,7 +19,7 @@ export function Demo() {
     <NetworkChart
       title="Microservice latency map"
       subtitle="Edge-to-core call graph with weighted latency"
-      height={460}
+      h={460}
       nodes={SERVICES}
       links={DEPENDENCIES}
       showLabels

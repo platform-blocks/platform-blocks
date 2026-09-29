@@ -1,7 +1,7 @@
-import React from 'react';
-import { ViewStyle, TextStyle, StyleProp } from 'react-native';
-import { SpacingProps } from '../../core/utils';
-import type { RadiusValue } from '../../core/theme/radius';
+import type React from 'react';
+import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
+
+import type { BaseProps, RadiusValue } from '../../core/types/base';
 
 export type CodeBlockToken =
   | 'keyword'
@@ -58,7 +58,7 @@ export interface CodeBlockFile {
   githubUrl?: string;
 }
 
-export interface CodeBlockProps extends SpacingProps {
+export interface CodeBlockProps extends BaseProps<ViewStyle> {
   /** Optional language for syntax highlighting */
   language?: string;
   /** Source to display. Optional when `files` is provided. */
@@ -90,12 +90,13 @@ export interface CodeBlockProps extends SpacingProps {
   radius?: RadiusValue;
   /** Draw the code surface's 1px border. Defaults to `true`. */
   withBorder?: boolean;
-  /** Show a copy button to copy the code to clipboard */
+  /**
+   * Show a copy button (accessible name "Copy code", "Copied" after a
+   * successful copy, which is also announced to screen readers).
+   */
   showCopyButton?: boolean;
-  /** Callback when code is copied */
+  /** Callback after the copy button copied the code */
   onCopy?: (code: string) => void;
-  /** Custom styles for the code block container and text */
-  style?: StyleProp<ViewStyle>;
   /** Custom styles for the code text */
   textStyle?: StyleProp<TextStyle>;
   /** Custom styles for the title text */
@@ -125,8 +126,6 @@ export interface CodeBlockProps extends SpacingProps {
   colors?: CodeBlockColorOverrides;
   /** Control whether long lines wrap (defaults to true). Set to false to enable horizontal scrolling instead. */
   wrap?: boolean;
-  /** Custom font family for the code text (overrides the default monospace stack) */
-  fontFamily?: string;
-  /** Shorthand alias for `fontFamily` */
+  /** Custom font family for the code text (overrides `theme.fontFamilyMono`) */
   ff?: string;
 }

@@ -10,4 +10,4 @@ hidden: false
 previewCenter: false
 ---
 
-Demonstrates fixed, percentage, and full-width buttons alongside loading states that preserve dimensions.
+Buttons hug their label by default. Set `w` to a pixel or percentage width, or `fullWidth` to fill the container.

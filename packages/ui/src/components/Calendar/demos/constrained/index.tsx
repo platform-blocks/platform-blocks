@@ -23,10 +23,10 @@ export function Demo() {
         maxDate={maxDate}
         highlightToday
       />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         Selected date: {selectedDate ? dateFormatter.format(selectedDate) : 'none'}
       </Text>
-      <Text size="xs" color="secondary">
+      <Text size="xs" c="secondary">
         Only dates in {monthLabel} are enabled.
       </Text>
     </Block>

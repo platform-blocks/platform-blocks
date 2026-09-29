@@ -6,7 +6,7 @@ export function Demo() {
   });
 
   return (
-    <Block align="flex-start" maxW={360} fullWidth>
+    <Block align="flex-start" maw={360} fullWidth>
       <Input
         label="Phone number"
         placeholder="(555) 555-1234"
@@ -17,10 +17,10 @@ export function Demo() {
           onSelectionChange: event => handleSelectionChange(event.nativeEvent.selection)
         }}
       />
-      <Badge variant="subtle" color={isComplete ? 'success' : 'gray'}>
+      <Badge variant="subtle" c={isComplete ? 'success' : 'gray'}>
         {isComplete ? 'Mask complete' : 'Enter all digits'}
       </Badge>
-      <Text size="xs" color="muted">Raw value: {unmaskedValue || '—'}</Text>
+      <Text size="xs" c="muted">Raw value: {unmaskedValue || '—'}</Text>
     </Block>
   );
 }

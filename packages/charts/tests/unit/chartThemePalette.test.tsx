@@ -47,3 +47,52 @@ describe('default accent palette selection', () => {
     expect(paletteFor({ children: null })).toEqual(DEFAULT_ACCENT_PALETTE_LIGHT);
   });
 });
+
+describe('nested ChartThemeProvider', () => {
+  const { colorSchemes, setDefaultColorScheme } = require('../../src/utils');
+  const ThemeProbe: React.FC<{ onRead: (t: ReturnType<typeof useChartTheme>) => void }> = ({ onRead }) => {
+    onRead(useChartTheme());
+    return <Text testID="theme-probe" />;
+  };
+  let original: string[];
+  beforeEach(() => { original = [...colorSchemes.default]; });
+  afterEach(() => { setDefaultColorScheme(original); });
+
+  it('inherits the parent theme and overrides only what it is given', () => {
+    let inner: ReturnType<typeof useChartTheme> | null = null;
+    render(
+      <ChartThemeProvider hostThemeBridge={{ background: '#1a1a19', textPrimary: '#fafafa', accentPalette: ['#aaaaaa'] }}>
+        <ChartThemeProvider value={{ colors: { accentPalette: ['#123456', '#654321'] } }}>
+          <ThemeProbe onRead={(t) => { inner = t; }} />
+        </ChartThemeProvider>
+      </ChartThemeProvider>
+    );
+    expect(inner!.colors.accentPalette).toEqual(['#123456', '#654321']);
+    expect(inner!.colors.background).toBe('#1a1a19');
+    expect(inner!.colors.textPrimary).toBe('#fafafa');
+  });
+
+  it('keeps the parent palette when it passes none', () => {
+    let inner: ReturnType<typeof useChartTheme> | null = null;
+    render(
+      <ChartThemeProvider hostThemeBridge={{ accentPalette: ['#aaaaaa', '#bbbbbb'] }}>
+        <ChartThemeProvider value={{ radius: 8 }}>
+          <ThemeProbe onRead={(t) => { inner = t; }} />
+        </ChartThemeProvider>
+      </ChartThemeProvider>
+    );
+    expect(inner!.colors.accentPalette).toEqual(['#aaaaaa', '#bbbbbb']);
+    expect(inner!.radius).toBe(8);
+  });
+
+  it('leaves the global default palette to the root provider', () => {
+    render(
+      <ChartThemeProvider hostThemeBridge={{ accentPalette: ['#aaaaaa'] }}>
+        <ChartThemeProvider value={{ colors: { accentPalette: ['#123456'] } }}>
+          <Text>child</Text>
+        </ChartThemeProvider>
+      </ChartThemeProvider>
+    );
+    expect(colorSchemes.default).toEqual(['#aaaaaa']);
+  });
+});

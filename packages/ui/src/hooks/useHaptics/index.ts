@@ -1,10 +1,21 @@
-import { useCallback, useRef } from 'react';
-import { Platform } from 'react-native';
-import { useOptionalHapticsSettings } from '../../core/haptics/HapticsProvider';
-import { resolveOptionalModule } from '../../utils/optionalModule';
+import { useCallback, useMemo, useRef } from 'react';
 
-// Lazy load expo-haptics (optional dependency) so library works without it.
-const Haptics = resolveOptionalModule<any>('expo-haptics');
+import { useOptionalHapticsSettings } from '../../core/haptics/HapticsProvider';
+import { isAndroid, isIOS } from '../../core/platform/flags';
+import { resolveOptionalModule } from '../../utils/optionalModule';
+import { devWarn, warnOnce } from '../../core/utils/logger';
+
+/** The part of expo-haptics this hook calls (optional dependency). */
+interface ExpoHapticsModule {
+  impactAsync?: (style?: string) => Promise<void>;
+  notificationAsync?: (type?: string) => Promise<void>;
+  selectionAsync?: () => Promise<void>;
+  ImpactFeedbackStyle: { Light: string; Medium: string };
+  NotificationFeedbackType: { Success: string; Warning: string; Error: string };
+}
+
+// Lazy load expo-haptics (optional dependency) so the library works without it.
+const Haptics = resolveOptionalModule<ExpoHapticsModule>('expo-haptics');
 
 export interface UseHapticsOptions {
   /** Whether haptics are disabled */
@@ -28,59 +39,60 @@ export interface UseHapticsReturn {
   selection: () => void;
 }
 
+/**
+ * Haptic feedback via the optional `expo-haptics` module (iOS/Android only;
+ * no-op elsewhere or when it isn't installed). Respects `<HapticsProvider>`'s
+ * `enabled` setting and throttles bursts. The returned object is stable while
+ * `disabled` / the provider setting don't change.
+ */
 export function useHaptics(opts: UseHapticsOptions = {}): UseHapticsReturn {
   const { disabled, throttleMs = 40 } = opts;
   const lastRef = useRef(0);
-  const missingProviderWarnedRef = useRef(false);
   const hapticsSettings = useOptionalHapticsSettings();
 
-  if (__DEV__ && !hapticsSettings && !missingProviderWarnedRef.current) {
-    console.warn('[platform-blocks] useHaptics called without <HapticsProvider>; falling back to defaults.');
-    missingProviderWarnedRef.current = true;
+  if (!hapticsSettings) {
+    warnOnce(
+      'useHaptics.noProvider',
+      '[platform-blocks] useHaptics called without <HapticsProvider>; falling back to defaults.'
+    );
   }
 
   const enabled = hapticsSettings?.enabled ?? true;
-  const can = !!Haptics && !disabled && enabled && (Platform.OS === 'ios' || Platform.OS === 'android');
-  const withinThrottle = () => {
-    const now = Date.now();
-    if (now - lastRef.current < throttleMs) return true;
-    lastRef.current = now;
-    return false;
-  };
+  const can = !!Haptics && !disabled && enabled && (isIOS || isAndroid);
 
-  const safeRun = useCallback((fn: () => Promise<any> | void) => {
-    if (!can || withinThrottle()) return;
-    try { fn(); } catch {
-      console.warn('Haptics call failed, ensure expo-haptics is installed correctly');
-    }
-  }, [can]);
+  const safeRun = useCallback(
+    (fn: () => Promise<unknown> | void) => {
+      if (!can) return;
+      const now = Date.now();
+      if (now - lastRef.current < throttleMs) return;
+      lastRef.current = now;
+      try {
+        // Fire and forget; a rejected promise must not surface as an unhandled rejection.
+        const result = fn();
+        if (result && typeof result.catch === 'function') result.catch(() => {});
+      } catch {
+        devWarn('Haptics call failed, ensure expo-haptics is installed correctly');
+      }
+    },
+    [can, throttleMs]
+  );
 
-  const impactPressIn = useCallback(() => {
-    // Defer to avoid synchronous call on UI thread causing worklet boundary error
-    Promise.resolve().then(() => safeRun(() => Haptics?.impactAsync?.(Haptics.ImpactFeedbackStyle.Medium)));
-  }, [safeRun]);
-
-  const impactPressOut = useCallback(() => {
-    Promise.resolve().then(() => safeRun(() => Haptics?.impactAsync?.(Haptics.ImpactFeedbackStyle.Light)));
-  }, [safeRun]);
-
-  const notifySuccess = useCallback(() => {
-    safeRun(() => Haptics?.notificationAsync?.(Haptics.NotificationFeedbackType.Success));
-  }, [safeRun]);
-
-  const notifyWarning = useCallback(() => {
-    safeRun(() => Haptics?.notificationAsync?.(Haptics.NotificationFeedbackType.Warning));
-  }, [safeRun]);
-
-  const notifyError = useCallback(() => {
-    safeRun(() => Haptics?.notificationAsync?.(Haptics.NotificationFeedbackType.Error));
-  }, [safeRun]);
-
-  const selection = useCallback(() => {
-    safeRun(() => Haptics?.selectionAsync?.());
-  }, [safeRun]);
-
-  return { impactPressIn, impactPressOut, notifySuccess, notifyWarning, notifyError, selection };
+  return useMemo<UseHapticsReturn>(
+    () => ({
+      // Deferred to avoid a synchronous call on the UI thread causing a worklet boundary error.
+      impactPressIn: () => {
+        Promise.resolve().then(() => safeRun(() => Haptics?.impactAsync?.(Haptics.ImpactFeedbackStyle.Medium)));
+      },
+      impactPressOut: () => {
+        Promise.resolve().then(() => safeRun(() => Haptics?.impactAsync?.(Haptics.ImpactFeedbackStyle.Light)));
+      },
+      notifySuccess: () => safeRun(() => Haptics?.notificationAsync?.(Haptics.NotificationFeedbackType.Success)),
+      notifyWarning: () => safeRun(() => Haptics?.notificationAsync?.(Haptics.NotificationFeedbackType.Warning)),
+      notifyError: () => safeRun(() => Haptics?.notificationAsync?.(Haptics.NotificationFeedbackType.Error)),
+      selection: () => safeRun(() => Haptics?.selectionAsync?.()),
+    }),
+    [safeRun]
+  );
 }
 
 export default useHaptics;

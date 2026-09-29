@@ -24,7 +24,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <ViolinChart series={SERIES} width={500} height={300} />
+        <ViolinChart series={SERIES} w={500} h={300} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );

@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react';
+import type { View } from 'react-native';
 import { useOverlayApi } from '../providers/OverlayProvider';
+import { warnOnce } from '../utils/logger';
+import { useParentLayerId } from '../overlay/useLayer';
 import { usePopoverPositioning, UsePopoverPositioningOptions } from './usePopoverPositioning';
 
 export interface UseDropdownPositioningOptions extends UsePopoverPositioningOptions {
@@ -11,9 +14,14 @@ export interface UseDropdownPositioningOptions extends UsePopoverPositioningOpti
   closeOnClickOutside?: boolean;
   /** Whether to close on escape key */
   closeOnEscape?: boolean;
+  /** id put on the overlay's content container, so the trigger's `aria-controls` resolves. */
+  floatingId?: string;
+  /** ARIA role for the overlay's content container (e.g. 'listbox', 'dialog'). */
+  role?: string;
 }
 
-export interface UseDropdownPositioningReturn {
+/** `TAnchor` / `TPopover`: the host types the refs attach to (see `UsePopoverPositioningReturn`). */
+export interface UseDropdownPositioningReturn<TAnchor = View, TPopover = View> {
   /** Current position result */
   position: import('../utils/positioning-enhanced').PositionResult | null;
   /** Update position manually. Pass `{ silent: true }` to skip the isPositioning flag. */
@@ -21,9 +29,9 @@ export interface UseDropdownPositioningReturn {
   /** Whether positioning is currently being calculated */
   isPositioning: boolean;
   /** Ref to attach to the anchor element */
-  anchorRef: React.RefObject<any>;
+  anchorRef: React.RefObject<TAnchor | null>;
   /** Ref to attach to the popover element for size measurement */
-  popoverRef: React.RefObject<any>;
+  popoverRef: React.RefObject<TPopover | null>;
   /** Function to create and show the overlay with content */
   showOverlay: (
     content: React.ReactElement,
@@ -43,6 +51,24 @@ export interface UseDropdownPositioningReturn {
   ) => void;
   /** Function to hide the overlay */
   hideOverlay: () => void;
+  /**
+   * False when there is no OverlayProvider above the component: `showOverlay`
+   * is then a no-op (with a one-time dev warning) and the component should
+   * render its dropdown inline instead.
+   */
+  hasOverlayProvider: boolean;
+}
+
+/**
+ * The nearest OverlayProvider's API, or null. (`useOverlayApi` is a plain
+ * context read that throws only when the provider is missing.)
+ */
+function useOverlayApiOrNull(): ReturnType<typeof useOverlayApi> | null {
+  try {
+    return useOverlayApi();
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -74,18 +100,32 @@ export interface UseDropdownPositioningReturn {
  * }
  * ```
  */
-export function useDropdownPositioning(
+export function useDropdownPositioning<TAnchor = View, TPopover = View>(
   options: UseDropdownPositioningOptions
-): UseDropdownPositioningReturn {
+): UseDropdownPositioningReturn<TAnchor, TPopover> {
   const {
     isOpen,
     onClose,
     closeOnClickOutside = true,
     closeOnEscape = true,
+    floatingId,
+    role,
     ...positioningOptions
   } = options;
 
-  const { openOverlay, closeOverlay, updateOverlay } = useOverlayApi();
+  const overlayApi = useOverlayApiOrNull();
+  // Warn only once a dropdown actually opens without a provider.
+  if (isOpen && !overlayApi) {
+    warnOnce(
+      'useDropdownPositioning:no-provider',
+      '[platform-blocks] A dropdown was rendered outside an OverlayProvider, so it cannot open as an overlay. ' +
+        'Wrap the app in <PlatformBlocksProvider> (or <OverlayProvider> + <OverlayRenderer />).'
+    );
+  }
+  const openOverlay = overlayApi?.openOverlay;
+  const closeOverlay = overlayApi?.closeOverlay;
+  const updateOverlay = overlayApi?.updateOverlay;
+  const parentLayerId = useParentLayerId();
   const overlayIdRef = useRef<string | null>(null);
 
   // Use the existing positioning hook
@@ -95,11 +135,11 @@ export function useDropdownPositioning(
     popoverRef,
     updatePosition,
     isPositioning,
-  } = usePopoverPositioning(isOpen, positioningOptions);
+  } = usePopoverPositioning<TAnchor, TPopover>(isOpen, positioningOptions);
 
   const hideOverlay = useCallback(() => {
     if (overlayIdRef.current) {
-      closeOverlay(overlayIdRef.current);
+      closeOverlay?.(overlayIdRef.current);
       overlayIdRef.current = null;
     }
   }, [closeOverlay]);
@@ -111,7 +151,7 @@ export function useDropdownPositioning(
     trigger?: 'click' | 'hover' | 'contextmenu' | 'manual';
     strategy?: 'absolute' | 'fixed' | 'portal';
   } = {}) => {
-    if (!position) return;
+    if (!position || !openOverlay || !updateOverlay) return;
 
     // Close existing overlay first
     const anchor = {
@@ -138,6 +178,8 @@ export function useDropdownPositioning(
         ...pin,
         width,
         maxHeight,
+        floatingId,
+        role,
         ...(zIndex !== undefined ? { zIndex } : {}),
       });
       return;
@@ -153,6 +195,9 @@ export function useDropdownPositioning(
       strategy: overrides.strategy ?? 'fixed',
       closeOnClickOutside,
       closeOnEscape,
+      floatingId,
+      role,
+      parentLayerId,
       ...(overrides.trigger !== undefined ? { trigger: overrides.trigger } : {}),
       ...(zIndex !== undefined ? { zIndex } : {}),
       onClose: () => {
@@ -162,7 +207,7 @@ export function useDropdownPositioning(
     });
 
     overlayIdRef.current = overlayId;
-  }, [position, openOverlay, updateOverlay, closeOnClickOutside, closeOnEscape, onClose]);
+  }, [position, openOverlay, updateOverlay, closeOnClickOutside, closeOnEscape, onClose, floatingId, role, parentLayerId, anchorRef]);
 
   // Clean up overlay when component unmounts or isOpen becomes false
   useEffect(() => {
@@ -186,5 +231,6 @@ export function useDropdownPositioning(
     popoverRef,
     showOverlay,
     hideOverlay,
+    hasOverlayProvider: !!overlayApi,
   };
 }

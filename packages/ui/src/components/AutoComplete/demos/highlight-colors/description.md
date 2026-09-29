@@ -10,7 +10,6 @@ hidden: false
 ---
 
 `highlightMatches` bolds and tints the part of each suggestion that matches what
-you typed. That tint is derived from `theme.colors.primary` by default; pass
-`highlightColor` (and optionally `highlightBackgroundColor`) to override it —
-here with shades from `theme.colors.highlight`. Pick a swatch while the menu is
-open to see the match repaint.
+you typed. Pass `highlightColor` (a CSS color or a palette shade such as
+`'highlight.8'`) to change that tint, and optionally `highlightBackgroundColor`
+to fill behind it.

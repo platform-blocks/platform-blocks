@@ -8,7 +8,7 @@ import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
-import { generateTicks, formatNumber } from '../../utils';
+import { generateTicks, createTickFormatter } from '../../utils';
 import { linearScale as createLinearScale } from '../../utils/scales';
 import { AnimatedLink } from './AnimatedLink';
 import { AnimatedNode } from './AnimatedNode';
@@ -30,8 +30,8 @@ const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 
 export const NetworkChart: React.FC<NetworkChartProps> = (props) => {
   const {
-    width = 600,
-    height = 400,
+    w: width = 600,
+    h: height = 400,
     nodes,
     links,
     title,
@@ -65,6 +65,9 @@ export const NetworkChart: React.FC<NetworkChartProps> = (props) => {
   } = props;
 
   const theme = useChartTheme();
+  // Keyed by contents: a new palette array with the same colors must not restart the layout.
+  const paletteKey = theme.colors.accentPalette.join('|');
+  const nodePalette = React.useMemo(() => theme.colors.accentPalette, [paletteKey]);
 
   const resolvedLinkPalette = React.useMemo(() => {
     if (Array.isArray(linkPalette) && linkPalette.length) {
@@ -213,13 +216,13 @@ export const NetworkChart: React.FC<NetworkChartProps> = (props) => {
 
   const xTickFormatter = React.useMemo(() => {
     if (typeof xAxis?.labelFormatter === 'function') return xAxis.labelFormatter;
-    return (value: number) => formatNumber(value);
-  }, [xAxis?.labelFormatter]);
+    return createTickFormatter(xTicks, theme.numberFormat);
+  }, [xAxis?.labelFormatter, xTicks, theme.numberFormat]);
 
   const yTickFormatter = React.useMemo(() => {
     if (typeof yAxis?.labelFormatter === 'function') return yAxis.labelFormatter;
-    return (value: number) => formatNumber(value);
-  }, [yAxis?.labelFormatter]);
+    return createTickFormatter(yTicks, theme.numberFormat);
+  }, [yAxis?.labelFormatter, yTicks, theme.numberFormat]);
 
   const simulation = useNetworkSimulation({
     nodes,
@@ -230,6 +233,7 @@ export const NetworkChart: React.FC<NetworkChartProps> = (props) => {
   scaleX: scaleX ?? undefined,
   scaleY: scaleY ?? undefined,
     disabled,
+    palette: nodePalette,
   });
 
   // Use refs to access current simulation state without triggering re-renders
@@ -421,8 +425,8 @@ export const NetworkChart: React.FC<NetworkChartProps> = (props) => {
 
   return (
     <ChartContainer
-      width={resolvedWidth}
-      height={resolvedHeight}
+      w={resolvedWidth}
+      h={resolvedHeight}
       style={style}
       animationDuration={animationDuration}
       disabled={disabled}

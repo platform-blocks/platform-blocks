@@ -1,18 +1,27 @@
 import React, { useCallback } from 'react';
-import { View, Pressable } from 'react-native';
-import { extractSpacingProps, extractLayoutProps, mergeSlotProps } from '../../core/utils';
+import { View, Pressable, StyleSheet } from 'react-native';
+
+import { factory } from '../../core/factory/factory';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveRadius } from '../../core/theme/tokens';
+import { resolveComponentSize, type ComponentSize } from '../../core/theme/componentSize';
+import { useStyleProps } from '../../core/utils/spacing';
+import { getLayoutStyles } from '../../core/utils/layout';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { warnOnce } from '../../core/utils/logger';
 import { Text } from '../Text';
+import { CopyButton } from '../CopyButton/CopyButton';
+import { useClipboard } from '../../hooks/useClipboard';
+import { useToast } from '../Toast/ToastProvider';
 import type { QRCodeProps } from './types';
 import { QRCodeSVG } from './QRCodeSVG';
-import { CopyButton } from '../CopyButton/CopyButton';
-import { useClipboard } from '../../hooks';
-import { useToast } from '../Toast/ToastProvider';
-import { useTheme } from '../../core/theme';
-import { resolveComponentSize, type ComponentSize } from '../../core/theme/componentSize';
+import { getQRCodeLabel } from './a11y';
 
 /**
- * Pixel footprint for each size token. QR codes stay legible down to `xs`
- * because the module grid scales with the overall box.
+ * Pixel footprint for each size token. These are QR box sizes, not control
+ * heights, so they don't come from the control-size table. QR codes stay
+ * legible down to `xs` because the module grid scales with the overall box.
  */
 const QR_CODE_SIZE_SCALE: Record<ComponentSize, number> = {
   xs: 96,
@@ -24,20 +33,24 @@ const QR_CODE_SIZE_SCALE: Record<ComponentSize, number> = {
   '3xl': 400,
 };
 
+const styles = StyleSheet.create({
+  captioned: { alignItems: 'center', gap: 6 },
+  caption: { alignItems: 'center', gap: 2 },
+  code: { overflow: 'hidden' },
+});
+
 /**
  * QRCode Component
  *
- * Generates QR codes using the internal full-spec SVG engine.
+ * Generates QR codes using the internal full-spec SVG engine. The code is
+ * exposed to assistive technology as an image named by `accessibilityLabel`,
+ * a string `label`, or `"QR code: <value>"`.
  */
-export function QRCode(props: QRCodeProps) {
-  const theme = useTheme();
-  const { spacingProps, otherProps: propsAfterSpacing } = extractSpacingProps(props);
-  const { layoutProps, otherProps } = extractLayoutProps(propsAfterSpacing);
-  
+export const QRCode = factory<{ props: QRCodeProps; ref: View }>((props, ref) => {
   const {
     value,
     size = 400,
-    backgroundColor = 'transparent',
+    bg: backgroundColor = 'transparent',
     color,
     errorCorrectionLevel = 'M',
     quietZone = 4,
@@ -51,14 +64,33 @@ export function QRCode(props: QRCodeProps) {
     testID,
     accessibilityLabel,
     onError,
-    onLoadStart, // deprecated noop
-    onLoadEnd,   // deprecated noop
-    ...rest
-  } = otherProps;
+    onLoadStart,
+    onLoadEnd,
+    moduleShape,
+    finderShape,
+    cornerRadius,
+    gradient,
+    copyOnPress,
+    showCopyButton,
+    copyToastTitle,
+    copyToastMessage,
+    fullWidth,
+  } = props;
+
+  const theme = useTheme();
+  // `bg` is the code's background (passed to QRCodeSVG), not the root's.
+  const spacingStyles = useStyleProps({ ...props, bg: undefined });
+  const layoutStyles = getLayoutStyles({ fullWidth });
+
+  if (onLoadStart !== undefined || onLoadEnd !== undefined) {
+    warnOnce(
+      'QRCode.onLoadStart',
+      'QRCode: `onLoadStart` / `onLoadEnd` are deprecated and never called — the code is generated synchronously.'
+    );
+  }
 
   // A caption already names the code, so it doubles as the accessibility label.
-  const resolvedAccessibilityLabel =
-    accessibilityLabel ?? (typeof label === 'string' ? label : undefined);
+  const resolvedAccessibilityLabel = getQRCodeLabel(value, accessibilityLabel ?? (typeof label === 'string' ? label : undefined));
 
   // Default color to theme's primary text color for dark mode support
   const resolvedColor = color ?? theme.text.primary;
@@ -69,86 +101,78 @@ export function QRCode(props: QRCodeProps) {
   const { copy } = useClipboard();
   const toast = useToast();
 
-  const shouldCopyOnPress = !!otherProps.copyOnPress;
-  const copyValue = typeof otherProps.copyOnPress === 'object' && otherProps.copyOnPress?.value
-    ? otherProps.copyOnPress.value
-    : value;
+  const shouldCopyOnPress = !!copyOnPress;
+  const copyValue = typeof copyOnPress === 'object' && copyOnPress?.value ? copyOnPress.value : value;
 
   const handleCopy = useCallback(async () => {
     await copy(copyValue);
     if (toast) {
       toast.show({
-        title: otherProps.copyToastTitle || 'Copied',
-        message: otherProps.copyToastMessage || (copyValue.length > 60 ? copyValue.slice(0,57)+'…' : copyValue)
+        title: copyToastTitle || 'Copied',
+        message: copyToastMessage || (copyValue.length > 60 ? copyValue.slice(0, 57) + '…' : copyValue),
       });
     }
-  }, [copy, copyValue, toast, otherProps.copyToastMessage, otherProps.copyToastTitle]);
+  }, [copy, copyValue, toast, copyToastMessage, copyToastTitle]);
 
   const content = (
-    <View
-      style={{ borderRadius: 8, overflow: 'hidden'}}>
+    <View style={[styles.code, { borderRadius: resolveRadius(theme, 'lg') }]}>
       <QRCodeSVG
         value={value}
         size={resolvedSize}
-        maxW={'100%'}
-        backgroundColor={backgroundColor}
+        maw="100%"
+        bg={backgroundColor}
         color={resolvedColor}
         errorCorrectionLevel={errorCorrectionLevel}
         quietZone={quietZone}
         logo={logo}
-        style={style}
-        testID={testID}
+        moduleShape={moduleShape}
+        finderShape={finderShape}
+        cornerRadius={cornerRadius}
+        gradient={gradient}
+        testID={testID ? `${testID}-code` : undefined}
         onError={onError}
         accessibilityLabel={resolvedAccessibilityLabel}
-        {...spacingProps}
-        {...layoutProps}
-        {...rest}
       />
-      {otherProps.showCopyButton && (
-        <CopyButton
-          value={copyValue}
-          iconOnly
-          size="sm"
-          style={{ position: 'absolute', top: 8, right: 8 }}
-          onCopy={() => { /* toast handled in button itself via provider */ }}
-        />
+      {showCopyButton && (
+        <CopyButton value={copyValue} iconOnly size="sm" style={{ position: 'absolute', top: 8, end: 8 }} />
       )}
     </View>
   );
 
   const code = shouldCopyOnPress ? (
-    <Pressable onPress={handleCopy} accessibilityLabel={resolvedAccessibilityLabel || 'QR code'}>
+    <Pressable
+      onPress={handleCopy}
+      {...a11yProps({ role: 'button', label: resolvedAccessibilityLabel, hint: 'Copies the encoded value' })}
+    >
       {content}
     </Pressable>
   ) : (
     content
   );
 
-  if (label == null && description == null) return code;
-
   // The caption sits outside the pressable so tapping the text doesn't copy.
-  const caption = (
-    <View style={{ alignItems: 'center', gap: 2 }}>
+  const hasCaption = label != null || description != null;
+  const caption = hasCaption ? (
+    <View style={styles.caption}>
       {label != null ? (
-        <Text {...mergeSlotProps({ variant: 'small', color: 'muted' }, labelProps)}>
-          {label}
-        </Text>
+        <Text {...mergeSlotProps({ variant: 'small', c: 'muted' }, labelProps)}>{label}</Text>
       ) : null}
       {description != null ? (
-        <Text {...mergeSlotProps({ variant: 'small', color: 'secondary' }, descriptionProps)}>
-          {description}
-        </Text>
+        <Text {...mergeSlotProps({ variant: 'small', c: 'secondary' }, descriptionProps)}>{description}</Text>
       ) : null}
     </View>
-  );
+  ) : null;
 
   return (
-    <View style={{ alignItems: 'center', gap: 6 }}>
+    <View
+      ref={ref}
+      // `fullWidth` first, so an explicit `w` (in `spacingStyles`) wins.
+      style={[hasCaption ? styles.captioned : null, layoutStyles, spacingStyles, style]}
+      testID={testID}
+    >
       {labelPosition === 'top' ? caption : null}
       {code}
       {labelPosition === 'bottom' ? caption : null}
     </View>
   );
-}
-
-QRCode.displayName = 'QRCode';
+}, { displayName: 'QRCode' });

@@ -1,31 +1,17 @@
 import { useState } from 'react';
 
-import { Block, Row, Text, ToggleButton } from '@platform-blocks/ui';
+import { ToggleButton } from '@platform-blocks/ui';
 
 export function Demo() {
   const [selected, setSelected] = useState(false);
 
   return (
-    <Block>
-      <Block>
-        <Text weight="semibold">Standalone toggle</Text>
-        <Text size="xs" color="secondary">
-          Control an individual toggle by pairing `selected` with `onPress`.
-        </Text>
-      </Block>
-
-      <Row gap="sm" align="center">
-        <ToggleButton
-          value="favorite"
-          selected={selected}
-          onPress={() => setSelected((current) => !current)}
-        >
-          Mark favorite
-        </ToggleButton>
-        <Text size="xs" color="secondary">
-          Status: {selected ? 'Favorited' : 'Not favorited'}
-        </Text>
-      </Row>
-    </Block>
+    <ToggleButton
+      value="favorite"
+      selected={selected}
+      onPress={() => setSelected((current) => !current)}
+    >
+      Mark favorite
+    </ToggleButton>
   );
 }

@@ -132,6 +132,7 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Overlay', category: 'overlay', icon: 'layer-mask', description: 'Dimmed overlay backdrop for modals and popups' },
   { name: 'Popover', category: 'overlay', icon: 'popover' },
   { name: 'Tooltip', category: 'overlay', icon: 'tooltip' },
+  { name: 'HoverCard', category: 'overlay', icon: 'popover', description: 'Floating preview card shown on hover or focus, for profile and link previews' },
   { name: 'ContextMenu', category: 'overlay', icon: 'menu', description: 'Menu opened by right-click on web or long-press on native' },
 
   // Chart Components
@@ -208,8 +209,10 @@ export function getCoreComponentsByCategory(): Record<string, CoreComponentConfi
  * Get all unique categories from core components in the desired order
  */
 export function getCoreCategories(): string[] {
-  // Define the desired order of categories
-  const categoryOrder: CoreComponentConfig['category'][] = ['charts', 'data', 'input', 'display', 'feedback', 'layout', 'navigation', 'overlay', 'typography', 'media', 'dates', 'others'];
+  // Define the desired order of categories. Charts go last: they ship in their
+  // own package, and leading with them buried the UI components most readers
+  // came to the catalog for.
+  const categoryOrder: CoreComponentConfig['category'][] = ['data', 'input', 'display', 'feedback', 'layout', 'navigation', 'overlay', 'typography', 'media', 'dates', 'others', 'charts'];
 
   // Get all categories that actually exist in the components
   const existingCategories = new Set(CORE_COMPONENTS.map(component => component.category));

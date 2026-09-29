@@ -37,7 +37,7 @@ export function Demo() {
           highlightToday: true,
         }}
       />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         Past dates show the validation state
       </Text>
     </Block>

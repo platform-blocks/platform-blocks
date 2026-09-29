@@ -1,5 +1,7 @@
-import { ButtonProps } from '../Button';
-import { UniversalSystemProps } from '../../core/utils/universalSimple';
+import type React from 'react';
+
+import type { BreakpointToken } from '../../core/types/base';
+import type { ButtonProps, ButtonVariant } from '../Button/types';
 import type { BrandName } from '../BrandIcon';
 
 /**
@@ -17,11 +19,30 @@ export interface BrandConfig {
   borderColor?: string;
 }
 
-export interface BrandButtonProps extends Omit<ButtonProps, 'startIcon' | 'endIcon' | 'color' | 'lightHidden' | 'darkHidden' | 'hiddenFrom' | 'visibleFrom'>, UniversalSystemProps {
+/**
+ * `plain` is the brand-neutral "Sign in with …" style: the raised surface, body
+ * text and the full-color mark. The color-bearing Button variants fill with the
+ * brand's own color.
+ */
+export type BrandButtonVariant = ButtonVariant | 'plain';
+
+/**
+ * A visibility breakpoint: a theme breakpoint token, or — deprecated — a pixel
+ * width, which is rounded to the nearest theme breakpoint.
+ */
+export type BrandButtonBreakpoint = BreakpointToken | number;
+
+export interface BrandButtonProps
+  extends Omit<
+    ButtonProps,
+    'startSection' | 'endSection' | 'startIcon' | 'endIcon' | 'icon' | 'color' | 'variant' | 'hiddenFrom' | 'visibleFrom'
+  > {
   /** The brand/platform to style the button for */
   brand: BrandPlatform;
-  /** Position of the brand icon */
-  iconPosition?: 'left' | 'right';
+  /** Visual variant. @default 'plain' */
+  variant?: BrandButtonVariant;
+  /** Side of the label the brand icon sits on (`left`/`right` follow the reading direction). */
+  iconPosition?: 'left' | 'right' | 'start' | 'end';
   /** Icon variant: 'full' for multi-color, 'mono' for single-color outline */
   iconVariant?: 'full' | 'mono';
   /** Override the default brand icon */
@@ -33,17 +54,25 @@ export interface BrandButtonProps extends Omit<ButtonProps, 'startIcon' | 'endIc
   /**
    * Badge lead-in line, e.g. "Download on the" / "Listen on". Supplying this or
    * `secondaryText` switches the component to the two-line store-badge layout,
-   * where `variant`, `loading`, `fullWidth` and the spacing props do not apply.
+   * where `variant`, `loading` and `fullWidth` do not apply.
    */
   primaryText?: string;
   /** Badge headline, e.g. "App Store" / "Spotify" */
   secondaryText?: string;
-  /** Badge shell background (badge layout only) */
-  backgroundColor?: string;
   /** Badge shell border color (badge layout only) */
   borderColor?: string;
   /** Force the badge's dark-mode styling instead of following the theme */
   darkMode?: boolean;
+  /**
+   * Do not render at this breakpoint and wider. A token (`'md'`); a number (px)
+   * is deprecated and rounded to the nearest theme breakpoint.
+   */
+  hiddenFrom?: BrandButtonBreakpoint;
+  /**
+   * Render only at this breakpoint and wider. A token (`'md'`); a number (px)
+   * is deprecated and rounded to the nearest theme breakpoint.
+   */
+  visibleFrom?: BrandButtonBreakpoint;
 }
 
 type BrandColors = Omit<BrandConfig, 'icon'>;

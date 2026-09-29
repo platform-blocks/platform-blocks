@@ -10,7 +10,7 @@ export function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Standalone radios
         </Text>
         <Block>
@@ -27,7 +27,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Grouped selection
         </Text>
         <RadioGroup

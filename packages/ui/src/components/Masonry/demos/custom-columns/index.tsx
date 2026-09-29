@@ -1,11 +1,12 @@
-import { Masonry, Card, Text, Button, Row, useTheme } from '@platform-blocks/ui';
-import type { MasonryItem } from '@platform-blocks/ui';
 import { useState } from 'react';
+import { Block, Button, Card, Masonry, Row, Text } from '@platform-blocks/ui';
+import type { MasonryItem } from '@platform-blocks/ui';
+
+const COLUMN_OPTIONS = [1, 2, 3, 4];
 
 export function Demo() {
-  const theme = useTheme();
   const [numColumns, setNumColumns] = useState(3);
-  
+
   const masonryItems: MasonryItem[] = [
     {
       id: '1',
@@ -100,32 +101,17 @@ export function Demo() {
   ];
 
   return (
-    <>
-      <Row gap="sm" style={{ marginBottom: 16 }}>
-        <Button
-          title="1 Column"
-          size="sm"
-          variant={numColumns === 1 ? 'filled' : 'outline'}
-          onPress={() => setNumColumns(1)}
-        />
-        <Button
-          title="2 Columns"
-          size="sm"
-          variant={numColumns === 2 ? 'filled' : 'outline'}
-          onPress={() => setNumColumns(2)}
-        />
-        <Button
-          title="3 Columns"
-          size="sm"
-          variant={numColumns === 3 ? 'filled' : 'outline'}
-          onPress={() => setNumColumns(3)}
-        />
-        <Button
-          title="4 Columns"
-          size="sm"
-          variant={numColumns === 4 ? 'filled' : 'outline'}
-          onPress={() => setNumColumns(4)}
-        />
+    <Block fullWidth>
+      <Row gap="sm" wrap="wrap">
+        {COLUMN_OPTIONS.map((count) => (
+          <Button
+            key={count}
+            title={count === 1 ? '1 Column' : `${count} Columns`}
+            size="sm"
+            variant={numColumns === count ? 'filled' : 'outline'}
+            onPress={() => setNumColumns(count)}
+          />
+        ))}
       </Row>
 
       <Masonry
@@ -134,6 +120,6 @@ export function Demo() {
         gap="md"
         style={{ height: 400 }}
       />
-    </>
+    </Block>
   );
 }

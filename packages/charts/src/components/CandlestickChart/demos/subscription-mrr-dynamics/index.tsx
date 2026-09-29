@@ -12,7 +12,7 @@ export function Demo() {
     <CandlestickChart
       title="Subscription MRR Momentum"
       subtitle="Expansion revenue outpaced churn across a pricing refresh"
-      height={420}
+      h={420}
       series={[
         {
           id: 'mrr',

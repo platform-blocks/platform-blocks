@@ -6,6 +6,7 @@ import type {
   ChartLegend,
   ChartTooltip,
 } from '../../types/base';
+import type { ColorScaleConfig } from '../../utils/colorScale';
 
 // Heatmap Types
 export interface HeatmapCell {
@@ -41,6 +42,17 @@ export interface HeatmapCellSize {
   height?: number;
 }
 
+/**
+ * The shared color scale — `type: 'sequential' | 'diverging' | 'threshold'` — plus a
+ * color for empty cells. `domain` replaces `min`/`max`.
+ */
+export type HeatmapSharedColorScaleConfig = ColorScaleConfig & {
+  type: 'sequential' | 'diverging' | 'threshold';
+  /** Color applied when the cell value is null */
+  nullColor?: string;
+};
+
+/** Legacy heatmap scale. Prefer {@link HeatmapSharedColorScaleConfig}. */
 export interface HeatmapColorScaleConfig {
   /** Strategy used to interpolate colors */
   type?: 'linear' | 'log' | 'quantize';
@@ -177,7 +189,12 @@ export interface HeatmapChartProps
   /** Heatmap data points or matrix-style input */
   data: HeatmapCell[] | HeatmapMatrixInput;
   /** Color scale configuration */
-  colorScale?: HeatmapColorScaleConfig;
+  /**
+   * Color scale. A shared config (`type: 'sequential' | 'diverging' | 'threshold'`)
+   * or the legacy `linear` / `log` / `quantize` config. Defaults to a single-hue
+   * sequential ramp built from the theme's first palette color.
+   */
+  colorScale?: HeatmapColorScaleConfig | HeatmapSharedColorScaleConfig;
   /** Explicit cell size overrides */
   cellSize?: HeatmapCellSize;
   /** Gap between cells in pixels */

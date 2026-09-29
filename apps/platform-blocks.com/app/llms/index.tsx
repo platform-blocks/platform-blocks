@@ -33,7 +33,7 @@ const FileRow: React.FC<{ entry: LlmsFileEntry }> = ({ entry }) => {
           <Link href={entry.path} target="_blank" variant="hover-underline">{path}</Link>
         )}
       </View>
-      <Text variant="small" color="secondary" style={{ flex: 1, minWidth: 220 }}>
+      <Text variant="small" c="secondary" style={{ flex: 1, minWidth: 220 }}>
         {entry.description}
       </Text>
     </Row>
@@ -64,18 +64,18 @@ export default function LlmsScreen() {
         </Card>
 
         <Column gap="sm">
-          <Title order={2} size={22} weight="bold">Usage</Title>
+          <Title order={2} size={22} fw="bold">Usage</Title>
           <CodeBlock variant="terminal" language="bash" fullWidth>
             {LLMS_USAGE_SNIPPET}
           </CodeBlock>
-          <Text variant="small" color="secondary">{LLMS_ON_PAGE_NOTE}</Text>
+          <Text variant="small" c="secondary">{LLMS_ON_PAGE_NOTE}</Text>
         </Column>
 
         <Column gap="sm">
           <Title
             order={2}
             size={22}
-            weight="bold"
+            fw="bold"
             subtitle={LLMS_SKILLS_INTRO}
             subtitleProps={{ variant: 'small' }}
           >
@@ -86,7 +86,7 @@ export default function LlmsScreen() {
           </CodeBlock>
         </Column>
 
-        <Text variant="small" color="secondary">
+        <Text variant="small" c="secondary">
           {LLMS_FRESHNESS_NOTE} Format follows{' '}
           <Link href="https://llmstxt.org" target="_blank" variant="hover-underline">llmstxt.org</Link>
           {' '}• Skills:{' '}

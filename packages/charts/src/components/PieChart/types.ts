@@ -5,23 +5,15 @@ import type {
   ChartLegend,
   ChartTooltip,
 } from '../../types/base';
+import type { ChartGradient, ChartGradientStop } from '../../core/ChartFill';
 
-export interface PieChartSliceGradientStop {
-  offset: number;
-  color: string;
-  opacity?: number;
-}
+export type PieChartSliceGradientStop = ChartGradientStop;
 
-export interface PieChartSliceGradient {
-  /** Gradient type (defaults to linear) */
-  type?: 'linear' | 'radial';
-  /** Starting point for linear gradients (0-1 relative to slice bounding box) */
-  from?: { x: number; y: number };
-  /** Ending point for linear gradients (0-1 relative to slice bounding box) */
-  to?: { x: number; y: number };
-  /** Gradient stops */
-  stops: PieChartSliceGradientStop[];
-}
+/**
+ * Slice gradient — the shared {@link ChartGradient}, spanning each slice's own box.
+ * A linear gradient with no `angle`, `from` or `to` runs top-left → bottom-right.
+ */
+export type PieChartSliceGradient = Omit<ChartGradient, 'extent'>;
 
 export interface PieChartSliceShadow {
   /** Shadow color */

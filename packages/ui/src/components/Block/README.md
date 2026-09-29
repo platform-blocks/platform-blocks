@@ -117,8 +117,8 @@ import { Block } from '@platform-blocks/ui';
 | Prop | Type | Description |
 |------|------|-------------|
 | `w`, `h` | `number \| string \| 'auto' \| 'full'` | Width and height |
-| `minW`, `minH` | `number \| string` | Minimum dimensions |
-| `maxW`, `maxH` | `number \| string` | Maximum dimensions |
+| `miw`, `mih` | `number \| string` | Minimum dimensions |
+| `maw`, `mah` | `number \| string` | Maximum dimensions |
 
 #### Flexbox
 

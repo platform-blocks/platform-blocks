@@ -8,8 +8,8 @@ export function Demo() {
 
   return (
     <Block>
-      <Pagination current={currentPage} total={totalPages} onChange={setCurrentPage} />
-      <Text size="xs" color="secondary">
+      <Pagination value={currentPage} total={totalPages} onChange={setCurrentPage} />
+      <Text size="xs" c="secondary">
         Page {currentPage} of {totalPages}
       </Text>
     </Block>

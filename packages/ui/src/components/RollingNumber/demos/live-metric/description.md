@@ -9,4 +9,4 @@ since: 1.1.0
 hidden: false
 ---
 
-A ticking metric tile. Values that change faster than the roll retarget mid-flight rather than snapping.
+A ticking live metric. Values that change faster than the roll retarget mid-flight rather than snapping.

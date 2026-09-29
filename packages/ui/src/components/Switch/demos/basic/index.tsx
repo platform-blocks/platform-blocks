@@ -12,7 +12,7 @@ export function Demo() {
         label="Enable live score alerts"
         description="Send push notifications when the match score changes."
       />
-      <Text variant="small" color="muted">
+      <Text variant="small" c="muted">
         Notices are {enabled ? 'enabled' : 'disabled'}.
       </Text>
     </Block>

@@ -1,19 +1,27 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { View, TouchableOpacity, StyleSheet, ViewStyle, StyleProp, Platform } from 'react-native';
-import { useTheme } from '../../core/theme';
-import { useDirection } from '../../core/providers/DirectionProvider';
+import React, { useCallback, useRef, useState } from 'react';
+import { View, Pressable, StyleSheet } from 'react-native';
+import type { ViewStyle, StyleProp } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useRovingFocus } from '../../core/accessibility/useRovingFocus';
+import { useLayer } from '../../core/overlay/useLayer';
+import { isNative, isWeb } from '../../core/platform';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveFontSize, resolveRadius } from '../../core/theme/tokens';
 import { Text } from '../Text';
 import { Icon } from '../Icon';
-import { Slider } from '../Slider';
+import { MediaSlider } from './MediaSlider';
+import { formatTime } from './utils';
 import type { VideoControls as VideoControlsConfig, VideoState, VideoPlaybackRate } from './types';
 
-interface VideoControlsProps {
+export interface VideoControlsProps {
   config: VideoControlsConfig;
   state: VideoState;
   onPlay: () => void;
   onPause: () => void;
   onSeek: (time: number) => void;
   onVolumeChange: (volume: number) => void;
+  onToggleMute: () => void;
   onPlaybackRateChange: (rate: VideoPlaybackRate) => void;
   onToggleFullscreen: () => void;
   onScrubbingChange?: (isScrubbing: boolean) => void;
@@ -22,18 +30,92 @@ interface VideoControlsProps {
 
 const PLAYBACK_RATES: VideoPlaybackRate[] = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
-function formatTime(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-  }
-  
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-}
+// Media chrome: white on a translucent black scrim reads over any frame, in
+// either color scheme, so these colors are deliberately not theme roles.
+const CHROME_TEXT = '#FFFFFF';
+const CHROME_TRACK = 'rgba(255, 255, 255, 0.3)';
 
+/** ≥44pt touch targets on native; 32px on web (≥24 required). */
+const TARGET = isNative ? 44 : 32;
+
+const styles = StyleSheet.create({
+  bottomRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  container: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    bottom: 0,
+    end: 0,
+    paddingHorizontal: 4,
+    position: 'absolute',
+    start: 0,
+  },
+  controlButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 2,
+    minHeight: TARGET,
+    minWidth: TARGET,
+    padding: 6,
+  },
+  group: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  loading: {
+    alignItems: 'center',
+    bottom: 0,
+    end: 0,
+    justifyContent: 'center',
+    position: 'absolute',
+    start: 0,
+    top: 0,
+  },
+  playPauseButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginEnd: 4,
+    minHeight: TARGET,
+    minWidth: TARGET,
+    padding: 8,
+  },
+  progress: {
+    marginHorizontal: 8,
+  },
+  rateMenu: {
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    bottom: TARGET + 6,
+    end: 0,
+    minWidth: 80,
+    padding: 4,
+    position: 'absolute',
+  },
+  rateMenuItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: isNative ? 44 : 28,
+    paddingHorizontal: 8,
+  },
+  relative: {
+    position: 'relative',
+  },
+  time: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginHorizontal: 8,
+  },
+  volumeSlider: {
+    width: 80,
+  },
+});
+
+/**
+ * Transport controls drawn over the video: seek bar (`useAdjustable` slider),
+ * play/pause, time, speed menu, mute, volume (web) and fullscreen — every
+ * control labelled, icons decorative.
+ */
 export function VideoControls({
   config,
   state,
@@ -41,296 +123,190 @@ export function VideoControls({
   onPause,
   onSeek,
   onVolumeChange,
+  onToggleMute,
   onPlaybackRateChange,
   onToggleFullscreen,
   onScrubbingChange,
-  style
+  style,
 }: VideoControlsProps) {
   const theme = useTheme();
-  const { isRTL } = useDirection();
-  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [showRateMenu, setShowRateMenu] = useState(false);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [scrubbingValue, setScrubbingValue] = useState(0);
-  const seekTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
-  // Notify parent when scrubbing state changes
-  useEffect(() => {
-    onScrubbingChange?.(isScrubbing);
-  }, [isScrubbing, onScrubbingChange]);
-  
-  const handleProgressChange = useCallback((value: number) => {
-    // Start scrubbing mode
-    if (!isScrubbing) {
-      setIsScrubbing(true);
-    }
-    
-    // Update local scrubbing value for immediate visual feedback
-    setScrubbingValue(value);
-    
-    // Clear any pending seek
-    if (seekTimeoutRef.current) {
-      clearTimeout(seekTimeoutRef.current);
-    }
-    
-    // Debounce the actual seek operation
-    seekTimeoutRef.current = setTimeout(() => {
-      const time = (value / 100) * state.duration;
-      onSeek(time);
+  const rateMenuRef = useRef<View>(null);
+  const rateTriggerRef = useRef<View>(null);
+
+  const { duration } = state;
+  const progress = isScrubbing ? scrubbingValue : duration > 0 ? state.currentTime / duration : 0;
+  // Show the scrub position while dragging, otherwise the playhead.
+  const displayTime = isScrubbing ? scrubbingValue * duration : state.currentTime;
+  const timeLabel = `${formatTime(displayTime)} of ${formatTime(duration)}`;
+
+  const handleScrubStart = useCallback(() => {
+    setIsScrubbing(true);
+    onScrubbingChange?.(true);
+  }, [onScrubbingChange]);
+
+  const handleScrubEnd = useCallback(
+    (value: number) => {
+      onSeek(value * duration);
       setIsScrubbing(false);
-    }, 150); // Wait 150ms after user stops dragging before seeking
-  }, [isScrubbing, state.duration, onSeek]);
-  
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (seekTimeoutRef.current) {
-        clearTimeout(seekTimeoutRef.current);
-      }
-    };
-  }, []);
-  
-  const handleVolumeChange = useCallback((value: number) => {
-    onVolumeChange(value / 100);
-  }, [onVolumeChange]);
-  
-  // Use scrubbing value while dragging, otherwise use actual currentTime
-  const progressPercentage = isScrubbing 
-    ? scrubbingValue 
-    : (state.duration > 0 ? (state.currentTime / state.duration) * 100 : 0);
-  
-  // Display time based on scrubbing state
-  const displayTime = isScrubbing
-    ? (scrubbingValue / 100) * state.duration
-    : state.currentTime;
-  
-  const styles = useMemo(() => StyleSheet.create({
-    activeRate: {
-      backgroundColor: theme.colors.primary[5],
+      onScrubbingChange?.(false);
     },
-    bottomRow: {
-      alignItems: 'center',
-      flexDirection: isRTL ? 'row-reverse' : 'row',
-      justifyContent: 'space-between',
-    },
-    container: {
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      bottom: 0,
-      left: 0,
-      position: 'absolute',
-      right: 0,
-      // padding: 12,
-    },
-    controlButton: {
-      marginHorizontal: 4,
-      padding: 8,
-    },
-    leftControls: {
-      alignItems: 'center',
-      flexDirection: isRTL ? 'row-reverse' : 'row',
-    },
-    playPauseButton: {
-      padding: 12,
-      ...(isRTL ? { marginLeft: 8 } : { marginRight: 8 }),
-    },
-    progressContainer: {
-      flex: 1,
-      marginHorizontal: 8,
-    },
-    rateMenu: {
-      bottom: 50,
-      position: 'absolute',
-      ...(isRTL ? { left: 0 } : { right: 0 }),
-      backgroundColor: 'rgba(0, 0, 0, 0.9)',
-      borderRadius: 4,
-      minWidth: 80,
-      padding: 4,
-    },
-    rateMenuItem: {
-      alignItems: 'center',
-      padding: 8,
-    },
-    rateMenuText: {
-      color: 'white',
-      fontSize: 14,
-    },
-    rightControls: {
-      alignItems: 'center',
-      flexDirection: isRTL ? 'row-reverse' : 'row',
-    },
-    timeText: {
-      color: 'white',
-      fontSize: 14,
-      marginHorizontal: 8,
-      minWidth: 45,
-      textAlign: 'center',
-    },
-    topRow: {
-      alignItems: 'center',
-      flexDirection: isRTL ? 'row-reverse' : 'row',
-      // marginBottom: 8,
-    },
-    volumeContainer: {
-      position: 'relative',
-    },
-    volumeSlider: {
-      bottom: 50,
-      position: 'absolute',
-      ...(isRTL ? { left: 0 } : { right: 0 }),
-      alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      borderRadius: 4,
-      flexDirection: 'row',
-      height: 40,
-      padding: 8,
-      width: 120,
-    },
-  }), [theme.colors.primary, isRTL]);
-  
+    [duration, onSeek, onScrubbingChange]
+  );
+
+  const closeRateMenu = useCallback(() => setShowRateMenu(false), []);
+  useLayer({
+    active: showRateMenu,
+    onDismiss: closeRateMenu,
+    closeOnOutsidePress: true,
+    containerRef: rateMenuRef,
+    outsidePressIgnoreRefs: [rateTriggerRef],
+  });
+
+  const activeRateIndex = Math.max(0, PLAYBACK_RATES.indexOf(state.playbackRate));
+  const { getItemProps } = useRovingFocus({
+    count: PLAYBACK_RATES.length,
+    orientation: 'vertical',
+    defaultActiveIndex: activeRateIndex,
+  });
+
+  const muted = state.muted || state.volume === 0;
+  const chromeText = { color: CHROME_TEXT, fontSize: resolveFontSize(theme, 'sm') };
+
   return (
     <View style={[styles.container, style]}>
-      {/* Progress Bar */}
       {config.progress && (
-        <View style={styles.topRow}>
-          <View style={styles.progressContainer}>
-            <Slider
-              value={progressPercentage}
-              min={0}
-              max={100}
-              step={0.1}
-              onChange={handleProgressChange}
-              trackColor="rgba(255, 255, 255, 0.3)"
-              thumbColor="white"
-              activeTrackColor={theme.colors.primary[5]}
-            />
-          </View>
-        </View>
+        <MediaSlider
+          style={styles.progress}
+          value={progress}
+          onChange={setScrubbingValue}
+          onChangeStart={handleScrubStart}
+          onChangeEnd={handleScrubEnd}
+          label="Seek"
+          valueText={timeLabel}
+          step={duration > 0 ? Math.min(1, 5 / duration) : 0.05}
+          disabled={duration <= 0}
+          trackColor={CHROME_TRACK}
+          fillColor={theme.colors.primary[5]}
+          thumbColor={CHROME_TEXT}
+        />
       )}
-      
-      {/* Controls Row */}
+
       <View style={styles.bottomRow}>
-        {/* Left Controls */}
-        <View style={styles.leftControls}>
-          {/* Play/Pause */}
+        <View style={styles.group}>
           {(config.play || config.pause) && (
-            <TouchableOpacity
+            <Pressable
               style={styles.playPauseButton}
               onPress={state.playing ? onPause : onPlay}
-              accessible
-              accessibilityLabel={state.playing ? 'Pause' : 'Play'}
+              {...a11yProps({ role: 'button', label: state.playing ? 'Pause' : 'Play' })}
             >
-              <Icon
-                name={state.playing ? 'pause' : 'play'}
-                size={24}
-                color="white"
-              />
-            </TouchableOpacity>
+              <Icon name={state.playing ? 'pause' : 'play'} size={24} color={CHROME_TEXT} />
+            </Pressable>
           )}
-          
-          {/* Time Display */}
+
           {config.time && (
-            <Text style={styles.timeText}>
-              {formatTime(displayTime)} / {formatTime(state.duration)}
-            </Text>
+            <View style={styles.time} {...a11yProps({ accessible: true, label: timeLabel })}>
+              <Text style={[chromeText, { fontFamily: theme.fontFamilyMono }]}>
+                {formatTime(displayTime)} / {formatTime(duration)}
+              </Text>
+            </View>
           )}
         </View>
-        
-        {/* Right Controls */}
-        <View style={styles.rightControls}>
-          {/* Playback Rate */}
+
+        <View style={styles.group}>
           {config.playbackRate && (
-            <View style={{ position: 'relative' }}>
-              <TouchableOpacity
+            <View style={styles.relative}>
+              <Pressable
+                ref={rateTriggerRef}
                 style={styles.controlButton}
-                onPress={() => setShowRateMenu(!showRateMenu)}
-                accessible
-                accessibilityLabel="Playback speed"
+                onPress={() => setShowRateMenu((open) => !open)}
+                {...a11yProps({
+                  role: 'button',
+                  label: `Playback speed ${state.playbackRate}x`,
+                  hasPopup: 'menu',
+                  expanded: showRateMenu,
+                })}
               >
-                <Text style={styles.timeText}>{state.playbackRate}x</Text>
-              </TouchableOpacity>
-              
+                <Text style={chromeText}>{state.playbackRate}x</Text>
+              </Pressable>
+
               {showRateMenu && (
-                <View style={styles.rateMenu}>
-                  {PLAYBACK_RATES.map(rate => (
-                    <TouchableOpacity
-                      key={rate}
-                      style={[
-                        styles.rateMenuItem,
-                        state.playbackRate === rate && styles.activeRate
-                      ]}
-                      onPress={() => {
-                        onPlaybackRateChange(rate);
-                        setShowRateMenu(false);
-                      }}
-                    >
-                      <Text style={styles.rateMenuText}>{rate}x</Text>
-                    </TouchableOpacity>
-                  ))}
+                <View
+                  ref={rateMenuRef}
+                  style={[styles.rateMenu, { borderRadius: resolveRadius(theme, 'sm') }]}
+                  {...a11yProps({ role: 'menu', label: 'Playback speed' })}
+                >
+                  {PLAYBACK_RATES.map((rate, index) => {
+                    const selected = state.playbackRate === rate;
+                    return (
+                      <Pressable
+                        key={rate}
+                        style={[
+                          styles.rateMenuItem,
+                          { borderRadius: resolveRadius(theme, 'xs') },
+                          selected && { backgroundColor: theme.colors.primary[5] },
+                        ]}
+                        onPress={() => {
+                          onPlaybackRateChange(rate);
+                          setShowRateMenu(false);
+                        }}
+                        {...getItemProps(index)}
+                        {...a11yProps({ role: 'menuitemradio', label: `${rate}x`, checked: selected })}
+                      >
+                        <Text style={chromeText}>{rate}x</Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
               )}
             </View>
           )}
-          
-          {/* Volume Control */}
+
           {config.volume && (
-            <View style={styles.volumeContainer}>
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={() => setShowVolumeSlider(!showVolumeSlider)}
-                accessible
-                accessibilityLabel={state.muted ? 'Unmute' : 'Mute'}
-              >
-                <Icon
-                  name={state.muted || state.volume === 0 ? 'volume-off' : 'volume-up'}
-                  size={20}
-                  color="white"
-                />
-              </TouchableOpacity>
-              
-              {showVolumeSlider && Platform.OS !== 'ios' && (
-                <View style={styles.volumeSlider}>
-                  <Slider
-                    value={state.volume * 100}
-                    min={0}
-                    max={100}
-                    step={1}
-                    onChange={handleVolumeChange}
-                    trackColor="rgba(255, 255, 255, 0.3)"
-                    thumbColor="white"
-                    activeTrackColor={theme.colors.primary[5]}
-                  />
-                </View>
-              )}
-            </View>
+            <Pressable
+              style={styles.controlButton}
+              onPress={onToggleMute}
+              {...a11yProps({ role: 'button', label: muted ? 'Unmute' : 'Mute' })}
+            >
+              <Icon name={muted ? 'volume-off' : 'volume-up'} size={20} color={CHROME_TEXT} />
+            </Pressable>
           )}
-          
-          {/* Fullscreen Toggle */}
+
+          {/* Native devices have hardware volume; the slider is web-only. */}
+          {config.volume && isWeb && (
+            <MediaSlider
+              style={styles.volumeSlider}
+              value={muted ? 0 : state.volume}
+              onChange={onVolumeChange}
+              label="Volume"
+              valueText={`${Math.round((muted ? 0 : state.volume) * 100)}%`}
+              trackColor={CHROME_TRACK}
+              fillColor={CHROME_TEXT}
+              thumbColor={CHROME_TEXT}
+            />
+          )}
+
           {config.fullscreen && (
-            <TouchableOpacity
+            <Pressable
               style={styles.controlButton}
               onPress={onToggleFullscreen}
-              accessible
-              accessibilityLabel={state.fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+              {...a11yProps({ role: 'button', label: state.fullscreen ? 'Exit fullscreen' : 'Enter fullscreen' })}
             >
-              <Icon
-                name={state.fullscreen ? 'compress' : 'expand'}
-                size={20}
-                color="white"
-              />
-            </TouchableOpacity>
+              <Icon name={state.fullscreen ? 'compress' : 'expand'} size={20} color={CHROME_TEXT} />
+            </Pressable>
           )}
         </View>
       </View>
-      
-      {/* Loading/Buffering Indicator */}
+
       {(state.loading || state.buffering) && (
-        <View style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: [{ translateX: -12 }, { translateY: -12 }],
-        }}>
-          <Icon name="loading" size={24} color="white" />
+        <View
+          style={styles.loading}
+          pointerEvents="none"
+          {...a11yProps({ role: 'progressbar', label: state.loading ? 'Loading video' : 'Buffering', busy: true, accessible: true })}
+        >
+          <Icon name="loading" size={24} color={CHROME_TEXT} />
         </View>
       )}
     </View>

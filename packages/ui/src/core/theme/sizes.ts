@@ -1,9 +1,21 @@
 // Size system for Platform Blocks - supports both string tokens and numeric values
 // Token scale: xs | sm | md | lg | xl | 2xl | 3xl, with numeric values accepted anywhere a token is.
+//
+// These getters are THEME-LESS: they always read the default theme's numbers.
+// Components resolve sizes against the current theme with `core/theme/tokens.ts`
+// (`resolveFontSize`, `resolveSpacing`, `resolveRadius`, `resolveIconSize`,
+// `getControlSize`); the getters below stay for back-compat and are deprecated.
 
-import { DESIGN_TOKENS } from '../design-tokens';
 import type { ComponentSize } from './componentSize';
 import { DEFAULT_COMPONENT_SIZE, ComponentSizeValue } from './componentSize';
+import {
+  DEFAULT_CONTROL_SIZES,
+  DEFAULT_FONT_SIZE_SCALE,
+  DEFAULT_ICON_SIZE_SCALE,
+  DEFAULT_LINE_HEIGHT_SCALE,
+  DEFAULT_RADIUS_SCALE,
+  DEFAULT_SPACING_SCALE,
+} from './scales';
 
 export type SizeValue = ComponentSizeValue;
 
@@ -17,65 +29,33 @@ export interface SizeScale {
   '3xl': number;
 }
 
-// Base size scales (in pixels)
+// Base size scales (in pixels) — the default theme's numbers.
 export const SIZE_SCALES = {
-  // Font sizes
-  fontSize: {
-    xs: 10,
-    sm: 12,
-    md: 14,
-    lg: 16,
-    xl: 18,
-    '2xl': 20,
-    '3xl': 24
-  },
+  // Font sizes (= DEFAULT_THEME.fontSizes)
+  fontSize: DEFAULT_FONT_SIZE_SCALE,
 
-  // Spacing (padding, margin, gap) - now using design tokens
-  spacing: DESIGN_TOKENS.spacing,
+  // Spacing (padding, margin, gap) (= DEFAULT_THEME.spacing)
+  spacing: DEFAULT_SPACING_SCALE,
 
-  // Icon sizes
-  iconSize: {
-    xs: 12,
-    sm: 16,
-    md: 20,
-    lg: 24,
-    xl: 28,
-    '2xl': 32,
-    '3xl': 40
-  },
+  // Icon sizes — the general icon scale (`resolveIconSize`)
+  iconSize: DEFAULT_ICON_SIZE_SCALE,
 
-  // Component heights
+  // Component heights — the canonical control heights (= DEFAULT_THEME.controlSizes[size].height)
   height: {
-    xs: 28,
-    sm: 32,
-    md: 36,
-    lg: 44,
-    xl: 52,
-    '2xl': 60,
-    '3xl': 68
+    xs: DEFAULT_CONTROL_SIZES.xs.height,
+    sm: DEFAULT_CONTROL_SIZES.sm.height,
+    md: DEFAULT_CONTROL_SIZES.md.height,
+    lg: DEFAULT_CONTROL_SIZES.lg.height,
+    xl: DEFAULT_CONTROL_SIZES.xl.height,
+    '2xl': DEFAULT_CONTROL_SIZES['2xl'].height,
+    '3xl': DEFAULT_CONTROL_SIZES['3xl'].height,
   },
 
-  // Border radius
-  radius: {
-    xs: 2,
-    sm: 4,
-    md: 6,
-    lg: 8,
-    xl: 12,
-    '2xl': 16,
-    '3xl': 20
-  },
+  // Border radius (= DEFAULT_THEME.radii)
+  radius: DEFAULT_RADIUS_SCALE,
 
   // Line heights (as multipliers)
-  lineHeight: {
-    xs: 1.2,
-    sm: 1.3,
-    md: 1.4,
-    lg: 1.5,
-    xl: 1.6,
-    '2xl': 1.7,
-    '3xl': 1.8
-  },
+  lineHeight: DEFAULT_LINE_HEIGHT_SCALE,
 
   // Font size for labels rendered alongside form controls (Input, Checkbox, Switch,
   // Radio, Select…). Tuned to read as one step smaller than the field's own font
@@ -130,6 +110,7 @@ export function resolveSize(
 
 /**
  * Get font size from size value
+ * @deprecated Theme-less. Use `resolveFontSize(theme, size)` from `core/theme/tokens.ts`.
  */
 export function getFontSize(size: SizeValue | undefined): number {
   return resolveSize(size, 'fontSize') as number;
@@ -137,6 +118,7 @@ export function getFontSize(size: SizeValue | undefined): number {
 
 /**
  * Get spacing from size value
+ * @deprecated Theme-less. Use `resolveSpacing(theme, value)` from `core/theme/tokens.ts`.
  */
 export function getSpacing(size: SizeValue | undefined): number {
   return resolveSize(size, 'spacing') as number;
@@ -144,6 +126,8 @@ export function getSpacing(size: SizeValue | undefined): number {
 
 /**
  * Get icon size from size value
+ * @deprecated Theme-less. Use `resolveIconSize(theme, size)` (general icons) or
+ * `getControlSize(theme, size).iconSize` (icons inside controls).
  */
 export function getIconSize(size: SizeValue | undefined): number {
   return resolveSize(size, 'iconSize') as number;
@@ -153,6 +137,7 @@ export function getIconSize(size: SizeValue | undefined): number {
  * Resolves the fontSize for a label rendered alongside a form control
  * (Input/Checkbox/Switch/Radio/Select…). Numeric `size` values scale at ~0.85x
  * so the label stays one step smaller than the control's own font.
+ * @deprecated Theme-less. Field labels migrate to the `_internal/Field` frame.
  */
 export function getControlLabelFontSize(size: SizeValue | undefined): number {
   if (typeof size === 'number') return Math.max(10, Math.round(size * 0.85));
@@ -163,6 +148,7 @@ export function getControlLabelFontSize(size: SizeValue | undefined): number {
  * Resolves the icon size for icons rendered *inside* a form control
  * (password toggle, inline radio icon, clear button, etc.). Numeric `size`
  * values scale at ~1.1x so the icon reads as slightly larger than the text.
+ * @deprecated Theme-less. Use `getControlSize(theme, size).iconSize`.
  */
 export function getControlIconSize(size: SizeValue | undefined): number {
   if (typeof size === 'number') return Math.max(12, Math.round(size * 1.1));
@@ -170,7 +156,8 @@ export function getControlIconSize(size: SizeValue | undefined): number {
 }
 
 /**
- * Get height from size value
+ * Get height from size value (the canonical control height).
+ * @deprecated Theme-less. Use `getControlSize(theme, size).height`.
  */
 export function getHeight(size: SizeValue | undefined): number {
   return resolveSize(size, 'height') as number;
@@ -178,6 +165,7 @@ export function getHeight(size: SizeValue | undefined): number {
 
 /**
  * Get border radius from size value
+ * @deprecated Theme-less. Use `resolveRadius(theme, value)` from `core/theme/tokens.ts`.
  */
 export function getRadius(size: SizeValue | undefined): number {
   return resolveSize(size, 'radius') as number;
@@ -187,6 +175,7 @@ export function getRadius(size: SizeValue | undefined): number {
  * Get line height from size value
  * For numeric values, returns a reasonable line height multiplier
  * For string values, uses the predefined line height scale
+ * @deprecated Theme-less. Use `resolveLineHeight(theme, size)` (returns px).
  */
 export function getLineHeight(size: SizeValue | undefined): number {
   if (typeof size === 'number') {

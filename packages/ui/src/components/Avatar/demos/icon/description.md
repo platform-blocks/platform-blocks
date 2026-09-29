@@ -8,4 +8,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Render any `<Icon>` inside an avatar by passing it to the `fallback` prop. The icon scales with the avatar size and works alongside labels, descriptions, and status indicators.
+Render any `<Icon>` inside an avatar by passing it to the `fallback` prop.

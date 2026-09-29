@@ -1,19 +1,14 @@
-import { Block, Button, Text, useDialog } from '@platform-blocks/ui';
+import { Block, Button, Text, useDialog, type DialogConfig } from '@platform-blocks/ui';
 
 export function Demo() {
-  const { openDialog, closeDialog } = useDialog();
+  const { openDialog } = useDialog();
 
-  const open = (titleProps: any) => {
-    const id = openDialog({
+  const open = (titleProps: DialogConfig['titleProps']) => {
+    openDialog({
       variant: 'modal',
       title: 'Welcome aboard',
       titleProps,
-      content: (
-        <Block p="md">
-          <Text>Dialog title styled via `titleProps`.</Text>
-          <Button onPress={() => closeDialog(id)}>Close</Button>
-        </Block>
-      ),
+      content: <Text>Dialog title styled via `titleProps`.</Text>,
     });
   };
 
@@ -23,9 +18,9 @@ export function Demo() {
       <Button
         onPress={() =>
           open({
-            uppercase: true,
-            tracking: 1.5,
-            weight: '700',
+            tt: 'uppercase',
+            lts: 1.5,
+            fw: '700',
             size: 'sm',
           })
         }
@@ -37,7 +32,7 @@ export function Demo() {
           open({
             ff: 'Georgia, serif',
             size: 'xl',
-            weight: '600',
+            fw: '600',
           })
         }
       >
@@ -46,8 +41,8 @@ export function Demo() {
       <Button
         onPress={() =>
           open({
-            color: 'primary',
-            weight: '700',
+            c: 'primary',
+            fw: '700',
             ff: 'monospace',
           })
         }

@@ -13,7 +13,7 @@ export function Demo() {
         onChange={(date) => setSelectedDate(date as Date | null)}
         highlightToday
       />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         Selected date: {selectedDate ? formatter.format(selectedDate) : 'none'}
       </Text>
     </Block>

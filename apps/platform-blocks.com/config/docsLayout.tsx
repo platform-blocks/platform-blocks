@@ -105,7 +105,7 @@ export const docsLayout = defineAppLayout({
   main: {
     id: 'main-content',
     role: 'main',
-    maxWidth: 1800,
+    maw: 1800,
     centerContent: true,
     props: (ctx: AppLayoutRuntimeContext) => {
       const baseProps = {
@@ -117,7 +117,7 @@ export const docsLayout = defineAppLayout({
       if (isFullscreenExampleRoute(ctx)) {
         return {
           ...baseProps,
-          maxWidth: '100%',
+          maw: '100%',
           centerContent: false,
           style: { backgroundColor: 'transparent' },
         };

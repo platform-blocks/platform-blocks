@@ -1,5 +1,6 @@
 import { Block, QRCode, Row } from '@platform-blocks/ui';
-import { SIZES } from './data';
+
+const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
 
 export function Demo() {
   return (

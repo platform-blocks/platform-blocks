@@ -66,7 +66,7 @@ export function Demo() {
       <Button onPress={handleSubmit}>Confirm subscription</Button>
 
       {confirmation && (
-        <Text variant="small" color="success">
+        <Text variant="small" c="success">
           {confirmation}
         </Text>
       )}

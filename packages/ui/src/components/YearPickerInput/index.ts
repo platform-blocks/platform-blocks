@@ -1,2 +1,2 @@
 export { YearPickerInput } from './YearPickerInput';
-export type { YearPickerInputProps } from './types';
+export type { YearPickerInputProps, YearPickerInputHandle } from './types';

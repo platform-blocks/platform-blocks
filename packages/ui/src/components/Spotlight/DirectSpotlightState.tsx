@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { SpotlightState } from './SpotlightStore';
+import { devError } from '../../core/utils/logger';
 
 // Global spotlight state manager (reuse the same pattern as accordion)
 interface GlobalSpotlightState {
@@ -31,13 +32,11 @@ class DirectSpotlightStateManager {
   }
 
   setState(updates: Partial<GlobalSpotlightState>): void {
-    // console.log('[DirectSpotlightStateManager] Setting state:', updates, 'from:', this.state);
     this.state = { ...this.state, ...updates };
     this.notifyListeners();
   }
 
   open(query?: string): void {
-    // console.log('[DirectSpotlightStateManager] Opening spotlight');
     this.setState({ 
       opened: true,
       ...(query !== undefined && { query })
@@ -45,17 +44,14 @@ class DirectSpotlightStateManager {
   }
 
   close(): void {
-    // console.log('[DirectSpotlightStateManager] Closing spotlight');
     this.setState({ opened: false, query: '', selectedIndex: -1 });
   }
 
   setQuery(query: string): void {
-    // console.log('[DirectSpotlightStateManager] Setting query:', query);
     this.setState({ query });
   }
 
   toggle(): void {
-    // console.log('[DirectSpotlightStateManager] Toggling spotlight');
     this.setState({ opened: !this.state.opened });
   }
 
@@ -71,7 +67,7 @@ class DirectSpotlightStateManager {
       try {
         listener(this.state);
       } catch (error) {
-        console.error('Error in direct spotlight state listener:', error);
+        devError('Error in direct spotlight state listener:', error);
       }
     });
   }
@@ -84,7 +80,6 @@ export const directSpotlightStateManager = new DirectSpotlightStateManager();
 export function useDirectSpotlightState() {
   const [state, setState] = useState<SpotlightState>(() => {
     const globalState = directSpotlightStateManager.getState();
-    // console.log('[useDirectSpotlightState] Initializing with:', globalState);
     return {
       opened: globalState.opened,
       query: globalState.query,
@@ -93,9 +88,7 @@ export function useDirectSpotlightState() {
   });
 
   useEffect(() => {
-    // console.log('[useDirectSpotlightState] Setting up subscription');
     const unsubscribe = directSpotlightStateManager.subscribe((globalState) => {
-      // console.log('[useDirectSpotlightState] Global state changed:', globalState);
       setState({
         opened: globalState.opened,
         query: globalState.query,
@@ -105,7 +98,6 @@ export function useDirectSpotlightState() {
     
     // Sync with current state
     const currentState = directSpotlightStateManager.getState();
-    // console.log('[useDirectSpotlightState] Syncing with current state:', currentState);
     setState({
       opened: currentState.opened,
       query: currentState.query,
@@ -113,7 +105,6 @@ export function useDirectSpotlightState() {
     });
     
     return () => {
-      // console.log('[useDirectSpotlightState] Cleaning up subscription');
       unsubscribe();
     };
   }, []);

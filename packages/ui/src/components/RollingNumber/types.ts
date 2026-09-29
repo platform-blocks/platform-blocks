@@ -1,6 +1,6 @@
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import type { SizeValue } from '../../core/theme/sizes';
-import type { SpacingProps } from '../../core/utils';
+import type { SpacingProps } from '../../core/utils/spacing';
 
 export type RollingNumberTimingFunction =
   | 'linear'
@@ -47,14 +47,10 @@ export interface RollingNumberProps extends SpacingProps {
   /** Font size token or explicit number. Default `'md'`. */
   size?: SizeValue;
   /** Text color. Accepts theme palette syntax (`'primary.6'`, `'dimmed'`) or any CSS color. */
-  color?: string;
-  /** Shorthand alias for `color`, resolved identically. `color` wins when both are set. */
   c?: string;
   /** Font weight. */
-  weight?: TextStyle['fontWeight'] | 'normal' | 'medium' | 'semibold' | 'bold';
+  fw?: TextStyle['fontWeight'] | 'normal' | 'medium' | 'semibold' | 'bold';
   /** Custom font family. */
-  fontFamily?: string;
-  /** Shorthand alias for `fontFamily`. */
   ff?: string;
   /**
    * Use tabular (fixed-width) figures so columns do not shift width as digits

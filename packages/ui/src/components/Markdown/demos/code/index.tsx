@@ -1,8 +1,6 @@
-import { Block, Markdown, Text } from '@platform-blocks/ui';
+import { Block, Markdown } from '@platform-blocks/ui';
 
-const CONTENT = `# Code examples
-
-Here's some JavaScript:
+const CONTENT = `Here's some JavaScript:
 
 \`\`\`javascript
 function fibonacci(n) {
@@ -33,9 +31,6 @@ export function Demo() {
   return (
     <Block fullWidth>
       <Markdown>{CONTENT}</Markdown>
-      <Text size="sm" color="secondary">
-        Showcases fenced code blocks with syntax highlighting
-      </Text>
     </Block>
   );
 }

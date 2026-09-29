@@ -8,4 +8,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Explore available checkbox sizes with guidance on where each fits best.
+Choose a `size` token (`xs` through `3xl`) to scale the checkbox.

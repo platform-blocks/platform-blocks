@@ -1,9 +1,12 @@
-import { ViewStyle, StyleProp, ImageSourcePropType } from 'react-native';
-import { SpacingProps, LayoutProps } from '../../core/utils';
+import type React from 'react';
+import type { ViewStyle, ImageSourcePropType } from 'react-native';
+
+import type { BaseProps } from '../../core/types/base';
+import type { LayoutProps } from '../../core/utils/layout';
 import type { ComponentSizeValue } from '../../core/theme/componentSize';
 import type { TextProps } from '../Text';
 
-export interface QRCodeProps extends SpacingProps, LayoutProps {
+export interface QRCodeProps extends BaseProps<ViewStyle>, LayoutProps {
   /** The data/text to encode in the QR code */
   value: string;
 
@@ -31,8 +34,8 @@ export interface QRCodeProps extends SpacingProps, LayoutProps {
    */
   size?: ComponentSizeValue;
   
-  /** Background color of the QR code */
-  backgroundColor?: string;
+  /** Background of the code itself: a background token, palette color, or any CSS color. */
+  bg?: string;
   
   /** Foreground color (the QR code pattern color) */
   color?: string;
@@ -41,7 +44,7 @@ export interface QRCodeProps extends SpacingProps, LayoutProps {
    * Note: Finder patterns (corner anchors) always remain square for optimal scanner compatibility.
    */
   moduleShape?: 'square' | 'rounded' | 'diamond';
-  /** Corner (finder) shape variant - DEPRECATED: Finder patterns always remain square */
+  /** @deprecated Has no effect: finder patterns always remain square for scanner compatibility. */
   finderShape?: 'square' | 'rounded';
   /** Rounded corner radius factor (0-1) applied when moduleShape='rounded' */
   cornerRadius?: number;
@@ -77,22 +80,23 @@ export interface QRCodeProps extends SpacingProps, LayoutProps {
     borderRadius?: number;
   };
   
-  /** Custom container style */
-  style?: StyleProp<ViewStyle>;
-  
-  /** Test ID for testing */
-  testID?: string;
-  
-  /** Accessibility label */
+  /**
+   * Accessible name of the code (announced as an image). Defaults to a string
+   * `label`, else `"QR code: <value>"` (long values truncated).
+   */
   accessibilityLabel?: string;
   
   /** Callback when QR code generation fails */
   onError?: (error: Error) => void;
   
-  /** Callback when QR code starts loading */
+  /**
+   * @deprecated Never called: the code is generated synchronously during render.
+   */
   onLoadStart?: () => void;
-  
-  /** Callback when QR code finishes loading */
+
+  /**
+   * @deprecated Never called: the code is generated synchronously during render.
+   */
   onLoadEnd?: () => void;
   /** If true (or object), tapping the QR copies the value (or provided value). */
   copyOnPress?: boolean | { value?: string };

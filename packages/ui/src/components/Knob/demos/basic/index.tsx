@@ -5,7 +5,7 @@ export function Demo() {
   const [value, setValue] = useState(90);
 
   return (
-    <Knob
+    <Knob accessibilityLabel="Level"
       value={value}
       onChange={setValue}
       valueLabel={{

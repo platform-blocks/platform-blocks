@@ -7,7 +7,7 @@ export function Demo() {
     <CandlestickChart
       title="AAPL daily candles"
       subtitle="Includes 3 & 5-day moving averages"
-      height={360}
+      h={360}
       series={[
         {
           id: 'apple',

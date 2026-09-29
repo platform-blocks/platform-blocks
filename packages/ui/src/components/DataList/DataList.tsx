@@ -1,5 +1,5 @@
-import React, { createContext, useContext, forwardRef } from 'react';
-import { View, ViewStyle } from 'react-native';
+import React, { createContext, useContext, useMemo } from 'react';
+import { View, type DimensionValue, type ViewStyle } from 'react-native';
 
 import type {
   DataListProps,
@@ -9,15 +9,12 @@ import type {
   DataListContextValue,
   DataListSizeMetrics,
 } from './types';
+import { factory, withStatics } from '../../core/factory/factory';
 import { useTheme } from '../../core/theme/ThemeProvider';
-import { getSpacing } from '../../core/theme/sizes';
-import {
-  clampComponentSize,
-  resolveComponentSize,
-  type ComponentSize,
-  type ComponentSizeValue,
-} from '../../core/theme/componentSize';
-import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
+import { resolveFontSize, resolveSpacing } from '../../core/theme/tokens';
+import type { PlatformBlocksTheme } from '../../core/theme/types';
+import { clampComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
+import { resolveStyleProps, extractStyleProps } from '../../core/utils/spacing';
 import { Text } from '../Text';
 
 // Context
@@ -30,238 +27,217 @@ const useDataListContext = () => {
 
 const DATALIST_ALLOWED_SIZES: ComponentSize[] = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
 
-const DATALIST_SIZE_SCALE: Record<ComponentSize, DataListSizeMetrics> = {
-  xs: { fontSize: 12, gap: 6, labelGap: 2, columnGap: 12 },
-  sm: { fontSize: 13, gap: 8, labelGap: 2, columnGap: 12 },
-  md: { fontSize: 14, gap: 12, labelGap: 4, columnGap: 16 },
-  lg: { fontSize: 16, gap: 16, labelGap: 4, columnGap: 20 },
-  xl: { fontSize: 18, gap: 20, labelGap: 6, columnGap: 24 },
-  '2xl': { fontSize: 20, gap: 24, labelGap: 6, columnGap: 28 },
-  '3xl': { fontSize: 24, gap: 28, labelGap: 8, columnGap: 32 },
-};
+const toNumber = (value: number | 'auto'): number => (typeof value === 'number' ? value : 0);
 
-const BASE_DATALIST_METRICS = DATALIST_SIZE_SCALE.md;
+/** Label gap / column gap derived from the item gap (md: 12 → 4 / 16). */
+const metricsFor = (fontSize: number, gap: number): DataListSizeMetrics => ({
+  fontSize,
+  gap,
+  labelGap: Math.max(2, Math.round(gap / 3)),
+  columnGap: Math.max(8, gap + 4),
+});
 
-const resolveDataListMetrics = (value: ComponentSizeValue): DataListSizeMetrics => {
+/**
+ * Size → metrics from the theme: the font size is the theme's font-size token
+ * and the item gap its spacing token of the same name. A numeric size is a font
+ * size; its gaps scale from the `md` ratio.
+ */
+const resolveDataListMetrics = (theme: PlatformBlocksTheme, value: ComponentSizeValue): DataListSizeMetrics => {
   if (typeof value === 'number') {
-    const ratio = value / BASE_DATALIST_METRICS.fontSize;
+    const base = metricsFor(resolveFontSize(theme, 'md'), toNumber(resolveSpacing(theme, 'md')));
+    const ratio = value / base.fontSize;
     return {
       fontSize: value,
-      gap: Math.max(4, Math.round(BASE_DATALIST_METRICS.gap * ratio)),
-      labelGap: Math.max(2, Math.round(BASE_DATALIST_METRICS.labelGap * ratio)),
-      columnGap: Math.max(8, Math.round(BASE_DATALIST_METRICS.columnGap * ratio)),
+      gap: Math.max(4, Math.round(base.gap * ratio)),
+      labelGap: Math.max(2, Math.round(base.labelGap * ratio)),
+      columnGap: Math.max(8, Math.round(base.columnGap * ratio)),
     };
   }
-
-  const resolved = resolveComponentSize(value, DATALIST_SIZE_SCALE, {
-    allowedSizes: DATALIST_ALLOWED_SIZES,
-    fallback: 'md',
-  });
-
-  if (typeof resolved === 'number') {
-    return resolveDataListMetrics(resolved);
-  }
-
-  return resolved;
+  return metricsFor(resolveFontSize(theme, value), toNumber(resolveSpacing(theme, value)));
 };
 
 // Label
-const DataListItemLabel = forwardRef<View, DataListItemLabelProps>(({ children, color, style, ...rest }, ref) => {
-  const { metrics, labelColor } = useDataListContext();
-  const resolvedColor = color ?? labelColor;
-  return (
-    <View ref={ref} style={style} {...rest}>
-      <Text
-        size={metrics.fontSize}
-        weight="medium"
-        color={resolvedColor ?? 'secondary'}
-      >
-        {children}
-      </Text>
-    </View>
-  );
-});
+const DataListItemLabel = factory<{ props: DataListItemLabelProps; ref: View }>(
+  ({ children, c: color, style, ...rest }, ref) => {
+    const { metrics, labelColor } = useDataListContext();
+    return (
+      <View ref={ref} role="term" {...rest} style={style}>
+        <Text size={metrics.fontSize} fw="medium" c={color ?? labelColor ?? 'secondary'}>
+          {children}
+        </Text>
+      </View>
+    );
+  },
+  { displayName: 'DataList.ItemLabel' }
+);
 
 // Value
-const DataListItemValue = forwardRef<View, DataListItemValueProps>(({ children, color, style, ...rest }, ref) => {
-  const { metrics, valueColor } = useDataListContext();
-  const resolvedColor = color ?? valueColor;
-  return (
-    <View ref={ref} style={style} {...rest}>
-      <Text
-        size={metrics.fontSize}
-        color={resolvedColor ?? 'primary'}
-      >
-        {children}
-      </Text>
-    </View>
-  );
-});
+const DataListItemValue = factory<{ props: DataListItemValueProps; ref: View }>(
+  ({ children, c: color, style, ...rest }, ref) => {
+    const { metrics, valueColor } = useDataListContext();
+    return (
+      <View ref={ref} role="definition" {...rest} style={style}>
+        <Text size={metrics.fontSize} c={color ?? valueColor ?? 'primary'}>
+          {children}
+        </Text>
+      </View>
+    );
+  },
+  { displayName: 'DataList.ItemValue' }
+);
 
 // Item
-const DataListItem = forwardRef<View, DataListItemProps>(({
-  children,
-  label,
-  value,
-  isLastItem = false,
-  itemIndex,
-  style,
-  ...rest
-}, ref) => {
-  const { orientation, withDivider, metrics, labelWidth, dividerColor } = useDataListContext();
+const DataListItem = factory<{ props: DataListItemProps; ref: View }>(
+  ({ children, label, value, isLastItem = false, itemIndex: _itemIndex, style, ...rest }, ref) => {
+    const { orientation, withDivider, metrics, labelWidth, dividerColor } = useDataListContext();
+    const theme = useTheme();
+    const { styleProps, otherProps } = extractStyleProps(rest);
 
-  const content = children ?? (
-    <>
-      {label != null && <DataListItemLabel>{label}</DataListItemLabel>}
-      {value != null && <DataListItemValue>{value}</DataListItemValue>}
-    </>
-  );
+    const content = children ?? (
+      <>
+        {label != null && <DataListItemLabel>{label}</DataListItemLabel>}
+        {value != null && <DataListItemValue>{value}</DataListItemValue>}
+      </>
+    );
 
-  const itemStyle: ViewStyle = orientation === 'horizontal'
-    ? { flexDirection: 'row', alignItems: 'flex-start', columnGap: metrics.columnGap }
-    : { flexDirection: 'column', rowGap: metrics.labelGap };
+    const itemStyle: ViewStyle =
+      orientation === 'horizontal'
+        ? { flexDirection: 'row', alignItems: 'flex-start', columnGap: metrics.columnGap }
+        : { flexDirection: 'column', rowGap: metrics.labelGap };
 
-  const dividerStyle: ViewStyle = withDivider && !isLastItem
-    ? {
-        paddingBottom: metrics.gap,
-        marginBottom: metrics.gap,
-        borderBottomWidth: 1,
-        borderBottomColor: dividerColor,
-      }
-    : {};
+    const dividerStyle: ViewStyle | null =
+      withDivider && !isLastItem
+        ? {
+            paddingBottom: metrics.gap,
+            marginBottom: metrics.gap,
+            borderBottomWidth: 1,
+            borderBottomColor: dividerColor,
+          }
+        : null;
 
-  // In horizontal orientation give the label column a stable width so values align.
-  const labelColumnStyle: ViewStyle | undefined = orientation === 'horizontal'
-    ? { width: labelWidth as any, flexShrink: 0 }
-    : undefined;
-  const valueColumnStyle: ViewStyle | undefined = orientation === 'horizontal'
-    ? { flex: 1, flexShrink: 1 }
-    : undefined;
+    // In horizontal orientation give the label column a stable width so values align.
+    const decorated =
+      orientation === 'horizontal'
+        ? React.Children.map(content, (child) => {
+            if (!React.isValidElement<DataListItemLabelProps>(child)) return child;
+            if (child.type === DataListItemLabel) {
+              const labelColumn: ViewStyle = { width: labelWidth as DimensionValue | undefined, flexShrink: 0 };
+              return React.cloneElement(child, { style: [labelColumn, child.props.style] });
+            }
+            if (child.type === DataListItemValue) {
+              return React.cloneElement(child, { style: [VALUE_COLUMN, child.props.style] });
+            }
+            return child;
+          })
+        : content;
 
-  // Wrap label/value children with column styling in horizontal orientation.
-  const decorated = orientation === 'horizontal'
-    ? React.Children.map(content, (child) => {
-        if (!React.isValidElement(child)) return child;
-        if (child.type === DataListItemLabel) {
-          return React.cloneElement(child as any, {
-            style: [labelColumnStyle, (child.props as any).style],
-          });
-        }
-        if (child.type === DataListItemValue) {
-          return React.cloneElement(child as any, {
-            style: [valueColumnStyle, (child.props as any).style],
-          });
-        }
-        return child;
-      })
-    : content;
+    return (
+      <View
+        ref={ref}
+        role="listitem"
+        {...otherProps}
+        style={[itemStyle, dividerStyle, resolveStyleProps(styleProps, theme), style]}
+      >
+        {decorated}
+      </View>
+    );
+  },
+  { displayName: 'DataList.Item' }
+);
 
-  return (
-    <View ref={ref} style={[itemStyle, dividerStyle, style]} {...rest}>
-      {decorated}
-    </View>
-  );
-});
+const VALUE_COLUMN: ViewStyle = { flex: 1, flexShrink: 1 };
 
 // Root
-const DataList = forwardRef<View, DataListProps>(({
-  children,
-  data,
-  orientation = 'horizontal',
-  withDivider = false,
-  size = 'md',
-  spacing,
-  labelWidth,
-  labelColor,
-  valueColor,
-  dividerColor,
-  style,
-  ...rest
-}, ref) => {
-  const theme = useTheme();
+const DataListRoot = factory<{ props: DataListProps; ref: View }>(
+  (
+    {
+      children,
+      data,
+      orientation = 'horizontal',
+      withDivider = false,
+      size = 'md',
+      spacing,
+      labelWidth,
+      labelColor,
+      valueColor,
+      dividerColor,
+      style,
+      ...rest
+    },
+    ref
+  ) => {
+    const theme = useTheme();
+    const { styleProps, otherProps } = extractStyleProps(rest);
 
-  const { spacingProps, otherProps } = extractSpacingProps(rest);
-  const spacingStyles = getSpacingStyles(spacingProps);
+    const clampedSize = clampComponentSize(size, DATALIST_ALLOWED_SIZES);
+    const baseMetrics = useMemo(() => resolveDataListMetrics(theme, clampedSize), [theme, clampedSize]);
+    const gap = spacing != null ? toNumber(resolveSpacing(theme, spacing)) : baseMetrics.gap;
+    const metrics = useMemo(() => ({ ...baseMetrics, gap }), [baseMetrics, gap]);
 
-  const clampedSize = clampComponentSize(size, DATALIST_ALLOWED_SIZES);
-  const baseMetrics = resolveDataListMetrics(clampedSize);
+    const resolvedDividerColor = dividerColor ?? theme.backgrounds.border;
 
-  const resolvedGap = spacing != null
-    ? (typeof spacing === 'number' ? spacing : getSpacing(spacing))
-    : baseMetrics.gap;
+    const contextValue = useMemo<DataListContextValue>(
+      () => ({
+        orientation,
+        withDivider,
+        metrics,
+        labelWidth,
+        labelColor,
+        valueColor,
+        dividerColor: resolvedDividerColor,
+      }),
+      [orientation, withDivider, metrics, labelWidth, labelColor, valueColor, resolvedDividerColor]
+    );
 
-  const metrics: DataListSizeMetrics = { ...baseMetrics, gap: resolvedGap };
+    // Build items from the `data` shorthand or from children.
+    const rawItems: React.ReactElement<DataListItemProps>[] = [];
+    if (data && data.length > 0) {
+      data.forEach((item, index) => {
+        rawItems.push(<DataListItem key={index} label={item.label} value={item.value} />);
+      });
+    } else {
+      React.Children.forEach(children, (child) => {
+        if (React.isValidElement<DataListItemProps>(child) && child.type === DataListItem) {
+          rawItems.push(child);
+        }
+      });
+    }
 
-  const resolvedDividerColor = dividerColor
-    ?? theme.backgrounds?.border
-    ?? theme.colors?.gray?.[3]
-    ?? '#E5E5EA';
+    const items = rawItems.map((item, index) =>
+      React.cloneElement(item, {
+        itemIndex: index,
+        isLastItem: index === rawItems.length - 1,
+        key: item.key ?? index,
+      })
+    );
 
-  const contextValue: DataListContextValue = {
-    orientation,
-    withDivider,
-    metrics,
-    labelWidth,
-    labelColor,
-    valueColor,
-    dividerColor: resolvedDividerColor,
-  };
+    // When dividers are enabled, per-item margins handle spacing; otherwise use gap.
+    const containerStyle: ViewStyle = withDivider ? { width: '100%' } : { width: '100%', rowGap: metrics.gap };
 
-  // Build items from the `data` shorthand or from children.
-  const rawItems: React.ReactElement[] = [];
-  if (data && data.length > 0) {
-    data.forEach((item, index) => {
-      rawItems.push(
-        <DataListItem key={index} label={item.label} value={item.value} />
-      );
-    });
-  } else {
-    React.Children.forEach(children, (child) => {
-      if (React.isValidElement(child) && child.type === (DataListItem as any)) {
-        rawItems.push(child);
-      }
-    });
-  }
-
-  const items = rawItems.map((item, index) =>
-    React.cloneElement(item, {
-      itemIndex: index,
-      isLastItem: index === rawItems.length - 1,
-      key: item.key ?? index,
-    } as any)
-  );
-
-  // When dividers are enabled, per-item margins handle spacing; otherwise use gap.
-  const containerStyle: ViewStyle = {
-    width: '100%',
-    ...(withDivider ? {} : { rowGap: metrics.gap }),
-  };
-
-  return (
-    <DataListContext.Provider value={contextValue}>
-      <View ref={ref} style={[containerStyle, spacingStyles, style]} {...otherProps}>
-        {items}
-      </View>
-    </DataListContext.Provider>
-  );
-});
+    return (
+      <DataListContext.Provider value={contextValue}>
+        <View
+          ref={ref}
+          role="list"
+          {...otherProps}
+          style={[containerStyle, resolveStyleProps(styleProps, theme), style]}
+        >
+          {items}
+        </View>
+      </DataListContext.Provider>
+    );
+  },
+  { displayName: 'DataList' }
+);
 
 // Attach compound members
-const DataListWithItems = DataList as typeof DataList & {
-  Item: typeof DataListItem;
-  ItemLabel: typeof DataListItemLabel;
-  ItemValue: typeof DataListItemValue;
-};
-DataListWithItems.Item = DataListItem;
-DataListWithItems.ItemLabel = DataListItemLabel;
-DataListWithItems.ItemValue = DataListItemValue;
+const DataList = withStatics(DataListRoot, {
+  Item: DataListItem,
+  ItemLabel: DataListItemLabel,
+  ItemValue: DataListItemValue,
+});
 
-DataList.displayName = 'DataList';
-DataListItem.displayName = 'DataList.Item';
-DataListItemLabel.displayName = 'DataList.ItemLabel';
-DataListItemValue.displayName = 'DataList.ItemValue';
-
-export { DataListWithItems as DataList };
+export { DataList };
 export type {
   DataListProps,
   DataListItemProps,

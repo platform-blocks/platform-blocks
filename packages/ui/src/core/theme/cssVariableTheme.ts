@@ -3,6 +3,24 @@ import { Platform } from 'react-native';
 import type { PlatformBlocksTheme, SurfaceLevel, SurfaceScale } from './types';
 
 /**
+ * The ONE CSS-variable generator and naming scheme (prefix `--platform-blocks-`):
+ *
+ * - palettes     `--platform-blocks-palette-<name>-<i>`
+ * - text         `--platform-blocks-text-<token>`      (kebab-case: `text-on-primary`)
+ * - backgrounds  `--platform-blocks-bg-<token>`        (`bg-base` … `bg-border`, `bg-border-strong`, `bg-hover`, …)
+ * - surfaces     `--platform-blocks-surface-<level>-background|border`
+ * - states       `--platform-blocks-focus-ring`, `-text-selection`, `-highlight-text`, `-highlight-background`
+ * - shell chrome `--platform-blocks-shell-*`
+ * - scales       `--platform-blocks-font-size-*`, `-spacing-*`, `-radius-*`, `-shadow-*`,
+ *                `-breakpoint-*`, `-z-<layer>`, `-control-height-<size>`
+ *
+ * `themeColorVariables` is the scheme-dependent subset (used per scheme by
+ * `createThemeColorVariablesCss`); `themeCssVariables` is everything
+ * (`CSSVariables` injects it). Both read LITERAL colors, so a theme already
+ * rewritten by `withCssVariableColors` never produces `--x: var(--x, …)` cycles.
+ */
+
+/**
  * Routes the scheme-dependent color tokens through CSS custom properties.
  *
  * Static rendering happens once, in Node, with no reader and no color scheme —
@@ -25,15 +43,32 @@ import type { PlatformBlocksTheme, SurfaceLevel, SurfaceScale } from './types';
  */
 
 const TEXT_TOKENS = ['primary', 'secondary', 'muted', 'disabled', 'link', 'onPrimary'] as const;
-const BACKGROUND_TOKENS = ['base', 'subtle', 'surface', 'elevated', 'border'] as const;
+const BACKGROUND_TOKENS = [
+  'base',
+  'subtle',
+  'surface',
+  'elevated',
+  'border',
+  'borderStrong',
+  'hover',
+  'pressed',
+  'selected',
+  'disabled',
+  'mark',
+  'scrim',
+] as const;
+const STATE_VAR_NAMES = {
+  focusRing: '--platform-blocks-focus-ring',
+  textSelection: '--platform-blocks-text-selection',
+  highlightText: '--platform-blocks-highlight-text',
+  highlightBackground: '--platform-blocks-highlight-background',
+} as const;
 const SURFACE_LEVELS: readonly SurfaceLevel[] = [0, 1, 2, 3];
 const SURFACE_PARTS = ['background', 'border'] as const;
 
 const kebab = (value: string) => value.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 
-/** `backgrounds.border` keeps the name `CSSVariables` already publishes for it. */
-const backgroundVarName = (token: (typeof BACKGROUND_TOKENS)[number]) =>
-  token === 'border' ? '--platform-blocks-border-color' : `--platform-blocks-bg-${token}`;
+const backgroundVarName = (token: (typeof BACKGROUND_TOKENS)[number]) => `--platform-blocks-bg-${kebab(token)}`;
 
 const textVarName = (token: (typeof TEXT_TOKENS)[number]) => `--platform-blocks-text-${kebab(token)}`;
 
@@ -127,24 +162,33 @@ export const shellChrome = (theme: PlatformBlocksTheme): ShellChromeColors => {
 };
 
 /**
- * Every color variable this module understands, resolved against `theme`.
- * Feed one theme in per scheme to build the light and dark blocks.
+ * Every scheme-dependent color variable, resolved against `theme` (literal
+ * colors — see `literalText` & co.). Feed one theme in per scheme to build the
+ * light and dark blocks.
  */
 export const themeColorVariables = (theme: PlatformBlocksTheme): Record<string, string> => {
   const variables: Record<string, string> = {};
+  const text = literalText(theme);
+  const backgrounds = literalBackgrounds(theme);
+  const surfaces = literalSurfaces(theme);
 
   for (const token of TEXT_TOKENS) {
-    const value = theme.text?.[token];
+    const value = text?.[token];
     if (value) variables[textVarName(token)] = value;
   }
 
   for (const token of BACKGROUND_TOKENS) {
-    const value = theme.backgrounds?.[token];
+    const value = backgrounds?.[token];
     if (value) variables[backgroundVarName(token)] = value;
   }
 
+  for (const [token, name] of Object.entries(STATE_VAR_NAMES) as [keyof typeof STATE_VAR_NAMES, string][]) {
+    const value = theme.states?.[token];
+    if (value) variables[name] = value;
+  }
+
   for (const level of SURFACE_LEVELS) {
-    const surface = theme.surfaces?.[level];
+    const surface = surfaces?.[level];
     if (!surface) continue;
     for (const part of SURFACE_PARTS) {
       const value = surface[part];
@@ -167,6 +211,56 @@ export const themeColorVariables = (theme: PlatformBlocksTheme): Record<string, 
   }
 
   return variables;
+};
+
+const scaleVariables = (
+  prefix: string,
+  scale: Record<string, string | number> | undefined,
+  out: Record<string, string>,
+  unit = ''
+) => {
+  if (!scale) return;
+  for (const [key, value] of Object.entries(scale)) {
+    if (value === undefined || value === null) continue;
+    out[`--platform-blocks-${prefix}-${key}`] = typeof value === 'number' ? `${value}${unit}` : String(value);
+  }
+};
+
+/**
+ * Every CSS variable for `theme`: the scheme-dependent colors
+ * (`themeColorVariables`) plus fonts, scales, z-indices and control heights.
+ * This is what `CSSVariables` injects.
+ */
+export const themeCssVariables = (theme: PlatformBlocksTheme): Record<string, string> => {
+  const variables: Record<string, string> = {
+    '--platform-blocks-color-scheme': theme.colorScheme,
+    '--platform-blocks-primary-color': theme.primaryColor,
+  };
+  if (theme.fontFamily) variables['--platform-blocks-font-family'] = theme.fontFamily;
+  if (theme.fontFamilyMono) variables['--platform-blocks-font-family-mono'] = theme.fontFamilyMono;
+
+  Object.assign(variables, themeColorVariables(theme));
+
+  scaleVariables('font-size', theme.fontSizes, variables);
+  scaleVariables('spacing', theme.spacing, variables);
+  scaleVariables('radius', theme.radii, variables);
+  scaleVariables('shadow', theme.shadows, variables);
+  scaleVariables('breakpoint', theme.breakpoints, variables);
+  scaleVariables('z', theme.zIndices as unknown as Record<string, number> | undefined, variables);
+  if (theme.controlSizes) {
+    for (const [size, metrics] of Object.entries(theme.controlSizes)) {
+      if (metrics?.height !== undefined) variables[`--platform-blocks-control-height-${size}`] = `${metrics.height}px`;
+    }
+  }
+  return variables;
+};
+
+/** Serializes variables as one rule: `selector { --a: 1; … }`. */
+export const cssVariablesRule = (selector: string, variables: Record<string, string>): string => {
+  const body = Object.entries(variables)
+    .map(([name, value]) => `  ${name}: ${value};`)
+    .join('\n');
+  return body ? `${selector} {\n${body}\n}` : '';
 };
 
 export interface ThemeColorVariablesCssOptions {
@@ -197,12 +291,7 @@ export const createThemeColorVariablesCss = (
     selector = ':root',
   } = options;
 
-  const block = (rule: string, variables: Record<string, string>) => {
-    const body = Object.entries(variables)
-      .map(([name, value]) => `  ${name}: ${value};`)
-      .join('\n');
-    return body ? `${rule} {\n${body}\n}` : '';
-  };
+  const block = cssVariablesRule;
 
   const light = themeColorVariables(lightTheme);
   const dark = themeColorVariables(darkTheme);

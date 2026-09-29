@@ -34,7 +34,7 @@ props:
     default: primary
   - name: "Stepper.Step labelProps"
     type: "Omit<TextProps, 'children'>"
-    description: "Override props applied to each step's label `<Text>` (style, weight, ff, size, color)."
+    description: "Override props applied to each step's label `<Text>` (style, fw, ff, size, c)."
   - name: "Stepper.Step descriptionProps"
     type: "Omit<TextProps, 'children'>"
     description: "Override props applied to each step's description `<Text>`."
@@ -47,4 +47,4 @@ examples:
   - allowSelect
 ---
 
-The Stepper component provides a step-by-step navigation interface, perfect for multi-step forms, wizards, and progress tracking.
+Step-by-step navigation interface, perfect for multi-step forms, wizards, and progress tracking.

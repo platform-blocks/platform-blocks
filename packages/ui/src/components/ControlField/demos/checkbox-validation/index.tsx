@@ -10,10 +10,9 @@ export function Demo() {
       indicatorPosition="left"
       label="I agree to the Terms of Service"
       description="You must accept before continuing"
-      isRequired
-      isSelected={agreed}
-      onSelectedChange={setAgreed}
-      isInvalid={!agreed}
+      required
+      checked={agreed}
+      onChange={setAgreed}
       error={!agreed ? 'This field is required' : undefined}
     />
   );

@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { render } from '@testing-library/react-native';
 
 jest.mock('react-native-svg', () => {
@@ -35,10 +36,19 @@ jest.mock('react-native-svg', () => {
 });
 
 import { Waveform } from '../Waveform';
+import { WaveformSkeleton } from '../WaveformSkeleton';
 
 const PEAKS = [0.1, 0.6, 0.3, 0.9, 0.4, 0.2, 0.75, 0.5, 0.35, 0.65];
 
 const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
+
+/** How many entries of a (nested) style array set `key`. */
+const timesSet = (style: unknown, key: string): number =>
+  Array.isArray(style)
+    ? style.reduce((n: number, entry) => n + timesSet(entry, key), 0)
+    : style != null && typeof style === 'object' && (style as Record<string, unknown>)[key] !== undefined
+      ? 1
+      : 0;
 
 const draw = (element: React.ReactElement) => {
   const utils = render(element);
@@ -104,6 +114,25 @@ describe('Waveform - size tokens', () => {
     const { svg, bars } = draw(<Waveform peaks={PEAKS} size="3xl" h={40} barWidth={1} />);
     expect(svg.props.height).toBe(40);
     expect(bars[0].props.width).toBe(1);
+  });
+});
+
+describe('Waveform - box props', () => {
+  it('sets the root width from w once and draws at w x h', () => {
+    const { utils, svg } = draw(<Waveform peaks={PEAKS} w={240} h={50} bg="#123456" testID="wave" />);
+    const style = utils.getByTestId('wave').props.style;
+    expect(StyleSheet.flatten(style)).toMatchObject({ width: 240, backgroundColor: '#123456' });
+    expect(timesSet(style, 'width')).toBe(1);
+    expect(timesSet(style, 'height')).toBe(0);
+    expect(svg.props).toMatchObject({ width: 240, height: 50 });
+  });
+
+  it('sizes the skeleton root from w / h once and applies the other style props', () => {
+    const { getByTestId } = render(<WaveformSkeleton w={200} h={40} mt={8} opacity={0.5} testID="skeleton" />);
+    const style = getByTestId('skeleton').props.style;
+    expect(StyleSheet.flatten(style)).toMatchObject({ width: 200, height: 40, marginTop: 8, opacity: 0.5 });
+    expect(timesSet(style, 'width')).toBe(1);
+    expect(timesSet(style, 'height')).toBe(1);
   });
 });
 

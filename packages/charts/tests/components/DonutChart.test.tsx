@@ -26,7 +26,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <DonutChart data={DATA} width={340} height={340} padding={{ top: 20, right: 20, bottom: 20, left: 20 }} />
+        <DonutChart data={DATA} w={340} h={340} padding={{ top: 20, right: 20, bottom: 20, left: 20 }} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );

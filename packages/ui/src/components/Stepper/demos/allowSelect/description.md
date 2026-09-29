@@ -1,5 +1,5 @@
 ---
-title: Visited Step Selection
+title: Disable Step Selection
 category: behavior
 order: 20
 tags: [stepper, selection]
@@ -8,4 +8,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Limit navigation to completed steps using `allowStepSelect`, while preserving forward progress through the flow.
+Set `allowStepSelect={false}` to stop a step from being selected by click. Here, Preferences can't be clicked.

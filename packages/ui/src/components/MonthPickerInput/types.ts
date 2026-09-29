@@ -1,7 +1,13 @@
-import type { BaseInputProps } from '../Input/types';
+import type { FieldHandle } from '../../core/types/base';
+import type { PickerFieldBaseProps } from '../DatePickerInput/PickerField';
 import type { MonthPickerProps } from '../MonthPicker/types';
 
-export interface MonthPickerInputProps extends Omit<BaseInputProps, 'value' | 'onChangeText'> {
+/**
+ * A form field that opens a month grid. Extends the shared field props (label,
+ * description, error, helperText, required, disabled, readOnly, size, radius,
+ * variant, …) plus placeholder / clearable / sections.
+ */
+export interface MonthPickerInputProps extends PickerFieldBaseProps {
   /** Controlled value for the selected month */
   value?: Date | null;
   /** Default month when uncontrolled */
@@ -14,18 +20,22 @@ export interface MonthPickerInputProps extends Omit<BaseInputProps, 'value' | 'o
   formatOptions?: Intl.DateTimeFormatOptions;
   /** Custom formatter for the input value; overrides locale/formatOptions */
   formatValue?: (value: Date) => string;
-  /** Placeholder text when no month is selected */
-  placeholder?: string;
-  /** Show a clear button when a month is selected */
-  clearable?: boolean;
   /** Close the picker after selecting a month */
   closeOnSelect?: boolean;
   /** Additional props forwarded to MonthPicker (except value) */
   monthPickerProps?: Partial<Omit<MonthPickerProps, 'value'>>;
-  /** Dialog title text */
+  /**
+   * `modal` (default): a centered sheet. `popover`: a dropdown anchored to the
+   * field on desktop web (the sheet on native and small screens).
+   */
+  dropdownType?: 'modal' | 'popover';
+  /** Title of the picker sheet / name of the popover. */
   modalTitle?: string;
-  /** Called when the picker dialog opens */
+  /** Called when the picker opens */
   onOpen?: () => void;
-  /** Called when the picker dialog closes */
+  /** Called when the picker closes */
   onClose?: () => void;
 }
+
+/** Ref of MonthPickerInput: focus / blur the field, clear the value. */
+export type MonthPickerInputHandle = FieldHandle;

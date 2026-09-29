@@ -1,58 +1,59 @@
 import React from 'react';
-import { View, TouchableOpacity, Platform } from 'react-native';
-import { Text } from '../Text';
-import { BreadcrumbsProps, BreadcrumbItem } from './types';
+import { Pressable, View } from 'react-native';
+import type { ViewStyle } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
 import { factory } from '../../core/factory';
-import { useTheme } from '../../core/theme';
-import { getSpacingStyles, extractSpacingProps, mergeSlotProps } from '../../core/utils';
+import { createThemedStyles } from '../../core/hooks/useThemedStyles';
+import { isWeb, webProps } from '../../core/platform';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getControlSize, resolveFontSize, stepDown } from '../../core/theme/tokens';
+import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 import { Icon } from '../Icon';
-import { useDirection } from '../../core/providers/DirectionProvider';
-import { clampComponentSize, resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
+import { Text } from '../Text';
+import type { BreadcrumbItem, BreadcrumbsProps } from './types';
 
-type BreadcrumbSizeMetrics = {
-  fontSize: number;
-  iconSize: number;
-  height: number;
-  separatorSpacing: number;
-};
+/**
+ * Metrics derive from the theme's font-size scale: the label renders at
+ * `size`, icons match the label, separators sit half a font-size away, and each
+ * item keeps a compact-control minimum height as its touch target.
+ */
+const getBreadcrumbStyles = createThemedStyles((theme: PlatformBlocksTheme, size: SizeValue) => {
+  const fontSize = resolveFontSize(theme, size);
+  const separatorSpacing = Math.max(4, Math.round(fontSize / 2));
+  const minHeight =
+    typeof size === 'number' ? Math.max(16, Math.round(size * 1.75)) : getControlSize(theme, stepDown(size)).height;
+  return {
+    fontSize,
+    iconSize: fontSize,
+    root: { flexDirection: 'row', alignItems: 'center', flexWrap: isWeb ? 'wrap' : undefined } as ViewStyle,
+    listItem: { flexDirection: 'row', alignItems: 'center' } as ViewStyle,
+    item: { flexDirection: 'row', alignItems: 'center', minHeight } as ViewStyle,
+    disabled: { opacity: 0.5 } as ViewStyle,
+    pressed: { opacity: 0.7 } as ViewStyle,
+    icon: { marginEnd: Math.max(4, Math.round(separatorSpacing / 2)) } as ViewStyle,
+    separator: { marginHorizontal: separatorSpacing, alignItems: 'center', justifyContent: 'center' } as ViewStyle,
+    separatorText: { fontSize: Math.max(10, fontSize - 2), color: theme.text.muted },
+  };
+});
 
-const BREADCRUMB_ALLOWED_SIZES: ComponentSize[] = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+/**
+ * Collapses the middle of a long trail to `first … last` when `maxItems` is
+ * exceeded.
+ */
+function getDisplayItems(items: BreadcrumbItem[], maxItems: number | undefined): BreadcrumbItem[] {
+  if (!maxItems || items.length <= maxItems) return items;
+  if (maxItems <= 2) return [items[0], items[items.length - 1]];
+  return [items[0], { label: '...', disabled: true }, items[items.length - 1]];
+}
 
-const BREADCRUMB_SIZE_SCALE: Record<ComponentSize, BreadcrumbSizeMetrics> = {
-  xs: { fontSize: 12, iconSize: 12, height: 20, separatorSpacing: 6 },
-  sm: { fontSize: 14, iconSize: 14, height: 24, separatorSpacing: 8 },
-  md: { fontSize: 16, iconSize: 16, height: 28, separatorSpacing: 8 },
-  lg: { fontSize: 18, iconSize: 18, height: 32, separatorSpacing: 10 },
-  xl: { fontSize: 20, iconSize: 20, height: 36, separatorSpacing: 12 },
-  '2xl': { fontSize: 22, iconSize: 22, height: 40, separatorSpacing: 14 },
-  '3xl': { fontSize: 24, iconSize: 24, height: 44, separatorSpacing: 16 },
-};
-
-const BASE_BREADCRUMB_METRICS = BREADCRUMB_SIZE_SCALE.md;
-
-const resolveBreadcrumbSize = (value: ComponentSizeValue): BreadcrumbSizeMetrics => {
-  if (typeof value === 'number') {
-    const ratio = value / BASE_BREADCRUMB_METRICS.fontSize;
-    return {
-      fontSize: value,
-      iconSize: Math.max(8, Math.round(BASE_BREADCRUMB_METRICS.iconSize * ratio)),
-      height: Math.max(16, Math.round(BASE_BREADCRUMB_METRICS.height * ratio)),
-      separatorSpacing: Math.max(4, Math.round(BASE_BREADCRUMB_METRICS.separatorSpacing * ratio)),
-    };
-  }
-
-  const resolved = resolveComponentSize(value, BREADCRUMB_SIZE_SCALE, {
-    allowedSizes: BREADCRUMB_ALLOWED_SIZES,
-    fallback: 'md',
-  });
-
-  if (typeof resolved === 'number') {
-    return resolveBreadcrumbSize(resolved);
-  }
-
-  return resolved;
-};
-
+/**
+ * A breadcrumb trail: a labelled `navigation` landmark holding a list of links,
+ * the last item marked `aria-current="page"`, separators hidden from assistive
+ * technology. Items keep their reading order under RTL (the row flips).
+ */
 export const Breadcrumbs = factory<{
   props: BreadcrumbsProps;
   ref: View;
@@ -61,82 +62,54 @@ export const Breadcrumbs = factory<{
     items,
     separator = '/',
     maxItems,
-  size = 'md',
+    size = 'md',
     showIcons = true,
     style,
     textStyle,
     separatorStyle,
-    accessibilityLabel = 'Breadcrumb navigation',
+    accessibilityLabel = 'Breadcrumb',
     labelProps,
     separatorProps,
+    testID,
     ...rest
   } = props;
 
   const theme = useTheme();
-  const { isRTL } = useDirection();
-  const { spacingProps, otherProps } = extractSpacingProps(rest);
-  const spacingStyle = getSpacingStyles(spacingProps);
+  const { styleProps } = extractStyleProps(rest);
+  const spacingStyle = useStyleProps(styleProps);
+  const styles = getBreadcrumbStyles(theme, size);
 
-  // Handle collapsing items if maxItems is specified
-  const getDisplayItems = (): BreadcrumbItem[] => {
-    if (!maxItems || items.length <= maxItems) {
-      return items;
+  const displayItems = getDisplayItems(items, maxItems);
+
+  const renderIcon = (icon: React.ReactNode, color: string) => {
+    // An <Icon name="…" /> is re-rendered at the label's size and color;
+    // anything else renders as given.
+    if (React.isValidElement<{ name?: unknown }>(icon) && typeof icon.props.name === 'string') {
+      return <Icon name={icon.props.name} size={styles.iconSize} color={color} />;
     }
-
-    if (maxItems <= 2) {
-      return [items[0], items[items.length - 1]];
-    }
-
-    const firstItems = items.slice(0, 1);
-    const lastItems = items.slice(-1);
-    const ellipsisItem: BreadcrumbItem = {
-      label: '...',
-      disabled: true,
-    };
-
-    return [...firstItems, ellipsisItem, ...lastItems];
+    return icon;
   };
 
-  const displayItems = getDisplayItems();
-  
-  // Reverse items in RTL to read right-to-left
-  const orderedItems = isRTL ? [...displayItems].reverse() : displayItems;
-
-  const clampedSize = clampComponentSize(size, BREADCRUMB_ALLOWED_SIZES);
-  const sizeMetrics = resolveBreadcrumbSize(clampedSize);
-  const iconGap = Math.max(4, Math.round(sizeMetrics.separatorSpacing / 2));
-
-  const renderBreadcrumbItem = (item: BreadcrumbItem, index: number, isLast: boolean) => {
-    const isClickable = !item.disabled && (item.href || item.onPress);
-    
-    const itemStyle = {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      minHeight: sizeMetrics.height,
-      opacity: item.disabled ? 0.5 : 1,
-    };
+  const renderItem = (item: BreadcrumbItem, isLast: boolean) => {
+    const isClickable = !item.disabled && !isLast && !!(item.href || item.onPress);
 
     // Trail items are de-emphasized against the current page, but only by one
     // step: `muted` at a light weight is under 3:1 on light backgrounds.
     const textColor = isLast ? theme.text.primary : theme.text.secondary;
 
     const content = (
-      <View style={itemStyle}>
-        {showIcons && item.icon && (
-          <View style={isRTL ? { marginLeft: iconGap } : { marginRight: iconGap }}>
-            <Icon
-              name={item.icon ? (item.icon as any).props.name : 'chevron-right'}
-              size={sizeMetrics.iconSize}
-              color={textColor}
-            />
+      <>
+        {showIcons && item.icon ? (
+          <View style={styles.icon} {...a11yProps({ hidden: true })}>
+            {renderIcon(item.icon, textColor)}
           </View>
-        )}
+        ) : null}
         <Text
           {...mergeSlotProps(
             {
-              size: sizeMetrics.fontSize,
-              color: isLast ? 'primary' as const : 'secondary' as const,
-              weight: isLast ? ('600' as const) : ('500' as const),
+              size: styles.fontSize,
+              c: isLast ? ('primary' as const) : ('secondary' as const),
+              fw: isLast ? ('600' as const) : ('500' as const),
               style: textStyle,
             },
             labelProps
@@ -144,93 +117,61 @@ export const Breadcrumbs = factory<{
         >
           {item.label}
         </Text>
-      </View>
+      </>
     );
 
-    if (isClickable && !isLast) {
+    if (isClickable) {
       return (
-        <TouchableOpacity
-          key={index}
+        <Pressable
+          {...a11yProps({ role: 'link' })}
+          // Web: an href-only item is a real link (new tab, copy address, …).
+          {...webProps({ href: item.onPress ? undefined : item.href })}
           onPress={item.onPress}
-          disabled={item.disabled}
-          style={{
-            opacity: item.disabled ? 0.5 : 1,
-          }}
-          accessibilityRole="link"
-          accessibilityLabel={`Navigate to ${item.label}`}
+          style={({ pressed }) => [styles.item, pressed && styles.pressed]}
         >
           {content}
-        </TouchableOpacity>
+        </Pressable>
       );
     }
 
     return (
-      <View key={index} accessibilityRole={isLast ? 'text' : 'link'}>
+      <View
+        style={[styles.item, item.disabled && styles.disabled]}
+        {...a11yProps({ current: isLast ? 'page' : undefined, accessible: isLast || undefined })}
+      >
         {content}
       </View>
     );
   };
 
-  const renderSeparator = (index: number) => {
-    return (
-      <View
-        key={`separator-${index}`}
-        style={[
-          {
-            marginHorizontal: sizeMetrics.separatorSpacing,
-            alignItems: 'center' as const,
-            justifyContent: 'center' as const,
-          },
-          separatorStyle,
-        ]}
-      >
-        {typeof separator === 'string' ? (
-          <Text
-            {...mergeSlotProps(
-              {
-                style: {
-                  fontSize: Math.max(10, sizeMetrics.fontSize - 2),
-                  color: theme.text.muted,
-                },
-              },
-              separatorProps
-            )}
-          >
-            {separator}
-          </Text>
-        ) : (
-          separator
-        )}
-      </View>
-    );
-  };
+  const renderSeparator = () => (
+    <View style={[styles.separator, separatorStyle]} {...a11yProps({ hidden: true })}>
+      {typeof separator === 'string' ? (
+        <Text {...mergeSlotProps({ style: styles.separatorText }, separatorProps)}>{separator}</Text>
+      ) : (
+        separator
+      )}
+    </View>
+  );
 
   return (
     <View
       ref={ref}
-      style={[
-        {
-          flexDirection: isRTL ? 'row-reverse' : 'row',
-          alignItems: 'center',
-          flexWrap: Platform.OS === 'web' ? 'wrap' : undefined,
-        },
-        spacingStyle,
-        style,
-      ]}
-      accessibilityLabel={accessibilityLabel}
-      {...otherProps}
+      testID={testID}
+      {...a11yProps({ role: 'navigation', label: accessibilityLabel })}
+      style={[styles.root, spacingStyle, style]}
     >
-      {orderedItems.map((item, index) => {
-        const isLast = index === orderedItems.length - 1;
-        return (
-          <React.Fragment key={index}>
-            {renderBreadcrumbItem(item, index, isLast)}
-            {!isLast && renderSeparator(index)}
-          </React.Fragment>
-        );
-      })}
+      <View {...a11yProps({ role: 'list' })} style={styles.root}>
+        {displayItems.map((item, index) => {
+          const isLast = index === displayItems.length - 1;
+          return (
+            <View key={`${index}-${item.label}`} {...a11yProps({ role: 'listitem' })} style={styles.listItem}>
+              {renderItem(item, isLast)}
+              {!isLast && renderSeparator()}
+            </View>
+          );
+        })}
+      </View>
     </View>
   );
-});
-
-Breadcrumbs.displayName = 'Breadcrumbs';
+}, { displayName: 'Breadcrumbs' });

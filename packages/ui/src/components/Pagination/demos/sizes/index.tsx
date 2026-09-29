@@ -10,8 +10,8 @@ export function Demo() {
     <Block>
       {SIZES.map((size) => (
         <Block key={size}>
-          <Text variant="small" color="secondary">{size}</Text>
-          <Pagination current={page} total={8} onChange={setPage} size={size} />
+          <Text variant="small" c="secondary">{size}</Text>
+          <Pagination value={page} total={8} onChange={setPage} size={size} />
         </Block>
       ))}
     </Block>

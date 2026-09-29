@@ -1,60 +1,32 @@
 import { Block, Tabs, Text } from '@platform-blocks/ui';
 
-type Location = 'start' | 'end';
+const LOCATIONS = ['start', 'end'] as const;
 
-const SECTIONS: Array<{ label: string; location: Location; helper: string }> = [
-  {
-    label: 'Tabs above content (start)',
-    location: 'start',
-    helper: 'Default placement keeps triggers directly above the active view.'
-  },
-  {
-    label: 'Tabs below content (end)',
-    location: 'end',
-    helper: 'Use end placement when the content should lead and controls follow.'
-  }
-];
-
-const buildItems = (location: Location) => [
+const ITEMS = [
   {
     key: 'home',
     label: 'Home',
-    content: (
-      <Text>
-        Home content rendered with tabs {location === 'start' ? 'above' : 'below'} the panel.
-      </Text>
-    )
+    content: <Text>Home content.</Text>
   },
   {
     key: 'settings',
     label: 'Settings',
-    content: (
-      <Text>
-        Update configurations while keeping the tabs {location === 'start' ? 'up top' : 'after the details'}.
-      </Text>
-    )
+    content: <Text>Update your configuration.</Text>
   },
   {
     key: 'profile',
     label: 'Profile',
-    content: (
-      <Text>
-        Profile information with navigation {location === 'start' ? 'leading into' : 'following'} the content.
-      </Text>
-    )
+    content: <Text>Profile information.</Text>
   }
 ];
 
 export function Demo() {
   return (
-    <Block>
-      {SECTIONS.map(({ label, location, helper }) => (
-        <Block key={location}>
-          <Text weight="medium">{label}</Text>
-          <Tabs variant="line" location={location} items={buildItems(location)} />
-          <Text variant="small" color="muted">
-            {helper}
-          </Text>
+    <Block fullWidth>
+      {LOCATIONS.map((location) => (
+        <Block key={location} fullWidth>
+          <Text variant="small" c="secondary">{location}</Text>
+          <Tabs location={location} items={ITEMS} />
         </Block>
       ))}
     </Block>

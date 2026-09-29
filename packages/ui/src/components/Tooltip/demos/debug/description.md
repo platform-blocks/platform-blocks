@@ -8,4 +8,4 @@ since: 1.0.0
 hidden: true
 ---
 
-Internal harness for developing and testing tooltip positioning and portal behavior. Not part of the public docs.
+Internal harness that drives the tooltip through the controlled `opened` prop while developing positioning and portal behavior. Not part of the public docs.

@@ -7,7 +7,7 @@ export function Demo() {
     <Block>
       {SIZES.map((size) => (
         <Block key={size}>
-          <Text variant="small" color="secondary">{size}</Text>
+          <Text variant="small" c="secondary">{size}</Text>
           <DataList size={size} labelWidth={90}>
             <DataList.Item label="Status" value="Active" />
             <DataList.Item label="Region" value="us-east-1" />

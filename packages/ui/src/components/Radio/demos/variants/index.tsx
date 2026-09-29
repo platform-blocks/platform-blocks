@@ -29,7 +29,7 @@ export function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="small" color="muted">default</Text>
+        <Text variant="small" c="muted">default</Text>
         <RadioGroup
           variant="default"
           value={defaultValue}
@@ -39,7 +39,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" color="muted">card</Text>
+        <Text variant="small" c="muted">card</Text>
         <RadioGroup
           variant="card"
           value={planValue}
@@ -49,7 +49,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" color="muted">segmented</Text>
+        <Text variant="small" c="muted">segmented</Text>
         <RadioGroup
           variant="segmented"
           value={frequencyValue}
@@ -59,7 +59,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" color="muted">chip</Text>
+        <Text variant="small" c="muted">chip</Text>
         <RadioGroup
           variant="chip"
           value={filterValue}

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, ScrollView, StyleSheet, Linking } from 'react-native';
-import { PageLayout } from '../components/PageLayout';
+import { DocsPage } from '../components/DocsPage';
 import { RouteLink } from '../components/RouteLink';
-import { Text, Card, Chip, Flex, Loader, Tabs, H3, Button, Icon, Link } from '@platform-blocks/ui';
+import { Text, Badge, Card, Chip, Flex, Loader, Tabs, H3, Button, Icon, Link } from '@platform-blocks/ui';
 import type { TabItem } from '@platform-blocks/ui';
 import { GlobalChartsRoot } from '@platform-blocks/charts';
 import { hasNewDemosArtifacts, getNewDemos, attachDemoCode, loadDemoComponentNew } from '../utils/demosLoader';
@@ -63,19 +63,17 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
 
   if (!chartDoc) {
     return (
-      <PageLayout>
-        <View style={styles.container}>
-          <Card variant="outline" style={{ padding: 24, gap: 12 }}>
-            <Text variant="h1" weight="semibold">We couldn&apos;t find docs for “{chartSlug}”.</Text>
-            <Text color="muted">
-              The chart may be in development or renamed. Check the charts catalog for the full list of supported visualisations.
-            </Text>
-            <Flex direction="row" gap={12}>
-              <Button title="Back to charts" variant="outline" onPress={() => router.push('/charts')} />
-            </Flex>
-          </Card>
-        </View>
-      </PageLayout>
+      <DocsPage>
+        <Card variant="outline" style={{ padding: 24, gap: 12 }}>
+          <Text variant="h1" fw="semibold">We couldn&apos;t find docs for “{chartSlug}”.</Text>
+          <Text c="muted">
+            The chart may be in development or renamed. Check the charts catalog for the full list of supported visualisations.
+          </Text>
+          <Flex direction="row" gap={12}>
+            <Button title="Back to charts" variant="outline" onPress={() => router.push('/charts')} />
+          </Flex>
+        </Card>
+      </DocsPage>
     );
   }
 
@@ -85,9 +83,9 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
   // tab panel that the Examples view unmounts.
   const pageHeader = (
     <Card style={{ padding: 20, gap: 12 }}>
-      <Text variant="h1" weight="bold">{chartDoc.title}</Text>
+      <Text variant="h1" fw="bold">{chartDoc.title}</Text>
       {chartDoc.summary && (
-        <Text color="muted">{chartDoc.summary}</Text>
+        <Text c="muted">{chartDoc.summary}</Text>
       )}
       {chartDoc.tags.length > 0 && (
         <Flex direction="row" gap={8} wrap="wrap">
@@ -103,7 +101,7 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       <View style={{ gap: 16 }}>
         <Card style={{ padding: 20, gap: 16 }}>
-          <Text variant="h2" weight="semibold">Quick facts</Text>
+          <Text variant="h2" fw="semibold">Quick facts</Text>
           <Flex direction="column" gap={12}>
             <InfoRow label="Category" value={categoryMeta?.label ?? 'Charts'} icon="chart-bar" />
             <InfoRow label="Package" value={chartDoc.packageName ?? '@platform-blocks/charts'} icon="database" />
@@ -112,7 +110,7 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
             <Flex direction="row" align="center" justify="space-between">
               <Flex direction="row" align="center" gap={8}>
                 <Icon name="chart-line" size={18} />
-                <Text weight="semibold">Source</Text>
+                <Text fw="semibold">Source</Text>
               </Flex>
               <Button
                 size="sm"
@@ -126,7 +124,7 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
 
         {relatedCharts.length > 0 && (
           <Card style={{ padding: 20, gap: 12 }}>
-            <Text variant="h2" weight="semibold">Related charts</Text>
+            <Text variant="h2" fw="semibold">Related charts</Text>
             <Flex direction="row" gap={8} wrap="wrap">
               {/* Anchors, not press handlers: the charts index renders one tab panel
                   at a time, so these related-chart links are what connect the other
@@ -148,7 +146,7 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
 
         {chartDoc.resources && chartDoc.resources.length > 0 && (
           <Card style={{ padding: 20, gap: 12 }}>
-            <Text variant="h2" weight="semibold">Further reading</Text>
+            <Text variant="h2" fw="semibold">Further reading</Text>
             <Flex direction="column" gap={10}>
               {chartDoc.resources.map((resource) => (
                 <Link
@@ -177,7 +175,8 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
     },
     {
       key: 'demos',
-      label: hasDemos ? `Examples (${newDemos.length})` : 'Examples',
+      label: 'Examples',
+      subLabel: hasDemos ? <Badge size="xs" variant="light" color="gray">{newDemos.length}</Badge> : undefined,
       content: hasDemos ? (
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
           <View style={{ gap: 24 }}>
@@ -199,13 +198,13 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
                     </GlobalChartsRoot>
                   );
                 } catch {
-                  preview = <Text variant="p" color="error">Demo failed to render.</Text>;
+                  preview = <Text variant="p" c="error">Demo failed to render.</Text>;
                 }
               } else {
                 preview = (
                   <Flex direction="row" align="center" gap={8}>
                     <Loader size="sm" />
-                    <Text variant="p" color="muted">Loading demo…</Text>
+                    <Text variant="p" c="muted">Loading demo…</Text>
                   </Flex>
                 );
               }
@@ -213,10 +212,7 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
                 <View key={demo.id}>
                   {/* The chart draws its own title at the top of its box, so the
                       demo heading needs real space under it or the two collide. */}
-                  <Flex direction="row" justify="space-between" align="center" style={{ marginBottom: 16 }}>
-                    <Text variant="h2" weight="semibold">{demo.title}</Text>
-                    {demo.category && (<Chip size="sm" variant="filled">{demo.category}</Chip>)}
-                  </Flex>
+                  <Text variant="h2" fw="semibold" style={{ marginBottom: 16 }}>{demo.title}</Text>
                   {/* <Card style={{ padding: 16 }}> */}
                     <View testID={demoTestId} style={{ width: '100%' }}>
                     {preview}
@@ -225,7 +221,7 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
                   {/* Ternary, not `&&`: an empty description string is a text
                       node, and react-native-web rejects those inside a View. */}
                   {demo.description ? (
-                    <Text variant="small" color="muted" style={{ marginTop: 8 }}>{demo.description}</Text>
+                    <Text variant="small" c="muted" style={{ marginTop: 8 }}>{demo.description}</Text>
                   ) : null}
                 </View>
               );
@@ -241,12 +237,14 @@ export default function ChartDetailScreen({ chart = 'Unknown' }: ChartDetailScre
   ];
 
   return (
-    <PageLayout>
-      <View style={styles.container}>
-        {pageHeader}
-        <Tabs items={tabs} color="secondary"/>
-      </View>
-    </PageLayout>
+    // DocsPage, not PageLayout + a padded View: that stacked the page's own 16px
+    // on top of PageLayout's phone gutter. DocsPage keeps one 16px inset at
+    // every width, the same edge as the component pages.
+    <DocsPage>
+      {pageHeader}
+      {/* Tab panels carry the page's inset, not a second one of their own. */}
+      <Tabs items={tabs} color="secondary" contentStyle={TABS_CONTENT_STYLE} />
+    </DocsPage>
   );
 }
 
@@ -261,14 +259,21 @@ const InfoRow: React.FC<InfoRowProps> = ({ label, value, icon = 'circle', monosp
   <Flex direction="row" align="center" justify="space-between">
     <Flex direction="row" align="center" gap={8}>
       <Icon name={icon as any} size={18} />
-      <Text weight="semibold">{label}</Text>
+      <Text fw="semibold">{label}</Text>
     </Flex>
     <Text style={monospace ? styles.code : undefined}>{value}</Text>
   </Flex>
 );
 
+/**
+ * Cancels the horizontal half of the Tabs panel's padding. A plain object, not
+ * `StyleSheet.create`: Tabs applies its panel style inline on web, so a
+ * registered style would compile to a class and lose to it. Same as
+ * ComponentDetailScreen.
+ */
+const TABS_CONTENT_STYLE = { paddingLeft: 0, paddingRight: 0 };
+
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
   code: {
     fontFamily: 'Menlo, SFMono-Regular, Consolas, Liberation Mono, monospace',
     fontSize: 12,

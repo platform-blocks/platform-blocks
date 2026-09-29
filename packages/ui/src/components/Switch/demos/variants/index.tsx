@@ -20,7 +20,7 @@ export function Demo() {
     <Block>
       {VARIANTS.map(({ variant, hint }) => (
         <Block key={variant}>
-          <Text variant="small" color="muted">
+          <Text variant="small" c="muted">
             {hint}
           </Text>
           <Row gap="lg" wrap="wrap" align="center">

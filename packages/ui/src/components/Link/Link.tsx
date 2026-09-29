@@ -1,92 +1,77 @@
 import React from 'react';
-import { Pressable, Text as RNText, View, ViewStyle, TextStyle, Platform, Linking } from 'react-native';
+import {
+  Linking,
+  Text as RNText,
+  type GestureResponderEvent,
+  type TextStyle,
+  type StyleProp,
+} from 'react-native';
 
-import { useTheme } from '../../core/theme';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { getNodeText } from '../../core/accessibility/useA11yId';
+import { factory } from '../../core/factory';
+import { isWeb, webProps, webStyle } from '../../core/platform';
 import { resolveColorProp } from '../../core/theme/resolveColors';
-import { SizeValue, getFontSize } from '../../core/theme/sizes';
-import { SpacingProps, getSpacingStyles, extractSpacingProps } from '../../core/utils';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { SizeValue } from '../../core/theme/sizes';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveFontSize } from '../../core/theme/tokens';
+import type { BaseProps, ColorProp } from '../../core/types/base';
+import { devError } from '../../core/utils/logger';
+import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
+import { useHover } from '../../hooks/useHover';
+import type { PassthroughAccessibilityProps } from '../Button/types';
 
-export interface LinkProps extends SpacingProps {
+export interface LinkProps
+  extends BaseProps<TextStyle>,
+    PassthroughAccessibilityProps {
   /** Link text content */
   children: React.ReactNode;
-  /** URL or handler for the link */
+  /** Destination URL. On web the link is a real `<a href>` (middle-click, open in new tab, …). */
   href?: string;
-  /** Custom onPress handler (overrides href) */
+  /** Custom press handler (overrides navigating to `href`) */
   onPress?: () => void;
-  /** Size of the link text (default: 'lg' = 16px to match Text component) */
+  /** Size of the link text (default: 'lg' = 16px to match the Text component) */
   size?: SizeValue;
-  /** Color variant or custom color string */
-  color?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'gray' | 'inherit' | string;
+  /** Palette token, `'primary.6'` shade syntax, CSS color, or `'inherit'` */
+  c?: ColorProp | 'inherit';
   /** Link variant */
   variant?: 'default' | 'subtle' | 'hover-underline';
   /** Whether the link is disabled */
   disabled?: boolean;
-  /** Whether to show external link indicator */
+  /**
+   * An external link: opens in a new tab on web (`target="_blank"`,
+   * `rel="noopener noreferrer"`), shows a ↗ indicator, and is announced as
+   * opening in a new tab.
+   */
   external?: boolean;
-  /** Custom style for container */
-  style?: ViewStyle;
-  /** Custom style for text */
-  textStyle?: TextStyle;
-  /** Accessibility label */
+  /** Additional text style (merged after `style`) */
+  textStyle?: StyleProp<TextStyle>;
+  /** Accessible name (defaults to the link text) */
   accessibilityLabel?: string;
   /** Whether this link opens in a new tab/window (web only) */
   target?: '_blank' | '_self';
+  /** Label appended to the accessible name of links that open in a new tab. @default 'opens in a new tab' */
+  newTabLabel?: string;
   /** Custom font family (overrides theme font) */
-  fontFamily?: string;
-  /** Shorthand alias for `fontFamily` */
   ff?: string;
 }
 
-const getLinkStyles = (
-  theme: PlatformBlocksTheme,
-  color: LinkProps['color'] = 'primary',
-  variant: LinkProps['variant'] = 'default',
-  size: SizeValue = 'lg', // Changed from 'md' to 'lg' to match Text component's 16px default
-  disabled: boolean = false,
-  fontFamily?: string
-) => {
-  const fontSize = getFontSize(size);
+const UNDERLINE: TextStyle = { textDecorationLine: 'underline' };
+const NO_UNDERLINE: TextStyle = { textDecorationLine: 'none' };
 
-  // Color resolution. Link text sits on a surface, so it takes the readable
-  // shade (6) rather than the fill base — but through the *palette*, not the
-  // `theme.text` roles: `color="primary"` on a link has to stay the brand blue,
-  // not resolve into `theme.text.primary` body copy.
-  const textColor: string = color === 'inherit'
-    ? 'inherit'
-    : disabled
-      ? theme.colors.gray[5]
-      : resolveColorProp(theme, color, { shades: [6, 5] }) ?? theme.colors.primary[6];
-
-  const baseStyles: TextStyle = {
-    fontSize,
-    color: textColor,
-    fontFamily: fontFamily ?? theme.fontFamily,
-    textDecorationLine: variant === 'default' ? 'underline' : 'none',
-    // Ensure proper text baseline alignment
-    textAlignVertical: 'center',
-    includeFontPadding: false,
-  };
-
-  if (variant === 'hover-underline') {
-    // Note: React Native doesn't support :hover, but this prepares the structure
-    baseStyles.textDecorationLine = 'none';
-  }
-
-  if (disabled) {
-    baseStyles.opacity = 0.6;
-  }
-
-  return baseStyles;
-};
-
-export const Link = React.forwardRef<View, LinkProps>((props, ref) => {
+/**
+ * A text link. Rendered as text, so it flows inline inside a paragraph
+ * (`<Text>Read the <Link href="…">docs</Link></Text>`); on web it is a real
+ * anchor. `external` links open in a new tab and say so to screen readers.
+ * The ref is the underlying Text.
+ */
+export const Link = factory<{ props: LinkProps; ref: RNText }>((props, ref) => {
   const {
     children,
     href,
     onPress,
-    size = 'lg', // Changed from 'md' to 'lg' to match Text component's 16px default
-    color = 'primary',
+    size = 'lg',
+    c: color = 'primary',
     variant = 'default',
     disabled = false,
     external = false,
@@ -94,132 +79,84 @@ export const Link = React.forwardRef<View, LinkProps>((props, ref) => {
     textStyle,
     accessibilityLabel,
     target = '_self',
-    fontFamily,
-    ff,
-    ...spacingProps
+    newTabLabel = 'opens in a new tab',
+    ff: fontFamily,
+    testID,
+    ...rest
   } = props;
 
   const theme = useTheme();
-  const spacingStyles = getSpacingStyles(spacingProps);
+  const { styleProps, otherProps: a11yRest } = extractStyleProps(rest);
+  const [hovered, hoverHandlers] = useHover();
+  const opensNewTab = external || target === '_blank';
 
-  const linkStyles = getLinkStyles(theme, color, variant, size, disabled, ff ?? fontFamily);
+  // Link text sits on a surface, so it takes the readable shade (6) rather than
+  // the fill base — through the *palette*, not the `theme.text` roles:
+  // `color="primary"` on a link has to stay the brand blue, not body copy.
+  const textColor =
+    color === 'inherit'
+      ? undefined
+      : disabled
+        ? theme.text.disabled
+        : (resolveColorProp(theme, color, { shades: [6, 5] }) ?? theme.text.link);
 
-  const handlePress = () => {
+  const linkStyle: TextStyle = {
+    fontSize: resolveFontSize(theme, size),
+    fontFamily: fontFamily ?? theme.fontFamily,
+    ...(textColor ? { color: textColor } : null),
+    ...(disabled ? { opacity: 0.6 } : null),
+  };
+  // Underline always for `default`; on hover for every variant (web).
+  const underline = variant === 'default' || (hovered && !disabled) ? UNDERLINE : NO_UNDERLINE;
+
+  const handlePress = (event: GestureResponderEvent) => {
     if (disabled) return;
-    
     if (onPress) {
+      // On web the anchor would also navigate; the custom handler replaces that.
+      if (isWeb && href) event.preventDefault();
       onPress();
-    } else if (href) {
-      // Handle different platforms
-      if (Platform.OS === 'web') {
-        // Web platform
-        if (target === '_blank' || external) {
-          window.open(href, '_blank');
-        } else {
-          window.location.href = href;
-        }
-      } else {
-        // React Native - use Linking API to open URLs
-        Linking.openURL(href).catch((err) => {
-          console.error('Failed to open URL:', href, err);
-        });
-      }
+      return;
+    }
+    // Web: the anchor navigates natively (keeps middle-click, modifier keys…).
+    if (!isWeb && href) {
+      Linking.openURL(href).catch((err) => {
+        devError('Failed to open URL:', href, err);
+      });
     }
   };
 
-  const accessibilityProps = {
-    accessibilityLabel: accessibilityLabel || (typeof children === 'string' ? children : undefined),
-    accessibilityRole: 'link' as const,
-    accessibilityState: { disabled },
-  };
+  const text = getNodeText(children);
+  const baseLabel = accessibilityLabel ?? (opensNewTab ? text : undefined);
+  const label = opensNewTab && baseLabel ? `${baseLabel} (${newTabLabel})` : baseLabel;
 
-  // On web, render as an actual anchor element
-  if (Platform.OS === 'web') {
-    const webStyles = {
-      ...spacingStyles,
-      ...style,
-      // Container styles for proper alignment
-      display: 'inline-flex' as const,
-      // alignItems: 'center' as const,
-      textDecoration: 'none' as const,
-      cursor: disabled ? 'not-allowed' : 'pointer',
-      marginTop:'auto',
-      marginBottom:'auto'
-    };
-
-    const webTextStyles = {
-      ...linkStyles,
-      ...textStyle,
-      // Ensure proper baseline alignment on web
-      lineHeight: 'inherit' as const,
-      verticalAlign: 'baseline' as const,
-      // Use theme font family instead of hardcoded font
-      fontFamily: linkStyles.fontFamily,
-      // Add transition for smooth hover effect
-      transition: 'text-decoration 0.2s ease' as const,
-    };
-
-    return React.createElement(
-      'a',
-      {
-        href: disabled ? undefined : href,
-        target: (target === '_blank' || external) ? '_blank' : '_self',
-        rel: (target === '_blank' || external) ? 'noopener noreferrer' : undefined,
-        onClick: onPress ? (e: Event) => {
-          e.preventDefault();
-          if (!disabled) onPress();
-        } : undefined,
-        style: webStyles,
-        onMouseEnter: !disabled ? (e: any) => {
-          // Add underline on hover for all variants except when disabled
-          e.target.style.textDecoration = 'underline';
-        } : undefined,
-        onMouseLeave: !disabled ? (e: any) => {
-          // Restore original text decoration
-          e.target.style.textDecoration = variant === 'default' ? 'underline' : 'none';
-        } : undefined,
-        'aria-label': accessibilityLabel,
-        'aria-disabled': disabled,
-      },
-      React.createElement(
-        'span',
-        {
-          style: webTextStyles,
-        },
-        children,
-        external && ' ↗'
-      )
-    );
-  }
-
-  // On React Native, use Pressable
   return (
-    <Pressable
+    <RNText
       ref={ref}
-      onPress={handlePress}
+      testID={testID}
+      {...a11yProps({ role: 'link', label, disabled })}
+      {...a11yRest}
       disabled={disabled}
+      onPress={handlePress}
+      {...webProps({
+        href: disabled ? undefined : href,
+        hrefAttrs: opensNewTab ? { target: '_blank', rel: 'noopener noreferrer' } : undefined,
+        onMouseEnter: hoverHandlers.onMouseEnter,
+        onMouseLeave: hoverHandlers.onMouseLeave,
+      })}
       style={[
-        spacingStyles, 
+        linkStyle,
+        underline,
+        webStyle({ cursor: disabled ? 'not-allowed' : 'pointer' }),
+        resolveStyleProps(styleProps, theme),
         style,
-        // Ensure proper alignment in flex containers
-        { alignSelf: 'flex-start' }
+        textStyle,
       ]}
-      {...accessibilityProps}
     >
-      {({ pressed }) => (
-        <RNText
-          style={[
-            linkStyles,
-            pressed && !disabled && { opacity: 0.7 },
-            textStyle
-          ]}
-        >
-          {children}
-          {external && ' ↗'}
-        </RNText>
-      )}
-    </Pressable>
+      {children}
+      {external ? (
+        // The arrow is decoration; the accessible name already says "opens in a new tab".
+        <RNText {...(isWeb ? a11yProps({ hidden: true }) : { accessibilityElementsHidden: true })}> ↗</RNText>
+      ) : null}
+    </RNText>
   );
-});
-
-Link.displayName = 'Link';
+}, { displayName: 'Link' });

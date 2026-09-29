@@ -19,37 +19,31 @@ Server running on port 3000`;
 export function Demo() {
   return (
     <Block fullWidth>
-      <Text weight="semibold">Visual variants</Text>
-      <Text size="sm" color="secondary">
-        Switch between default, terminal, and hacker themes using the variant prop.
-      </Text>
       <Block>
-        <Block>
-          <Text size="sm" weight="semibold">
-            Default code block
-          </Text>
-          <CodeBlock language="javascript" title="matrix.js">
-            {sampleCode}
-          </CodeBlock>
-        </Block>
+        <Text size="sm" fw="semibold">
+          Default code block
+        </Text>
+        <CodeBlock language="javascript" title="matrix.js">
+          {sampleCode}
+        </CodeBlock>
+      </Block>
 
-        <Block>
-          <Text size="sm" weight="semibold">
-            Terminal variant
-          </Text>
-          <CodeBlock variant="terminal" title="Terminal">
-            {terminalCode}
-          </CodeBlock>
-        </Block>
+      <Block>
+        <Text size="sm" fw="semibold">
+          Terminal variant
+        </Text>
+        <CodeBlock variant="terminal" title="Terminal">
+          {terminalCode}
+        </CodeBlock>
+      </Block>
 
-        <Block>
-          <Text size="sm" weight="semibold">
-            Hacker variant
-          </Text>
-          <CodeBlock variant="hacker" language="javascript" title="hack.exe">
-            {sampleCode}
-          </CodeBlock>
-        </Block>
+      <Block>
+        <Text size="sm" fw="semibold">
+          Hacker variant
+        </Text>
+        <CodeBlock variant="hacker" language="javascript" title="hack.exe">
+          {sampleCode}
+        </CodeBlock>
       </Block>
     </Block>
   );

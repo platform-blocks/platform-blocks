@@ -9,7 +9,7 @@ export function Demo() {
     <AreaChart
       title="Quarterly Support Ticket Mix"
       subtitle="Stacked by severity level"
-      height={420}
+      h={420}
       series={SEVERITY_SERIES}
       layout="stacked"
       smooth

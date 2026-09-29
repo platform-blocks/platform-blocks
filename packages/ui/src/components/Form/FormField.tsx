@@ -1,91 +1,163 @@
-import React, { useMemo } from 'react';
-import { View } from 'react-native';
-import { useFormContext } from './FormContext';
-import { FormFieldProps } from './types';
-import { FormInput } from './FormInput';
-import { FormError } from './FormError';
-import { FormLabel } from './FormLabel';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, type ViewStyle } from 'react-native';
+import { factory } from '../../core/factory/factory';
+import { useThemedStyles } from '../../core/hooks/useThemedStyles';
+import { warnOnce } from '../../core/utils/logger';
+import { useStyleProps } from '../../core/utils/spacing';
+import { Field, type FieldLabelPosition } from '../_internal/Field/Field';
+import { FormFieldContextProvider, useOptionalFormContext, type FormFieldContextValue } from './FormContext';
+import type { FormFieldProps, FormFieldValidation } from './types';
 
-export const FormField = React.forwardRef<View, FormFieldProps>(({
-  name,
-  dependsOn = [],
-  validateWhen,
-  validation,
-  children
-}, ref) => {
-  const formContext = useFormContext();
-  
-  // Check if field should be visible/enabled based on dependencies
-  const fieldState = useMemo(() => {
-    let visible = true;
-    let enabled = true;
-    let required = false;
+const FULL_WIDTH: ViewStyle = { width: '100%' };
 
-    for (const dependency of dependsOn) {
-      const dependentValue = formContext.values[dependency.field];
-      const conditionMet = dependency.condition(dependentValue, formContext.values);
+const hasContent = (node: React.ReactNode) =>
+  node !== undefined && node !== null && node !== false && node !== '';
 
-      switch (dependency.action) {
-        case 'show':
-          visible = conditionMet;
-          break;
-        case 'hide':
-          visible = !conditionMet;
-          break;
-        case 'enable':
-          enabled = conditionMet;
-          break;
-        case 'disable':
-          enabled = !conditionMet;
-          break;
-        case 'require':
-          required = conditionMet;
-          break;
-      }
+const LABEL_POSITION: Record<NonNullable<FormFieldProps['labelPosition']>, FieldLabelPosition> = {
+  top: 'top',
+  start: 'start',
+  end: 'end',
+  left: 'start',
+  right: 'end',
+};
+
+/**
+ * One field of a form (`Form.Field`, also exported as `FormField` for form
+ * layouts). With `name` inside a `Form` it binds the `Form.Input` /
+ * `Form.Label` / `Form.Error` inside it; with `label` / `description` /
+ * `error` / `helperText` it renders them around its children through the
+ * shared field frame, so a library input inside without a label of its own is
+ * named by this label.
+ */
+export const FormField = factory<{ props: FormFieldProps; ref: View }>(
+  (
+    {
+      name,
+      dependsOn,
+      validateWhen,
+      validation,
+      label,
+      description,
+      error,
+      helperText,
+      required: requiredProp,
+      labelPosition = 'top',
+      children,
+      style,
+      testID,
+      ...spacing
+    },
+    ref
+  ) => {
+    if (labelPosition === 'left' || labelPosition === 'right') {
+      warnOnce(
+        'FormField.labelPosition.leftRight',
+        `[platform-blocks] FormField: labelPosition="${labelPosition}" is deprecated. Use "${LABEL_POSITION[labelPosition]}".`
+      );
     }
 
-    return { visible, enabled, required };
-  }, [dependsOn, formContext.values]);
+    const form = useOptionalFormContext();
+    const spacingStyles = useStyleProps(spacing);
+    const styles = useThemedStyles(
+      () => ({
+        control: { flex: 1 },
+      }),
+      []
+    );
 
-  // Don't render if not visible
-  if (!fieldState.visible) {
-    return null;
-  }
-
-  // Clone children to inject form props
-  const childrenWithProps = React.Children.map(children, (child) => {
-    if (React.isValidElement(child)) {
-      // If it's a form input component, inject the field props
-      if (child.type && typeof child.type === 'object' && 'displayName' in child.type) {
-        const displayName = (child.type as any).displayName;
-        if (displayName === 'FormInput' || displayName === 'FormError' || displayName === 'FormLabel') {
-          return React.cloneElement(child, {
-            name,
-            disabled: formContext.disabled || !fieldState.enabled,
-            required: fieldState.required,
-            ...(child.props as any)
-          });
+    // Dependencies: show / hide / enable / disable / require from other values.
+    const fieldState = useMemo(() => {
+      let visible = true;
+      let enabled = true;
+      let required = false;
+      if (form && dependsOn) {
+        for (const dependency of dependsOn) {
+          const conditionMet = dependency.condition(form.values[dependency.field], form.values);
+          switch (dependency.action) {
+            case 'show':
+              visible = conditionMet;
+              break;
+            case 'hide':
+              visible = !conditionMet;
+              break;
+            case 'enable':
+              enabled = conditionMet;
+              break;
+            case 'disable':
+              enabled = !conditionMet;
+              break;
+            case 'require':
+              required = conditionMet;
+              break;
+          }
         }
       }
-      
-      // Also check for direct component references
-      if (child.type === FormInput || child.type === FormError || child.type === FormLabel) {
-        return React.cloneElement(child, {
-          name,
-          disabled: formContext.disabled || !fieldState.enabled,
-          required: fieldState.required,
-          ...(child.props as any)
-        });
-      }
+      return { visible, enabled, required };
+    }, [dependsOn, form]);
+
+    // Field-level validation, read lazily by the form so it always sees the latest props.
+    const validationRef = useRef<FormFieldValidation>({ rules: validation, when: validateWhen });
+    validationRef.current = { rules: validation, when: validateWhen };
+    const registerFieldValidation = form?.registerFieldValidation;
+    const hasFieldValidation = !!validation?.length;
+    useEffect(() => {
+      if (!registerFieldValidation || !name || !hasFieldValidation) return undefined;
+      return registerFieldValidation(name, () => validationRef.current);
+    }, [registerFieldValidation, name, hasFieldValidation]);
+
+    const [labelId, setLabelId] = useState<string | undefined>(undefined);
+    const registerLabel = useCallback((id: string) => {
+      setLabelId(id);
+      return () => setLabelId((current) => (current === id ? undefined : current));
+    }, []);
+
+    const disabled = !!form?.disabled || !fieldState.enabled;
+    const required = requiredProp ?? fieldState.required;
+
+    const fieldContext = useMemo<FormFieldContextValue>(
+      () => ({ name, disabled, required, labelId, registerLabel }),
+      [name, disabled, required, labelId, registerLabel]
+    );
+
+    if (!fieldState.visible) {
+      return null;
     }
-    return child;
-  });
 
-  return (
-    <View ref={ref}>
-      {childrenWithProps}
-    </View>
-  );
-});
+    // Full width unless `w` says otherwise.
+    const rootStyle = [FULL_WIDTH, spacingStyles, style];
+    const framed = hasContent(label) || hasContent(description) || hasContent(helperText) || hasContent(error);
 
-FormField.displayName = 'FormField';
+    if (!framed) {
+      return (
+        <FormFieldContextProvider value={fieldContext}>
+          <View ref={ref} style={rootStyle} testID={testID}>
+            {children}
+          </View>
+        </FormFieldContextProvider>
+      );
+    }
+
+    // With a label, the frame shows the form's error for this field (once touched).
+    const formError = name && form?.touched[name] ? form.errors[name] || undefined : undefined;
+    const position = LABEL_POSITION[labelPosition] ?? 'top';
+
+    return (
+      <FormFieldContextProvider value={fieldContext}>
+        <View ref={ref} style={rootStyle} testID={testID}>
+          <Field
+            label={label}
+            description={description}
+            error={error ?? formError}
+            helperText={helperText}
+            required={required}
+            disabled={disabled}
+            labelPosition={position}
+          >
+            {position === 'top' ? children : <View style={styles.control}>{children}</View>}
+          </Field>
+        </View>
+      </FormFieldContextProvider>
+    );
+  },
+  { displayName: 'FormField' }
+);

@@ -24,7 +24,7 @@ export function Demo() {
         onChange={handleChange}
         calendarProps={{ minDate: today, highlightToday: true }}
       />
-      <Text size="sm" color={inlineError ? 'error' : 'secondary'}>
+      <Text size="sm" c={inlineError ? 'error' : 'secondary'}>
         {inlineError || 'Only dates today or later are enabled'}
       </Text>
     </Block>

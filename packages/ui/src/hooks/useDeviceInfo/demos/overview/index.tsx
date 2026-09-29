@@ -7,7 +7,7 @@ export function Demo() {
   return (
     <Block gap="lg">
       <Block gap="xs">
-        <Text size="sm" weight="semibold">Platform & runtime</Text>
+        <Text size="sm" fw="semibold">Platform & runtime</Text>
         <DataList labelWidth={150} withDivider>
           <DataList.Item
             label="Operating system"
@@ -27,7 +27,7 @@ export function Demo() {
       </Block>
 
       <Block gap="xs">
-        <Text size="sm" weight="semibold">Screen & appearance</Text>
+        <Text size="sm" fw="semibold">Screen & appearance</Text>
         <DataList labelWidth={150} withDivider>
           <DataList.Item
             label="Resolution"
@@ -44,7 +44,7 @@ export function Demo() {
       </Block>
 
       <Block gap="xs">
-        <Text size="sm" weight="semibold">Locale & input</Text>
+        <Text size="sm" fw="semibold">Locale & input</Text>
         <DataList labelWidth={150} withDivider>
           <DataList.Item label="Locale" value={`${locale.language}-${locale.region ?? '??'}`.toUpperCase()} />
           <DataList.Item

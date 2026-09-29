@@ -68,6 +68,14 @@ const getChildInstances = (node: ReactTestInstance): ReactTestInstance[] =>
 
 const getStyle = (node: ReactTestInstance) => flattenStyle(node.props.style);
 
+/** How many entries of a (nested) style array set `key`. */
+const timesSet = (style: unknown, key: string): number =>
+	Array.isArray(style)
+		? style.reduce((n: number, entry) => n + timesSet(entry, key), 0)
+		: style != null && typeof style === 'object' && (style as Record<string, unknown>)[key] !== undefined
+			? 1
+			: 0;
+
 describe('Divider - Rendering & Behavior', () => {
 	it('renders a horizontal divider with default styles', () => {
 		const { getByTestId } = render(<Divider testID="divider" />);
@@ -92,8 +100,9 @@ describe('Divider - Rendering & Behavior', () => {
 		const containerStyle = flattenStyle(divider.props.style);
 
 		expect(containerStyle.marginTop).toBe(16);
-		expect(containerStyle.paddingLeft).toBe(8);
-		expect(containerStyle.paddingRight).toBe(8);
+		// Spacing props resolve to logical (RTL-aware) properties on every platform.
+		expect(containerStyle.paddingStart).toBe(8);
+		expect(containerStyle.paddingEnd).toBe(8);
 	});
 
 	it('supports size tokens for divider thickness', () => {
@@ -247,6 +256,10 @@ describe('Divider - Rendering & Behavior', () => {
 		const divider = getByTestId('divider');
 		const containerStyle = flattenStyle(divider.props.style);
 		expect(containerStyle.opacity).toBe(0.4);
+		expect(timesSet(divider.props.style, 'opacity')).toBe(1);
+		// The line itself is not faded a second time.
+		const [line] = getChildInstances(divider);
+		expect(flattenStyle(line.props.style).opacity).toBeUndefined();
 	});
 
 	it('defaults to theme.backgrounds.border when no color is supplied', () => {

@@ -28,6 +28,9 @@ const mockTheme = {
     secondary: '#475569',
     muted: '#94a3b8',
   },
+  backgrounds: {
+    border: '#e2e8f0',
+  },
 };
 
 jest.mock('../../../core/theme/ThemeProvider', () => ({

@@ -1,475 +1,588 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { View, Pressable, Platform, Animated, Easing } from 'react-native';
+import { Pressable, View, type TextStyle, type ViewStyle } from 'react-native';
+import Animated, {
+  Easing,
+  cancelAnimation,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { getNodeText } from '../../core/accessibility/useA11yId';
+import { consumeEvent, focusNode, readKey, type KeyboardEventLike } from '../../core/accessibility/keyboard';
+import { useRovingFocus } from '../../core/accessibility/useRovingFocus';
 import { factory } from '../../core/factory';
-import { useTheme } from '../../core/theme';
-import { literalBackgrounds, literalText } from '../../core/theme/cssVariableTheme';
-import { Text } from '../Text';
-import { FieldHeader } from '../_internal/FieldHeader';
-import { RadioProps, RadioGroupProps, RadioStyleProps } from './types';
-import { PlatformBlocksTheme } from '../../core/theme/types';
-import { getRadioMetrics, useRadioStyles } from './styles';
-import { Icon } from '../Icon';
-import { useDirection } from '../../core/providers/DirectionProvider';
-import { composite, readableTextOn } from '../../core/theme/colorUtils';
-import { getControlIconSize } from '../../core/theme/sizes';
+import { createThemedStyles, useThemedStyles } from '../../core/hooks/useThemedStyles';
 import { useTransitionDuration } from '../../core/motion/useTransitionDuration';
+import { isWeb, webProps, type WebKeyboardEvent } from '../../core/platform';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { composite } from '../../core/theme/colorUtils';
+import { literalBackgrounds, literalText } from '../../core/theme/cssVariableTheme';
+import { resolveColorProp } from '../../core/theme/resolveColors';
+import { getControlSize, onColor, resolveSpacing } from '../../core/theme/tokens';
+import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import { getLayoutStyles } from '../../core/utils/layout';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { useStyleProps } from '../../core/utils/spacing';
+import { warnOnce } from '../../core/utils/logger';
+import { useControllableState } from '../../hooks/useControllableState';
+import { ChoiceField, useIsChoiceIndicator } from '../Checkbox/ChoiceField';
+import { Disclaimer } from '../_internal/Disclaimer/Disclaimer';
+import { Field } from '../_internal/Field/Field';
+import { Icon } from '../Icon';
+import { Text } from '../Text';
+import { useGroupFocus } from '../Checkbox/useGroupFocus';
+import type { RadioGroupOption, RadioGroupProps, RadioGroupVariant, RadioProps } from './types';
 
 /** Length of the default select animation; the deselect phase scales against it. */
 const RADIO_BASE_DURATION = 160;
+/**
+ * Ring thickness of an unselected radio. Hairline — an off radio should read as
+ * an outline, not as a donut competing with the selected state.
+ */
+const RING_WIDTH = 1;
+const LABEL_GAP = 8;
+const MIN_TARGET_WEB = 24;
+const MIN_TARGET_NATIVE = 44;
+/** The accent sits one step past the fill base so the ring reads against the dot. */
+const RADIO_SHADES = [6, 5] as const;
+/** How strongly a selected card is washed with the accent. */
+const CARD_TINT_ALPHA = 0.14;
 
-interface RadioIndicatorProps extends RadioStyleProps {
+/** Diameter of the radio: a fixed ratio of the control-size icon, so it follows the theme. */
+export const getRadioSize = (theme: PlatformBlocksTheme, size: SizeValue | undefined): number =>
+  Math.round(getControlSize(theme, size).iconSize * 1.5);
+
+export interface RadioPalette {
+  /** Track color while unselected — only its rim shows, so this is the ring. */
+  ringColor: string;
+  /** Track color once selected, when the whole disc shows. */
+  fillColor: string;
+  /** Hole color while unselected — matches the surface so the center reads as empty. */
+  holeColor: string;
+  /** Hole color once selected, when all that is left of it is the dot. */
+  dotColor: string;
+}
+
+/**
+ * The radio's four colors. All literal — they are endpoints of a color
+ * interpolation, and on web the semantic tokens are `var()` references with no
+ * channels to interpolate.
+ */
+export function getRadioPalette(
+  theme: PlatformBlocksTheme,
+  { disabled, error, color }: { disabled: boolean; error: boolean; color?: string }
+): RadioPalette {
+  const text = literalText(theme);
+  const backgrounds = literalBackgrounds(theme);
+  const accent = resolveColorProp(theme, color, { shades: RADIO_SHADES }) ?? theme.colors.primary[6];
+  const line = backgrounds.borderStrong ?? backgrounds.border;
+  const errorColor = theme.colors.error[5];
+  const fillColor = disabled ? line : error ? errorColor : accent;
+  const holeColor = backgrounds.surface;
+  return {
+    // A control boundary needs 3:1 against the surface: `text.muted` has it.
+    ringColor: disabled ? line : error ? errorColor : text.muted,
+    fillColor,
+    holeColor,
+    // Light on the accent while it stays legible; dark themes take their accent
+    // from the light end of the palette, where a light dot would vanish.
+    dotColor: disabled ? holeColor : onColor(theme, fillColor, 3),
+  };
+}
+
+interface RadioIndicatorProps {
+  checked: boolean;
+  disabled: boolean;
+  error: boolean;
+  size: SizeValue;
+  color?: string;
   transitionDuration?: number;
 }
 
 /**
- * Styles and animated layers of the radio circle, shared by `Radio` and the
- * `card` variant of `RadioGroup` so both animate identically.
- *
- * Returns the component's full stylesheet alongside `layers` — the two views
- * that make up the circle — so a caller can drop them into whatever element it
- * already renders (a `Pressable` for `Radio`) instead of nesting another view.
+ * The radio circle: an opaque `track` disc filling the footprint with a `hole`
+ * disc punched over it. Unselected, the hole covers all but a hairline rim, so
+ * the control reads as a ring; selecting shrinks the hole to the dot and
+ * recolors the track — one continuous motion on the UI thread (reanimated),
+ * shared by `Radio` and the `card` variant of `RadioGroup`.
  */
-const useRadioIndicator = (props: RadioIndicatorProps & { theme: PlatformBlocksTheme }) => {
-  const { checked, disabled, error, size, color, transitionDuration, theme } = props;
+const RadioIndicator = ({ checked, disabled, error, size, color, transitionDuration }: RadioIndicatorProps) => {
+  const theme = useTheme();
+  const radioSize = getRadioSize(theme, size);
+  // The dot sits at ~40% of the control — the ratio most design systems land on.
+  const dotSize = Math.max(Math.round(radioSize * 0.4), 4);
+  const holeSize = radioSize - RING_WIDTH * 2;
+  const dotScale = dotSize / holeSize;
 
-  const styleProps = { checked, disabled, error, size, color, theme };
-  const styles = useRadioStyles(styleProps);
-  // Endpoints the selection animation interpolates between.
-  const metrics = getRadioMetrics(styleProps);
+  const { ringColor, fillColor, holeColor, dotColor } = getRadioPalette(theme, { disabled, error, color });
 
-  // 0 is unselected, 1 is selected. One value drives the ring closing into a
-  // filled disc and the center hole shrinking into the dot, so the two read as
-  // a single movement rather than two layers crossfading.
-  const progress = useRef(new Animated.Value(checked ? 1 : 0)).current;
-  const motionDuration = useTransitionDuration(transitionDuration, RADIO_BASE_DURATION);
+  const progress = useSharedValue(checked ? 1 : 0);
+  const duration = useTransitionDuration(transitionDuration, RADIO_BASE_DURATION);
 
   useEffect(() => {
-    // `transitionDuration={0}` (and reduced motion) land on the end state with
-    // no animation; any other explicit value scales the transition to match.
-    if (motionDuration === 0) {
-      progress.setValue(checked ? 1 : 0);
+    const target = checked ? 1 : 0;
+    cancelAnimation(progress);
+    // `transitionDuration={0}` (and reduced motion) land on the end state at once.
+    if (duration === 0) {
+      progress.value = target;
       return;
     }
     // Deselecting is quicker than selecting — it is the incidental half of a
-    // group change, and the newly selected radio is what should draw the eye.
-    const duration = Math.round(motionDuration * (checked ? 1 : 0.7));
-    Animated.timing(progress, {
-      toValue: checked ? 1 : 0,
-      duration,
+    // group change; the newly selected radio is what should draw the eye.
+    progress.value = withTiming(target, {
+      duration: Math.round(duration * (checked ? 1 : 0.7)),
       easing: Easing.out(Easing.cubic),
-      // Interpolating colors rules out the native driver; the control is a
-      // couple of views, so the JS driver keeps up.
-      useNativeDriver: false,
-    }).start();
-  }, [checked, progress, motionDuration]);
+    });
+  }, [checked, duration, progress]);
 
-  // An array rather than a fragment so callers can spread these straight into
-  // whatever element they render as the circle.
-  const layers = [
-    (
-      <Animated.View
-        key="track"
-        pointerEvents="none"
-        style={[
-          styles.radioTrack,
-          {
-            backgroundColor: progress.interpolate({
-              inputRange: [0, 1],
-              outputRange: [metrics.ringColor, metrics.fillColor],
-            }),
-          },
-        ]}
-      />
-    ),
-    (
-      <Animated.View
-        key="dot"
-        pointerEvents="none"
-        style={[
-          styles.radioInner,
-          {
-            backgroundColor: progress.interpolate({
-              inputRange: [0, 1],
-              outputRange: [metrics.holeColor, metrics.dotColor],
-            }),
-            transform: [
-              { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, metrics.dotScale] }) },
-            ],
-          },
-        ]}
-      />
-    ),
-  ];
+  const trackStyle = useAnimatedStyle(
+    () => ({ backgroundColor: interpolateColor(progress.value, [0, 1], [ringColor, fillColor]) }),
+    [ringColor, fillColor]
+  );
+  const holeStyle = useAnimatedStyle(
+    () => ({
+      backgroundColor: interpolateColor(progress.value, [0, 1], [holeColor, dotColor]),
+      transform: [{ scale: 1 + (dotScale - 1) * progress.value }],
+    }),
+    [holeColor, dotColor, dotScale]
+  );
 
-  return { styles, layers };
+  const styles = useThemedStyles(
+    () => ({
+      radio: {
+        width: radioSize,
+        height: radioSize,
+        borderRadius: radioSize / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: disabled ? 0.6 : 1,
+        pointerEvents: 'none',
+      } as ViewStyle,
+      track: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: radioSize / 2 } as ViewStyle,
+      hole: { width: holeSize, height: holeSize, borderRadius: holeSize / 2 } as ViewStyle,
+    }),
+    [radioSize, holeSize, disabled]
+  );
+
+  return (
+    <View style={styles.radio}>
+      <Animated.View style={[styles.track, trackStyle]} />
+      <Animated.View style={[styles.hole, holeStyle]} />
+    </View>
+  );
+};
+
+const isSpaceKey = (event: KeyboardEventLike) => {
+  const { key } = readKey(event);
+  return key === ' ' || key === 'Spacebar';
+};
+
+/** An icon prop: registry name → `<Icon>`, element → as is. */
+const renderOptionIcon = (icon: React.ReactNode | string | undefined, size: number, color: string | undefined) => {
+  if (icon == null || icon === false) return null;
+  if (typeof icon === 'string') return <Icon name={icon} size={size} color={color} decorative />;
+  return React.isValidElement(icon) ? icon : null;
 };
 
 /**
- * Standalone radio circle for surfaces that supply their own press target and
- * label — the `card` variant, which shows selection with the circle rather than
- * a check icon so it matches the `default` variant.
+ * One option of a set. `role="radio"` with `aria-checked`; the label beside it
+ * picks it too (one tab stop). Space picks it on web. Usually rendered by
+ * `RadioGroup`, which manages selection and arrow-key navigation.
  */
-const RadioIndicator = (props: RadioIndicatorProps) => {
-  const theme = useTheme();
-  const { styles, layers } = useRadioIndicator({ ...props, theme });
-
-  return <View pointerEvents="none" style={styles.radio}>{layers}</View>;
-};
-
-export const Radio = factory<{
-  props: RadioProps;
-  ref: View;
-}>((props, ref) => {
+export const Radio = factory<{ props: RadioProps; ref: View }>((props, ref) => {
   const {
     value,
     checked = false,
     onChange,
-    name,
     size = 'md',
     color = 'primary',
     label,
-    disabled = false,
-    required = false,
-    error,
-    description,
-    labelPosition = 'right',
     children,
-    testID,
-    style,
+    description,
+    error,
+    helperText,
+    disabled = false,
+    readOnly = false,
+    required = false,
+    withAsterisk,
+    labelPosition = 'right',
     icon,
     onKeyDown,
+    tabIndex,
     labelProps,
     descriptionProps,
     transitionDuration,
-    ...spacingProps
+    accessibilityLabel,
+    accessibilityHint,
+    onFocus,
+    onBlur,
+    id,
+    testID,
+    style,
+    disclaimer,
+    disclaimerProps,
   } = props;
 
   const theme = useTheme();
-  const { isRTL } = useDirection();
-  const { styles, layers } = useRadioIndicator({
-    checked,
-    disabled,
-    error: !!error,
-    size,
-    color,
-    transitionDuration,
-    theme,
-  });
+  const decorative = useIsChoiceIndicator();
+  const spacingStyles = useStyleProps(props);
+  const layoutStyles = getLayoutStyles(props);
+  const controlRef = useRef<View>(null);
+  const mergedRef = useMergedRef(controlRef, ref);
 
-  const handlePress = useCallback(() => {
-    if (disabled) return;
+  const locked = disabled || readOnly;
+  const select = useCallback(() => {
+    if (locked) return;
     onChange?.(value);
-  }, [disabled, onChange, value]);
+  }, [locked, onChange, value]);
 
-  const labelContent = children || label;
-
-  const iconElement = useMemo(() => {
-    if (!icon) return null;
-
-    if (React.isValidElement(icon)) {
-      return icon;
-    }
-
-    if (typeof icon === 'string') {
-      const iconSize = getControlIconSize(size);
-      const iconColor = disabled ? theme.text.disabled : theme.text.primary;
-
-      return (
-        <Icon
-          name={icon as any}
-          size={iconSize}
-          color={typeof iconColor === 'string' ? iconColor : undefined}
-        />
-      );
-    }
-
-    return null;
-  }, [icon, size, disabled, theme]);
-
-  // react-native-web exposes onKeyDown, but core RN types omit it so we inject it conditionally
-  const webKeyEvents = Platform.OS === 'web' && onKeyDown ? { onKeyDown } : undefined;
-
-  const radioElement = (
-    <View style={styles.radioContainer}>
-      <Pressable
-        ref={ref}
-        style={[styles.radio, style]}
-        onPress={handlePress}
-        {...(webKeyEvents as any)}
-        disabled={disabled}
-        testID={testID}
-        hitSlop={12} // Increase hitbox by 12px on all sides
-        accessibilityRole="radio"
-        accessibilityState={{
-          checked,
-          disabled
-        }}
-        accessibilityLabel={typeof labelContent === 'string' ? labelContent : undefined}
-      >
-        {layers}
-      </Pressable>
-    </View>
+  const handleKeyDown = useCallback(
+    (event: WebKeyboardEvent) => {
+      onKeyDown?.(event);
+      if (event.defaultPrevented || !isSpaceKey(event)) return;
+      // Space picks the focused radio; react-native-web's Pressable only presses
+      // on Enter for non-button roles.
+      consumeEvent(event);
+      select();
+    },
+    [onKeyDown, select]
   );
 
-  const labelElement = labelContent ? (
-    <Pressable
-      style={[
-        styles.labelContainer,
-        (isRTL ? labelPosition === 'right' : labelPosition === 'left') && styles.labelContainerLeft,
-      ]}
-      onPress={handlePress}
-      disabled={disabled}
-      hitSlop={8}
-    >
-      <View style={styles.labelContent}>
-        {iconElement ? (
-          <View style={styles.iconWrapper}>
-            {iconElement}
-          </View>
-        ) : null}
-        <FieldHeader
-          label={labelContent}
-          description={!error ? description : undefined}
-          required={required}
-          withAsterisk={true}
-          disabled={disabled}
-          error={!!error}
-          size={size as any}
-          labelProps={labelProps}
-          descriptionProps={descriptionProps}
-        />
-      </View>
-      {error ? (
-        <Text style={styles.error} size="sm" selectable={false}>{error}</Text>
-      ) : null}
-    </Pressable>
-  ) : null;
+  const handleLabelPress = useCallback(() => {
+    select();
+    if (isWeb) focusNode(controlRef.current);
+  }, [select]);
 
-  // Swap label positions in RTL so 'right' always means visual right
-  const effectiveLabelPosition = isRTL
-    ? (labelPosition === 'left' ? 'right' : 'left')
-    : labelPosition;
+  const indicator = (
+    <RadioIndicator
+      checked={checked}
+      disabled={disabled}
+      error={!!error}
+      size={size}
+      color={color}
+      transitionDuration={transitionDuration}
+    />
+  );
+
+  if (!decorative && !accessibilityLabel && !getNodeText(children ?? label)) {
+    warnOnce(
+      'Radio.accessibilityLabel',
+      '[Radio] A radio without a visible label needs `accessibilityLabel` so it has an accessible name.'
+    );
+  }
+
+  // Inside a ControlField row the row is the control; this is only its picture.
+  if (decorative) return indicator;
+
+  const radioSize = getRadioSize(theme, size);
+  const iconSize = getControlSize(theme, size).iconSize;
+  const adornment = renderOptionIcon(icon, iconSize, disabled ? theme.text.disabled : theme.text.primary);
+  const webPad = isWeb ? Math.max(0, Math.ceil((MIN_TARGET_WEB - radioSize) / 2)) : 0;
+  const hitSlop = isWeb ? undefined : Math.max(0, Math.ceil((MIN_TARGET_NATIVE - radioSize) / 2));
 
   return (
-    <View style={styles.container}>
-      {effectiveLabelPosition === 'left' && labelElement}
-      {radioElement}
-      {effectiveLabelPosition === 'right' && labelElement}
-    </View>
+    <ChoiceField
+      id={id}
+      label={children ?? label}
+      description={description}
+      error={error}
+      helperText={helperText}
+      required={required}
+      withAsterisk={withAsterisk}
+      disabled={disabled}
+      readOnly={readOnly}
+      size={size}
+      labelPosition={labelPosition}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      labelProps={labelProps}
+      descriptionProps={descriptionProps}
+      onLabelPress={handleLabelPress}
+      labelAdornment={adornment}
+      gap={LABEL_GAP}
+      footerInset={radioSize + webPad * 2 + LABEL_GAP}
+      disclaimer={disclaimer}
+      disclaimerProps={disclaimerProps}
+      style={[spacingStyles, layoutStyles, style]}
+    >
+      {({ controlProps }) => (
+        <Pressable
+          ref={mergedRef}
+          {...controlProps}
+          {...a11yProps({ role: 'radio', checked })}
+          {...webProps({ onKeyDown: handleKeyDown, tabIndex })}
+          onPress={select}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          disabled={disabled}
+          hitSlop={hitSlop}
+          testID={testID}
+          style={webPad ? { padding: webPad } : undefined}
+        >
+          {indicator}
+        </Pressable>
+      )}
+    </ChoiceField>
   );
+}, { displayName: 'Radio' });
+
+Radio.displayName = 'Radio';
+
+interface VariantStyles {
+  option: ViewStyle;
+  first: ViewStyle;
+  last: ViewStyle;
+  disabled: ViewStyle;
+  iconCard: ViewStyle;
+  body: ViewStyle;
+  description: TextStyle;
+}
+
+/** Static layout of the button-like variants, cached per theme / variant / orientation. */
+const getVariantStyles = createThemedStyles(
+  (theme: PlatformBlocksTheme, variant: RadioGroupVariant, horizontal: boolean): VariantStyles => ({
+    option:
+      variant === 'card'
+        ? {
+            flex: horizontal ? 1 : undefined,
+            paddingVertical: 12,
+            paddingHorizontal: 14,
+            borderWidth: 1,
+            borderRadius: 8,
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            gap: 10,
+          }
+        : variant === 'segmented'
+          ? {
+              flex: 1,
+              paddingVertical: 8,
+              paddingHorizontal: 12,
+              borderTopWidth: 1,
+              borderBottomWidth: 1,
+              borderEndWidth: 1,
+              borderStartWidth: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'row',
+              gap: 6,
+            }
+          : {
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 999,
+              borderWidth: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+            },
+    // Segmented: logical corners so the joined bar follows the reading direction.
+    first: { borderStartWidth: 1, borderTopStartRadius: 8, borderBottomStartRadius: 8 },
+    last: { borderTopEndRadius: 8, borderBottomEndRadius: 8 },
+    disabled: { opacity: 0.5 },
+    iconCard: { marginTop: 2 },
+    body: variant === 'card' ? { flex: 1 } : {},
+    description: { color: theme.text.secondary, marginTop: 2 },
+  })
+);
+
+/** Colors of the button-like variants for one accent, cached per theme / color. */
+const getVariantColors = createThemedStyles((theme: PlatformBlocksTheme, color: string) => {
+  const accent = resolveColorProp(theme, color, { shades: RADIO_SHADES }) ?? theme.colors.primary[6];
+  // The wash mixes two colors; on web `backgrounds.surface` is a `var()` reference
+  // with no measurable channels, so the math reads the literal.
+  const literalSurface = literalBackgrounds(theme).surface;
+  return {
+    accent,
+    // Washing the accent over the actual surface rather than reaching for an end
+    // of the palette: dark palettes run dark→light, so "the subtlest shade" would
+    // land on a near-white and turn a selected card into a bright block.
+    tint: composite(accent, literalSurface, CARD_TINT_ALPHA),
+    onAccent: onColor(theme, accent),
+    surface: theme.backgrounds.surface,
+    border: theme.backgrounds.border,
+  };
 });
 
-export const RadioGroup = factory<{
-  props: RadioGroupProps;
-  ref: View;
-}>((props, ref) => {
+/**
+ * A set of mutually exclusive options: `role="radiogroup"` rendered through the
+ * shared `Field` frame (label, description, error and helper text linked to the
+ * group). Arrow keys move focus *and* selection between the options (following
+ * the reading direction), with one tab stop for the whole group — the selected
+ * option, or the first one while nothing is selected.
+ */
+export const RadioGroup = factory<{ props: RadioGroupProps; ref: View }>((props, ref) => {
   const {
     options,
     value,
+    defaultValue,
     onChange,
-    name,
     orientation = 'vertical',
     variant = 'default',
     size = 'md',
     color = 'primary',
     label,
-    disabled = false,
-    required = false,
-    error,
     description,
+    error,
+    helperText,
+    disabled = false,
+    readOnly = false,
+    required = false,
+    withAsterisk,
     gap = 8,
     labelPosition,
     transitionDuration,
+    accessibilityLabel,
+    accessibilityHint,
+    labelProps,
+    descriptionProps,
+    id,
     testID,
     style,
-    ...spacingProps
+    disclaimer,
+    disclaimerProps,
+    onFocus,
+    onBlur,
   } = props;
 
   const theme = useTheme();
+  const spacingStyles = useStyleProps(props);
+  const layoutStyles = getLayoutStyles(props);
+  const groupFocus = useGroupFocus(onFocus, onBlur);
 
-  const handleChange = useCallback((optionValue: string) => {
-    if (disabled) return;
-    onChange?.(optionValue);
-  }, [disabled, onChange]);
+  const [selected, setSelected] = useControllableState<string | null>({
+    value,
+    defaultValue: defaultValue ?? null,
+    finalValue: null,
+    onChange: (next) => {
+      if (next != null) onChange?.(next);
+    },
+  });
 
-  const handleKeyNavigation = useCallback((event: any, currentIndex: number) => {
-    if (disabled) return;
+  // Picking an option can arrive twice for one gesture (focus, then press), so
+  // compare against the latest value rather than the render-time one.
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
 
-    const key = event?.nativeEvent?.key || event?.key;
-    if (!key) return;
+  const commit = useCallback(
+    (next: string) => {
+      if (disabled || readOnly || next === selectedRef.current) return;
+      selectedRef.current = next;
+      setSelected(next);
+    },
+    [disabled, readOnly, setSelected]
+  );
 
-    const forwardKeys = ['ArrowRight', 'ArrowDown'];
-    const backwardKeys = ['ArrowLeft', 'ArrowUp'];
+  const isOptionDisabled = useCallback((index: number) => disabled || !!options[index]?.disabled, [disabled, options]);
+  const selectedIndex = options.findIndex((option) => option.value === selected);
 
-    let step = 0;
-    if (forwardKeys.includes(key)) {
-      step = 1;
-    } else if (backwardKeys.includes(key)) {
-      step = -1;
-    } else {
-      return;
-    }
+  const roving = useRovingFocus({
+    count: options.length,
+    // Radio groups answer to all four arrows; horizontal ones follow the reading direction.
+    orientation: 'both',
+    loop: true,
+    activeIndex: selectedIndex >= 0 ? selectedIndex : undefined,
+    onActiveChange: (index) => {
+      const option = options[index];
+      if (option) commit(option.value);
+    },
+    isDisabled: isOptionDisabled,
+  });
 
-    event?.preventDefault?.();
+  // `segmented` is always horizontal (joined buttons); `chip` wraps.
+  const horizontal = variant === 'segmented' || (variant !== 'chip' && orientation === 'horizontal');
+  const gapValue = typeof gap === 'number' ? gap : (resolveSpacing(theme, gap) as number);
+  const groupStyle = useMemo<ViewStyle>(
+    () =>
+      variant === 'chip'
+        ? { flexDirection: 'row', flexWrap: 'wrap', gap: gapValue }
+        : variant === 'segmented'
+          ? { flexDirection: 'row' }
+          : { flexDirection: horizontal ? 'row' : 'column', gap: gapValue },
+    [variant, horizontal, gapValue]
+  );
 
-    const total = options.length;
-    for (let offset = 1; offset <= total; offset += 1) {
-      const nextIndex = (currentIndex + step * offset + total) % total;
-      if (nextIndex === currentIndex) {
-        break;
-      }
+  const iconSize = getControlSize(theme, size).iconSize;
+  const variantStyles = variant === 'default' ? null : getVariantStyles(theme, variant, horizontal);
+  const variantColors = variant === 'default' ? null : getVariantColors(theme, String(color));
+  const optionId = (index: number) => (id ? `${id}-option-${index}` : undefined);
+  const optionTestID = (index: number) => (testID ? `${testID}-option-${index}` : undefined);
 
-      const option = options[nextIndex];
-      if (!(disabled || option.disabled)) {
-        handleChange(option.value);
-        break;
-      }
-    }
-  }, [disabled, options, handleChange]);
-
-  const gapValue = typeof gap === 'number' ? gap :
-    theme.spacing[gap as keyof typeof theme.spacing] ?
-    parseInt(theme.spacing[gap as keyof typeof theme.spacing]) : 8;
-
-  // `segmented` is always horizontal (joined buttons); `chip` wraps so
-  // direction is implicit. Other variants honor the prop.
-  const effectiveOrientation = variant === 'segmented' ? 'horizontal' : orientation;
-
-  // Variant-driven color tokens are only consumed by `renderOptionButton`,
-  // which itself only runs for non-default variants. Guarding the lookups
-  // means the `default` path doesn't depend on `theme.backgrounds` etc.
-  // (matters for tests that mock a slim theme).
-  const variantColors = variant === 'default' ? null : (() => {
-    const map: Record<string, any> = {
-      primary: theme.colors.primary,
-      secondary: theme.colors.secondary,
-      success: theme.colors.success,
-      warning: theme.colors.warning,
-      error: theme.colors.error,
-      gray: theme.colors.gray,
-    };
-    const palette = map[color as string] || theme.colors.primary;
-    const accentColor = palette[6] as string;
-    const surfaceColor = (theme.backgrounds?.surface ?? '#ffffff') as string;
-    // The wash below mixes two colors, and on web `theme.backgrounds.surface`
-    // is a `var()` reference with no measurable channels — read the literal for
-    // the math, and keep the reference above for the color actually painted.
-    const literalSurface = (literalBackgrounds(theme)?.surface ?? '#ffffff') as string;
-    return {
-      accentColor,
-      // Washing the accent over the actual surface rather than reaching for an
-      // end of the color scale: dark palettes run dark→light, so indexing for
-      // "the subtlest shade" lands on a near-white and turns a selected card
-      // into a bright block. A composited wash stays a tint in either scheme.
-      accentTint: composite(accentColor, literalSurface, theme.colorScheme === 'dark' ? 0.18 : 0.1),
-      // White on the accent for as long as it stays legible — dark themes take
-      // their accent from the light end of the scale, where it doesn't.
-      onAccentColor: readableTextOn(accentColor, '#1A1A1A', literalText(theme).onPrimary || '#ffffff'),
-      surfaceColor,
-      subtleBorder: (theme.backgrounds?.border ?? theme.colors.gray[3]) as string,
-    };
-  })();
-
-  const renderOptionButton = (
-    option: RadioGroupProps['options'][number],
-    index: number,
-    selected: boolean,
-    optDisabled: boolean,
-  ) => {
-    // Caller (the options.map below) only invokes this for non-default variants.
-    const { accentColor, accentTint, onAccentColor, surfaceColor, subtleBorder } = variantColors!;
-    const baseTextColor = selected
-      // `chip` and `segmented` fill with the accent, so their label sits on it;
-      // `card` only tints, and keeps the accent itself as the label color.
-      ? (variant === 'chip' || variant === 'segmented' ? onAccentColor : accentColor)
-      : (optDisabled ? theme.text.disabled : theme.text.primary);
-
-    let containerStyle: any;
-    if (variant === 'card') {
-      containerStyle = {
-        flex: orientation === 'horizontal' ? 1 : undefined,
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-        borderWidth: 1,
-        borderRadius: 8,
-        borderColor: selected ? accentColor : subtleBorder,
-        backgroundColor: selected ? accentTint : surfaceColor,
-        opacity: optDisabled ? 0.5 : 1,
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 10,
-      };
-    } else if (variant === 'segmented') {
-      const isFirst = index === 0;
-      const isLast = index === options.length - 1;
-      containerStyle = {
-        flex: 1,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        backgroundColor: selected ? accentColor : 'transparent',
-        borderTopWidth: 1,
-        borderBottomWidth: 1,
-        borderLeftWidth: isFirst ? 1 : 0,
-        borderRightWidth: 1,
-        borderColor: selected ? accentColor : subtleBorder,
-        borderTopLeftRadius: isFirst ? 8 : 0,
-        borderBottomLeftRadius: isFirst ? 8 : 0,
-        borderTopRightRadius: isLast ? 8 : 0,
-        borderBottomRightRadius: isLast ? 8 : 0,
-        opacity: optDisabled ? 0.5 : 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'row',
-        gap: 6,
-      };
-    } else {
-      // chip
-      containerStyle = {
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: selected ? accentColor : subtleBorder,
-        backgroundColor: selected ? accentColor : 'transparent',
-        opacity: optDisabled ? 0.5 : 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-      };
-    }
+  const renderOptionButton = (option: RadioGroupOption, index: number) => {
+    // Only reached for the non-default variants.
+    if (!variantStyles || !variantColors) return null;
+    const isSelected = selectedIndex === index;
+    const optionDisabled = isOptionDisabled(index);
+    const { accent, tint, onAccent, surface, border } = variantColors;
+    const filled = variant === 'chip' || variant === 'segmented';
+    // `chip` and `segmented` fill with the accent, so their label sits on it;
+    // `card` only tints, and keeps the accent itself as the label color.
+    const textColor = isSelected
+      ? filled
+        ? onAccent
+        : accent
+      : optionDisabled
+        ? theme.text.disabled
+        : theme.text.primary;
+    const item = roving.getItemProps(index);
 
     return (
       <Pressable
         key={option.value}
-        onPress={() => !optDisabled && handleChange(option.value)}
-        disabled={optDisabled}
-        accessibilityRole="radio"
-        accessibilityState={{ checked: selected, disabled: optDisabled }}
-        accessibilityLabel={typeof option.label === 'string' ? option.label : undefined}
-        testID={`${testID}-option-${index}`}
-        style={containerStyle}
-        {...(Platform.OS === 'web' ? { onKeyDown: (event: any) => handleKeyNavigation(event, index) } : null)}
+        ref={item.ref}
+        onPress={() => commit(option.value)}
+        onFocus={() => {
+          item.onFocus();
+          groupFocus.onPartFocus();
+        }}
+        onBlur={groupFocus.onPartBlur}
+        disabled={optionDisabled}
+        {...a11yProps({
+          role: 'radio',
+          checked: isSelected,
+          label: typeof option.label === 'string' ? option.label : undefined,
+          id: optionId(index),
+        })}
+        {...webProps({
+          tabIndex: item.tabIndex,
+          onKeyDown: (event) => {
+            item.onKeyDown(event);
+            if (event.defaultPrevented || !isSpaceKey(event)) return;
+            consumeEvent(event);
+            commit(option.value);
+          },
+        })}
+        testID={optionTestID(index)}
+        style={[
+          variantStyles.option,
+          {
+            borderColor: isSelected ? accent : border,
+            backgroundColor: isSelected ? (filled ? accent : tint) : variant === 'card' ? surface : 'transparent',
+          },
+          variant === 'segmented' && index === 0 && variantStyles.first,
+          variant === 'segmented' && index === options.length - 1 && variantStyles.last,
+          optionDisabled && variantStyles.disabled,
+        ]}
       >
         {option.icon ? (
-          <View style={{ marginTop: variant === 'card' ? 2 : 0 }}>
-            {React.isValidElement(option.icon)
-              ? option.icon
-              : typeof option.icon === 'string'
-                ? <Icon name={option.icon as any} size={getControlIconSize(size)} color={typeof baseTextColor === 'string' ? baseTextColor : undefined} />
-                : null}
+          <View style={variant === 'card' ? variantStyles.iconCard : undefined}>
+            {renderOptionIcon(option.icon, iconSize, textColor)}
           </View>
         ) : null}
 
-        <View style={{ flex: variant === 'card' ? 1 : undefined }}>
+        <View style={variantStyles.body}>
           <Text
-            size={size as any}
-            style={{ color: baseTextColor, fontWeight: selected && variant !== 'card' ? '600' : '400' }}
+            size={size}
+            style={{ color: textColor, fontWeight: isSelected && variant !== 'card' ? '600' : '400' }}
             selectable={false}
           >
             {option.label}
           </Text>
           {variant === 'card' && option.description ? (
-            <Text size="sm" style={{ color: theme.text.secondary, marginTop: 2 }} selectable={false}>
+            <Text size="sm" style={variantStyles.description} selectable={false}>
               {option.description}
             </Text>
           ) : null}
@@ -477,14 +590,12 @@ export const RadioGroup = factory<{
 
         {variant === 'card' ? (
           // The same circle the `default` variant uses, so selection reads the
-          // same across variants. It renders in both states rather than only
-          // when selected, which also keeps the card from reflowing on press.
-          <View style={{ marginTop: 2 }}>
+          // same across variants; always rendered so the card doesn't reflow.
+          <View style={variantStyles.iconCard}>
             <RadioIndicator
-              checked={selected}
-              disabled={optDisabled}
-              // A group-level error message doesn't recolor the controls in the
-              // `default` variant either — the message carries it.
+              checked={isSelected}
+              disabled={optionDisabled}
+              // A group-level error doesn't recolor the controls — the message carries it.
               error={false}
               size={size}
               color={color}
@@ -496,87 +607,71 @@ export const RadioGroup = factory<{
     );
   };
 
-  const groupStyle =
-    variant === 'chip'
-      ? { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: gapValue }
-      : variant === 'segmented'
-        ? { flexDirection: 'row' as const } // segmented joins, no gap
-        : { flexDirection: effectiveOrientation === 'horizontal' ? 'row' as const : 'column' as const, gap: gapValue };
-
   return (
-    <View ref={ref} style={style} testID={testID}>
-      {label ? (
-        <Text
-          style={[
-            { marginBottom: 8 },
-            disabled && { color: theme.text.disabled }
-          ]}
-          size={size}
-        >
-          {label}
-          {required ? (
-            <Text style={{ color: theme.colors.error[6] }}>
-              {' *'}
-            </Text>
-          ) : null}
-        </Text>
-      ) : null}
-
-      {description && !error ? (
-        <Text
-          style={{ color: theme.text.secondary, marginBottom: 8 }}
-          size="sm"
-        >
-          {description}
-        </Text>
-      ) : null}
-
-      <View
-        style={groupStyle}
-        accessibilityRole="radiogroup"
-        accessibilityLabel={typeof label === 'string' ? label : undefined}
-      >
-        {variant === 'default'
-          ? options.map((option, index) => (
-              <Radio
-                key={option.value}
-                value={option.value}
-                checked={value === option.value}
-                onChange={handleChange}
-                onKeyDown={(event: any) => handleKeyNavigation(event, index)}
-                name={name}
-                size={size}
-                color={color}
-                label={option.label}
-                disabled={disabled || option.disabled}
-                description={option.description}
-                icon={option.icon}
-                labelPosition={labelPosition}
-                transitionDuration={transitionDuration}
-                testID={`${testID}-option-${index}`}
-              />
-            ))
-          : options.map((option, index) =>
-              renderOptionButton(
-                option,
-                index,
-                value === option.value,
-                disabled || !!option.disabled,
-              ),
-            )}
-      </View>
-
-      {error ? (
-        <Text
-          style={{ color: theme.colors.error[6], marginTop: 8 }}
-          size="sm"
-        >
-          {error}
-        </Text>
-      ) : null}
-    </View>
+    <Field
+      id={id}
+      label={label}
+      description={description}
+      error={error}
+      helperText={helperText}
+      required={required}
+      withAsterisk={withAsterisk}
+      disabled={disabled}
+      readOnly={readOnly}
+      size={size}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      labelProps={labelProps}
+      descriptionProps={descriptionProps}
+      style={[spacingStyles, layoutStyles, style]}
+      testID={testID}
+    >
+      {({ controlProps }) => (
+        <>
+          <View
+            ref={ref}
+            {...controlProps}
+            {...a11yProps({ role: 'radiogroup', orientation: horizontal ? 'horizontal' : 'vertical' })}
+            style={groupStyle}
+          >
+            {variant === 'default'
+              ? options.map((option, index) => {
+                  const item = roving.getItemProps(index);
+                  return (
+                    <Radio
+                      key={option.value}
+                      ref={item.ref}
+                      id={optionId(index)}
+                      value={option.value}
+                      checked={selectedIndex === index}
+                      onChange={commit}
+                      tabIndex={item.tabIndex}
+                      onKeyDown={item.onKeyDown}
+                      onFocus={() => {
+                        item.onFocus();
+                        groupFocus.onPartFocus();
+                      }}
+                      onBlur={groupFocus.onPartBlur}
+                      size={size}
+                      color={color}
+                      label={option.label}
+                      description={option.description}
+                      icon={option.icon}
+                      disabled={isOptionDisabled(index)}
+                      readOnly={readOnly}
+                      labelPosition={labelPosition}
+                      transitionDuration={transitionDuration}
+                      testID={optionTestID(index)}
+                    />
+                  );
+                })
+              : options.map(renderOptionButton)}
+          </View>
+          {disclaimer ? <Disclaimer {...disclaimerProps}>{disclaimer}</Disclaimer> : null}
+        </>
+      )}
+    </Field>
   );
-});
+}, { displayName: 'RadioGroup' });
 
-Radio.displayName = 'Radio';
 RadioGroup.displayName = 'RadioGroup';

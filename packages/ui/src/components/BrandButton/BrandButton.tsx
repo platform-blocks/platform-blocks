@@ -1,50 +1,73 @@
-import React from 'react';
-import { Platform, Pressable, View } from 'react-native';
-import { Button } from '../Button';
-import { Text } from '../Text';
-import { useTheme } from '../../core/theme';
-import { BrandButtonProps, resolveBrandConfig } from './types';
-import { BrandIcon, brandIcons } from '../BrandIcon';
-import { extractUniversalProps, useShouldHideComponent } from '../../core/utils/universalSimple';
+import React, { forwardRef } from 'react';
+import { Pressable, View, type ViewStyle } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { factory } from '../../core/factory';
+import { isAndroid, webStyle } from '../../core/platform';
 import { isComponentSize, type ComponentSize } from '../../core/theme/componentSize';
+import type { SizeValue } from '../../core/theme/sizes';
+import { resolveBg } from '../../core/theme/resolveColors';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { BREAKPOINT_KEYS, getBreakpoints, getControlSize, resolveShadow } from '../../core/theme/tokens';
+import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { BreakpointToken } from '../../core/types/base';
+import { warnOnce } from '../../core/utils/logger';
+import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
+import { BrandIcon, brandIcons } from '../BrandIcon';
+import { Button } from '../Button/Button';
+import type { ButtonVariant } from '../Button/types';
+import { Text } from '../Text';
+import { resolveBrandConfig, type BrandButtonBreakpoint, type BrandButtonProps } from './types';
 
 const roundToEven = (value: number) => Math.round(value / 2) * 2;
 
 /**
- * Every badge metric is derived from the headline font size, so the shell keeps the
- * same proportions at every token instead of the padding outgrowing the type: at
- * `3xl` the horizontal padding is the same fraction of the text as it is at `xs`.
- * Hand-tuned per-token padding drifted here before — `xs` sat at 0.67× the text and
- * `3xl` at 1.33×.
+ * Store-badge metrics. The headline font size is derived from the control
+ * height (`getControlSize`) — `md` reproduces the original 13px/40px badge —
+ * and every other metric from the headline, so the shell keeps the same
+ * proportions at every size instead of the padding outgrowing the type.
  */
-const createBadgeSizeConfig = (secondaryFontSize: number) => ({
-  secondaryFontSize,
-  primaryFontSize: Math.round(secondaryFontSize * 0.76),
-  iconSize: roundToEven(secondaryFontSize * 1.54),
-  paddingHorizontal: Math.round(secondaryFontSize * 0.9),
-  paddingVertical: Math.round(secondaryFontSize * 0.45),
-  borderRadius: Math.round(secondaryFontSize * 0.46),
-  spacing: Math.round(secondaryFontSize * 0.62),
-  height: roundToEven(secondaryFontSize * 3.08),
-});
+function getBadgeMetrics(theme: PlatformBlocksTheme, size: ComponentSize) {
+  const secondaryFontSize = Math.round(getControlSize(theme, size).height / 3.08);
+  return {
+    secondaryFontSize,
+    primaryFontSize: Math.round(secondaryFontSize * 0.76),
+    iconSize: roundToEven(secondaryFontSize * 1.54),
+    paddingHorizontal: Math.round(secondaryFontSize * 0.9),
+    paddingVertical: Math.round(secondaryFontSize * 0.45),
+    borderRadius: Math.round(secondaryFontSize * 0.46),
+    spacing: Math.round(secondaryFontSize * 0.62),
+    height: roundToEven(secondaryFontSize * 3.08),
+  };
+}
 
-// The type scale is the only hand-set input; `md` reproduces the original 13px badge.
-const BADGE_SIZE_CONFIGS: Record<ComponentSize, ReturnType<typeof createBadgeSizeConfig>> = {
-  xs: createBadgeSizeConfig(9),
-  sm: createBadgeSizeConfig(11),
-  md: createBadgeSizeConfig(13),
-  lg: createBadgeSizeConfig(15),
-  xl: createBadgeSizeConfig(17),
-  '2xl': createBadgeSizeConfig(19),
-  '3xl': createBadgeSizeConfig(21),
+/** Brand marks come in four sizes; map the button size onto them. */
+function getBrandIconSize(size: SizeValue): 'sm' | 'md' | 'lg' | 'xl' {
+  if (size === 'xs') return 'sm';
+  if (size === '2xl' || size === '3xl') return 'xl';
+  if (size === 'sm' || size === 'md' || size === 'lg' || size === 'xl') return size;
+  return 'md';
+}
+
+/**
+ * Official store-badge chrome ("Download on the App Store"): the badge
+ * guidelines prescribe a black shell with white type in both schemes, so these
+ * are brand colors, not theme chrome.
+ */
+const BADGE_COLORS = {
+  background: '#000000',
+  backgroundDark: '#1a1a1a',
+  text: '#ffffff',
+  border: 'rgba(255, 255, 255, 0.1)',
+  borderDark: 'rgba(255, 255, 255, 0.15)',
+} as const;
+
+type BrandButtonRootProps = Omit<BrandButtonProps, 'hiddenFrom' | 'visibleFrom'> & {
+  hiddenFrom?: BreakpointToken;
+  visibleFrom?: BreakpointToken;
 };
 
-export const BrandButton = React.forwardRef<View, BrandButtonProps>((props, ref) => {
-  const theme = useTheme();
-  const { universalProps, componentProps } = extractUniversalProps(props);
-  const shouldHide = useShouldHideComponent(universalProps, theme.colorScheme);
-  if (shouldHide) return null;
-
+const BrandButtonRoot = factory<{ props: BrandButtonRootProps; ref: View }>((props, ref) => {
   const {
     brand,
     iconPosition = 'left',
@@ -56,26 +79,29 @@ export const BrandButton = React.forwardRef<View, BrandButtonProps>((props, ref)
     size = 'md',
     color,
     iconVariant,
-    backgroundColor,
+    bg,
     textColor: textColorOverride,
     borderColor,
     darkMode,
     style,
     ...buttonProps
-  } = componentProps;
+  } = props;
 
+  const theme = useTheme();
   const brandConfig = resolveBrandConfig(brand);
-  const iconColor: string | undefined = color || undefined;
+  // `bg` replaces the brand / badge fill instead of reaching Button's root under it.
+  const backgroundColor = resolveBg(theme, bg);
   // A color override only takes effect on the mono variant, so switch to mono
   // when a color is provided and the caller hasn't forced a variant.
   const resolvedIconVariant = iconVariant ?? (color ? 'mono' : 'full');
+  const iconAtStart = iconPosition === 'left' || iconPosition === 'start';
 
   // Resolve through the registry rather than a hand-maintained list, so a brand
   // can never be configured here without a matching icon.
   const iconName = brandConfig.icon;
   const hasBrandIcon = iconName in brandIcons;
   if (!hasBrandIcon) {
-    console.warn(`BrandButton: no brand icon registered for "${brand}"`);
+    warnOnce(`brand-button:${brand}`, `BrandButton: no brand icon registered for "${brand}"`);
   }
 
   // Two lines of text mean a store badge — "Download on the / App Store" — which
@@ -84,76 +110,46 @@ export const BrandButton = React.forwardRef<View, BrandButtonProps>((props, ref)
   const isBadge = Boolean(primaryText || secondaryText);
 
   if (isBadge) {
-    const {
-      onPress,
-      onPressIn,
-      onPressOut,
-      onLongPress,
-      onLayout,
-      disabled = false,
-      testID,
-      accessibilityLabel,
-      accessibilityHint,
-    } = buttonProps;
+    const { onPress, onPressIn, onPressOut, onLongPress, onLayout, disabled = false, testID, accessibilityLabel, accessibilityHint } =
+      buttonProps;
 
     const isDarkMode = darkMode ?? theme.colorScheme === 'dark';
-    const finalBackgroundColor = backgroundColor || (isDarkMode ? '#1a1a1a' : '#000000');
-    const finalTextColor = textColorOverride || '#ffffff';
-    const finalBorderColor =
-      borderColor || (isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.1)');
+    // An unrecognized size falls back to `md` rather than an out-of-range badge.
+    const metrics = getBadgeMetrics(theme, isComponentSize(size) ? size : 'md');
 
-    // An unrecognized token falls back to `md` rather than crashing on an undefined config.
-    const sizeConfig = (isComponentSize(size) && BADGE_SIZE_CONFIGS[size]) || BADGE_SIZE_CONFIGS.md;
-
-    const badgeStyle = {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      backgroundColor: finalBackgroundColor,
-      borderRadius: sizeConfig.borderRadius,
-      paddingHorizontal: sizeConfig.paddingHorizontal,
-      paddingVertical: sizeConfig.paddingVertical,
-      minHeight: sizeConfig.height,
-      minWidth: 'fit-content',
+    const badgeStyle: ViewStyle = {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      backgroundColor: backgroundColor || (isDarkMode ? BADGE_COLORS.backgroundDark : BADGE_COLORS.background),
+      borderRadius: metrics.borderRadius,
+      paddingHorizontal: metrics.paddingHorizontal,
+      paddingVertical: metrics.paddingVertical,
+      minHeight: metrics.height,
       opacity: disabled ? 0.6 : 1,
       borderWidth: 1,
-      borderColor: finalBorderColor,
-      ...(Platform.OS === 'ios' && {
-        boxShadow: isDarkMode
-          ? '0 2px 3px rgba(255, 255, 255, 0.1)'
-          : '0 2px 3px rgba(0, 0, 0, 0.25)',
-      }),
-      ...(Platform.OS === 'android' && {
-        elevation: 3,
-        minWidth: 120, // hack to prevent Android from being too small...
-      }),
-      ...(Platform.OS === 'web' && {
-        boxShadow: isDarkMode
-          ? '0 2px 8px rgba(255, 255, 255, 0.05)'
-          : '0 2px 8px rgba(0, 0, 0, 0.15)',
-        cursor: disabled ? 'default' : 'pointer',
-        transition: 'all 0.2s ease',
-      }),
+      borderColor: borderColor || (isDarkMode ? BADGE_COLORS.borderDark : BADGE_COLORS.border),
+      ...resolveShadow(theme, 'sm'),
+      // Android measures the two-line label short without a floor.
+      ...(isAndroid ? { minWidth: 120 } : null),
+      ...webStyle({ cursor: disabled ? 'default' : 'pointer', transitionProperty: 'opacity, transform', transitionDuration: '200ms' }),
     };
+    const pressedStyle: ViewStyle = { opacity: disabled ? 0.6 : 0.8, transform: [{ scale: 0.98 }] };
+    const textColor = textColorOverride || BADGE_COLORS.text;
 
-    const pressedStyle = {
-      ...badgeStyle,
-      opacity: disabled ? 0.6 : 0.8,
-      transform: [{ scale: 0.98 }],
-    };
+    const badgeIcon =
+      icon ??
+      (hasBrandIcon ? (
+        <BrandIcon
+          brand={iconName}
+          size={metrics.iconSize}
+          color={color}
+          variant={resolvedIconVariant}
+          invertInDarkMode={false} // The badge shell owns the colors
+        />
+      ) : null);
 
-    const badgeIcon = icon ?? (hasBrandIcon ? (
-      <BrandIcon
-        brand={iconName}
-        size={sizeConfig.iconSize}
-        color={iconColor}
-        variant={resolvedIconVariant}
-        invertInDarkMode={false} // The badge shell owns the colors
-      />
-    ) : null);
-
-    const iconSpacing = iconPosition === 'right'
-      ? { marginRight: sizeConfig.spacing }
-      : { marginLeft: sizeConfig.spacing };
+    const textSpacing: ViewStyle = iconAtStart ? { marginStart: metrics.spacing } : { marginEnd: metrics.spacing };
 
     return (
       <Pressable
@@ -164,22 +160,29 @@ export const BrandButton = React.forwardRef<View, BrandButtonProps>((props, ref)
         onLongPress={onLongPress}
         onLayout={onLayout}
         disabled={disabled}
-        style={({ pressed }) => [pressed ? pressedStyle : badgeStyle, style]}
+        style={({ pressed }) => [
+          badgeStyle,
+          pressed ? pressedStyle : null,
+          resolveStyleProps(extractStyleProps(buttonProps).styleProps, theme),
+          style,
+        ]}
         testID={testID}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel ?? `${primaryText ?? ''} ${secondaryText ?? ''}`.trim()}
-        accessibilityHint={accessibilityHint}
+        {...a11yProps({
+          role: 'button',
+          label: accessibilityLabel ?? `${primaryText ?? ''} ${secondaryText ?? ''}`.trim(),
+          hint: accessibilityHint,
+          disabled,
+        })}
       >
-        {iconPosition === 'left' ? badgeIcon : null}
-
-        <View style={iconSpacing}>
+        {iconAtStart ? badgeIcon : null}
+        <View style={textSpacing}>
           {primaryText ? (
             <Text
               style={{
-                fontSize: sizeConfig.primaryFontSize,
-                color: finalTextColor,
+                fontSize: metrics.primaryFontSize,
+                color: textColor,
                 opacity: 0.85,
-                lineHeight: sizeConfig.primaryFontSize + 2,
+                lineHeight: metrics.primaryFontSize + 2,
                 fontWeight: '400',
               }}
             >
@@ -189,10 +192,10 @@ export const BrandButton = React.forwardRef<View, BrandButtonProps>((props, ref)
           {secondaryText ? (
             <Text
               style={{
-                fontSize: sizeConfig.secondaryFontSize,
-                color: finalTextColor,
+                fontSize: metrics.secondaryFontSize,
+                color: textColor,
                 fontWeight: '600',
-                lineHeight: sizeConfig.secondaryFontSize + 2,
+                lineHeight: metrics.secondaryFontSize + 2,
                 marginTop: -1,
               }}
             >
@@ -200,87 +203,108 @@ export const BrandButton = React.forwardRef<View, BrandButtonProps>((props, ref)
             </Text>
           ) : null}
         </View>
-
-        {iconPosition === 'right' ? badgeIcon : null}
+        {iconAtStart ? null : badgeIcon}
       </Pressable>
     );
   }
 
-  const brandIcon = (() => {
-    // Map button sizes to icon sizes (BrandIcon only supports sm, md, lg, xl)
-    const iconSize: 'sm' | 'md' | 'lg' | 'xl' =
-      size === 'xs' ? 'sm' :
-        size === '2xl' || size === '3xl' ? 'xl' :
-          typeof size === 'number' ? 'md' :
-            ['sm', 'md', 'lg', 'xl'].includes(size) ? size as 'sm' | 'md' | 'lg' | 'xl' : 'md';
+  const brandIcon = hasBrandIcon ? (
+    <BrandIcon brand={iconName} size={getBrandIconSize(size)} color={color} variant={resolvedIconVariant} />
+  ) : null;
 
-    if (!hasBrandIcon) return null;
+  // `primary` is a long-standing undocumented alias of `filled`.
+  const effectiveVariant = (variant as string) === 'primary' ? 'filled' : variant;
+  const buttonVariant: ButtonVariant = effectiveVariant === 'plain' ? 'default' : effectiveVariant;
 
-    // BrandIcon supports multi-color brand logos with color override
-    return <BrandIcon brand={iconName} size={iconSize}
-      color={iconColor}
-      variant={resolvedIconVariant} />;
-  })();
-
-  // Brand-specific styles
-  // Variant-aware style mapping so outline/ghost etc work correctly
-  const isPrimaryVariant = (variant as unknown as string) === 'primary';
-  const effectiveVariant = isPrimaryVariant ? 'filled' : variant;
-
-  const brandStyles = (() => {
+  // Variant-aware brand chrome, so outline/ghost etc. still read as the brand.
+  const brandStyles: ViewStyle = (() => {
     switch (effectiveVariant) {
       case 'outline':
         return {
           backgroundColor: 'transparent',
           borderColor: borderColor || brandConfig.borderColor || brandConfig.backgroundColor,
-          paddingHorizontal: 16,
         };
       case 'ghost':
-        return {
-          backgroundColor: 'transparent',
-          borderColor: 'transparent',
-          paddingHorizontal: 16,
-        };
       case 'link':
         return { backgroundColor: 'transparent', borderColor: 'transparent' };
       case 'plain':
         return {
-          backgroundColor: backgroundColor || (theme.colorScheme === 'dark' ? theme.backgrounds.elevated : 'white'),
+          backgroundColor: backgroundColor || theme.backgrounds.elevated,
           borderColor: borderColor || 'transparent',
-          paddingHorizontal: 16,
-          minWidth: 0,
-          height: 'auto',
-          color: theme.colorScheme === 'dark' ? theme.text.primary : 'black'
         };
-      default: // primary/filled/secondary/gradient etc treat as filled brand color
+      default: // filled/light/subtle/gradient/default/secondary: the brand fill
         return {
           backgroundColor: backgroundColor || brandConfig.backgroundColor,
           borderColor: borderColor || brandConfig.borderColor || brandConfig.backgroundColor,
-          paddingHorizontal: 16,
         };
     }
   })();
 
-  // Compute textColor override: outline/link use brand color, ghost uses default text color, filled-like use contrasting light text
-  const textColor = textColorOverride ??
-    (effectiveVariant === 'plain' ? (theme.colorScheme === 'dark' ? theme.text.primary : 'black') :
-      effectiveVariant === 'ghost'
-        ? theme.text.primary
-        : (effectiveVariant === 'outline' || effectiveVariant === 'link')
-          ? (brandConfig.borderColor || brandConfig.backgroundColor)
-          : brandConfig.textColor);
+  // Outline/link use the brand color, plain/ghost body text, fills the brand's text color.
+  const textColor =
+    textColorOverride ??
+    (effectiveVariant === 'plain' || effectiveVariant === 'ghost'
+      ? theme.text.primary
+      : effectiveVariant === 'outline' || effectiveVariant === 'link'
+        ? brandConfig.borderColor || brandConfig.backgroundColor
+        : brandConfig.textColor);
+
+  const brandMark = icon || brandIcon;
 
   return (
     <Button
       ref={ref}
       {...buttonProps}
       title={title}
-      variant={effectiveVariant as any}
+      variant={buttonVariant}
       size={size}
       textColor={textColor}
-      startIcon={iconPosition === 'left' ? (icon || brandIcon) : undefined}
-      endIcon={iconPosition === 'right' ? (icon || brandIcon) : undefined}
-      style={[brandStyles, style, { width: 'auto' }]}
+      startSection={iconAtStart ? brandMark : undefined}
+      endSection={iconAtStart ? undefined : brandMark}
+      style={[brandStyles, style]}
+    />
+  );
+}, { displayName: 'BrandButton' });
+
+/** The theme breakpoint nearest a legacy pixel width. */
+function toBreakpointToken(
+  theme: PlatformBlocksTheme,
+  value: BrandButtonBreakpoint | undefined,
+  prop: 'hiddenFrom' | 'visibleFrom'
+): BreakpointToken | undefined {
+  if (typeof value !== 'number') return value;
+  warnOnce(
+    `BrandButton.${prop}.px`,
+    `BrandButton: a pixel \`${prop}\` is deprecated; pass a breakpoint token ('xs' | 'sm' | 'md' | 'lg' | 'xl'). ` +
+      `${value}px is rounded to the nearest theme breakpoint.`
+  );
+  const breakpoints = getBreakpoints(theme);
+  let nearest: BreakpointToken = BREAKPOINT_KEYS[0];
+  for (const key of BREAKPOINT_KEYS) {
+    if (Math.abs(breakpoints[key] - value) < Math.abs(breakpoints[nearest] - value)) nearest = key;
+  }
+  return nearest;
+}
+
+/**
+ * A branded button ("Continue with Google") or, with `primaryText` /
+ * `secondaryText`, a two-line store badge ("Download on the App Store").
+ *
+ * Visibility props are the standard factory ones (breakpoint tokens); legacy
+ * pixel widths for `hiddenFrom` / `visibleFrom` are still accepted and rounded
+ * to the nearest theme breakpoint (dev warning).
+ */
+export const BrandButton = forwardRef<View, BrandButtonProps>(function BrandButton(
+  { hiddenFrom, visibleFrom, ...props },
+  ref
+) {
+  const theme = useTheme();
+  return (
+    <BrandButtonRoot
+      ref={ref}
+      {...props}
+      hiddenFrom={toBreakpointToken(theme, hiddenFrom, 'hiddenFrom')}
+      visibleFrom={toBreakpointToken(theme, visibleFrom, 'visibleFrom')}
     />
   );
 });

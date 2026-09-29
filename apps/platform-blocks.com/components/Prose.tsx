@@ -31,7 +31,7 @@ const isExternalHref = (href: string) =>
  * `[@platform-blocks/ui](https://npmjs.com/...)` in a `lead` becomes a real
  * anchor here and a real markdown link there, from one string.
  *
- * Matches `<Text variant="p" color="secondary">` so replacing a plain Text with
+ * Matches `<Text variant="p" c="secondary">` so replacing a plain Text with
  * this leaves the page geometry untouched — the surrounding Column supplies the
  * spacing, so paragraphs carry no margin of their own.
  */
@@ -46,7 +46,7 @@ export const Prose: React.FC<ProseProps> = ({
   const components = useMemo(
     () => ({
       paragraph: ({ children: content }: { children: React.ReactNode }) => (
-        <Text variant={variant} color={color} as="div">
+        <Text variant={variant} c={color} as="div">
           {content}
         </Text>
       ),

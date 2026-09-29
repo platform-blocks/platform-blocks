@@ -28,12 +28,12 @@ export function Demo() {
           const latest = series.data[series.data.length - 1];
           return (
             <Block key={series.id} style={{ width: 200 }}>
-              <Text size="sm" weight="semibold">{series.title}</Text>
+              <Text size="sm" fw="semibold">{series.title}</Text>
               <Text size="xs" c="dimmed">
                 {latest.toLocaleString()} · {getDeltaLabel(series.data)}
               </Text>
               <SparklineChart
-                height={72}
+                h={72}
                 data={series.data}
                 fill
                 fillOpacity={0.18}

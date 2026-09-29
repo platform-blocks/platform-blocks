@@ -55,10 +55,10 @@ const DefaultErrorFallback: React.FC<{ error?: Error; retry: () => void }> = ({
     style={{ flex: 1, padding: 20 }}
   >
     <Icon name="alert-triangle" size={48} color="red" />
-    <Text size="lg" weight="bold">
+    <Text size="lg" fw="bold">
       Something went wrong
     </Text>
-    <Text size="sm" color="muted" style={{ textAlign: 'center' }}>
+    <Text size="sm" c="muted" style={{ textAlign: 'center' }}>
       {error?.message || 'An unexpected error occurred in the layout'}
     </Text>
     <Button variant="outline" title="Try Again" onPress={retry} />

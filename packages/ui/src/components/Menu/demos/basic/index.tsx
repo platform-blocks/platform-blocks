@@ -1,12 +1,10 @@
 import {
   Button,
-  Card,
   Icon,
   Menu,
   MenuDivider,
   MenuDropdown,
   MenuItem,
-  Text,
 } from '@platform-blocks/ui';
 
 export function Demo() {

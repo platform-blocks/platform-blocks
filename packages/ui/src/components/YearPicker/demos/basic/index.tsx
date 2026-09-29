@@ -7,7 +7,7 @@ export function Demo() {
   return (
     <Block fullWidth>
       <YearPicker value={value} onChange={setValue} totalYears={20} />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         {value ? `Selected: ${value.getFullYear()}` : 'No year selected'}
       </Text>
     </Block>

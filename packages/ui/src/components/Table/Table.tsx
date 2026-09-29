@@ -1,9 +1,23 @@
-import React from 'react';
-import { View, ScrollView, StyleSheet, Platform } from 'react-native';
+import React, { createContext, useContext, useMemo } from 'react';
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  Pressable,
+  type StyleProp,
+  type TextStyle,
+  type ViewProps,
+  type ViewStyle,
+} from 'react-native';
 
-import { useTheme } from '../../core';
-import { useDirection } from '../../core/providers/DirectionProvider';
-import { SpacingProps, getSpacingStyles, extractSpacingProps } from '../../core/utils';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveSpacing } from '../../core/theme/tokens';
+import { resolveStyleProps, extractStyleProps } from '../../core/utils/spacing';
+import { factory, withStatics } from '../../core/factory/factory';
+import { isWeb } from '../../core/platform/flags';
+import { webStyle } from '../../core/platform/webStyle';
+import type { BaseProps } from '../../core/types/base';
+import { useHover } from '../../hooks/useHover/useHover';
 import { Text } from '../Text';
 
 export interface TableData {
@@ -13,23 +27,54 @@ export interface TableData {
   caption?: React.ReactNode;
 }
 
-export interface TableProps extends SpacingProps {
+type TableSpacing = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | number;
+
+/**
+ * Table-specific ARIA attributes. react-native-web forwards them to the DOM;
+ * React Native ignores them. `aria-sort` belongs on column headers.
+ */
+export interface TableAriaProps {
+  'aria-rowindex'?: number;
+  'aria-colindex'?: number;
+  'aria-rowcount'?: number;
+  'aria-colcount'?: number;
+  'aria-colspan'?: number;
+  'aria-sort'?: 'ascending' | 'descending' | 'none' | 'other';
+}
+
+/** View props every table part forwards to its root element (role, aria-*, testID, layout events…). */
+type TableHostProps = Omit<ViewProps, 'style' | 'children' | 'testID'> & TableAriaProps;
+
+export interface TableColumnConfig {
+  /** Column key for identification */
+  key?: string;
+  /** Column width strategy */
+  width?: number | string | 'auto' | 'min-content' | 'max-content';
+  /** Minimum column width */
+  minWidth?: number;
+  /** Maximum column width */
+  maxWidth?: number;
+  /** Flex grow factor */
+  flex?: number;
+}
+
+export interface TableProps extends BaseProps, TableHostProps {
   children?: React.ReactNode;
   /** Table data for automatic generation of rows */
   data?: TableData;
-  /** Horizontal spacing between cells */
-  horizontalSpacing?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | number;
-  /** Vertical spacing between cells */
-  verticalSpacing?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | number;
-  /** Add striped styling to rows */
+  /** Horizontal spacing between cells (`data` mode) — a theme spacing token or px */
+  horizontalSpacing?: TableSpacing;
+  /** Vertical spacing between cells (`data` mode) — a theme spacing token or px */
+  verticalSpacing?: TableSpacing;
+  /** Add striped styling to rows (`data` mode) */
   striped?: boolean;
-  /** Highlight rows on hover/press */
+  /** Highlight rows on hover (web / pointer devices) — applies to every `Table.Tr` inside the table */
   highlightOnHover?: boolean;
   /** Add borders around table */
   withTableBorder?: boolean;
-  /** Add borders between columns */
+  /** Add borders between columns (`data` mode) */
   withColumnBorders?: boolean;
-  /** Add borders between rows */
+  /** Add borders between rows (`data` mode) */
   withRowBorders?: boolean;
   /** Caption position */
   captionSide?: 'top' | 'bottom';
@@ -41,212 +86,127 @@ export interface TableProps extends SpacingProps {
   tabularNums?: boolean;
   /** Make table take full width of container */
   fullWidth?: boolean;
-  /** Column width configuration for auto-sizing */
-  columns?: Array<{
-    /** Column key for identification */
-    key?: string;
-    /** Column width strategy */
-    width?: number | string | 'auto' | 'min-content' | 'max-content';
-    /** Minimum column width */
-    minWidth?: number;
-    /** Maximum column width */
-    maxWidth?: number;
-    /** Flex grow factor */
-    flex?: number;
-  }>;
-  /** Additional styles */
-  style?: any;
+  /** Column width configuration for auto-sizing (`data` mode) */
+  columns?: TableColumnConfig[];
 }
 
-export interface TableScrollContainerProps extends SpacingProps {
+/** `mah` caps the container's height; taller content scrolls vertically. */
+export interface TableScrollContainerProps extends BaseProps, TableHostProps {
   children?: React.ReactNode;
-  /** Minimum width before scrolling kicks in */
-  minW?: number;
-  /** Maximum height before vertical scrolling */
-  maxH?: number;
-  /** Scroll type for web */
-  type?: 'native' | 'custom';
-  style?: any;
-  [key: string]: any;
+  /** Minimum width of the scrolled content — narrower viewports scroll horizontally. Defaults to `500`. */
+  miw?: number;
 }
 
-export interface TableSectionProps extends SpacingProps {
+export interface TableSectionProps extends BaseProps, TableHostProps {
   children?: React.ReactNode;
-  style?: any;
-  [key: string]: any;
 }
 
-export interface TableRowProps extends SpacingProps {
+/** `bg` is the row background; `selected` and hover fills paint over it. */
+export interface TableRowProps extends BaseProps, TableHostProps {
   children?: React.ReactNode;
-  /** Background color override */
-  bg?: string;
-  /** Row selection state */
+  /** Row selection state (paints `theme.backgrounds.selected`) */
   selected?: boolean;
-  /** Press handler */
+  /** Press handler — makes the row pressable */
   onPress?: () => void;
-  style?: any;
-  [key: string]: any;
+  /** Highlight the row on hover. Defaults to the table's `highlightOnHover`. */
+  hoverable?: boolean;
+  /** Hover fill. Defaults to `theme.backgrounds.hover`. */
+  hoverColor?: string;
 }
 
-export interface TableCellProps extends SpacingProps {
+/**
+ * `w` / `miw` / `maw` size the cell. `w` also takes a CSS width keyword
+ * (`min-content`, …) on web; when set, `flex` / `widthStrategy` are ignored.
+ */
+export interface TableCellProps extends BaseProps, TableHostProps {
   children?: React.ReactNode;
-  /** Cell width (useful for fixed layout) */
-  w?: number | string;
-  /** Text alignment */
+  /**
+   * Content alignment. `left` / `right` are the leading / trailing edges, so
+   * they follow the layout direction (in RTL `left` content sits on the right).
+   */
   align?: 'left' | 'center' | 'right';
-  /** Minimum width for auto-sizing */
-  minW?: number;
-  /** Maximum width for auto-sizing */
-  maxW?: number;
   /** Flex grow factor for flexible sizing */
   flex?: number;
   /** Width strategy for responsive behavior */
   widthStrategy?: 'auto' | 'min-content' | 'max-content' | 'fixed';
-  style?: any;
-  [key: string]: any;
+  /** Number of columns the cell spans (exposed as `aria-colspan` on web) */
+  colSpan?: number;
 }
 
-const getSpacingValue = (spacing: TableProps['horizontalSpacing'], theme: any): number => {
-  if (typeof spacing === 'number') return spacing;
+interface TableContextValue {
+  highlightOnHover: boolean;
+  tabularNums: boolean;
+}
 
-  const spacingMap = {
-    xs: 4,
-    sm: 8,
-    md: 12,
-    lg: 16,
-    xl: 20
-  };
+const DEFAULT_TABLE_CONTEXT: TableContextValue = { highlightOnHover: false, tabularNums: false };
+const TableContext = createContext<TableContextValue>(DEFAULT_TABLE_CONTEXT);
 
-  return spacingMap[spacing as keyof typeof spacingMap] || 12;
+type CellAlign = NonNullable<TableCellProps['align']>;
+
+// Flex alignment is direction-aware on both platforms, so `left`/`right` map to
+// the logical start/end without reading the layout direction.
+const ALIGN_ITEMS: Record<CellAlign, ViewStyle['alignItems'] | undefined> = {
+  left: undefined,
+  center: 'center',
+  right: 'flex-end',
+};
+
+// `left` leaves the natural (start) alignment, which follows the direction.
+const TEXT_ALIGN: Record<CellAlign, TextStyle['textAlign'] | undefined> = {
+  left: undefined,
+  center: 'center',
+  right: 'right',
+};
+
+const TABULAR_NUMS: TextStyle = { fontVariant: ['tabular-nums'] };
+
+/** Flex sizing for a cell without an explicit `w` (the width itself comes from the style props). */
+function cellFlexStyle({ w, flex, widthStrategy = 'auto' }: Pick<TableCellProps, 'w' | 'flex' | 'widthStrategy'>): ViewStyle | null {
+  if (w !== undefined && w !== null && w !== '') return null;
+  if (flex !== undefined) return { flex };
+  if (widthStrategy === 'min-content') return { flex: 0, flexShrink: 0 };
+  return { flex: 1 };
+}
+
+/** True when `children` holds text that must be wrapped in a `<Text>`. */
+function hasTextChild(children: React.ReactNode): boolean {
+  return React.Children.toArray(children).some((child) => typeof child === 'string' || typeof child === 'number');
+}
+
+const resolveTableSpacing = (theme: Parameters<typeof resolveSpacing>[0], value: TableSpacing): number => {
+  const resolved = resolveSpacing(theme, value);
+  return typeof resolved === 'number' ? resolved : 0;
 };
 
 // Table Cell Components
-export const TableTh = React.forwardRef<any, TableCellProps>((allProps, ref) => {
-  const { spacingProps, otherProps } = extractSpacingProps(allProps);
-  // `rest` forwards passthrough props (role, aria-*, accessibility*, id, key
-  // handlers) onto the underlying View so consumers like DataTable can attach
-  // grid semantics. Known layout props are destructured out first.
-  const { children, w, align = 'left', minW, maxW, flex, widthStrategy = 'auto', style, ...rest } = otherProps;
+export const TableTh = factory<{ props: TableCellProps; ref: View }>((allProps, ref) => {
+  const { styleProps, otherProps } = extractStyleProps(allProps);
+  const { children, align = 'left', flex, widthStrategy, colSpan, style, role, ...rest } = otherProps;
   const theme = useTheme();
-  const { isRTL } = useDirection();
+  const { tabularNums } = useContext(TableContext);
 
-  // Swap alignment in RTL
-  const effectiveAlign = (() => {
-    if (align === 'center') return 'center';
-    if (align === 'left') return isRTL ? 'right' : 'left';
-    if (align === 'right') return isRTL ? 'left' : 'right';
-    return align;
-  })();
-
-  // Calculate cell style based on width strategy and props
-  const getCellWidth = () => {
-    if (w) return { width: w };
-    
-    const widthStyle: any = {};
-    
-    if (flex !== undefined) {
-      widthStyle.flex = flex;
-    } else if (widthStrategy === 'min-content') {
-      widthStyle.flex = 0;
-      widthStyle.flexShrink = 0;
-    } else if (widthStrategy === 'max-content') {
-      widthStyle.flex = 1;
-    } else if (widthStrategy === 'auto') {
-      widthStyle.flex = 1;
-    }
-    
-    if (minW) widthStyle.minWidth = minW;
-    if (maxW) widthStyle.maxWidth = maxW;
-    
-    return widthStyle;
-  };
-
-  const cellStyle = [
+  const cellStyle: StyleProp<ViewStyle> = [
     styles.th,
-    {
-      backgroundColor: theme.colors.gray[0],
-      borderColor: theme.colors.gray[2],
-      ...getCellWidth()
-    },
-    effectiveAlign !== 'left' && { alignItems: effectiveAlign === 'center' ? 'center' : 'flex-end' },
-    getSpacingStyles(spacingProps),
-    style
+    { borderColor: theme.backgrounds.border, backgroundColor: theme.backgrounds.subtle },
+    cellFlexStyle({ w: styleProps.w, flex, widthStrategy }),
+    ALIGN_ITEMS[align] ? { alignItems: ALIGN_ITEMS[align] } : null,
+    resolveStyleProps(styleProps, theme),
+    style,
   ];
 
   return (
-    <View ref={ref} style={cellStyle} {...rest}>
-      <Text
-        variant="p"
-        weight="semibold"
-        style={{
-          textAlign: effectiveAlign,
-          color: theme.text.primary
-        }}
-      >
-        {children}
-      </Text>
-    </View>
-  );
-});
-TableTh.displayName = 'TableTh';
-
-export const TableTd = React.forwardRef<View, TableCellProps>((allProps, ref) => {
-  const { spacingProps, otherProps } = extractSpacingProps(allProps);
-  const { children, w, align = 'left', minW, maxW, flex, widthStrategy = 'auto', style, ...rest } = otherProps;
-  const theme = useTheme();
-  const { isRTL } = useDirection();
-
-  // Swap alignment in RTL
-  const effectiveAlign = (() => {
-    if (align === 'center') return 'center';
-    if (align === 'left') return isRTL ? 'right' : 'left';
-    if (align === 'right') return isRTL ? 'left' : 'right';
-    return align;
-  })();
-
-  // Calculate cell style based on width strategy and props
-  const getCellWidth = () => {
-    if (w) return { width: w };
-    
-    const widthStyle: any = {};
-    
-    if (flex !== undefined) {
-      widthStyle.flex = flex;
-    } else if (widthStrategy === 'min-content') {
-      widthStyle.flex = 0;
-      widthStyle.flexShrink = 0;
-    } else if (widthStrategy === 'max-content') {
-      widthStyle.flex = 1;
-    } else if (widthStrategy === 'auto') {
-      widthStyle.flex = 1;
-    }
-    
-    if (minW) widthStyle.minWidth = minW;
-    if (maxW) widthStyle.maxWidth = maxW;
-    
-    return widthStyle;
-  };
-
-  const cellStyle = [
-    styles.td,
-    {
-      borderColor: theme.colors.gray[2],
-      ...getCellWidth()
-    },
-    effectiveAlign !== 'left' && { alignItems: effectiveAlign === 'center' ? 'center' : 'flex-end' },
-    getSpacingStyles(spacingProps),
-    style
-  ];
-
-  return (
-    <View ref={ref} style={cellStyle} {...rest}>
-      {typeof children === 'string' || typeof children === 'number' ? (
+    <View
+      ref={ref}
+      role={role ?? 'columnheader'}
+      {...(isWeb && colSpan ? { 'aria-colspan': colSpan } : null)}
+      {...rest}
+      style={cellStyle}
+    >
+      {hasTextChild(children) ? (
         <Text
           variant="p"
-          style={{
-            textAlign: effectiveAlign,
-            color: theme.text.primary
-          }}
+          fw="semibold"
+          style={[{ textAlign: TEXT_ALIGN[align], color: theme.text.primary }, tabularNums && TABULAR_NUMS]}
         >
           {children}
         </Text>
@@ -255,157 +215,149 @@ export const TableTd = React.forwardRef<View, TableCellProps>((allProps, ref) =>
       )}
     </View>
   );
-});
-TableTd.displayName = 'TableTd';
+}, { displayName: 'TableTh' });
 
-// Table Row Component
-export const TableTr = React.forwardRef<View, TableRowProps>((allProps, ref) => {
-  const { spacingProps, otherProps } = extractSpacingProps(allProps);
-  const { children, bg, selected, onPress, style, hoverable, ...rest } = otherProps as any;
+export const TableTd = factory<{ props: TableCellProps; ref: View }>((allProps, ref) => {
+  const { styleProps, otherProps } = extractStyleProps(allProps);
+  const { children, align = 'left', flex, widthStrategy, colSpan, style, role, ...rest } = otherProps;
   const theme = useTheme();
+  const { tabularNums } = useContext(TableContext);
 
-  const rowStyle = [
-    styles.tr,
-    bg && { backgroundColor: bg },
-    selected && {
-      backgroundColor: theme.colors.primary[1]
-    },
-    hoverable && Platform.OS === 'web' && {
-      cursor: 'pointer',
-      transition: 'background-color 120ms ease',
-    },
-    getSpacingStyles(spacingProps),
-    style
+  const cellStyle: StyleProp<ViewStyle> = [
+    styles.td,
+    { borderColor: theme.backgrounds.border },
+    cellFlexStyle({ w: styleProps.w, flex, widthStrategy }),
+    ALIGN_ITEMS[align] ? { alignItems: ALIGN_ITEMS[align] } : null,
+    resolveStyleProps(styleProps, theme),
+    style,
   ];
 
-  // For web, emulate hover by setting the background on mouse enter/leave.
-  const hoverHandlers =
-    Platform.OS === 'web' && hoverable
-      ? {
-          onMouseEnter: (e: any) => {
-            (e.currentTarget as any).style.backgroundColor = selected
-              ? theme.colors.primary[2]
-              : theme.colors.gray[1];
-          },
-          onMouseLeave: (e: any) => {
-            (e.currentTarget as any).style.backgroundColor = selected
-              ? theme.colors.primary[1]
-              : bg || 'transparent';
-          }
-        }
-      : {};
+  return (
+    <View
+      ref={ref}
+      role={role ?? 'cell'}
+      {...(isWeb && colSpan ? { 'aria-colspan': colSpan } : null)}
+      {...rest}
+      style={cellStyle}
+    >
+      {hasTextChild(children) ? (
+        <Text
+          variant="p"
+          style={[{ textAlign: TEXT_ALIGN[align], color: theme.text.primary }, tabularNums && TABULAR_NUMS]}
+        >
+          {children}
+        </Text>
+      ) : (
+        children
+      )}
+    </View>
+  );
+}, { displayName: 'TableTd' });
+
+// Table Row Component
+export const TableTr = factory<{ props: TableRowProps; ref: View }>((allProps, ref) => {
+  const { styleProps, otherProps } = extractStyleProps(allProps);
+  const { children, selected, onPress, hoverable: hoverableProp, hoverColor, style, role, ...rest } = otherProps;
+  const theme = useTheme();
+  const table = useContext(TableContext);
+  const hoverable = hoverableProp ?? table.highlightOnHover;
+  const [hovered, hoverHandlers] = useHover();
+
+  const rowStyle: StyleProp<ViewStyle> = [
+    styles.tr,
+    // Before the selected / hover fills so they paint over `bg`.
+    resolveStyleProps(styleProps, theme),
+    selected ? { backgroundColor: theme.backgrounds.selected } : null,
+    hoverable && hovered && !selected ? { backgroundColor: hoverColor ?? theme.backgrounds.hover } : null,
+    hoverable ? webStyle({ transition: 'background-color 120ms ease' }) : null,
+    style,
+  ];
+
+  if (onPress) {
+    return (
+      <Pressable
+        ref={ref}
+        role={role ?? 'row'}
+        onPress={onPress}
+        onHoverIn={hoverable ? hoverHandlers.onHoverIn : undefined}
+        onHoverOut={hoverable ? hoverHandlers.onHoverOut : undefined}
+        {...rest}
+        style={rowStyle}
+      >
+        {children}
+      </Pressable>
+    );
+  }
 
   return (
-    <View ref={ref} style={rowStyle} {...hoverHandlers} {...rest}>
+    <View ref={ref} role={role ?? 'row'} {...(hoverable ? hoverHandlers : null)} {...rest} style={rowStyle}>
       {children}
     </View>
   );
-});
-TableTr.displayName = 'TableTr';
+}, { displayName: 'TableTr' });
 
 // Table Section Components
-export const TableThead = React.forwardRef<View, TableSectionProps>((allProps, ref) => {
-  const { spacingProps, otherProps } = extractSpacingProps(allProps);
-  const { children, style } = otherProps;
+const createSection = (displayName: string, sectionStyle: ViewStyle) =>
+  factory<{ props: TableSectionProps; ref: View }>((allProps, ref) => {
+    const { styleProps, otherProps } = extractStyleProps(allProps);
+    const { children, style, role, ...rest } = otherProps;
+    const theme = useTheme();
+    return (
+      <View
+        ref={ref}
+        role={role ?? 'rowgroup'}
+        {...rest}
+        style={[sectionStyle, resolveStyleProps(styleProps, theme), style]}
+      >
+        {children}
+      </View>
+    );
+  }, { displayName });
 
-  return (
-    <View ref={ref} style={[styles.thead, getSpacingStyles(spacingProps), style]}>
-      {children}
-    </View>
-  );
-});
-TableThead.displayName = 'TableThead';
+export const TableThead = createSection('TableThead', {});
+export const TableTbody = createSection('TableTbody', {});
+export const TableTfoot = createSection('TableTfoot', {});
 
-export const TableTbody = React.forwardRef<View, TableSectionProps>((allProps, ref) => {
-  const { spacingProps, otherProps } = extractSpacingProps(allProps);
-  const { children, style } = otherProps;
-
-  return (
-    <View ref={ref} style={[styles.tbody, getSpacingStyles(spacingProps), style]}>
-      {children}
-    </View>
-  );
-});
-TableTbody.displayName = 'TableTbody';
-
-export const TableTfoot = React.forwardRef<View, TableSectionProps>((allProps, ref) => {
-  const { spacingProps, otherProps } = extractSpacingProps(allProps);
-  const { children, style } = otherProps;
-
-  return (
-    <View ref={ref} style={[styles.tfoot, getSpacingStyles(spacingProps), style]}>
-      {children}
-    </View>
-  );
-});
-TableTfoot.displayName = 'TableTfoot';
-
-export const TableCaption = React.forwardRef<View, TableSectionProps>((allProps, ref) => {
-  const { spacingProps, otherProps } = extractSpacingProps(allProps);
-  const { children, style } = otherProps;
+export const TableCaption = factory<{ props: TableSectionProps; ref: View }>((allProps, ref) => {
+  const { styleProps, otherProps } = extractStyleProps(allProps);
+  const { children, style, ...rest } = otherProps;
   const theme = useTheme();
 
   return (
-    <View ref={ref} style={[styles.caption, getSpacingStyles(spacingProps), style]}>
-      <Text
-        variant="small"
-        color="secondary"
-        style={{ textAlign: 'center' }}
-      >
+    <View ref={ref} {...rest} style={[styles.caption, resolveStyleProps(styleProps, theme), style]}>
+      <Text variant="small" c="secondary" style={styles.captionText}>
         {children}
       </Text>
     </View>
   );
-});
-TableCaption.displayName = 'TableCaption';
+}, { displayName: 'TableCaption' });
 
 // Scroll Container Component
-export const TableScrollContainer = React.forwardRef<View, TableScrollContainerProps>((allProps, ref) => {
-  const { spacingProps, otherProps } = extractSpacingProps(allProps);
-  const { children, minW = 500, maxH, type = 'native', style } = otherProps;
-
-  const containerStyle = [
-    {
-      width: '100%',
-      maxHeight: maxH
-    },
-    getSpacingStyles(spacingProps),
-    style
-  ];
-
-  const scrollViewStyle = minW ? { minWidth: minW } : undefined;
+export const TableScrollContainer = factory<{ props: TableScrollContainerProps; ref: View }>((allProps, ref) => {
+  // `miw` sizes the scrolled content, not the container.
+  const { miw = 500, ...props } = allProps;
+  const { styleProps, otherProps } = extractStyleProps(props);
+  const { children, style, ...rest } = otherProps;
+  const theme = useTheme();
 
   return (
-    <View ref={ref} style={containerStyle}>
+    <View ref={ref} {...rest} style={[styles.scrollContainer, resolveStyleProps(styleProps, theme), style]}>
       <ScrollView
         horizontal
-        showsHorizontalScrollIndicator={Platform.OS === 'web'}
-        contentContainerStyle={scrollViewStyle}
+        showsHorizontalScrollIndicator={isWeb}
+        contentContainerStyle={miw ? { minWidth: miw } : undefined}
       >
-        <ScrollView
-          style={{ flex: 1 }}
-          showsVerticalScrollIndicator={Platform.OS === 'web'}
-        >
+        <ScrollView style={styles.fill} showsVerticalScrollIndicator={isWeb}>
           {children}
         </ScrollView>
       </ScrollView>
     </View>
   );
-});
-TableScrollContainer.displayName = 'TableScrollContainer';
+}, { displayName: 'TableScrollContainer' });
 
 // Main Table Component
-export const Table: React.ForwardRefExoticComponent<TableProps & React.RefAttributes<View>> & {
-  Th: typeof TableTh;
-  Td: typeof TableTd;
-  Tr: typeof TableTr;
-  Thead: typeof TableThead;
-  Tbody: typeof TableTbody;
-  Tfoot: typeof TableTfoot;
-  Caption: typeof TableCaption;
-  ScrollContainer: typeof TableScrollContainer;
-} = React.forwardRef<View, TableProps>((allProps, ref) => {
-  const { spacingProps, otherProps } = extractSpacingProps(allProps);
+const TableRoot = factory<{ props: TableProps; ref: View }>((allProps, ref) => {
+  const { styleProps, otherProps } = extractStyleProps(allProps);
   const {
     children,
     data,
@@ -417,174 +369,154 @@ export const Table: React.ForwardRefExoticComponent<TableProps & React.RefAttrib
     withColumnBorders = false,
     withRowBorders = false,
     captionSide = 'bottom',
-    layout = 'auto',
-    variant = 'default',
+    layout: _layout = 'auto',
+    variant: _variant = 'default',
     tabularNums = false,
     fullWidth = false,
-    columns = [],
+    columns,
     style,
+    role,
     ...rest
   } = otherProps;
 
   const theme = useTheme();
-  const hSpacing = getSpacingValue(horizontalSpacing, theme);
-  const vSpacing = getSpacingValue(verticalSpacing, theme);
+  const hSpacing = resolveTableSpacing(theme, horizontalSpacing);
+  const vSpacing = resolveTableSpacing(theme, verticalSpacing);
 
-  const tableStyle = [
+  const contextValue = useMemo<TableContextValue>(
+    () => ({ highlightOnHover, tabularNums }),
+    [highlightOnHover, tabularNums]
+  );
+
+  const tableStyle: StyleProp<ViewStyle> = [
     styles.table,
-    {
-      borderColor: theme.colors.gray[2]
-    },
-    fullWidth && { width: '100%' },
-    withTableBorder && styles.withTableBorder,
-    layout === 'fixed' && styles.fixedLayout,
-    variant === 'vertical' && styles.verticalVariant,
-    tabularNums && styles.tabularNums,
-    getSpacingStyles(spacingProps),
-    style
+    { borderColor: theme.backgrounds.border },
+    fullWidth ? styles.fullWidth : null,
+    withTableBorder ? styles.withTableBorder : null,
+    resolveStyleProps(styleProps, theme),
+    style,
   ];
 
   // Auto-generate table from data prop
   if (data) {
     const { head, body, foot, caption } = data;
+    const columnConfig = (index: number): TableColumnConfig => columns?.[index] ?? {};
+    const cellPadding = { paddingHorizontal: hSpacing, paddingVertical: vSpacing };
+    const columnBorder = (index: number, count: number): ViewStyle | null =>
+      withColumnBorders && index < count - 1 ? { borderEndWidth: 1, borderEndColor: theme.backgrounds.border } : null;
+    const ariaLabel = rest['aria-label'] ?? (typeof caption === 'string' ? caption : undefined);
+
+    const headerCells = (cells: React.ReactNode[], cellRole: 'columnheader' | 'cell') =>
+      cells.map((cell, index) => {
+        const config = columnConfig(index);
+        return (
+          <TableTh
+            key={index}
+            role={cellRole}
+            w={config.width}
+            miw={config.minWidth}
+            maw={config.maxWidth}
+            flex={config.flex}
+            style={[cellPadding, columnBorder(index, cells.length)]}
+          >
+            {cell}
+          </TableTh>
+        );
+      });
 
     return (
-      <View ref={ref} style={tableStyle} {...rest}>
-        {caption && captionSide === 'top' && (
-          <TableCaption>{caption}</TableCaption>
-        )}
+      <TableContext.Provider value={contextValue}>
+        <View ref={ref} role={role ?? 'table'} {...rest} aria-label={ariaLabel} style={tableStyle}>
+          {caption && captionSide === 'top' && <TableCaption>{caption}</TableCaption>}
 
-        {head && (
-          <TableThead>
-            <TableTr>
-              {head.map((cell, index) => {
-                const columnConfig = columns[index] || {};
-                return (
-                  <TableTh 
-                    key={index} 
-                    w={columnConfig.width}
-                    minWidth={columnConfig.minWidth}
-                    maxWidth={columnConfig.maxWidth}
-                    flex={columnConfig.flex}
-                    style={{
-                      paddingHorizontal: hSpacing,
-                      paddingVertical: vSpacing,
-                      borderRightWidth: withColumnBorders && index < head.length - 1 ? 1 : 0
-                    }}
-                  >
-                    {cell}
-                  </TableTh>
-                );
-              })}
-            </TableTr>
-          </TableThead>
-        )}
+          {head && (
+            <TableThead>
+              <TableTr>{headerCells(head, 'columnheader')}</TableTr>
+            </TableThead>
+          )}
 
-        {body && (
-          <TableTbody>
-            {body.map((row, rowIndex) => (
-              <TableTr
-                key={rowIndex}
-                style={{
-                  backgroundColor: striped && rowIndex % 2 === 1
-                    ? theme.colors.gray[1]
-                    : 'transparent',
-                  borderBottomWidth: withRowBorders ? 1 : 0,
-                  borderColor: theme.colors.gray[2]
-                }}
-              >
-                {row.map((cell, cellIndex) => {
-                  const columnConfig = columns[cellIndex] || {};
-                  return (
-                    <TableTd 
-                      key={cellIndex} 
-                      w={columnConfig.width}
-                      minWidth={columnConfig.minWidth}
-                      maxWidth={columnConfig.maxWidth}
-                      flex={columnConfig.flex}
-                      style={{
-                        paddingHorizontal: hSpacing,
-                        paddingVertical: vSpacing,
-                        borderRightWidth: withColumnBorders && cellIndex < row.length - 1 ? 1 : 0
-                      }}
-                    >
-                      {cell}
-                    </TableTd>
-                  );
-                })}
-              </TableTr>
-            ))}
-          </TableTbody>
-        )}
+          {body && (
+            <TableTbody>
+              {body.map((row, rowIndex) => (
+                <TableTr
+                  key={rowIndex}
+                  style={{
+                    backgroundColor: striped && rowIndex % 2 === 1 ? theme.backgrounds.subtle : 'transparent',
+                    borderBottomWidth: withRowBorders ? 1 : 0,
+                    borderColor: theme.backgrounds.border,
+                  }}
+                >
+                  {row.map((cell, cellIndex) => {
+                    const config = columnConfig(cellIndex);
+                    return (
+                      <TableTd
+                        key={cellIndex}
+                        w={config.width}
+                        miw={config.minWidth}
+                        maw={config.maxWidth}
+                        flex={config.flex}
+                        style={[cellPadding, columnBorder(cellIndex, row.length)]}
+                      >
+                        {cell}
+                      </TableTd>
+                    );
+                  })}
+                </TableTr>
+              ))}
+            </TableTbody>
+          )}
 
-        {foot && (
-          <TableTfoot>
-            <TableTr>
-              {foot.map((cell, index) => {
-                const columnConfig = columns[index] || {};
-                return (
-                  <TableTh 
-                    key={index} 
-                    w={columnConfig.width}
-                    minWidth={columnConfig.minWidth}
-                    maxWidth={columnConfig.maxWidth}
-                    flex={columnConfig.flex}
-                    style={{
-                      paddingHorizontal: hSpacing,
-                      paddingVertical: vSpacing,
-                      borderRightWidth: withColumnBorders && index < foot.length - 1 ? 1 : 0
-                    }}
-                  >
-                    {cell}
-                  </TableTh>
-                );
-              })}
-            </TableTr>
-          </TableTfoot>
-        )}
+          {foot && (
+            <TableTfoot>
+              <TableTr>{headerCells(foot, 'cell')}</TableTr>
+            </TableTfoot>
+          )}
 
-        {caption && captionSide === 'bottom' && (
-          <TableCaption>{caption}</TableCaption>
-        )}
-      </View>
+          {caption && captionSide === 'bottom' && <TableCaption>{caption}</TableCaption>}
+        </View>
+      </TableContext.Provider>
     );
   }
 
   // Render with children
   return (
-    <View ref={ref} style={tableStyle} {...rest}>
-      {children}
-    </View>
+    <TableContext.Provider value={contextValue}>
+      <View ref={ref} role={role ?? 'table'} {...rest} style={tableStyle}>
+        {children}
+      </View>
+    </TableContext.Provider>
   );
-}) as typeof Table;
+}, { displayName: 'Table' });
 
-Table.displayName = 'Table';
-
-// Attach sub-components
-Table.Th = TableTh;
-Table.Td = TableTd;
-Table.Tr = TableTr;
-Table.Thead = TableThead;
-Table.Tbody = TableTbody;
-Table.Tfoot = TableTfoot;
-Table.Caption = TableCaption;
-Table.ScrollContainer = TableScrollContainer;
+export const Table = withStatics(TableRoot, {
+  Th: TableTh,
+  Td: TableTd,
+  Tr: TableTr,
+  Thead: TableThead,
+  Tbody: TableTbody,
+  Tfoot: TableTfoot,
+  Caption: TableCaption,
+  ScrollContainer: TableScrollContainer,
+});
 
 const styles = StyleSheet.create({
   caption: {
-    padding: 8
+    padding: 8,
   },
-  fixedLayout: {
-    // React Native doesn't support table-layout, but we can simulate with flex
+  captionText: {
+    textAlign: 'center',
+  },
+  fill: {
+    flex: 1,
+  },
+  fullWidth: {
+    width: '100%',
+  },
+  scrollContainer: {
+    width: '100%',
   },
   table: {
-    width: '100%'
-  },
-  tabularNums: {
-    fontVariant: Platform.OS === 'web' ? ['tabular-nums' as any] : undefined
-  },
-  tbody: {
-    // Body section styles
+    width: '100%',
   },
   td: {
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -592,31 +524,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 12,
   },
-  tfoot: {
-    // Footer section styles
-  },
   th: {
     borderBottomWidth: 1,
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 12,
   },
-  thead: {
-    // Header section styles
-  },
   tr: {
     flexDirection: 'row',
-    // minHeight: 40
-    paddingVertical: 4
-  },
-  verticalVariant: {
-    // Custom styles for vertical layout
+    paddingVertical: 4,
   },
   withTableBorder: {
     borderRadius: 6,
     borderWidth: 1,
-    overflow: 'hidden'
-  }
+    overflow: 'hidden',
+  },
 });
 
 export default Table;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Text, TextArea } from '@platform-blocks/ui';
+import { Block, TextArea } from '@platform-blocks/ui';
 
 export function Demo() {
   const [value, setValue] = useState('');
@@ -13,15 +13,9 @@ export function Demo() {
         value={value}
         onChangeText={setValue}
         description="Provide helpful context for your request."
-        error={value.length > 120 ? 'Message is too long. Keep it under 120 characters.' : undefined}
         rows={4}
         fullWidth
       />
-      {value ? (
-        <Text size="xs" color="secondary">
-          Character count: {value.length}
-        </Text>
-      ) : null}
     </Block>
   );
 }

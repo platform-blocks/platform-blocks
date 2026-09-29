@@ -1,16 +1,17 @@
 import React from 'react';
 import { View } from 'react-native';
+import type { StyleProp, ViewProps, ViewStyle } from 'react-native';
 
-import { resolveOptionalModule } from './optionalModule';
+import { defaultExportOf, resolveOptionalModule } from './optionalModule';
 
-type LinearGradientProps = {
+/** The expo-linear-gradient props the library uses (plus View props, which it forwards). */
+type LinearGradientProps = Omit<ViewProps, 'style'> & {
   children?: React.ReactNode;
-  style?: any;
-  colors?: string[];
-  locations?: number[];
-  start?: { x: number; y: number } | [number, number];
-  end?: { x: number; y: number } | [number, number];
-  [key: string]: any;
+  style?: StyleProp<ViewStyle>;
+  colors?: readonly string[];
+  locations?: readonly number[] | null;
+  start?: { x: number; y: number } | [number, number] | null;
+  end?: { x: number; y: number } | [number, number] | null;
 };
 
 const LinearGradientFallback: React.FC<LinearGradientProps> = ({ children, style, colors }) => {
@@ -23,8 +24,9 @@ const LinearGradientFallback: React.FC<LinearGradientProps> = ({ children, style
 };
 
 export function resolveLinearGradient() {
-  const linearGradientModule = resolveOptionalModule<React.ComponentType<any>>('expo-linear-gradient', {
-    accessor: (mod) => mod?.LinearGradient ?? mod?.default ?? mod,
+  const linearGradientModule = resolveOptionalModule<React.ComponentType<LinearGradientProps>>('expo-linear-gradient', {
+    accessor: (mod: { LinearGradient?: React.ComponentType<LinearGradientProps> } | null) =>
+      mod?.LinearGradient ?? defaultExportOf<React.ComponentType<LinearGradientProps>>(mod),
     devWarning: 'expo-linear-gradient not installed; gradient-based components fall back to solid colors.',
   });
 
@@ -37,8 +39,13 @@ export function resolveLinearGradient() {
   } as const;
 }
 
+/** The part of expo-document-picker the library calls. */
 type DocumentPickerModule = {
-  getDocumentAsync?: (...args: any[]) => Promise<any>;
+  getDocumentAsync?: (options?: {
+    multiple?: boolean;
+    copyToCacheDirectory?: boolean;
+    type?: string | string[];
+  }) => Promise<unknown>;
 };
 
 export function resolveDocumentPicker() {

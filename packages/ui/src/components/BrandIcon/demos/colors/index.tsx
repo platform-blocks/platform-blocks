@@ -4,7 +4,7 @@ export function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="small" color="secondary">
+        <Text variant="small" c="secondary">
           Authentic brand palettes
         </Text>
         <Row align="center" gap="md" wrap="wrap">
@@ -17,7 +17,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" color="secondary">
+        <Text variant="small" c="secondary">
           Custom blue
         </Text>
         <Row align="center" gap="md" wrap="wrap">
@@ -30,7 +30,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" color="secondary">
+        <Text variant="small" c="secondary">
           Custom red
         </Text>
         <Row align="center" gap="md" wrap="wrap">

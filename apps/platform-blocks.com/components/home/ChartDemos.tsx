@@ -76,8 +76,8 @@ export default function ChartDemos({ cols }: ChartDemosProps) {
         <ChartCard title="Revenue trend">
           {(width) => (
             <AreaChart
-              width={width}
-              height={CHART_CARD_HEIGHT}
+              w={width}
+              h={CHART_CARD_HEIGHT}
               data={AREA_DATA}
               xAxis={{ show: true, labelFormatter: (v) => AREA_DATA[v]?.label ?? '' }}
               yAxis={{ show: true }}
@@ -90,8 +90,8 @@ export default function ChartDemos({ cols }: ChartDemosProps) {
         <ChartCard title="Quarterly results">
           {(width) => (
             <BarChart
-              width={width}
-              height={CHART_CARD_HEIGHT}
+              w={width}
+              h={CHART_CARD_HEIGHT}
               data={BAR_DATA}
               xAxis={{ show: true }}
               yAxis={{ show: true }}
@@ -110,8 +110,8 @@ export default function ChartDemos({ cols }: ChartDemosProps) {
         <ChartCard title="Traffic sources">
           {(width) => (
             <PieChart
-              width={width}
-              height={CHART_CARD_HEIGHT}
+              w={width}
+              h={CHART_CARD_HEIGHT}
               data={PIE_DATA}
               legend={{ show: true }}
             />

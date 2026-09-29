@@ -1,8 +1,23 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { View, Platform, StyleSheet } from 'react-native';
-import { Text } from '../Text';
-import { GradientTextProps } from './types';
-import { resolveOptionalModule } from '../../utils/optionalModule';
+import React, { useEffect, useInsertionEffect, useMemo } from 'react';
+import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+
+import { factory } from '../../core/factory/factory';
+import { useReducedMotion } from '../../core/motion/useReducedMotion';
+import { hasDOM, isWeb } from '../../core/platform/flags';
+import { webStyle, type WebStyle } from '../../core/platform/webStyle';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { warnOnce } from '../../core/utils/logger';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
+import { resolveLinearGradient } from '../../utils/optionalDependencies';
+import { defaultExportOf, resolveOptionalModule } from '../../utils/optionalModule';
+import { Text } from '../Text/Text';
+import type { GradientTextProps } from './types';
+
+interface MaskedViewProps {
+  maskElement: React.ReactElement;
+  style?: StyleProp<ViewStyle>;
+  children?: React.ReactNode;
+}
 
 /**
  * Resolved lazily so apps that never render a GradientText neither bundle
@@ -10,14 +25,23 @@ import { resolveOptionalModule } from '../../utils/optionalModule';
  * native branch falls back to plain text in the first gradient color.
  */
 const resolveMaskedView = () =>
-  resolveOptionalModule<any>('@react-native-masked-view/masked-view', {
-    accessor: (mod) => mod?.default ?? mod,
+  resolveOptionalModule<React.ComponentType<MaskedViewProps>>('@react-native-masked-view/masked-view', {
+    accessor: (mod) => defaultExportOf<React.ComponentType<MaskedViewProps>>(mod),
     devWarning:
       '@react-native-masked-view/masked-view is not installed; <GradientText> renders plain colored text on native instead of a gradient.',
   });
-import { resolveLinearGradient } from '../../utils/optionalDependencies';
 
-const { LinearGradient: OptionalLinearGradient, hasLinearGradient } = resolveLinearGradient();
+/** Native only, and resolved on first use so web never looks for expo-linear-gradient. */
+let linearGradient: ReturnType<typeof resolveLinearGradient> | null = null;
+const getLinearGradient = () => (linearGradient ??= resolveLinearGradient());
+
+/** Web-only CSS for the gradient fill beyond `WebStyle`. */
+interface GradientWebStyle extends WebStyle {
+  backgroundSize?: string;
+  backgroundPosition?: string;
+}
+
+const WEB_CONTAINER_STYLE = webStyle({ display: 'inline-block' });
 
 // Keyframes for animated sweeps are injected once per unique shape and shared by
 // every instance, so N gradient texts cost one stylesheet rule rather than N.
@@ -38,7 +62,7 @@ function sweepKeyframeName(fromPercent: number, toPercent: number, holdRatio: nu
 
 /** Insert the rule for {@link sweepKeyframeName} if it isn't already present. */
 function injectSweepKeyframes(name: string, fromPercent: number, toPercent: number, holdRatio: number) {
-  if (typeof document === 'undefined' || injectedKeyframes.has(name)) return;
+  if (!hasDOM || injectedKeyframes.has(name)) return;
 
   if (!keyframeStyleEl) {
     keyframeStyleEl = document.createElement('style');
@@ -90,9 +114,10 @@ function injectSweepKeyframes(name: string, fromPercent: number, toPercent: numb
  * </GradientText>
  * ```
  */
-export const GradientText = React.forwardRef<View, GradientTextProps>(
-  (
-    {
+export const GradientText = factory<{ props: GradientTextProps; ref: View }>(
+  (props, ref) => {
+    const { styleProps, otherProps } = extractStyleProps(props);
+    const {
       children,
       colors,
       locations,
@@ -102,103 +127,40 @@ export const GradientText = React.forwardRef<View, GradientTextProps>(
       position: controlledPosition,
       animation,
       testID,
+      style,
       ...textProps
-    },
-    ref
-  ) => {
-    const containerRef = useRef<HTMLDivElement | null>(null);
+    } = otherProps;
+    const spacingStyle = useStyleProps(styleProps);
+    const theme = useTheme();
+    const reducedMotion = useReducedMotion();
 
     const hasValidColors = Array.isArray(colors) && colors.length >= 2;
     const resolvedColors = useMemo(() => {
-      if (Array.isArray(colors) && colors.length >= 2) {
-        return colors;
-      }
-
-      if (Array.isArray(colors) && colors.length > 0) {
-        return [colors[0], colors[0]];
-      }
-
-      return ['#000000', '#000000'];
-    }, [colors]);
+      if (Array.isArray(colors) && colors.length >= 2) return colors;
+      if (Array.isArray(colors) && colors.length > 0) return [colors[0], colors[0]];
+      return [theme.text.primary, theme.text.primary];
+    }, [colors, theme.text.primary]);
 
     useEffect(() => {
       if (!hasValidColors) {
-        console.warn('GradientText requires at least 2 colors');
+        warnOnce('gradient-text:colors', 'GradientText requires at least 2 colors');
       }
     }, [hasValidColors]);
 
-    // Calculate gradient start and end points based on angle or custom points
-    const getGradientPoints = (pos: number = 0) => {
-      if (start && end) {
-        // Use custom start/end points with position offset
-        const dx = end[0] - start[0];
-        const dy = end[1] - start[1];
-        const offsetX = dx * pos;
-        const offsetY = dy * pos;
-        
-        return {
-          start: [start[0] - offsetX, start[1] - offsetY],
-          end: [end[0] - offsetX, end[1] - offsetY],
-        };
-      }
-
-      // Convert angle to radians
-      const radians = (angle * Math.PI) / 180;
-      
-      // Calculate start and end points based on angle
-      // 0° = left to right, 90° = top to bottom, etc.
-      const cos = Math.cos(radians);
-      const sin = Math.sin(radians);
-      
-      // Base points without position offset
-      let startX = 0.5 - cos * 0.5;
-      let startY = 0.5 - sin * 0.5;
-      let endX = 0.5 + cos * 0.5;
-      let endY = 0.5 + sin * 0.5;
-      
-      // Apply position offset (moves gradient along the angle direction)
-      const offsetX = cos * pos;
-      const offsetY = sin * pos;
-      
-      startX += offsetX;
-      startY += offsetY;
-      endX += offsetX;
-      endY += offsetY;
-      
-      return {
-        start: [startX, startY],
-        end: [endX, endY],
-      };
-    };
-
     // Calculate color locations
     const colorLocations = useMemo(() => {
-      if (locations && locations.length === resolvedColors.length) {
-        return locations;
-      }
-
+      if (locations && locations.length === resolvedColors.length) return locations;
       const divisor = resolvedColors.length > 1 ? resolvedColors.length - 1 : 1;
-      return resolvedColors.map((_, index) => (divisor === 0 ? 0 : index / divisor));
+      return resolvedColors.map((_, index) => index / divisor);
     }, [locations, resolvedColors]);
 
-    // Current position (animated or controlled)
-  const getCurrentPosition = () => controlledPosition ?? 0;
+    const currentPosition = controlledPosition ?? 0;
 
-    const isWeb = Platform.OS === 'web';
-    const currentPosition = getCurrentPosition();
-    const cssAngle = angle + 90;
-    const colorStops = resolvedColors
-      .map((color, i) => {
-        const location = colorLocations[i];
-        return `${color} ${location * 100}%`;
-      })
-      .join(', ');
-    const positionPercent = (1 - currentPosition) * 100;
-
-    // A CSS animation outranks the inline `background-position` below while it
-    // runs, so the sweep needs no per-frame JavaScript and no re-render.
+    // A CSS animation outranks the inline `background-position` while it runs,
+    // so the sweep needs no per-frame JavaScript and no re-render. Skipped
+    // entirely under reduced motion (the gradient rests at `position`).
     const sweep = useMemo(() => {
-      if (!isWeb || !animation) return null;
+      if (!isWeb || !animation || reducedMotion) return null;
 
       const { from, to, duration, delay = 0, repeat = false, repeatDelay = 0 } = animation;
       const sweepSeconds = Math.max(0.001, duration);
@@ -206,131 +168,141 @@ export const GradientText = React.forwardRef<View, GradientTextProps>(
       const fromPercent = (1 - from) * 100;
       const toPercent = (1 - to) * 100;
       const holdRatio = 1 - sweepSeconds / total;
+      const name = sweepKeyframeName(fromPercent, toPercent, holdRatio);
 
-      return {
-        name: sweepKeyframeName(fromPercent, toPercent, holdRatio),
-        fromPercent,
-        toPercent,
-        holdRatio,
-        css: `${sweepKeyframeName(fromPercent, toPercent, holdRatio)} ${total}s linear ${delay}s ${repeat ? 'infinite' : '1'} both`,
+      return { name, fromPercent, toPercent, holdRatio, total, delay, repeat };
+    }, [animation, reducedMotion]);
+
+    // Keyframes must exist before the inline animation that names them applies.
+    useInsertionEffect(() => {
+      if (sweep) injectSweepKeyframes(sweep.name, sweep.fromPercent, sweep.toPercent, sweep.holdRatio);
+    }, [sweep]);
+
+    const webGradientStyle = useMemo((): TextStyle | null => {
+      if (!isWeb || !hasValidColors) return null;
+      const colorStops = resolvedColors
+        .map((color, i) => `${color} ${colorLocations[i] * 100}%`)
+        .join(', ');
+      const css: GradientWebStyle = {
+        backgroundImage: `linear-gradient(${angle + 90}deg, ${colorStops})`,
+        backgroundSize: '200% 200%',
+        backgroundPosition: `${(1 - currentPosition) * 100}% 0`,
+        WebkitBackgroundClip: 'text',
+        backgroundClip: 'text',
+        // Inherited, so nested Text children show the gradient too.
+        WebkitTextFillColor: 'transparent',
+        ...(sweep
+          ? {
+              animationName: sweep.name,
+              animationDuration: `${sweep.total}s`,
+              animationTimingFunction: 'linear',
+              animationDelay: `${sweep.delay}s`,
+              animationIterationCount: sweep.repeat ? 'infinite' : 1,
+              animationFillMode: 'both',
+            }
+          : null),
       };
-    }, [isWeb, animation]);
-
-    useEffect(() => {
-      if (!isWeb || !hasValidColors) return;
-      if (!containerRef.current) return;
-
-      if (sweep) {
-        injectSweepKeyframes(sweep.name, sweep.fromPercent, sweep.toPercent, sweep.holdRatio);
-      }
-
-      const container = containerRef.current as any;
-      const allElements = [container, ...Array.from(container.querySelectorAll('*'))];
-      const animationCss = sweep?.css ?? '';
-
-      allElements.forEach((element: HTMLElement) => {
-        element.style.background = `linear-gradient(${cssAngle}deg, ${colorStops})`;
-        element.style.backgroundSize = '200% 200%';
-        element.style.backgroundPosition = `${positionPercent}% 0`;
-        element.style.webkitBackgroundClip = 'text';
-        element.style.webkitTextFillColor = 'transparent';
-        element.style.backgroundClip = 'text';
-        element.style.color = 'transparent';
-        element.style.animation = animationCss;
-      });
-    }, [isWeb, hasValidColors, cssAngle, colorStops, positionPercent, sweep]);
+      // Text renders a DOM element on web and passes CSS through; this is where
+      // the web-only keys cross into React Native's style type.
+      return css as unknown as TextStyle;
+    }, [hasValidColors, resolvedColors, colorLocations, angle, currentPosition, sweep]);
 
     if (!hasValidColors) {
       return (
-        <Text {...textProps}>
-          {children}
-        </Text>
-      );
-    }
-
-    // Web-specific gradient implementation with animation
-    if (!hasLinearGradient) {
-      return (
-        <View ref={ref} testID={testID} style={styles.container}>
-          <Text {...textProps}>{children}</Text>
+        <View ref={ref} testID={testID} style={[styles.container, WEB_CONTAINER_STYLE, spacingStyle]}>
+          <Text {...textProps} style={style}>
+            {children}
+          </Text>
         </View>
       );
     }
 
     if (isWeb) {
       return (
-        <View
-          ref={containerRef as any}
-          data-testid={testID}
-          style={{ display: 'inline-block' } as any}
-        >
-          <Text
-            {...textProps}
-            data-text-inner="true"
-          >
+        <View ref={ref} testID={testID} style={[WEB_CONTAINER_STYLE, spacingStyle]}>
+          <Text {...textProps} style={[style, webGradientStyle]}>
             {children}
           </Text>
         </View>
       );
     }
 
-    // Native implementation using MaskedView with LinearGradient
-    // Note: Gradient animation is not supported on native yet
-    const { start: gradientStart, end: gradientEnd } = getGradientPoints(getCurrentPosition());
-    
-    // Ensure we have at least 2 colors for the tuple type
-    const gradientColors = resolvedColors.length >= 2
-      ? resolvedColors as [string, string, ...string[]]
-      : [resolvedColors[0] || '#000', resolvedColors[0] || '#000'] as [string, string];
-    const gradientLocations = colorLocations.length >= 2
-      ? colorLocations as [number, number, ...number[]]
-      : [0, 1] as [number, number];
-
-    const MaskedView = resolveMaskedView();
+    // Native: a MaskedView over a LinearGradient. The sweep animation is web-only.
+    const { LinearGradient, hasLinearGradient } = getLinearGradient();
+    const MaskedView = hasLinearGradient ? resolveMaskedView() : null;
 
     if (!MaskedView) {
       return (
-        <Text
-          ref={ref as any}
-          {...textProps}
-          style={[textProps.style, { color: resolvedColors[0] || undefined }]}
-        >
-          {children}
-        </Text>
+        <View ref={ref} testID={testID} style={[styles.container, spacingStyle]}>
+          <Text {...textProps} style={[style, { color: resolvedColors[0] }]}>
+            {children}
+          </Text>
+        </View>
       );
     }
 
+    const { start: gradientStart, end: gradientEnd } = getGradientPoints(angle, start, end, currentPosition);
+
     return (
-      <MaskedView
-        ref={ref as any}
-        testID={testID}
-        style={styles.container}
-        maskElement={
-          <View style={styles.maskContainer}>
-            <Text {...textProps} style={[textProps.style, styles.maskText]}>
+      <View ref={ref} testID={testID} style={[styles.container, spacingStyle]}>
+        <MaskedView
+          style={styles.container}
+          maskElement={
+            <View style={styles.maskContainer}>
+              {/* The mask copy is visual only; the transparent copy below carries the text. */}
+              <Text {...textProps} style={style} aria-hidden importantForAccessibility="no-hide-descendants">
+                {children}
+              </Text>
+            </View>
+          }
+        >
+          <LinearGradient
+            colors={resolvedColors}
+            locations={colorLocations}
+            start={gradientStart}
+            end={gradientEnd}
+            style={styles.gradient}
+          >
+            {/* Transparent text to maintain layout */}
+            <Text {...textProps} style={[style, styles.transparentText]}>
               {children}
             </Text>
-          </View>
-        }
-      >
-            <OptionalLinearGradient
-          colors={gradientColors}
-          locations={gradientLocations}
-          start={gradientStart as [number, number]}
-          end={gradientEnd as [number, number]}
-          style={styles.gradient}
-        >
-          {/* Transparent text to maintain layout */}
-          <Text {...textProps} style={[textProps.style, styles.transparentText]}>
-            {children}
-          </Text>
-            </OptionalLinearGradient>
-      </MaskedView>
+          </LinearGradient>
+        </MaskedView>
+      </View>
     );
-  }
+  },
+  { displayName: 'GradientText' }
 );
 
-GradientText.displayName = 'GradientText';
+/** Gradient start / end points from the angle (or explicit points), shifted by `pos` along the line. */
+function getGradientPoints(
+  angle: number,
+  start: [number, number] | undefined,
+  end: [number, number] | undefined,
+  pos: number
+): { start: [number, number]; end: [number, number] } {
+  if (start && end) {
+    const offsetX = (end[0] - start[0]) * pos;
+    const offsetY = (end[1] - start[1]) * pos;
+    return {
+      start: [start[0] - offsetX, start[1] - offsetY],
+      end: [end[0] - offsetX, end[1] - offsetY],
+    };
+  }
+
+  // 0° = left to right, 90° = top to bottom, etc.
+  const radians = (angle * Math.PI) / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const offsetX = cos * pos;
+  const offsetY = sin * pos;
+
+  return {
+    start: [0.5 - cos * 0.5 + offsetX, 0.5 - sin * 0.5 + offsetY],
+    end: [0.5 + cos * 0.5 + offsetX, 0.5 + sin * 0.5 + offsetY],
+  };
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -341,9 +313,6 @@ const styles = StyleSheet.create({
   },
   maskContainer: {
     backgroundColor: 'transparent',
-  },
-  maskText: {
-    // This text acts as the mask - only opaque parts will show the gradient
   },
   transparentText: {
     opacity: 0,

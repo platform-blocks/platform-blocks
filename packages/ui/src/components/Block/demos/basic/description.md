@@ -8,4 +8,4 @@ status: stable
 since: 0.3.0
 hidden: false
 ---
-Combine spacing, layout, and polymorphic props on `Block` to build cards, responsive rows, and button-style actions without custom wrappers.
+Build a card with `bg`, `p` and `radius`, share a row with `grow` and a fixed `w`, and render button-style actions with `component`, all on `Block` without custom stylesheets.

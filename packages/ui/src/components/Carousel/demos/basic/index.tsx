@@ -4,10 +4,10 @@ const slides = ['#4C1D95', '#155E75', '#166534'];
 
 export function Demo() {
   return (
-    <Carousel height={200} loop autoPlay autoPlayInterval={4500} showDots>
+    <Carousel h={200} loop autoPlay autoPlayInterval={4500} showDots>
       {slides.map((bg, index) => (
         <Block key={bg} bg={bg} radius="lg" h="full" align="center" justify="center">
-          <Text variant="h3" color="white">
+          <Text variant="h3" c="white">
             Slide {index + 1}
           </Text>
         </Block>

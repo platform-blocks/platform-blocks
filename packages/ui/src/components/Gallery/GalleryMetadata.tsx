@@ -1,7 +1,16 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
 import { Text } from '../Text';
 import type { GalleryMetadataProps } from './types';
+
+const KNOWN_KEYS = new Set(['size', 'dimensions', 'dateCreated', 'camera', 'location']);
+
+const formatDimensions = (dimensions?: { width: number; height: number }): string => {
+  if (!dimensions) return 'Unknown';
+  return `${dimensions.width} × ${dimensions.height}`;
+};
 
 export const GalleryMetadata: React.FC<GalleryMetadataProps> = ({
   image,
@@ -11,19 +20,8 @@ export const GalleryMetadata: React.FC<GalleryMetadataProps> = ({
 
   const metadata = image.metadata;
 
-  const formatFileSize = (bytes?: string): string => {
-    if (!bytes) return 'Unknown';
-    if (typeof bytes === 'string') return bytes;
-    return bytes;
-  };
-
-  const formatDimensions = (dimensions?: { width: number; height: number }): string => {
-    if (!dimensions) return 'Unknown';
-    return `${dimensions.width} × ${dimensions.height}`;
-  };
-
   return (
-    <View style={styles.container}>
+    <View style={styles.container} {...a11yProps({ role: 'region', label: 'Image details' })}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           {image.title && (
@@ -50,7 +48,7 @@ export const GalleryMetadata: React.FC<GalleryMetadataProps> = ({
           {metadata.size && (
             <View style={styles.section}>
               <Text style={styles.label}>File Size</Text>
-              <Text style={styles.value}>{formatFileSize(metadata.size)}</Text>
+              <Text style={styles.value}>{metadata.size}</Text>
             </View>
           )}
 
@@ -77,7 +75,7 @@ export const GalleryMetadata: React.FC<GalleryMetadataProps> = ({
 
           {/* Additional metadata */}
           {Object.entries(metadata)
-            .filter(([key]) => !['size', 'dimensions', 'dateCreated', 'camera', 'location'].includes(key))
+            .filter(([key]) => !KNOWN_KEYS.has(key))
             .map(([key, value]) => (
               <View key={key} style={styles.section}>
                 <Text style={styles.label}>{key.charAt(0).toUpperCase() + key.slice(1)}</Text>
@@ -90,14 +88,15 @@ export const GalleryMetadata: React.FC<GalleryMetadataProps> = ({
   );
 };
 
+// Media chrome: light text on a dark scrim over the photo, not theme roles.
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     borderRadius: 12,
     bottom: 100,
     padding: 16,
+    end: 20,
     position: 'absolute',
-    right: 20,
     top: 100,
     width: 250,
     zIndex: 5,
@@ -119,7 +118,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   value: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 14,
     lineHeight: 18,
   },

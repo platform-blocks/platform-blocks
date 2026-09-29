@@ -1,3 +1,3 @@
 export { KeyCap } from './KeyCap';
-export { useKeyCapStyles } from './styles';
-export type { KeyCapProps } from './types';
+export { useKeyCapStyles, getKeyCapStyles } from './styles';
+export type { KeyCapProps, KeyCapVariant, KeyCapModifier, KeyCapMetrics, KeyCapStyleProps } from './types';

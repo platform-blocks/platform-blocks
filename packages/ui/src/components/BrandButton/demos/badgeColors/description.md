@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Override the badge shell with `backgroundColor`, `textColor`, and `borderColor` to match your brand or design requirements.
+Override the badge shell with `bg`, `textColor`, and `borderColor` to match your brand or design requirements.

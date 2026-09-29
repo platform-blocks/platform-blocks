@@ -1,84 +1,61 @@
 import React from 'react';
-import { View } from 'react-native';
-import { DESIGN_TOKENS } from '../../core';
+import { View, type FlexAlignType } from 'react-native';
+import { factory } from '../../core/factory/factory';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveSpacing } from '../../core/theme/tokens';
+import { resolveStyleProps, extractStyleProps } from '../../core/utils/spacing';
 import type { FormGroupProps } from './types';
 
-export const FormGroup = React.forwardRef<View, FormGroupProps>(({
-  children,
-  direction = 'column',
-  columns = 2,
-  spacing = 'md',
-  align = 'stretch',
-}, ref) => {
-  const getSpacing = () => {
-    switch (spacing) {
-      case 'xs': return DESIGN_TOKENS.spacing.xs;
-      case 'sm': return DESIGN_TOKENS.spacing.sm;
-      case 'md': return DESIGN_TOKENS.spacing.md;
-      case 'lg': return DESIGN_TOKENS.spacing.lg;
-      default: return DESIGN_TOKENS.spacing.md;
-    }
-  };
+const ALIGN: Record<NonNullable<FormGroupProps['align']>, FlexAlignType> = {
+  start: 'flex-start',
+  center: 'center',
+  end: 'flex-end',
+  stretch: 'stretch',
+};
 
-  const getAlignItems = () => {
-    switch (align) {
-      case 'start': return 'flex-start';
-      case 'center': return 'center';
-      case 'end': return 'flex-end';
-      case 'stretch': return 'stretch';
-      default: return 'stretch';
-    }
-  };
+/** Groups form fields in a column, or in rows of `columns` equal-width cells. */
+export const FormGroup = factory<{ props: FormGroupProps; ref: View }>(
+  (props, ref) => {
+    const { styleProps, otherProps } = extractStyleProps(props);
+    const { children, direction = 'column', columns = 2, spacing = 'md', align = 'stretch', style, testID } = otherProps;
+    const theme = useTheme();
+    const gap = resolveSpacing(theme, spacing) as number;
+    const alignItems = ALIGN[align] ?? 'stretch';
+    const rootStyle = [resolveStyleProps(styleProps, theme), style];
 
-  if (direction === 'row') {
-    // Row layout with columns
-    const childArray = React.Children.toArray(children);
-    const rows = [];
-    
-    for (let i = 0; i < childArray.length; i += columns) {
-      rows.push(childArray.slice(i, i + columns));
+    if (direction === 'row') {
+      const childArray = React.Children.toArray(children);
+      const rows: React.ReactNode[][] = [];
+      for (let i = 0; i < childArray.length; i += columns) {
+        rows.push(childArray.slice(i, i + columns));
+      }
+
+      return (
+        <View ref={ref} testID={testID} style={[{ gap }, rootStyle]}>
+          {rows.map((row, rowIndex) => (
+            // Rows are positional slots of a static layout, so the index is their identity.
+            <View key={rowIndex} style={{ flexDirection: 'row', gap, alignItems }}>
+              {row.map((child, colIndex) => (
+                <View key={colIndex} style={{ flex: 1 }}>
+                  {child}
+                </View>
+              ))}
+              {/* Fill empty columns so the last row keeps the grid widths */}
+              {row.length < columns &&
+                Array.from({ length: columns - row.length }).map((_, emptyIndex) => (
+                  <View key={`empty-${emptyIndex}`} style={{ flex: 1 }} />
+                ))}
+            </View>
+          ))}
+        </View>
+      );
     }
 
     return (
-      <View style={{ gap: getSpacing() }}>
-        {rows.map((row, rowIndex) => (
-          <View
-            key={rowIndex}
-            style={{
-              flexDirection: 'row',
-              gap: getSpacing(),
-              alignItems: getAlignItems(),
-            }}
-          >
-            {row.map((child, colIndex) => (
-              <View key={colIndex} style={{ flex: 1 }}>
-                {child}
-              </View>
-            ))}
-            {/* Fill empty columns */}
-            {row.length < columns && 
-              Array.from({ length: columns - row.length }).map((_, emptyIndex) => (
-                <View key={`empty-${emptyIndex}`} style={{ flex: 1 }} />
-              ))
-            }
-          </View>
-        ))}
+      <View ref={ref} testID={testID} style={[{ gap, alignItems }, rootStyle]}>
+        {children}
       </View>
     );
-  }
-
-  // Column layout
-  return (
-    <View
-      ref={ref}
-      style={{
-        gap: getSpacing(),
-        alignItems: getAlignItems(),
-      }}
-    >
-      {children}
-    </View>
-  );
-});
-
-FormGroup.displayName = 'FormGroup';
+  },
+  { displayName: 'FormGroup' }
+);

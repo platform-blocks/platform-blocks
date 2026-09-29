@@ -1,0 +1,67 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Indicator - rendering matches snapshot for decorated indicator with offset and border 1`] = `
+<View
+  style={
+    {
+      "height": 80,
+      "width": 80,
+    }
+  }
+>
+  <View
+    importantForAccessibility="no"
+    style={
+      [
+        {
+          "alignItems": "center",
+          "backgroundColor": "#7F56D9",
+          "borderColor": "#101828",
+          "borderRadius": 7,
+          "borderWidth": 2,
+          "end": -10,
+          "height": 14,
+          "justifyContent": "center",
+          "minWidth": undefined,
+          "paddingHorizontal": 0,
+          "position": "absolute",
+          "top": -10,
+          "width": 14,
+        },
+        {},
+        undefined,
+      ]
+    }
+  />
+</View>
+`;
+
+exports[`Indicator - rendering matches snapshot for default indicator with inline content 1`] = `
+<View
+  style={
+    [
+      {
+        "alignItems": "center",
+        "backgroundColor": "#3F9142",
+        "borderColor": "#FFFFFF",
+        "borderRadius": 6,
+        "borderWidth": 1,
+        "bottom": -0,
+        "end": -0,
+        "height": 12,
+        "justifyContent": "center",
+        "minWidth": undefined,
+        "paddingHorizontal": 0,
+        "position": "absolute",
+        "width": 12,
+      },
+      {},
+      undefined,
+    ]
+  }
+>
+  <Text>
+    3
+  </Text>
+</View>
+`;

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo, useEffect } from 'react';
 import { DialogConfig, DialogContextValue } from './types';
+import { devError } from '../../core/utils/logger';
 
 // Split contexts for API vs state to minimize re-renders
 const DialogApiContext = createContext<Pick<DialogContextValue, 'openDialog' | 'closeDialog' | 'removeDialog' | 'closeAllDialogs'> | null>(null);
@@ -24,9 +25,7 @@ function flushPendingDialogOperations() {
     try {
       operation?.(dialogApiRef);
     } catch (error) {
-      if (__DEV__) {
-        console.error('[dialog] queued operation failed', error);
-      }
+      devError('[dialog] queued operation failed', error);
     }
   }
 }
@@ -94,9 +93,7 @@ function notifyDialogListeners() {
     try {
       listener();
     } catch (error) {
-      if (__DEV__) {
-        console.error('[dialog] listener error', error);
-      }
+      devError('[dialog] listener error', error);
     }
   });
 }
@@ -116,7 +113,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const [dialogs, setDialogs] = useState<DialogConfig[]>([]);
 
   const openDialog = useCallback((config: Omit<DialogConfig, 'id'> & { id?: string }) => {
-    const id = config.id ?? Math.random().toString(36).substr(2, 9);
+    const id = config.id ?? Math.random().toString(36).slice(2, 11);
     const dialogConfig: DialogConfig = {
       id,
       closable: true,
@@ -200,10 +197,11 @@ export function useDialog(): DialogContextValue {
       notifyDialogListeners();
     }
   }, [api, dialogs]);
-  if (api && dialogs) {
-    return { dialogs, ...api } as DialogContextValue;
-  }
-  return dialogBridge;
+  const value = useMemo<DialogContextValue | null>(
+    () => (api && dialogs ? { dialogs, ...api } : null),
+    [api, dialogs]
+  );
+  return value ?? dialogBridge;
 }
 
 export function useDialogApi() {

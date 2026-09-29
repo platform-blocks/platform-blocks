@@ -1,17 +1,17 @@
-import React, { MutableRefObject, useCallback, useMemo, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
 
-import { factory } from '../../core/factory';
-import { useTheme } from '../../core/theme';
+import { useAdjustable } from '../../core/accessibility/useAdjustable';
+import { useFieldA11y } from '../../core/accessibility/useFieldA11y';
+import { factory, withStatics } from '../../core/factory';
+import { isAndroid } from '../../core/platform';
+import { literalText } from '../../core/theme/cssVariableTheme';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { useTheme } from '../../core/theme/ThemeProvider';
 import { useDirection } from '../../core/providers/DirectionProvider';
-import {
-  extractSpacingProps,
-  extractLayoutProps,
-  getSpacingStyles,
-  getLayoutStyles,
-} from '../../core/utils';
+import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
+import { extractLayoutProps, getLayoutStyles } from '../../core/utils/layout';
 import type {
   KnobProps,
   KnobBehavior,
@@ -45,13 +45,12 @@ import {
 import { resolveKnobAppearance } from './appearance';
 import { resolveKnobSize } from './sizes';
 import { clamp } from './utils/math';
-import { findClosestMarkEntry } from './utils/marks';
+import { findClosestMarkEntry, pickAdjacentMark } from './utils/marks';
 import { toRadians } from './utils/geometry';
 import { useKnobGeometry } from './hooks/useKnobGeometry';
 import { useKnobValue } from './hooks/useKnobValue';
 import { useKnobValueLabels } from './hooks/useKnobValueLabels';
 import { useKnobGestures } from './hooks/useKnobGestures';
-import { useKnobKeyboard } from './hooks/useKnobKeyboard';
 import { normalizeInteractionConfig } from './interactionConfig';
 import { knobStyles as styles } from './styles';
 import { KnobSurface } from './components/KnobSurface';
@@ -60,6 +59,7 @@ import type { TickLayersProps } from './components/TickLayers';
 import type { PointerLayerProps } from './components/PointerLayer';
 import type { ThumbLayerProps } from './components/ThumbLayer';
 import { ValueLabelLayout } from './components/ValueLabelLayout';
+import { isDev, devWarn, warnOnce } from '../../core/utils/logger';
 
 const defaultKnobLabelFormatter = (val: number) => `${Math.round(val)}°`;
 
@@ -77,11 +77,11 @@ const getGestureDegreeSpan = (isEndless: boolean, sweepAngle: number) => {
 const LEGACY_BEHAVIOR_VARIANTS = new Set<string>(['level', 'stepped', 'endless', 'dual', 'status']);
 
 let hasWarnedLegacyVariant = false;
-const warnLegacyVariant = __DEV__
+const warnLegacyVariant = isDev
   ? (value: string) => {
     if (hasWarnedLegacyVariant) return;
     hasWarnedLegacyVariant = true;
-    console.warn(
+    devWarn(
       `[Knob] \`variant="${value}"\` is a behavior, not a visual style — pass it as ` +
       `\`behavior="${value}"\`. \`variant\` now selects the visual preset ` +
       '(default | minimal | digital | retro | studio).'
@@ -93,7 +93,7 @@ const KnobBase = factory<{
   props: KnobProps;
   ref: View;
 }>((props, ref) => {
-  const { spacingProps, otherProps: propsAfterSpacing } = extractSpacingProps(props);
+  const { styleProps, otherProps: propsAfterSpacing } = extractStyleProps(props);
   const { layoutProps, otherProps } = extractLayoutProps(propsAfterSpacing);
 
   const {
@@ -133,7 +133,7 @@ const KnobBase = factory<{
 
   const theme = useTheme();
   const { isRTL } = useDirection();
-  const spacingStyles = useMemo(() => getSpacingStyles(spacingProps), [spacingProps]);
+  const spacingStyles = useMemo(() => resolveStyleProps(styleProps, theme), [styleProps, theme]);
   const layoutStyles = useMemo(() => getLayoutStyles(layoutProps), [layoutProps]);
 
   const hasLabelContent = label != null || description != null;
@@ -312,7 +312,7 @@ const KnobBase = factory<{
   const fillDiameter = fillConfig ? fillRadius * 2 : 0;
   const ringBaseDiameter = ringRadius * 2 + ringThickness;
   const trackColor = resolvedAppearance.ring.color;
-  const thumbColor = resolvedAppearance.thumb?.color ?? theme.colors.gray[7];
+  const thumbColor = resolvedAppearance.thumb?.color ?? literalText(theme).secondary;
   const ringSvgCenter = ringBaseDiameter / 2;
   const ringShadowStyle = useMemo(() => {
     const shadow = resolvedAppearance.ring.shadow;
@@ -325,10 +325,7 @@ const KnobBase = factory<{
         width: shadow.offsetX ?? 0,
         height: shadow.offsetY ?? Math.max(1, ringThickness * 0.25),
       },
-      elevation:
-        Platform.OS === 'android'
-          ? Math.max(1, shadow.blur ?? ringThickness * 0.5)
-          : undefined,
+      elevation: isAndroid ? Math.max(1, shadow.blur ?? ringThickness * 0.5) : undefined,
     } as ViewStyle;
   }, [resolvedAppearance.ring.shadow, ringThickness]);
 
@@ -415,18 +412,7 @@ const KnobBase = factory<{
   );
 
   const hostRef = useRef<View | null>(null);
-
-  const setHostRef = useCallback(
-    (node: View | null) => {
-      hostRef.current = node;
-      if (typeof ref === 'function') {
-        ref(node);
-      } else if (ref) {
-        (ref as MutableRefObject<View | null>).current = node;
-      }
-    },
-    [ref]
-  );
+  const setHostRef = useMergedRef(hostRef, ref);
 
   const valueSpan = useMemo(() => {
     const rawSpan = Math.abs(max - min);
@@ -586,19 +572,43 @@ const KnobBase = factory<{
     };
   }, [displayAngle, thumbRadius, thumbScale]);
 
-  const { keyboardHandlers, accessibilityActions, onAccessibilityAction } = useKnobKeyboard({
-    disabled,
-    readOnly,
+  // Name and description: the visual label / description (outside the dial) are
+  // referenced on web and composed into the native label / hint.
+  const field = useFieldA11y({ label, description, accessibilityLabel, disabled, readOnly });
+  if (label == null && !accessibilityLabel) {
+    warnOnce('Knob.accessibilityLabel', '[Knob] Pass `label` or `accessibilityLabel` so the knob has an accessible name.');
+  }
+
+  // Detented knobs move between marks, not by `step` — a step-sized nudge would
+  // usually re-snap to the mark it started on and look frozen.
+  const detents = restrictToMarks && marksNormalized.length > 0 ? marksNormalized : null;
+  const nextKeyboardValue = useCallback(
+    (current: number, direction: 1 | -1, amount: number) =>
+      detents ? pickAdjacentMark(current, detents, direction) : current + direction * amount,
+    [detents]
+  );
+  const boundValue = useCallback(
+    (bound: 'min' | 'max') =>
+      detents ? (bound === 'min' ? detents[0].value : detents[detents.length - 1].value) : bound === 'min' ? min : max,
+    [detents, min, max]
+  );
+
+  // Keyboard (web) and increment/decrement actions (native): every adjustment
+  // commits, since there is no gesture to end.
+  const { adjustableProps } = useAdjustable({
+    value: displayValue,
     min,
     max,
     step,
-    isEndless,
-    restrictToMarks,
-    marksNormalized,
-    valueRef,
-    handleValueUpdate,
-    isRTL,
+    onChange: (next) => handleValueUpdate(next, true),
+    disabled,
+    readOnly,
+    rtl: isRTL,
+    endless: isEndless,
+    getNextValue: nextKeyboardValue,
+    getBoundValue: boundValue,
   });
+  const a11y = useMemo(() => ({ ...field.controlProps, ...adjustableProps }), [field.controlProps, adjustableProps]);
 
   const ringBaseStroke = showProgress
     ? resolvedAppearance.progress?.trailColor ?? resolvedAppearance.ring.trailColor
@@ -689,16 +699,10 @@ const KnobBase = factory<{
       size={size}
       disabled={disabled}
       trackColor={trackColor}
-      accessibilityLabel={accessibilityLabel ?? (typeof label === 'string' ? label : 'Knob')}
-      accessibilityMin={min}
-      accessibilityMax={max}
-      accessibilityNow={Math.round(displayValue)}
+      a11y={a11y}
       setHostRef={setHostRef}
       panHandlers={panHandlers}
       handleLayout={handleLayout}
-      keyboardHandlers={keyboardHandlers}
-      accessibilityActions={accessibilityActions}
-      onAccessibilityAction={onAccessibilityAction}
       surfaceLayersProps={surfaceLayersProps}
       tickLayersProps={tickLayersProps}
       pointerLayerProps={pointerLayerProps}
@@ -715,12 +719,14 @@ const KnobBase = factory<{
       valueLabelSlots={valueLabelSlots}
       spacingStyles={spacingStyles}
       layoutStyles={layoutStyles}
-      spacingProps={spacingProps}
+      spacingProps={styleProps}
       layoutProps={layoutProps}
       hasLabelContent={hasLabelContent}
       label={label}
       description={description}
       labelPosition={labelPosition}
+      labelId={field.ids.label}
+      descriptionId={field.ids.description}
     />
   );
 });
@@ -914,10 +920,10 @@ const buildValueLabelFromParts = (
   return mutated ? current : baseValueLabel;
 };
 
-const warnNonPartChild = __DEV__
+const warnNonPartChild = isDev
   ? (child: React.ReactNode) => {
     if (child == null) return;
-    console.warn('Knob.Root only accepts Knob.* part components. Other children will be ignored.');
+    devWarn('Knob.Root only accepts Knob.* part components. Other children will be ignored.');
   }
   : () => { };
 
@@ -928,7 +934,8 @@ const collectPartEntries = (children: React.ReactNode): PartEntry[] => {
       warnNonPartChild(child);
       return;
     }
-    const kind = (child.type as any)?.__knobPartKind as KnobPartKind | undefined;
+    const kind =
+      typeof child.type === 'string' ? undefined : (child.type as Partial<KnobPartComponent<object>>).__knobPartKind;
     if (!kind) {
       warnNonPartChild(child);
       return;
@@ -966,7 +973,7 @@ type KnobCompoundComponent = typeof KnobBase & {
   ValueLabel: React.FC<KnobValueLabelPartProps>;
 };
 
-export const Knob = Object.assign(KnobBase, {
+export const Knob: KnobCompoundComponent = withStatics(KnobBase, {
   Root: KnobRootComponent,
   Fill: KnobFillPart,
   Ring: KnobRingPart,
@@ -976,7 +983,7 @@ export const Knob = Object.assign(KnobBase, {
   Pointer: KnobPointerPart,
   Thumb: KnobThumbPart,
   ValueLabel: KnobValueLabelPart,
-}) as KnobCompoundComponent;
+});
 
 export const __KnobInternals = {
   buildAppearanceFromParts,

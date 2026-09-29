@@ -1,114 +1,135 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useSyncExternalStore } from 'react';
+import { View, type ViewStyle } from 'react-native';
+
+import { factory } from '../../core/factory/factory';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { hasDOM } from '../../core/platform/flags';
+import { warnOnce } from '../../core/utils/logger';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 
 import { NavigationProvider } from './NavigationContext';
-import type { NavigationState, Route } from './types';
+import type {
+  LinkingOptions,
+  LinkingScreenConfig,
+  NavigationContainerProps,
+  NavigationState,
+  Route,
+} from './types';
 
-export interface NavigationContainerProps {
-  children: React.ReactNode;
-  initialState?: NavigationState;
-  onStateChange?: (state: NavigationState) => void;
-  theme?: any; // For compatibility with React Navigation themes
-  linking?: any; // For web URL routing (basic implementation)
-}
+export type { NavigationContainerProps } from './types';
+
+type LinkingConfig = NonNullable<LinkingOptions['config']>;
+
+const FILL: ViewStyle = { flex: 1 };
 
 const defaultInitialState: NavigationState = {
   routes: [],
   index: 0,
-  key: 'root'
+  key: 'root',
 };
 
-function NavigationContainerBase({
-  children,
-  initialState = defaultInitialState,
-  onStateChange,
-  theme,
-  linking,
-  ...props
-}: NavigationContainerProps) {
-  // Initialize state based on current URL if linking is provided
-  const getInitialStateFromURL = useCallback(() => {
-    if (linking && typeof window !== 'undefined' && linking.config) {
-      const pathname = window.location.pathname;
-      const matchedRoute = parseUrl(pathname, linking.config);
-      
-      if (matchedRoute) {
-        return {
-          routes: [matchedRoute],
-          index: 0,
-          key: 'root'
-        };
-      }
-    }
-    return initialState;
-  }, [linking, initialState]);
+// The URL is read through useSyncExternalStore so the first render is
+// hydration-safe: the server snapshot (and the hydration pass) see `null`,
+// the client sees the real path. `hasDOM`, not `typeof window`: React Native
+// defines a `window` without a `location`.
+const noopSubscribe = () => () => {};
+const readPathname = (): string | null => (hasDOM ? window.location.pathname : null);
+const readServerPathname = (): string | null => null;
 
-  const [state, setState] = useState<NavigationState>(getInitialStateFromURL);
+function stateFromPath(pathname: string | null, config: LinkingConfig | undefined): NavigationState | null {
+  if (pathname === null || !config) return null;
+  const route = parseUrl(pathname, config);
+  return route ? { routes: [route], index: 0, key: 'root' } : null;
+}
 
-  // Handle browser back/forward events
+const NavigationContainerBase = factory<{ props: NavigationContainerProps; ref: View }>((props, ref) => {
+  const { styleProps, otherProps } = extractStyleProps(props);
+  const {
+    children,
+    initialState = defaultInitialState,
+    onStateChange,
+    theme,
+    linking,
+    style,
+    testID,
+  } = otherProps;
+
+  if (theme !== undefined) {
+    warnOnce(
+      'NavigationContainer.theme',
+      '[platform-blocks] NavigationContainer: `theme` is ignored; the navigators read the platform-blocks theme.'
+    );
+  }
+
+  const spacing = useStyleProps(styleProps);
+  const linkingConfig = linking?.config;
+  const notifyStateChange = useLatestCallback(onStateChange);
+
+  const pathname = useSyncExternalStore(noopSubscribe, readPathname, readServerPathname);
+  const [urlSeeded, setUrlSeeded] = useState(pathname !== null);
+  const [state, setState] = useState<NavigationState>(
+    () => stateFromPath(pathname, linkingConfig) ?? initialState
+  );
+
+  if (!urlSeeded && pathname !== null) {
+    // First client render after hydration: the URL is readable now, so the
+    // route it names replaces the server-rendered initial state (once).
+    setUrlSeeded(true);
+    const fromUrl = stateFromPath(pathname, linkingConfig);
+    if (fromUrl) setState(fromUrl);
+  }
+
+  // Browser back / forward.
+  const handlePopState = useLatestCallback(() => {
+    const next = stateFromPath(readPathname(), linking?.config);
+    if (!next) return;
+    setState(next);
+    notifyStateChange(next);
+  });
+  const hasLinking = !!linkingConfig;
   useEffect(() => {
-    if (linking && typeof window !== 'undefined') {
-      const handlePopState = () => {
-        const pathname = window.location.pathname;
-        const matchedRoute = parseUrl(pathname, linking.config);
-        
-        if (matchedRoute) {
-          const newState = {
-            routes: [matchedRoute],
-            index: 0,
-            key: 'root'
-          };
-          setState(newState);
-          onStateChange?.(newState);
-        }
-      };
+    if (!hasLinking || !hasDOM) return undefined;
+    const listener = () => handlePopState();
+    window.addEventListener('popstate', listener);
+    return () => window.removeEventListener('popstate', listener);
+  }, [handlePopState, hasLinking]);
 
-      window.addEventListener('popstate', handlePopState);
-      return () => window.removeEventListener('popstate', handlePopState);
-    }
-  }, [linking, onStateChange]);
+  // Stable identity, so the navigation context only changes with the state.
+  const handleStateChange = useLatestCallback((next: NavigationState) => {
+    setState(next);
+    notifyStateChange(next);
 
-  const handleStateChange = useCallback((newState: NavigationState) => {
-    setState(newState);
-    onStateChange?.(newState);
-
-    // Basic web URL routing support
-    if (linking && typeof window !== 'undefined' && window.history) {
-      const currentRoute = newState.routes[newState.index];
-      if (currentRoute) {
-        const url = generateUrl(currentRoute, linking.config);
-        window.history.pushState({}, '', url);
-      }
-    }
-  }, [onStateChange, linking]);
-
-  // Initialize with first child if no routes
-  const enhancedChildren = useMemo(() => {
-    if (state.routes.length === 0 && React.Children.count(children) > 0) {
-      // Auto-initialize with the first navigator's initial route
-      // This will be handled by the navigator components themselves
-    }
-    return children;
-  }, [children, state.routes.length]);
+    // Basic web URL sync. Held back until the URL has been read (see above),
+    // so a navigator's initial navigate during hydration can't overwrite the
+    // address the page was loaded at.
+    if (!linking?.config || !hasDOM || !urlSeeded) return;
+    const currentRoute = next.routes[next.index];
+    if (!currentRoute) return;
+    const url = generateUrl(currentRoute, linking.config);
+    if (url !== window.location.pathname) window.history.pushState({}, '', url);
+  });
 
   return (
-    <View style={styles.container} {...props}>
+    <View ref={ref} testID={testID} style={[FILL, spacing, style]}>
       <NavigationProvider state={state} onStateChange={handleStateChange}>
-        {enhancedChildren}
+        {children}
       </NavigationProvider>
     </View>
   );
-}
+}, { displayName: 'NavigationContainer' });
+
+export const NavigationContainer = NavigationContainerBase;
 
 // Helper function to generate URLs for web routing
-function generateUrl(route: Route, config: any): string {
-  if (!config?.screens) return '/';
+function generateUrl(route: Route, config: LinkingConfig): string {
+  if (!config.screens) return '/';
 
   // Simple URL generation - can be enhanced for complex routing
   const screenConfig = config.screens[route.name];
   if (typeof screenConfig === 'string') {
     return screenConfig;
-  } else if (typeof screenConfig === 'object' && screenConfig.path) {
+  }
+  if (screenConfig?.path) {
     let path = screenConfig.path;
     // Replace params in path
     if (route.params) {
@@ -122,76 +143,47 @@ function generateUrl(route: Route, config: any): string {
   return `/${route.name.toLowerCase()}`;
 }
 
-// Helper function to parse URLs and match routes
-function parseUrl(pathname: string, config: any): Route | null {
-  if (!config?.screens) return null;
+const routeFor = (name: string, params: Record<string, string> = {}): Route => ({
+  key: `${name}-${Date.now()}`,
+  name,
+  params,
+});
 
-  // Check each screen configuration
-  for (const [screenName, screenConfig] of Object.entries(config.screens)) {
+/** Whether `pathname` is `base` or sits below it (segment-aware: `/app` covers `/app/x`, not `/apple`). */
+const isWithin = (pathname: string, base: string): boolean =>
+  pathname === base || pathname.startsWith(base.endsWith('/') ? base : `${base}/`);
+
+// Helper function to parse URLs and match routes
+function parseUrl(pathname: string, config: LinkingConfig): Route | null {
+  if (!config.screens) return null;
+
+  for (const [screenName, screenConfig] of Object.entries(config.screens) as [string, LinkingScreenConfig][]) {
     if (typeof screenConfig === 'string') {
-      if (pathname === screenConfig) {
-        return {
-          key: `${screenName}-${Date.now()}`,
-          name: screenName,
-          params: {}
-        };
-      }
-    } else if (typeof screenConfig === 'object' && (screenConfig as any).path) {
-      const configPath = (screenConfig as any).path;
-      
-      // Handle exact matches
-      if (pathname === configPath) {
-        return {
-          key: `${screenName}-${Date.now()}`,
-          name: screenName,
-          params: {}
-        };
-      }
-      
-      // Handle parameterized paths (basic implementation)
-      const pathPattern = configPath.replace(/:([^/]+)/g, '([^/]+)');
-      const regex = new RegExp(`^${pathPattern}$`);
-      const match = pathname.match(regex);
-      
-      if (match) {
-        const params: Record<string, string> = {};
-        const paramNames = [...configPath.matchAll(/:([^/]+)/g)].map(m => m[1]);
-        
-        paramNames.forEach((paramName, index) => {
-          params[paramName] = match[index + 1];
-        });
-        
-        return {
-          key: `${screenName}-${Date.now()}`,
-          name: screenName,
-          params
-        };
-      }
-    } else if (typeof screenConfig === 'object' && (screenConfig as any).screens) {
-      // Handle nested screens (like stack navigators)
-      const nestedConfig = (screenConfig as any);
-      
-      // Check if the path matches the parent path
-      if (nestedConfig.path && pathname.startsWith(nestedConfig.path)) {
-        // For nested routes, return the parent stack route
-        return {
-          key: `${screenName}-${Date.now()}`,
-          name: screenName,
-          params: {}
-        };
-      }
+      if (pathname === screenConfig) return routeFor(screenName);
+      continue;
     }
+
+    const configPath = screenConfig.path;
+    if (!configPath) continue;
+
+    // Exact match
+    if (pathname === configPath) return routeFor(screenName);
+
+    // Parameterized paths (basic implementation)
+    const pathPattern = configPath.replace(/:([^/]+)/g, '([^/]+)');
+    const match = pathname.match(new RegExp(`^${pathPattern}$`));
+    if (match) {
+      const params: Record<string, string> = {};
+      const paramNames = [...configPath.matchAll(/:([^/]+)/g)].map(m => m[1]);
+      paramNames.forEach((paramName, index) => {
+        params[paramName] = match[index + 1];
+      });
+      return routeFor(screenName, params);
+    }
+
+    // A nested navigator: anything under its path lands on the parent route.
+    if (screenConfig.screens && isWithin(pathname, configPath)) return routeFor(screenName);
   }
 
   return null;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1
-  }
-});
-
-export const NavigationContainer = React.forwardRef<View, NavigationContainerProps>((props, ref) => (
-  <NavigationContainerBase {...props} />
-));

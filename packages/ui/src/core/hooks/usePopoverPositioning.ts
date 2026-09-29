@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Platform, Dimensions } from 'react-native';
+import type { View } from 'react-native';
 import {
   calculateOverlayPositionEnhanced,
   measureElement,
@@ -8,6 +9,8 @@ import {
   type PlacementType,
 } from '../utils/positioning-enhanced';
 import { useKeyboardManagerOptional } from '../providers/KeyboardManagerProvider';
+import { devError } from '../utils/logger';
+import { resolvePlacementForDirection, resolvePlacementsForDirection, useIsRTL } from '../overlay/placement';
 
 export interface UsePopoverPositioningOptions extends PositioningOptions {
   /** Whether to automatically reposition on window resize */
@@ -16,19 +19,33 @@ export interface UsePopoverPositioningOptions extends PositioningOptions {
   updateDelay?: number;
   /** Adjust viewport height when on-screen keyboard is visible (default: true) */
   keyboardAvoidance?: boolean;
+  /**
+   * Layout direction the placement is written for. In `'rtl'` the `left`/`right`
+   * sides and the `-start`/`-end` alignment of `top`/`bottom` placements are
+   * mirrored, so `bottom-start` hugs the trigger's right edge. The returned
+   * `position.placement` is always the physical side. Defaults to the
+   * DirectionProvider's direction (or the platform's when there is none).
+   */
+  direction?: 'ltr' | 'rtl';
 }
+
+/**
+ * A position result tagged with whether the popover had been measured when it
+ * was computed (read by `useFloating` as `isPositioned`).
+ */
+type MeasuredPositionResult = PositionResult & { _hasMeasuredPopover?: boolean };
 
 /**
  * True when two results describe the same placement, so we can skip a state
  * update (and the consumer re-render it triggers) on a no-op reposition.
  */
 function samePosition(
-  prev: PositionResult | null,
+  prev: MeasuredPositionResult | null,
   next: PositionResult,
   nextHasMeasuredPopover: boolean
 ): boolean {
   if (!prev) return false;
-  if (((prev as any)._hasMeasuredPopover ?? false) !== nextHasMeasuredPopover) return false;
+  if ((prev._hasMeasuredPopover ?? false) !== nextHasMeasuredPopover) return false;
   return (
     prev.x === next.x &&
     prev.y === next.y &&
@@ -42,7 +59,12 @@ function samePosition(
   );
 }
 
-export interface UsePopoverPositioningReturn {
+/**
+ * `TAnchor` / `TPopover` are the host types the refs are attached to (`View`
+ * by default; e.g. `usePopoverPositioning<TextInput>(…)` for an input anchor).
+ * On web the refs hold the DOM nodes.
+ */
+export interface UsePopoverPositioningReturn<TAnchor = View, TPopover = View> {
   /** Current position result */
   position: PositionResult | null;
   /** Update position manually. Pass `{ silent: true }` to skip the isPositioning flag. */
@@ -50,30 +72,44 @@ export interface UsePopoverPositioningReturn {
   /** Whether positioning is currently being calculated */
   isPositioning: boolean;
   /** Ref to attach to the anchor element */
-  anchorRef: React.RefObject<any>;
+  anchorRef: React.RefObject<TAnchor | null>;
   /** Ref to attach to the popover element for size measurement */
-  popoverRef: React.RefObject<any>;
+  popoverRef: React.RefObject<TPopover | null>;
 }
 
 /**
  * Hook for managing popover positioning with automatic viewport constraint handling
  */
-export function usePopoverPositioning(
+export function usePopoverPositioning<TAnchor = View, TPopover = View>(
   isOpen: boolean,
   options: UsePopoverPositioningOptions = {}
-): UsePopoverPositioningReturn {
+): UsePopoverPositioningReturn<TAnchor, TPopover> {
   const {
     autoUpdate = true,
     updateDelay = 100,
     keyboardAvoidance = true,
-    ...positioningOptions
+    direction,
+    ...directionalOptions
   } = options;
 
-  const [position, setPosition] = useState<PositionResult | null>(null);
+  const contextIsRTL = useIsRTL();
+  const isRTL = direction ? direction === 'rtl' : contextIsRTL;
+  // Mirror written placements into physical ones before any math runs.
+  const positioningOptions = useMemo<PositioningOptions>(() => (isRTL
+    ? {
+        ...directionalOptions,
+        placement: directionalOptions.placement
+          ? resolvePlacementForDirection(directionalOptions.placement, true)
+          : directionalOptions.placement,
+        fallbackPlacements: resolvePlacementsForDirection(directionalOptions.fallbackPlacements, true),
+      }
+    : directionalOptions), [directionalOptions, isRTL]);
+
+  const [position, setPosition] = useState<MeasuredPositionResult | null>(null);
   const [isPositioning, setIsPositioning] = useState(false);
 
-  const anchorRef = useRef<any>(null);
-  const popoverRef = useRef<any>(null);
+  const anchorRef = useRef<TAnchor>(null);
+  const popoverRef = useRef<TPopover>(null);
   const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafRef = useRef<number | null>(null);
   const positioningOptionsRef = useRef(positioningOptions);
@@ -165,13 +201,13 @@ export function usePopoverPositioning(
       }
 
       // Mark whether this position is based on actual measurements
-      (result as any)._hasMeasuredPopover = hasMeasuredPopover;
+      const measured: MeasuredPositionResult = Object.assign(result, { _hasMeasuredPopover: hasMeasuredPopover });
 
       // Bail out when nothing moved so a scroll that doesn't shift the anchor
       // (e.g. an already-pinned element) doesn't re-render every consumer.
-      setPosition(prev => (samePosition(prev, result, hasMeasuredPopover) ? prev : result));
+      setPosition(prev => (samePosition(prev, measured, hasMeasuredPopover) ? prev : measured));
     } catch (error) {
-      console.error('Error calculating popover position:', error);
+      devError('Error calculating popover position:', error);
       setPosition(null);
     } finally {
       if (!silent) setIsPositioning(false);
@@ -208,7 +244,7 @@ export function usePopoverPositioning(
     });
   }, [debouncedUpdate]);
 
-  // Update position when opened
+  // Update position when opened (`updatePosition` is stable: it reads refs only)
   useEffect(() => {
     if (isOpen) {
       updatePosition();
@@ -216,7 +252,7 @@ export function usePopoverPositioning(
       currentPlacementRef.current = null;
       setPosition(null);
     }
-  }, [isOpen]);
+  }, [isOpen, updatePosition]);
 
   const optionsSignature = useMemo(() => JSON.stringify(computedPositioningOptions), [computedPositioningOptions]);
   const lastSignatureRef = useRef<string | null>(null);
@@ -240,8 +276,9 @@ export function usePopoverPositioning(
   useEffect(() => {
     if (!autoUpdate || !isOpen) return;
 
+    // Resize tracks the anchor per frame too (rAF-batched), like scroll.
     const handleResize = () => {
-      debouncedUpdate();
+      frameUpdate();
     };
 
     // Scroll keeps the popover docked to its anchor, so it runs per-frame
@@ -256,11 +293,14 @@ export function usePopoverPositioning(
     };
 
     if (Platform.OS === 'web') {
-      window.addEventListener('resize', handleResize);
+      // Passive: repositioning never cancels the scroll/resize itself.
+      const passive = { passive: true } as const;
       // Capture phase so scrolling containers between the anchor and the window
       // are caught too, not just the document scroller.
-      window.addEventListener('scroll', handleScroll, true);
-      window.addEventListener('orientationchange', handleOrientationChange);
+      const passiveCapture = { passive: true, capture: true } as const;
+      window.addEventListener('resize', handleResize, passive);
+      window.addEventListener('scroll', handleScroll, passiveCapture);
+      window.addEventListener('orientationchange', handleOrientationChange, passive);
 
       return () => {
         window.removeEventListener('resize', handleResize);

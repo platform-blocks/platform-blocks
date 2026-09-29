@@ -13,11 +13,11 @@ export function Demo() {
     <Block>
       {SPEEDS.map(({ label, value }) => (
         <Row key={value} gap="lg" align="center">
-          <Block minW={96}>
-            <Text variant="small" weight="semibold">
+          <Block miw={96}>
+            <Text variant="small" fw="semibold">
               {label}
             </Text>
-            <Text variant="small" color="muted">
+            <Text variant="small" c="muted">
               {value}ms
             </Text>
           </Block>

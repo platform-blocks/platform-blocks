@@ -1,68 +1,53 @@
-import React from 'react';
-import { SpacingProps, LayoutProps } from '../../core/utils';
-import { BorderRadiusProps } from '../../core/theme/radius';
-import { ShadowProps } from '../../core/theme/shadow';
-import { SizeValue } from '../../core/theme/sizes';
-import { TooltipProps, TooltipPropValue } from '../Tooltip';
-import { IconProps, ExternalIconComponent } from '../Icon/types';
+import type React from 'react';
 
-export interface IconButtonProps extends SpacingProps, LayoutProps, BorderRadiusProps, ShadowProps {
+import type { ColorProp } from '../../core/types/base';
+import type { ButtonProps } from '../Button/types';
+import type { ExternalIconComponent, IconProps } from '../Icon/types';
+
+export type IconButtonVariant = 'default' | 'filled' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'none';
+
+export interface IconButtonProps
+  extends Omit<
+    ButtonProps,
+    | 'variant'
+    | 'icon'
+    | 'children'
+    | 'title'
+    | 'loadingTitle'
+    | 'startSection'
+    | 'endSection'
+    | 'startIcon'
+    | 'endIcon'
+    | 'labelProps'
+    | 'textColor'
+  > {
   /**
    * Icon to render. Accepts a registry name, or an external icon library
    * component/element (e.g. a Tabler icon) for use without registration.
    */
   icon: string | ExternalIconComponent | React.ReactElement;
-  /** Called when the button is pressed */
-  onPress?: () => void;
-  /** Called when the button layout is calculated */
-  onLayout?: (event: any) => void;
   /**
-   * Button visual variant. `default` is the neutral surface-plus-hairline button,
-   * matching `Button`; a solid primary fill is opt-in via `filled`.
+   * Button visual variant. `default` is the neutral button, matching `Button`;
+   * a solid primary fill is opt-in via `filled`.
    * @default 'default'
    */
-  variant?: 'default' | 'filled' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'none';
-  /** Button size */
-  size?: SizeValue;
-  /** Whether the button is disabled */
-  disabled?: boolean;
-  /** Whether button is in loading state (shows loader) */
-  loading?: boolean;
+  variant?: IconButtonVariant;
   /**
-   * Tint for the button. Accepts raw CSS color OR theme token syntax:
-   *  - 'primary' (palette key -> uses middle shade 5)
-   *  - 'primary.6' (palette key + shade index)
-   *  - '#ff0000' / 'rgb(...)' direct colors
-   *
-   * `filled`, `secondary` and `outline` tint the container; `ghost` and the
-   * neutral `default`/`none` keep their chrome and tint only the icon.
-   * `gradient` draws its own overlay and ignores this.
+   * Tint for the button: a palette token (`'primary'`), `'primary.6'` shade
+   * syntax, or any CSS color. `filled`, `secondary` and `outline` tint the
+   * container; `ghost` and the neutral `default`/`none` keep their chrome and
+   * tint only the icon.
    */
-  color?: string;
+  color?: ColorProp;
   /** Explicit icon color override (else derived automatically from variant & color) */
-  iconColor?: string;
+  iconColor?: ColorProp;
   /** Icon variant override */
   iconVariant?: IconProps['variant'];
-  /** Icon size override (defaults to appropriate size for button size) */
+  /** Icon size override (defaults to half the button height) */
   iconSize?: IconProps['size'];
   /**
-   * Tooltip shown on hover/focus — wraps the button in a `Tooltip`.
-   * Pass a string, or a config object (`{ label, maxWidth, withArrow, … }`) for
-   * long labels that need a wider bubble.
+   * Accessible name. Icon-only buttons need one: pass this, or a `tooltip`
+   * (whose text is then used as the name). A dev warning fires when neither is set.
    */
-  tooltip?: TooltipPropValue;
-  /** Tooltip position when the string form of `tooltip` is used */
-  tooltipPosition?: TooltipProps['position'];
-  /** Accessibility label - highly recommended for icon-only buttons */
   accessibilityLabel?: string;
-  /**
-   * Length of the press scale transition in ms. `0` applies the pressed state
-   * instantly. Always 0 under reduced motion.
-   * @default 100
-   */
-  transitionDuration?: number;
-  /** Style overrides for the button container */
-  style?: any;
-  /** Test ID for testing */
-  testID?: string;
 }

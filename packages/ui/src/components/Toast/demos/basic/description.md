@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Call `toast.success` with a title, message, and optional `autoHide` value to show a standard confirmation toast.
+Call `toast.success` with a `title` and `message` to show a standard confirmation toast.

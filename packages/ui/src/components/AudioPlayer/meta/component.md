@@ -18,8 +18,10 @@ props:
   loop: Repeat the clip when it ends
   volume: Playback volume from 0 to 1
   rate: Playback rate (0.5–2.0)
-  controls: Toggles for the play/pause, volume, speed and waveform controls
-  controlsPosition: Render the controls above or below the waveform
+  controls: Toggles for the play/pause, skip, mute, speed and waveform controls (merged over the defaults)
+  controlsPosition: Render the controls above, below or over the waveform, or hide them
+  timeFormat: "`mm:ss`, `hh:mm:ss`, or `relative` (elapsed / -remaining)"
+  enableKeyboardShortcuts: Space / J / L / M shortcuts while the waveform has focus (web)
   showTime: Show the current time and duration
   showMetadata: Show the `metadata` title and artist above the player
   onLoad: Called once the clip is ready, with duration in milliseconds
@@ -37,3 +39,5 @@ related:
 AudioPlayer wraps `expo-audio` with a seekable [Waveform](/components/Waveform), transport controls and progress callbacks. Times in `PlaybackState`, `ProgressData` and the ref methods are milliseconds.
 
 Playback needs the optional `expo-audio` peer dependency (`npx expo install expo-audio`); without it the component renders and reports a missing-module error rather than throwing.
+
+The waveform is the seek control: a `slider` named "Seek" whose value is read as a time, operable with arrow keys (5 s), Page Up/Down, Home/End and screen-reader adjust gestures. Every control is labelled (Play / Pause, Skip back / forward 10 seconds, Mute / Unmute, Playback speed). `ref.setSelection(start, end)` highlights a range (ms) on the waveform.

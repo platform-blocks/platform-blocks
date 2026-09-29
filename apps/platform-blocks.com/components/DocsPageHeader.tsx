@@ -9,7 +9,7 @@ import { Title, type TitleProps } from '@platform-blocks/ui';
 export const DocsPageHeader: React.FC<TitleProps> = ({
   order = 1,
   size = 48,
-  weight = 'bold',
+  fw: weight = 'bold',
   afterline = false,
   subtitleProps,
   style,
@@ -17,7 +17,7 @@ export const DocsPageHeader: React.FC<TitleProps> = ({
 }) => {
   const mergedSubtitleProps = {
     variant: 'body',
-    color: 'secondary',
+    c: 'secondary',
     ...subtitleProps,
   } as TitleProps['subtitleProps'];
 
@@ -25,7 +25,7 @@ export const DocsPageHeader: React.FC<TitleProps> = ({
     <Title
       order={order}
       size={size}
-      weight={weight}
+      fw={weight}
       afterline={afterline}
       subtitleProps={mergedSubtitleProps}
       // Title lays its text out in a row, so a long page name (FAQ's, at 48px)

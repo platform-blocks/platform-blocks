@@ -1,81 +1,97 @@
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
-import {
-  View,
-  Modal,
-  StyleSheet,
-  Pressable,
-  PanResponder,
-  Platform,
-  BackHandler,
-  useWindowDimensions,
-} from 'react-native';
+import React, { useCallback, useContext, useEffect, useMemo, useRef } from 'react';
+import type { Ref } from 'react';
+import { Modal, PanResponder, Pressable, StyleSheet, View } from 'react-native';
+import type { GestureResponderEvent, ViewStyle } from 'react-native';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSpring,
   Easing,
   interpolate,
   runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
+
 import { Text } from '../Text/Text';
 import { Button } from '../Button/Button';
 import { Icon } from '../Icon';
+import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme/ThemeProvider';
+import { useThemedStyles } from '../../core/hooks/useThemedStyles';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
 import { resolveSurface } from '../../core/theme/surfaces';
-import { useDirection } from '../../core/providers/DirectionProvider';
-import { DialogProps } from './types';
-import { useEscapeKey } from '../../hooks/useHotkeys';
+import { resolveScrim, resolveShadow } from '../../core/theme/tokens';
+import { useViewport } from '../../core/responsive';
+import { isNative, isWeb, webStyle } from '../../core/platform';
 import { useTransitionDuration } from '../../core/motion/useTransitionDuration';
-import { FOCUSABLE_SELECTOR, resolveDomNode, useFocusTrap } from '../../core/accessibility/advancedHooks';
-
-// Safe wrapper for useSafeAreaInsets that handles cases where SafeAreaProvider is not available
-const useSafeSafeAreaInsets = () => {
-  try {
-    return useSafeAreaInsets();
-  } catch (error) {
-    // Return default insets if SafeAreaProvider is not available
-    return { top: 0, bottom: 0, left: 0, right: 0 };
-  }
-};
+import { LayerScope, useLayer } from '../../core/overlay/useLayer';
+import { handleModalRequestClose } from '../../core/overlay/layerStack';
+import { OverlayHost } from '../../core/overlay/OverlayHost';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useA11yId } from '../../core/accessibility/useA11yId';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { useStyleProps } from '../../core/utils/spacing';
+import { warnOnce } from '../../core/utils/logger';
+import type { DialogFactoryPayload, DialogFocusable, DialogProps } from './types';
 
 /** Baseline the built-in Dialog timings are authored against. */
 const DIALOG_BASE_DURATION = 300;
+/** Safety margin so the dialog never touches the viewport edges. */
+const HORIZONTAL_MARGIN = 32;
+const ZERO_INSETS = { top: 0, bottom: 0, left: 0, right: 0 };
 
-export function Dialog({
-  visible,
-  variant = 'modal',
-  title,
-  children,
-  closable = true,
-  backdrop = true,
-  backdropClosable = true,
-  shouldClose = false,
-  onClose,
-  w,
-  h,
-  radius,
-  style,
-  showHeader = true,
-  bottomSheetSwipeZone = 'container',
-  transitionDuration,
-  titleProps,
-  autoFocus = false,
-  trapFocus = true,
-}: DialogProps) {
+/** RN-web gesture events carry the DOM event's methods on `nativeEvent`. */
+interface DomLikeEvent {
+  preventDefault?: () => void;
+  stopPropagation?: () => void;
+}
+
+function DialogBase(props: DialogProps, ref: Ref<View>) {
+  const {
+    opened: openedProp,
+    visible,
+    variant = 'modal',
+    title,
+    accessibilityLabel,
+    children,
+    closable = true,
+    backdrop = true,
+    backdropClosable = true,
+    shouldClose = false,
+    onClose,
+    w,
+    h,
+    radius,
+    style,
+    showHeader = true,
+    bottomSheetSwipeZone = 'container',
+    transitionDuration,
+    titleProps,
+    closeButtonLabel = 'Close dialog',
+    autoFocus = false,
+    trapFocus = true,
+    testID,
+    ...spacingProps
+  } = props;
+
+  if (visible !== undefined) {
+    warnOnce('Dialog.visible', '[platform-blocks] Dialog `visible` is deprecated; use `opened`.');
+  }
+  const opened = openedProp ?? visible ?? false;
+
   const theme = useTheme();
-  const { isRTL } = useDirection();
-  const insets = useSafeSafeAreaInsets();
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const horizontalMargin = 32; // safety margin so dialog never touches edges
-  const isNativePlatform = Platform.OS === 'ios' || Platform.OS === 'android';
-  const defaultModalMaxWidth = Math.min((w || 500), Math.max(200, screenWidth - horizontalMargin));
+  const insets = useContext(SafeAreaInsetsContext) ?? ZERO_INSETS;
+  const { width: screenWidth, height: screenHeight } = useViewport();
+  const spacingStyles = useStyleProps(spacingProps);
+  const titleId = useA11yId(undefined, 'dialog-title');
+
+  const defaultModalMaxWidth = Math.min(w || 500, Math.max(200, screenWidth - HORIZONTAL_MARGIN));
   const modalEffectiveWidth = variant !== 'modal'
     ? undefined
-    : Math.min(defaultModalMaxWidth, screenWidth - horizontalMargin);
+    : Math.min(defaultModalMaxWidth, screenWidth - HORIZONTAL_MARGIN);
   const bottomSheetMaxWidth = Math.min(
-    w ? w : (isNativePlatform ? 720 : Math.min(600, screenWidth - horizontalMargin)),
+    w ? w : (isNative ? 720 : Math.min(600, screenWidth - HORIZONTAL_MARGIN)),
     screenWidth,
   );
   const resolvedRadius = radius ?? (variant === 'bottomsheet' ? 20 : 16);
@@ -83,10 +99,6 @@ export function Dialog({
     ? (h ?? Math.max(200, screenHeight - insets.top - 24))
     : (variant === 'fullscreen' ? '100%' : (h || '90%'));
 
-  const invokeOnClose = useCallback(() => {
-    onClose?.();
-  }, [onClose]);
-  
   // Enter/exit transition length. `0` (and reduced motion) show and dismiss the
   // dialog instantly; other explicit values scale the built-in timings, which
   // are authored against a 300ms baseline.
@@ -97,163 +109,27 @@ export function Dialog({
     [motionDuration]
   );
 
-  // Web-only focus containment: Tab cycles inside the dialog while it is open,
-  // and focus returns to whatever was focused before it opened.
-  const { containerRef: focusTrapRef } = useFocusTrap(visible && trapFocus);
-  // Scoped to the dialog body so `autoFocus` lands on the first field rather
-  // than the header's close button.
-  const contentRef = useRef<any>(null);
+  const closingRef = useRef(false);
+  const invokeOnClose = useLatestCallback(() => {
+    closingRef.current = false;
+    onClose?.();
+  });
 
-  // Move focus into the dialog once its enter transition has settled — before
-  // that the element is still animating in, and on native the modal may not be
-  // presented yet.
-  useEffect(() => {
-    if (!visible || !autoFocus) return;
+  // --- layer: Escape / Android back / focus trap + restore ---------------------------
+  const containerRef = useRef<View>(null);
+  const contentRef = useRef<View>(null);
+  const mergedContainerRef = useMergedRef<View>(ref, containerRef);
+  const initialFocusRef = typeof autoFocus === 'object' && autoFocus !== null
+    ? autoFocus
+    : autoFocus === true ? contentRef : undefined;
 
-    const timer = setTimeout(() => {
-      if (typeof autoFocus === 'object') {
-        autoFocus.current?.focus?.();
-        return;
-      }
-      const container = resolveDomNode(contentRef.current);
-      const first = container?.querySelectorAll(FOCUSABLE_SELECTOR)?.[0];
-      first?.focus?.();
-    }, motionDuration);
-
-    return () => clearTimeout(timer);
-  }, [visible, autoFocus, motionDuration]);
-
-  // Reanimated shared values
   const backdropOpacity = useSharedValue(0);
   const slideAnim = useSharedValue(variant === 'bottomsheet' ? screenHeight : 0);
   const scaleAnim = useSharedValue(variant === 'modal' ? 0.8 : 1);
-  
-  // Use the new hotkey system for escape key
-  useEscapeKey(() => {
-    if (visible && closable) {
-      handleClose();
-    }
-  }, visible && closable);
 
-  // Pan responder for bottomsheet swipe-to-dismiss
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponderCapture: () => {
-        // Never capture on touch start — let events reach children (buttons) first
-        return false;
-      },
-      onStartShouldSetPanResponder: () => {
-        // Claim in bubble phase (after children had their chance to claim).
-        // If a Button/Pressable already claimed the touch, this won't fire.
-        // If nothing claimed (e.g. drag handle, empty space), we take over for swipe tracking.
-        return variant === 'bottomsheet' && bottomSheetSwipeZone !== 'none';
-      },
-      onMoveShouldSetPanResponderCapture: () => {
-        // Never capture moves — let children handle their own gestures
-        return false;
-      },
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Claim the gesture when there's a clear vertical swipe movement
-        return variant === 'bottomsheet' && bottomSheetSwipeZone !== 'none' && (
-          Math.abs(gestureState.dy) > Math.abs(gestureState.dx) && 
-          Math.abs(gestureState.dy) > 2
-        );
-      },
-      onPanResponderGrant: (evt) => {
-        // Prevent default browser behavior (text selection, etc.) on web
-        if (Platform.OS === 'web') {
-          const event = evt.nativeEvent as any;
-          if (event.preventDefault) {
-            event.preventDefault();
-          }
-          if (event.stopPropagation) {
-            event.stopPropagation();
-          }
-        }
-        
-        // Optional: Add haptic feedback on iOS
-        if (Platform.OS === 'ios') {
-          // Could add HapticFeedback.impactAsync(HapticFeedback.ImpactFeedbackStyle.Light) if available
-        }
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        if (variant === 'bottomsheet' && bottomSheetSwipeZone !== 'none') {
-          // Prevent text selection during fast movements on web
-          if (Platform.OS === 'web') {
-            const event = evt.nativeEvent as any;
-            if (event.preventDefault) {
-              event.preventDefault();
-            }
-          }
-
-          // Only allow downward movement (dismiss gesture)
-          const dragDistance = Math.max(0, gestureState.dy);
-          
-          // Downward movement - apply subtle resistance for better feel
-          const resistance = 0.8;
-          const resistedDistance = dragDistance * resistance + (dragDistance > 100 ? (dragDistance - 100) * 0.2 : 0);
-          slideAnim.value = resistedDistance;
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (variant === 'bottomsheet' && bottomSheetSwipeZone !== 'none') {
-          const dragDistance = gestureState.dy;
-          const velocity = gestureState.vy;
-          
-          // Enhanced dismiss logic:
-          // - If dragged more than 1/4 of screen height downward, dismiss
-          // - If velocity is high enough downward (fast swipe), dismiss
-          // - If dragged upward or not far enough, snap back
-          const shouldDismiss = 
-            dragDistance > screenHeight * 0.25 || 
-            (velocity > 0.6 && dragDistance > 50) || 
-            (dragDistance > 80 && velocity > 0.2);
-
-          if (shouldDismiss && dragDistance > 0) {
-            // Enhanced dismiss animation with velocity-based timing
-            const dismissDuration = Math.max(200, 400 - velocity * 150);
-            slideAnim.value = withTiming(screenHeight, {
-              duration: dismissDuration,
-              easing: Easing.out(Easing.quad),
-            }, (finished) => {
-              'worklet';
-              if (finished) {
-                runOnJS(invokeOnClose)();
-              }
-            });
-            
-            // Fade backdrop during dismiss
-            backdropOpacity.value = withTiming(0, {
-              duration: dismissDuration,
-              easing: Easing.out(Easing.quad),
-            });
-          } else {
-            // Enhanced snap back with overshoot
-            slideAnim.value = withSpring(0, {
-              damping: 25,
-              stiffness: 280,
-              mass: 0.7,
-              overshootClamping: true, // Prevent overshoot on snap back
-            });
-          }
-        }
-      },
-      onPanResponderTerminate: () => {
-        // If gesture is interrupted, snap back with enhanced spring
-        if (variant === 'bottomsheet' && bottomSheetSwipeZone !== 'none') {
-          slideAnim.value = withSpring(0, {
-            damping: 25,
-            stiffness: 280,
-            mass: 0.7,
-            overshootClamping: true, // Prevent overshoot on interrupt recovery
-          });
-        }
-      },
-    })
-  ).current;
-
-  const handleClose = () => {
-    if (!closable) return;
+  const handleClose = useLatestCallback(() => {
+    if (!closable || closingRef.current) return;
+    closingRef.current = true;
 
     if (instantMotion) {
       // No exit transition — land on the closed state and report it immediately.
@@ -264,360 +140,317 @@ export function Dialog({
       return;
     }
 
-    // Enhanced exit animations
-    backdropOpacity.value = withTiming(0, {
-      duration: ms(250),
-      easing: Easing.in(Easing.quad),
-    });
+    backdropOpacity.value = withTiming(0, { duration: ms(250), easing: Easing.in(Easing.quad) });
 
     if (variant === 'modal') {
-      // Modal scale out with slight acceleration
-      scaleAnim.value = withTiming(0.85, {
-        duration: ms(220),
-        easing: Easing.in(Easing.back(0.7)),
-      }, (finished) => {
+      scaleAnim.value = withTiming(0.85, { duration: ms(220), easing: Easing.in(Easing.back(0.7)) }, (finished) => {
         'worklet';
-        if (finished) {
-          runOnJS(invokeOnClose)();
-        }
+        if (finished) runOnJS(invokeOnClose)();
       });
     } else if (variant === 'bottomsheet') {
-      // Bottom sheet slide down with spring
-      slideAnim.value = withSpring(screenHeight, {
-        damping: 25,
-        stiffness: 400,
-        mass: 0.8,
-      }, (finished) => {
+      slideAnim.value = withSpring(screenHeight, { damping: 25, stiffness: 400, mass: 0.8 }, (finished) => {
         'worklet';
-        if (finished) {
-          runOnJS(invokeOnClose)();
-        }
+        if (finished) runOnJS(invokeOnClose)();
       });
     } else {
-      // For fullscreen, just call onClose after backdrop animation
       setTimeout(invokeOnClose, ms(250));
     }
-  };
+  });
 
-  const handleBackdropPress = () => {
-    if (backdropClosable) {
-      handleClose();
-    }
-  };
+  const { id: layerId } = useLayer({
+    active: opened,
+    modal: true,
+    onDismiss: () => handleClose(),
+    closeOnEscape: closable,
+    containerRef,
+    trapFocus,
+    // Focus always moves in; `autoFocus` only picks where.
+    initialFocus: autoFocus === false ? 'container' : 'first-tabbable',
+    initialFocusRef: initialFocusRef as React.RefObject<unknown> | undefined,
+    restoreFocus: true,
+  });
 
-  // Handle Android back button
+  // Native has no DOM focus: once the enter transition settles, focus the given
+  // field (raising its keyboard). Web focus is handled by the layer above.
   useEffect(() => {
-    if (Platform.OS === 'android' && visible) {
-      const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-        if (closable) {
-          handleClose();
-          return true;
-        }
-        return false;
-      });
+    if (!opened || isWeb || typeof autoFocus !== 'object' || autoFocus === null) return undefined;
+    const target = autoFocus;
+    const timer = setTimeout(() => {
+      (target.current as DialogFocusable | null)?.focus?.();
+    }, motionDuration);
+    return () => clearTimeout(timer);
+  }, [opened, autoFocus, motionDuration]);
 
-      return () => backHandler.remove();
-    }
-  }, [visible, closable]);
+  // --- swipe-to-dismiss (bottom sheet) -------------------------------------------------
+  const swipeEnabled = variant === 'bottomsheet' && bottomSheetSwipeZone !== 'none';
+  const panResponder = useMemo(() => PanResponder.create({
+    // Never capture on touch start — let events reach children (buttons) first.
+    onStartShouldSetPanResponderCapture: () => false,
+    // Claim in the bubble phase, after children had their chance.
+    onStartShouldSetPanResponder: () => swipeEnabled,
+    onMoveShouldSetPanResponderCapture: () => false,
+    onMoveShouldSetPanResponder: (_, gestureState) => (
+      swipeEnabled && Math.abs(gestureState.dy) > Math.abs(gestureState.dx) && Math.abs(gestureState.dy) > 2
+    ),
+    onPanResponderGrant: (event: GestureResponderEvent) => {
+      if (!isWeb) return;
+      // Prevent text selection while dragging on web.
+      const domEvent = event.nativeEvent as unknown as DomLikeEvent;
+      domEvent.preventDefault?.();
+      domEvent.stopPropagation?.();
+    },
+    onPanResponderMove: (event: GestureResponderEvent, gestureState) => {
+      if (!swipeEnabled) return;
+      if (isWeb) (event.nativeEvent as unknown as DomLikeEvent).preventDefault?.();
+      // Only downward movement dismisses; resist a little for feel.
+      const dragDistance = Math.max(0, gestureState.dy);
+      slideAnim.value = dragDistance * 0.8 + (dragDistance > 100 ? (dragDistance - 100) * 0.2 : 0);
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      if (!swipeEnabled) return;
+      const dragDistance = gestureState.dy;
+      const velocity = gestureState.vy;
+      const shouldDismiss =
+        dragDistance > screenHeight * 0.25 ||
+        (velocity > 0.6 && dragDistance > 50) ||
+        (dragDistance > 80 && velocity > 0.2);
 
-  // Animate in
+      if (shouldDismiss && dragDistance > 0) {
+        const dismissDuration = Math.max(200, 400 - velocity * 150);
+        closingRef.current = true;
+        slideAnim.value = withTiming(screenHeight, { duration: dismissDuration, easing: Easing.out(Easing.quad) }, (finished) => {
+          'worklet';
+          if (finished) runOnJS(invokeOnClose)();
+        });
+        backdropOpacity.value = withTiming(0, { duration: dismissDuration, easing: Easing.out(Easing.quad) });
+      } else {
+        slideAnim.value = withSpring(0, { damping: 25, stiffness: 280, mass: 0.7, overshootClamping: true });
+      }
+    },
+    onPanResponderTerminate: () => {
+      if (!swipeEnabled) return;
+      slideAnim.value = withSpring(0, { damping: 25, stiffness: 280, mass: 0.7, overshootClamping: true });
+    },
+  }), [swipeEnabled, screenHeight, slideAnim, backdropOpacity, invokeOnClose]);
+
+  // --- enter / reset ---------------------------------------------------------------------
   useEffect(() => {
-    if (visible) {
+    if (opened) {
+      closingRef.current = false;
       if (instantMotion) {
-        // No enter transition — present the dialog already in place.
         backdropOpacity.value = 1;
         scaleAnim.value = 1;
         slideAnim.value = 0;
         return;
       }
-      // Backdrop fade in with subtle easing
-      backdropOpacity.value = withTiming(1, {
-        duration: ms(300),
-        easing: Easing.out(Easing.quad),
-      });
-
+      backdropOpacity.value = withTiming(1, { duration: ms(300), easing: Easing.out(Easing.quad) });
       if (variant === 'modal') {
-        // Modal scale animation with enhanced spring and slight overshoot
-        scaleAnim.value = withSpring(1, {
-          damping: 18,
-          stiffness: 250,
-          mass: 0.9,
-        });
+        scaleAnim.value = withSpring(1, { damping: 18, stiffness: 250, mass: 0.9 });
       } else if (variant === 'bottomsheet') {
-        // Bottom sheet slide up with critically damped spring (no overshoot)
+        // Critically damped: no overshoot.
         slideAnim.value = screenHeight;
-        slideAnim.value = withSpring(0, {
-          damping: 30, // High damping to prevent overshoot
-          stiffness: 200, // Lower stiffness for smoother motion
-          mass: 1.2, // Higher mass for more controlled movement
-          overshootClamping: true, // Prevent overshoot completely
-        });
+        slideAnim.value = withSpring(0, { damping: 30, stiffness: 200, mass: 1.2, overshootClamping: true });
       }
     } else {
-      // Reset values when not visible
       backdropOpacity.value = 0;
-      if (variant === 'modal') {
-        scaleAnim.value = 0.8;
-      } else if (variant === 'bottomsheet') {
-        slideAnim.value = screenHeight;
-      }
+      if (variant === 'modal') scaleAnim.value = 0.8;
+      else if (variant === 'bottomsheet') slideAnim.value = screenHeight;
     }
-  }, [visible, variant, screenHeight, backdropOpacity, scaleAnim, slideAnim, instantMotion, ms]);
+  }, [opened, variant, screenHeight, backdropOpacity, scaleAnim, slideAnim, instantMotion, ms]);
 
-  // Handle shouldClose prop
   useEffect(() => {
-    if (shouldClose) {
-      handleClose();
-    }
-  }, [shouldClose]);
+    if (shouldClose) handleClose();
+  }, [shouldClose, handleClose]);
 
-  const isDark = theme.colorScheme === 'dark';
-  // Level 3 — takes over the screen. Previously this hard-coded `#FFFFFF` and
-  // `#E1E3E6` in light mode, so a themed app got an unthemed dialog.
-  //
-  // Except when it *is* the screen: a fullscreen dialog floats above nothing,
-  // so it takes the page's own surface. At level 3 it landed two steps lighter
-  // than the app behind it in dark mode, which read as a mis-tinted screen on
-  // its own and banded visibly wherever its content used a page background.
-  const dialogSurface = resolveSurface(theme, variant === 'fullscreen' ? 0 : 3);
-  const surfaceColor = dialogSurface.background;
-  const borderColor = dialogSurface.border;
-  const headerBg = surfaceColor;
-  const contentBg = surfaceColor;
-  // Mirrors the render condition below — the header only exists when there is a
-  // title to show and the dialog is closable.
-  const hasHeader = Boolean(title) && closable;
+  // --- styles ------------------------------------------------------------------------------
+  const hasHeader = Boolean(title);
+  const styles = useThemedStyles((t) => {
+    // Level 3 — takes over the screen. Except when it *is* the screen: a
+    // fullscreen dialog floats above nothing, so it takes the page surface.
+    const surface = resolveSurface(t, variant === 'fullscreen' ? 0 : 3);
+    const table: Record<'backdrop' | 'modalContainer' | 'header' | 'content' | 'closeButton' | 'dragHandle' | 'dragHandleContainer', ViewStyle> = {
+      backdrop: {
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: variant === 'fullscreen' ? 'transparent' : resolveScrim(t),
+        justifyContent: variant === 'bottomsheet' ? 'flex-end' : 'center',
+        alignItems: variant === 'bottomsheet' ? 'stretch' : 'center',
+      },
+      modalContainer: {
+        backgroundColor: surface.background,
+        borderRadius: variant === 'fullscreen' ? 0 : resolvedRadius,
+        ...(variant === 'bottomsheet' ? { borderBottomStartRadius: 0, borderBottomEndRadius: 0 } : null),
+        overflow: 'hidden',
+        maxWidth: variant === 'fullscreen'
+          ? '100%'
+          : variant === 'bottomsheet' ? bottomSheetMaxWidth : defaultModalMaxWidth,
+        maxHeight: resolvedMaxHeight,
+        width: variant === 'fullscreen' ? '100%' : variant === 'modal' ? modalEffectiveWidth || 'auto' : '100%',
+        height: variant === 'fullscreen' ? '100%' : undefined,
+        ...(variant === 'fullscreen' ? { flex: 1, position: 'absolute' as const } : null),
+        minWidth: variant === 'modal' ? Math.min(300, Math.max(200, screenWidth - HORIZONTAL_MARGIN)) : undefined,
+        alignSelf: 'center',
+        paddingTop: variant === 'fullscreen' ? insets.top : 0,
+        paddingBottom: variant === 'fullscreen' ? insets.bottom : 0,
+        ...(variant === 'fullscreen' ? null : resolveShadow(t, surface.shadow === 'none' ? 'xl' : surface.shadow)),
+        ...(variant === 'bottomsheet' ? webStyle({ userSelect: 'none', WebkitUserSelect: 'none' }) : null),
+      },
+      header: {
+        alignItems: 'center',
+        backgroundColor: showHeader ? surface.background : 'transparent',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        padding: 20,
+        paddingBottom: 0,
+      },
+      content: {
+        ...(variant === 'fullscreen' ? { flex: 1 } : null),
+        alignSelf: 'stretch',
+        backgroundColor: surface.background,
+        padding: variant === 'fullscreen' ? 0 : 20,
+        // The header already sits 20 above the title and the close button adds a
+        // few px below it, so a second full 20 here reads as a gap.
+        ...(variant !== 'fullscreen' && hasHeader ? { paddingTop: 8 } : null),
+        width: '100%',
+      },
+      closeButton: {
+        padding: 8,
+      },
+      dragHandle: {
+        alignSelf: 'center',
+        backgroundColor: t.text.muted,
+        borderRadius: 2,
+        height: 4,
+        opacity: 0.8,
+        width: 40,
+      },
+      dragHandleContainer: {
+        // The handle has no margins; hitSlop gives the larger touch target.
+        paddingTop: 12,
+        paddingBottom: 4,
+        paddingHorizontal: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...webStyle({ cursor: 'grab', userSelect: 'none', WebkitUserSelect: 'none' }),
+      },
+    };
+    return table;
+  }, [variant, resolvedRadius, resolvedMaxHeight, bottomSheetMaxWidth, defaultModalMaxWidth,
+    modalEffectiveWidth, screenWidth, insets.top, insets.bottom, showHeader, hasHeader]);
 
-  const dynamicStyles = useMemo(() => StyleSheet.create({
-    backdrop: {
-      ...StyleSheet.absoluteFill,
-      backgroundColor: variant === 'fullscreen' ? 'transparent' : 'rgba(0, 0, 0, 0.5)',
-      justifyContent: variant === 'bottomsheet' ? 'flex-end' : 'center',
-      alignItems: variant === 'bottomsheet' ? 'stretch' : 'center',
-    } as any, // Allow backdropFilter on web
-    modalContainer: {
-      backgroundColor: contentBg,
-      borderRadius: variant === 'fullscreen' ? 0 : resolvedRadius,
-      ...(variant === 'bottomsheet' ? {
-        borderBottomLeftRadius: 0,
-        borderBottomRightRadius: 0,
-      } : {}),
-      overflow: 'hidden', // Clip content to border radius
-      // Clamp width to viewport (minus margins) while respecting provided width
-      maxWidth: variant === 'fullscreen'
-        ? '100%'
-        : variant === 'bottomsheet'
-          ? bottomSheetMaxWidth
-          : defaultModalMaxWidth,
-      maxHeight: resolvedMaxHeight,
-      width: variant === 'fullscreen'
-        ? '100%'
-        : variant === 'modal'
-          ? modalEffectiveWidth || 'auto'
-          : '100%',
-      // Fullscreen uses 100% height, others auto-size to content
-      height: variant === 'fullscreen' ? '100%' : undefined,
-      // Only fullscreen should stretch to fill
-      ...(variant === 'fullscreen' ? { flex: 1 } : {}),
-      // Ensure minWidth never exceeds viewport clamp
-      minWidth: variant === 'modal' ? Math.min(300, Math.max(200, screenWidth - horizontalMargin)) : undefined,
-      alignSelf: variant === 'bottomsheet' ? 'center' : 'center',
-      paddingTop: variant === 'fullscreen' ? insets.top : 0,
-      paddingBottom: variant === 'fullscreen' ? insets.bottom : 0,
-      // Prevent text selection during drag on web
-      ...(Platform.OS === 'web' && variant === 'bottomsheet' && {
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-        MozUserSelect: 'none',
-        msUserSelect: 'none',
-        WebkitTouchCallout: 'none',
-        WebkitTapHighlightColor: 'transparent',
-      }),
-      // Enhanced shadows for modal
-      ...(Platform.OS === 'web' && variant === 'modal'
-        ? { 
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          }
-        : Platform.OS === 'ios' && variant !== 'fullscreen'
-        ? {
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
-          }
-        : Platform.OS === 'android' && variant !== 'fullscreen'
-        ? { elevation: 16, }
-        : variant === 'fullscreen'
-        ? {
-            boxShadow: 'none',
-            height: '100%',
-            position: 'absolute',
-        }
-        : { boxShadow: 'none' }),
-    } as any, // Allow boxShadow on web
-    header: {
-      alignItems: 'center',
-      backgroundColor: showHeader ? headerBg : 'transparent',
-      // borderBottomColor: showHeader ? borderColor : 'transparent',
-      // borderBottomWidth: showHeader && variant !== 'fullscreen' ? 1 : 0,
-      flexDirection: isRTL ? 'row-reverse' : 'row',
-      justifyContent: 'space-between',
-      padding: 20,
-      paddingBottom: 0,
-    },
-    content: {
-      // Only fullscreen content should stretch
-      ...(variant === 'fullscreen' ? { flex: 1 } : {}),
-      alignSelf: 'stretch',
-      backgroundColor: contentBg,
-      padding: variant === 'fullscreen' ? 0 : 20,
-      // The header already sits 20 above the title and the close button adds a
-      // few px below it, so a second full 20 here reads as a gap.
-      ...(variant !== 'fullscreen' && hasHeader ? { paddingTop: 8 } : {}),
-      width: '100%',
-    },
-    closeButton: {
-      padding: 8,
-    },
-    dragHandle: {
-      alignSelf: 'center',
-      backgroundColor: isDark ? theme.colors.gray[5] : theme.colors.gray[4],
-      borderRadius: 2,
-      height: 4,
-      opacity: 0.8,
-      width: 40,
-    },
-    dragHandleContainer: {
-      // Spacing lives here only — the handle itself has no margins, and the
-      // content below supplies its own padding. hitSlop (not minHeight) gives
-      // the larger touch target so it costs no vertical space.
-      paddingTop: 12,
-      paddingBottom: 4,
-      paddingHorizontal: 20,
-      alignItems: 'center',
-      justifyContent: 'center',
-      // Web-specific drag prevention and cursor
-      ...(Platform.OS === 'web' && {
-        cursor: 'grab' as any,
-        userSelect: 'none' as any,
-        WebkitUserSelect: 'none' as any,
-        MozUserSelect: 'none' as any,
-        msUserSelect: 'none' as any,
-      }),
-    } as any,
-  }), [variant, contentBg, resolvedRadius, resolvedMaxHeight, bottomSheetMaxWidth, defaultModalMaxWidth,
-    modalEffectiveWidth, screenWidth, horizontalMargin, insets.top, insets.bottom,
-    headerBg, borderColor, isRTL, isDark, theme.colors.gray, hasHeader]);
-
-  // Animated styles using reanimated
+  const blurBackdrop = isWeb && variant !== 'fullscreen';
   const backdropAnimatedStyle = useAnimatedStyle(() => {
     const opacity = backdropOpacity.value;
-    
-    return {
-      opacity,
-      // Enhanced backdrop effect with interpolated blur on web
-      ...(Platform.OS === 'web' && variant !== 'fullscreen' && {
-        backdropFilter: `blur(${interpolate(opacity, [0, 1], [0, 3])}px)`,
-      }),
-    };
+    if (!blurBackdrop) return { opacity };
+    return { opacity, backdropFilter: `blur(${interpolate(opacity, [0, 1], [0, 3])}px)` };
   });
 
-  const modalAnimatedStyle = useAnimatedStyle(() => {
-    if (variant === 'modal') {
-      return {
-        transform: [{ scale: scaleAnim.value }],
-      };
-    }
-    return {};
-  });
+  const modalAnimatedStyle = useAnimatedStyle(() => (
+    variant === 'modal' ? { transform: [{ scale: scaleAnim.value }] } : {}
+  ));
 
   const bottomSheetAnimatedStyle = useAnimatedStyle(() => {
-    if (variant === 'bottomsheet') {
-      // Clamp to 0 minimum to prevent seeing "under" the sheet
-      const clampedY = Math.max(0, slideAnim.value);
-      return {
-        transform: [{ translateY: clampedY }],
-      };
-    }
-    return {};
+    if (variant !== 'bottomsheet') return {};
+    // Clamp at 0 so the sheet never lifts to show what's under it.
+    return { transform: [{ translateY: Math.max(0, slideAnim.value) }] };
   });
 
-  if (!visible) return null;
+  if (!opened) return null;
 
-  const renderContent = () => {
-    let animatedStyle: any = {};
-    
-    const panHandlers = bottomSheetSwipeZone !== 'none' ? panResponder.panHandlers : undefined;
+  const panHandlers = swipeEnabled ? panResponder.panHandlers : undefined;
+  const animatedStyle = variant === 'modal'
+    ? modalAnimatedStyle
+    : variant === 'bottomsheet' ? bottomSheetAnimatedStyle : null;
 
-    if (variant === 'modal') {
-      animatedStyle = modalAnimatedStyle;
-    } else if (variant === 'bottomsheet') {
-      animatedStyle = bottomSheetAnimatedStyle;
-    }
+  const dialogA11y = a11yProps({
+    role: 'dialog',
+    modal: true,
+    labelledBy: hasHeader ? titleId : undefined,
+    label: hasHeader ? undefined : accessibilityLabel,
+  });
 
-    return (
-      <Animated.View
-        ref={focusTrapRef}
-        style={[dynamicStyles.modalContainer, animatedStyle]}
-        {...(variant === 'bottomsheet' && bottomSheetSwipeZone === 'container' && panHandlers ? panHandlers : {})}
-      >
-        {variant === 'bottomsheet' && (
-          <View
-            style={dynamicStyles.dragHandleContainer}
-            hitSlop={{ top: 8, bottom: 16, left: 0, right: 0 }}
-            {...(bottomSheetSwipeZone === 'handle' && panHandlers ? panHandlers : {})}
-          >
-            <View style={dynamicStyles.dragHandle} />
-          </View>
-        )}
-
-     
-        {hasHeader && (
-          <View style={dynamicStyles.header}>
-            <Text variant="h3" color="text" {...titleProps}>
-              {title || ''}
-            </Text>
-            {closable && variant !== 'bottomsheet' && (
-              <Button
-                variant="ghost"
-                onPress={handleClose}
-                style={dynamicStyles.closeButton}
-              >
-                <Icon name="x" size="md" />
-              </Button>
-            )}
-          </View>
-        )}
-        
-        <View ref={contentRef} style={[dynamicStyles.content,style]}>
-          {children}
+  const content = (
+    <Animated.View
+      ref={mergedContainerRef}
+      style={[styles.modalContainer, animatedStyle] as ViewStyle[]}
+      testID={testID}
+      {...dialogA11y}
+      {...(bottomSheetSwipeZone === 'container' ? panHandlers : null)}
+    >
+      {variant === 'bottomsheet' && (
+        <View
+          style={styles.dragHandleContainer}
+          hitSlop={{ top: 8, bottom: 16, left: 0, right: 0 }}
+          aria-hidden
+          {...(bottomSheetSwipeZone === 'handle' ? panHandlers : null)}
+        >
+          <View style={styles.dragHandle} />
         </View>
-      </Animated.View>
-    );
-  };
+      )}
+
+      {hasHeader && (
+        <View style={styles.header}>
+          <Text variant="h3" c="text" nativeID={titleId} {...titleProps}>
+            {title || ''}
+          </Text>
+          {closable && variant !== 'bottomsheet' && (
+            <Button
+              variant="ghost"
+              onPress={() => handleClose()}
+              style={styles.closeButton}
+              accessibilityLabel={closeButtonLabel}
+            >
+              <Icon name="x" size="md" />
+            </Button>
+          )}
+        </View>
+      )}
+
+      <View ref={contentRef} style={[styles.content, spacingStyles, style]}>
+        {children}
+      </View>
+    </Animated.View>
+  );
 
   return (
     <Modal
-      visible={visible}
+      visible
       transparent
       animationType="none"
       statusBarTranslucent={variant === 'fullscreen'}
-      // Android hardware back / gesture dismissal. Modal swallows the event
-      // unless it is handled here, so the BackHandler above is not enough.
-      onRequestClose={closable ? handleClose : undefined}
+      // Android back reaches the layer stack (topmost layer only); on web the
+      // stack already handled Escape on keydown.
+      onRequestClose={handleModalRequestClose}
     >
-      <Animated.View
-        style={[
-          dynamicStyles.backdrop,
-          backdropAnimatedStyle,
-        ]}
-      >
-        {backdrop && backdropClosable && (
-          <Pressable
-            testID="dialog-backdrop"
-            style={StyleSheet.absoluteFill}
-            onPress={handleBackdropPress}
-          />
-        )}
-        {renderContent()}
-      </Animated.View>
+      {/* Nested floating content (Select, Popover, Menu, Tooltip…) opened from
+          inside the dialog renders in this host, above the dialog. */}
+      <OverlayHost>
+        <LayerScope id={layerId}>
+          <Animated.View style={[styles.backdrop, backdropAnimatedStyle]}>
+            {backdrop && backdropClosable && (
+              <Pressable
+                testID="dialog-backdrop"
+                style={StyleSheet.absoluteFill}
+                onPress={() => handleClose()}
+                // The close button / Escape / back are the accessible ways out;
+                // the scrim is a pointer affordance only.
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                aria-hidden
+                tabIndex={-1}
+              />
+            )}
+            {content}
+          </Animated.View>
+        </LayerScope>
+      </OverlayHost>
     </Modal>
   );
 }
+
+/**
+ * A modal dialog, bottom sheet or fullscreen sheet. Registers a modal layer
+ * (Escape / Android back close only the topmost overlay, focus moves in, Tab is
+ * trapped, focus is restored on close) and hosts nested floating content so it
+ * stacks above the dialog.
+ */
+export const Dialog = factory<DialogFactoryPayload>(DialogBase, { displayName: 'Dialog' });

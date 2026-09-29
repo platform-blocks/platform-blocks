@@ -7,7 +7,7 @@ export function Demo() {
     <AreaChart
       title="Inventory Levels by Warehouse"
       subtitle="Safety stock adjustments across the first half"
-      height={420}
+      h={420}
       series={INVENTORY_SERIES}
       smooth={false}
       grid={{ show: true, style: 'solid' }}

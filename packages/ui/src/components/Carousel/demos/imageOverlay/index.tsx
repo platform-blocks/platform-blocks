@@ -8,7 +8,7 @@ const scenes = [
 
 export function Demo() {
   return (
-    <Carousel height={280} loop showArrows showDots>
+    <Carousel h={280} loop showArrows showDots>
       {scenes.map(({ title, src }) => (
         <Block key={title} h="full" radius="lg" style={{ overflow: 'hidden' }}>
           <Image src={src} w="100%" h="100%" resizeMode="cover" />
@@ -22,7 +22,7 @@ export function Demo() {
             p="lg"
             justify="flex-end"
           >
-            <Text variant="h3" color="white">
+            <Text variant="h3" c="white">
               {title}
             </Text>
           </Block>

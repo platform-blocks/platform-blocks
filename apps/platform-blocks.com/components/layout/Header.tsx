@@ -37,7 +37,7 @@ export const AppHeader: React.FC = () => {
                 h={26}
                 resizeMode="contain"
               />
-              <Text size="xl" weight="bold">
+              <Text size="xl" fw="bold">
                 Platform Blocks
               </Text>
             </Flex>
@@ -52,7 +52,7 @@ export const AppHeader: React.FC = () => {
                 ['Examples', '/examples'],
               ].map(([label, href]) => (
                 <RouteLink key={href} href={href}>
-                  <Text size="sm" color="secondary" weight="medium">{label}</Text>
+                  <Text size="sm" c="secondary" fw="medium">{label}</Text>
                 </RouteLink>
               ))}
             </Flex>

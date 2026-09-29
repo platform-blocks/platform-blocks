@@ -1,31 +1,41 @@
-import React, { useMemo, useCallback, useRef } from 'react';
-import { View, Image, Linking, Platform } from 'react-native';
-import { Text } from '../Text';
-import { CodeBlock } from '../CodeBlock';
-import { useTheme, withAlpha } from '../../core/theme';
+import React, { useMemo } from 'react';
+import { Image, Linking, StyleSheet, View, type ViewStyle } from 'react-native';
+
+import { factory } from '../../core/factory/factory';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { createThemedStyles } from '../../core/hooks/useThemedStyles';
+import { isWeb } from '../../core/platform/flags';
+import { useTheme } from '../../core/theme/ThemeProvider';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
-import { extractSpacingProps, getSpacingStyles, SpacingProps } from '../../core/utils';
+import type { BaseProps } from '../../core/types/base';
+import { useStyleProps } from '../../core/utils/spacing';
+import { CodeBlock } from '../CodeBlock';
+import { Text } from '../Text';
+import type { HTMLTextVariant } from '../Text/Text';
 
 // Lightweight markdown renderer without external deps.
 // Supports: headings (#..######), bold ** **, italic _ _, inline code `code`, code fences ```lang, blockquote >, lists -, *, ordered lists 1., images ![alt](src), links [text](url)
 
-export interface MarkdownProps extends SpacingProps {
+export interface MarkdownProps extends BaseProps<ViewStyle> {
+  /** Markdown source. */
   children: string;
-  /** Override default code block language guess */
+  /** Language for code fences that don't name one (default `tsx`). */
   defaultCodeLanguage?: string;
-  /** Max heading level to render (others downgraded) */
+  /** Deepest heading level rendered; deeper headings are clamped to it. */
   maxHeadingLevel?: number;
-  /** Whether to render inline HTML literally (ignored for now) */
-  allowHtml?: boolean;
   /** Custom renderer overrides */
   components?: Partial<MarkdownComponentMap>;
-  /** Optional handler invoked when a markdown link is pressed */
+  /**
+   * Called when a markdown link is activated. Without it, links open with
+   * `Linking.openURL`. On web, modified clicks (new tab / window) are left to
+   * the browser.
+   */
   onLinkPress?: (href: string) => void;
-  /** Custom font family applied to all rendered text (overrides the theme font) */
-  fontFamily?: string;
-  /** Shorthand alias for `fontFamily` */
+  /** Custom font family applied to all rendered prose (code keeps `theme.fontFamilyMono`) */
   ff?: string;
 }
+
+export type TableAlignment = 'left' | 'center' | 'right';
 
 export interface MarkdownComponentMap {
   heading: (props: { level: number; children: React.ReactNode }) => React.ReactNode;
@@ -52,23 +62,84 @@ export interface MarkdownComponentMap {
   }) => React.ReactNode;
 }
 
+const HEADING_VARIANTS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const;
+
+/** `h1`–`h6` for a heading level; `Text` renders it as a heading (web element / native role). */
+const headingVariant = (level: number): HTMLTextVariant =>
+  HEADING_VARIANTS[Math.min(Math.max(Math.round(level) || 1, 1), HEADING_VARIANTS.length) - 1];
+
+/** Table alignment → cell content alignment (logical: `left`/`right` mirror in RTL). */
+const ALIGN_ITEMS: Record<TableAlignment, ViewStyle> = {
+  left: { alignItems: 'flex-start' },
+  center: { alignItems: 'center' },
+  right: { alignItems: 'flex-end' },
+};
+
+const getMarkdownStyles = createThemedStyles((theme: PlatformBlocksTheme) => {
+  const styles = StyleSheet.create({
+    heading: { marginTop: 16, marginBottom: 8 },
+    headingFirstLevel: { marginTop: 24, marginBottom: 8 },
+    paragraph: { marginBottom: 12 },
+    codeInline: {
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+      // The recessed-well role CodeBlock paints its panel with, so inline and
+      // fenced code read as the same material. Text stays `text.primary` (the
+      // `code` variant's default) for full contrast.
+      backgroundColor: theme.backgrounds.subtle,
+      borderRadius: 4,
+    },
+    blockquote: {
+      borderStartColor: theme.backgrounds.borderStrong ?? theme.backgrounds.border,
+      borderStartWidth: 4,
+      paddingStart: 12,
+      marginVertical: 12,
+    },
+    list: { marginVertical: 8 },
+    listRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 4 },
+    listMarker: { width: 24 },
+    listContent: { flex: 1 },
+    listItem: { marginBottom: 0 },
+    image: { width: '100%', height: 200, resizeMode: 'contain', marginVertical: 12 },
+    thematicBreak: { height: 1, backgroundColor: theme.backgrounds.border, marginVertical: 24 },
+    table: {
+      marginVertical: 12,
+      borderRadius: 8,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: theme.backgrounds.border,
+    },
+    tableHeaderRow: { flexDirection: 'row', backgroundColor: theme.backgrounds.subtle },
+    tableRow: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: theme.backgrounds.border },
+    tableCellBox: { flex: 1, padding: 12 },
+    tableCellDivider: { borderEndWidth: 1, borderEndColor: theme.backgrounds.border },
+    tableCellText: { fontSize: 14, lineHeight: 18, marginBottom: 0 },
+  });
+  return styles;
+});
+
+type MarkdownStyles = ReturnType<typeof getMarkdownStyles>;
+
 const createDefaultComponents = (
   theme: PlatformBlocksTheme,
+  styles: MarkdownStyles,
   handleLinkPress: (href: string) => void,
   fontFamily?: string,
 ): MarkdownComponentMap => ({
   heading: ({ level, children }) => (
     <Text
-      variant={`h${Math.min(level, 6)}` as any}
-      style={{ marginTop: level === 1 ? 24 : 16, marginBottom: 8 }}
-      weight={level <= 2 ? '700' : '600'}
+      variant={headingVariant(level)}
+      style={level === 1 ? styles.headingFirstLevel : styles.heading}
+      fw={level <= 2 ? '700' : '600'}
       ff={fontFamily}
     >
       {children}
     </Text>
   ),
+  // `Text` renders a <p> on web, and falls back to a <div> by itself when the
+  // paragraph holds something a <p> can't (inline code, images).
   paragraph: ({ children }) => (
-    <Text variant="p" as="div" style={{ marginBottom: 12 }} ff={fontFamily}>
+    <Text variant="p" style={styles.paragraph} ff={fontFamily}>
       {children}
     </Text>
   ),
@@ -78,195 +149,108 @@ const createDefaultComponents = (
   em: ({ children }) => (
     <Text variant="em" ff={fontFamily}>{children}</Text>
   ),
+  // The `code` variant sets `theme.fontFamilyMono`.
   codeInline: ({ children }) => (
-    <Text
-      variant="code"
-      style={{
-        paddingHorizontal: 5,
-        paddingVertical: 2,
-        // A wash of the theme's primary rather than a palette index: the light
-        // and dark scales invert, but an alpha tint over the live surface reads
-        // the same in both. Text stays `theme.text.primary` (the `code` variant's
-        // default) — tinting it to the primary hue drops below 4.5:1 on light
-        // backgrounds, where the brand blue is only ~3.5:1.
-        backgroundColor: withAlpha(theme.colors.secondary[5], theme.colorScheme === 'dark' ? 0.24 : 0.12),
-        borderRadius: 4,
-      }}
-    >
+    <Text variant="code" style={styles.codeInline}>
       {children}
     </Text>
   ),
   codeBlock: ({ code, language }) => (
-    <CodeBlock language={(language as any) || 'tsx'}>{code}</CodeBlock>
+    <CodeBlock language={language || 'tsx'}>{code}</CodeBlock>
   ),
   blockquote: ({ children }) => (
-    <View
-      style={{
-        borderLeftColor: '#ccc',
-        borderLeftWidth: 4,
-        paddingLeft: 12,
-        marginVertical: 12,
-      }}
-    >
+    <View style={styles.blockquote}>
       <Text variant="blockquote" ff={fontFamily}>{children}</Text>
     </View>
   ),
   list: ({ ordered, items }) => (
-    <View style={{ marginVertical: 8 }}>
+    <View role="list" style={styles.list}>
       {items.map((it, i) => (
-        <View
-          key={i}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'flex-start',
-            marginBottom: 4,
-          }}
-        >
-          {ordered ? (
-            <Text variant="p" style={{ width: 24 }} ff={fontFamily}>
-              {i + 1}.{' '}
-            </Text>
-          ) : (
-            <Text variant="p" style={{ width: 24 }} ff={fontFamily}>
-              •{' '}
-            </Text>
-          )}
-          <View style={{ flex: 1 }}>{it}</View>
+        <View key={i} role="listitem" style={styles.listRow}>
+          {/* The list semantics already convey position; the glyph is visual only. */}
+          <Text variant="p" style={styles.listMarker} ff={fontFamily} aria-hidden>
+            {ordered ? `${i + 1}. ` : '• '}
+          </Text>
+          <View style={styles.listContent}>{it}</View>
         </View>
       ))}
     </View>
   ),
   listItem: ({ children }) => (
-    <Text variant="p" style={{ marginBottom: 0 }} ff={fontFamily}>
+    <Text variant="p" style={styles.listItem} ff={fontFamily}>
       {children}
     </Text>
   ),
   // A link has to stay in the paragraph's inline flow. Wrapping it in a
   // Pressable rendered a block-level box (View → div), which broke the line
-  // before and after every link. Web gets a real <a> — inline, focusable, and
-  // hoverable; native uses Text's own onPress, which nests inside the parent
+  // before and after every link. Web gets a real <a href> — inline, focusable,
+  // exposed as a link, and middle-/modifier-click still open a new tab; native
+  // uses Text's own onPress with the link role, which nests inside the parent
   // Text without introducing a view.
   link: ({ href, children }) =>
-    Platform.OS === 'web'
-      ? React.createElement(
-          'a',
-          {
-            href,
-            style: { color: theme.text.link, textDecoration: 'underline', cursor: 'pointer' },
-            onClick: (event: any) => {
-              event?.preventDefault?.();
-              handleLinkPress(href);
-            },
-          },
-          children
-        )
-      : (
-        <Text
-          variant="u"
-          style={{ color: theme.text.link }}
-          ff={fontFamily}
-          onPress={() => handleLinkPress(href)}
-        >
-          {children}
-        </Text>
-      ),
-  image: ({ src, alt }) => (
-    <Image
-      source={{ uri: src }}
-      accessibilityLabel={alt}
-      style={{
-        width: '100%',
-        height: 200,
-        resizeMode: 'contain',
-        marginVertical: 12,
-      }}
-    />
-  ),
-  thematicBreak: () => (
-    <View
-      style={{
-        height: 1,
-        backgroundColor: theme.backgrounds.border,
-        marginVertical: 24,
-      }}
-    />
-  ),
-  table: ({ headers, rows, alignments }) => {
-    const getAlignmentStyle = (alignment?: TableAlignment) => {
-      if (alignment === 'center') return { alignItems: 'center' as const };
-      if (alignment === 'right') return { alignItems: 'flex-end' as const };
-      return { alignItems: 'flex-start' as const };
-    };
-    return (
-      <View
-        style={{
-          marginVertical: 12,
-          borderRadius: 8,
-          overflow: 'hidden',
-          borderWidth: 1,
-          borderColor: theme.colors.gray?.[3] || theme.backgrounds.border,
+    isWeb ? (
+      <a
+        href={href}
+        style={{ color: theme.text.link, textDecoration: 'underline', cursor: 'pointer' }}
+        onClick={(event) => {
+          if (event.defaultPrevented || event.button !== 0) return;
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          handleLinkPress(href);
         }}
       >
-        {/* Header row */}
-        <View
-          style={{
-            flexDirection: 'row',
-            backgroundColor: theme.colors.gray?.[1] || theme.backgrounds.subtle,
-          }}
-        >
-          {headers.map((header, i) => (
-            <View
-              key={i}
-              style={{
-                flex: 1,
-                padding: 12,
-                borderRightWidth: i < headers.length - 1 ? 1 : 0,
-                borderRightColor: theme.colors.gray?.[3] || theme.backgrounds.border,
-                ...getAlignmentStyle(alignments?.[i]),
-              }}
-            >
-              {header}
-            </View>
-          ))}
-        </View>
-        {/* Data rows */}
-        {rows.map((row, rowIndex) => (
+        {children}
+      </a>
+    ) : (
+      <Text variant="u" role="link" c="link" ff={fontFamily} onPress={() => handleLinkPress(href)}>
+        {children}
+      </Text>
+    ),
+  image: ({ src, alt }) => (
+    <Image source={{ uri: src }} accessibilityLabel={alt} style={styles.image} />
+  ),
+  thematicBreak: () => <View role="separator" style={styles.thematicBreak} />,
+  table: ({ headers, rows, alignments }) => (
+    <View role="table" style={styles.table}>
+      <View role="row" style={styles.tableHeaderRow}>
+        {headers.map((header, i) => (
           <View
-            key={rowIndex}
-            style={{
-              flexDirection: 'row',
-              borderTopWidth: 1,
-              borderTopColor: theme.colors.gray?.[3] || theme.backgrounds.border,
-            }}
+            key={i}
+            role="columnheader"
+            style={[
+              styles.tableCellBox,
+              i < headers.length - 1 ? styles.tableCellDivider : null,
+              ALIGN_ITEMS[alignments?.[i] ?? 'left'],
+            ]}
           >
-            {row.map((cell, cellIndex) => (
-              <View
-                key={cellIndex}
-                style={{
-                  flex: 1,
-                  padding: 12,
-                  borderRightWidth: cellIndex < row.length - 1 ? 1 : 0,
-                  borderRightColor: theme.colors.gray?.[3] || theme.backgrounds.border,
-                  ...getAlignmentStyle(alignments?.[cellIndex]),
-                }}
-              >
-                {cell}
-              </View>
-            ))}
+            {header}
           </View>
         ))}
       </View>
-    );
-  },
+      {rows.map((row, rowIndex) => (
+        <View key={rowIndex} role="row" style={styles.tableRow}>
+          {row.map((cell, cellIndex) => (
+            <View
+              key={cellIndex}
+              role="cell"
+              style={[
+                styles.tableCellBox,
+                cellIndex < row.length - 1 ? styles.tableCellDivider : null,
+                ALIGN_ITEMS[alignments?.[cellIndex] ?? 'left'],
+              ]}
+            >
+              {cell}
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
+  ),
   tableCell: ({ children, isHeader, align }) => (
     <Text
       variant={isHeader ? 'strong' : 'p'}
-      style={{
-        fontSize: 14,
-        lineHeight: 18,
-        marginBottom: 0,
-        textAlign: align ?? 'left',
-      }}
+      ta={align ?? 'left'}
+      style={styles.tableCellText}
       ff={fontFamily}
     >
       {children}
@@ -290,8 +274,6 @@ type InlineNode =
   | InlineCodeNode
   | InlineLinkNode
   | InlineImageNode;
-
-type TableAlignment = 'left' | 'center' | 'right';
 
 interface HeadingNode { type: 'heading'; level: number; inline: InlineNode[]; }
 interface ParagraphNode { type: 'paragraph'; inline: InlineNode[]; }
@@ -652,172 +634,149 @@ const renderInlineNodes = (nodes: InlineNode[], components: MarkdownComponentMap
   });
 };
 
-const getThemeSignature = (theme: PlatformBlocksTheme): string => {
-  const { primaryColor, colorScheme, fontFamily, text, backgrounds, colors } = theme;
-  return [
-    primaryColor,
-    // The inline-code tint reads this directly, so a palette override without a
-    // matching `primaryColor` change still busts the cache.
-    colors?.primary?.[5],
-    colorScheme,
-    fontFamily,
-    text?.primary,
-    text?.link,
-    backgrounds?.base,
-    backgrounds?.surface,
-    backgrounds?.border,
-  ].join('|');
+interface RenderContext {
+  components: MarkdownComponentMap;
+  maxHeadingLevel: number;
+  defaultCodeLanguage: string;
+  getKey: (token: BlockNode) => string;
+}
+
+const renderBlock = (t: BlockNode, key: string, ctx: RenderContext): React.ReactNode => {
+  const { components } = ctx;
+  switch (t.type) {
+    case 'heading': {
+      const level = Math.min(t.level, ctx.maxHeadingLevel);
+      return (
+        <React.Fragment key={key}>
+          {components.heading({ level, children: renderInlineNodes(t.inline, components) })}
+        </React.Fragment>
+      );
+    }
+    case 'paragraph': {
+      return (
+        <React.Fragment key={key}>
+          {components.paragraph({ children: renderInlineNodes(t.inline, components) })}
+        </React.Fragment>
+      );
+    }
+    case 'code': {
+      return (
+        <React.Fragment key={key}>
+          {components.codeBlock({ code: t.code, language: t.language || ctx.defaultCodeLanguage })}
+        </React.Fragment>
+      );
+    }
+    case 'blockquote': {
+      return (
+        <React.Fragment key={key}>
+          {components.blockquote({ children: t.children.map((child) => renderBlock(child, ctx.getKey(child), ctx)) })}
+        </React.Fragment>
+      );
+    }
+    case 'list': {
+      return (
+        <React.Fragment key={key}>
+          {components.list({
+            ordered: t.ordered,
+            items: t.items.map((inlineNodes, idx) =>
+              components.listItem({
+                children: renderInlineNodes(inlineNodes, components),
+                index: idx,
+                ordered: t.ordered,
+              })
+            ),
+          })}
+        </React.Fragment>
+      );
+    }
+    case 'thematicBreak': {
+      return <React.Fragment key={key}>{components.thematicBreak()}</React.Fragment>;
+    }
+    case 'table': {
+      const headers = t.headers.map((inlineHeader, headerIndex) =>
+        components.tableCell({
+          children: renderInlineNodes(inlineHeader, components),
+          isHeader: true,
+          align: t.alignments?.[headerIndex],
+        })
+      );
+      const rows = t.rows.map((row) =>
+        row.map((cellInline, cellIndex) =>
+          components.tableCell({
+            children: renderInlineNodes(cellInline, components),
+            isHeader: false,
+            align: t.alignments?.[cellIndex],
+          })
+        )
+      );
+      return (
+        <React.Fragment key={key}>
+          {components.table({ headers, rows, alignments: t.alignments })}
+        </React.Fragment>
+      );
+    }
+    default:
+      return null;
+  }
 };
 
-const getOverrideFingerprint = (overrides?: Partial<MarkdownComponentMap>): string => {
-  if (!overrides) return 'none';
-  return Object.keys(overrides)
-    .filter(key => Boolean(overrides[key as keyof MarkdownComponentMap]))
-    .sort()
-    .join('|');
-};
+export const Markdown = factory<{ props: MarkdownProps; ref: View }>(
+  (props, ref) => {
+    const {
+      children,
+      defaultCodeLanguage = 'tsx',
+      maxHeadingLevel = 6,
+      components,
+      onLinkPress,
+      ff: fontFamily,
+      style,
+      testID,
+      ...spacingProps
+    } = props;
+    const customFontFamily = fontFamily;
+    const spacingStyles = useStyleProps(spacingProps);
+    const theme = useTheme();
+    const styles = getMarkdownStyles(theme);
 
-export const Markdown = React.forwardRef<View, MarkdownProps>((allProps, ref) => {
-  const { spacingProps, otherProps } = extractSpacingProps(allProps);
-  const { children, defaultCodeLanguage='tsx', maxHeadingLevel=6, allowHtml=false, components, onLinkPress, fontFamily, ff } = otherProps;
-  const customFontFamily = ff ?? fontFamily;
-  const spacingStyles = getSpacingStyles(spacingProps);
-  const theme = useTheme();
-
-  const handleLinkPress = useCallback(
-    (href: string) => {
+    // Stable identity, always the latest `onLinkPress` — an inline handler must
+    // not rebuild every renderer (and re-render the document) on each render.
+    const handleLinkPress = useLatestCallback((href: string) => {
       if (onLinkPress) {
         onLinkPress(href);
         return;
       }
       Linking.openURL(href).catch(() => undefined);
-    },
-    [onLinkPress]
-  );
-
-  const themeSignature = useMemo(() => getThemeSignature(theme), [theme]);
-  const overrideFingerprint = useMemo(() => getOverrideFingerprint(components), [components]);
-
-  const merged = useMemo(() => {
-    const defaults = createDefaultComponents(theme, handleLinkPress, customFontFamily);
-    if (!components) {
-      return defaults;
-    }
-    const next: MarkdownComponentMap = { ...defaults };
-    Object.entries(components).forEach(([key, renderer]) => {
-      if (renderer) {
-        (next as any)[key] = renderer;
-      }
     });
-    return next;
-  }, [themeSignature, overrideFingerprint, theme, components, handleLinkPress, customFontFamily]);
 
-  const inlineCache = useMemo(() => new Map<string, InlineNode[]>(), []);
-  const getInlineNodes = useCallback((value: string) => {
-    if (!inlineCache.has(value)) {
-      inlineCache.set(value, parseInline(value));
-    }
-    return inlineCache.get(value)!;
-  }, [inlineCache]);
+    const merged = useMemo<MarkdownComponentMap>(() => {
+      const defaults = createDefaultComponents(theme, styles, handleLinkPress, customFontFamily);
+      if (!components) return defaults;
+      // Explicitly `undefined` overrides keep the default renderer.
+      const overrides = Object.fromEntries(
+        Object.entries(components).filter(([, renderer]) => Boolean(renderer))
+      ) as Partial<MarkdownComponentMap>;
+      return { ...defaults, ...overrides };
+    }, [theme, styles, handleLinkPress, customFontFamily, components]);
 
-  const tokenCacheRef = useRef<{ input: string; tokens: BlockNode[] }>({ input: '', tokens: [] });
-  const tokens = useMemo(() => {
-    if (tokenCacheRef.current.input !== children) {
-      tokenCacheRef.current = {
-        input: children,
-        tokens: tokenize(children, getInlineNodes),
+    const tokens = useMemo(() => tokenize(children ?? ''), [children]);
+
+    const content = useMemo(() => {
+      const ctx: RenderContext = {
+        components: merged,
+        maxHeadingLevel,
+        defaultCodeLanguage,
+        getKey: createTokenKeyGenerator(),
       };
-    }
-    return tokenCacheRef.current.tokens;
-  }, [children, getInlineNodes]);
+      return tokens.map((token) => renderBlock(token, ctx.getKey(token), ctx));
+    }, [tokens, merged, maxHeadingLevel, defaultCodeLanguage]);
 
-  const getKeyForToken = createTokenKeyGenerator();
-
-  const renderToken = (t: BlockNode, key: string): React.ReactNode => {
-    switch (t.type) {
-      case 'heading': {
-        const level = Math.min(t.level, maxHeadingLevel);
-        return (
-          <React.Fragment key={key}>
-            {merged.heading({ level, children: renderInlineNodes(t.inline, merged) })}
-          </React.Fragment>
-        );
-      }
-      case 'paragraph': {
-        return (
-          <React.Fragment key={key}>
-            {merged.paragraph({ children: renderInlineNodes(t.inline, merged) })}
-          </React.Fragment>
-        );
-      }
-      case 'code': {
-        return (
-          <React.Fragment key={key}>
-            {merged.codeBlock({ code: t.code, language: t.language || defaultCodeLanguage })}
-          </React.Fragment>
-        );
-      }
-      case 'blockquote': {
-        return (
-          <React.Fragment key={key}>
-            {merged.blockquote({ children: t.children.map(child => renderToken(child, getKeyForToken(child))) })}
-          </React.Fragment>
-        );
-      }
-      case 'list': {
-        return (
-          <React.Fragment key={key}>
-            {merged.list({
-              ordered: t.ordered,
-              items: t.items.map((inlineNodes, idx) =>
-                merged.listItem({
-                  children: renderInlineNodes(inlineNodes, merged),
-                  index: idx,
-                  ordered: t.ordered,
-                })
-              ),
-            })}
-          </React.Fragment>
-        );
-      }
-      case 'thematicBreak': {
-        return <React.Fragment key={key}>{merged.thematicBreak()}</React.Fragment>;
-      }
-      case 'table': {
-        const headers = t.headers.map((inlineHeader, headerIndex) =>
-          merged.tableCell({
-            children: renderInlineNodes(inlineHeader, merged),
-            isHeader: true,
-            align: t.alignments?.[headerIndex],
-          })
-        );
-        const rows = t.rows.map(row =>
-          row.map((cellInline, cellIndex) =>
-            merged.tableCell({
-              children: renderInlineNodes(cellInline, merged),
-              isHeader: false,
-              align: t.alignments?.[cellIndex],
-            })
-          )
-        );
-        return (
-          <React.Fragment key={key}>
-            {merged.table({ headers, rows, alignments: t.alignments })}
-          </React.Fragment>
-        );
-      }
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <View ref={ref} style={spacingStyles}>
-      {tokens.map(token => renderToken(token, getKeyForToken(token)))}
-    </View>
-  );
-});
-
-Markdown.displayName = 'Markdown';
+    return (
+      <View ref={ref} testID={testID} style={[spacingStyles, style]}>
+        {content}
+      </View>
+    );
+  },
+  { displayName: 'Markdown' }
+);
 
 export default Markdown;

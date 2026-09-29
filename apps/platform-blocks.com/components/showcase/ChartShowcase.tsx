@@ -371,8 +371,8 @@ function PieChartDemo() {
     <PieChart
       title="Team Allocation"
       data={pieData}
-      width={320}
-      height={260}
+      w={320}
+      h={260}
       showLabels
       showValues
       valueFormatter={(value, total) => `${Math.round((value / total) * 100)}%`}
@@ -391,8 +391,8 @@ function GaugeChartDemo() {
     <GaugeChart
       title="Platform Health"
       subtitle="Real-time system load"
-      width={320}
-      height={240}
+      w={320}
+      h={240}
       value={68}
       min={0}
       max={100}
@@ -450,13 +450,13 @@ function SparklineChartDemo() {
       <Title>Sparklines</Title>
       <View style={wrapperStyle}>
         <View style={itemStyle}>
-          <SparklineChart id="spark-a" name="A" data={seriesA} width={140} height={48} smooth fill highlightLast useOwnInteractionProvider={false} suppressPopover />
+          <SparklineChart id="spark-a" name="A" data={seriesA} w={140} h={48} smooth fill highlightLast useOwnInteractionProvider={false} suppressPopover />
         </View>
         <View style={itemStyle}>
-          <SparklineChart id="spark-b" name="B" data={seriesB} width={140} height={48} color="#f59e0b" smooth fill highlightLast useOwnInteractionProvider={false} suppressPopover />
+          <SparklineChart id="spark-b" name="B" data={seriesB} w={140} h={48} color="#f59e0b" smooth fill highlightLast useOwnInteractionProvider={false} suppressPopover />
         </View>
         <View style={itemStyle}>
-          <SparklineChart id="spark-c" name="C" data={seriesC} width={140} height={48} color="#10b981" smooth fill highlightLast useOwnInteractionProvider={false} suppressPopover />
+          <SparklineChart id="spark-c" name="C" data={seriesC} w={140} h={48} color="#10b981" smooth fill highlightLast useOwnInteractionProvider={false} suppressPopover />
         </View>
       </View>
     </View>
@@ -500,8 +500,8 @@ function ComboChartDemo() {
     <View style={{ marginTop: 12, marginBottom: 24 }}>
       <Title>Combo (Bar + Line + Area + Density)</Title>
       <ComboChart
-        width={620}
-        height={320}
+        w={620}
+        h={320}
         layers={[
           { type: 'bar', data: barData, opacity: 0.5, name: 'Bars', color: '#6366f1' },
           { type: 'line', data: lineData, smooth: true, name: 'Line', color: '#dc2626', showPoints: true, pointSize: 4 },
@@ -528,8 +528,8 @@ function DonutChartDemo() {
     <DonutChart
       title="Donut"
       data={data}
-      width={320}
-      height={260}
+      w={320}
+      h={260}
       isolateOnClick
       centerLabel={(total) => `Total\n${total}`}
       animation={{ type: 'bounce' }}
@@ -544,8 +544,8 @@ function RidgeChartDemo() {
     <RidgeChart
       title="Ridge"
       series={series}
-      width={640}
-      height={320}
+      w={640}
+      h={320}
       samples={72}
       style={{ marginTop: 12, marginBottom: 24 }}
     />
@@ -558,8 +558,8 @@ function ViolinChartDemo() {
     <ViolinChart
       title="Violin"
       series={series}
-      width={640}
-      height={320}
+      w={640}
+      h={320}
       samples={72}
       style={{ marginTop: 12, marginBottom: 24 }}
     />
@@ -590,8 +590,8 @@ function SankeyChartDemo() {
       title="Sankey"
       nodes={nodes}
       links={links}
-      width={680}
-      height={360}
+      w={680}
+      h={360}
       style={{ marginTop: 12, marginBottom: 24 }}
     />
   );
@@ -611,8 +611,8 @@ function NetworkChartDemo() {
       title="Network"
       nodes={nodes}
       links={links}
-      width={680}
-      height={360}
+      w={680}
+      h={360}
       style={{ marginTop: 12, marginBottom: 24 }}
     />
   );

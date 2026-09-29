@@ -67,7 +67,8 @@ describe('usePopoverPositioning — staying docked to the anchor', () => {
   async function renderThenOpen() {
     const hook = renderHook(
       ({ open }: { open: boolean }) =>
-        usePopoverPositioning(open, { placement: 'bottom-start', offset: 6 }),
+        // Fake host nodes (see below) instead of the default View refs.
+        usePopoverPositioning<object, { __isPopover: boolean }>(open, { placement: 'bottom-start', offset: 6 }),
       { initialProps: { open: false } },
     );
 

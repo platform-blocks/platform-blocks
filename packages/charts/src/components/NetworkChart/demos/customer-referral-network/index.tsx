@@ -21,7 +21,7 @@ export function Demo() {
     <NetworkChart
       title="Customer referral influence network"
       subtitle="Referral pathways by activation wave"
-      height={430}
+      h={430}
       nodes={COHORTS}
       links={REFERRALS}
       showLabels

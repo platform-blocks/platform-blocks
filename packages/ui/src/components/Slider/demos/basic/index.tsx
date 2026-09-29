@@ -1,19 +1,12 @@
 import { useState } from 'react';
-import { Slider, Text, Card, Block } from '@platform-blocks/ui';
+import { Block, Slider } from '@platform-blocks/ui';
 
 export function Demo() {
   const [value, setValue] = useState(25);
 
   return (
     <Block fullWidth>
-      <Slider
-        value={value}
-        onChange={setValue}
-        min={0}
-        max={100}
-      />
+      <Slider accessibilityLabel="Volume" value={value} onChange={setValue} />
     </Block>
   );
 }
-
-

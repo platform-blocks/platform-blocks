@@ -4,18 +4,9 @@ import { Spotlight } from '../Spotlight';
 import { SpotlightProvider, spotlight } from '../SpotlightStore';
 import type { SpotlightActionData, SpotlightItem } from '../SpotlightTypes';
 
-const mockTheme = {
-  colorScheme: 'light',
-  text: { primary: '#111111', secondary: '#666666' },
-  colors: {
-    primary: ['#000', '#111', '#222', '#333', '#444', '#555', '#666'],
-    gray: ['#fafafa', '#f0f0f0', '#e0e0e0', '#cccccc', '#bbbbbb', '#999999'],
-    surface: ['#ffffff', '#f7f7f7'],
-  },
-};
 
 jest.mock('../../../core/theme/ThemeProvider', () => ({
-  useTheme: () => mockTheme,
+  useTheme: () => jest.requireActual('../../../core/theme/defaultTheme').DEFAULT_THEME,
 }));
 
 jest.mock('../../../core/providers/KeyboardManagerProvider', () => ({
@@ -32,8 +23,9 @@ jest.mock('../../Dialog', () => {
   const React = require('react');
   const { View } = require('react-native');
   return {
-    Dialog: ({ children, ...props }: any) => (
-      <View accessibilityRole="dialog" {...props}>{children}</View>
+    // `autoFocus` carries the search field's ref (not serialisable).
+    Dialog: ({ children, autoFocus: _autoFocus, opened, ...props }: any) => (
+      opened ? <View role="dialog" {...props}>{children}</View> : null
     ),
   };
 });

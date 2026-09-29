@@ -123,8 +123,19 @@ describe('BrandIcon', () => {
     expect(warnSpy).toHaveBeenCalledWith('Brand icon "missing" not found in registry');
   });
 
-  it('assigns an accessibility label when not decorative', () => {
-    const { getByLabelText } = render(<BrandIcon brand="google" />);
+  it('is decorative by default, keeping its testID queryable', () => {
+    const { getByTestId, queryByRole } = render(<BrandIcon brand="google" testID="logo" />);
+    expect(getByTestId('logo').props.importantForAccessibility).toBe('no');
+    expect(queryByRole('img')).toBeNull();
+  });
+
+  it('is announced as an image when labelled', () => {
+    const { getByRole } = render(<BrandIcon brand="google" label="Google" />);
+    expect(getByRole('img', { name: 'Google' })).toBeTruthy();
+  });
+
+  it('falls back to "<brand> logo" when explicitly not decorative', () => {
+    const { getByLabelText } = render(<BrandIcon brand="google" decorative={false} />);
     expect(getByLabelText('google logo')).toBeTruthy();
   });
 });

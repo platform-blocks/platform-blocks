@@ -57,7 +57,7 @@ const TemplateRow: React.FC<{ template: StarterTemplate; stacked: boolean }> = (
       <View style={styles.info}>
         <View style={styles.titleLine}>
           {stacked && mark}
-          <Text variant="p" weight="medium">{name}</Text>
+          <Text variant="p" fw="medium">{name}</Text>
           {!available && (
             <Chip size="xs" color="gray" variant="light">coming soon</Chip>
           )}
@@ -65,7 +65,7 @@ const TemplateRow: React.FC<{ template: StarterTemplate; stacked: boolean }> = (
             <Chip key={tag} size="xs" variant="surface">{tag}</Chip>
           ))}
         </View>
-        <Text variant="small" color="secondary">{description}</Text>
+        <Text variant="small" c="secondary">{description}</Text>
       </View>
 
       {/* The cell keeps its width even when the template has no link yet, so
@@ -76,7 +76,7 @@ const TemplateRow: React.FC<{ template: StarterTemplate; stacked: boolean }> = (
             title="Use template"
             variant="default"
             size="xs"
-            endIcon={<Icon name="external-link" size="xs" />}
+            endSection={<Icon name="external-link" size="xs" />}
             onPress={() => {
               Linking.openURL(repo).catch(err =>
                 console.error('[TemplatesList] Failed to open template repo:', repo, err));

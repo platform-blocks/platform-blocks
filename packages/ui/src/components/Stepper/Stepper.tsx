@@ -1,14 +1,28 @@
-import React, { createContext, useContext, forwardRef, useMemo } from 'react';
-import { View, TouchableOpacity, ViewStyle, TextStyle } from 'react-native';
-import { Text } from '../Text';
-import { StepperProps, StepperStepProps, StepperCompletedProps, StepperContextValue, type StepperMetrics } from './types';
-import { useTheme } from '../../core/theme/ThemeProvider';
-import { readableTextOn } from '../../core/theme/colorUtils';
+import React, { createContext, useContext, useMemo, useState } from 'react';
+import { Pressable, View } from 'react-native';
+import type { TextStyle, ViewProps, ViewStyle } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useRovingFocus, type UseRovingFocusResult } from '../../core/accessibility/useRovingFocus';
+import { factory, withStatics } from '../../core/factory';
+import { webProps } from '../../core/platform';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { resolveSurface } from '../../core/theme/surfaces';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getControlSize, onColor } from '../../core/theme/tokens';
+import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 import { Loader } from '../Loader';
-import { resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
-import { getComponentSize } from '../../core/theme/unified-sizing';
-import { mergeSlotProps } from '../../core/utils';
+import { Text } from '../Text';
+import type {
+  StepperCompletedProps,
+  StepperContextValue,
+  StepperMetrics,
+  StepperProps,
+  StepperStepProps,
+} from './types';
 
 // Create Stepper Context
 const StepperContext = createContext<StepperContextValue | null>(null);
@@ -21,9 +35,6 @@ const useStepperContext = () => {
   return context;
 };
 
-const STEPPER_ALLOWED_SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
-const STEPPER_ALLOWED_SIZES_ARRAY: ComponentSize[] = [...STEPPER_ALLOWED_SIZES];
-
 const MIN_STEPPER_METRICS = {
   iconSize: 20,
   fontSize: 12,
@@ -35,75 +46,29 @@ const MIN_STEPPER_METRICS = {
 /** Thickness of the connector, scaled off the indicator so large steppers keep their proportions. */
 const lineWidthForIcon = (iconSize: number) => Math.max(MIN_STEPPER_METRICS.lineWidth, Math.round(iconSize / 16));
 
-const STEPPER_SIZE_SCALE: Partial<Record<ComponentSize, StepperMetrics>> = STEPPER_ALLOWED_SIZES_ARRAY.reduce(
-  (acc, token) => {
-    acc[token] = createMetricsForToken(token);
-    return acc;
-  },
-  {} as Partial<Record<ComponentSize, StepperMetrics>>
-);
-
-const BASE_STEPPER_METRICS = STEPPER_SIZE_SCALE.md ?? createMetricsForToken('md');
-const BASE_STEPPER_HEIGHT = getComponentSize('md').height;
-
-function createMetricsForToken(size: ComponentSize): StepperMetrics {
-  const config = getComponentSize(size);
-
-  const fontSize = Math.max(MIN_STEPPER_METRICS.fontSize, config.fontSize);
+/** Stepper proportions, derived from the shared control-size scale (a numeric `size` is a control height). */
+function getStepperMetrics(theme: PlatformBlocksTheme, size: SizeValue): StepperMetrics {
+  const control = getControlSize(theme, size);
+  const fontSize = Math.max(MIN_STEPPER_METRICS.fontSize, control.fontSize);
   const descriptionFontSize = Math.max(
     MIN_STEPPER_METRICS.descriptionFontSize,
-    Math.min(fontSize - 1, Math.round(config.fontSize * 0.9))
+    Math.min(fontSize - 1, Math.round(control.fontSize * 0.9))
   );
-
-  const iconSize = Math.max(MIN_STEPPER_METRICS.iconSize, Math.round(config.height * 0.8));
+  const iconSize = Math.max(MIN_STEPPER_METRICS.iconSize, Math.round(control.height * 0.8));
 
   return {
     iconSize,
     fontSize,
     descriptionFontSize,
-    spacing: Math.max(MIN_STEPPER_METRICS.spacing, Math.round(config.padding * 1.25) + 1),
-    lineWidth: lineWidthForIcon(iconSize),
-  };
-}
-
-function resolveStepperMetrics(value: ComponentSizeValue | undefined): StepperMetrics {
-  const resolved = resolveComponentSize(value, STEPPER_SIZE_SCALE, {
-    allowedSizes: STEPPER_ALLOWED_SIZES_ARRAY,
-    fallback: 'md',
-  });
-
-  if (typeof resolved === 'number') {
-    return calculateNumericMetrics(resolved);
-  }
-
-  return resolved;
-}
-
-function calculateNumericMetrics(height: number): StepperMetrics {
-  const normalizedHeight = Math.max(MIN_STEPPER_METRICS.iconSize + 4, Math.round(height));
-  const scale = normalizedHeight / BASE_STEPPER_HEIGHT;
-
-  const fontSize = Math.max(MIN_STEPPER_METRICS.fontSize, Math.round(BASE_STEPPER_METRICS.fontSize * scale));
-  const descriptionFontSize = Math.max(
-    MIN_STEPPER_METRICS.descriptionFontSize,
-    Math.min(fontSize - 1, Math.round(BASE_STEPPER_METRICS.descriptionFontSize * scale))
-  );
-
-  const iconSize = Math.max(MIN_STEPPER_METRICS.iconSize, Math.round(normalizedHeight * 0.8));
-
-  return {
-    iconSize,
-    fontSize,
-    descriptionFontSize,
-    spacing: Math.max(MIN_STEPPER_METRICS.spacing, Math.round(BASE_STEPPER_METRICS.spacing * scale)),
+    spacing: Math.max(MIN_STEPPER_METRICS.spacing, Math.round(control.paddingX * 1.25) + 1),
     lineWidth: lineWidthForIcon(iconSize),
   };
 }
 
 // Step Component
-const StepperStep = forwardRef<View, StepperStepProps>((
+const StepperStep = factory<{ props: StepperStepProps; ref: View }>((
   {
-    children,
+    children: _children,
     label,
     description,
     icon,
@@ -118,7 +83,8 @@ const StepperStep = forwardRef<View, StepperStepProps>((
     isLast = false,
     labelProps,
     descriptionProps,
-    ...props
+    style,
+    testID,
   },
   ref
 ) => {
@@ -133,18 +99,19 @@ const StepperStep = forwardRef<View, StepperStepProps>((
     completedIcon: contextCompletedIcon,
     allowNextStepsSelect,
     metrics,
+    roving,
   } = useStepperContext();
 
   const finalIconSize = contextIconSize || metrics.iconSize;
-  const stepColor = color || contextColor || theme.colors.primary[5];
+  const stepColor = resolveAccentColor(theme, color) ?? contextColor;
   const isVertical = orientation === 'vertical';
   const isCompleted = stepIndex < active;
   const isActive = stepIndex === active;
-  const isClickable = allowStepSelect && (allowNextStepsSelect || stepIndex <= active) && onStepClick;
+  const isClickable = !!onStepClick && allowStepSelect && (allowNextStepsSelect || stepIndex <= active);
 
   const mutedColor = theme.backgrounds?.border ?? resolveSurface(theme, 1).border;
   // Content sitting inside a filled indicator has to read against the fill, not the page.
-  const indicatorContentColor = isCompleted || isActive ? readableTextOn(stepColor) : theme.text.muted;
+  const indicatorContentColor = isCompleted || isActive ? onColor(theme, stepColor, 3) : theme.text.muted;
   // Gap between the indicator and the connector so the line never collides with the ring.
   // Vertical runs use a tighter gap because its connector is short by comparison.
   const railGap = isVertical
@@ -156,7 +123,7 @@ const StepperStep = forwardRef<View, StepperStepProps>((
     ? 'center'
     : iconPosition === 'right' ? 'right' : 'left';
 
-  const getStepIconStyles = (): ViewStyle => ({
+  const stepIconStyle: ViewStyle = {
     width: finalIconSize,
     height: finalIconSize,
     borderRadius: finalIconSize / 2,
@@ -167,28 +134,28 @@ const StepperStep = forwardRef<View, StepperStepProps>((
     // which inverted into a bright dot on dark backgrounds.
     borderColor: isCompleted || isActive ? stepColor : mutedColor,
     backgroundColor: isCompleted || isActive ? stepColor : theme.backgrounds?.surface ?? resolveSurface(theme, 1).background,
-  });
+  };
 
-  const getStepNumberStyles = (): TextStyle => ({
+  const stepNumberStyle: TextStyle = {
     fontSize: Math.round(metrics.fontSize * 0.85),
     fontWeight: '600',
     color: indicatorContentColor,
     lineHeight: Math.round(metrics.fontSize * 1.1),
-  });
+  };
 
-  const getStepLabelStyles = (): TextStyle => ({
+  const stepLabelStyle: TextStyle = {
     fontSize: metrics.fontSize,
     // Upcoming steps recede so the active/completed trail carries the eye.
     color: isActive ? stepColor : isCompleted ? theme.text.primary : theme.text.secondary,
     marginBottom: description ? 2 : 0,
     textAlign: bodyTextAlign,
-  });
+  };
 
-  const getStepDescriptionStyles = (): TextStyle => ({
+  const stepDescriptionStyle: TextStyle = {
     fontSize: metrics.descriptionFontSize,
     color: theme.text.secondary,
     textAlign: bodyTextAlign,
-  });
+  };
 
   // Icons handed in by consumers default to body text color, which disappears on a
   // filled indicator — tint them unless the caller picked a color themselves.
@@ -212,11 +179,7 @@ const StepperStep = forwardRef<View, StepperStepProps>((
       return tintIndicatorContent(icon);
     }
 
-    return (
-      <Text style={getStepNumberStyles()}>
-        {stepIndex + 1}
-      </Text>
-    );
+    return <Text style={stepNumberStyle}>{stepIndex + 1}</Text>;
   };
 
   /** Half-connector rendered on either side of the indicator. */
@@ -232,8 +195,8 @@ const StepperStep = forwardRef<View, StepperStepProps>((
           flex: 1,
           height: metrics.lineWidth,
           borderRadius: metrics.lineWidth / 2,
-          marginLeft: side === 'trailing' ? railGap : 0,
-          marginRight: side === 'leading' ? railGap : 0,
+          marginStart: side === 'trailing' ? railGap : 0,
+          marginEnd: side === 'leading' ? railGap : 0,
           backgroundColor: hidden ? 'transparent' : filled ? stepColor : mutedColor,
         }}
       />
@@ -246,19 +209,12 @@ const StepperStep = forwardRef<View, StepperStepProps>((
     const body = (
       <>
         {label && (
-          <Text
-            {...mergeSlotProps(
-              { weight: isActive ? '600' : '500', style: getStepLabelStyles() },
-              labelProps
-            )}
-          >
+          <Text {...mergeSlotProps({ fw: isActive ? '600' : '500', style: stepLabelStyle }, labelProps)}>
             {label}
           </Text>
         )}
         {description && (
-          <Text {...mergeSlotProps({ style: getStepDescriptionStyles() }, descriptionProps)}>
-            {description}
-          </Text>
+          <Text {...mergeSlotProps({ style: stepDescriptionStyle }, descriptionProps)}>{description}</Text>
         )}
       </>
     );
@@ -268,8 +224,8 @@ const StepperStep = forwardRef<View, StepperStepProps>((
         <View
           style={{
             flex: 1,
-            marginLeft: iconPosition === 'right' ? 0 : metrics.spacing,
-            marginRight: iconPosition === 'right' ? metrics.spacing : 0,
+            marginStart: iconPosition === 'right' ? 0 : metrics.spacing,
+            marginEnd: iconPosition === 'right' ? metrics.spacing : 0,
             // Bottom padding is what gives the connector its length, so it lives
             // inside the row rather than as a gap between rows.
             paddingBottom: isLast ? 0 : Math.round(metrics.spacing * 1.25),
@@ -281,25 +237,13 @@ const StepperStep = forwardRef<View, StepperStepProps>((
       );
     }
 
-    return (
-      <View style={{ alignSelf: 'stretch', alignItems: 'center', marginTop: bodyGap }}>
-        {body}
-      </View>
-    );
+    return <View style={{ alignSelf: 'stretch', alignItems: 'center', marginTop: bodyGap }}>{body}</View>;
   };
 
-  const handlePress = () => {
-    if (isClickable) {
-      onStepClick!(stepIndex);
-    }
-  };
-
-  const renderVertical = () => (
-    <View style={{ flexDirection: iconPosition === 'right' ? 'row-reverse' : 'row', alignItems: 'stretch' }}>
+  const renderVertical = () => {
+    const rail = (
       <View style={{ width: finalIconSize, alignItems: 'center' }}>
-        <View style={getStepIconStyles()}>
-          {renderStepIcon()}
-        </View>
+        <View style={stepIconStyle}>{renderStepIcon()}</View>
         {!isLast && (
           <View
             style={{
@@ -313,9 +257,15 @@ const StepperStep = forwardRef<View, StepperStepProps>((
           />
         )}
       </View>
-      {renderStepBody()}
-    </View>
-  );
+    );
+    // `iconPosition="right"` puts the rail after the body (the row flips under RTL).
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
+        {iconPosition === 'right' ? renderStepBody() : rail}
+        {iconPosition === 'right' ? rail : renderStepBody()}
+      </View>
+    );
+  };
 
   const renderHorizontal = () => (
     <View style={{ alignItems: 'center' }}>
@@ -323,35 +273,63 @@ const StepperStep = forwardRef<View, StepperStepProps>((
           filling the space out to the neighbouring steps at the exact same axis. */}
       <View style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' }}>
         {renderRailSegment('leading')}
-        <View style={getStepIconStyles()}>
-          {renderStepIcon()}
-        </View>
+        <View style={stepIconStyle}>{renderStepIcon()}</View>
         {renderRailSegment('trailing')}
       </View>
       {renderStepBody()}
     </View>
   );
 
+  // Pressable steps join the roving tab stop; the hook tracks their nodes.
+  const itemProps = onStepClick && roving ? roving.getItemProps(stepIndex) : null;
+  const mergedRef = useMergedRef<View>(ref, itemProps?.ref);
+
+  const rootStyle: ViewStyle = isVertical ? { alignSelf: 'stretch' } : { flex: 1, minWidth: 0 };
+  const accessibleName = ariaLabel || label || `Step ${stepIndex + 1}`;
+  // `title` renders a native tooltip on web (react-native-web forwards it).
+  const titleProps = title ? ({ title } as ViewProps) : null;
+
+  if (!onStepClick) {
+    // Nothing to press: a static progress indicator (a list of steps), not a set of buttons.
+    return (
+      <View
+        ref={mergedRef}
+        testID={testID}
+        {...a11yProps({
+          role: 'listitem',
+          label: accessibleName,
+          current: isActive ? 'step' : undefined,
+          accessible: true,
+        })}
+        {...titleProps}
+        style={[rootStyle, style]}
+      >
+        {isVertical ? renderVertical() : renderHorizontal()}
+      </View>
+    );
+  }
+
   return (
-    <TouchableOpacity
-      ref={ref}
-      onPress={handlePress}
+    <Pressable
+      ref={mergedRef}
+      testID={testID}
+      onPress={isClickable ? () => onStepClick(stepIndex) : undefined}
       disabled={!isClickable}
-      accessibilityLabel={ariaLabel || label || `Step ${stepIndex + 1}`}
-      accessibilityRole="button"
-      accessibilityState={{ selected: isActive, disabled: !isClickable }}
-      {...(props as Record<string, unknown>)}
-      // `title` renders a native tooltip on web; harmless elsewhere.
-      {...(title ? ({ title } as Record<string, unknown>) : {})}
-      style={[
-        isVertical ? { alignSelf: 'stretch' } : { flex: 1, minWidth: 0 },
-        (props as { style?: ViewStyle }).style,
-      ]}
+      {...a11yProps({
+        role: 'button',
+        label: accessibleName,
+        current: isActive ? 'step' : undefined,
+        disabled: !isClickable,
+      })}
+      {...(itemProps ? { onFocus: itemProps.onFocus } : null)}
+      {...webProps(itemProps ? { tabIndex: itemProps.tabIndex, onKeyDown: itemProps.onKeyDown } : {})}
+      {...titleProps}
+      style={({ pressed }) => [rootStyle, pressed && isClickable ? { opacity: 0.7 } : null, style]}
     >
       {isVertical ? renderVertical() : renderHorizontal()}
-    </TouchableOpacity>
+    </Pressable>
   );
-});
+}, { displayName: 'Stepper.Step' });
 
 // Completed Component
 const StepperCompleted: React.FC<StepperCompletedProps> = ({ children }) => {
@@ -360,9 +338,13 @@ const StepperCompleted: React.FC<StepperCompletedProps> = ({ children }) => {
     : children;
   return <View>{content}</View>;
 };
+StepperCompleted.displayName = 'Stepper.Completed';
+
+const isStepElement = (child: React.ReactNode): child is React.ReactElement<StepperStepProps> =>
+  React.isValidElement(child) && child.type === StepperStep;
 
 // Main Stepper Component
-const Stepper = forwardRef<View, StepperProps>((
+const StepperRoot = factory<{ props: StepperProps; ref: View }>((
   {
     active,
     onStepClick,
@@ -375,40 +357,19 @@ const Stepper = forwardRef<View, StepperProps>((
     allowNextStepsSelect = true,
     children,
     'aria-label': ariaLabel,
-    ...props
+    style,
+    testID,
+    ...rest
   },
   ref
 ) => {
   const theme = useTheme();
-  const metrics = useMemo(() => resolveStepperMetrics(size), [size]);
+  const { styleProps } = extractStyleProps(rest);
+  const spacingStyle = useStyleProps(styleProps);
+  const metrics = useMemo(() => getStepperMetrics(theme, size), [theme, size]);
   const resolvedIconSize = iconSize ?? metrics.iconSize;
-  const resolvedColor = color ?? theme.colors.primary[5];
-
-  const contextValue: StepperContextValue = {
-    active,
-    onStepClick,
-    orientation,
-    iconPosition,
-    iconSize: resolvedIconSize,
-    size,
-    metrics,
-    color: resolvedColor,
-    completedIcon,
-    allowNextStepsSelect,
-  };
-
+  const resolvedColor = resolveAccentColor(theme, color) ?? theme.colors.primary[5];
   const isVertical = orientation === 'vertical';
-
-  const getStepperStyles = (): ViewStyle => ({
-    flexDirection: isVertical ? 'column' : 'row',
-    alignItems: isVertical ? 'stretch' : 'flex-start',
-  });
-
-  const getContentStyles = (): ViewStyle => ({
-    marginTop: metrics.spacing,
-    // Line the content up with the step bodies instead of the indicator rail.
-    marginLeft: isVertical ? resolvedIconSize + metrics.spacing : 0,
-  });
 
   // Collect the steps first so indices track step order, not raw child order
   // (conditional children and `Stepper.Completed` would otherwise skew them).
@@ -419,61 +380,109 @@ const Stepper = forwardRef<View, StepperProps>((
     if (!React.isValidElement(child)) return;
     if (child.type === StepperCompleted) {
       completedContent = child as React.ReactElement;
-    } else if (child.type === StepperStep) {
-      stepChildren.push(child as React.ReactElement<StepperStepProps>);
+    } else if (isStepElement(child)) {
+      stepChildren.push(child);
     }
   });
 
+  // Keyboard: pressable steps share one tab stop (arrow keys move between them).
+  const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  const stepCount = stepChildren.length;
+  const isStepDisabled = (index: number) => {
+    const step = stepChildren[index];
+    if (!step || step.props.allowStepSelect === false) return true;
+    return !allowNextStepsSelect && index > active;
+  };
+  const roving: UseRovingFocusResult = useRovingFocus({
+    count: stepCount,
+    orientation: isVertical ? 'vertical' : 'horizontal',
+    loop: false,
+    activeIndex: focusIndex ?? Math.min(Math.max(active, 0), Math.max(stepCount - 1, 0)),
+    onActiveChange: setFocusIndex,
+    isDisabled: isStepDisabled,
+  });
+
+  const contextValue = useMemo<StepperContextValue>(
+    () => ({
+      active,
+      onStepClick,
+      orientation,
+      iconPosition,
+      iconSize: resolvedIconSize,
+      size,
+      metrics,
+      color: resolvedColor,
+      completedIcon,
+      allowNextStepsSelect,
+      roving: onStepClick ? roving : undefined,
+    }),
+    [
+      active,
+      onStepClick,
+      orientation,
+      iconPosition,
+      resolvedIconSize,
+      size,
+      metrics,
+      resolvedColor,
+      completedIcon,
+      allowNextStepsSelect,
+      roving,
+    ]
+  );
+
+  const stepsStyle: ViewStyle = {
+    flexDirection: isVertical ? 'column' : 'row',
+    alignItems: isVertical ? 'stretch' : 'flex-start',
+  };
+
+  const contentStyle: ViewStyle = {
+    marginTop: metrics.spacing,
+    // Line the content up with the step bodies instead of the indicator rail.
+    marginStart: isVertical ? resolvedIconSize + metrics.spacing : 0,
+  };
+
   const currentStepContent = stepChildren[active]?.props.children ?? null;
 
-  const renderSteps = () =>
-    stepChildren.map((step, index) =>
-      React.cloneElement(step, {
-        key: step.key ?? `step-${index}`,
-        stepIndex: index,
-        isFirst: index === 0,
-        isLast: index === stepChildren.length - 1,
-      })
-    );
-
   const renderContent = () => {
-    const content = active >= stepChildren.length && completedContent
-      ? completedContent
-      : currentStepContent;
+    const content = active >= stepChildren.length && completedContent ? completedContent : currentStepContent;
 
     if (!content) return null;
 
-    const node = typeof content === 'string' || typeof content === 'number'
-      ? <Text>{content}</Text>
-      : content;
+    const node = typeof content === 'string' || typeof content === 'number' ? <Text>{content}</Text> : content;
 
-    return <View style={getContentStyles()}>{node}</View>;
+    return <View style={contentStyle}>{node}</View>;
   };
 
   return (
     <StepperContext.Provider value={contextValue}>
-      <View ref={ref} accessibilityLabel={ariaLabel} {...props}>
-        <View style={getStepperStyles()}>
-          {renderSteps()}
+      <View
+        ref={ref}
+        testID={testID}
+        {...a11yProps({ role: ariaLabel ? 'group' : undefined, label: ariaLabel })}
+        style={[spacingStyle, style]}
+      >
+        <View style={stepsStyle} {...a11yProps({ role: onStepClick ? undefined : 'list' })}>
+          {stepChildren.map((step, index) =>
+            React.cloneElement(step, {
+              key: step.key ?? `step-${index}`,
+              stepIndex: index,
+              isFirst: index === 0,
+              isLast: index === stepChildren.length - 1,
+            })
+          )}
         </View>
         {renderContent()}
       </View>
     </StepperContext.Provider>
   );
-});
+}, { displayName: 'Stepper' });
 
-// Attach sub-components
-const StepperWithSubComponents = Stepper as typeof Stepper & {
-  Step: typeof StepperStep;
-  Completed: typeof StepperCompleted;
-};
+/**
+ * A multi-step progress indicator. Steps are buttons when `onStepClick` is set
+ * (one tab stop, arrow keys move between them); the active step carries
+ * `aria-current="step"`.
+ */
+export const Stepper = withStatics(StepperRoot, { Step: StepperStep, Completed: StepperCompleted });
 
-StepperWithSubComponents.Step = StepperStep;
-StepperWithSubComponents.Completed = StepperCompleted;
-
-StepperStep.displayName = 'Stepper.Step';
-StepperCompleted.displayName = 'Stepper.Completed';
-Stepper.displayName = 'Stepper';
-
-export { StepperWithSubComponents as Stepper };
 export type { StepperProps, StepperStepProps, StepperCompletedProps };

@@ -1,4 +1,4 @@
-import { Block, Button, Card, Spotlight, Text, type SpotlightProps, useSpotlightStoreInstance } from '@platform-blocks/ui';
+import { Block, Button, Spotlight, type SpotlightProps, useSpotlightStoreInstance } from '@platform-blocks/ui';
 
 const actions: SpotlightProps['actions'] = [
   {
@@ -29,17 +29,7 @@ export function Demo() {
 
   return (
     <Block>
-      <Card p="md">
-        <Block>
-          <Text size="sm" color="secondary">
-            Spotlight provides a keyboard-driven command palette. Open it with `⌘K` or `Ctrl+K`, or trigger it imperatively from a button.
-          </Text>
-          <Button onPress={() => store.open()}>Open spotlight</Button>
-          <Text size="xs" color="secondary">
-            You can reuse the same store across multiple triggers.
-          </Text>
-        </Block>
-      </Card>
+      <Button onPress={() => store.open()}>Open spotlight</Button>
       <Spotlight actions={actions} store={store} />
     </Block>
   );

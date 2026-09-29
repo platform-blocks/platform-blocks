@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Side button controls with shift multipliers for both fine and coarse adjustments.
+`withSideButtons` puts decrement and increment buttons on either side of the field. Hold Shift while pressing to step by `shiftMultiplier` (10 by default) for coarse adjustments.

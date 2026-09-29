@@ -6,12 +6,12 @@ export function Demo() {
 
   return (
     <Block w={600}>
-    <Checkbox
-      label="Accept terms and conditions"
-      description={checked ? 'Thanks! You can proceed to the next step.' : 'Check the box to continue.'}
-      checked={checked}
-      onChange={setChecked}
-    />
+      <Checkbox
+        label="Accept terms and conditions"
+        description={checked ? 'Thanks! You can proceed to the next step.' : 'Check the box to continue.'}
+        checked={checked}
+        onChange={setChecked}
+      />
     </Block>
   );
 }

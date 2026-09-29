@@ -1,12 +1,13 @@
 import React, { useMemo, useEffect, useRef } from 'react';
 import { View, Text } from 'react-native';
-import Svg, { G, Path, Line, Circle, Text as SvgText, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { G, Path, Line, Circle, Text as SvgText, Defs } from 'react-native-svg';
 import Animated, { useSharedValue, useAnimatedProps, withTiming, Easing } from 'react-native-reanimated';
 
 import { ChartContainer, ChartTitle, ChartLegend , measureChartLegendBand, measureChartTitleBand } from '../../ChartBase';
-import { colorSchemes, getColorFromScheme } from '../../utils';
-import { useChartTheme } from '../../theme/ChartThemeContext';
+import { getColorFromScheme, createTickFormatter } from '../../utils';
+import { useChartTheme, useNumberFormatter } from '../../theme/ChartThemeContext';
 import type { GaugeChartProps, GaugeChartMarker } from './types';
+import { ChartGradientDef, type ChartGradient } from '../../core/ChartFill';
 import {
   clamp,
   valueToAngle,
@@ -19,6 +20,9 @@ import {
 } from './utils';
 
 const AnimatedLine = Animated.createAnimatedComponent(Line);
+
+// How the gauge renders a value the theme's number format doesn't abbreviate.
+const roundValue = (value: number) => `${Math.round(value)}`;
 
 const resolveEasing = (easing?: string) => {
   switch (easing) {
@@ -35,18 +39,6 @@ const resolveEasing = (easing?: string) => {
   }
 };
 
-const angleToGradientPoints = (angle: number = 0) => {
-  const radians = (angle * Math.PI) / 180;
-  const x = Math.cos(radians);
-  const y = Math.sin(radians);
-  return {
-    x1: 0.5 - x / 2,
-    y1: 0.5 - y / 2,
-    x2: 0.5 + x / 2,
-    y2: 0.5 + y / 2,
-  };
-};
-
 type RangeSegment = {
   key: string;
   path: string;
@@ -57,11 +49,7 @@ type RangeSegment = {
 
 type RangeGradient = {
   id: string;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  stops: Array<{ offset: number; color: string; opacity?: number }>;
+  gradient: ChartGradient;
 };
 
 type TickMarkerSegment = {
@@ -99,8 +87,8 @@ export const GaugeChart: React.FC<GaugeChartProps> = (props) => {
     value,
     min = 0,
     max = 100,
-    width = 320,
-    height = 240,
+    w: width = 320,
+    h: height = 240,
     title,
     subtitle,
     // Bottom-opening 270° dial by default (gap centred at the bottom), which
@@ -217,9 +205,12 @@ export const GaugeChart: React.FC<GaugeChartProps> = (props) => {
   const previousAngleRef = useRef(valueAngle);
   const previousValueRef = useRef(clampedValue);
   const gradientInstanceId = useMemo(() => `gauge-${Math.random().toString(36).slice(2, 10)}`, []);
+  const formatDisplayValue = useNumberFormatter(roundValue);
+  // Drawn in the center; the accessibility label keeps the full value.
   const formattedValue = useMemo(() => {
-    return valueFormatter ? valueFormatter(clampedValue, percentage) : `${Math.round(clampedValue)}`;
-  }, [valueFormatter, clampedValue, percentage]);
+    return valueFormatter ? valueFormatter(clampedValue, percentage) : formatDisplayValue(clampedValue);
+  }, [valueFormatter, clampedValue, percentage, formatDisplayValue]);
+  const spokenValue = valueFormatter ? formattedValue : roundValue(clampedValue);
 
   const activeMarker = useMemo<GaugeChartMarker | null>(() => {
     if (!markers || markers.length === 0) {
@@ -347,7 +338,11 @@ export const GaugeChart: React.FC<GaugeChartProps> = (props) => {
     return generateLabelPositions(min, max, Math.max(1, divisions));
   }, [labelConfig.positions, min, max, showLabels, tickDerived?.majors, ticks?.major]);
 
-  const labelFormatter = labelConfig.formatter ?? ((val: number) => `${Math.round(val)}`);
+  const tickLabelFormat = useMemo(
+    () => createTickFormatter(labelPositions, theme.numberFormat, roundValue),
+    [labelPositions, theme.numberFormat]
+  );
+  const labelFormatter = labelConfig.formatter ?? tickLabelFormat;
   const labelColor = labelConfig.color ?? theme.colors.textSecondary;
   const labelFontSize = labelConfig.fontSize ?? theme.fontSize.sm;
   // Labels now sit just outside the ring's outer edge, so a small offset is
@@ -386,19 +381,17 @@ export const GaugeChart: React.FC<GaugeChartProps> = (props) => {
         if (!atEnd) end -= gapDeg / 2;
       }
 
-      const defaultColor = range.color ?? getColorFromScheme(index, colorSchemes.default);
+      const defaultColor = range.color ?? getColorFromScheme(index, theme.colors.accentPalette);
       const thicknessOverride = range.thickness ?? derivedTrackThickness;
       let stroke = defaultColor;
 
       if (range.gradient?.stops?.length) {
         const gradientId = `${gradientInstanceId}-range-${index}`;
-        const gradientPoints = angleToGradientPoints(range.gradient.angle ?? 0);
         stroke = `url(#${gradientId})`;
-        const stops = range.gradient!.stops;
         gradients.push({
           id: gradientId,
-          ...gradientPoints,
-          stops,
+          // Range gradients default to left → right, unlike the shared top → bottom.
+          gradient: { stops: range.gradient.stops, angle: range.gradient.angle ?? 0 },
         });
       }
 
@@ -413,7 +406,7 @@ export const GaugeChart: React.FC<GaugeChartProps> = (props) => {
     });
 
     return { rangeSegments: segments, rangeGradients: gradients };
-  }, [ranges, min, max, baseStartAngle, baseEndAngle, centerX, centerY, radius, derivedTrackThickness, gradientInstanceId]);
+  }, [ranges, min, max, baseStartAngle, baseEndAngle, centerX, centerY, radius, derivedTrackThickness, gradientInstanceId, theme.colors.accentPalette]);
 
   const markerSegments = useMemo<ComputedMarkerSegment[]>(() => {
     if (!markers || markers.length === 0) {
@@ -426,7 +419,7 @@ export const GaugeChart: React.FC<GaugeChartProps> = (props) => {
       const type = marker.type ?? 'tick';
       const clampedMarkerValue = clamp(marker.value, min, max);
       const angle = valueToAngle(clampedMarkerValue, min, max, baseStartAngle, baseEndAngle);
-      const color = marker.color ?? getColorFromScheme(index + rangeCount, colorSchemes.default);
+      const color = marker.color ?? getColorFromScheme(index + rangeCount, theme.colors.accentPalette);
       const labelText = marker.label;
       const isActive = activeMarker === marker;
 
@@ -483,13 +476,13 @@ export const GaugeChart: React.FC<GaugeChartProps> = (props) => {
         active: isActive,
       } satisfies TickMarkerSegment;
     });
-  }, [markers, ranges, min, max, baseStartAngle, baseEndAngle, radius, derivedTrackThickness, centerX, centerY, labelOffset, labelColor, labelFontSize, activeMarker, outerRadiusActual, innerRadius]);
+  }, [markers, ranges, min, max, baseStartAngle, baseEndAngle, radius, derivedTrackThickness, centerX, centerY, labelOffset, labelColor, labelFontSize, activeMarker, outerRadiusActual, innerRadius, theme.colors.accentPalette]);
 
   const legendItems = useMemo(() => {
     const rangeItems = (ranges && ranges.length)
       ? ranges.map((range, index) => ({
       label: range.label ?? `${range.from} – ${range.to}`,
-      color: range.color ?? getColorFromScheme(index, colorSchemes.default),
+      color: range.color ?? getColorFromScheme(index, theme.colors.accentPalette),
       }))
       : [];
 
@@ -502,11 +495,11 @@ export const GaugeChart: React.FC<GaugeChartProps> = (props) => {
       .filter((marker) => marker.label && marker.showInLegend !== false)
       .map((marker, index) => ({
         label: marker.label as string,
-        color: marker.color ?? getColorFromScheme(index + rangeCount, colorSchemes.default),
+        color: marker.color ?? getColorFromScheme(index + rangeCount, theme.colors.accentPalette),
       }));
 
     return [...rangeItems, ...markerItems];
-  }, [markers, ranges]);
+  }, [markers, ranges, theme.colors.accentPalette]);
 
   const needleAnimatedProps = useAnimatedProps(() => {
     const angleInRadians = ((animatedAngle.value - 90) * Math.PI) / 180;
@@ -539,7 +532,7 @@ export const GaugeChart: React.FC<GaugeChartProps> = (props) => {
   const shouldRenderCenterText = (centerLabel?.show ?? Boolean(centerPrimaryText || centerSecondaryText));
 
   const resolvedAccessibilityLabelText = accessibilityLabel
-    ?? (title ? `${title}: ${formattedValue}` : `Gauge value ${formattedValue}`);
+    ?? (title ? `${title}: ${spokenValue}` : `Gauge value ${spokenValue}`);
   const resolvedAccessibilityHint = accessibilityHint ?? 'Displays progress toward the configured bounds.';
   const resolvedAccessibilityRole = accessibilityRole ?? 'progressbar';
   const resolvedAccessible = accessible ?? true;
@@ -547,8 +540,8 @@ export const GaugeChart: React.FC<GaugeChartProps> = (props) => {
 
   return (
     <ChartContainer
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       disabled={disabled}
       style={style}
       accessibilityLabel={resolvedAccessibilityLabelText}
@@ -609,24 +602,8 @@ export const GaugeChart: React.FC<GaugeChartProps> = (props) => {
 
       <Svg width={width} height={height}>
         <Defs>
-          {rangeGradients.map((gradient) => (
-            <LinearGradient
-              key={gradient.id}
-              id={gradient.id}
-              x1={`${gradient.x1}`}
-              y1={`${gradient.y1}`}
-              x2={`${gradient.x2}`}
-              y2={`${gradient.y2}`}
-            >
-              {gradient.stops.map((stop, index) => (
-                <Stop
-                  key={`${gradient.id}-stop-${index}`}
-                  offset={stop.offset}
-                  stopColor={stop.color}
-                  stopOpacity={stop.opacity ?? 1}
-                />
-              ))}
-            </LinearGradient>
+          {rangeGradients.map(({ id, gradient }) => (
+            <ChartGradientDef key={id} id={id} gradient={gradient} />
           ))}
         </Defs>
         <G>

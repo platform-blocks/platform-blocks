@@ -20,9 +20,11 @@ import { Icon } from '@platform-blocks/ui';
 // Filled variant (falls back to outlined when no filled glyph exists)
 <Icon name="star" variant="filled" />
 
-// Accessibility / decorative
+// Accessibility: icons are decorative (hidden from assistive technology) by
+// default — inside a labelled Button/IconButton that is what you want. Give a
+// standalone, meaningful icon a label and it is announced as an image.
 <Icon name="user" label="User profile" />
-<Icon name="star" decorative />
+<Icon name="star" />
 ```
 
 ## Using an external icon library

@@ -1,7 +1,8 @@
-import { View, ViewStyle, StyleProp } from 'react-native';
-import { SpacingProps } from '../../core/utils';
-import { SizeValue } from '../../core/theme/sizes';
-import type { DisclaimerSupport } from '../_internal/Disclaimer';
+import type React from 'react';
+import type { View } from 'react-native';
+
+import type { SizeValue } from '../../core/theme/types';
+import type { FieldBaseProps } from '../_internal/Field/fieldProps';
 import type { ExternalIconComponent } from '../Icon/types';
 
 /**
@@ -10,37 +11,44 @@ import type { ExternalIconComponent } from '../Icon/types';
  */
 export type RatingIcon = string | ExternalIconComponent | React.ReactElement;
 
-export interface RatingProps extends SpacingProps, DisclaimerSupport {
-  /** Current rating value */
+/**
+ * Props for `Rating`.
+ *
+ * `style`, spacing and layout props apply to the root (label + stars +
+ * footer); `ref` and `testID` go to the row of stars — the control itself.
+ */
+export interface RatingProps extends Omit<FieldBaseProps, 'variant' | 'keyboardFocusId' | 'radius' | 'size'> {
+  /** Current rating value (controlled). */
   value?: number;
 
   /**
-   * Initial rating value for uncontrolled component
+   * Initial rating value for uncontrolled usage.
    * @default 0
    */
   defaultValue?: number;
 
   /**
-   * Number of rating items (stars) to render
+   * Number of rating items (stars) to render.
    * @default 5
    */
   count?: number;
 
   /**
-   * Disables input — the rating only displays its value
+   * Display only: the rating shows its value (as an image with a spoken
+   * "4 out of 5") and takes no input.
    * @default false
    */
   readOnly?: boolean;
 
   /**
-   * Disables the rating. Like `readOnly` it blocks input, but it also dims the
-   * control and reports a disabled state to assistive technology.
+   * Disables the rating: blocks input, dims the control and reports it disabled
+   * to assistive technology.
    * @default false
    */
   disabled?: boolean;
 
   /**
-   * Allows partial values so a star can be filled fractionally
+   * Allows partial values so a star can be filled fractionally.
    * @default false
    */
   allowFraction?: boolean;
@@ -53,47 +61,34 @@ export interface RatingProps extends SpacingProps, DisclaimerSupport {
   precision?: number;
 
   /**
-   * Size of each rating item — a theme size token or an explicit pixel size
+   * Size of each rating item — a theme size token or an explicit pixel size.
    * @default 'md'
    */
-  size?: SizeValue | number;
+  size?: SizeValue;
 
   /** Color of filled items. Defaults to the theme warning color. */
   color?: string;
 
-  /** Color of empty items. Defaults to the theme gray color. */
+  /** Color of empty items. Defaults to `theme.text.muted`. */
   emptyColor?: string;
 
-  /** Color of items while hovering/dragging. Defaults to a darker theme warning color. */
+  /** Color of items while hovering/dragging. Defaults to a deeper theme warning color. */
   hoverColor?: string;
 
-  /** Called with the new value when the rating changes */
+  /** Called with the new value when the rating changes. */
   onChange?: (value: number) => void;
 
-  /** Called with the previewed value while hovering (web only) */
+  /** Called with the previewed value while hovering (web only). */
   onHover?: (value: number) => void;
 
   /**
-   * Allows clearing the rating by selecting the value that is already set
+   * Allows clearing the rating by selecting the value that is already set.
    * @default false
    */
   clearable?: boolean;
 
   /**
-   * Marks the field as required. Renders an asterisk beside the label and
-   * reports the requirement to assistive technology on web.
-   * @default false
-   */
-  required?: boolean;
-
-  /** Error message rendered below the rating */
-  error?: React.ReactNode;
-
-  /** Helper text rendered below the rating */
-  description?: React.ReactNode;
-
-  /**
-   * Shows a tooltip with the current value out of `count` while hovering
+   * Shows a tooltip with the current value out of `count` while hovering.
    * @default false
    */
   showTooltip?: boolean;
@@ -133,37 +128,26 @@ export interface RatingProps extends SpacingProps, DisclaimerSupport {
   emptyCharacter?: string | React.ReactNode;
 
   /**
-   * Spacing between rating items — a theme size token or an explicit pixel value
+   * Spacing between rating items — a theme size token or an explicit pixel value.
    * @default 'xs'
    */
-  gap?: SizeValue | number;
-
-  /** Additional styles applied to the root element */
-  style?: StyleProp<ViewStyle>;
-
-  /** Test ID for testing */
-  testID?: string;
-
-  /** Custom accessibility label. Defaults to `Rating: {value} out of {count} stars`. */
-  accessibilityLabel?: string;
-
-  /** Custom accessibility hint. Defaults to an adjust hint unless `readOnly`. */
-  accessibilityHint?: string;
-
-  /** Label rendered next to the rating. Strings are wrapped in a secondary `Text`. */
-  label?: React.ReactNode;
+  gap?: SizeValue;
 
   /**
-   * Placement of the label relative to the rating
+   * Placement of the label relative to the rating (`left` / `right` follow the
+   * reading direction).
    * @default 'above'
    */
   labelPosition?: 'left' | 'right' | 'above' | 'below';
 
   /**
-   * Spacing between the label and the rating — a theme size token or pixel value
+   * Spacing between the label and the rating — a theme size token or pixel value.
    * @default 'xs'
    */
-  labelGap?: SizeValue | number;
+  labelGap?: SizeValue;
+
+  /** Base id: the control gets it, the label/description/error get `${id}-label` etc. */
+  id?: string;
 }
 
 export interface RatingFactoryPayload {

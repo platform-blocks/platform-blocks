@@ -1,13 +1,6 @@
-import { FunnelChart } from '@platform-blocks/charts';
+import { FunnelChart, formatCompactNumber } from '@platform-blocks/charts';
 
 import { HIRING_SERIES, HiringMeta, STEP_LOOKUP } from './data';
-
-const compact = (value: number) => {
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
-  if (abs >= 1_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
-  return `${value}`;
-};
 
 const findSeriesContext = (step: unknown) => STEP_LOOKUP.get(step as any) ?? null;
 
@@ -16,8 +9,8 @@ export function Demo() {
     <FunnelChart
       title="Hiring funnel — Staff engineer"
       subtitle="External candidates vs. internal transfers"
-      maxWidth={620}
-      height={480}
+      maw={620}
+      h={480}
       series={HIRING_SERIES}
       layout={{
         shape: 'bar',
@@ -27,7 +20,7 @@ export function Demo() {
         seriesMode: 'grouped',
         connectors: { show: false },
       }}
-      valueFormatter={(value) => compact(value)}
+      valueFormatter={(value) => formatCompactNumber(value)}
       tooltip={{
         show: true,
         formatter: (step) => {

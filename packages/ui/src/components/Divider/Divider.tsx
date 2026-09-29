@@ -1,55 +1,68 @@
 import React from 'react';
-import { View, ViewStyle } from 'react-native';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
 
-import type { DividerProps, DividerFactoryPayload } from './types';
-import { factory } from '../../core/factory';
-import { getSpacing } from '../../core/theme/sizes';
-import { useTheme } from '../../core/theme/ThemeProvider';
-import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
-import { Text } from '../Text';
-import { resolveLinearGradient } from '../../utils/optionalDependencies';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { factory } from '../../core/factory/factory';
+import { hexToRgb, withAlpha } from '../../core/theme/colorUtils';
 import { resolveLineColor } from '../../core/theme/resolveColors';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveSpacing } from '../../core/theme/tokens';
+import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
+import { resolveLinearGradient } from '../../utils/optionalDependencies';
+import { Text } from '../Text';
+import type { DividerFactoryPayload } from './types';
 
-const { LinearGradient: OptionalLinearGradient } = resolveLinearGradient();
+const { LinearGradient, hasLinearGradient } = resolveLinearGradient();
 
-function resolveDividerColor(theme: any, color?: string): string {
-  return resolveLineColor(theme, color) ?? theme.backgrounds?.border ?? '#E5E5EA';
-}
+const px = (theme: PlatformBlocksTheme, value: SizeValue): number => {
+  const resolved = resolveSpacing(theme, value);
+  return typeof resolved === 'number' ? resolved : 0;
+};
 
-function DividerBase(props: DividerProps, ref: React.Ref<View>) {
+/** The fully transparent version of `color`, for gradient ends. */
+const transparentOf = (color: string) => (hexToRgb(color) ? withAlpha(color, 0) : 'transparent');
+
+const styles = StyleSheet.create({
+  horizontalRoot: { width: '100%' },
+  verticalRoot: { height: '100%' },
+  horizontalStack: { flexDirection: 'row', alignItems: 'center', width: '100%' },
+  verticalStack: { flexDirection: 'column', alignItems: 'center', height: '100%' },
+  verticalLabel: { alignItems: 'center', alignSelf: 'center' },
+});
+
+/**
+ * A separator line, optionally with a label. Exposed to assistive technology as
+ * `role="separator"` with its orientation (web: `aria-orientation`); a string
+ * `label` becomes its accessible name.
+ */
+export const Divider = factory<DividerFactoryPayload>((props, ref) => {
+  const { styleProps, otherProps } = extractStyleProps(props);
   const {
     orientation = 'horizontal',
     variant = 'solid',
     color,
     size = 1,
-    opacity,
     label,
     labelPosition = 'center',
     labelProps,
     style,
     testID,
     ...rest
-  } = props;
+  } = otherProps;
 
-  const { spacingProps, otherProps } = extractSpacingProps(rest);
-  const spacingStyles = getSpacingStyles(spacingProps);
-
+  const spacingStyles = useStyleProps(styleProps);
   const theme = useTheme();
-  const dividerColor = resolveDividerColor(theme, color);
-  const dividerSize = typeof size === 'number' ? size : getSpacing(size);
-  const labelSpacing = getSpacing('sm');
+  const dividerColor = resolveLineColor(theme, color) ?? theme.backgrounds.border;
+  const dividerSize = typeof size === 'number' ? size : px(theme, size);
+  const labelSpacing = px(theme, 'sm');
+  const vertical = orientation === 'vertical';
 
   const renderLabel = () => {
     if (!label) return null;
     if (typeof label === 'string') {
       return (
-        <Text
-          size="sm"
-          color="muted"
-          weight="medium"
-          align={orientation === 'vertical' ? 'center' : undefined}
-          {...labelProps}
-        >
+        <Text size="sm" c="muted" fw="medium" ta={vertical ? 'center' : undefined} {...labelProps}>
           {label}
         </Text>
       );
@@ -57,36 +70,37 @@ function DividerBase(props: DividerProps, ref: React.Ref<View>) {
     return label;
   };
 
-  const isGradient = variant === 'gradient';
   const borderStyle: 'solid' | 'dashed' | 'dotted' =
     variant === 'dashed' ? 'dashed' : variant === 'dotted' ? 'dotted' : 'solid';
 
   const renderLine = (flex?: number, edge?: 'leading' | 'trailing') => {
-    if (isGradient && OptionalLinearGradient) {
+    // Without expo-linear-gradient a gradient divider draws a solid line
+    // (the fallback would paint only the transparent first stop).
+    if (variant === 'gradient' && hasLinearGradient) {
       // Fade transparent → color → transparent for a true gradient line. When a
       // segment is on the leading edge of a labelled divider we keep the bright
       // side near the label, and vice versa.
-      const transparent = `${dividerColor}00`;
-      const colors = (() => {
-        if (edge === 'leading') return [transparent, dividerColor];
-        if (edge === 'trailing') return [dividerColor, transparent];
-        return [transparent, dividerColor, transparent];
-      })();
-      const gradientStyle: ViewStyle =
-        orientation === 'vertical'
-          ? { width: dividerSize, alignSelf: 'center', flex }
-          : { height: dividerSize, width: '100%', flex };
+      const transparent = transparentOf(dividerColor);
+      const colors =
+        edge === 'leading'
+          ? [transparent, dividerColor]
+          : edge === 'trailing'
+            ? [dividerColor, transparent]
+            : [transparent, dividerColor, transparent];
+      const gradientStyle: ViewStyle = vertical
+        ? { width: dividerSize, alignSelf: 'center', flex }
+        : { height: dividerSize, width: '100%', flex };
       return (
-        <OptionalLinearGradient
+        <LinearGradient
           colors={colors}
-          start={orientation === 'vertical' ? { x: 0, y: 0 } : { x: 0, y: 0 }}
-          end={orientation === 'vertical' ? { x: 0, y: 1 } : { x: 1, y: 0 }}
+          start={{ x: 0, y: 0 }}
+          end={vertical ? { x: 0, y: 1 } : { x: 1, y: 0 }}
           style={gradientStyle}
         />
       );
     }
 
-    if (orientation === 'vertical') {
+    if (vertical) {
       return (
         <View
           style={{
@@ -114,64 +128,39 @@ function DividerBase(props: DividerProps, ref: React.Ref<View>) {
     );
   };
 
-  const renderWithLabel = () => {
-    const labelContainerStyle: ViewStyle =
-      orientation === 'vertical'
-        ? {
-            paddingVertical: labelSpacing,
-            alignItems: 'center',
-            alignSelf: 'center',
-          }
-        : { paddingHorizontal: labelSpacing };
-
-    if (orientation === 'vertical') {
-      return (
-        <View
-          style={{
-            flexDirection: 'column',
-            alignItems: 'center',
-            height: '100%',
-          }}
-        >
-          {renderLine(labelPosition === 'left' ? 0.2 : 1, 'leading')}
-          {label && <View style={labelContainerStyle}>{renderLabel()}</View>}
-          {renderLine(labelPosition === 'right' ? 0.2 : 1, 'trailing')}
-        </View>
-      );
-    }
-
-    return (
+  // `left` / `right` are the leading / trailing ends of the line: rows mirror in
+  // right-to-left layouts, so they follow the reading direction.
+  const renderWithLabel = () => (
+    <View style={vertical ? styles.verticalStack : styles.horizontalStack}>
+      {renderLine(labelPosition === 'left' ? 0.2 : 1, 'leading')}
       <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          width: '100%',
-        }}
+        style={
+          vertical ? [styles.verticalLabel, { paddingVertical: labelSpacing }] : { paddingHorizontal: labelSpacing }
+        }
       >
-        {renderLine(labelPosition === 'left' ? 0.2 : 1, 'leading')}
-        {label && <View style={labelContainerStyle}>{renderLabel()}</View>}
-        {renderLine(labelPosition === 'right' ? 0.2 : 1, 'trailing')}
+        {renderLabel()}
       </View>
-    );
-  };
+      {renderLine(labelPosition === 'right' ? 0.2 : 1, 'trailing')}
+    </View>
+  );
 
   return (
     <View
+      {...a11yProps({
+        role: 'separator',
+        orientation,
+        label: typeof label === 'string' ? label : undefined,
+      })}
+      {...rest}
       ref={ref}
       style={[
-        orientation === 'horizontal' ? { width: '100%' } : { height: '100%' },
-        opacity !== undefined ? { opacity } : null,
+        vertical ? styles.verticalRoot : styles.horizontalRoot,
         spacingStyles,
         style,
       ]}
       testID={testID}
-      {...otherProps}
     >
       {label ? renderWithLabel() : renderLine()}
     </View>
   );
-}
-
-export const Divider = factory<DividerFactoryPayload>(DividerBase);
-
-Divider.displayName = 'Divider';
+}, { displayName: 'Divider' });

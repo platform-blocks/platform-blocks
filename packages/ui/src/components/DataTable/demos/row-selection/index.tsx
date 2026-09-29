@@ -20,7 +20,7 @@ export function Demo() {
 
   return (
     <Block fullWidth>
-      <Text size="sm" color={selectedRows.length ? 'primary' : 'muted'}>
+      <Text size="sm" c={selectedRows.length ? 'primary' : 'muted'}>
         {selectedRows.length ? `${selectedRows.length} selected` : 'No rows selected'}
       </Text>
 

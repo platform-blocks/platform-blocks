@@ -7,7 +7,7 @@ export function Demo() {
     <ViolinChart
       title="Experiment metric deltas vs. control"
       subtitle="Percent change in weekly activation compared to holdout"
-      height={460}
+      h={460}
       series={EXPERIMENT_SERIES}
       samples={88}
       bandwidth={1.5}

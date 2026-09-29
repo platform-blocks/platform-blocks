@@ -1,4 +1,4 @@
-import { Block, CodeBlock, Text } from '@platform-blocks/ui';
+import { Block, CodeBlock } from '@platform-blocks/ui';
 
 const tsxExample = `interface Props {
   title: string;
@@ -41,21 +41,15 @@ This is a **markdown** example with \`inline code\`.
 export function Demo() {
   return (
     <Block fullWidth>
-      <Text weight="semibold">Language presets</Text>
-      <Text size="sm" color="secondary">
-        CodeBlock detects syntax styles across languages like TypeScript, JSON, and Markdown.
-      </Text>
-      <Block>
-        <CodeBlock language="tsx" title="React component">
-          {tsxExample}
-        </CodeBlock>
-        <CodeBlock language="json" title="Package configuration">
-          {jsonExample}
-        </CodeBlock>
-        <CodeBlock language="markdown" title="Documentation">
-          {markdownExample}
-        </CodeBlock>
-      </Block>
+      <CodeBlock language="tsx" title="React component">
+        {tsxExample}
+      </CodeBlock>
+      <CodeBlock language="json" title="Package configuration">
+        {jsonExample}
+      </CodeBlock>
+      <CodeBlock language="markdown" title="Documentation">
+        {markdownExample}
+      </CodeBlock>
     </Block>
   );
 }

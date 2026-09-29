@@ -1,7 +1,6 @@
-import React from 'react';
-import { ViewStyle, StyleProp } from 'react-native';
-import { BaseInputProps } from '../Input/types';
-import { SizeValue } from '../../core/theme/types';
+import type { SizeValue } from '../../core/theme/types';
+import type { BaseProps } from '../../core/types/base';
+import type { FieldBaseProps } from '../_internal/Field/fieldProps';
 import type {
   CalendarProps as CoreCalendarProps,
   CalendarType,
@@ -9,7 +8,7 @@ import type {
   CalendarLevel,
 } from '../Calendar/types';
 
-export interface DatePickerProps {
+export interface DatePickerProps extends BaseProps {
   /** Selected value; type depends on `type` prop */
   value?: CalendarValue;
   /** Initial value for uncontrolled usage */
@@ -21,20 +20,20 @@ export interface DatePickerProps {
   /** Pass-through customization for underlying Calendar */
   calendarProps?: Partial<CoreCalendarProps>;
 
-  /** Optional container style for the inline calendar */
-  style?: StyleProp<ViewStyle>;
-  /** Test identifier */
-  testID?: string;
-  /** Accessibility label for the inline calendar region */
+  /**
+   * Accessible name of the inline calendar, exposed as a `group` around it
+   * (every day stays individually reachable by screen readers).
+   */
   accessibilityLabel?: string;
-  /** Accessibility hint for the inline calendar region */
+  /** Extra description of the inline calendar (native `accessibilityHint`). */
   accessibilityHint?: string;
 }
 
 /**
  * DateTimePickerProps – combines calendar date + time selection.
+ * (Type only: no component implements it yet.)
  */
-export interface DateTimePickerProps extends Omit<BaseInputProps, 'value' | 'onChangeText'> {
+export interface DateTimePickerProps extends FieldBaseProps {
   value?: Date | null;
   defaultValue?: Date | null;
   onChange?: (value: Date | null) => void;

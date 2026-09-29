@@ -1,6 +1,12 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
-export interface UseDebouncedCallbackReturn<F extends (...args: any[]) => any> {
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+
+// `never[]` parameters accept any function type (parameters are contravariant)
+// without resorting to `any`; `Parameters<F>` still recovers the real ones.
+type AnyFunction = (...args: never[]) => unknown;
+
+export interface UseDebouncedCallbackReturn<F extends AnyFunction> {
   /** Call to schedule the wrapped function. Identity is stable across renders. */
   (...args: Parameters<F>): void;
   /** Cancel any pending invocation. */
@@ -17,56 +23,56 @@ export interface UseDebouncedCallbackReturn<F extends (...args: any[]) => any> {
  * scroll handlers). Use `useDebouncedValue` for declarative React patterns.
  *
  * The returned function exposes `.cancel()` and `.flush()`. The wrapper
- * identity is stable so it's safe to put in dependency arrays.
+ * identity is stable (until `wait` changes), so it's safe in dependency
+ * arrays; it always calls the latest `callback`. A pending call is cancelled
+ * on unmount.
  *
  * @example
  * const search = useDebouncedCallback((q: string) => fetchResults(q), 300);
  * <Input onChangeText={search} />;
  */
-export function useDebouncedCallback<F extends (...args: any[]) => any>(
+export function useDebouncedCallback<F extends AnyFunction>(
   callback: F,
   wait: number,
 ): UseDebouncedCallbackReturn<F> {
-  const callbackRef = useRef(callback);
+  // TS can't see that a generic F accepts Parameters<F>; this view is exact.
+  const latest = useLatestCallback(callback as unknown as (...args: Parameters<F>) => unknown);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastArgsRef = useRef<Parameters<F> | null>(null);
-
-  // Keep the latest callback without forcing the wrapper to be recreated.
-  useEffect(() => {
-    callbackRef.current = callback;
-  }, [callback]);
 
   // Cancel any pending invocation when the component unmounts.
   useEffect(
     () => () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     },
     [],
   );
 
-  const debounced = useCallback((...args: Parameters<F>) => {
-    lastArgsRef.current = args;
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      timeoutRef.current = null;
-      callbackRef.current(...args);
-    }, wait);
-  }, [wait]) as UseDebouncedCallbackReturn<F>;
+  return useMemo(() => {
+    const debounced = ((...args: Parameters<F>) => {
+      lastArgsRef.current = args;
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        timeoutRef.current = null;
+        latest(...args);
+      }, wait);
+    }) as UseDebouncedCallbackReturn<F>;
 
-  debounced.cancel = useCallback(() => {
-    if (timeoutRef.current) {
+    debounced.cancel = () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+
+    debounced.flush = () => {
+      if (!timeoutRef.current) return;
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
-    }
-  }, []);
+      if (lastArgsRef.current) latest(...lastArgsRef.current);
+    };
 
-  debounced.flush = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-      if (lastArgsRef.current) callbackRef.current(...lastArgsRef.current);
-    }
-  }, []);
-
-  return debounced;
+    return debounced;
+  }, [wait, latest]);
 }

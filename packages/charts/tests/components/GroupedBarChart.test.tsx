@@ -22,7 +22,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, multiTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <GroupedBarChart series={SERIES} width={400} height={260} />
+        <GroupedBarChart series={SERIES} w={400} h={260} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );

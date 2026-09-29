@@ -92,7 +92,7 @@ export const ComponentResourceLinks: React.FC<ComponentResourceLinksProps> = ({
               target="_blank"
               variant="hover-underline"
               size="sm"
-              color={textColor}
+              c={textColor}
             >
               {text}
             </Link>

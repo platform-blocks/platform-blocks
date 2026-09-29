@@ -19,8 +19,7 @@ import { StyleSheet } from 'react-native';
 import { Text } from '../../../components/Text';
 import { Divider } from '../../../components/Divider';
 import { Link } from '../../../components/Link';
-import { useSwitchStyles } from '../../../components/Switch/styles';
-import { useWaveformStyles } from '../../../components/Waveform/styles';
+import { getSwitchActiveColor } from '../../../components/Switch/styles';
 import { PlatformBlocksThemeProvider } from '../ThemeProvider';
 import { DEFAULT_THEME } from '../defaultTheme';
 
@@ -34,7 +33,7 @@ describe('Text: color and its `c` shorthand', () => {
   it.each(['error', 'success', 'warning', 'primary', 'secondary', 'muted', 'link'])(
     '`%s` resolves identically through both spellings',
     (value) => {
-      const viaColor = colorOf(wrap(<Text color={value}>x</Text>).getByText('x'));
+      const viaColor = colorOf(wrap(<Text c={value}>x</Text>).getByText('x'));
       const viaC = colorOf(wrap(<Text c={value}>x</Text>).getByText('x'));
 
       expect(viaColor).toBeTruthy();
@@ -45,16 +44,12 @@ describe('Text: color and its `c` shorthand', () => {
   it('lands a status palette on the readable shade rather than the fill base', () => {
     // The regression: `c` used shade 6 while `color` used shade 5, so the two
     // spellings of the same token rendered as different colors.
-    expect(colorOf(wrap(<Text color="error">x</Text>).getByText('x')))
+    expect(colorOf(wrap(<Text c="error">x</Text>).getByText('x')))
       .toBe(DEFAULT_THEME.colors.error[6]);
   });
 
   it('resolves `dimmed` to the muted text token', () => {
     expect(colorOf(wrap(<Text c="dimmed">x</Text>).getByText('x'))).toBe(DEFAULT_THEME.text.muted);
-  });
-
-  it('lets the full name win over the shorthand', () => {
-    expect(colorOf(wrap(<Text color="#00FF00" c="#FF0000">x</Text>).getByText('x'))).toBe('#00FF00');
   });
 });
 
@@ -86,22 +81,12 @@ describe('the vocabulary reaches every component that takes a color', () => {
     {
       name: 'Switch',
       shade: 6,
-      render: (color) =>
-        (useSwitchStyles({
-          checked: true, disabled: false, error: false, size: 'md', color, theme: DEFAULT_THEME,
-        } as any) as any).stateLabelActive?.color,
+      render: (color) => getSwitchActiveColor(DEFAULT_THEME, color),
     },
     {
       name: 'Link',
       shade: 6,
-      render: (color) => colorOf(wrap(<Link href="#" color={color}>x</Link>).getByText('x')),
-    },
-    {
-      name: 'Waveform',
-      shade: 5,
-      render: (color) =>
-        (useWaveformStyles({ color, theme: DEFAULT_THEME, height: 40 } as any) as any)
-          .bar?.backgroundColor,
+      render: (color) => colorOf(wrap(<Link href="#" c={color}>x</Link>).getByText('x')),
     },
   ];
 

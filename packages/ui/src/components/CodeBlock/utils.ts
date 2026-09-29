@@ -207,6 +207,61 @@ export function toOpaqueHex(color: string | undefined, behind: string): string {
   return alpha >= 1 ? solid : composite(solid, fallback, alpha);
 }
 
+/*
+ * Code themes. These are user-facing syntax palettes (like an editor theme),
+ * not UI chrome, so they are fixed tables rather than theme roles:
+ *
+ * - `HACKER_SYNTAX` is the whole palette of `variant="hacker"`.
+ * - `ONE_DARK_SYNTAX` / `ONE_LIGHT_SYNTAX` are only last-resort candidates for
+ *   themes that omit a palette scale entirely; the regular palette is derived
+ *   from the app theme below.
+ */
+const HACKER_SYNTAX: SyntaxColorMap = {
+  keyword: '#00ff00',
+  string: '#00cc00',
+  comment: '#006600',
+  number: '#00ff99',
+  function: '#00dd00',
+  operator: '#00ff66',
+  punctuation: '#00aa00',
+  tag: '#00ff33',
+  attribute: '#00bb00',
+  className: '#00ee00',
+};
+
+const ONE_DARK_SYNTAX: SyntaxColorMap = {
+  keyword: '#c678dd',
+  string: '#98c379',
+  comment: '#5c6370',
+  number: '#d19a66',
+  function: '#61afef',
+  operator: '#56b6c2',
+  punctuation: '#abb2bf',
+  tag: '#e06c75',
+  attribute: '#d19a66',
+  className: '#e5c07b',
+};
+
+const ONE_LIGHT_SYNTAX: SyntaxColorMap = {
+  keyword: '#a626a4',
+  string: '#50a14f',
+  comment: '#a0a1a7',
+  number: '#986801',
+  function: '#4078f2',
+  operator: '#0184bc',
+  punctuation: '#383a42',
+  tag: '#e45649',
+  attribute: '#986801',
+  className: '#c18401',
+};
+
+/**
+ * Syntax colors for a code surface.
+ *
+ * `isDark` only decides which fallback code theme (One Dark / One Light) is
+ * tried first for a theme that lacks a palette scale; every color is still
+ * picked by its measured contrast against `options.surface`.
+ */
 export function getSyntaxColors(
   theme: PlatformBlocksTheme,
   isDark: boolean,
@@ -215,19 +270,7 @@ export function getSyntaxColors(
   options: SyntaxColorOptions = {}
 ): SyntaxColorMap {
   if (variant === 'hacker') {
-    const base: SyntaxColorMap = {
-      keyword: '#00ff00',
-      string: '#00cc00',
-      comment: '#006600',
-      number: '#00ff99',
-      function: '#00dd00',
-      operator: '#00ff66',
-      punctuation: '#00aa00',
-      tag: '#00ff33',
-      attribute: '#00bb00',
-      className: '#00ee00',
-    };
-    return applyOverrides(base, overrides);
+    return applyOverrides(HACKER_SYNTAX, overrides);
   }
 
   // Token colors are derived from the app theme's own palettes rather than a
@@ -235,16 +278,17 @@ export function getSyntaxColors(
   // Every color is measured against the actual code surface and stepped along
   // its scale until it clears a contrast floor — that is what keeps the same
   // role legible on a pale panel and a near-black one without two hand-tuned
-  // hex tables. The One-Dark hexes survive only as last-resort fallbacks for
-  // themes that omit a scale entirely.
+  // hex tables. The One Dark / One Light tables survive only as last-resort
+  // candidates for themes that omit a scale entirely.
   const c = theme.colors as Record<string, string[] | undefined>;
   // Callers pass the panel they actually painted; the fallback is the same
   // theme token that panel defaults to, so contrast is never measured against
   // a surface color from outside the theme.
-  const surface = toOpaqueHex(
-    options.surface,
-    theme.backgrounds?.subtle ?? theme.backgrounds?.base ?? (isDark ? '#000000' : '#ffffff')
-  );
+  const surface = toOpaqueHex(options.surface, theme.backgrounds?.subtle ?? theme.backgrounds?.base ?? '');
+  const [preferredFallback, otherFallback] = isDark
+    ? [ONE_DARK_SYNTAX, ONE_LIGHT_SYNTAX]
+    : [ONE_LIGHT_SYNTAX, ONE_DARK_SYNTAX];
+  const fallbacksFor = (token: CodeBlockToken) => [preferredFallback[token], otherFallback[token]];
 
   /**
    * First shade of the first listed palette that reads on `surface`. Families
@@ -252,8 +296,8 @@ export function getSyntaxColors(
    * gets a keyword color from `violet`, then `primary`, before the fallback.
    */
   const role = (
+    token: CodeBlockToken,
     families: Array<string[] | undefined>,
-    fallback: string,
     min: number = ACCENT_MIN_CONTRAST
   ): string => {
     const candidates: string[] = [];
@@ -264,29 +308,31 @@ export function getSyntaxColors(
         if (color) candidates.push(color);
       }
     }
-    candidates.push(fallback);
+    candidates.push(...fallbacksFor(token));
     return pickReadable(candidates, surface, min);
   };
 
   /** Text tokens come from the theme's text ramp, kept above a legibility floor. */
-  const textRole = (preferred: string | undefined, fallback: string, min: number): string =>
+  const textRole = (token: CodeBlockToken, preferred: string | undefined, min: number): string =>
     pickReadable(
-      [preferred, theme.text.secondary, theme.text.primary, fallback].filter(Boolean) as string[],
+      [preferred, theme.text.secondary, theme.text.primary, ...fallbacksFor(token)].filter(
+        (color): color is string => Boolean(color)
+      ),
       surface,
       min
     );
 
   const base: SyntaxColorMap = {
-    keyword: role([c.purple, c.violet, c.primary], isDark ? '#c678dd' : '#a626a4'),
-    string: role([c.success, c.teal], isDark ? '#98c379' : '#50a14f'),
-    comment: textRole(theme.text.muted, isDark ? '#5c6370' : '#a0a1a7', MUTED_MIN_CONTRAST),
-    number: role([c.warning, c.amber], isDark ? '#d19a66' : '#986801'),
-    function: role([c.sky, c.primary], isDark ? '#61afef' : '#4078f2'),
-    operator: textRole(theme.text.secondary, isDark ? '#56b6c2' : '#0184bc', MUTED_MIN_CONTRAST),
-    punctuation: textRole(theme.text.muted, isDark ? '#abb2bf' : '#383a42', MUTED_MIN_CONTRAST),
-    tag: role([c.tertiary, c.pink, c.error], isDark ? '#e06c75' : '#e45649'),
-    attribute: role([c.amber, c.warning], isDark ? '#d19a66' : '#986801'),
-    className: role([c.cyan, c.teal, c.sky], isDark ? '#e5c07b' : '#c18401'),
+    keyword: role('keyword', [c.purple, c.violet, c.primary]),
+    string: role('string', [c.success, c.teal]),
+    comment: textRole('comment', theme.text.muted, MUTED_MIN_CONTRAST),
+    number: role('number', [c.warning, c.amber]),
+    function: role('function', [c.sky, c.primary]),
+    operator: textRole('operator', theme.text.secondary, MUTED_MIN_CONTRAST),
+    punctuation: textRole('punctuation', theme.text.muted, MUTED_MIN_CONTRAST),
+    tag: role('tag', [c.tertiary, c.pink, c.error]),
+    attribute: role('attribute', [c.amber, c.warning]),
+    className: role('className', [c.cyan, c.teal, c.sky]),
   };
 
   return applyOverrides(base, overrides);

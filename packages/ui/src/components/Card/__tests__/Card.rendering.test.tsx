@@ -27,8 +27,8 @@ const mockTheme = {
   },
 };
 
-jest.mock('../../../core/theme', () => {
-  const actual = jest.requireActual('../../../core/theme');
+jest.mock('../../../core/theme/ThemeProvider', () => {
+  const actual = jest.requireActual('../../../core/theme/ThemeProvider');
   return {
     ...actual,
     useTheme: () => mockTheme,
@@ -102,16 +102,16 @@ describe('Card - rendering', () => {
     // First section escapes top + horizontal padding
     const first = getByTestId('section-first');
     const firstStyle = flatten(first);
-    expect(firstStyle.marginLeft).toBe(-20);
-    expect(firstStyle.marginRight).toBe(-20);
+    expect(firstStyle.marginStart).toBe(-20);
+    expect(firstStyle.marginEnd).toBe(-20);
     expect(firstStyle.marginTop).toBe(-20);
     expect(firstStyle.marginBottom).toBe(0);
 
     // Last section escapes bottom + horizontal, and has a top divider (withBorder + not first)
     const last = getByTestId('section-last');
     const lastStyle = flatten(last);
-    expect(lastStyle.marginLeft).toBe(-20);
-    expect(lastStyle.marginRight).toBe(-20);
+    expect(lastStyle.marginStart).toBe(-20);
+    expect(lastStyle.marginEnd).toBe(-20);
     expect(lastStyle.marginTop).toBe(0);
     expect(lastStyle.marginBottom).toBe(-20);
     expect(lastStyle.borderTopWidth).toBe(1);
@@ -136,8 +136,8 @@ describe('Card - rendering', () => {
       </Card>
     );
     const mid = flatten(getByTestId('s2'));
-    expect(mid.marginLeft).toBe(-16);
-    expect(mid.marginRight).toBe(-16);
+    expect(mid.marginStart).toBe(-16);
+    expect(mid.marginEnd).toBe(-16);
     expect(mid.marginTop).toBe(0);
     expect(mid.marginBottom).toBe(0);
   });

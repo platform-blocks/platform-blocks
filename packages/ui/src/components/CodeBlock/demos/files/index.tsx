@@ -1,4 +1,4 @@
-import { Block, CodeBlock, Text } from '@platform-blocks/ui';
+import { Block, CodeBlock } from '@platform-blocks/ui';
 
 const FILES = [
   {
@@ -40,9 +40,6 @@ export const QUOTE = 'The components feel native on every platform.';`,
 export function Demo() {
   return (
     <Block fullWidth>
-      <Text size="sm" color="secondary">
-        Switch files from the tab strip in the top-left corner.
-      </Text>
       <CodeBlock files={FILES} />
     </Block>
   );

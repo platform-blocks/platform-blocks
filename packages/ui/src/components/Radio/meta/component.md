@@ -12,9 +12,10 @@ platform:
   ios: true
   android: true
 accessibility:
-  - Keyboard navigation support
-  - Screen reader compatible
-  - ARIA attributes
+  - RadioGroup is a labelled role="radiogroup"; each option is role="radio" with aria-checked
+  - One tab stop per group (the selected option, or the first while none is selected)
+  - Arrow keys move focus and selection together, following the reading direction; Home/End jump to the ends; Space selects
+  - Group label, description, helperText and error are linked through the shared Field frame
 related:
   - Checkbox
   - Switch
@@ -27,3 +28,5 @@ examples:
 ---
 
 Radio buttons allow users to select a single option from a group of mutually exclusive choices.
+
+`RadioGroup` works controlled (`value` + `onChange`) or uncontrolled (`defaultValue`).

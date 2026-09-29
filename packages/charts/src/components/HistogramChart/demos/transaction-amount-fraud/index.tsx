@@ -7,7 +7,7 @@ export function Demo() {
     <HistogramChart
       title="Transaction amount distribution"
       subtitle="Identifying anomalous high-value purchases"
-      height={320}
+      h={320}
       data={TRANSACTION_AMOUNTS}
       bins={16}
       binMethod="fd"

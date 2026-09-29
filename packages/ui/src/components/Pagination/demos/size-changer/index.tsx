@@ -12,7 +12,7 @@ export function Demo() {
   return (
     <Block>
       <Pagination
-        current={current}
+        value={current}
         total={total}
         onChange={setCurrent}
         showTotal
@@ -25,7 +25,7 @@ export function Demo() {
           setCurrent(1);
         }}
       />
-      <Text size="xs" color="secondary">
+      <Text size="xs" c="secondary">
         Page {current} of {total} · {pageSize} rows per page
       </Text>
     </Block>

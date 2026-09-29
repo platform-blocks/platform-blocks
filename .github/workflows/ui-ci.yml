@@ -1,0 +1,70 @@
+name: UI CI
+
+# Guardrails for @platform-blocks/ui: every PR and every push to main/next must
+# typecheck, lint (with a warning ratchet), pass unit + web DOM tests at the
+# coverage floor, build, and produce a package that resolves correctly.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - next
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ui-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: packages/ui
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: .
+
+      # `skills:check` is not run here: it needs the sibling platform-blocks/skills
+      # checkout and silently skips without one (it runs in `verify:packages`).
+      - name: Exports map is in sync with src/components
+        run: npm run ui:exports:check
+        working-directory: .
+
+      - name: Typecheck (library + tests)
+        run: npm run typecheck
+
+      - name: Lint (errors fail; warnings are ratcheted)
+        run: npm run lint:check
+
+      - name: Unit tests with coverage thresholds
+        run: npm run test:ci
+
+      - name: Web DOM tests (react-native-web + jsdom)
+        run: npm run test:web -- --ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint the package (publint)
+        run: npx publint
+
+      - name: Check published types resolve (arethetypeswrong)
+        run: npx attw --pack . --profile node16

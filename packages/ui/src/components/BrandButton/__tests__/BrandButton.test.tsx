@@ -6,24 +6,14 @@ import { brandColors, resolveBrandConfig } from '../types';
 
 const buttonPropsLog: Array<Record<string, any>> = [];
 const brandIconPropsLog: Array<Record<string, any>> = [];
-const mockShouldHideComponent = jest.fn<boolean, [Record<string, any>, 'light' | 'dark']>(
-  (_props, _scheme) => false
-);
-const mockExtractUniversalProps = jest.fn((props: any) => {
-  const { lightHidden, darkHidden, hiddenFrom, visibleFrom, ...rest } = props;
-  return {
-    universalProps: { lightHidden, darkHidden, hiddenFrom, visibleFrom },
-    componentProps: rest,
-  };
-});
 
-jest.mock('../../Button', () => {
+jest.mock('../../Button/Button', () => {
   const React = require('react');
   return {
     Button: (props: any) => {
       const { children, ...rest } = props;
       buttonPropsLog.push(rest);
-      return React.createElement(React.Fragment, null, props.startIcon, children, props.endIcon);
+      return React.createElement(React.Fragment, null, props.startSection, children, props.endSection);
     },
   };
 });
@@ -39,17 +29,15 @@ jest.mock('../../BrandIcon', () => {
   };
 });
 
-jest.mock('../../../core/utils/universalSimple', () => ({
-  useShouldHideComponent: (props: any, scheme: 'light' | 'dark') =>
-    mockShouldHideComponent(props, scheme),
-  extractUniversalProps: (props: any) => mockExtractUniversalProps(props),
-}));
-
-jest.mock('../../../core/theme', () => ({
+jest.mock('../../../core/theme/ThemeProvider', () => ({
+  ...jest.requireActual('../../../core/theme/ThemeProvider'),
   useTheme: () => ({
     colorScheme: 'light',
     text: {
       primary: '#111111',
+    },
+    backgrounds: {
+      elevated: '#FFFFFF',
     },
   }),
 }));
@@ -58,8 +46,6 @@ describe('BrandButton', () => {
   beforeEach(() => {
     buttonPropsLog.length = 0;
     brandIconPropsLog.length = 0;
-    mockShouldHideComponent.mockClear();
-    mockExtractUniversalProps.mockClear();
   });
 
   it('renders a plain brand button with a leading BrandIcon by default', () => {
@@ -67,10 +53,12 @@ describe('BrandButton', () => {
 
     expect(buttonPropsLog).toHaveLength(1);
     const props = buttonPropsLog[0];
-    expect(props.variant).toBe('plain');
-    expect(props.startIcon).toBeTruthy();
-    expect(props.endIcon).toBeUndefined();
-    expect(props.style[0]).toMatchObject({ backgroundColor: 'white', borderColor: 'transparent' });
+    // `plain` renders as Button's neutral `default` with the raised surface fill.
+    expect(props.variant).toBe('default');
+    expect(props.startSection).toBeTruthy();
+    expect(props.endSection).toBeUndefined();
+    expect(props.textColor).toBe('#111111');
+    expect(props.style[0]).toMatchObject({ backgroundColor: '#FFFFFF', borderColor: 'transparent' });
     expect(brandIconPropsLog[0]).toMatchObject({ brand: 'google', size: 'md', variant: 'full' });
   });
 
@@ -87,20 +75,27 @@ describe('BrandButton', () => {
     render(<BrandButton brand="google" title="Continue" iconPosition="right" />);
 
     const props = buttonPropsLog[0];
-    expect(props.startIcon).toBeUndefined();
-    expect(props.endIcon).toBeTruthy();
+    expect(props.startSection).toBeUndefined();
+    expect(props.endSection).toBeTruthy();
   });
 
-  it('returns null when universal props hide the component', () => {
-    mockShouldHideComponent.mockReturnValueOnce(true);
+  it('returns null when the visibility props hide the component', () => {
     const { toJSON } = render(<BrandButton brand="google" title="Hidden" lightHidden />);
 
     expect(toJSON()).toBeNull();
     expect(buttonPropsLog).toHaveLength(0);
-    expect(mockShouldHideComponent).toHaveBeenCalledWith(
-      expect.objectContaining({ lightHidden: true }),
-      'light'
-    );
+  });
+
+  it('accepts breakpoint tokens and (deprecated) pixel widths for hiddenFrom / visibleFrom', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    // The test viewport is wider than `xs`, so hiding from `xs` hides it…
+    expect(render(<BrandButton brand="google" title="Token" hiddenFrom="xs" />).toJSON()).toBeNull();
+    // …and a pixel width rounds to the nearest breakpoint (480px → xs).
+    expect(render(<BrandButton brand="google" title="Pixels" hiddenFrom={470} />).toJSON()).toBeNull();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('pixel `hiddenFrom` is deprecated'));
+    // Never passed down to Button as a raw number.
+    expect(render(<BrandButton brand="google" title="Shown" visibleFrom="xs" />).toJSON()).not.toBeNull();
+    warn.mockRestore();
   });
 
   it('uses a custom icon when provided', () => {
@@ -108,7 +103,7 @@ describe('BrandButton', () => {
     render(<BrandButton brand="google" title="Continue" icon={customIcon} />);
 
     const props = buttonPropsLog[0];
-    expect(props.startIcon.props.testID).toBe('custom-icon');
+    expect(props.startSection.props.testID).toBe('custom-icon');
   });
 
   it('derives outline styles and text color from brand colors', () => {
@@ -165,7 +160,7 @@ describe('BrandButton', () => {
           brand="spotify"
           primaryText="Listen on"
           secondaryText="Spotify"
-          backgroundColor="#191414"
+          bg="#191414"
           borderColor="#1DB954"
         />
       );
@@ -193,10 +188,9 @@ describe('BrandButton', () => {
       ).toMatchObject({ borderRadius: 6, minHeight: 40 });
     });
 
-    it('returns null when universal props hide a badge', () => {
-      mockShouldHideComponent.mockReturnValueOnce(true);
+    it('returns null when the visibility props hide a badge', () => {
       const { toJSON } = render(
-        <BrandButton brand="app-store" primaryText="Download on the" secondaryText="App Store" darkHidden />
+        <BrandButton brand="app-store" primaryText="Download on the" secondaryText="App Store" lightHidden />
       );
 
       expect(toJSON()).toBeNull();

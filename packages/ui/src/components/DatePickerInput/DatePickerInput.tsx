@@ -1,442 +1,190 @@
-import React, { useState, useRef, useCallback, useEffect, forwardRef } from 'react';
-import { View, Pressable, Keyboard, Platform } from 'react-native';
-import { Text } from '../Text';
-import { Input } from '../Input';
-import { Flex } from '../Flex';
-import { Icon } from '../Icon';
-import { Dialog } from '../Dialog';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View } from 'react-native';
+import type { ViewStyle } from 'react-native';
+
+import { factory } from '../../core/factory/factory';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { useTheme } from '../../core/theme/ThemeProvider';
 import { useControllableState } from '../../hooks/useControllableState';
 import { Calendar } from '../Calendar/Calendar';
+import { getCalendarWidth } from '../Calendar/utils';
 import { dateUtils, extractFirstDate } from '../DatePicker/utils';
-import { useTheme } from '../../core/theme';
-import { DESIGN_TOKENS } from '../../core/design-tokens';
-import { useFocusTrap } from '../../core/accessibility/advancedHooks';
-import { DatePicker } from '../DatePicker/DatePicker';
-import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
-import type { DatePickerInputProps, CalendarLevel, CalendarValue } from './types';
+import { PickerActions } from './PickerActions';
+import { getSheetWidthFor, PickerField } from './PickerField';
+import type { CalendarLevel, CalendarValue, DatePickerInputHandle, DatePickerInputProps } from './types';
 
-export const DatePickerInput = forwardRef(function DatePickerInputInner(
-  {
-    value,
-    defaultValue,
-    onChange,
-    type = 'single',
-    calendarProps,
-    placeholder = 'Pick date',
-    displayFormat = 'MMMM d, yyyy',
-    valueFormat,
-    clearable = false,
-    size = 'md',
-    disabled = false,
-    withAsterisk,
-    dropdownType = 'modal',
-    closeOnSelect,
-    onOpen,
-    onClose,
-    onFocus,
-    onBlur,
-    ...inputProps
-  }: DatePickerInputProps,
-  ref: React.ForwardedRef<View>
-) {
-  const theme = useTheme();
-  const keyboardManager = useKeyboardManagerOptional();
-  const {
-    label,
-    error,
-    required = false,
-    endSection,
-    ...restInputProps
-  } = inputProps;
+const DEFAULT_TITLES = {
+  single: 'Select date',
+  multiple: 'Select dates',
+  range: 'Select date range',
+} as const;
 
-  const calendarOverrides = calendarProps ?? {};
-  const {
-    level: calendarLevelProp,
-    defaultLevel: calendarDefaultLevelProp,
-    onLevelChange: calendarOnLevelChange,
-    date: calendarDateProp,
-    defaultDate: calendarDefaultDateProp,
-    onDateChange: calendarOnDateChange,
-    numberOfMonths = 1,
-    locale = 'en-US',
-    ...calendarRest
-  } = calendarOverrides;
+const PANEL_CENTER: ViewStyle = { alignItems: 'center' };
 
-  void valueFormat;
+/**
+ * A form field that opens a calendar in a sheet (or, with
+ * `dropdownType="popover"`, a dropdown on desktop web). The field is a button
+ * announcing its label and value; the calendar stays navigable cell by cell
+ * (nothing collapses it into one accessibility element).
+ */
+export const DatePickerInput = factory<{ props: DatePickerInputProps; ref: DatePickerInputHandle }>(
+  function DatePickerInput(props, ref) {
+    const {
+      value,
+      defaultValue,
+      onChange,
+      type = 'single',
+      calendarProps,
+      placeholder = 'Pick date',
+      displayFormat = 'MMMM d, yyyy',
+      clearable = false,
+      dropdownType = 'modal',
+      closeOnSelect,
+      modalTitle,
+      onOpen,
+      onClose,
+      ...fieldProps
+    } = props;
 
-  const shouldCloseOnSelect = closeOnSelect ?? type === 'single';
+    const {
+      level: calendarLevel,
+      defaultLevel: calendarDefaultLevel,
+      onLevelChange: calendarOnLevelChange,
+      date: calendarDate,
+      defaultDate: calendarDefaultDate,
+      onDateChange: calendarOnDateChange,
+      numberOfMonths = 1,
+      locale = 'en-US',
+      ...calendarRest
+    } = calendarProps ?? {};
 
-  const [selectedValue, setValue] = useControllableState<CalendarValue>({
-    value,
-    defaultValue: defaultValue ?? null,
-    finalValue: null,
-    onChange: (next) => onChange?.(next ?? null),
-  });
-  const currentValue: CalendarValue = selectedValue ?? null;
+    const theme = useTheme();
+    const shouldCloseOnSelect = closeOnSelect ?? type === 'single';
+    const onChangeLatest = useLatestCallback(onChange);
 
-  const initialDate = calendarDateProp
-    ?? calendarDefaultDateProp
-    ?? extractFirstDate(currentValue)
-    ?? extractFirstDate(defaultValue ?? null)
-    ?? new Date();
+    const [selectedValue, setValue] = useControllableState<CalendarValue>({
+      value,
+      defaultValue: defaultValue ?? null,
+      finalValue: null,
+      onChange: (next: CalendarValue) => onChangeLatest(next ?? null),
+    });
+    const currentValue: CalendarValue = selectedValue ?? null;
 
-  const initialLevel = (calendarLevelProp ?? calendarDefaultLevelProp ?? 'month') as CalendarLevel;
+    const [opened, setOpened] = useState(false);
 
-  const [viewDate, setViewDate] = useState<Date>(initialDate);
-  const [viewLevel, setViewLevel] = useState<CalendarLevel>(initialLevel);
-  const initialLevelRef = useRef(initialLevel);
+    const open = useCallback(() => {
+      setOpened(true);
+      onOpen?.();
+    }, [onOpen]);
 
-  useEffect(() => {
-    if (calendarDateProp) {
-      setViewDate(calendarDateProp);
-    }
-  }, [calendarDateProp]);
+    const close = useCallback(() => {
+      setOpened(false);
+      onClose?.();
+    }, [onClose]);
 
-  useEffect(() => {
-    if (!calendarDateProp && calendarDefaultDateProp) {
-      setViewDate(calendarDefaultDateProp);
-    }
-  }, [calendarDateProp, calendarDefaultDateProp]);
+    const formatDate = useCallback(
+      (date: Date) => dateUtils.formatDate(date, displayFormat || 'MMMM d, yyyy', locale),
+      [displayFormat, locale]
+    );
 
-  useEffect(() => {
-    if (calendarLevelProp) {
-      setViewLevel(calendarLevelProp as CalendarLevel);
-    }
-  }, [calendarLevelProp]);
-
-  useEffect(() => {
-    if (!calendarLevelProp && calendarDefaultLevelProp) {
-      initialLevelRef.current = calendarDefaultLevelProp as CalendarLevel;
-      setViewLevel(calendarDefaultLevelProp as CalendarLevel);
-    }
-  }, [calendarLevelProp, calendarDefaultLevelProp]);
-
-  const [isOpen, setIsOpen] = useState(false);
-
-  const { containerRef: focusTrapRef } = useFocusTrap(isOpen);
-
-  const formatDate = useCallback(
-    (date: Date): string => dateUtils.formatDate(date, displayFormat || 'MMMM d, yyyy', locale),
-    [displayFormat, locale]
-  );
-
-  const formatValue = useCallback((val: CalendarValue): string => {
-    if (!val) return '';
-    if (val instanceof Date) return formatDate(val);
-    if (Array.isArray(val)) {
+    const displayValue = useMemo(() => {
+      if (!currentValue) return '';
+      if (currentValue instanceof Date) return formatDate(currentValue);
       if (type === 'multiple') {
-        return (val as Date[])
-          .filter((item): item is Date => item instanceof Date)
-          .map((date) => formatDate(date))
-          .join(', ');
+        return (currentValue as Date[]).filter((item): item is Date => item instanceof Date).map(formatDate).join(', ');
       }
       if (type === 'range') {
-        const [start, end] = val as [Date | null, Date | null];
-        if (start && end) return `${formatDate(start)} - ${formatDate(end)}`;
+        const [start, end] = currentValue as [Date | null, Date | null];
+        if (start && end) return `${formatDate(start)} – ${formatDate(end)}`;
         if (start) return formatDate(start);
         if (end) return formatDate(end);
       }
-    }
-    return '';
-  }, [type, formatDate]);
+      return '';
+    }, [currentValue, type, formatDate]);
 
-  const syncViewDateToValue = useCallback((val: CalendarValue) => {
-    if (calendarDateProp) return;
-    const candidate = extractFirstDate(val) ?? extractFirstDate(defaultValue ?? null);
-    if (candidate) {
-      setViewDate(candidate);
-    }
-  }, [calendarDateProp, defaultValue]);
+    const emptyValue = useCallback((): CalendarValue => {
+      if (type === 'multiple') return [];
+      if (type === 'range') return [null, null];
+      return null;
+    }, [type]);
 
-  const handleInputPress = () => {
-    if (disabled) return;
-    if (keyboardManager) {
-      keyboardManager.dismissKeyboard();
-    } else {
-      Keyboard.dismiss();
-    }
-    syncViewDateToValue(currentValue);
-    if (!calendarLevelProp && calendarDefaultLevelProp) {
-      setViewLevel(calendarDefaultLevelProp as CalendarLevel);
-    }
-    setIsOpen(true);
-    onOpen?.();
-  };
-
-  const handleClose = () => {
-    setIsOpen(false);
-    if (!calendarLevelProp) {
-      setViewLevel(initialLevelRef.current);
-    }
-    onClose?.();
-  };
-
-  const handleDateChange = (next: Date) => {
-    if (!calendarDateProp) {
-      setViewDate(next);
-    }
-    calendarOnDateChange?.(next);
-  };
-
-  const handleLevelChange = (next: CalendarLevel) => {
-    if (!calendarLevelProp) {
-      setViewLevel(next);
-    }
-    calendarOnLevelChange?.(next);
-  };
-
-  const handleValueChange = (next: CalendarValue) => {
-    setValue(next);
-    if (!calendarDateProp) {
-      const candidate = extractFirstDate(next);
-      if (candidate) {
-        setViewDate(candidate);
-      }
-    }
-    if (shouldCloseOnSelect) {
-      if (type === 'single' && next instanceof Date) {
-        handleClose();
-      } else if (type === 'range' && Array.isArray(next)) {
-        const [start, end] = next as [Date | null, Date | null];
-        if (start && end) {
-          handleClose();
-        }
-      }
-    }
-  };
-
-  const handleClear = useCallback(() => {
-    if (type === 'multiple') {
-      setValue([]);
-    } else if (type === 'range') {
-      setValue([null, null]);
-    } else {
-      setValue(null);
-    }
-  }, [setValue, type]);
-
-  const inputValue = formatValue(currentValue);
-  const showAsterisk = withAsterisk ?? required;
-
-  const renderInput = () => (
-    <Pressable
-      onPress={handleInputPress}
-      disabled={disabled}
-      accessible={true}
-      // On web, `accessibilityRole="button"` makes react-native-web render a
-      // native <button>, which then illegally nests the Input's clear <button>.
-      // Use the combobox role on web (matches Select) to render a <div> instead.
-      {...(Platform.OS === 'web'
-        ? { role: 'combobox' as const }
-        : { accessibilityRole: 'button' as const })}
-      accessibilityLabel={`Date picker. ${inputValue || placeholder}`}
-      accessibilityHint="Tap to open calendar"
-      accessibilityState={{ disabled }}
-    >
-      <Input
-        value={inputValue}
-        placeholder={placeholder}
-        label={label}
-        error={error}
-        disabled={disabled}
-        required={required}
-        withAsterisk={showAsterisk}
-        size={size}
-        endSection={endSection ?? <Icon name="calendar" size={16} />}
-        clearable={clearable}
-        onClear={handleClear}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        textInputProps={{
-          editable: false,
-          pointerEvents: 'none',
-          accessible: false,
-          importantForAccessibility: 'no-hide-descendants',
-          focusable: false,
-        }}
-        {...restInputProps}
-      />
-    </Pressable>
-  );
-
-  const renderCalendar = () => (
-    <Calendar
-      {...calendarRest}
-      locale={locale}
-      numberOfMonths={numberOfMonths}
-      date={viewDate}
-      onDateChange={handleDateChange}
-      level={viewLevel}
-      onLevelChange={handleLevelChange}
-      value={currentValue}
-      onChange={handleValueChange}
-      type={type}
-    />
-  );
-
-  if (dropdownType === 'modal') {
-    return (
-      <View ref={ref}>
-        {renderInput()}
-
-        <Dialog
-          visible={isOpen}
-          variant="modal"
-          onClose={handleClose}
-          w={numberOfMonths > 1 ? Math.min(700, 380 * numberOfMonths + 40) : 400}
-          title={
-            type === 'range'
-              ? 'Select Date Range'
-              : type === 'multiple'
-              ? 'Select Dates'
-              : 'Select Date'
-          }
-        >
-          <View
-            ref={focusTrapRef}
-            style={{ padding: DESIGN_TOKENS.spacing.lg }}
-            accessible={true}
-            accessibilityLabel={
-              type === 'range'
-                ? 'Date range picker dialog'
-                : type === 'multiple'
-                ? 'Multiple date picker dialog'
-                : 'Date picker dialog'
-            }
-          >
-            {/* The calendar sizes to its day grid, so center it in the wider dialog. */}
-            <View style={{ alignItems: 'center' }}>{renderCalendar()}</View>
-
-            {(type === 'multiple' || type === 'range') && (
-              <View
-                style={{
-                  paddingTop: DESIGN_TOKENS.spacing.lg,
-                  marginTop: DESIGN_TOKENS.spacing.lg,
-                  borderTopWidth: 1,
-                  borderTopColor: theme.colors.gray[2],
-                }}
-              >
-                <Flex direction="row" justify="space-between" align="center">
-                  <Text size="sm" style={{ color: theme.colors.gray[6] }}>
-                    {type === 'range' && Array.isArray(currentValue) && currentValue.length === 2
-                      ? `${formatValue(currentValue)}`
-                      : type === 'multiple' && Array.isArray(currentValue)
-                      ? `${currentValue.length} date${currentValue.length !== 1 ? 's' : ''} selected`
-                      : 'Select dates'}
-                  </Text>
-                  <Flex direction="row" gap={8}>
-                    <Pressable
-                      onPress={() => setValue(type === 'range' ? [null, null] : [])}
-                      style={({ pressed }) => ({
-                        paddingHorizontal: DESIGN_TOKENS.spacing.lg,
-                        paddingVertical: DESIGN_TOKENS.spacing.sm,
-                        borderRadius: DESIGN_TOKENS.radius.sm,
-                        backgroundColor: pressed ? theme.colors.gray[2] : theme.colors.gray[1],
-                      })}
-                    >
-                      <Text size="sm" weight="medium" style={{ color: theme.colors.gray[7] }}>
-                        Clear
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={handleClose}
-                      style={({ pressed }) => ({
-                        paddingHorizontal: DESIGN_TOKENS.spacing.xl,
-                        paddingVertical: DESIGN_TOKENS.spacing.sm,
-                        borderRadius: DESIGN_TOKENS.radius.sm,
-                        backgroundColor: pressed ? theme.colors.primary[6] : theme.colors.primary[5],
-                      })}
-                    >
-                      <Text size="sm" weight="semibold" style={{ color: 'white' }}>
-                        Done
-                      </Text>
-                    </Pressable>
-                  </Flex>
-                </Flex>
-              </View>
-            )}
-          </View>
-        </Dialog>
-      </View>
+    const handleValueChange = useCallback(
+      (next: CalendarValue) => {
+        setValue(next);
+        if (!shouldCloseOnSelect) return;
+        if (type === 'single' && next instanceof Date) close();
+        else if (type === 'range' && Array.isArray(next) && next[0] instanceof Date && next[1] instanceof Date) close();
+      },
+      [setValue, shouldCloseOnSelect, type, close]
     );
-  }
 
-  return (
-    <View ref={ref}>
-      {renderInput()}
+    const clearValue = useCallback(() => setValue(emptyValue()), [setValue, emptyValue]);
 
-      <Dialog
-        visible={isOpen}
-        variant="modal"
-        onClose={handleClose}
-        w={numberOfMonths > 1 ? Math.min(600, 320 * numberOfMonths + 40) : 350}
-      >
-        <View
-          ref={focusTrapRef}
-          style={{ padding: DESIGN_TOKENS.spacing.lg }}
-          accessible={true}
-          accessibilityLabel={
-            type === 'range'
-              ? 'Date range picker dialog'
-              : type === 'multiple'
-              ? 'Multiple date picker dialog'
-              : 'Date picker dialog'
-          }
-        >
-          <View style={{ alignItems: 'center' }}>{renderCalendar()}</View>
+    const summary = useMemo(() => {
+      if (type === 'multiple' && Array.isArray(currentValue)) {
+        const count = currentValue.filter((item) => item instanceof Date).length;
+        return `${count} date${count === 1 ? '' : 's'} selected`;
+      }
+      if (type === 'range') return displayValue || 'Select dates';
+      return undefined;
+    }, [type, currentValue, displayValue]);
 
-          {(type === 'multiple' || type === 'range') && (
-            <View
-              style={{
-                paddingTop: DESIGN_TOKENS.spacing.lg,
-                marginTop: DESIGN_TOKENS.spacing.lg,
-                borderTopWidth: 1,
-                borderTopColor: theme.colors.gray[2],
-              }}
-            >
-              <Flex direction="row" justify="space-between" align="center">
-                <Text size="sm" style={{ color: theme.colors.gray[6] }}>
-                  {type === 'range' && Array.isArray(currentValue) && currentValue.length === 2
-                    ? `${formatValue(currentValue)}`
-                    : type === 'multiple' && Array.isArray(currentValue)
-                    ? `${currentValue.length} date${currentValue.length !== 1 ? 's' : ''} selected`
-                    : 'Select dates'}
-                </Text>
-                <Flex direction="row" gap={8}>
-                  <Pressable
-                    onPress={() => setValue(type === 'range' ? [null, null] : [])}
-                    style={({ pressed }) => ({
-                      paddingHorizontal: DESIGN_TOKENS.spacing.lg,
-                      paddingVertical: DESIGN_TOKENS.spacing.sm,
-                      borderRadius: DESIGN_TOKENS.radius.sm,
-                      backgroundColor: pressed ? theme.colors.gray[2] : theme.colors.gray[1],
-                    })}
-                  >
-                    <Text size="sm" weight="medium" style={{ color: theme.colors.gray[7] }}>
-                      Clear
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={handleClose}
-                    style={({ pressed }) => ({
-                      paddingHorizontal: DESIGN_TOKENS.spacing.xl,
-                      paddingVertical: DESIGN_TOKENS.spacing.sm,
-                      borderRadius: DESIGN_TOKENS.radius.sm,
-                      backgroundColor: pressed ? theme.colors.primary[6] : theme.colors.primary[5],
-                    })}
-                  >
-                    <Text size="sm" weight="semibold" style={{ color: 'white' }}>
-                      Done
-                    </Text>
-                  </Pressable>
-                </Flex>
-              </Flex>
-            </View>
-          )}
+    // The panel mounts each time it opens, so the calendar starts on the
+    // selected date (or the caller's date / level).
+    const initialDate = calendarDefaultDate ?? extractFirstDate(currentValue) ?? new Date();
+    const initialLevel: CalendarLevel = calendarDefaultLevel ?? 'month';
+
+    // The calendar keeps its grid width, so the sheet hugs it; a fixed width
+    // leaves the grid floating in empty space on phones. A `fullWidth`
+    // calendar stretches to whatever it gets.
+    const panelWidth = calendarRest.fullWidth
+      ? numberOfMonths > 1 ? Math.min(700, 380 * numberOfMonths + 40) : 400
+      : getSheetWidthFor(theme, getCalendarWidth(theme, calendarRest.size, calendarRest.withCellSpacing, numberOfMonths));
+
+    const panel = (
+      <>
+        <View style={PANEL_CENTER}>
+          <Calendar
+            {...calendarRest}
+            locale={locale}
+            numberOfMonths={numberOfMonths}
+            date={calendarDate}
+            defaultDate={initialDate}
+            onDateChange={calendarOnDateChange}
+            level={calendarLevel}
+            defaultLevel={initialLevel}
+            onLevelChange={calendarOnLevelChange}
+            value={currentValue}
+            onChange={handleValueChange}
+            type={type}
+          />
         </View>
-      </Dialog>
-    </View>
-  );
-});
+        {type === 'multiple' || type === 'range' ? (
+          <PickerActions summary={summary} onClear={clearValue} onDone={close} />
+        ) : null}
+      </>
+    );
 
-DatePickerInput.displayName = 'DatePickerInput';
+    return (
+      <PickerField
+        {...fieldProps}
+        handleRef={ref}
+        placeholder={placeholder}
+        clearable={clearable}
+        displayValue={displayValue}
+        hasValue={displayValue !== ''}
+        opened={opened}
+        onOpenRequest={open}
+        onCloseRequest={close}
+        onClearValue={clearValue}
+        dropdownType={dropdownType}
+        panelTitle={modalTitle ?? DEFAULT_TITLES[type]}
+        panelWidth={panelWidth}
+        icon="calendar"
+      >
+        {panel}
+      </PickerField>
+    );
+  },
+  { displayName: 'DatePickerInput' }
+);

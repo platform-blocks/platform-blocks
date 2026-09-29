@@ -7,7 +7,7 @@ export function Demo() {
     <RidgeChart
       title="Revenue per transaction by product line"
       subtitle="Transaction value distributions across seasonal cycles"
-      height={440}
+      h={440}
       series={SERIES}
       samples={128}
       bandwidth={14}

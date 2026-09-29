@@ -3,7 +3,6 @@ import { Block, Button, Checkbox, Input, Popover, Text } from '@platform-blocks/
 
 export function Demo() {
   const [opened, setOpened] = useState(false);
-  const [email, setEmail] = useState('team@example.com');
 
   return (
     <Block>
@@ -12,20 +11,18 @@ export function Demo() {
         checked={opened}
         onChange={setOpened}
       />
-      <Popover opened={opened} onChange={setOpened} trapFocus>
+      <Popover opened={opened} onChange={setOpened}>
         <Popover.Target>
           <Button>
             Invite teammate
           </Button>
         </Popover.Target>
         <Popover.Dropdown>
-          <Block p="sm" >
-            <Text weight="semibold">Invite team member</Text>
+          <Block p="sm">
+            <Text fw="semibold">Invite team member</Text>
             <Input
               label="Email"
               placeholder="name@example.com"
-              value={email}
-              onChangeText={setEmail}
               size="sm"
               fullWidth
             />

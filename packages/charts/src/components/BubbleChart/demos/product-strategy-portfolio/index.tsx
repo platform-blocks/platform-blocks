@@ -9,7 +9,7 @@ export function Demo() {
     <BubbleChart
       title="Product Initiative Portfolio"
       subtitle="Strategic value vs execution effort — bubble scales with projected revenue"
-      height={440}
+      h={440}
       data={initiatives}
       dataKey={{
         x: 'executionEffort',

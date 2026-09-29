@@ -6,7 +6,7 @@ export function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="h5" weight="semibold">
+        <Text variant="h5" fw="semibold">
           Right (default)
         </Text>
         <Blockquote
@@ -20,7 +20,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="h5" weight="semibold">
+        <Text variant="h5" fw="semibold">
           Left
         </Text>
         <Blockquote

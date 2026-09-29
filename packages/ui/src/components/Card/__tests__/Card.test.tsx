@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { fireEvent, render } from '@testing-library/react-native';
 
 import { Card } from '../Card';
-import { DESIGN_TOKENS } from '../../../core/unified-styles';
+import { DESIGN_TOKENS } from '../../../core/design-tokens';
 
 const mockTheme = {
   backgrounds: {
@@ -30,8 +30,8 @@ const mockTheme = {
 
 const mockGradientRender = jest.fn();
 
-jest.mock('../../../core/theme', () => {
-  const actual = jest.requireActual('../../../core/theme');
+jest.mock('../../../core/theme/ThemeProvider', () => {
+  const actual = jest.requireActual('../../../core/theme/ThemeProvider');
   return {
     ...actual,
     useTheme: () => mockTheme,
@@ -52,6 +52,14 @@ jest.mock('../../../utils/optionalDependencies', () => {
   };
 });
 
+/** How many entries of a (nested) style array set `key`. */
+const timesSet = (style: unknown, key: string): number =>
+  Array.isArray(style)
+    ? style.reduce((n: number, entry) => n + timesSet(entry, key), 0)
+    : style != null && typeof style === 'object' && (style as Record<string, unknown>)[key] !== undefined
+      ? 1
+      : 0;
+
 describe('Card - behavior', () => {
   beforeEach(() => {
      mockGradientRender.mockClear();
@@ -71,6 +79,13 @@ describe('Card - behavior', () => {
     expect(styles.padding).toBe(DESIGN_TOKENS.spacing.md);
     expect(styles.borderRadius).toBe(6);
     expect(styles.position).toBe('relative');
+  });
+
+  it('applies bg once, in place of the variant fill', () => {
+    const { getByTestId } = render(<Card testID="bg-card" variant="subtle" bg="primary" />);
+    const style = getByTestId('bg-card').props.style;
+    expect(StyleSheet.flatten(style).backgroundColor).toBe(mockTheme.colors.primary[1]);
+    expect(timesSet(style, 'backgroundColor')).toBe(1);
   });
 
   it('honors spacing/layout props and outline styling', () => {
@@ -94,7 +109,7 @@ describe('Card - behavior', () => {
     expect(styles.borderColor).toBe(mockTheme.backgrounds.border);
     expect(styles.width).toBe('100%');
     expect(styles.paddingTop).toBe(DESIGN_TOKENS.spacing.lg);
-    expect(styles.paddingRight).toBe(DESIGN_TOKENS.spacing.lg);
+    expect(styles.paddingEnd).toBe(DESIGN_TOKENS.spacing.lg);
   });
 
   it('wraps pressable interactions with pressed and disabled styles', () => {

@@ -7,7 +7,7 @@ export function Demo() {
     <GroupedBarChart
       title="Sales pipeline by industry"
       subtitle="Qualified pipeline this quarter (USD millions)"
-      height={360}
+      h={360}
       series={SERIES}
       barSpacing={0.2}
       innerBarSpacing={0.22}

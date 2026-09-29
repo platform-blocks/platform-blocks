@@ -43,10 +43,10 @@ export const SnackQRCode: React.FC<SnackQRCodeProps> = ({ component, snackUrl })
         // The QR has to stay high-contrast in both schemes, and the theme's own
         // surface/text pair is exactly that.
         color={theme.text.primary}
-        backgroundColor={theme.backgrounds?.surface ?? theme.colors.gray[0]}
+        bg={theme.backgrounds?.surface ?? theme.colors.gray[0]}
         accessibilityLabel={`QR code linking to the ${component} documentation page`}
       />
-      <Text variant="small" color="muted" align="center">
+      <Text variant="small" c="muted" ta="center">
         Scan to open this page on your phone
       </Text>
       {/* The same URL in readable form, for anyone who would rather type or copy

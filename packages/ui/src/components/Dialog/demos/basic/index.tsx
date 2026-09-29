@@ -8,29 +8,15 @@ export function Demo() {
       variant: 'modal',
       title: 'Basic Dialog',
       content: (
-        <Block p="md">
+        <Block>
           <Text>This is a basic modal dialog with theme-aware styling.</Text>
-          <Text size="sm" color="secondary">
-            Works in both light and dark mode.
-          </Text>
-          <Row gap="sm" mt="sm">
-            <Block grow={1}>
-              <Button fullWidth variant="secondary" onPress={() => closeDialog(dialogId)}>
-                Cancel
-              </Button>
-            </Block>
-            <Block grow={1}>
-              <Button
-                fullWidth
-                onPress={() => {
-                  console.log('OK button pressed!');
-                  closeDialog(dialogId);
-                }}
-                variant="filled"
-              >
-                OK
-              </Button>
-            </Block>
+          <Row gap="sm" justify="flex-end" mt="sm">
+            <Button variant="secondary" onPress={() => closeDialog(dialogId)}>
+              Cancel
+            </Button>
+            <Button variant="filled" onPress={() => closeDialog(dialogId)}>
+              OK
+            </Button>
           </Row>
         </Block>
       )

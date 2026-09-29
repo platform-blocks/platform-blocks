@@ -8,8 +8,8 @@ export function Demo() {
     <ControlField
       label="Push notifications"
       description="Get notified when something happens"
-      isSelected={enabled}
-      onSelectedChange={setEnabled}
+      checked={enabled}
+      onChange={setEnabled}
     />
   );
 }

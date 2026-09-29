@@ -41,12 +41,19 @@ const baseTheme = {
 
 let mockTheme: any = baseTheme;
 
-jest.mock('../../../core/theme', () => {
-  const actual = jest.requireActual('../../../core/theme');
+jest.mock('../../../core/theme/ThemeProvider', () => {
+  const actual = jest.requireActual('../../../core/theme/ThemeProvider');
   return { ...actual, useTheme: () => mockTheme };
 });
 
 const flatten = (node: any) => StyleSheet.flatten(node.props.style) as any;
+/** How many entries of a (nested) style array set `key`. */
+const timesSet = (style: unknown, key: string): number =>
+  Array.isArray(style)
+    ? style.reduce((n: number, entry) => n + timesSet(entry, key), 0)
+    : style != null && typeof style === 'object' && (style as Record<string, unknown>)[key] !== undefined
+      ? 1
+      : 0;
 
 describe('Surface', () => {
   beforeEach(() => {
@@ -127,9 +134,10 @@ describe('Surface', () => {
   });
 
   describe('overrides', () => {
-    it('lets bg win over the level fill', () => {
+    it('lets bg win over the level fill, applied once', () => {
       const { getByTestId } = render(<Surface testID="s" level={1} bg="#123456" />);
       expect(flatten(getByTestId('s')).backgroundColor).toBe('#123456');
+      expect(timesSet(getByTestId('s').props.style, 'backgroundColor')).toBe(1);
     });
 
     it('resolves bg through theme background keys', () => {

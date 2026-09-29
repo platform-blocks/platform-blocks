@@ -1,7 +1,8 @@
-import type { ViewStyle, StyleProp } from 'react-native';
-import type { SpacingProps } from '../../core/utils';
+import type { ViewStyle } from 'react-native';
 
-export interface ColorPickerProps extends SpacingProps {
+import type { BaseProps } from '../../core/types/base';
+
+export interface ColorPickerProps extends BaseProps<ViewStyle> {
   /** Current color value in hex format (controlled) */
   value?: string;
   /** Initial color value for uncontrolled usage */
@@ -10,16 +11,14 @@ export interface ColorPickerProps extends SpacingProps {
   onChange?: (color: string) => void;
   /** Preset colors to choose from */
   swatches?: string[];
+  /** Readable names for the swatches, keyed by color (e.g. `{ '#FF6B6B': 'Coral' }`). Defaults to the color string. */
+  swatchLabels?: Record<string, string>;
   /** Size of the trigger + swatches in pixels */
   size?: number;
   /** Number of swatches per row in the popover */
   columns?: number;
   /** Whether the picker is disabled */
   disabled?: boolean;
-  /** Accessibility label for the trigger */
+  /** Accessible name of the trigger. @default `Color <value>`, or 'Select a color' with no value */
   accessibilityLabel?: string;
-  /** Custom style for the outer wrapper */
-  style?: StyleProp<ViewStyle>;
-  /** Test ID */
-  testID?: string;
 }

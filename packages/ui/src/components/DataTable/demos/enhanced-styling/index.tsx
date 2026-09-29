@@ -18,8 +18,8 @@ const columns: DataTableColumn<Person>[] = [
           .split(' ')
           .map((part) => part[0])
           .join('')}
-        label={<Text weight="semibold">{row.name}</Text>}
-        description={<Text variant="small" color="muted">{row.title}</Text>}
+        label={<Text fw="semibold">{row.name}</Text>}
+        description={<Text variant="small" c="muted">{row.title}</Text>}
         gap={8}
       />
     ),
@@ -42,8 +42,8 @@ const columns: DataTableColumn<Person>[] = [
     sortable: true,
     cell: (value: Person['status']) => (
       <Text
-        color={value === 'inactive' ? 'error' : value === 'pending' ? 'warning' : 'success'}
-        weight="semibold"
+        c={value === 'inactive' ? 'error' : value === 'pending' ? 'warning' : 'success'}
+        fw="semibold"
       >
         {value.charAt(0).toUpperCase() + value.slice(1)}
       </Text>
@@ -55,7 +55,7 @@ const columns: DataTableColumn<Person>[] = [
     accessor: 'performance',
     sortable: true,
     align: 'right',
-    cell: (value) => <Text weight="semibold">{value.toFixed(1)}</Text>,
+    cell: (value) => <Text fw="semibold">{value.toFixed(1)}</Text>,
   },
 ];
 

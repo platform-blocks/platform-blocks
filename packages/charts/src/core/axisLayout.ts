@@ -1,5 +1,6 @@
 import type { ChartPadding } from '../ChartBase';
 import { estimateChartTextWidth } from '../ChartBase';
+import { createTickFormatter, generateTicks, type NumberFormat } from '../utils';
 
 /**
  * Defaults shared by the axis renderer and the padding math, so the space a
@@ -136,14 +137,21 @@ export function resolveCartesianPadding(input: CartesianPaddingInput): Cartesian
  * endpoint (or the mid-point, where a formatter switches units), so measuring
  * those three reserves the right column without forcing a chart to compute its
  * scales twice.
+ *
+ * Without a `format`, the labels follow `numberFormat` the way the axis will —
+ * including its compact-or-full decision for the domain — so the column isn't
+ * sized for "1.2K" and then asked to hold "1,210". `fallback` is the axis's own
+ * rendering for numbers it won't abbreviate (see `createTickFormatter`).
  */
 export function domainTickLabels(
   domain: [number, number] | undefined,
   format?: (value: number) => string,
+  numberFormat?: NumberFormat,
+  fallback?: (value: number) => string,
 ): string[] {
   if (!domain || !Number.isFinite(domain[0]) || !Number.isFinite(domain[1])) return [];
   const [min, max] = domain;
-  const render = format ?? ((value: number) => String(value));
+  const render = format ?? createTickFormatter(generateTicks(min, max, 5), numberFormat, fallback);
   return [min, (min + max) / 2, max].map((value) => {
     try {
       return String(render(value));

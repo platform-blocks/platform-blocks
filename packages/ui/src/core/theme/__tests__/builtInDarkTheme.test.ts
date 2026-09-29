@@ -26,7 +26,7 @@ describe('BUILT_IN_DARK_THEME', () => {
     ([0, 1, 2, 3] as const).forEach(level => {
       const { background } = resolveSurface(BUILT_IN_DARK_THEME as any, level);
       const light = resolveSurface(DEFAULT_THEME as any, level).background;
-      expect(background).toBe(DARK_THEME.surfaces[level].background);
+      expect(background).toBe(DARK_THEME.surfaces?.[level].background);
       expect(background).not.toBe(light);
     });
   });

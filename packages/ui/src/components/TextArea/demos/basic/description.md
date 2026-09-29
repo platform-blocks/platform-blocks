@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Controlled text area with helper copy and inline character count feedback.
+A controlled `TextArea` with a `label` and `description`; `rows` sets how many lines it shows before scrolling.

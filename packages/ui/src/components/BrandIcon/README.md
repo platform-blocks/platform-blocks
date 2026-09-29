@@ -7,7 +7,7 @@ The `BrandIcon` component provides branded icons with their official colors or a
 - **Multi-color support**: Icons like Google logo maintain their original brand colors
 - **Color override**: Use the `color` prop to override all colors with a single color
 - **Standard sizing**: Supports the same size system as other icons (sm, md, lg, xl, or number)
-- **Accessibility**: Proper ARIA labeling and role attributes
+- **Accessibility**: Decorative (hidden from assistive technology) unless given a `label`, then announced as an image
 
 ## Usage
 
@@ -38,5 +38,5 @@ import { BrandIcon } from '@platform-blocks/ui';
 - `size` - Size of the icon (sm/md/lg/xl or number)
 - `color` - Override color for all paths
 - `style` - Additional styles
-- `label` - Accessibility label
-- `decorative` - Whether icon is decorative (skip a11y)
+- `label` - Accessible name; a labelled logo is announced as an image
+- `decorative` - Hide from assistive technology (default: `true` unless `label` is set)

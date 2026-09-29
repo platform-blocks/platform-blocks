@@ -7,7 +7,7 @@ export function Demo() {
     <RidgeChart
       title="Employee satisfaction score distribution"
       subtitle="Quarterly pulse survey responses by team"
-      height={420}
+      h={420}
       series={SERIES}
       samples={110}
       bandwidth={0.35}

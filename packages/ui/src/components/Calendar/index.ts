@@ -8,6 +8,7 @@ export { dateUtils } from './utils';
 export type {
   CalendarProps,
   MiniCalendarProps,
+  MiniCalendarControlProps,
   MonthPickerProps,
   YearPickerProps,
   MonthProps,

@@ -7,7 +7,7 @@ export function Demo() {
     <SankeyChart
       title="Customer journey flow"
       subtitle="Q3 acquisition to retention"
-      height={420}
+      h={420}
       nodes={NODES}
       links={LINKS}
     />

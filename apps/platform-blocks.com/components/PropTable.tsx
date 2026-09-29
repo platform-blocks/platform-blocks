@@ -15,11 +15,6 @@ import type { DataTableColumn, DataTableSort } from '@platform-blocks/ui';
 // causing "cannot be used as a JSX component" until global type strategy decided.
 // These casts localize the workaround to this file only.
 // TODO: Replace with proper React type shim or update library factory typings.
-const CardAny: any = Card;
-const TextAny: any = Text;
-const DataTableAny: any = DataTable;
-const RowAny: any = Row;
-const TooltipAny: any = Tooltip;
 
 export interface PropMetadata {
   name: string;
@@ -42,11 +37,11 @@ export function PropTable({ props }: PropTableProps) {
 
   if (filtered.length === 0) {
     return (
-      <CardAny variant="outline" style={{ marginVertical: 16 }}>
-        <TextAny variant="p" color="muted" align="center">
+      <Card variant="outline" style={{ marginVertical: 16 }}>
+        <Text variant="p" c="muted" ta="center">
           This component has no props.
-        </TextAny>
-      </CardAny>
+        </Text>
+      </Card>
     );
   }
 
@@ -55,27 +50,27 @@ export function PropTable({ props }: PropTableProps) {
   // Extracted component to safely use hooks per cell instance
   const PropNameCell = ({ value, row }: { value: string; row: PropMetadata }) => {
     return (
-      <RowAny gap={4} align="center">
+      <Row gap={4} align="center">
         <Flex direction="row" align="center">
           <Block>
-            <TextAny variant="p" weight="semibold" style={{ fontFamily: 'monospace' }}>
+            <Text variant="p" fw="semibold" ff="monospace">
               {value}
-            </TextAny>
-            <TextAny variant="small" color="secondary">
+            </Text>
+            <Text variant="small" c="secondary">
               {row.description || '—'}
-            </TextAny>
+            </Text>
           </Block>
         </Flex>
         {row.required && (
-          <TooltipAny label="This prop is required"><TextAny variant="sup" color="red">*</TextAny></TooltipAny>
+          <Tooltip label="This prop is required"><Text variant="sup" c="red">*</Text></Tooltip>
         )}
         {row.deprecated && (
-          <TooltipAny label="Deprecated – avoid use"><TextAny variant="sup" color="orange">D</TextAny></TooltipAny>
+          <Tooltip label="Deprecated – avoid use"><Text variant="sup" c="orange">D</Text></Tooltip>
         )}
         {row.internal && (
-          <TooltipAny label="Internal – not part of public API"><TextAny variant="sup" color="purple">I</TextAny></TooltipAny>
+          <Tooltip label="Internal – not part of public API"><Text variant="sup" c="purple">I</Text></Tooltip>
         )}
-      </RowAny>
+      </Row>
     );
   };
 
@@ -98,13 +93,13 @@ export function PropTable({ props }: PropTableProps) {
       sortable: true,
       align: 'center',
       cell: (value: string | undefined) => value ? (
-        <TextAny
+        <Text
           variant="small"
           style={{ fontFamily: 'monospace', color: theme.colors.gray[7] }}
         >
           {value}
-        </TextAny>
-      ) : null //<TextAny variant="small" color="muted">—</TextAny>
+        </Text>
+      ) : null //<Text variant="small" c="muted">—</Text>
     } : undefined,
     {
       key: 'type',
@@ -116,20 +111,9 @@ export function PropTable({ props }: PropTableProps) {
       filterType: 'text',
       align: 'center',
       cell: (value: string) => (
-        <TextAny
-          variant="small"
-          style={{
-            fontFamily: 'monospace',
-            // backgroundColor: theme.colors.gray[1],
-            paddingHorizontal: 8,
-            paddingVertical: 4,
-            borderRadius: 4,
-            textAlign: 'end',
-            width: '100%'
-          }}
-        >
+        <Text variant="small" ff="monospace" ta="right" w="full" px={8} py={4} style={{ borderRadius: 4 }}>
           {value}
-        </TextAny>
+        </Text>
       ),
     },
   ].filter(Boolean) as DataTableColumn<PropMetadata>[];

@@ -1,11 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+
+import { useDebouncedCallback } from '../../hooks/useDebouncedCallback/useDebouncedCallback';
 import { Input } from '../Input';
 import { Select } from '../Select';
-import { useDebouncedCallback } from '../../hooks';
-import type { DataTableColumn, DataTableFilter, FilterType } from './types';
+import { getValue } from './utils';
+import type { DataTableColumn, DataTableFilter, DataTableValue, FilterType } from './types';
 
-interface ColumnFilterInputProps<T = any> {
+interface ColumnFilterInputProps<T> {
   column: DataTableColumn<T>;
   /** Resolved filter UI type for the column. */
   filterType: FilterType;
@@ -14,7 +16,7 @@ interface ColumnFilterInputProps<T = any> {
   /** Full data set, used to auto-derive select options when none are provided. */
   data?: T[];
   /** Commit a value (empty clears the filter). */
-  onCommit: (value: any, operator: DataTableFilter['operator']) => void;
+  onCommit: (value: DataTableValue, operator: DataTableFilter['operator']) => void;
   align?: 'left' | 'center' | 'right';
 }
 
@@ -32,6 +34,9 @@ function defaultOperator(filterType: FilterType): DataTableFilter['operator'] {
   }
 }
 
+const TEXT_ALIGN = { left: 'left', center: 'center', right: 'right' } as const;
+const NO_ROWS: never[] = [];
+
 /**
  * Compact, single-line filter control rendered beneath a column header when
  * `showColumnFilters` is enabled. Text/number/date columns get a debounced
@@ -39,35 +44,36 @@ function defaultOperator(filterType: FilterType): DataTableFilter['operator'] {
  * leaner than {@link AdvancedFilterControl} (no operator picker or chips) so it
  * fits inside a table row.
  */
-export function ColumnFilterInput<T = any>({
+export function ColumnFilterInput<T>({
   column,
   filterType,
   currentFilter,
-  data = [],
+  data = NO_ROWS,
   onCommit,
   align = 'left',
 }: ColumnFilterInputProps<T>) {
   const operator = defaultOperator(filterType);
-  const [value, setValue] = useState<any>(currentFilter?.value ?? '');
+  const appliedValue: DataTableValue = currentFilter?.value ?? '';
+  const [value, setValue] = useState<DataTableValue>(appliedValue);
 
   // Keep the local input in sync when the filter is cleared/changed externally
   // (e.g. a "Clear all filters" action or controlled `filters` prop).
-  useEffect(() => {
-    setValue(currentFilter?.value ?? '');
-  }, [currentFilter?.value]);
+  const [syncedValue, setSyncedValue] = useState<DataTableValue>(appliedValue);
+  if (appliedValue !== syncedValue) {
+    setSyncedValue(appliedValue);
+    setValue(appliedValue);
+  }
 
-  const debouncedCommit = useDebouncedCallback(
-    (next: any) => onCommit(next, operator),
-    300
-  );
+  const debouncedCommit = useDebouncedCallback((next: DataTableValue) => onCommit(next, operator), 300);
+
+  const label = typeof column.header === 'string' ? `Filter ${column.header}` : undefined;
 
   const selectOptions = useMemo(() => {
     if (filterType !== 'select') return [];
     if (column.filterOptions) return column.filterOptions;
-    const accessor = column.accessor;
-    const seen = new Set<any>();
+    const seen = new Set<DataTableValue>();
     data.forEach((row) => {
-      const v = typeof accessor === 'function' ? accessor(row) : (row as any)[accessor];
+      const v = getValue(row, column.accessor);
       if (v !== null && v !== undefined && v !== '') seen.add(v);
     });
     return Array.from(seen)
@@ -81,6 +87,7 @@ export function ColumnFilterInput<T = any>({
       <Select
         size="xs"
         placeholder="All"
+        accessibilityLabel={label}
         options={[{ label: 'All', value: '' }, ...selectOptions]}
         value={value === undefined ? '' : value}
         onChange={(next) => {
@@ -96,6 +103,7 @@ export function ColumnFilterInput<T = any>({
       <Select
         size="xs"
         placeholder="All"
+        accessibilityLabel={label}
         options={[
           { label: 'All', value: '' },
           { label: 'Yes', value: true },
@@ -110,14 +118,14 @@ export function ColumnFilterInput<T = any>({
     );
   }
 
-  const placeholder =
-    filterType === 'number' ? 'Filter…' : filterType === 'date' ? 'YYYY-MM-DD' : 'Filter…';
+  const placeholder = filterType === 'date' ? 'YYYY-MM-DD' : 'Filter…';
 
   return (
-    <View style={{ width: '100%' }}>
+    <View style={styles.fill}>
       <Input
         size="xs"
         placeholder={placeholder}
+        accessibilityLabel={label}
         value={String(value ?? '')}
         keyboardType={filterType === 'number' ? 'numeric' : 'default'}
         onChangeText={(text) => {
@@ -126,11 +134,17 @@ export function ColumnFilterInput<T = any>({
           debouncedCommit(next === '' || Number.isNaN(next) ? undefined : next);
         }}
         onBlur={debouncedCommit.flush}
-        style={{
-          fontSize: 12,
-          textAlign: align === 'right' ? 'right' : align === 'center' ? 'center' : 'left',
-        }}
+        textInputProps={{ style: [styles.text, { textAlign: TEXT_ALIGN[align] }] }}
       />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  fill: {
+    width: '100%',
+  },
+  text: {
+    fontSize: 12,
+  },
+});

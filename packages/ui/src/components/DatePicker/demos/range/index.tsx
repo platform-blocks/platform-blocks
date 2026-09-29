@@ -15,7 +15,7 @@ export function Demo() {
         onChange={(next) => setValue(next as [Date | null, Date | null] | null)}
         calendarProps={{ numberOfMonths: 2, withCellSpacing: true }}
       />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         {start && end
           ? `${start.toLocaleDateString()} – ${end.toLocaleDateString()}`
           : 'Select a start and end date'}

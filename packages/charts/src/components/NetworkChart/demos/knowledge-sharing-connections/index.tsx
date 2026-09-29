@@ -44,7 +44,7 @@ export function Demo() {
       <NetworkChart
         title="Knowledge sharing mentorship graph"
         subtitle="Monthly mentorship hours across guild programs"
-        height={440}
+        h={440}
         layout="radial"
         nodes={TEAMS}
         links={MENTORSHIPS}

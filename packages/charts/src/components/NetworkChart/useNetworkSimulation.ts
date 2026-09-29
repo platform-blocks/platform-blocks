@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, type PanResponderInstance } from 'react-native';
-import { getColorFromScheme, colorSchemes } from '../../utils';
+import { getColorFromScheme } from '../../utils';
 import type { NetworkNode, NetworkLink, NetworkLayoutMode } from './types';
 
 export interface SimulationNode {
@@ -36,6 +36,8 @@ export interface UseNetworkSimulationOptions {
   scaleX?: ((value: number) => number) | null;
   scaleY?: ((value: number) => number) | null;
   disabled?: boolean;
+  /** Categorical palette for nodes without their own color */
+  palette: string[];
 }
 
 export interface UseNetworkSimulationResult {
@@ -64,6 +66,7 @@ export const useNetworkSimulation = ({
   scaleX,
   scaleY,
   disabled = false,
+  palette,
 }: UseNetworkSimulationOptions): UseNetworkSimulationResult => {
   const nodesRef = useRef<SimulationNode[]>([]);
   const linksRef = useRef<SimulationLink[]>([]);
@@ -150,7 +153,7 @@ export const useNetworkSimulation = ({
         name: node.name,
         group: node.group,
         value: node.value ?? 1,
-        color: node.color || getColorFromScheme(index, colorSchemes.default),
+        color: node.color || getColorFromScheme(index, palette),
         x: position.x,
         y: position.y,
         vx: 0,
@@ -172,7 +175,7 @@ export const useNetworkSimulation = ({
     alphaRef.current = 0;
     frameCounterRef.current = 0;
     setTick((t) => t + 1);
-  }, [height, layout, links, nodes, scaleX, scaleY, width]);
+  }, [height, layout, links, nodes, scaleX, scaleY, width, palette]);
 
   const initializeForceLayout = useCallback(() => {
     const centerX = width / 2;
@@ -184,7 +187,7 @@ export const useNetworkSimulation = ({
         name: node.name,
         group: node.group,
         value: node.value ?? 1,
-        color: node.color || getColorFromScheme(index, colorSchemes.default),
+        color: node.color || getColorFromScheme(index, palette),
         x: centerX + Math.cos(angle) * (width * 0.25),
         y: centerY + Math.sin(angle) * (height * 0.25),
         vx: 0,
@@ -206,7 +209,7 @@ export const useNetworkSimulation = ({
       frameRef.current = requestAnimationFrame(() => step());
     }
     setTick((t) => t + 1);
-  }, [disabled, height, links, nodes, width]);
+  }, [disabled, height, links, nodes, width, palette]);
 
   const step = useCallback(() => {
     if (layout !== 'force') {

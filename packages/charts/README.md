@@ -128,6 +128,51 @@ labelled `1,250,000`, and neither wraps or clips.
 | `useStreamingData` | Handle real-time data feeds |
 | `useChartAutoSize` | Resolve a drawing box from size props plus the measured container |
 
+## Color
+
+Every chart colors its marks in the same order. The first match wins:
+
+1. The data item's own `color`
+2. The series' `color`
+3. `colorScale`: a config or a function. A function returning `undefined` falls through.
+4. The chart-level prop (`barColor`, `lineColor`, …)
+5. The theme's `accentPalette`, assigned by slot
+
+Set a palette once with `ChartThemeProvider`. A nested provider re-themes only its own subtree:
+
+```tsx
+<ChartThemeProvider value={{ colors: { accentPalette: ['#7c5cdb', '#d9731a'] } }}>
+  <HistogramChart data={values} />
+</ChartThemeProvider>
+```
+
+Every chart reads its palette from the nearest provider. The global `colorSchemes` / `setDefaultColorScheme` are deprecated and no chart reads them.
+
+Charts that color marks by data take a shared `ColorScaleConfig` (`sequential`, `diverging` or `threshold`). Filled marks take a `ChartFill`, which is a color or a gradient:
+
+| Chart | `colorScale` config reads | `ChartFill` props |
+|---|---|---|
+| HistogramChart | bin position (`by: 'x'`) or count (`by: 'count'`) | `barColor` |
+| BarChart | each bar's value | `barColor` |
+| BubbleChart | the `dataKey.color` field, or `by: 'x' \| 'y' \| 'z'` | none |
+| HeatmapChart | each cell's value | none |
+| LineChart, AreaChart | none | `fillColor` (chart or per series) |
+| StackedAreaChart | none | per-series `fillColor` |
+| PieChart, GaugeChart | none | slice `style.gradient`, range `gradient` |
+
+```tsx
+<HistogramChart
+  data={loadTimes}
+  colorScale={{ type: 'threshold', thresholds: [2.5, 3.2], labels: ['Within SLO', 'At risk', 'Breaching'] }}
+/>
+<HistogramChart
+  data={values}
+  barColor={{ angle: 90, extent: 'plot', stops: [{ offset: 0, color: '#1c5cab' }, { offset: 1, color: '#86b6ef' }] }}
+/>
+```
+
+`createColorScale`, `interpolateColor` and `ChartGradientDef` are exported for custom charts.
+
 ## Shared tooltip provider
 
 When you need multiple charts to share a single tooltip, wrap them in `ChartsProvider` and set `useOwnInteractionProvider={false}` on each chart:

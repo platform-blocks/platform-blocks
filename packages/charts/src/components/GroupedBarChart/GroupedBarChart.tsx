@@ -7,7 +7,7 @@ import Animated, { useSharedValue, useAnimatedProps, withTiming, Easing, SharedV
 import { GroupedBarChartProps } from './types';
 import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
 import { resolveCartesianPadding, domainTickLabels } from '../../core/axisLayout';
-import { useChartTheme } from '../../theme/ChartThemeContext';
+import { useChartTheme, useNumberFormatter } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
 import { useChartInteractionContext, useActiveTarget } from '../../interaction/ChartInteractionContext';
@@ -17,7 +17,7 @@ import type { HitSeries, Mark } from '../../core/hittest/types';
 import type { InteractionConfig } from '../../interaction/ChartInteractionContext';
 import { ChartInteractionEvent } from '../../types';
 import { bandScale, linearScale, generateNiceTicks, type Scale } from '../../utils/scales';
-import { formatNumber } from '../../utils';
+import { formatNumber, createTickFormatter } from '../../utils';
 import { createColorAssigner } from '../../colors';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -91,8 +91,8 @@ AnimatedGroupedBar.displayName = 'AnimatedGroupedBar';
 export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
   const {
     series,
-    width = 400,
-    height = 300,
+    w: width = 400,
+    h: height = 300,
     barSpacing = 0.2,
     innerBarSpacing = 0.1,
     title,
@@ -116,6 +116,7 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
   } = props;
 
   const theme = useChartTheme();
+  const formatValue = useNumberFormatter();
   let interaction: ReturnType<typeof useChartInteractionContext> | null = null;
   try {
     interaction = useChartInteractionContext();
@@ -144,7 +145,7 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
       max = Math.max(max, d.value);
     }));
     return resolveCartesianPadding({
-      yTickLabels: domainTickLabels([min, max], (value) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : `${value}`)),
+      yTickLabels: domainTickLabels([min, max], yAxis?.labelFormatter, theme.numberFormat, String),
       xTickLabels: categoryLabels,
       yTitle: yAxis?.title,
       xTitle: xAxis?.title,
@@ -156,7 +157,7 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
       containerHeight: height,
     });
   }, [series, categoryLabels, yAxis?.labelFormatter, yAxis?.title, xAxis?.title, yAxis?.show,
-      xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, width, height]);
+      xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, width, height, theme.numberFormat]);
   // Grown so the plot clears the title and legend overlays.
   const legendLabels = React.useMemo(
     () => (series ?? []).map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
@@ -185,7 +186,10 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
 
   const categoryIndexMap = useMemo(() => new Map(categories.map((category, index) => [category, index] as const)), [categories]);
 
-  const assignColor = useMemo(() => createColorAssigner(colorOptions), [colorOptions]);
+  const assignColor = useMemo(
+    () => createColorAssigner(colorOptions, theme.colors.accentPalette),
+    [colorOptions, theme.colors.accentPalette]
+  );
 
   const resolvedSeries = useMemo<ResolvedSeries[]>(() => {
     return series.map((seriesEntry, index) => {
@@ -245,7 +249,8 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
     (
       value: number,
       datum: GroupedDatumInput,
-      context: { category: string; categoryIndex: number; series: ResolvedSeries }
+      context: { category: string; categoryIndex: number; series: ResolvedSeries },
+      fallback: (value: number) => string = formatValue
     ) => {
       if (typeof valueLabels?.formatter === 'function') {
         return valueLabels.formatter({
@@ -258,9 +263,9 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
           datum: datum as any,
         });
       }
-      return formatNumber(value);
+      return fallback(value);
     },
-    [valueLabels?.formatter]
+    [valueLabels?.formatter, formatValue]
   );
 
   const valueDomain = useMemo<[number, number]>(() => {
@@ -373,6 +378,7 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
     }
     return generateNiceTicks(valueDomain[0], valueDomain[1], 5);
   }, [valueDomain, yAxis?.ticks]);
+  const valueTickFormat = useMemo(() => createTickFormatter(valueTicks, theme.numberFormat, String), [valueTicks, theme.numberFormat]);
 
   const normalizedXTicks = useMemo(() => {
     if (plotWidth <= 0) return [] as number[];
@@ -446,7 +452,7 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
         category: bar.category,
         categoryIndex: bar.categoryIndex,
         series: resolvedSeriesMap.get(bar.seriesId)!,
-      });
+      }, formatNumber);
       arr.push({
         id: bar.categoryIndex,
         pixel: { x: bar.x + bar.width / 2 + padding.left, y: bar.y + padding.top },
@@ -486,8 +492,8 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
 
   return (
     <ChartContainer
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       padding={padding}
       disabled={disabled}
       animationDuration={animationDuration}
@@ -653,7 +659,7 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
           tickLabelWidth={basePadding.yTickLabelWidth}
           tickSize={yAxis?.tickLength ?? 4}
           tickPadding={6}
-          tickFormat={(value: number) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : `${value}`)}
+          tickFormat={(value: number) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : valueTickFormat(value))}
           label={yAxis?.title}
           stroke={yAxis?.color || theme.colors.grid}
           strokeWidth={yAxis?.thickness ?? 1}

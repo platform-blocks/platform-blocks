@@ -12,9 +12,9 @@ platform:
   ios: true
   android: true
 accessibility:
-  - Keyboard navigation support
-  - Screen reader compatible
-  - ARIA attributes
+  - role="switch" with aria-checked; one tab stop, Space toggles
+  - The label is linked through aria-labelledby and toggles the same control when pressed
+  - helperText / error are linked through aria-describedby; errors are announced
 related:
   - Checkbox
   - Radio

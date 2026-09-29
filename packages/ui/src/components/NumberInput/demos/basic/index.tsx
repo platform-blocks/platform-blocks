@@ -11,7 +11,6 @@ export function Demo() {
       value={quantity}
       onChange={setQuantity}
       min={0}
-      step={1}
     />
   );
 }

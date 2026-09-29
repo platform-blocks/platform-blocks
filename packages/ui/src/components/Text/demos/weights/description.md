@@ -2,10 +2,10 @@
 title: Weights
 category: usage
 order: 30
-tags: [weights, typography]
+tags: [fw, weights, typography]
 status: stable
 since: 1.0.0
 hidden: false
 ---
 
-Different font weight options from light to bold.
+Set the font weight with `fw`: a named weight (`light` → `black`) or a numeric one (`100` → `900`).

@@ -9,11 +9,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 
-jest.mock('react-native-svg', () => {
-  const { View } = require('react-native');
-  return { __esModule: true, default: View, Svg: View, Circle: View, Line: View, Path: View };
-});
-
 import { Knob } from '../Knob';
 
 const SIZE = 200;
@@ -86,7 +81,7 @@ describe('Knob behavior prop', () => {
   it('drives endless mode, which counts past max instead of clamping to it', () => {
     const valueNow = (props: Record<string, unknown>) => {
       const utils = render(<Knob testID="knob" size={SIZE} min={0} max={100} defaultValue={180} {...props} />);
-      return utils.getByTestId('knob').props.accessibilityValue.now;
+      return utils.getByTestId('knob').props['aria-valuenow'];
     };
 
     expect(valueNow({})).toBe(100);

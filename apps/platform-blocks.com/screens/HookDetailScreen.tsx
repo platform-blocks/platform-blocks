@@ -52,7 +52,7 @@ const HookDemoSection: React.FC<HookDemoSectionProps> = ({ demo, preview, descri
   return (
     <View style={styles.demoSection}>
       <Flex direction="row" align="center" justify="space-between" style={styles.demoHeader}>
-        <DemoHeading id={anchorId} order={2} size={20} weight="semibold">
+        <DemoHeading id={anchorId} order={2} size={20} fw="semibold">
           {demo.title}
         </DemoHeading>
       </Flex>
@@ -138,7 +138,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
       return (
         <Flex direction="row" align="center" gap={8}>
           <Loader size="sm" />
-          <Text variant="p" color="muted">Loading demo…</Text>
+          <Text variant="p" c="muted">Loading demo…</Text>
         </Flex>
       );
     }
@@ -150,7 +150,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
       } catch (error) {
         console.error('[hooks] Demo render failed', hook, demo.id, error);
         return (
-          <Text variant="p" color="error">
+          <Text variant="p" c="error">
             Demo "{demo.id}" threw during render.
           </Text>
         );
@@ -163,7 +163,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
 
     console.error('[hooks] Demo export invalid', hook, demo.id, exportValue);
     return (
-      <Text variant="p" color="error">
+      <Text variant="p" c="error">
         Demo "{demo.id}" failed to load.
       </Text>
     );
@@ -174,7 +174,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
       <PageLayout contentContainerStyle={containerStyle}>
         <Card variant="outline" style={styles.infoCard}>
           <Text variant="h1" style={styles.infoTitle}>Hook not specified</Text>
-          <Text variant="p" color="secondary" style={styles.infoMessage}>
+          <Text variant="p" c="secondary" style={styles.infoMessage}>
             Provide a hook name to view detailed documentation.
           </Text>
           <Button title="Back to Hooks" onPress={() => router.push('/hooks')} />
@@ -188,8 +188,8 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
       <PageLayout contentContainerStyle={containerStyle}>
         <Card variant="outline" style={styles.infoCard}>
           <Text variant="h1" style={styles.infoTitle}>Documentation artifacts missing</Text>
-          <Text variant="p" color="secondary" style={styles.infoMessage}>
-            Run <Text variant="p" weight="semibold">npm run demos:generate</Text> to regenerate hook metadata and example bundles before viewing this page.
+          <Text variant="p" c="secondary" style={styles.infoMessage}>
+            Run <Text variant="p" fw="semibold">npm run demos:generate</Text> to regenerate hook metadata and example bundles before viewing this page.
           </Text>
           <Button title="Back to Hooks" onPress={() => router.push('/hooks')} />
         </Card>
@@ -202,7 +202,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
       <PageLayout contentContainerStyle={containerStyle}>
         <Card variant="outline" style={styles.infoCard}>
           <Text variant="h1" style={styles.infoTitle}>Hook not found</Text>
-          <Text variant="p" color="secondary" style={styles.infoMessage}>
+          <Text variant="p" c="secondary" style={styles.infoMessage}>
             The hook "{hook}" is not documented yet.
           </Text>
           <Button title="Back to Hooks" onPress={() => router.push('/hooks')} />
@@ -222,7 +222,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
       <View style={styles.content}>
         {/* <Breadcrumbs items={breadcrumbItems} style={styles.breadcrumbs} size="sm" /> */}
 
-        <Title order={1} size={40} weight="bold" afterline style={styles.pageTitle}>
+        <Title order={1} size={40} fw="bold" afterline style={styles.pageTitle}>
           {meta.title || hook}
         </Title>
 
@@ -234,7 +234,7 @@ const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
 
         {demos.length === 0 ? (
           <Card variant="outline" style={styles.emptyState}>
-            <Text variant="p" color="muted" align="center">
+            <Text variant="p" c="muted" ta="center">
               No demos available for this hook yet.
             </Text>
           </Card>

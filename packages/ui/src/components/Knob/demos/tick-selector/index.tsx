@@ -11,7 +11,7 @@ export function Demo() {
 
   return (
     <Block >
-      <Knob
+      <Knob accessibilityLabel="Position"
         value={position}
         onChange={setPosition}
         min={0}

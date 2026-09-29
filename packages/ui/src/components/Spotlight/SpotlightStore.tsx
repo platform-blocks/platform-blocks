@@ -1,9 +1,8 @@
 import React, { createContext, useContext, useCallback, useState, ReactNode, useEffect, useMemo } from 'react';
 import { directSpotlightStateManager } from './DirectSpotlightState';
+import { isDebugLogging, debugLog, devError } from '../../core/utils/logger';
 
 // Debug flag for spotlight logs
-const DEBUG = typeof __DEV__ !== 'undefined' && __DEV__ && !!process.env.EXPO_PUBLIC_DEBUG;
-const debugLog = (...args: any[]) => { if (DEBUG) console.log(...args); };
 
 type SpotlightRequestListener = () => void;
 
@@ -21,8 +20,8 @@ function requestSpotlightProvider() {
     try {
       listener();
     } catch (error) {
-      if (DEBUG) {
-        console.error('[spotlight] provider listener error', error);
+      if (isDebugLogging) {
+        devError('[spotlight] provider listener error', error);
       }
     }
   });
@@ -35,8 +34,8 @@ export function onSpotlightRequested(listener: SpotlightRequestListener) {
     try {
       listener();
     } catch (error) {
-      if (DEBUG) {
-        console.error('[spotlight] provider listener error', error);
+      if (isDebugLogging) {
+        devError('[spotlight] provider listener error', error);
       }
     }
   }
@@ -107,7 +106,7 @@ class SpotlightStateManager {
       try {
         listener(this.state);
       } catch (error) {
-        console.error('Error in spotlight state listener:', error);
+        devError('Error in spotlight state listener:', error);
       }
     });
   }

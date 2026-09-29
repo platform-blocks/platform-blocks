@@ -4,7 +4,7 @@ import Svg, { Circle, G, Line, Text as SvgText, TSpan } from 'react-native-svg';
 import Animated, { Easing, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 
 import { ChartContainer, ChartLegend, ChartTitle } from '../../ChartBase';
-import { useChartTheme } from '../../theme/ChartThemeContext';
+import { useChartTheme, useNumberFormatter } from '../../theme/ChartThemeContext';
 import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { AngularSliceHitTester } from '../../core/hittest/angular';
@@ -169,8 +169,8 @@ export const DonutChart: React.FC<DonutChartProps> = (props) => {
     legendRingIndex: legendRingIndexProp,
     inheritColorByLabel = true,
     size = 280,
-    width: widthProp,
-    height: heightProp,
+    w: widthProp,
+    h: heightProp,
     innerRadiusRatio = 0.55,
     thickness,
     padAngle = 1.5,
@@ -216,7 +216,10 @@ export const DonutChart: React.FC<DonutChartProps> = (props) => {
     : outerRadius * clamp(innerRadiusRatio, 0.05, 0.95);
   const resolvedRingGap = hasCustomRings ? Math.max(0, ringGapProp ?? DEFAULT_RING_GAP) : 0;
 
-  const colorAssigner = useMemo(() => createColorAssigner(), []);
+  const colorAssigner = useMemo(
+    () => createColorAssigner({}, theme.colors.accentPalette),
+    [theme.colors.accentPalette]
+  );
 
   let interaction: ReturnType<typeof useChartInteractionContext> | null = null;
   try {
@@ -502,6 +505,9 @@ export const DonutChart: React.FC<DonutChartProps> = (props) => {
       return value.toString();
     }
   }, []);
+  // Slice labels and the center value follow the theme's number format;
+  // tooltips keep the full value.
+  const formatDisplayValue = useNumberFormatter(defaultValueFormatter);
 
   // New interaction engine: every visible slice is an angular-sector mark (its real
   // rendered sweep + radii). The angular tester resolves which slice the pointer is
@@ -640,7 +646,7 @@ export const DonutChart: React.FC<DonutChartProps> = (props) => {
         }
 
         if (showValue) {
-          const valueLine = labelsConfig.valueFormatter?.(context) ?? defaultValueFormatter(slice.value);
+          const valueLine = labelsConfig.valueFormatter?.(context) ?? formatDisplayValue(slice.value);
           if (valueLine && valueLine.toString().trim().length > 0) {
             lines.push(valueLine.toString());
           }
@@ -721,7 +727,7 @@ export const DonutChart: React.FC<DonutChartProps> = (props) => {
     theme,
     centerX,
     centerY,
-    defaultValueFormatter,
+    formatDisplayValue,
   ]);
 
   const resolvedPrimaryIndex = Math.min(
@@ -748,8 +754,8 @@ export const DonutChart: React.FC<DonutChartProps> = (props) => {
   const focusedRingTotal = focusedRing?.total ?? activeTotal;
 
   const centerValue = focusedSlice
-    ? centerValueFormatter?.(focusedSlice.value, focusedRingTotal, focusedSlice) ?? defaultValueFormatter(focusedSlice.value)
-    : centerValueFormatter?.(activeTotal, activeTotal, null) ?? defaultValueFormatter(activeTotal);
+    ? centerValueFormatter?.(focusedSlice.value, focusedRingTotal, focusedSlice) ?? formatDisplayValue(focusedSlice.value)
+    : centerValueFormatter?.(activeTotal, activeTotal, null) ?? formatDisplayValue(activeTotal);
 
   const centerPrimaryLabel = useMemo(() => {
     if (typeof centerLabel === 'function') {
@@ -903,8 +909,8 @@ export const DonutChart: React.FC<DonutChartProps> = (props) => {
 
   return (
     <ChartContainer
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       padding={padding}
       animationDuration={resolvedAnimationDuration}
       disabled={disabled}

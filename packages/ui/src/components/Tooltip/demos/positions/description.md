@@ -1,6 +1,3 @@
-title: Tooltip Positions
-description: Different positioning options for tooltips with smart edge detection and arrow indicators.
-tags: ["positions", "positioning", "arrows", "edge-detection", "alignment"]
 ---
 title: Positions
 category: behavior

@@ -20,7 +20,6 @@ const mockTheme = {
   fontFamily: 'System',
 };
 
-jest.mock('../../../core/theme', () => ({ useTheme: () => mockTheme }));
 jest.mock('../../../core/theme/ThemeProvider', () => ({ useTheme: () => mockTheme }));
 
 // Each header treatment reports the URL it was handed, so the resolution rules
@@ -137,7 +136,7 @@ describe('HeaderControls', () => {
 
     fireEvent.press(screen.getByLabelText('Edit this file on GitHub'));
     expect(openURL).toHaveBeenCalledWith('https://github.com/acme/repo/blob/main/index.tsx');
-    expect(screen.getByLabelText('Copy')).toBeTruthy();
+    expect(screen.getByLabelText('Copy code')).toBeTruthy();
   });
 
   it('omits the edit button without a url', () => {

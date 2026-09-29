@@ -149,7 +149,7 @@ export function Demo() {
         />
       </View>
 
-      <Text size="xl" weight="700">
+      <Text size="xl" fw="700">
         {formatTime(time.minutes)}
       </Text>
     </Block>

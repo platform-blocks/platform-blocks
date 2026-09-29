@@ -1,124 +1,142 @@
-import React, { useCallback, useMemo } from 'react';
-import { View, Pressable, Platform } from 'react-native';
-import { IconButton } from '../IconButton';
-import { Icon } from '../Icon/Icon';
-import { useClipboard } from '../../hooks';
-import { useToast } from '../Toast/ToastProvider';
-import type { CopyButtonProps } from './types';
-import { Tooltip, resolveTooltipProps } from '../Tooltip';
-import { DEFAULT_COMPONENT_SIZE, clampComponentSize, type ComponentSize } from '../../core/theme/componentSize';
-import { getHeight, getIconSize } from '../../core/theme/sizes';
-import { useTheme } from '../../core/theme';
+import React, { useEffect, useRef } from 'react';
+import type { View } from 'react-native';
 
-const COPY_BUTTON_ALLOWED_SIZES: ComponentSize[] = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+import { announce } from '../../core/accessibility/announce';
+import { factory } from '../../core/factory';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { isWeb } from '../../core/platform';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getControlSize } from '../../core/theme/tokens';
+import { useClipboard } from '../../hooks/useClipboard';
+import { Button } from '../Button/Button';
+import { Icon } from '../Icon/Icon';
+import { IconButton } from '../IconButton/IconButton';
+import { useOptionalToast } from '../Toast/ToastProvider';
+import type { CopyButtonProps } from './types';
 
 /**
- * Reusable copy control that uses useClipboard & toast toast.
- * Provides a quick consistent UX across components (CodeBlock, QRCode, etc).
+ * Copies a value to the clipboard, swaps to a check mark, and confirms the copy
+ * — with a toast on web (when a ToastProvider is mounted), otherwise with a
+ * screen-reader announcement. Used by CodeBlock, QRCode, etc. to standardize
+ * the UX. The ref is the underlying Pressable.
  */
-export function CopyButton({
-  value,
-  onCopy,
-  iconOnly = true,
-  label = 'Copy',
-  size = 'md',
-  style,
-  tooltip,
-  tooltipPosition = 'top',
-  disableToast = false,
-  toastTitle = 'Copied to clipboard',
-  toastMessage,
-  mode = 'button',
-  buttonVariant = 'secondary',
-  iconName = 'copy',
-  copiedIconName = 'check',
-  iconColor,
-  copiedIconColor,
-}: CopyButtonProps) {
-  const { copy, copied } = useClipboard();
+export const CopyButton = factory<{ props: CopyButtonProps; ref: View }>(
+  (props, ref) => {
+    const {
+      value,
+      onCopy,
+      onCopyError,
+      iconOnly = true,
+      label = 'Copy',
+      copiedLabel = 'Copied',
+      size = 'md',
+      style,
+      tooltip,
+      tooltipPosition = 'top',
+      disableToast = false,
+      toastTitle = 'Copied to clipboard',
+      toastMessage,
+      mode = 'button',
+      buttonVariant = 'secondary',
+      iconName = 'copy',
+      copiedIconName = 'check',
+      iconColor,
+      copiedIconColor,
+      ...rest
+    } = props;
 
-  const toast = useToast();
-  const theme = useTheme();
-  const resolvedSize = clampComponentSize(size, COPY_BUTTON_ALLOWED_SIZES, DEFAULT_COMPONENT_SIZE);
+    const { copy, copied, error } = useClipboard();
+    // Null outside a ToastProvider, where a toast would never show.
+    const toast = useOptionalToast();
+    const theme = useTheme();
 
-  const dims = useMemo(() => {
-    if (typeof resolvedSize === 'number') {
-      const box = resolvedSize;
-      return {
-        box,
-        icon: Math.max(12, Math.round(box * 0.6)),
-      } as const;
-    }
+    // A toast on web when a ToastProvider is mounted (the toast announces
+    // itself), otherwise a screen-reader announcement — the icon swap alone is
+    // invisible to assistive technology.
+    const settleSuccess = useLatestCallback((copiedValue: string) => {
+      onCopy?.(copiedValue);
+      if (isWeb && toast && !disableToast) {
+        toast.success({ title: toastTitle, ...(toastMessage ? { message: toastMessage } : null) });
+      } else {
+        announce(copiedLabel);
+      }
+    });
 
-    return {
-      box: getHeight(resolvedSize),
-      icon: getIconSize(resolvedSize),
-    } as const;
-  }, [resolvedSize]);
+    // `copy` resolves with the outcome, so `onCopy` and the confirmation fire
+    // only for a copy that actually succeeded. A failure's Error is the hook's
+    // `error` state, which may render before or after the promise settles —
+    // whichever comes second reports it (once per Error).
+    const failurePending = useRef(false);
+    const renderedError = useRef<Error | null>(null);
+    const reportedError = useRef<Error | null>(null);
+    const settleFailure = useLatestCallback(() => {
+      const failure = renderedError.current;
+      if (!failurePending.current || !failure || failure === reportedError.current) return;
+      failurePending.current = false;
+      reportedError.current = failure;
+      onCopyError?.(failure);
+    });
+    useEffect(() => {
+      renderedError.current = error;
+      settleFailure();
+    }, [error, settleFailure]);
 
-  const truncate = useCallback((val: string, max = 60) => (
-    val.length > max ? val.slice(0, max - 1) + '…' : val
-  ), []);
-
-  const effectiveMessage = toastMessage || truncate(value);
-  const accLabel = copied ? 'Copied' : label;
-  const tooltipProps = resolveTooltipProps(tooltip ?? accLabel, { position: tooltipPosition });
-  const iconGlyph = copied ? copiedIconName : iconName;
-  const baseIconColor = iconColor ?? theme.text.primary;
-  const successPalette = theme.colors.success ?? [];
-  const fallbackSuccess = theme.colorScheme === 'dark' ? '#34d399' : '#22c55e';
-  const copiedTint = copiedIconColor ?? successPalette[5] ?? successPalette[4] ?? fallbackSuccess;
-  const iconTint = copied ? copiedTint : baseIconColor;
-  const isIconMode = mode === 'icon';
-
-  const handleCopy = useCallback(async () => {
-    await copy(value);
-    onCopy?.(value);
-    if (
-      Platform.OS === 'web' &&
-      // only show if toast provider exists
-      !!toast &&
-      // only show if not disabled
-      !disableToast
-    ) {
-      toast.success({
-        title: toastTitle,
+    const handleCopy = useLatestCallback(() => {
+      const copiedValue = value;
+      failurePending.current = false;
+      // The previous failure (if any) is settled; don't report it again.
+      reportedError.current = renderedError.current;
+      void copy(copiedValue).then((ok) => {
+        if (ok) {
+          settleSuccess(copiedValue);
+          return;
+        }
+        failurePending.current = true;
+        settleFailure();
       });
-    }
-  }, [value, onCopy, disableToast, toast, toastTitle, effectiveMessage, copy]);
+    });
 
-  if (isIconMode) {
-    return (
-      <Tooltip label={accLabel} {...(tooltipProps ?? {})}>
-        <Pressable
+    const accessibleLabel = copied ? copiedLabel : label;
+    const iconGlyph = copied ? copiedIconName : iconName;
+    const copiedTint = copiedIconColor ?? resolveAccentColor(theme, 'success');
+    // Only override the icon color when asked or when showing the success state;
+    // otherwise the button variant picks a legible one.
+    const iconTint = copied ? copiedTint : iconColor;
+
+    if (!iconOnly && mode !== 'icon') {
+      return (
+        <Button
+          ref={ref}
+          {...rest}
           onPress={handleCopy}
-          style={[{ width: dims.box, height: dims.box, alignItems: 'center', justifyContent: 'center' }, style]}
-          accessibilityRole="button"
-          accessibilityLabel={accLabel}
+          size={size}
+          variant={buttonVariant}
+          style={style}
+          tooltip={tooltip}
+          tooltipPosition={tooltipPosition}
+          startSection={<Icon name={iconGlyph} size={getControlSize(theme, size).iconSize} color={iconTint} />}
         >
-          <Icon
-            name={iconGlyph}
-            size={dims.icon}
-            color={iconTint}
-            style={{ pointerEvents: 'none' }}
-          />
-        </Pressable>
-      </Tooltip>
-    );
-  }
+          {accessibleLabel}
+        </Button>
+      );
+    }
 
-  return (
-    <View style={style}>
+    return (
       <IconButton
+        ref={ref}
+        {...rest}
         onPress={handleCopy}
-        size={typeof resolvedSize === 'number' ? DEFAULT_COMPONENT_SIZE : resolvedSize}
-        variant={buttonVariant}
+        size={size}
+        variant={mode === 'icon' ? 'none' : buttonVariant}
         icon={iconGlyph}
-        iconColor={iconTint}
-        accessibilityLabel={accLabel}
+        iconColor={iconTint ?? (mode === 'icon' ? theme.text.primary : undefined)}
+        accessibilityLabel={accessibleLabel}
+        tooltip={tooltip ?? accessibleLabel}
+        tooltipPosition={tooltipPosition}
+        style={style}
       />
-    </View>
-  );
-}
-
-CopyButton.displayName = 'CopyButton';
+    );
+  },
+  { displayName: 'CopyButton' }
+);

@@ -15,7 +15,7 @@ export function Demo() {
       </Text>
 
       <SparklineChart
-        height={82}
+        h={82}
         data={QUEUE_DEPTH}
         fill
         fillOpacity={0.14}

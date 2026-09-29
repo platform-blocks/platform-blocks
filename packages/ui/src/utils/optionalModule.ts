@@ -1,22 +1,28 @@
 import { Platform } from 'react-native';
+import { isDev, devWarn } from '../core/utils/logger';
 
 interface OptionalModuleCacheEntry {
-  value: any | null;
+  /** The loaded module's exports, or `null` when it isn't available. */
+  value: unknown;
   error: Error | null;
   logged: boolean;
 }
 
-interface ResolveOptionalModuleOptions<T> {
-  accessor?: (module: any) => T | null | undefined;
+export interface ResolveOptionalModuleOptions<T> {
+  /**
+   * Picks the export to use off the loaded module. Nothing about the module's
+   * shape is known until it loads, so annotate the parameter with the shape
+   * you read: `accessor: (mod: { FlashList?: FlashListComponent } | null) => mod?.FlashList`.
+   * (Declared as a method so such an annotated parameter is accepted.)
+   */
+  accessor?(module: unknown): T | null | undefined;
   devWarning?: string;
-  loader?: () => any;
+  loader?: () => unknown;
 }
 
 const optionalModuleCache = new Map<string, OptionalModuleCacheEntry>();
 
-const isDev = typeof __DEV__ !== 'undefined' ? __DEV__ : process.env.NODE_ENV !== 'production';
-
-type OptionalModuleLoader = () => any;
+type OptionalModuleLoader = () => unknown;
 
 // Metro bundler requires static string literals for require; keep all optional modules here.
 // NOTE: Do NOT add react-syntax-highlighter here - it causes Metro to fail on native
@@ -36,7 +42,6 @@ const optionalModuleLoaders: Record<string, OptionalModuleLoader> = {
   'expo-linear-gradient': () => { try { return require('expo-linear-gradient'); } catch { return null; } },
   'expo-document-picker': () => { try { return require('expo-document-picker'); } catch { return null; } },
   'react-native-webview': () => { try { return require('react-native-webview'); } catch { return null; } },
-  'lodash.debounce': () => { try { return require('lodash.debounce'); } catch { return null; } },
   'expo-audio': () => { try { return require('expo-audio'); } catch { return null; } },
   'react-native-gesture-handler': () => { try { return require('react-native-gesture-handler'); } catch { return null; } },
   'expo-status-bar': () => { try { return require('expo-status-bar'); } catch { return null; } },
@@ -50,8 +55,11 @@ const optionalModuleLoaders: Record<string, OptionalModuleLoader> = {
  * Attempts to synchronously resolve an optional dependency while caching the result.
  * Returns `null` when the module cannot be loaded. An optional accessor can pull
  * a specific export off the module evaluation.
+ *
+ * `T` is the shape the caller relies on (the module itself, or what `accessor`
+ * returns); it is asserted, not checked, since the module is loaded at runtime.
  */
-export function resolveOptionalModule<T = any>(moduleId: string, options: ResolveOptionalModuleOptions<T> = {}): T | null {
+export function resolveOptionalModule<T = unknown>(moduleId: string, options: ResolveOptionalModuleOptions<T> = {}): T | null {
   const { accessor, devWarning, loader } = options;
 
   const cached = optionalModuleCache.get(moduleId);
@@ -62,7 +70,7 @@ export function resolveOptionalModule<T = any>(moduleId: string, options: Resolv
     }
     if (isDev && devWarning && !cached.logged) {
       cached.logged = true;
-      console.warn(devWarning);
+      devWarn(devWarning);
     }
     return null;
   }
@@ -77,7 +85,7 @@ export function resolveOptionalModule<T = any>(moduleId: string, options: Resolv
     if (isDev) {
       const prefix = Platform.OS === 'web' ? '[platform-blocks]' : '[platform-blocks/native]';
       entry.logged = true;
-      console.warn(`${prefix} ${devWarning ?? message}`);
+      devWarn(`${prefix} ${devWarning ?? message}`);
     }
     return null;
   }
@@ -98,13 +106,27 @@ export function resolveOptionalModule<T = any>(moduleId: string, options: Resolv
     if (isDev && devWarning) {
       entry.logged = true;
       const prefix = Platform.OS === 'web' ? '[platform-blocks]' : '[platform-blocks/native]';
-      console.warn(`${prefix} ${devWarning}`);
+      devWarn(`${prefix} ${devWarning}`);
     }
     return null;
   }
 
   const result = accessor ? accessor(entry.value) : entry.value;
   return (result ?? null) as T | null;
+}
+
+/**
+ * A loaded module's default export: `mod.default` when the package is compiled
+ * ESM (`exports.default = X`), else the module itself (`module.exports = X`).
+ * Like `resolveOptionalModule`, `T` is asserted, not checked.
+ */
+export function defaultExportOf<T>(mod: unknown): T | null {
+  if (mod == null) return null;
+  if (typeof mod === 'object' && 'default' in mod) {
+    const exported = (mod as { default?: unknown }).default;
+    if (exported != null) return exported as T;
+  }
+  return mod as T;
 }
 
 /**

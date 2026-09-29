@@ -1,8 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
+import React, { useCallback, useMemo, useRef } from 'react';
+import { Text, View } from 'react-native';
+import type { TextStyle, ViewStyle } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { factory } from '../../core/factory/factory';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { useThemedStyles } from '../../core/hooks/useThemedStyles';
+import { resolveFontSize, resolveSpacing } from '../../core/theme/tokens';
+import { useStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState';
 // NOTE: Using direct relative imports to avoid barrel (index.ts) circular dependency
-import { Text } from '../Text';
-import { Flex } from '../Flex';
 import { Wheel } from '../Wheel';
 import type { TimePickerProps, TimePickerValue } from './types';
 
@@ -28,154 +35,203 @@ export const buildTimeValue = (
   };
 };
 
-export const TimePicker = React.forwardRef<View, TimePickerProps>(({
-  value,
-  defaultValue,
-  onChange,
-  onChangeComplete,
-  format = 24,
-  withSeconds = false,
-  minuteStep = 5,
-  secondStep = 5,
-  columnWidth = 88,
-  columnHeight = 200,
-  disabled = false,
-  style,
-}, ref) => {
-  const isControlled = value !== undefined;
-  const [internal, setInternal] = useState<TimePickerValue>(() =>
-    buildTimeValue(format, withSeconds, value ?? defaultValue ?? null)
-  );
-  const internalRef = useRef(internal);
-  const is12h = format === 12;
+const MERIDIEM_ITEMS = [
+  { value: 'am', label: 'AM' },
+  { value: 'pm', label: 'PM' },
+] as const;
 
-  useEffect(() => {
-    if (!isControlled || !value) return;
-    const nextInternal = buildTimeValue(format, withSeconds, value);
-    internalRef.current = nextInternal;
-    setInternal(nextInternal);
-  }, [isControlled, value?.hours, value?.minutes, value?.seconds, value, format, withSeconds]);
+/**
+ * Inline time selection: one wheel per column (hour, minute, optional second
+ * and AM/PM). Each wheel is an adjustable control named by its column; the
+ * visible column captions are hidden from assistive technology so they aren't
+ * read twice.
+ */
+export const TimePicker = factory<{ props: TimePickerProps; ref: View }>(
+  function TimePicker(props, ref) {
+    const {
+      value,
+      defaultValue,
+      onChange,
+      onChangeComplete,
+      format = 24,
+      withSeconds = false,
+      minuteStep = 5,
+      secondStep = 5,
+      columnWidth = 88,
+      columnHeight = 200,
+      disabled = false,
+      accessibilityLabel = 'Time',
+      style,
+      testID,
+    } = props;
 
-  const commit = useCallback(
-    (next: Partial<TimePickerValue>) => {
-      if (disabled) return;
-      const merged: TimePickerValue = { ...internalRef.current, ...next };
-      internalRef.current = merged;
-      setInternal(merged);
-      onChange?.(merged);
-    },
-    [disabled, onChange]
-  );
+    const spacingStyles = useStyleProps(props);
+    const is12h = format === 12;
+    const onChangeLatest = useLatestCallback(onChange);
+    const onChangeCompleteLatest = useLatestCallback(onChangeComplete);
 
-  const complete = useCallback(
-    (next: Partial<TimePickerValue>) => {
-      if (disabled) return;
-      onChangeComplete?.({ ...internalRef.current, ...next });
-    },
-    [disabled, onChangeComplete]
-  );
+    const [current, setCurrent] = useControllableState<TimePickerValue>({
+      // `null` is "no time": the panel shows its default position.
+      value: value === undefined ? undefined : buildTimeValue(format, withSeconds, value),
+      defaultValue: () => buildTimeValue(format, withSeconds, defaultValue ?? null),
+      onChange: (next: TimePickerValue) => onChangeLatest(next),
+    });
 
-  const hoursOptions = useMemo(() => {
-    if (is12h) return Array.from({ length: 12 }, (_, i) => i + 1);
-    return Array.from({ length: 24 }, (_, i) => i);
-  }, [is12h]);
-  const minuteOptions = useMemo(
-    () => Array.from({ length: Math.ceil(60 / minuteStep) }, (_, i) => i * minuteStep),
-    [minuteStep]
-  );
-  const secondOptions = useMemo(
-    () => Array.from({ length: Math.ceil(60 / secondStep) }, (_, i) => i * secondStep),
-    [secondStep]
-  );
+    // Columns can fire in quick succession before a controlled parent re-renders;
+    // merge each pick into the latest known value, not the last rendered one.
+    const latestRef = useRef(current);
+    latestRef.current = current;
 
-  const setMeridiem = (pm: boolean) => {
-    if (!is12h) return;
-    if (internal.hours >= 12 === pm) return;
-    commit({ hours: (internal.hours + 12) % 24 });
-  };
+    const commit = useCallback(
+      (next: Partial<TimePickerValue>) => {
+        if (disabled) return;
+        const merged: TimePickerValue = { ...latestRef.current, ...next };
+        latestRef.current = merged;
+        setCurrent(merged);
+      },
+      [disabled, setCurrent]
+    );
 
-  const setHourDisplay = (hDisplay: number) => {
-    let hour24 = hDisplay;
-    if (is12h) {
-      const currentIsPM = internal.hours >= 12;
-      if (hDisplay === 12) hour24 = currentIsPM ? 12 : 0;
-      else hour24 = currentIsPM ? hDisplay + 12 : hDisplay;
-    }
-    commit({ hours: hour24 });
-  };
+    const complete = useCallback(
+      (next: Partial<TimePickerValue>) => {
+        if (disabled) return;
+        onChangeCompleteLatest({ ...latestRef.current, ...next });
+      },
+      [disabled, onChangeCompleteLatest]
+    );
 
-  const renderColumnLabel = (label: string) => (
-    <Text size="sm" weight="medium" style={{ marginBottom: 12, textAlign: 'center' }}>
-      {label}
-    </Text>
-  );
+    const hourItems = useMemo(() => {
+      const hours = is12h ? Array.from({ length: 12 }, (_, i) => i + 1) : Array.from({ length: 24 }, (_, i) => i);
+      return hours.map((item) => ({ value: item, label: pad(item) }));
+    }, [is12h]);
+    const minuteItems = useMemo(
+      () => Array.from({ length: Math.ceil(60 / minuteStep) }, (_, i) => i * minuteStep).map((item) => ({ value: item, label: pad(item) })),
+      [minuteStep]
+    );
+    const secondItems = useMemo(
+      () => Array.from({ length: Math.ceil(60 / secondStep) }, (_, i) => i * secondStep).map((item) => ({ value: item, label: pad(item) })),
+      [secondStep]
+    );
 
-  return (
-    <View ref={ref} style={[{ opacity: disabled ? 0.5 : 1 }, style]}>
-      <Flex direction="row" gap={6} align="flex-start" justify="center">
-        <View style={{ width: columnWidth, alignItems: 'center' }}>
-          {renderColumnLabel('Hour')}
-          <Wheel
-            label="Hour"
-            items={hoursOptions.map((item) => ({ value: item, label: pad(item) }))}
-            value={is12h ? ((internal.hours + 11) % 12) + 1 : internal.hours}
-            onValueChange={setHourDisplay}
-            width={columnWidth}
-            height={columnHeight}
-            disabled={disabled}
-          />
-        </View>
+    const setMeridiem = (pm: boolean) => {
+      if (!is12h) return;
+      const hours = latestRef.current.hours;
+      if (hours >= 12 === pm) return;
+      commit({ hours: (hours + 12) % 24 });
+    };
 
-        <View style={{ width: columnWidth, alignItems: 'center' }}>
-          {renderColumnLabel('Minute')}
-          <Wheel
-            label="Minute"
-            items={minuteOptions.map((item) => ({ value: item, label: pad(item) }))}
-            value={internal.minutes}
-            onValueChange={(minutes) => commit({ minutes })}
-            onChangeComplete={withSeconds ? undefined : (minutes) => complete({ minutes })}
-            width={columnWidth}
-            height={columnHeight}
-            disabled={disabled}
-          />
-        </View>
+    const setHourDisplay = (hDisplay: number) => {
+      let hour24 = hDisplay;
+      if (is12h) {
+        const currentIsPM = latestRef.current.hours >= 12;
+        if (hDisplay === 12) hour24 = currentIsPM ? 12 : 0;
+        else hour24 = currentIsPM ? hDisplay + 12 : hDisplay;
+      }
+      commit({ hours: hour24 });
+    };
 
-        {withSeconds && (
-          <View style={{ width: columnWidth, alignItems: 'center' }}>
-            {renderColumnLabel('Second')}
+    const styles = useThemedStyles(
+      (theme) => ({
+        root: { opacity: disabled ? 0.5 : 1 } as ViewStyle,
+        row: {
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          justifyContent: 'center',
+          gap: resolveSpacing(theme, 'xs') as number,
+        } as ViewStyle,
+        column: { width: columnWidth, alignItems: 'center' } as ViewStyle,
+        caption: {
+          marginBottom: resolveSpacing(theme, 'sm') as number,
+          textAlign: 'center',
+          fontSize: resolveFontSize(theme, 'sm'),
+          fontWeight: '500',
+          fontFamily: theme.fontFamily,
+          color: theme.text.secondary,
+        } as TextStyle,
+      }),
+      [disabled, columnWidth]
+    );
+
+    // Visible captions: the wheels carry the same name as their accessible label.
+    const renderCaption = (caption: string) => (
+      <Text
+        style={styles.caption}
+        aria-hidden
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        {caption}
+      </Text>
+    );
+
+    return (
+      <View
+        ref={ref}
+        style={[styles.root, spacingStyles, style]}
+        testID={testID}
+        {...a11yProps({ role: 'group', label: accessibilityLabel })}
+      >
+        <View style={styles.row}>
+          <View style={styles.column}>
+            {renderCaption('Hour')}
             <Wheel
-              label="Second"
-              items={secondOptions.map((item) => ({ value: item, label: pad(item) }))}
-              value={internal.seconds ?? 0}
-              onValueChange={(seconds) => commit({ seconds })}
-              onChangeComplete={(seconds) => complete({ seconds })}
-              width={columnWidth}
-              height={columnHeight}
+              label="Hour"
+              items={hourItems}
+              value={is12h ? ((current.hours + 11) % 12) + 1 : current.hours}
+              onChange={setHourDisplay}
+              w={columnWidth}
+              h={columnHeight}
               disabled={disabled}
             />
           </View>
-        )}
 
-        {is12h && (
-          <View style={{ width: columnWidth, alignItems: 'center' }}>
-            {renderColumnLabel('Period')}
+          <View style={styles.column}>
+            {renderCaption('Minute')}
             <Wheel
-              label="Period"
-              items={[
-                { value: 'am', label: 'AM' },
-                { value: 'pm', label: 'PM' },
-              ]}
-              value={internal.hours < 12 ? 'am' : 'pm'}
-              onValueChange={(period) => setMeridiem(period === 'pm')}
-              width={columnWidth}
-              height={columnHeight}
+              label="Minute"
+              items={minuteItems}
+              value={current.minutes}
+              onChange={(minutes) => commit({ minutes })}
+              onChangeComplete={withSeconds ? undefined : (minutes) => complete({ minutes })}
+              w={columnWidth}
+              h={columnHeight}
               disabled={disabled}
             />
           </View>
-        )}
-      </Flex>
-    </View>
-  );
-});
 
-TimePicker.displayName = 'TimePicker';
+          {withSeconds && (
+            <View style={styles.column}>
+              {renderCaption('Second')}
+              <Wheel
+                label="Second"
+                items={secondItems}
+                value={current.seconds ?? 0}
+                onChange={(seconds) => commit({ seconds })}
+                onChangeComplete={(seconds) => complete({ seconds })}
+                w={columnWidth}
+                h={columnHeight}
+                disabled={disabled}
+              />
+            </View>
+          )}
+
+          {is12h && (
+            <View style={styles.column}>
+              {renderCaption('Period')}
+              <Wheel
+                label="Period"
+                items={MERIDIEM_ITEMS}
+                value={current.hours < 12 ? 'am' : 'pm'}
+                onChange={(period) => setMeridiem(period === 'pm')}
+                w={columnWidth}
+                h={columnHeight}
+                disabled={disabled}
+              />
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  },
+  { displayName: 'TimePicker' }
+);

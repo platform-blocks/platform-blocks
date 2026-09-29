@@ -14,7 +14,7 @@ export function Demo() {
         placeholder="Select dates"
         fullWidth
       />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         {value.length > 0
           ? `Selected: ${value.map((date) => date.toLocaleDateString()).join(', ')}`
           : 'Select one or more dates'}

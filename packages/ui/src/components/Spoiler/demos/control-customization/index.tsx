@@ -5,38 +5,31 @@ const longText =
 
 export function Demo() {
   return (
-    <Block>
+    <Block fullWidth>
       <Block>
-        <Text size="sm" color="muted">Default control</Text>
-        <Spoiler maxHeight={60}>
+        <Text size="sm" c="muted">Default control</Text>
+        <Spoiler mah={60}>
           <Text>{longText}</Text>
         </Spoiler>
       </Block>
 
       <Block>
-        <Text size="sm" color="muted">
+        <Text size="sm" c="muted">
           Uppercase tracked control
         </Text>
         <Spoiler
-          maxHeight={60}
-          showLabel="Read more"
-          hideLabel="Hide"
-          controlProps={{ uppercase: true, tracking: 1.5, weight: '700', size: 'xs' }}
+          mah={60}
+          controlProps={{ tt: 'uppercase', lts: 1.5, fw: '700', size: 'xs' }}
         >
           <Text>{longText}</Text>
         </Spoiler>
       </Block>
 
       <Block>
-        <Text size="sm" color="muted">
+        <Text size="sm" c="muted">
           Monospace control
         </Text>
-        <Spoiler
-          maxHeight={60}
-          showLabel="$ expand"
-          hideLabel="$ collapse"
-          controlProps={{ ff: 'monospace', weight: '600' }}
-        >
+        <Spoiler mah={60} controlProps={{ ff: 'monospace', fw: '600' }}>
           <Text>{longText}</Text>
         </Spoiler>
       </Block>

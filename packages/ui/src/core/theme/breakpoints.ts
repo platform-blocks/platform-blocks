@@ -1,3 +1,7 @@
+import { DEFAULT_BREAKPOINT_VALUES } from './scales';
+import { getBreakpoints } from './tokens';
+import type { PlatformBlocksTheme } from './types';
+
 export interface Breakpoints {
   /** Base breakpoint (0px) */
   base: number;
@@ -11,13 +15,32 @@ export interface Breakpoints {
   xl: number;
 }
 
+/**
+ * The default theme's breakpoints (`theme.breakpoints` — the only table) in the
+ * shape `resolveResponsiveProp` walks: sm 576, md 768, lg 992, xl 1200.
+ * (Before the table was unified these were sm 480 / md 640 / lg 960.)
+ */
 export const DEFAULT_BREAKPOINTS: Breakpoints = {
   base: 0,
-  sm: 480,
-  md: 640,
-  lg: 960,
-  xl: 1200,
+  sm: DEFAULT_BREAKPOINT_VALUES.sm,
+  md: DEFAULT_BREAKPOINT_VALUES.md,
+  lg: DEFAULT_BREAKPOINT_VALUES.lg,
+  xl: DEFAULT_BREAKPOINT_VALUES.xl,
 };
+
+const themeBreakpointsCache = new WeakMap<object, Breakpoints>();
+
+/** A theme's breakpoint table in the `Breakpoints` shape (cached per theme table). */
+export function breakpointsFromTheme(theme: Partial<PlatformBlocksTheme> | null | undefined): Breakpoints {
+  const table = theme?.breakpoints;
+  if (!table) return DEFAULT_BREAKPOINTS;
+  const cached = themeBreakpointsCache.get(table);
+  if (cached) return cached;
+  const values = getBreakpoints(theme);
+  const result: Breakpoints = { base: 0, sm: values.sm, md: values.md, lg: values.lg, xl: values.xl };
+  themeBreakpointsCache.set(table, result);
+  return result;
+}
 
 export type ResponsiveProp<T> = T | { base?: T; sm?: T; md?: T; lg?: T; xl?: T };
 

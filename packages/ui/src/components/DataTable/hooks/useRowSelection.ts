@@ -1,184 +1,178 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { useControllableState } from '../../../hooks/useControllableState';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+
+import { useControllableState } from '../../../hooks/useControllableState/useControllableState';
+import { useLatestCallback } from '../../../core/hooks/useLatestCallback';
+
+type RowId = string | number;
 
 interface UseRowSelectionProps {
   /** All row IDs in current view (after filtering/pagination) */
-  allRowIds: (string | number)[];
-  /** Initial selected rows */
-  initialSelectedRows?: (string | number)[];
+  allRowIds: RowId[];
+  /** Initial selected rows (uncontrolled) */
+  initialSelectedRows?: RowId[];
   /** Controlled selected rows */
-  selectedRows?: (string | number)[];
+  selectedRows?: RowId[];
   /** Selection change handler */
-  onSelectionChange?: (selectedRows: (string | number)[]) => void;
+  onSelectionChange?: (selectedRows: RowId[]) => void;
   /** Whether to persist selection across pagination */
   persistAcrossPagination?: boolean;
 }
 
-interface UseRowSelectionReturn {
+export interface UseRowSelectionReturn {
   /** Currently selected row IDs */
-  selectedRows: (string | number)[];
+  selectedRows: RowId[];
+  /** The selection as a Set, for O(1) membership checks in render loops */
+  selectedSet: ReadonlySet<RowId>;
   /** Whether all visible rows are selected */
   isAllSelected: boolean;
   /** Whether some (but not all) visible rows are selected */
   isIndeterminate: boolean;
-  /** Toggle selection for a single row */
-  toggleRow: (rowId: string | number, event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => void;
-  /** Toggle selection for all visible rows */
+  /** Toggle selection for a single row (stable identity) */
+  toggleRow: (rowId: RowId, event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => void;
+  /** Toggle selection for all visible rows (stable identity) */
   toggleAll: () => void;
-  /** Select a range of rows (for shift+click) */
-  selectRange: (fromId: string | number, toId: string | number) => void;
-  /** Clear all selections */
+  /** Select a range of rows (for shift+click) (stable identity) */
+  selectRange: (fromId: RowId, toId: RowId) => void;
+  /** Clear all selections (stable identity) */
   clearSelection: () => void;
-  /** Select all rows (including those not currently visible if persistAcrossPagination is true) */
-  selectAll: (allPossibleIds?: (string | number)[]) => void;
+  /** Select all rows (including those not currently visible if persistAcrossPagination is true) (stable identity) */
+  selectAll: (allPossibleIds?: RowId[]) => void;
   /** Get number of selected rows */
   selectionCount: number;
-  /** Check if a specific row is selected */
-  isRowSelected: (rowId: string | number) => boolean;
+  /** Check if a specific row is selected (changes identity only when the selection changes) */
+  isRowSelected: (rowId: RowId) => boolean;
 }
 
+const EMPTY: RowId[] = [];
+
+/**
+ * Row selection state for DataTable: controlled or uncontrolled, with
+ * shift-click range selection. The action callbacks have a stable identity and
+ * the returned object is memoized, so rows that depend on them don't re-render
+ * when an unrelated row is selected.
+ */
 export function useRowSelection({
   allRowIds,
-  initialSelectedRows = [],
+  initialSelectedRows,
   selectedRows: controlledSelectedRows,
   onSelectionChange,
-  persistAcrossPagination = false
+  persistAcrossPagination = false,
 }: UseRowSelectionProps): UseRowSelectionReturn {
-  
-  const [selectedRows, updateSelection] = useControllableState<(string | number)[]>({
+  const [selectedRows, updateSelection] = useControllableState<RowId[]>({
     value: controlledSelectedRows,
     defaultValue: initialSelectedRows,
-    finalValue: [],
+    finalValue: EMPTY,
     onChange: onSelectionChange,
   });
-  const lastSelectedRowRef = useRef<string | number | null>(null);
+  const lastSelectedRowRef = useRef<RowId | null>(null);
 
-  // Computed values
-  const visibleSelectedRows = useMemo(() => {
-    return selectedRows.filter(id => allRowIds.includes(id));
-  }, [selectedRows, allRowIds]);
+  const selectedSet = useMemo<ReadonlySet<RowId>>(() => new Set(selectedRows), [selectedRows]);
 
-  const isAllSelected = useMemo(() => {
-    return allRowIds.length > 0 && visibleSelectedRows.length === allRowIds.length;
-  }, [allRowIds.length, visibleSelectedRows.length]);
+  const visibleSelectedCount = useMemo(
+    () => allRowIds.reduce<number>((count, id) => (selectedSet.has(id) ? count + 1 : count), 0),
+    [allRowIds, selectedSet]
+  );
 
-  const isIndeterminate = useMemo(() => {
-    return visibleSelectedRows.length > 0 && visibleSelectedRows.length < allRowIds.length;
-  }, [visibleSelectedRows.length, allRowIds.length]);
-
+  const isAllSelected = allRowIds.length > 0 && visibleSelectedCount === allRowIds.length;
+  const isIndeterminate = visibleSelectedCount > 0 && visibleSelectedCount < allRowIds.length;
   const selectionCount = selectedRows.length;
 
-  // Helper functions
-  const isRowSelected = useCallback((rowId: string | number) => {
-    return selectedRows.includes(rowId);
-  }, [selectedRows]);
+  const isRowSelected = useCallback((rowId: RowId) => selectedSet.has(rowId), [selectedSet]);
 
-  const toggleRow = useCallback((
-    rowId: string | number, 
-    event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }
-  ) => {
-    const isCurrentlySelected = selectedRows.includes(rowId);
-    const isShiftClick = event?.shiftKey;
-    const isCtrlOrCmdClick = event?.ctrlKey || event?.metaKey;
+  const toggleRow = useLatestCallback(
+    (rowId: RowId, event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => {
+      if (event?.shiftKey && lastSelectedRowRef.current !== null) {
+        // Range selection
+        const lastIndex = allRowIds.indexOf(lastSelectedRowRef.current);
+        const currentIndex = allRowIds.indexOf(rowId);
 
-    if (isShiftClick && lastSelectedRowRef.current !== null) {
-      // Range selection
-      const lastIndex = allRowIds.indexOf(lastSelectedRowRef.current);
-      const currentIndex = allRowIds.indexOf(rowId);
-      
-      if (lastIndex !== -1 && currentIndex !== -1) {
-        const start = Math.min(lastIndex, currentIndex);
-        const end = Math.max(lastIndex, currentIndex);
-        const rangeIds = allRowIds.slice(start, end + 1);
-        
-        // Add range to selection (or remove if all are already selected)
-        const allRangeSelected = rangeIds.every(id => selectedRows.includes(id));
-        let newSelection: (string | number)[];
-        
-        if (allRangeSelected) {
-          // Remove the range
-          newSelection = selectedRows.filter(id => !rangeIds.includes(id));
-        } else {
-          // Add the range
-          const uniqueNewIds = rangeIds.filter(id => !selectedRows.includes(id));
-          newSelection = [...selectedRows, ...uniqueNewIds];
+        if (lastIndex !== -1 && currentIndex !== -1) {
+          const start = Math.min(lastIndex, currentIndex);
+          const end = Math.max(lastIndex, currentIndex);
+          const rangeIds = allRowIds.slice(start, end + 1);
+          const rangeSet = new Set(rangeIds);
+
+          // Add the range, or remove it when it is already fully selected.
+          const allRangeSelected = rangeIds.every((id) => selectedSet.has(id));
+          updateSelection(
+            allRangeSelected
+              ? selectedRows.filter((id) => !rangeSet.has(id))
+              : [...selectedRows, ...rangeIds.filter((id) => !selectedSet.has(id))]
+          );
+          return;
         }
-        
-        updateSelection(newSelection);
-        return;
       }
+
+      // Single row toggle
+      updateSelection(selectedSet.has(rowId) ? selectedRows.filter((id) => id !== rowId) : [...selectedRows, rowId]);
+      lastSelectedRowRef.current = rowId;
     }
+  );
 
-    // Single row toggle
-    let newSelection: (string | number)[];
-    if (isCurrentlySelected) {
-      newSelection = selectedRows.filter(id => id !== rowId);
-    } else {
-      newSelection = [...selectedRows, rowId];
-    }
-
-    updateSelection(newSelection);
-    lastSelectedRowRef.current = rowId;
-  }, [selectedRows, allRowIds, updateSelection]);
-
-  const selectRange = useCallback((fromId: string | number, toId: string | number) => {
+  const selectRange = useLatestCallback((fromId: RowId, toId: RowId) => {
     const fromIndex = allRowIds.indexOf(fromId);
     const toIndex = allRowIds.indexOf(toId);
-    
     if (fromIndex === -1 || toIndex === -1) return;
-    
+
     const start = Math.min(fromIndex, toIndex);
     const end = Math.max(fromIndex, toIndex);
     const rangeIds = allRowIds.slice(start, end + 1);
-    
-    const uniqueNewIds = rangeIds.filter(id => !selectedRows.includes(id));
-    const newSelection = [...selectedRows, ...uniqueNewIds];
-    
-    updateSelection(newSelection);
-  }, [allRowIds, selectedRows, updateSelection]);
+    updateSelection([...selectedRows, ...rangeIds.filter((id) => !selectedSet.has(id))]);
+  });
 
-  const toggleAll = useCallback(() => {
+  const toggleAll = useLatestCallback(() => {
     if (isAllSelected) {
       // Remove all visible rows from selection
-      const newSelection = persistAcrossPagination 
-        ? selectedRows.filter(id => !allRowIds.includes(id))
-        : [];
-      updateSelection(newSelection);
+      const visible = new Set(allRowIds);
+      updateSelection(persistAcrossPagination ? selectedRows.filter((id) => !visible.has(id)) : []);
     } else {
       // Add all visible rows to selection
-      const uniqueNewIds = allRowIds.filter(id => !selectedRows.includes(id));
-      const newSelection = [...selectedRows, ...uniqueNewIds];
-      updateSelection(newSelection);
+      updateSelection([...selectedRows, ...allRowIds.filter((id) => !selectedSet.has(id))]);
     }
-  }, [isAllSelected, selectedRows, allRowIds, updateSelection, persistAcrossPagination]);
+  });
 
-  const clearSelection = useCallback(() => {
+  const clearSelection = useLatestCallback(() => {
     updateSelection([]);
     lastSelectedRowRef.current = null;
-  }, [updateSelection]);
+  });
 
-  const selectAll = useCallback((allPossibleIds?: (string | number)[]) => {
-    const idsToSelect = allPossibleIds || allRowIds;
-    updateSelection(idsToSelect);
-  }, [allRowIds, updateSelection]);
+  const selectAll = useLatestCallback((allPossibleIds?: RowId[]) => {
+    updateSelection(allPossibleIds || allRowIds);
+  });
 
   // Reset last selected when allRowIds changes (pagination)
   useEffect(() => {
-    if (lastSelectedRowRef.current && !allRowIds.includes(lastSelectedRowRef.current)) {
+    if (lastSelectedRowRef.current !== null && !allRowIds.includes(lastSelectedRowRef.current)) {
       lastSelectedRowRef.current = null;
     }
   }, [allRowIds]);
 
-  return {
-    selectedRows,
-    isAllSelected,
-    isIndeterminate,
-    toggleRow,
-    toggleAll,
-    selectRange,
-    clearSelection,
-    selectAll,
-    selectionCount,
-    isRowSelected,
-  };
+  return useMemo(
+    () => ({
+      selectedRows,
+      selectedSet,
+      isAllSelected,
+      isIndeterminate,
+      toggleRow,
+      toggleAll,
+      selectRange,
+      clearSelection,
+      selectAll,
+      selectionCount,
+      isRowSelected,
+    }),
+    [
+      selectedRows,
+      selectedSet,
+      isAllSelected,
+      isIndeterminate,
+      toggleRow,
+      toggleAll,
+      selectRange,
+      clearSelection,
+      selectAll,
+      selectionCount,
+      isRowSelected,
+    ]
+  );
 }

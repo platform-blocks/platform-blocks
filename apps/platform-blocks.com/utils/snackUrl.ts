@@ -314,22 +314,22 @@ function Screen({ title, subtitle, note, children }: ShellProps) {
     >
       <Flex direction="row" justify="space-between" align="flex-start" gap="sm" mb={4}>
         <View style={{ flexShrink: 1 }}>
-          <Title order={1} size={30} weight="bold">{title}</Title>
-          {subtitle ? <Text variant="small" color="muted">{subtitle}</Text> : null}
+          <Title order={1} size={30} fw="bold">{title}</Title>
+          {subtitle ? <Text variant="small" c="muted">{subtitle}</Text> : null}
         </View>
         <ThemeToggle />
       </Flex>
-      {note ? <Text variant="small" color="muted" mt={8}>{note}</Text> : null}
+      {note ? <Text variant="small" c="muted" mt={8}>{note}</Text> : null}
 
       <View style={{ marginTop: 24 }}>{children}</View>
 
       <Divider mt={40} mb={16} />
-      <Title order={2} size={16} weight="bold" mb={2}>Platform Blocks</Title>
-      <Text variant="small" color="muted" mb={8}>
+      <Title order={2} size={16} fw="bold" mb={2}>Platform Blocks</Title>
+      <Text variant="small" c="muted" mb={8}>
         A React Native design system for iOS, Android and Web.
       </Text>
       <Link href={SITE} external size="sm" target="_blank">platform-blocks.com</Link>
-      <Text variant="small" color="muted" mt={8}>
+      <Text variant="small" c="muted" mt={8}>
         @platform-blocks/ui v${SNACK_PACKAGE_VERSION} · Expo SDK ${SNACK_SDK_VERSION} · {actualColorScheme}
       </Text>
     </ScrollView>
@@ -371,7 +371,7 @@ export function Section({
   return (
     <View style={{ marginTop: first ? 0 : 24 }}>
       {first ? null : <Divider mb={24} />}
-      <Title order={2} size={18} weight="semibold" mb={12}>{title}</Title>
+      <Title order={2} size={18} fw="semibold" mb={12}>{title}</Title>
       {children}
     </View>
   );

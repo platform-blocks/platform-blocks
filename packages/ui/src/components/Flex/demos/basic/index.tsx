@@ -1,19 +1,17 @@
-import { Flex, Card, Text } from '@platform-blocks/ui';
+import { Card, Flex, Text } from '@platform-blocks/ui';
 
 export function Demo() {
   return (
-    <Card variant="outline" p="md">
-      <Flex gap="md">
-        <Card p="sm">
-          <Text variant="p">Item 1</Text>
-        </Card>
-        <Card p="sm">
-          <Text variant="p">Item 2</Text>
-        </Card>
-        <Card p="sm">
-          <Text variant="p">Item 3</Text>
-        </Card>
-      </Flex>
-    </Card>
+    <Flex gap="md" fullWidth>
+      <Card p="sm">
+        <Text>Item 1</Text>
+      </Card>
+      <Card p="sm">
+        <Text>Item 2</Text>
+      </Card>
+      <Card p="sm">
+        <Text>Item 3</Text>
+      </Card>
+    </Flex>
   );
 }

@@ -7,7 +7,7 @@ export function Demo() {
     <HistogramChart
       title="Customer contract length distribution"
       subtitle="Used to calibrate retention and renewal strategy"
-      height={320}
+      h={320}
       data={CONTRACT_LENGTHS}
       bins={12}
       binMethod="sturges"

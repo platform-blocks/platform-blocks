@@ -1,7 +1,7 @@
-import { Platform } from 'react-native';
-
+import { isWeb } from '../../core/platform/flags';
+import { getBreakpoints, type BreakpointValues } from '../../core/theme/tokens';
+import type { PlatformBlocksTheme } from '../../core/theme/types';
 import type { Breakpoint, ResponsiveSize } from './types';
-import { BREAKPOINT_VALUES } from './hooks/useBreakpoint';
 import { resolveResponsiveValue } from './hooks/useResponsiveValue';
 
 /**
@@ -63,7 +63,9 @@ export interface AppShellCssConfig {
   navbarAutoExpandBreakpoint?: Breakpoint;
   /**
    * Widest breakpoint still treated as mobile, where the navbar is a drawer and
-   * reserves no space. Mirrors the shell's own `breakpoint === 'xs' || 'sm'`.
+   * reserves no space. The default mirrors the shell's own rule (mobile below
+   * `md`, i.e. `base`, `xs` and `sm`); set it one step below
+   * `navbar.breakpoint` when that is not `'md'`.
    * @default 'sm'
    */
   mobileUpTo?: Breakpoint;
@@ -132,7 +134,7 @@ export const resolveContentBottom = (
 export const appShellVar = (
   name: string,
   fallback: number
-): number | string => (Platform.OS === 'web' ? `var(${name}, ${fallback}px)` : fallback);
+): number | string => (isWeb ? `var(${name}, ${fallback}px)` : fallback);
 
 /** `calc()` around a var, for geometry that adds a fixed offset to one. */
 export const appShellVarPlus = (
@@ -140,12 +142,26 @@ export const appShellVarPlus = (
   fallback: number,
   offset: number
 ): number | string => {
-  if (Platform.OS !== 'web') return fallback + offset;
+  if (!isWeb) return fallback + offset;
   if (offset === 0) return `var(${name}, ${fallback}px)`;
   return `calc(var(${name}, ${fallback}px) + ${offset}px)`;
 };
 
 const px = (value: number) => `${Math.round(value)}px`;
+
+export interface AppShellCssOptions {
+  /** Selector the variables are declared on. @default ':root' */
+  selector?: string;
+  /** Length of the hover-expansion transition in ms; `0` omits it. @default 200 */
+  transitionDuration?: number;
+  /**
+   * The theme the app renders with. Its `breakpoints` place the media queries,
+   * so they match the breakpoints the running shell resolves. @default the default theme
+   */
+  theme?: Partial<PlatformBlocksTheme>;
+  /** Per-breakpoint overrides on top of the theme's table (mirror a `BreakpointProvider`). */
+  breakpoints?: Partial<BreakpointValues>;
+}
 
 /**
  * The stylesheet that answers what the prerender could not.
@@ -153,13 +169,16 @@ const px = (value: number) => `${Math.round(value)}px`;
  * Inline the result in the document head — before first paint, and without
  * waiting on JS. Every breakpoint above `base` becomes one `min-width` block,
  * in ascending order, so the cascade resolves them exactly the way
- * `resolveResponsiveValue` walks the scale at runtime.
+ * `resolveResponsiveValue` walks the scale at runtime. The widths are the
+ * theme's (`getBreakpoints(theme)`), the same table `useBreakpoint` reads.
  */
 export const createAppShellCss = (
   config: AppShellCssConfig,
-  options: { selector?: string; transitionDuration?: number } = {}
+  options: AppShellCssOptions = {}
 ): string => {
   const { selector = ':root', transitionDuration = 200 } = options;
+  const breakpointWidths: BreakpointValues = { ...getBreakpoints(options.theme), ...options.breakpoints };
+  const minWidth = (bp: Breakpoint): number => (bp === 'base' ? 0 : breakpointWidths[bp]);
 
   const varsFor = (breakpoint: Breakpoint): Record<string, string> => ({
     [APP_SHELL_CSS_VARS.headerHeight]: px(
@@ -191,7 +210,7 @@ export const createAppShellCss = (
     previous = vars;
     if (!Object.keys(changed).length) continue;
     chunks.push(
-      `@media (min-width: ${BREAKPOINT_VALUES[breakpoint as keyof typeof BREAKPOINT_VALUES]}px) {\n${block(
+      `@media (min-width: ${minWidth(breakpoint)}px) {\n${block(
         selector,
         changed
       )
@@ -205,9 +224,7 @@ export const createAppShellCss = (
   // still holds focusable rows. `visibility` takes them out of the tab order and
   // the accessibility tree without changing the markup — which is the one thing
   // that has to stay identical across viewports.
-  const mobileCeiling = BREAKPOINT_VALUES[
-    nextBreakpoint(config.mobileUpTo ?? 'sm') as keyof typeof BREAKPOINT_VALUES
-  ];
+  const mobileCeiling = minWidth(nextBreakpoint(config.mobileUpTo ?? 'sm'));
   if (config.navbarWidth != null && mobileCeiling > 0) {
     chunks.push(
       `@media (max-width: ${mobileCeiling - 0.02}px) {\n  [data-pb-shell-navbar] {\n    visibility: hidden;\n  }\n}`
@@ -229,7 +246,9 @@ export const createAppShellCss = (
     // The rail's hover expansion moves the navbar and the content column
     // together, because both read the same variable. Transitioning the
     // variable's *consumers* is what makes that one animation rather than two
-    // that have to be kept in step.
+    // that have to be kept in step. Both physical sides are listed because
+    // react-native-web writes the shell's logical `start`/`end` insets as
+    // `left`/`right` for the current direction — so this is direction-neutral.
     chunks.push(
       `[data-pb-shell-navbar], [data-pb-shell-main] {\n  transition: width ${transitionDuration}ms ease, left ${transitionDuration}ms ease, right ${transitionDuration}ms ease;\n}`,
       `@media (prefers-reduced-motion: reduce) {\n  [data-pb-shell-navbar], [data-pb-shell-main] {\n    transition: none;\n  }\n}`

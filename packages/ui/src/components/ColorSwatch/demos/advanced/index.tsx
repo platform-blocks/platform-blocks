@@ -34,8 +34,8 @@ export function Demo() {
             showCheckmark={false}
           />
           <Flex direction="column" gap={4}>
-            <Text weight="semibold">{selectedColor}</Text>
-            <Text size="xs" color="secondary">Click any swatch above to change</Text>
+            <Text fw="semibold">{selectedColor}</Text>
+            <Text size="xs" c="secondary">Click any swatch above to change</Text>
           </Flex>
         </Flex>
       </Flex>

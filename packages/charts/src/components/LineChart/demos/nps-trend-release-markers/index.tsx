@@ -7,7 +7,7 @@ export function Demo() {
     <LineChart
       title="NPS Trend with Product Releases"
       subtitle="Quarterly sentiment lift alongside major launches"
-      height={420}
+      h={420}
       series={SERIES}
       smooth
       fill

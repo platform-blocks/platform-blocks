@@ -31,3 +31,5 @@ examples:
 ---
 
 Waveform component provides visualization and interaction capabilities for audio data, supporting various display modes and interactive features.
+
+A non-interactive waveform is announced as an image. With `interactive` and `onSeek` it is a seek slider (`aria-valuenow` in percent, spoken as a time when `duration` is set): arrow keys step 5 s (or 1%), Page Up/Down 10%, Home/End jump to the ends, and native screen readers can adjust it. `loadingProgress` fills the loading skeleton.

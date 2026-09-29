@@ -7,7 +7,7 @@ export function Demo() {
     <LineChart
       title="Monthly active customers"
       subtitle="FY25"
-      height={320}
+      h={320}
       series={SERIES}
       xAxis={{
         show: true,

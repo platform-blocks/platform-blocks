@@ -8,4 +8,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Open the Spotlight command palette through the shared store and a primary trigger button.
+Open the Spotlight command palette with `⌘K` / `Ctrl+K`, or from a button through its store.

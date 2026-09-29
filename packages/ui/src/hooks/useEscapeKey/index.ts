@@ -1,1 +1,1 @@
-export { useEscapeKey } from '../useHotkeys';
+export { useEscapeKey } from './useEscapeKey';

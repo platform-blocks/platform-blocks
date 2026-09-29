@@ -10,7 +10,7 @@ export function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Size tokens
         </Text>
         <RadioGroup
@@ -26,7 +26,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Semantic colors
         </Text>
         <Block>
@@ -44,7 +44,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Common states
         </Text>
         <Radio value="available" checked label="Available" />

@@ -7,7 +7,7 @@ export function Demo() {
     <BarChart
       title="Quarterly revenue"
       subtitle="North America"
-      height={260}
+      h={260}
       data={QUARTERLY_REVENUE}
       barSpacing={0.25}
       barBorderRadius={6}

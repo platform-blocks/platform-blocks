@@ -5,7 +5,7 @@ A professional-grade audio player component with waveform visualization, built t
 ## Features
 
 ### Core Audio Functionality
-- **Full playback controls**: Play, pause, stop, seek, volume, and speed control
+- **Full playback controls**: Play, pause, skip ±10 s, stop, seek, mute, volume, and speed control
 - **Audio loading**: Support for local files and remote URLs with dynamic loading
 - **Playback state management**: Real-time state tracking with callbacks
 - **Loop support**: Seamless audio looping functionality
@@ -18,17 +18,16 @@ A professional-grade audio player component with waveform visualization, built t
 - **Performance optimized**: Efficient rendering for smooth interactions
 
 ### User Interface
-- **Multiple layouts**: Minimal, compact, and full variants
 - **Flexible controls**: Configurable control panels (top, bottom, overlay, or hidden)
 - **Metadata display**: Title, artist, and duration information
-- **Time formatting**: Multiple time display formats (mm:ss, hh:mm:ss)
+- **Time formatting**: Multiple time display formats (mm:ss, hh:mm:ss, relative)
 - **Responsive design**: Adapts to different screen sizes
 
 ### Integration & Accessibility
-- **Sound system integration**: UI feedback sounds for interactions
+- **Sound system integration**: UI feedback sounds when a `SoundProvider` is mounted (optional)
 - **Accessibility support**: Screen reader labels and keyboard navigation
 - **Theme integration**: Automatic theme color adaptation
-- **Graceful fallbacks**: Works with or without expo-av dependency
+- **Graceful fallbacks**: Renders (with a missing-module error) without expo-audio
 
 ## Installation
 
@@ -36,8 +35,8 @@ The AudioPlayer is part of the Platform Blocks UI library. Make sure you have th
 
 ```bash
 npm install @platform-blocks/ui
-# Optional: for full audio functionality
-npm install expo-av expo-haptics
+# Optional: for playback
+npx expo install expo-audio
 ```
 
 ## Basic Usage
@@ -50,8 +49,8 @@ export const MyAudioPlayer = () => {
   return (
     <AudioPlayer
       source="https://example.com/audio.mp3"
-      width={400}
-      height={80}
+      w={400}
+      h={80}
       showControls={true}
       interactive={true}
       metadata={{
@@ -90,13 +89,13 @@ export const AdvancedAudioPlayer = () => {
     <AudioPlayer
       ref={playerRef}
       source="https://example.com/audio.mp3"
-      width={600}
-      height={100}
+      w={600}
+      h={100}
       color="primary"
-      variant="full"
       showControls={true}
       controls={{
         playPause: true,
+        skip: true,
         volume: true,
         speed: true,
         waveform: true,
@@ -112,11 +111,7 @@ export const AdvancedAudioPlayer = () => {
         duration: 180000, // 3 minutes
       }}
       generateWaveform={true}
-      waveformOptions={{
-        samples: 200,
-        precision: 4,
-        channel: 'mix',
-      }}
+      waveformOptions={{ samples: 200 }}
       onLoad={(data) => console.log('Audio loaded:', data)}
       onPlaybackStateChange={handlePlaybackStateChange}
       onProgress={(data) => console.log('Progress:', data)}
@@ -135,8 +130,8 @@ export const AdvancedAudioPlayer = () => {
 |------|------|---------|-------------|
 | `source` | `string \| object` | - | Audio source (URL or audio object) |
 | `peaks` | `number[]` | - | Pre-computed waveform peaks data |
-| `width` | `number` | `300` | Component width in pixels |
-| `height` | `number` | `60` | Component height in pixels |
+| `w` | `number` | `300` | Waveform width in pixels |
+| `h` | `number` | `60` | Waveform height in pixels |
 | `color` | `string` | `'primary'` | Theme color for the waveform |
 
 ### Playback Control Props
@@ -153,25 +148,25 @@ export const AdvancedAudioPlayer = () => {
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `showControls` | `boolean` | `true` | Show playback controls |
-| `controls` | `object` | - | Configure which controls to show |
+| `controls` | `AudioPlayerControls` | all but `speed` | Which controls to show (`playPause`, `skip`, `volume`, `speed`, `waveform`); merged over the defaults |
 | `controlsPosition` | `'top' \| 'bottom' \| 'overlay' \| 'none'` | `'bottom'` | Position of controls |
-| `variant` | `'minimal' \| 'compact' \| 'full' \| 'soundcloud' \| 'spotify'` | `'full'` | Layout variant |
-| `colorScheme` | `'light' \| 'dark' \| 'auto'` | `'auto'` | Color scheme |
 
 ### Waveform Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `interactive` | `boolean` | `true` | Enable click/tap to seek |
-| `generateWaveform` | `boolean` | `true` | Auto-generate waveform from audio |
-| `waveformOptions` | `object` | - | Waveform generation options |
+| `generateWaveform` | `boolean` | `true` | Draw placeholder peaks when `peaks` is omitted (expo-audio can't analyze a file up front) |
+| `waveformOptions` | `{ samples?: number }` | - | Placeholder bar count |
 
 ### Display Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `showTime` | `boolean` | `true` | Show current time and duration |
-| `timeFormat` | `'mm:ss' \| 'hh:mm:ss' \| 'relative'` | `'mm:ss'` | Time display format |
+| `timeFormat` | `'mm:ss' \| 'hh:mm:ss' \| 'relative'` | `'mm:ss'` | Time display format (`relative` shows elapsed / -remaining) |
+| `enableKeyboardShortcuts` | `boolean` | `true` | Space / J / L / M shortcuts on the focused waveform (web) |
+| `keyboardShortcuts` | `KeyboardShortcuts` | - | Override the shortcut keys |
 | `showMetadata` | `boolean` | `false` | Show audio metadata |
 | `metadata` | `AudioMetadata` | - | Audio metadata object |
 
@@ -212,6 +207,11 @@ const state = playerRef.current?.getPlaybackState();
 // Waveform data
 const peaks = playerRef.current?.getWaveformPeaks();
 
+// Highlight a range (milliseconds) on the waveform
+playerRef.current?.setSelection(10000, 20000);
+const range = playerRef.current?.getSelection(); // { start, end } | null
+playerRef.current?.clearSelection();
+
 // Lifecycle
 await playerRef.current?.load(newSource);
 await playerRef.current?.unload();
@@ -235,7 +235,7 @@ The AudioPlayer integrates with the Platform Blocks theme system and can be cust
 
 ## Integration with Sound System
 
-The AudioPlayer automatically integrates with the Platform Blocks sound system for UI feedback:
+When a `SoundProvider` is mounted, the AudioPlayer plays UI feedback sounds on its controls (without one it simply stays silent):
 
 ```tsx
 import { SoundProvider } from '@platform-blocks/ui';
@@ -253,10 +253,10 @@ export const App = () => {
 
 The AudioPlayer includes comprehensive accessibility support:
 
-- **Screen reader support**: Proper ARIA labels and descriptions
-- **Keyboard navigation**: Space for play/pause, arrow keys for seeking
-- **Focus management**: Clear focus indicators and logical tab order
-- **Announcements**: State changes announced to screen readers
+- **Labelled controls**: Play / Pause, Skip back / forward 10 seconds, Mute / Unmute and Playback speed buttons; icons are decorative
+- **Seek slider**: the waveform is a `slider` named "Seek" whose value is spoken as a time ("0:42 of 3:10"); arrow keys step 5 s, Page Up / Down 10%, Home / End jump to the ends, and screen-reader adjust gestures work on native
+- **Keyboard shortcuts** (focused waveform, web): Space play / pause, J / L skip 10 s, M mute
+- **Grouping**: the player is a `group` named after `accessibilityLabel` or the metadata title
 
 ## Performance
 
@@ -271,7 +271,7 @@ The AudioPlayer is optimized for performance:
 
 ### Audio doesn't play
 - Check that the audio source URL is accessible
-- Verify expo-av is installed if using remote audio files
+- Verify expo-audio is installed (`npx expo install expo-audio`)
 - Check browser/device audio permissions
 
 ### Waveform not showing

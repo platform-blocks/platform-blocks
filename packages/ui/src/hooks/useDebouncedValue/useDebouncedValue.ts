@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export interface UseDebouncedValueOptions {
   /** Skip the initial debounce — first value is set immediately. Default: true. */
@@ -8,7 +8,8 @@ export interface UseDebouncedValueOptions {
 /**
  * Returns a tuple `[debouncedValue, cancel]`. `debouncedValue` updates only
  * after `value` stops changing for `wait` ms. `cancel()` clears any pending
- * timeout so the latest committed `debouncedValue` sticks.
+ * timeout so the latest committed `debouncedValue` sticks. `cancel` and the
+ * tuple itself keep their identity until `debouncedValue` changes.
  *
  * Useful for search inputs, filter triggers, autosave, etc.
  *
@@ -31,12 +32,12 @@ export function useDebouncedValue<T>(
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cooldownRef = useRef(false);
 
-  const cancel = () => {
+  const cancel = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!mountedRef.current) {
@@ -62,9 +63,9 @@ export function useDebouncedValue<T>(
     }, wait);
 
     return cancel;
-  }, [value, wait, leading]);
+  }, [value, wait, leading, cancel]);
 
-  useEffect(() => () => cancel(), []);
+  useEffect(() => cancel, [cancel]);
 
-  return [debouncedValue, cancel];
+  return useMemo<[T, () => void]>(() => [debouncedValue, cancel], [debouncedValue, cancel]);
 }

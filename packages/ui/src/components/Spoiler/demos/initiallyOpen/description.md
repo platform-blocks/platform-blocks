@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Flip the `initiallyOpen` prop to choose whether content renders expanded on mount or waits for user interaction.
+Flip the `defaultExpanded` prop to choose whether content renders expanded on mount or waits for user interaction.

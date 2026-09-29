@@ -14,6 +14,12 @@ import { useKnobInteraction } from '../hooks/useKnobInteraction';
 import { normalizeInteractionConfig } from '../interactionConfig';
 import type { KnobInteractionConfig } from '../types';
 
+// `isWeb` & co. are module constants; these tests flip `Platform.OS` at runtime,
+// so the flags follow it instead.
+jest.mock('../../../core/platform/flags', () =>
+  require('../../../__test-utils__/platformFlags').livePlatformFlags()
+);
+
 const SCROLL_MODE_IDLE_MS = 250;
 
 const makeHost = () => {

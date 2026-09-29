@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Showcase of built-in country presets with their localized masks and raw digit output.
+Pass `country` to format against a built-in preset, each with its own localized mask and dial code.

@@ -1,26 +1,13 @@
-import { useState } from 'react';
-import { Block, Row, Slider, RangeSlider, Text } from '@platform-blocks/ui';
+import { Block, Slider, RangeSlider, Text } from '@platform-blocks/ui';
 
 export function Demo() {
-  const [a, setA] = useState(40);
-  const [b, setB] = useState(60);
-  const [c, setC] = useState(72);
-  const [d, setD] = useState<[number, number]>([20, 80]);
-
   return (
-    <Block>
-      <Text weight="semibold">Value label position & styling</Text>
-
+    <Block fullWidth>
       <Block>
-        <Text size="sm" color="muted">Default — tooltip above the thumb</Text>
-        <Slider value={a} onChange={setA} valueLabelAlwaysOn />
-      </Block>
-
-      <Block>
-        <Text size="sm" color="muted">valueLabelPosition="bottom"</Text>
+        <Text variant="small" c="secondary">Bottom</Text>
         <Slider
-          value={b}
-          onChange={setB}
+          accessibilityLabel="Value label below"
+          defaultValue={60}
           valueLabelAlwaysOn
           valueLabelPosition="bottom"
           valueLabelOffset={2}
@@ -28,30 +15,25 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text size="sm" color="muted">
-          Custom Text styling — `ff`, `weight`, `size`, `color`
-        </Text>
+        <Text variant="small" c="secondary">Custom text</Text>
         <Slider
-          value={c}
-          onChange={setC}
+          accessibilityLabel="Custom label text"
+          defaultValue={72}
           valueLabelAlwaysOn
           valueLabelProps={{
             ff: 'monospace',
-            weight: '700',
+            fw: '700',
             size: 'md',
-            color: 'primary',
+            c: 'primary',
           }}
-          valueLabel={(v) => `${Math.round(v)}%`}
         />
       </Block>
 
       <Block>
-        <Text size="sm" color="muted">
-          Flat tooltip (no Card) with custom wrapper style
-        </Text>
+        <Text variant="small" c="secondary">Flat</Text>
         <Slider
-          value={c}
-          onChange={setC}
+          accessibilityLabel="Flat value label"
+          defaultValue={72}
           valueLabelAlwaysOn
           valueLabelAsCard={false}
           valueLabelStyle={{
@@ -60,48 +42,49 @@ export function Demo() {
             paddingVertical: 4,
             borderRadius: 6,
           }}
-          valueLabelProps={{ ff: 'monospace', weight: '600', color: '#fff' }}
+          valueLabelProps={{ ff: 'monospace', fw: '600', c: '#fff' }}
         />
       </Block>
 
       <Block>
-        <Text size="sm" color="muted">
-          RangeSlider — both thumbs share placement + styling
-        </Text>
+        <Text variant="small" c="secondary">RangeSlider</Text>
         <RangeSlider
-          value={d}
-          onChange={setD}
+          accessibilityLabel="Range with labels below"
+          defaultValue={[20, 80]}
           valueLabelAlwaysOn
           valueLabelPosition="bottom"
-          valueLabelProps={{ weight: '700', size: 'sm' }}
+          valueLabelProps={{ fw: '700', size: 'sm' }}
           valueLabel={(v, i) => (i === 0 ? `min ${Math.round(v)}` : `max ${Math.round(v)}`)}
         />
       </Block>
 
-      <Block align="center" direction="row">
-
-        <Block style={{ height: 200 }}>
+      <Block direction="row" justify="center" gap="xl">
+        <Block align="center">
+          <Text variant="small" c="secondary">Left</Text>
+          <Block style={{ height: 200 }}>
             <Slider
-              value={a}
-              onChange={setA}
+              accessibilityLabel="Vertical, label left"
+              defaultValue={40}
               orientation="vertical"
               valueLabelAlwaysOn
               valueLabelPosition="left"
-              valueLabelProps={{ weight: '700' }}
-              minH={80}
+              valueLabelProps={{ fw: '700' }}
             />
           </Block>
-        <Block style={{ height: 200 }}>
+        </Block>
+        <Block align="center">
+          <Text variant="small" c="secondary">Right</Text>
+          <Block style={{ height: 200 }}>
             <Slider
-              value={b}
-              onChange={setB}
+              accessibilityLabel="Vertical, label right"
+              defaultValue={60}
               orientation="vertical"
               valueLabelAlwaysOn
               valueLabelPosition="right"
-              valueLabelProps={{ weight: '700' }}
+              valueLabelProps={{ fw: '700' }}
             />
-            <Text size="xs" color="muted">right</Text>
           </Block>
+        </Block>
       </Block>
     </Block>
   );

@@ -1,17 +1,29 @@
-import { ComponentProps } from 'react';
-import { View } from 'react-native';
-import { SpacingProps, LayoutProps } from '../../core/utils';
-import { BorderRadiusProps } from '../../core/theme/radius';
-import { SizeValue } from '../../core/theme/sizes';
-import type { DisclaimerSupport } from '../_internal/Disclaimer';
+import type React from 'react';
+import type { ViewStyle } from 'react-native';
 
-export interface ToggleButtonProps extends SpacingProps, LayoutProps, BorderRadiusProps {
+import type { BorderRadiusProps } from '../../core/theme/radius';
+import type { SizeValue } from '../../core/theme/sizes';
+import type { BaseProps, ColorProp } from '../../core/types/base';
+import type { LayoutProps } from '../../core/utils/layout';
+import type { DisclaimerSupport } from '../_internal/Disclaimer';
+import type { PassthroughAccessibilityProps } from '../Button/types';
+
+export type ToggleValue = string | number;
+export type ToggleGroupValue = ToggleValue | ToggleValue[];
+export type ToggleVariant = 'solid' | 'ghost';
+
+type PassthroughA11yProps = Omit<PassthroughAccessibilityProps, 'accessibilityLabel'>;
+
+export interface ToggleButtonProps extends BaseProps<ViewStyle>, LayoutProps, BorderRadiusProps, PassthroughA11yProps {
   /** Value for this toggle button */
-  value: string | number;
-  /** Whether this button is selected */
+  value: ToggleValue;
+  /**
+   * Whether this button is selected (pressed). Standalone buttons are
+   * controlled by it; inside a ToggleGroup the group's value decides.
+   */
   selected?: boolean;
-  /** Callback when button is pressed */
-  onPress?: (value: string | number) => void;
+  /** Callback when button is pressed (standalone buttons) */
+  onPress?: (value: ToggleValue) => void;
   /** Whether the button is disabled */
   disabled?: boolean;
   /** Button content */
@@ -19,42 +31,41 @@ export interface ToggleButtonProps extends SpacingProps, LayoutProps, BorderRadi
   /** Size of the toggle button */
   size?: SizeValue;
   /** Button color. A palette token, `'primary.6'` shade syntax, or any CSS color. */
-  color?: string;
+  color?: ColorProp;
   /** Visual style variant */
-  variant?: 'solid' | 'ghost';
-  /** Custom styles */
-  style?: any;
-  /** Test ID for testing */
-  testID?: string;
+  variant?: ToggleVariant;
+  /** Accessible name; required when the content isn't text (an icon-only toggle). */
+  accessibilityLabel?: string;
 }
 
-export interface ToggleGroupProps extends SpacingProps, LayoutProps, BorderRadiusProps, DisclaimerSupport {
-  /** Current selected value(s) */
-  value?: string | number | (string | number)[];
+export interface ToggleGroupProps extends BaseProps<ViewStyle>, LayoutProps, BorderRadiusProps, DisclaimerSupport {
+  /** Current selected value(s) (controlled) */
+  value?: ToggleGroupValue;
   /** Initial value(s) for uncontrolled usage */
-  defaultValue?: string | number | (string | number)[];
-  /** Callback when selection changes */
-  onChange?: (value: string | number | (string | number)[]) => void;
-  /** Whether only one option can be selected at a time */
+  defaultValue?: ToggleGroupValue;
+  /**
+   * Called when selection changes: the pressed value (or `[]` when it was
+   * deselected) in exclusive mode, the array of selected values otherwise.
+   */
+  onChange?: (value: ToggleGroupValue) => void;
+  /** Whether only one option can be selected at a time (a radio group) */
   exclusive?: boolean;
   /** Whether the group is disabled */
   disabled?: boolean;
   /** Size of all toggle buttons */
   size?: SizeValue;
   /** Color for all buttons. A palette token, `'primary.6'` shade syntax, or any CSS color. */
-  color?: string;
+  color?: ColorProp;
   /** Visual style variant for all buttons */
-  variant?: 'solid' | 'ghost';
-  /** Orientation of the toggle group */
+  variant?: ToggleVariant;
+  /** Orientation of the toggle group (also the arrow keys that move focus) */
   orientation?: 'horizontal' | 'vertical';
   /** Whether selection is required (at least one must be selected) */
   required?: boolean;
-  /** Custom styles */
-  style?: any;
+  /** Accessible name of the group */
+  accessibilityLabel?: string;
   /** Toggle buttons */
   children: React.ReactNode;
-  /** Test ID for testing */
-  testID?: string;
 }
 
 /**
@@ -63,13 +74,14 @@ export interface ToggleGroupProps extends SpacingProps, LayoutProps, BorderRadiu
  */
 export type ToggleProps = ToggleButtonProps;
 
+/** What a ToggleGroup shares with its buttons. */
 export interface ToggleGroupContextValue {
-  value?: string | number | (string | number)[];
-  onChange?: (value: string | number) => void;
+  value?: ToggleGroupValue;
+  onChange?: (value: ToggleValue) => void;
   exclusive?: boolean;
   disabled?: boolean;
   size?: SizeValue;
   color?: string;
-  variant?: 'solid' | 'ghost';
+  variant?: ToggleVariant;
   required?: boolean;
 }

@@ -1,47 +1,23 @@
 import React, { useMemo } from 'react';
-import { View, ViewStyle } from 'react-native';
+import { View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+
 import { factory } from '../../core/factory';
-import { useTheme } from '../../core/theme';
-import { extractSpacingProps, getSpacingStyles } from '../../core/utils';
+import { useThemedStyles } from '../../core/hooks/useThemedStyles';
+import { getControlSize, resolveRadius } from '../../core/theme/tokens';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { useStyleProps } from '../../core/utils/spacing';
+import { Divider } from '../Divider';
 import { useSurfaceStyles } from '../Surface/useSurfaceStyles';
 import { Text } from '../Text';
-import { Divider } from '../Divider';
 import { ControlFieldGroupProvider } from './context';
 import type { ControlFieldGroupContextValue, ControlFieldGroupProps } from './types';
-import type { SizeValue } from '../../core/theme/types';
-
-/** Row padding scale — control rows sit a little taller than plain list rows. */
-const PADDING_SCALE: Record<string, { py: number; px: number }> = {
-  xs: { py: 8, px: 10 },
-  sm: { py: 10, px: 12 },
-  md: { py: 12, px: 14 },
-  lg: { py: 14, px: 16 },
-  xl: { py: 16, px: 18 },
-};
-
-function resolvePadding(size?: SizeValue) {
-  if (typeof size === 'number') {
-    const scale = size / 24;
-    return { py: Math.max(8, Math.round(12 * scale)), px: Math.max(10, Math.round(14 * scale)) };
-  }
-  return PADDING_SCALE[(size as string) ?? 'md'] ?? PADDING_SCALE.md;
-}
 
 /**
- * Theme radii are stored as CSS strings (e.g. `'8px'`), so `Number()` yields
- * NaN — parse the numeric part and fall back to a clearly-rounded default.
+ * A grouped surface of `ControlField` rows with dividers — the settings-list
+ * pattern. `style` and `ref` go to the surface; style props to the outer
+ * wrapper that also holds the title and footer.
  */
-function resolveRadius(radius: ControlFieldGroupProps['radius'], theme: any): number {
-  if (typeof radius === 'number') return radius;
-  const raw = theme?.radii?.[radius as string];
-  const n = typeof raw === 'string' ? parseFloat(raw) : raw;
-  return Number.isFinite(n) ? n : 12;
-}
-
-export const ControlFieldGroup = factory<{ props: ControlFieldGroupProps; ref: View }>((rawProps, ref) => {
-  const { spacingProps, otherProps } = extractSpacingProps(rawProps);
-  const spacingStyles = getSpacingStyles(spacingProps);
-
+export const ControlFieldGroup = factory<{ props: ControlFieldGroupProps; ref: View }>((props, ref) => {
   const {
     children,
     variant = 'default',
@@ -50,78 +26,77 @@ export const ControlFieldGroup = factory<{ props: ControlFieldGroupProps; ref: V
     radius = 'lg',
     size,
     title,
+    titleProps,
     footer,
     style,
     testID,
-  } = otherProps as ControlFieldGroupProps;
+  } = props;
 
-  const theme = useTheme();
-  const { py, px } = resolvePadding(size);
-
-  const r = resolveRadius(radius, theme);
-
+  const spacingStyles = useStyleProps(props);
   const groupCtx = useMemo<ControlFieldGroupContextValue>(() => ({ size }), [size]);
 
-  // `raised` preserves the original intent — the group must stand out from
-  // whatever it sits on so control off-states (a gray switch track, a checkbox
-  // box) stay visible against it — but expresses it as one step up the ladder
-  // rather than a fixed palette index, so it still holds inside a card.
+  // `raised`: the group must stand out from whatever it sits on so control
+  // off-states (a gray switch track, a checkbox box) stay visible against it —
+  // one step up the elevation ladder rather than a fixed palette index, so it
+  // still holds inside a card.
   const groupSurface = useSurfaceStyles({
     raised: true,
     withBorder: variant === 'bordered',
     shadow: 'none',
   });
 
-  const surfaceStyle: ViewStyle = {
-    borderRadius: r,
-    overflow: 'hidden',
-    backgroundColor: variant === 'flush' ? 'transparent' : groupSurface.token.background,
-    borderWidth: variant === 'bordered' ? 1 : 0,
-    borderColor: variant === 'bordered' ? groupSurface.token.border : 'transparent',
-  };
+  const styles = useThemedStyles(
+    (theme) => {
+      // Rows sit a little taller than plain list rows; padding scales with the control size.
+      const metrics = getControlSize(theme, size);
+      const py = Math.max(8, Math.round(metrics.height * 0.3));
+      const px = metrics.paddingX + 2;
+      return {
+        surface: {
+          borderRadius: resolveRadius(theme, radius),
+          overflow: 'hidden',
+          backgroundColor: variant === 'flush' ? 'transparent' : groupSurface.token.background,
+          borderWidth: variant === 'bordered' ? 1 : 0,
+          borderColor: variant === 'bordered' ? groupSurface.token.border : 'transparent',
+        } as ViewStyle,
+        // Each row gets its padding injected onto the field's Pressable (via its
+        // `style` prop) so the whole padded row stays tappable — padding on an
+        // outer wrapper would leave dead gutters.
+        row: { paddingVertical: py, paddingHorizontal: px } as ViewStyle,
+        title: { marginBottom: 6, marginStart: px } as TextStyle,
+        footer: { color: theme.text.muted, marginTop: 6, marginStart: px } as TextStyle,
+        insetDivider: { marginStart: px } as ViewStyle,
+      };
+    },
+    [size, radius, variant, groupSurface.token.background, groupSurface.token.border]
+  );
 
-  // Each row gets its horizontal + vertical padding injected onto the field's
-  // Pressable (via its `style` prop) so the whole padded row stays tappable —
-  // padding on an outer wrapper would leave dead gutters.
-  const rowPadding: ViewStyle = { paddingVertical: py, paddingHorizontal: px };
-
-  const items = React.Children.toArray(children).filter(Boolean) as React.ReactElement<any>[];
+  const items = React.Children.toArray(children).filter(React.isValidElement) as React.ReactElement<{
+    style?: StyleProp<ViewStyle>;
+  }>[];
 
   return (
     <ControlFieldGroupProvider value={groupCtx}>
       <View style={spacingStyles} testID={testID}>
         {title != null ? (
-          <Text
-            size="sm"
-            selectable={false}
-            style={{ color: theme.text.muted, marginBottom: 6, marginLeft: px, textTransform: 'uppercase', letterSpacing: 0.4 }}
-          >
+          <Text {...mergeSlotProps({ textRole: 'sectionLabel', selectable: false, style: styles.title }, titleProps)}>
             {title}
           </Text>
         ) : null}
 
-        <View ref={ref} style={[surfaceStyle, style]}>
-          {items.map((child, index) => {
-            const el = child as React.ReactElement<{ style?: any }>;
-            const padded = React.isValidElement(el)
-              ? React.cloneElement(el, { style: [rowPadding, el.props.style] })
-              : el;
-            return (
-              <React.Fragment key={el.key ?? index}>
-                {padded}
-                {dividers && index < items.length - 1 ? (
-                  <Divider
-                    color="border"
-                    style={insetDividers ? { marginLeft: px } : undefined}
-                  />
-                ) : null}
-              </React.Fragment>
-            );
-          })}
+        <View ref={ref} style={[styles.surface, style]}>
+          {items.map((child, index) => (
+            <React.Fragment key={child.key ?? index}>
+              {React.cloneElement(child, { style: [styles.row, child.props.style] })}
+              {dividers && index < items.length - 1 ? (
+                <Divider color="border" style={insetDividers ? styles.insetDivider : undefined} />
+              ) : null}
+            </React.Fragment>
+          ))}
         </View>
 
         {footer != null ? (
-          <Text size="sm" selectable={false} style={{ color: theme.text.muted, marginTop: 6, marginLeft: px }}>
+          <Text size="sm" selectable={false} style={styles.footer}>
             {footer}
           </Text>
         ) : null}
@@ -129,3 +104,5 @@ export const ControlFieldGroup = factory<{ props: ControlFieldGroupProps; ref: V
     </ControlFieldGroupProvider>
   );
 }, { displayName: 'ControlField.Group' });
+
+ControlFieldGroup.displayName = 'ControlField.Group';

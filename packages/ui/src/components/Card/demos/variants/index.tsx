@@ -4,17 +4,10 @@ const VARIANTS = ['filled', 'outline', 'elevated', 'subtle', 'ghost', 'gradient'
 
 export function Demo() {
   return (
-    <Block>
+    <Block fullWidth>
       {VARIANTS.map((variant) => (
         <Card key={variant} variant={variant} p="lg" radius="lg">
-          <Block>
-            <Text variant="small" color="muted">
-              {String(variant).toUpperCase()} variant
-            </Text>
-            <Text color="muted">
-              Apply the {variant} treatment to match surface contrast needs.
-            </Text>
-          </Block>
+          <Text>{variant}</Text>
         </Card>
       ))}
     </Block>

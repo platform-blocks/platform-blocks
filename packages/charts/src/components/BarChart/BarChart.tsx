@@ -8,10 +8,10 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import Svg, { Path, G, Text as SvgText, Line } from 'react-native-svg';
+import Svg, { Path, G, Text as SvgText, Line, Defs } from 'react-native-svg';
 import { roundedBarPath, barCornerMask } from '../../utils/barPath';
 
-import { useChartTheme } from '../../theme/ChartThemeContext';
+import { useChartTheme, useNumberFormatter } from '../../theme/ChartThemeContext';
 import { BarChartProps, BarChartDataPoint, BarChartSeries } from './types';
 import { ChartInteractionEvent } from '../../types';
 import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
@@ -23,7 +23,9 @@ import { useChartInteractionContext } from '../../interaction/ChartInteractionCo
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { BandCategoryHitTester } from '../../core/hittest/band';
 import type { HitSeries, Mark } from '../../core/hittest/types';
-import { generateTicks, getColorFromScheme, colorSchemes, formatNumber } from '../../utils';
+import { generateTicks, getColorFromScheme, formatNumber, createTickFormatter } from '../../utils';
+import { createColorScale, type ColorScaleContext } from '../../utils/colorScale';
+import { ChartGradientDef, fillSwatchColor, isChartGradient, useChartFillId } from '../../core/ChartFill';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -42,7 +44,10 @@ type ComputedBar = {
   y: number;
   width: number;
   height: number;
+  /** Solid color for swatches, tooltips and hit-testing */
   color: string;
+  /** What the bar is filled with — `color`, or a gradient url */
+  paint: string;
   originX: number;
   originY: number;
   isPositive: boolean;
@@ -52,6 +57,7 @@ type NormalizedSeriesPoint = {
   datum: BarChartDataPoint;
   value: number;
   color: string;
+  paint: string;
   category: string;
   categoryIndex: number;
   isSynthetic: boolean;
@@ -196,8 +202,8 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
   const {
     data,
     series,
-    width = 400,
-    height = 300,
+    w: width = 400,
+    h: height = 300,
     barColor,
     barSpacing = 0.2,
     barBorderRadius = 4,
@@ -226,12 +232,13 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
   } = props;
 
   const theme = useChartTheme();
+  const formatValue = useNumberFormatter();
 
   const showValueLabels = valueLabel ? valueLabel.show !== false : false;
   const valueLabelFormatter = valueLabel?.formatter
     ? valueLabel.formatter
     : ((value: number, datum: BarChartDataPoint, index: number) =>
-        valueFormatter ? valueFormatter(value, datum, index) : formatNumber(value));
+        valueFormatter ? valueFormatter(value, datum, index) : formatValue(value));
   const valueLabelColor = valueLabel?.color || theme.colors.textPrimary;
   const valueLabelFontSize = valueLabel?.fontSize ?? 12;
   const valueLabelFontWeightRaw = valueLabel?.fontWeight ?? '600';
@@ -253,6 +260,15 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
   const animationProgress = useSharedValue(0);
   const hasPlayedIntro = React.useRef(false);
 
+  // barColor may be a gradient: bars paint with it, while swatches (legend, tooltip)
+  // use its strongest stop.
+  const barGradient = isChartGradient(barColor) ? barColor : null;
+  const barSwatch = barColor ? fillSwatchColor(barColor, theme.colors.accentPalette[0]) : undefined;
+  const barGradientId = useChartFillId('bar-fill');
+  const barPaint = barGradient ? `url(#${barGradientId})` : barSwatch;
+
+  // The synthesized single series carries no color of its own, so `colorScale`
+  // still outranks `barColor` for it.
   const resolvedSeries = useMemo<BarChartSeries[]>(() => {
     if (series && series.length > 0) {
       return series;
@@ -261,11 +277,10 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
       {
         id: 'series-default',
         name: title || 'Series',
-        color: barColor,
         data,
       },
     ];
-  }, [series, data, title, barColor]);
+  }, [series, data, title]);
 
   const seriesCount = resolvedSeries.length;
 
@@ -296,19 +311,46 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
     return ordered;
   }, [resolvedSeries]);
 
+  // A scale config reads bar values over a domain that includes zero, where bars start.
+  const valueExtent = useMemo<[number, number]>(() => {
+    let lo = 0;
+    let hi = 0;
+    resolvedSeries.forEach((seriesItem) => seriesItem.data.forEach((datum) => {
+      if (Number.isFinite(datum.value)) {
+        lo = Math.min(lo, datum.value);
+        hi = Math.max(hi, datum.value);
+      }
+    }));
+    return [lo, hi];
+  }, [resolvedSeries]);
+
+  const scaleColorAt = useMemo(() => {
+    if (!colorScale || typeof colorScale === 'function') return null;
+    const context: ColorScaleContext = {
+      base: barSwatch ?? theme.colors.accentPalette[0],
+      background: theme.colors.background,
+      ink: theme.colors.textPrimary,
+      palette: theme.colors.accentPalette,
+    };
+    return createColorScale(colorScale, valueExtent, context);
+  }, [colorScale, valueExtent, barSwatch, theme.colors.accentPalette, theme.colors.background, theme.colors.textPrimary]);
+
+  // Order: datum → series → colorScale → barColor → theme palette slot.
   const resolvePointColor = useCallback(
     (datum: BarChartDataPoint, seriesItem: BarChartSeries, seriesIndex: number, categoryIndex: number) => {
-      if (datum.color) return datum.color;
-      if (seriesItem.color) return seriesItem.color;
+      const solid = (color: string) => ({ color, paint: color });
+      if (datum.color) return solid(datum.color);
+      if (seriesItem.color) return solid(seriesItem.color);
       if (colorScale) {
-        const resolved = colorScale({ datum, series: seriesItem, seriesIndex, categoryIndex });
-        if (resolved) return resolved;
+        const resolved = typeof colorScale === 'function'
+          ? colorScale({ datum, series: seriesItem, seriesIndex, categoryIndex })
+          : scaleColorAt?.(datum.value);
+        if (resolved) return solid(resolved);
       }
-      if (barColor && seriesCount === 1) return barColor;
-      const palette = theme.colors.accentPalette ?? colorSchemes.default;
-      return getColorFromScheme(seriesIndex, palette);
+      if (barSwatch && barPaint && seriesCount === 1) return { color: barSwatch, paint: barPaint };
+      return solid(getColorFromScheme(seriesIndex, theme.colors.accentPalette));
     },
-    [colorScale, barColor, seriesCount, theme.colors.accentPalette]
+    [colorScale, scaleColorAt, barSwatch, barPaint, seriesCount, theme.colors.accentPalette]
   );
 
   const normalizedSeries = useMemo<NormalizedSeriesData[]>(() => {
@@ -324,7 +366,7 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
           return {
             datum,
             value: datum.value,
-            color: resolvePointColor(datum, seriesItem, seriesIndex, categoryIndex),
+            ...resolvePointColor(datum, seriesItem, seriesIndex, categoryIndex),
             category,
             categoryIndex,
             isSynthetic: false,
@@ -339,7 +381,7 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
         return {
           datum: synthetic,
           value: 0,
-          color: resolvePointColor(synthetic, seriesItem, seriesIndex, categoryIndex),
+          ...resolvePointColor(synthetic, seriesItem, seriesIndex, categoryIndex),
           category,
           categoryIndex,
           isSynthetic: true,
@@ -469,10 +511,11 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
 
   // Margins are measured off the labels that will actually be drawn, so a chart
   // in a narrow column spends its width on bars instead of on empty gutter.
+  const valueTickFormat = useMemo(() => createTickFormatter(valueTicks, theme.numberFormat), [valueTicks, theme.numberFormat]);
   const valueTickLabels = useMemo(() => {
-    const format = orientation === 'vertical' ? yAxis?.labelFormatter : xAxis?.labelFormatter;
-    return valueTicks.map((tick) => (format ? format(tick) : formatNumber(tick)));
-  }, [valueTicks, orientation, yAxis?.labelFormatter, xAxis?.labelFormatter]);
+    const format = (orientation === 'vertical' ? yAxis?.labelFormatter : xAxis?.labelFormatter) ?? valueTickFormat;
+    return valueTicks.map((tick) => format(tick));
+  }, [valueTicks, orientation, yAxis?.labelFormatter, xAxis?.labelFormatter, valueTickFormat]);
 
   const chartDimensions = useMemo(
     () => {
@@ -663,6 +706,7 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
           width,
           height,
           color: point.color,
+          paint: point.paint,
           originX,
           originY,
           isPositive,
@@ -911,18 +955,18 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
     }
     return normalizedSeries.map((seriesItem) => {
       const sample = seriesItem.points.find((point) => !point.isSynthetic);
-      const palette = theme.colors.accentPalette ?? colorSchemes.default;
+      const palette = theme.colors.accentPalette;
       return {
         label: resolvedSeries[seriesItem.seriesIndex]?.name ?? seriesItem.name,
         color:
           sample?.color ||
           resolvedSeries[seriesItem.seriesIndex]?.color ||
-          barColor ||
+          barSwatch ||
           getColorFromScheme(seriesItem.seriesIndex, palette),
         visible: !hiddenSeries.has(seriesItem.id),
       };
     });
-  }, [legend, normalizedSeries, hiddenSeries, resolvedSeries, theme.colors.accentPalette, barColor]);
+  }, [legend, normalizedSeries, hiddenSeries, resolvedSeries, theme.colors.accentPalette, barSwatch]);
 
   const handleLegendPress = useCallback(
     (_item: any, index: number, nativeEvent?: any) => {
@@ -963,8 +1007,8 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
 
   return (
     <ChartContainer
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       padding={padding}
       disabled={disabled}
       animationDuration={animationDuration}
@@ -997,7 +1041,7 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
               tickSize={valueAxisTickSize}
               tickPadding={axisTickPadding}
               tickFormat={(val) =>
-                yAxis?.labelFormatter ? yAxis.labelFormatter(Number(val)) : formatNumber(Number(val))
+                yAxis?.labelFormatter ? yAxis.labelFormatter(Number(val)) : valueTickFormat(Number(val))
               }
               showLabels={yAxis?.showLabels !== false}
               showTicks={yAxis?.showTicks !== false}
@@ -1079,7 +1123,7 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
               tickSize={valueAxisTickSize}
               tickPadding={axisTickPadding}
               tickFormat={(val) =>
-                xAxis?.labelFormatter ? xAxis.labelFormatter(Number(val)) : formatNumber(Number(val))
+                xAxis?.labelFormatter ? xAxis.labelFormatter(Number(val)) : valueTickFormat(Number(val))
               }
               showLabels={xAxis?.showLabels !== false}
               showTicks={xAxis?.showTicks !== false}
@@ -1102,6 +1146,15 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
         height={plotHeight}
         style={{ position: 'absolute', left: padding.left, top: padding.top }}
       >
+        {barGradient && (
+          <Defs>
+            <ChartGradientDef
+              id={barGradientId}
+              gradient={barGradient}
+              bounds={barGradient.extent === 'plot' ? { x: 0, y: 0, width: plotWidth, height: plotHeight } : undefined}
+            />
+          </Defs>
+        )}
         {thresholdsBack.length > 0 && renderThresholds(thresholdsBack)}
         <G>
           {bars.map((bar) => {
@@ -1119,7 +1172,7 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
                 animationProgress={animationProgress}
                 targetScale={targetScale}
                 borderRadius={barBorderRadius}
-                fill={bar.color}
+                fill={bar.paint}
                 opacity={opacity}
                 stroke={stroke}
                 strokeWidth={isHovered ? 1.5 : 0}
@@ -1128,64 +1181,77 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
           })}
         </G>
 
-        {showValueLabels &&
-          bars.map((bar) => {
-            const labelText = valueLabelFormatter(bar.originalValue, bar.datum, bar.globalIndex);
-            if (labelText == null || labelText === '') return null;
-
-            const textKey = `${bar.seriesId}-${bar.datum.id ?? `${bar.category}-${bar.globalIndex}`}-label`;
-            const isVertical = orientation === 'vertical';
-            const useInside = valueLabelInside
-              ? isVertical
-                ? bar.height >= valueLabelFontSize * 1.6
-                : bar.width >= valueLabelFontSize * 2.2
-              : false;
-            let x: number;
-            let y: number;
-            let textAnchor: 'start' | 'middle' | 'end';
-            let alignmentBaseline: 'middle' | 'baseline' | 'hanging';
-
-            if (isVertical) {
-              x = bar.x + bar.width / 2;
-              textAnchor = 'middle';
-              if (useInside) {
-                y = bar.y + bar.height / 2;
-                alignmentBaseline = 'middle';
-              } else {
-                y = bar.y - valueLabelOffset;
-                alignmentBaseline = 'baseline';
-              }
-            } else {
-              y = bar.y + bar.height / 2;
-              alignmentBaseline = 'middle';
-              if (useInside) {
-                x = bar.x + bar.width - valueLabelOffset;
-                textAnchor = 'end';
-              } else {
-                x = bar.x + bar.width + valueLabelOffset;
-                textAnchor = 'start';
-              }
-            }
-
-            return (
-              <SvgText
-                key={textKey}
-                x={x}
-                y={y}
-                fill={valueLabelColor}
-                fontSize={valueLabelFontSize}
-                fontWeight={valueLabelFontWeight}
-                textAnchor={textAnchor}
-                alignmentBaseline={alignmentBaseline}
-                pointerEvents="none"
-              >
-                {labelText}
-              </SvgText>
-            );
-          })}
 
         {thresholdsFront.length > 0 && renderThresholds(thresholdsFront)}
       </Svg>
+
+      {/* Value labels sit above the tallest bar, outside the plot box, so they get a
+          chart-sized layer of their own instead of being clipped by the plot Svg. */}
+      {showValueLabels && (
+        <Svg
+          width={width}
+          height={height}
+          style={{ position: 'absolute', left: 0, top: 0 }}
+          pointerEvents="none"
+        >
+          <G x={padding.left} y={padding.top}>
+            {bars.map((bar) => {
+              const labelText = valueLabelFormatter(bar.originalValue, bar.datum, bar.globalIndex);
+              if (labelText == null || labelText === '') return null;
+
+              const textKey = `${bar.seriesId}-${bar.datum.id ?? `${bar.category}-${bar.globalIndex}`}-label`;
+              const isVertical = orientation === 'vertical';
+              const useInside = valueLabelInside
+                ? isVertical
+                  ? bar.height >= valueLabelFontSize * 1.6
+                  : bar.width >= valueLabelFontSize * 2.2
+                : false;
+              let x: number;
+              let y: number;
+              let textAnchor: 'start' | 'middle' | 'end';
+              let alignmentBaseline: 'middle' | 'baseline' | 'hanging';
+
+              if (isVertical) {
+                x = bar.x + bar.width / 2;
+                textAnchor = 'middle';
+                if (useInside) {
+                  y = bar.y + bar.height / 2;
+                  alignmentBaseline = 'middle';
+                } else {
+                  y = bar.y - valueLabelOffset;
+                  alignmentBaseline = 'baseline';
+                }
+              } else {
+                y = bar.y + bar.height / 2;
+                alignmentBaseline = 'middle';
+                if (useInside) {
+                  x = bar.x + bar.width - valueLabelOffset;
+                  textAnchor = 'end';
+                } else {
+                  x = bar.x + bar.width + valueLabelOffset;
+                  textAnchor = 'start';
+                }
+              }
+
+              return (
+                <SvgText
+                  key={textKey}
+                  x={x}
+                  y={y}
+                  fill={valueLabelColor}
+                  fontSize={valueLabelFontSize}
+                  fontWeight={valueLabelFontWeight}
+                  textAnchor={textAnchor}
+                  alignmentBaseline={alignmentBaseline}
+                  pointerEvents="none"
+                >
+                  {labelText}
+                </SvgText>
+              );
+            })}
+          </G>
+        </Svg>
+      )}
 
       {/* Unified cross-platform gesture surface (web PointerEvents | native
           Responder), driven by useChartPointer + the band hit-tester. Full-chart

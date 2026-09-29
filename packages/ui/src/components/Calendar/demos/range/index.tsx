@@ -25,7 +25,7 @@ export function Demo() {
         onChange={(range) => setSelectedRange(range as [Date | null, Date | null])}
         highlightToday
       />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         {summary}
       </Text>
     </Block>

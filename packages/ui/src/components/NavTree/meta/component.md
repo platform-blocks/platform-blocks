@@ -1,6 +1,7 @@
 ---
 name: NavTree
 title: NavTree
+summary: Sidebar navigation that groups a flat list of routes into a collapsible tree, opening and marking the current page
 category: navigation
 tags: [navigation, sidebar, tree, menu, routes]
 playground: true
@@ -21,6 +22,7 @@ props:
   highlightMatches: Mark the matched substring in row labels (default true)
   persistKey: Remember which branches are open across reloads (web)
   size: Row density
+  renderLabel: Custom row label — `(node, depth, isOpen, state) => ReactNode`, as on Tree
 examples:
   - basic
   - counts

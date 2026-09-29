@@ -8,12 +8,6 @@ import type { ToastProps, ToastVariant, ToastSeverity, ToastPosition, ToastAnima
 import type { ThemeColor } from '../../../core/theme/resolveColors';
 
 // Mock imports
-jest.mock('react-native-reanimated', () => {
-  const Reanimated = require('react-native-reanimated/mock');
-  Reanimated.default.call = () => {};
-  return Reanimated;
-});
-
 jest.mock('../../Icon', () => ({
   Icon: 'Icon',
 }));
@@ -179,13 +173,13 @@ describe('Toast Component - Type Safety & Props Validation', () => {
       const props: ToastProps = {
         animationDuration: 500,
         autoHide: 3000,
-        maxWidth: 400,
+        maw: 400,
         title: 'Test',
       };
       
       expect(props.animationDuration).toBe(500);
       expect(props.autoHide).toBe(3000);
-      expect(props.maxWidth).toBe(400);
+      expect(props.maw).toBe(400);
     });
 
     it('should accept actions array', () => {
@@ -307,7 +301,7 @@ describe('Toast Component - Type Safety & Props Validation', () => {
         testID: 'test-toast',
         actions: [{ label: 'Undo', onPress: jest.fn() }],
         dismissOnTap: false,
-        maxWidth: 500,
+        maw: 500,
         persistent: false,
         animationConfig: { type: 'slide' },
         swipeConfig: { enabled: true },

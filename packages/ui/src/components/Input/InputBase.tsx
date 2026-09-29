@@ -1,86 +1,89 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { TextInput, View, Text, TextInputProps as RNTextInputProps, StyleSheet, Platform, ViewStyle } from 'react-native';
-import { useTheme } from '../../core/theme';
-import { createRadiusStyles } from '../../core/theme/radius';
-import { getSpacingStyles, extractSpacingProps, getLayoutStyles, extractLayoutProps, mergeSlotProps } from '../../core/utils';
-import { factory } from '../../core/factory/factory';
-import { createInputStyles } from './styles';
-import { FieldHeader } from '../_internal/FieldHeader';
-import { useDisclaimer, extractDisclaimerProps } from '../_internal/Disclaimer';
-import { BaseInputProps, InputStyleProps, ExtendedTextInputProps } from './types';
-import { Icon } from '../Icon';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  StyleSheet,
+  TextInput,
+  View,
+  type NativeSyntheticEvent,
+  type TextInputSubmitEditingEventData,
+  type ViewStyle,
+} from 'react-native';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useA11yId } from '../../core/accessibility/useA11yId';
 import { ClearButton } from '../../core/components/ClearButton';
-import { useAnnouncer } from '../../core/accessibility/hooks';
-import { createAccessibilityProps } from '../../core/accessibility/utils';
-import { useDirection } from '../../core/providers/DirectionProvider';
+import { factory } from '../../core/factory/factory';
+import { webProps } from '../../core/platform/webProps';
+import { useKeyboardFocusOptional } from '../../core/providers/KeyboardManagerProvider';
 import { useIsMobile } from '../../core/responsive';
-import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getLayoutStyles, extractLayoutProps } from '../../core/utils/layout';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { resolveStyleProps, extractStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState/useControllableState';
+import { useDisclaimer, extractDisclaimerProps } from '../_internal/Disclaimer/disclaimerUtils';
+import { Field, FieldBoundary, useFieldContext, type FieldRenderProps } from '../_internal/Field/Field';
+import { getFieldFrameStyles } from '../_internal/Field/fieldFrameStyles';
+import { getInputRootStyles } from './styles';
+import type { TextInputBaseProps } from './types';
 
-interface InputLabelProps {
-  required?: boolean;
-  children: React.ReactNode;
-}
+export type { TextInputBaseProps } from './types';
 
-const InputLabel: React.FC<InputLabelProps> = ({ required, children }) => {
-  const theme = useTheme();
-  const { isRTL } = useDirection();
-  const { getInputStyles } = createInputStyles(theme, isRTL);
-  const styles = getInputStyles({ size: 'md' } as InputStyleProps);
+/** Whether a label/description/error slot has something to show (`error={true}` counts: invalid, no message). */
+const hasContent = (node: React.ReactNode) =>
+  node !== undefined && node !== null && node !== false && node !== '';
 
-  return (
-    <Text style={styles.label}>
-      {children}
-      {required && (
-        <Text style={styles.required} accessibilityLabel="required">
-          {' *'}
-        </Text>
-      )}
-    </Text>
-  );
-};
+const PB_INPUT_DATASET = { pbInput: 'true' } as const;
 
-interface TextInputBaseProps extends BaseInputProps {
-  /** Whether input is focused */
-  focused?: boolean;
-  /** Additional TextInput props */
-  textInputProps?: ExtendedTextInputProps;
-  /** External ref passthrough */
-  inputRef?: any;
-  /** Force secure entry regardless of type */
-  secureTextEntry?: boolean;
-}
-
+/**
+ * The shared text-field shell: label / description / error / helper text come
+ * from the `Field` frame (ids, `aria-labelledby` / `aria-describedby`,
+ * `aria-invalid`, error announcement), the bordered frame from
+ * `getFieldFrameStyles` (2px focus ring from `theme.states.focusRing`, visible
+ * in the error state too). Input, NumberInput, PhoneInput and Search render it.
+ *
+ * `ref` (and `inputRef`) point at the underlying `TextInput`.
+ *
+ * Inside another `Field` (e.g. a labelled `FormField`) and without label,
+ * description, error or helper text of its own, it renders just the frame and
+ * adopts that field's wiring, so the outer label names this input.
+ */
 export const TextInputBase = factory<{
   props: TextInputBaseProps;
   ref: TextInput;
 }>((props, ref) => {
-  const { spacingProps, otherProps: propsAfterSpacing } = extractSpacingProps(props);
+  const { styleProps, otherProps: propsAfterSpacing } = extractStyleProps(props);
   const { layoutProps, otherProps: propsAfterLayout } = extractLayoutProps(propsAfterSpacing);
-  const { disclaimerProps: disclaimerData, otherProps } = extractDisclaimerProps(propsAfterLayout as TextInputBaseProps);
-  
+  const { disclaimerProps: disclaimerData, otherProps } = extractDisclaimerProps(propsAfterLayout);
+
   const {
+    id,
     value,
+    defaultValue,
     onChangeText,
     onEnter,
-  label,
-  description,
+    label,
+    description,
     error,
     helperText,
-    disabled,
-    required,
+    disabled = false,
+    readOnly = false,
+    required = false,
     size = 'md',
     variant = 'default',
+    radius,
     withAsterisk,
     placeholder,
+    placeholderTextColor,
     startSection,
     endSection,
+    startSectionProps,
+    endSectionProps,
     focused: focusedProp,
     accessibilityLabel,
     accessibilityHint,
     testID,
     textInputProps,
     style,
-    radius,
     secureTextEntry,
     clearable,
     clearButtonLabel,
@@ -90,279 +93,211 @@ export const TextInputBase = factory<{
     keyboardFocusId,
     labelProps,
     descriptionProps,
-    placeholderTextColor,
-    startSectionProps,
-    endSectionProps,
-    ...rest
+    onFocus,
+    onBlur,
+    containerProps,
   } = otherProps;
 
+  const theme = useTheme();
+  const isMobile = useIsMobile();
   const renderDisclaimer = useDisclaimer(disclaimerData.disclaimer, disclaimerData.disclaimerProps);
+  const outerField = useFieldContext();
+  // `true` marks the field invalid without a message, so it counts as an error too.
+  const hasOwnError = hasContent(error);
+  const headless = !!outerField && !hasContent(label) && !hasContent(description) && !hasContent(helperText) && !hasOwnError;
+
+  const [currentValue, setCurrentValue] = useControllableState<string>({
+    value: value == null ? undefined : String(value),
+    defaultValue,
+    finalValue: '',
+    onChange: onChangeText,
+  });
 
   const [focused, setFocused] = useState(false);
-  const theme = useTheme();
-  const { isRTL } = useDirection();
-  const isMobile = useIsMobile();
   const internalInputRef = useRef<TextInput | null>(null);
+  const mergedRef = useMergedRef<TextInput>(internalInputRef, inputRef, ref);
 
-  // Accessibility hooks
-  const { announce } = useAnnouncer();
-  const generatedInputIdRef = useRef(`input-${(typeof label === 'string' && label) || 'field'}-${Math.random().toString(36).substr(2, 9)}`);
-  const inputId = generatedInputIdRef.current;
-
-  const fallbackFocusIdRef = useRef(`focus-${Math.random().toString(36).substr(2, 8)}`);
+  // KeyboardManagerProvider focus hand-off: an explicit id, else the field name / testID.
+  const fallbackFocusId = useA11yId(undefined, 'focus');
   const focusTargetId = useMemo(() => {
-    if (typeof keyboardFocusId === 'string' && keyboardFocusId.trim().length > 0) {
-      return keyboardFocusId.trim();
+    for (const candidate of [keyboardFocusId, name, testID]) {
+      if (typeof candidate === 'string' && candidate.trim().length > 0) return candidate.trim();
     }
-    if (typeof name === 'string' && name.trim().length > 0) {
-      return name.trim();
+    return fallbackFocusId;
+  }, [keyboardFocusId, name, testID, fallbackFocusId]);
+
+  const keyboardFocus = useKeyboardFocusOptional();
+  const pendingFocusTarget = keyboardFocus?.pendingFocusTarget;
+  useEffect(() => {
+    if (!keyboardFocus || !pendingFocusTarget || pendingFocusTarget !== focusTargetId) return;
+    if (keyboardFocus.consumeFocusTarget(focusTargetId)) {
+      requestAnimationFrame(() => internalInputRef.current?.focus?.());
     }
-    if (typeof testID === 'string' && testID.trim().length > 0) {
-      return testID.trim();
-    }
-    return fallbackFocusIdRef.current;
-  }, [keyboardFocusId, name, testID]);
+  }, [keyboardFocus, pendingFocusTarget, focusTargetId]);
 
-  const keyboardManager = useKeyboardManagerOptional();
+  const {
+    style: textInputStyle,
+    selectionColor: selectionColorProp,
+    secureTextEntry: secureTextEntryProp,
+    onSubmitEditing: textInputOnSubmitEditing,
+    editable: editableProp,
+    ...restTextInputProps
+  } = textInputProps ?? {};
 
-  // Falls back to the shared `input` radius token so Input, AutoComplete, Select,
-  // and TextArea round identically instead of each hardcoding a default.
-  const radiusStyles = createRadiusStyles(radius, undefined, 'input');
+  const fieldDisabled = disabled || (headless && !!outerField?.disabled);
+  const fieldReadOnly = readOnly || (headless && !!outerField?.readOnly);
+  const isFocused = focusedProp ?? focused;
 
-  const isFocused = focusedProp !== undefined ? focusedProp : focused;
+  const showClearButton = !!clearable && !fieldDisabled && !fieldReadOnly && currentValue.length > 0;
 
-  const textInputStyleProp = (textInputProps as any)?.style;
-  const selectionColorProp = (textInputProps as any)?.selectionColor;
-  const secureTextEntryProp = (textInputProps as any)?.secureTextEntry;
-  const textInputOnChange = (textInputProps as any)?.onChangeText as ((text: string) => void) | undefined;
-
-  const restTextInputProps = useMemo(() => {
-    if (!textInputProps) return {} as Partial<RNTextInputProps>;
-    const { style: _style, selectionColor: _selectionColor, secureTextEntry: _secureEntry, ...restProps } = textInputProps as any;
-    return restProps as Partial<RNTextInputProps>;
-  }, [textInputProps]);
-
-  const normalizedValue = useMemo(() => {
-    if (value == null) return '';
-    return typeof value === 'string' ? value : String(value);
-  }, [value]);
-
-  const showClearButton = useMemo(() => {
-    if (!clearable || disabled) return false;
-    return normalizedValue.length > 0;
-  }, [clearable, disabled, normalizedValue]);
-
-  const styleProps: InputStyleProps = useMemo(() => ({
-    error: !!error,
-    disabled: !!disabled,
-    focused: isFocused,
-    size,
-    variant,
-    hasLeftSection: !!startSection,
-    hasRightSection: !!endSection || showClearButton
-  }), [error, disabled, isFocused, size, variant, startSection, endSection, showClearButton]);
-
-  const { getInputStyles } = createInputStyles(theme, isRTL, isMobile);
-  const styles = getInputStyles(styleProps, radiusStyles);
-  const spacingStyles = getSpacingStyles(spacingProps);
-  const layoutStyles = getLayoutStyles(layoutProps);
-
-  // A caller who sizes the field explicitly outranks the desktop width floor —
-  // `minWidth` beats both `width` and `maxWidth`, so it has to be dropped rather
-  // than merely overridden.
-  const containerWidthFloorReset = useMemo(() => {
-    const explicitStyle = StyleSheet.flatten(style) as ViewStyle | undefined;
-    const sized =
-      layoutProps.w !== undefined ||
-      layoutProps.maxW !== undefined ||
-      explicitStyle?.width !== undefined ||
-      explicitStyle?.maxWidth !== undefined;
-    return sized ? { minWidth: 0 } : null;
-  }, [layoutProps.w, layoutProps.maxW, style]);
-
-  const flattenedInputStyle = useMemo(
-    () => (textInputStyleProp ? StyleSheet.flatten(textInputStyleProp) : undefined),
-    [textInputStyleProp]
-  );
-
-  const isSecureEntry = useMemo(() => {
-    if (secureTextEntry !== undefined) {
-      return secureTextEntry;
-    }
-    return secureTextEntryProp ?? false;
-  }, [secureTextEntry, secureTextEntryProp]);
-
-  const textColor = (flattenedInputStyle?.color as string) ?? (styleProps.disabled ? theme.text.disabled : theme.text.primary);
-
-  const resolvedInputStyle = useMemo(() => {
-    const base = [styles.input] as any[];
-    if (textInputStyleProp) {
-      base.push(textInputStyleProp);
-    }
-    base.push({ color: textColor });
-    return base;
-  }, [styles.input, textInputStyleProp, textColor]);
+  const handleChangeText = useCallback((text: string) => setCurrentValue(text), [setCurrentValue]);
 
   const handleFocus = useCallback(() => {
     setFocused(true);
-    
-    // Announce field information for screen readers
-    if (label) {
-      const announcement = `${label}${required ? ', required' : ''} text field`;
-      announce(announcement);
-    }
-  }, [announce, label, required]);
+    onFocus?.();
+  }, [onFocus]);
 
   const handleBlur = useCallback(() => {
     setFocused(false);
-    
-    // Announce validation errors on blur
-    if (error) {
-      announce(`Error: ${error}`, { priority: 'assertive' });
-    }
-  }, [announce, error]);
+    onBlur?.();
+  }, [onBlur]);
 
-  const handleSubmitEditing = useCallback(() => {
-    if (onEnter) {
-      onEnter();
-    }
-  }, [onEnter]);
-
-  // Enhanced accessibility props
-  const accessibilityState = {
-    disabled: !!disabled,
-  };
-
-  const inputAccessibilityProps = {
-    accessibilityLabel: accessibilityLabel || (typeof label === 'string' ? label : undefined),
-    accessibilityHint: accessibilityHint || helperText,
-    accessibilityState,
-    accessibilityRequired: required,
-    nativeID: inputId,
-  };
-
-  const assignInputRef = useCallback((node: TextInput | null) => {
-    internalInputRef.current = node;
-
-    if (typeof inputRef === 'function') {
-      inputRef(node);
-    } else if (inputRef && 'current' in inputRef) {
-      (inputRef as any).current = node;
-    }
-
-    if (typeof ref === 'function') {
-      ref(node);
-    } else if (ref && 'current' in ref) {
-      (ref as any).current = node;
-    }
-  }, [inputRef, ref]);
+  const handleSubmitEditing = useCallback(
+    (event: NativeSyntheticEvent<TextInputSubmitEditingEventData>) => {
+      textInputOnSubmitEditing?.(event);
+      onEnter?.();
+    },
+    [textInputOnSubmitEditing, onEnter]
+  );
 
   const handleClear = useCallback(() => {
-    if (disabled) return;
-
+    if (fieldDisabled) return;
     internalInputRef.current?.clear?.();
-
-    // Keep cursor focus for seamless editing
-    requestAnimationFrame(() => {
-      internalInputRef.current?.focus?.();
-    });
-
-    textInputOnChange?.('');
-    onChangeText?.('');
+    // Keep the caret in the field for seamless editing.
+    requestAnimationFrame(() => internalInputRef.current?.focus?.());
+    handleChangeText('');
     onClear?.();
-  }, [disabled, textInputOnChange, onChangeText, onClear]);
+  }, [fieldDisabled, handleChangeText, onClear]);
 
-  const clearButtonLabelText = clearButtonLabel || 'Clear input';
+  const rootStyles = getInputRootStyles(theme, isMobile);
+  const spacingStyles = resolveStyleProps(styleProps, theme);
+  const layoutStyles = getLayoutStyles(layoutProps);
+  const explicitlySized = useMemo(() => {
+    const flat = StyleSheet.flatten(style) as ViewStyle | undefined;
+    return (
+      styleProps.w !== undefined ||
+      styleProps.maw !== undefined ||
+      flat?.width !== undefined ||
+      flat?.maxWidth !== undefined
+    );
+  }, [styleProps.w, styleProps.maw, style]);
+  const rootStyle = [
+    rootStyles.root,
+    explicitlySized ? rootStyles.unfloored : null,
+    // `fullWidth` first, so an explicit `w` (in `spacingStyles`) wins.
+    layoutStyles,
+    spacingStyles,
+    style,
+  ];
 
-  const pendingFocusTarget = keyboardManager?.pendingFocusTarget;
+  const renderControl = (field: Pick<FieldRenderProps, 'controlProps' | 'invalid'>) => {
+    const frame = getFieldFrameStyles(theme, size, variant, radius, field.invalid, isFocused, fieldDisabled);
+    const secure = secureTextEntry ?? secureTextEntryProp ?? false;
+    const editable = !fieldDisabled && !fieldReadOnly && editableProp !== false;
+    const selectionColor =
+      selectionColorProp ?? (fieldDisabled ? theme.text.disabled : theme.text.primary);
 
-  useEffect(() => {
-    if (!keyboardManager || !pendingFocusTarget) {
-      return;
-    }
+    return (
+      <View style={frame.frame}>
+        {isFocused && !fieldDisabled ? <View style={frame.focusRing} /> : null}
+        {startSection ? (
+          <FieldBoundary>
+            <View {...mergeSlotProps({ style: frame.startSection }, startSectionProps)}>{startSection}</View>
+          </FieldBoundary>
+        ) : null}
 
-    if (pendingFocusTarget !== focusTargetId) {
-      return;
-    }
-
-    if (keyboardManager.consumeFocusTarget(focusTargetId)) {
-      requestAnimationFrame(() => {
-        internalInputRef.current?.focus?.();
-      });
-    }
-  }, [keyboardManager, pendingFocusTarget, focusTargetId]);
-
-  const disclaimerNode = renderDisclaimer();
-
-  return (
-    <View style={[styles.container, containerWidthFloorReset, spacingStyles, layoutStyles, style]} {...rest}>
-      <FieldHeader
-        label={label}
-        description={description}
-        required={required}
-        withAsterisk={withAsterisk}
-        disabled={disabled}
-        error={!!error}
-        size={size}
-        labelProps={labelProps}
-        descriptionProps={descriptionProps}
-      />
-
-      <View style={styles.inputContainer}>
-        {startSection && (
-          <View {...mergeSlotProps({ style: styles.startSection }, startSectionProps)}>
-            {startSection}
-          </View>
-        )}
-
-        <View style={{ flex: 1, position: 'relative', justifyContent: 'center' }}>
+        <View style={frame.control}>
           <TextInput
-            ref={assignInputRef}
-            value={value}
-            onChangeText={onChangeText}
+            ref={mergedRef}
+            {...field.controlProps}
+            {...(accessibilityLabel && headless ? a11yProps({ label: accessibilityLabel }) : null)}
+            value={currentValue}
+            onChangeText={handleChangeText}
             onFocus={handleFocus}
             onBlur={handleBlur}
             onSubmitEditing={handleSubmitEditing}
-            editable={!disabled}
             placeholder={placeholder}
             placeholderTextColor={placeholderTextColor ?? theme.text.muted}
-            style={resolvedInputStyle}
-            selectionColor={selectionColorProp ?? textColor}
+            selectionColor={selectionColor}
             testID={testID}
-            secureTextEntry={isSecureEntry}
-            {...inputAccessibilityProps}
+            secureTextEntry={secure}
             {...restTextInputProps}
+            {...webProps({ dataSet: PB_INPUT_DATASET })}
+            editable={editable}
+            style={[frame.input, textInputStyle]}
           />
         </View>
 
-        {(showClearButton || endSection) && (
-          <View {...mergeSlotProps({ style: styles.endSection }, endSectionProps)}>
-            {showClearButton && (
-              <ClearButton
-                onPress={handleClear}
-                size={size}
-                accessibilityLabel={clearButtonLabelText}
-                hasRightSection={!!endSection}
-              />
-            )}
-            {endSection}
-          </View>
-        )}
+        {showClearButton || endSection ? (
+          <FieldBoundary>
+            <View {...mergeSlotProps({ style: frame.endSection }, endSectionProps)}>
+              {showClearButton ? (
+                <ClearButton
+                  onPress={handleClear}
+                  size={size}
+                  accessibilityLabel={clearButtonLabel ?? 'Clear'}
+                  hasRightSection={!!endSection}
+                />
+              ) : null}
+              {endSection}
+            </View>
+          </FieldBoundary>
+        ) : null}
       </View>
+    );
+  };
 
-      {disclaimerNode}
+  const disclaimerNode = renderDisclaimer();
 
-      {error ? (
-        <Text style={styles.error} role="alert" accessibilityLiveRegion="polite">
-          {error}
-        </Text>
-      ) : null}
+  if (headless && outerField) {
+    return (
+      <View {...containerProps} style={rootStyle}>
+        {renderControl({
+          controlProps: outerField.controlProps,
+          invalid: outerField.invalid,
+        })}
+        {disclaimerNode}
+      </View>
+    );
+  }
 
-      {helperText && !error ? (
-        <Text style={styles.helperText}>
-          {helperText}
-        </Text>
-      ) : null}
-    </View>
+  return (
+    <Field
+      id={id}
+      label={label}
+      description={description}
+      error={error}
+      helperText={helperText}
+      required={required}
+      withAsterisk={withAsterisk}
+      disabled={disabled}
+      readOnly={readOnly}
+      size={size}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      labelProps={labelProps}
+      descriptionProps={descriptionProps}
+      style={rootStyle}
+      containerProps={containerProps}
+    >
+      {(field) => (
+        <>
+          {renderControl(field)}
+          {disclaimerNode}
+        </>
+      )}
+    </Field>
   );
 });
+
+TextInputBase.displayName = 'TextInputBase';

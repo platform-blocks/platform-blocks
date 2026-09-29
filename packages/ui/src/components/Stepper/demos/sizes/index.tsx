@@ -7,7 +7,7 @@ export function Demo() {
     <Block fullWidth>
       {SIZES.map((size) => (
         <Block key={size} fullWidth>
-          <Text variant="small" color="secondary">{size}</Text>
+          <Text variant="small" c="secondary">{size}</Text>
           <Stepper active={1} size={size}>
             <Stepper.Step label="Plan" />
             <Stepper.Step label="Build" />

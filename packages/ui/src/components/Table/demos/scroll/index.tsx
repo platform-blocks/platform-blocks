@@ -1,15 +1,17 @@
-import { Block, Table, Text } from '@platform-blocks/ui';
-import { body, columns } from './data';
+import { Block, Table } from '@platform-blocks/ui';
+
+const columns = Array.from({ length: 12 }, (_, index) => `Col ${index + 1}`);
+
+const body = Array.from({ length: 8 }, (_, rowIndex) =>
+  columns.map((_, columnIndex) => `R${rowIndex + 1}C${columnIndex + 1}`)
+);
 
 export function Demo() {
   return (
-    <Block>
-      <Text size="sm" color="secondary">
-        Wrap wide datasets in `Table.ScrollContainer` to enable horizontal scrolling.
-      </Text>
-      <Table.ScrollContainer minW={900}>
+    <Block fullWidth>
+      <Table.ScrollContainer miw={900}>
         <Table
-          data={{ head: columns, body, caption: 'Wide matrix sample (scroll to explore)' }}
+          data={{ head: columns, body, caption: 'Wide matrix sample' }}
           withTableBorder
           striped
         />

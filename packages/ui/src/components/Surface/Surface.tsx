@@ -1,14 +1,10 @@
 import React, { useMemo } from 'react';
 import { View } from 'react-native';
 
-import { factory } from '../../core/factory';
-import {
-  extractLayoutProps,
-  extractShadowProps,
-  extractSpacingProps,
-  getLayoutStyles,
-  getSpacingStyles,
-} from '../../core/utils';
+import { factory } from '../../core/factory/factory';
+import { extractLayoutProps, getLayoutStyles } from '../../core/utils/layout';
+import { extractShadowProps } from '../../core/utils/shadow';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 
 import { SurfaceContext } from './SurfaceContext';
 import { useSurfaceStyles } from './useSurfaceStyles';
@@ -35,7 +31,10 @@ import type { SurfaceProps } from './types';
  */
 export const Surface = factory<{ props: SurfaceProps; ref: View }>(
   (allProps, ref) => {
-    const { spacingProps, otherProps: propsAfterSpacing } = extractSpacingProps(allProps as any);
+    // `bg` replaces the level's fill in `useSurfaceStyles`, so it stays out of
+    // the style props (one background, resolved once).
+    const { bg, ...propsWithoutBg } = allProps;
+    const { styleProps, otherProps: propsAfterSpacing } = extractStyleProps(propsWithoutBg);
     const { shadowProps, otherProps: propsAfterShadow } = extractShadowProps(propsAfterSpacing);
     const { layoutProps, otherProps } = extractLayoutProps(propsAfterShadow);
 
@@ -46,13 +45,14 @@ export const Surface = factory<{ props: SurfaceProps; ref: View }>(
       withBorder,
       borderColor,
       borderWidth,
-      bg,
       padding,
       radius = 'md',
       style,
       testID,
       ...rest
-    } = otherProps as SurfaceProps;
+    } = otherProps;
+
+    const spacingStyle = useStyleProps(styleProps);
 
     const surface = useSurfaceStyles({
       level,
@@ -77,7 +77,7 @@ export const Surface = factory<{ props: SurfaceProps; ref: View }>(
           style={[
             surface.style,
             surface.shadowStyle,
-            getSpacingStyles(spacingProps),
+            spacingStyle,
             getLayoutStyles(layoutProps),
             style,
           ]}

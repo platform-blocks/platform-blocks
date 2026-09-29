@@ -9,4 +9,4 @@ since: 1.0.0
 hidden: false
 ---
 
-Press-and-drag interactions for horizontal and vertical number adjustments.
+Add `withDragGesture` to change the value by pressing and dragging across the field; `dragAxis` picks horizontal or vertical movement.

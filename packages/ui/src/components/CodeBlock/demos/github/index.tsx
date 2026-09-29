@@ -27,56 +27,50 @@ export function FloatingExample() {
 export function Demo() {
   return (
     <Block fullWidth>
-      <Text weight="semibold">GitHub actions</Text>
-      <Text size="sm" color="secondary">
-        Provide a GitHub URL to render quick links beside copy controls across any CodeBlock variant.
-      </Text>
       <Block>
-        <Block>
-          <Text size="sm" weight="semibold">
-            Basic component
-          </Text>
-          <CodeBlock
-            title="Basic component"
-            githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/packages/ui/src/components/Button/Button.tsx"
-          >
-            {componentExample}
-          </CodeBlock>
-        </Block>
+        <Text size="sm" fw="semibold">
+          Basic component
+        </Text>
+        <CodeBlock
+          title="Basic component"
+          githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/packages/ui/src/components/Button/Button.tsx"
+        >
+          {componentExample}
+        </CodeBlock>
+      </Block>
 
-        <Block>
-          <Text size="sm" weight="semibold">
-            File name and language
-          </Text>
-          <CodeBlock
-            files={[{ name: 'example.tsx' }]}
-            githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/packages/ui/src/components/Text/Text.tsx"
-          >
-            {inlineExample}
-          </CodeBlock>
-        </Block>
+      <Block>
+        <Text size="sm" fw="semibold">
+          File name and language
+        </Text>
+        <CodeBlock
+          files={[{ name: 'example.tsx' }]}
+          githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/packages/ui/src/components/Text/Text.tsx"
+        >
+          {inlineExample}
+        </CodeBlock>
+      </Block>
 
-        <Block>
-          <Text size="sm" weight="semibold">
-            Terminal variant
-          </Text>
-          <CodeBlock
-            variant="terminal"
-            title="Terminal example"
-            githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/apps/platform-blocks.com/eas-build-post-install.sh"
-          >
-            {terminalExample}
-          </CodeBlock>
-        </Block>
+      <Block>
+        <Text size="sm" fw="semibold">
+          Terminal variant
+        </Text>
+        <CodeBlock
+          variant="terminal"
+          title="Terminal example"
+          githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/apps/platform-blocks.com/eas-build-post-install.sh"
+        >
+          {terminalExample}
+        </CodeBlock>
+      </Block>
 
-        <Block>
-          <Text size="sm" weight="semibold">
-            Floating controls
-          </Text>
-          <CodeBlock githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/packages/ui/src/components/CodeBlock/CodeBlock.tsx">
-            {floatingExample}
-          </CodeBlock>
-        </Block>
+      <Block>
+        <Text size="sm" fw="semibold">
+          Floating controls
+        </Text>
+        <CodeBlock githubUrl="https://github.com/platform-blocks/platform-blocks/blob/main/packages/ui/src/components/CodeBlock/CodeBlock.tsx">
+          {floatingExample}
+        </CodeBlock>
       </Block>
     </Block>
   );

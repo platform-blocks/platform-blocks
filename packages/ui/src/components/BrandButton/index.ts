@@ -1,2 +1,2 @@
 export { BrandButton } from './BrandButton';
-export type { BrandButtonProps, BrandPlatform, BrandConfig } from './types';
+export type { BrandButtonProps, BrandButtonVariant, BrandButtonBreakpoint, BrandPlatform, BrandConfig } from './types';

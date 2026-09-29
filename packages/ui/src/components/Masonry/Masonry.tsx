@@ -1,15 +1,23 @@
 import React from 'react';
-import { View, ViewStyle, StyleSheet, ScrollView } from 'react-native';
-import { factory, Factory } from '../../core/factory';
+import { View, StyleSheet, ScrollView } from 'react-native';
+
+import { factory } from '../../core/factory/factory';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveSpacing } from '../../core/theme/tokens';
+import { useStyleProps } from '../../core/utils/spacing';
 import { resolveOptionalModule } from '../../utils/optionalModule';
-import { getSpacingStyles, extractSpacingProps } from '../../core/utils/spacing';
-import { getSpacing } from '../../core/theme/sizes';
 import { Text } from '../Text';
 import { Loader } from '../Loader';
 import type { MasonryProps, MasonryItem } from './types';
-import { Block } from '../Block';
 
 export type { MasonryProps, MasonryItem } from './types';
+
+/**
+ * The slice of FlashList's component type Masonry renders through. Props are
+ * forwarded structurally (FlashList is an optional peer, so its own types
+ * can't be referenced here).
+ */
+type FlashListComponent = React.ComponentType<Record<string, unknown>>;
 
 /**
  * Resolved lazily so apps that never render a Masonry neither bundle
@@ -17,42 +25,65 @@ export type { MasonryProps, MasonryItem } from './types';
  * still lays items out in columns — just without virtualization.
  */
 const resolveFlashList = () =>
-  resolveOptionalModule<any>('@shopify/flash-list', {
-    accessor: (mod) => mod?.FlashList,
+  resolveOptionalModule<FlashListComponent>('@shopify/flash-list', {
+    accessor: (mod: { FlashList?: FlashListComponent } | null | undefined) => mod?.FlashList,
     devWarning:
       '@shopify/flash-list is not installed; <Masonry> renders all items in a ScrollView instead of a virtualized list.',
   });
 
-const DefaultItemRenderer: React.FC<{ item: MasonryItem; index: number; gap: number }> = ({
-  item,
-  index,
-  gap
-}) => {
-  return (
-    <View style={{ padding: gap / 2, ...item.style }} key={item.id}>
-      {item.content}
-    </View>
-  );
-};
+const styles = StyleSheet.create({
+  centered: { alignItems: 'center', justifyContent: 'center', minHeight: 200 },
+  columns: { alignItems: 'flex-start', flexDirection: 'row' },
+  column: { flex: 1 },
+  list: { flex: 1, width: '100%' },
+});
 
-export const Masonry = factory<Factory<{ props: MasonryProps; ref: View }>>(
-  (props, ref) => {
-    // const { width } = useWindowDimensions();
-    const { spacingProps, otherProps } = extractSpacingProps(props);
-    
-    const {
-      data = [],
-      numColumns = 2,
-      gap = 'sm',
-      optimizeItemArrangement = true,
-      renderItem,
-      contentContainerStyle,
-      style,
-      testID,
-      loading = false,
-      emptyContent,
-      flashListProps = {},
-      // Native FlashList passthrough props
+const keyExtractor = (item: MasonryItem) => item.id;
+
+const getItemType = (item: MasonryItem) =>
+  item.heightRatio ? `height-${Math.ceil(item.heightRatio * 10)}` : 'default';
+
+const DefaultItemRenderer = React.memo(function DefaultItemRenderer({ item, gap }: { item: MasonryItem; gap: number }) {
+  return <View style={[{ padding: gap / 2 }, item.style]}>{item.content}</View>;
+});
+
+export const Masonry = factory<{ props: MasonryProps; ref: View }>((props, ref) => {
+  const {
+    data = [],
+    numColumns = 2,
+    gap = 'sm',
+    optimizeItemArrangement = true,
+    renderItem,
+    contentContainerStyle,
+    style,
+    testID,
+    loading = false,
+    emptyContent,
+    flashListProps,
+    // Native FlashList passthrough props
+    onEndReached,
+    onEndReachedThreshold,
+    onViewableItemsChanged,
+    scrollEnabled,
+    ListEmptyComponent,
+    ListFooterComponent,
+    ListHeaderComponent,
+    estimatedItemSize,
+    refreshControl,
+    onScroll,
+    scrollEventThrottle,
+  } = props;
+
+  const theme = useTheme();
+  const spacingStyles = useStyleProps(props);
+  const resolvedGap = resolveSpacing(theme, gap);
+  const gapPx = typeof resolvedGap === 'number' ? resolvedGap : 0;
+
+  // First-class passthrough props; explicit `flashListProps` entries win.
+  const finalFlashListProps = React.useMemo(() => {
+    const passthrough: Record<string, unknown> = {
+      estimatedItemSize: estimatedItemSize ?? 180,
+      keyExtractor,
       onEndReached,
       onEndReachedThreshold,
       onViewableItemsChanged,
@@ -60,147 +91,102 @@ export const Masonry = factory<Factory<{ props: MasonryProps; ref: View }>>(
       ListEmptyComponent,
       ListFooterComponent,
       ListHeaderComponent,
-      estimatedItemSize,
       refreshControl,
       onScroll,
       scrollEventThrottle,
-      ...restProps
-    } = otherProps;
-
-    const resolvedGap = getSpacing(gap);
-    const spacingStyle = getSpacingStyles(spacingProps);
-
-    // FlashList performance hints (overridable via flashListProps). Use loose typing to avoid version/type mismatches.
-    const finalFlashListProps = React.useMemo(() => {
-      const p: any = { ...flashListProps };
-      if (p.estimatedItemSize == null) p.estimatedItemSize = estimatedItemSize ?? 180;
-      if (p.keyExtractor == null) p.keyExtractor = (item: MasonryItem) => item.id;
-      // Merge first-class passthrough props (explicit flashListProps overrides these)
-      if (onEndReached !== undefined && p.onEndReached == null) p.onEndReached = onEndReached;
-      if (onEndReachedThreshold !== undefined && p.onEndReachedThreshold == null) p.onEndReachedThreshold = onEndReachedThreshold;
-      if (onViewableItemsChanged !== undefined && p.onViewableItemsChanged == null) p.onViewableItemsChanged = onViewableItemsChanged;
-      if (scrollEnabled !== undefined && p.scrollEnabled == null) p.scrollEnabled = scrollEnabled;
-      if (ListEmptyComponent !== undefined && p.ListEmptyComponent == null) p.ListEmptyComponent = ListEmptyComponent;
-      if (ListFooterComponent !== undefined && p.ListFooterComponent == null) p.ListFooterComponent = ListFooterComponent;
-      if (ListHeaderComponent !== undefined && p.ListHeaderComponent == null) p.ListHeaderComponent = ListHeaderComponent;
-      if (refreshControl !== undefined && p.refreshControl == null) p.refreshControl = refreshControl;
-      if (onScroll !== undefined && p.onScroll == null) p.onScroll = onScroll;
-      if (scrollEventThrottle !== undefined && p.scrollEventThrottle == null) p.scrollEventThrottle = scrollEventThrottle;
-      return p;
-    }, [flashListProps, estimatedItemSize, onEndReached, onEndReachedThreshold, onViewableItemsChanged, scrollEnabled, ListEmptyComponent, ListFooterComponent, ListHeaderComponent, refreshControl, onScroll, scrollEventThrottle]);
-
-    const renderMasonryItem = ({ item, index }: { item: MasonryItem; index: number }): React.ReactElement => {
-      if (renderItem) {
-        return (
-          <View>
-            {renderItem(item, index)}
-          </View>
-        );
-      }
-
-      return (
-        <DefaultItemRenderer item={item} index={index} gap={resolvedGap} />
-      );
     };
-
-    const masonryStyle: ViewStyle = {
-      flex: 1,
-      width: '100%',
-    };
-
-    const containerStyle: ViewStyle = {
-      ...spacingStyle,
-      ...StyleSheet.flatten(style),
-    };
-
-    // Show loading state
-    if (loading) {
-      return (
-        <View ref={ref} style={[containerStyle, { justifyContent: 'center', alignItems: 'center', minHeight: 200 }]} testID={testID}>
-          <Loader size="lg" />
-        </View>
-      );
+    const merged: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(passthrough)) {
+      if (value !== undefined) merged[key] = value;
     }
-
-    // Show empty state
-    if (data.length === 0) {
-      const defaultEmptyContent = (
-        <View style={{ justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
-          <Text variant="p" style={{ color: '#888' }}>No items to display</Text>
-        </View>
-      );
-
-      return (
-        <View ref={ref} style={containerStyle} testID={testID}>
-          {emptyContent || defaultEmptyContent}
-        </View>
-      );
+    for (const [key, value] of Object.entries(flashListProps ?? {})) {
+      if (value != null) merged[key] = value;
     }
+    return merged;
+  }, [flashListProps, estimatedItemSize, onEndReached, onEndReachedThreshold, onViewableItemsChanged, scrollEnabled, ListEmptyComponent, ListFooterComponent, ListHeaderComponent, refreshControl, onScroll, scrollEventThrottle]);
 
-    const FlashList = resolveFlashList();
-
-    if (!FlashList) {
-      // Non-virtualized fallback: round-robin the items into columns. Keeps
-      // content visible (and roughly masonry-shaped) when the optional
-      // dependency is absent.
-      const columns: { item: MasonryItem; index: number }[][] = Array.from(
-        { length: Math.max(1, numColumns) },
-        () => []
-      );
-      data.forEach((item, index) => {
-        columns[index % columns.length].push({ item, index });
-      });
-
-      return (
-        <View ref={ref} style={[masonryStyle, containerStyle]} testID={testID}>
-          <ScrollView
-            scrollEnabled={scrollEnabled}
-            contentContainerStyle={contentContainerStyle as any}
-            refreshControl={refreshControl as any}
-            onScroll={onScroll}
-            scrollEventThrottle={scrollEventThrottle}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-              {columns.map((column, columnIndex) => (
-                <View key={`masonry-column-${columnIndex}`} style={{ flex: 1 }}>
-                  {column.map(({ item, index }) => (
-                    <React.Fragment key={item.id}>
-                      {renderMasonryItem({ item, index })}
-                    </React.Fragment>
-                  ))}
-                </View>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-      );
+  const renderMasonryItem = ({ item, index }: { item: MasonryItem; index: number }): React.ReactElement => {
+    if (renderItem) {
+      return <View>{renderItem(item, index)}</View>;
     }
+    return <DefaultItemRenderer item={item} gap={gapPx} />;
+  };
 
+  const rootStyle = [spacingStyles, style];
+
+  // Show loading state
+  if (loading) {
     return (
-        <FlashList
-        masonry
-          data={data}
-          renderItem={renderMasonryItem}
-          numColumns={numColumns}
-          
-          key={`masonry-${numColumns}`} // Force re-render when numColumns changes
-          contentContainerStyle={[
-            {
-            //   paddingHorizontal: resolvedGap / 2,
-            //   paddingVertical: resolvedGap / 2,
-            },
-            contentContainerStyle as any
-          ]}
-          style={masonryStyle}
-          {...(optimizeItemArrangement && {
-            // Enable staggered grid layout for true masonry effect
-            getItemType: (item: MasonryItem) => 
-              item.heightRatio ? `height-${Math.ceil(item.heightRatio * 10)}` : 'default'
-          })}
-          {...finalFlashListProps}
-        />
+      <View ref={ref} style={[styles.centered, rootStyle]} testID={testID} aria-busy>
+        <Loader size="lg" />
+      </View>
     );
   }
-);
 
-Masonry.displayName = 'Masonry';
+  // Show empty state
+  if (data.length === 0) {
+    return (
+      <View ref={ref} style={rootStyle} testID={testID}>
+        {emptyContent || (
+          <View style={styles.centered}>
+            <Text variant="p" style={{ color: theme.text.muted }}>
+              No items to display
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  const FlashList = resolveFlashList();
+
+  if (!FlashList) {
+    // Non-virtualized fallback: round-robin the items into columns. Keeps
+    // content visible (and roughly masonry-shaped) when the optional
+    // dependency is absent.
+    const columns: { item: MasonryItem; index: number }[][] = Array.from({ length: Math.max(1, numColumns) }, () => []);
+    data.forEach((item, index) => {
+      columns[index % columns.length].push({ item, index });
+    });
+
+    return (
+      <View ref={ref} style={[styles.list, rootStyle]} testID={testID}>
+        <ScrollView
+          scrollEnabled={scrollEnabled}
+          contentContainerStyle={contentContainerStyle}
+          refreshControl={refreshControl}
+          onScroll={onScroll}
+          scrollEventThrottle={scrollEventThrottle}
+        >
+          <View style={styles.columns}>
+            {columns.map((column, columnIndex) => (
+              <View key={`masonry-column-${columnIndex}`} style={styles.column}>
+                {column.map(({ item, index }) => (
+                  <React.Fragment key={item.id}>{renderMasonryItem({ item, index })}</React.Fragment>
+                ))}
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // The root view carries the ref, testID, spacing and style on every path.
+  return (
+    <View ref={ref} style={[styles.list, rootStyle]} testID={testID}>
+      <FlashList
+        masonry
+        data={data}
+        renderItem={renderMasonryItem}
+        numColumns={numColumns}
+        key={`masonry-${numColumns}`} // Force re-render when numColumns changes
+        // FlashList takes a single style object here, not a style array.
+        contentContainerStyle={StyleSheet.flatten(contentContainerStyle)}
+        style={styles.list}
+        {...(optimizeItemArrangement ? { getItemType } : null)}
+        {...finalFlashListProps}
+      />
+    </View>
+  );
+}, { displayName: 'Masonry' });

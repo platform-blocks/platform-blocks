@@ -11,8 +11,12 @@
  * uses). This runs once, over dist/, and is idempotent.
  *
  * It also:
- *   - writes dist/404.html from dist/index.html (GitHub Pages SPA fallback), and
- *   - marks the 404 / not-found shells noindex.
+ *   - writes dist/404.html from dist/index.html (GitHub Pages SPA fallback),
+ *   - marks the 404 / not-found shells noindex, and
+ *   - serves each page's LLM Markdown at `<route>.md` (`/components/Button.md`)
+ *     and links it from the page's head, using the route map
+ *     scripts/generate-llms.ts writes — so an agent that appends `.md` to a
+ *     docs URL, or follows the alternate link, gets the Markdown.
  */
 import fs from 'fs';
 import path from 'path';
@@ -31,6 +35,19 @@ const MARK_START = '<!--pb-seo-->';
 const MARK_END = '<!--/pb-seo-->';
 
 const NOINDEX_FILES = new Set(['404.html', '+not-found.html']);
+
+/** Site route → Markdown path under dist/, written by scripts/generate-llms.ts. */
+function loadMarkdownRoutes(): Record<string, string> {
+  const file = path.join(__dirname, '..', 'data', 'generated', 'llms-routes.json');
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {
+    console.warn('⚠️  llms-routes.json not found — run generate-llms first; skipping Markdown alternates.');
+    return {};
+  }
+}
+
+const markdownRoutes = loadMarkdownRoutes();
 
 function escapeAttr(value: string): string {
   return value
@@ -78,6 +95,11 @@ function buildSeoBlock(file: string): string {
     lines.push(`<meta name="twitter:description" content="${desc}"/>`);
     lines.push(`<meta name="twitter:image" content="${escapeAttr(DEFAULT_OG_IMAGE)}"/>`);
 
+    // The same page as Markdown, for agents (see markdownRoutes).
+    if (markdownRoutes[route]) {
+      lines.push(`<link rel="alternate" type="text/markdown" href="${escapeAttr(`${route}.md`)}"/>`);
+    }
+
     // JSON-LD structured data (indexable pages only).
     const graph = jsonLdForRoute(route);
     if (graph.length > 0) {
@@ -116,6 +138,18 @@ async function main(): Promise<void> {
     console.warn('⚠️  dist/index.html not found — skipped 404.html');
   }
 
+  // `<route>.md` beside each page's HTML: a copy of its /llms Markdown, since
+  // GitHub Pages has no rewrites.
+  let aliases = 0;
+  for (const [route, source] of Object.entries(markdownRoutes)) {
+    const from = path.join(distDir, source);
+    if (!fs.existsSync(from)) continue;
+    const to = path.join(distDir, `${route.replace(/^\//, '')}.md`);
+    fs.mkdirSync(path.dirname(to), { recursive: true });
+    fs.copyFileSync(from, to);
+    aliases++;
+  }
+
   const htmlFiles = await glob('**/*.html', { cwd: distDir });
   let injected = 0;
   let skipped = 0;
@@ -148,6 +182,7 @@ async function main(): Promise<void> {
   console.log('\n📊 SEO injection summary');
   console.log(`   Pages injected: ${injected}`);
   console.log(`   Files skipped:  ${skipped} (dynamic templates / sitemap)`);
+  console.log(`   Markdown aliases: ${aliases} (<route>.md)`);
   if (dupes.length > 0) {
     console.log(`   ⚠️  ${dupes.length} duplicate title(s):`);
     dupes.slice(0, 10).forEach(([t, files]) => console.log(`      "${t}" → ${files.join(', ')}`));

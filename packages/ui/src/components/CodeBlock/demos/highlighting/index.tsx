@@ -1,4 +1,4 @@
-import { Block, CodeBlock, Text } from '@platform-blocks/ui';
+import { Block, CodeBlock } from '@platform-blocks/ui';
 
 const sample = `import { View, Text } from 'react-native';
 
@@ -27,11 +27,7 @@ export function filterActive(users: User[]) {
 export function Demo() {
   return (
     <Block fullWidth>
-      <Text weight="semibold">Highlighted lines</Text>
-      <Text size="sm" color="secondary">
-        Combine individual lines and ranges in the highlightLines prop to emphasize key logic.
-      </Text>
-  <CodeBlock title="Highlighted lines" showLineNumbers highlightLines={['1', '5-9', '11-14', '20-22']}>
+      <CodeBlock title="Highlighted lines" showLineNumbers highlightLines={['5', '11', '20-23']}>
         {sample}
       </CodeBlock>
     </Block>

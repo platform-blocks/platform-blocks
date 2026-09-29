@@ -5,7 +5,7 @@ import { DAILY_SIGNUPS } from './data';
 export function Demo() {
   return (
     <SparklineChart
-      height={72}
+      h={72}
       data={DAILY_SIGNUPS}
       fill
       fillOpacity={0.18}

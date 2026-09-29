@@ -3,9 +3,11 @@ import { LayoutChangeEvent, View, ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { Toast } from './Toast';
-import type { ToastPosition as ToastScreenPosition, ToastItem } from './ToastProvider';
-import type { ToastPosition as ToastDirection } from './types';
-import { useReducedMotion } from './useReducedMotion';
+import type { ToastStackPosition as ToastScreenPosition, ToastItem } from './ToastProvider';
+import type { ToastDirection } from './types';
+import { useReducedMotion } from '../../core/motion/useReducedMotion';
+import { webProps } from '../../core/platform';
+import { pointerEventsStyles } from '../../core/platform/pointerEvents';
 
 /**
  * Height assumed for a toast that has not reported its layout yet. It is only
@@ -75,20 +77,24 @@ function ToastStackItem({
     onMeasure(event.nativeEvent.layout.height);
   }, [onMeasure]);
 
-  const hoverProps = {
-    onMouseEnter: () => onHoverChange(true),
-    onMouseLeave: () => onHoverChange(false),
+  // Focus bubbles from the toast's buttons (react-native-web View forwards
+  // onFocus/onBlur); pointer rest pauses the stack on web.
+  const focusProps = {
     onFocus: () => onFocusChange(true),
     onBlur: () => onFocusChange(false),
-  } as any;
+  } as Pick<React.ComponentProps<typeof Animated.View>, 'onFocus' | 'onBlur'>;
+  const hoverProps = webProps({
+    onMouseEnter: () => onHoverChange(true),
+    onMouseLeave: () => onHoverChange(false),
+  });
 
   return (
     <Animated.View
       style={[
         {
           position: 'absolute',
-          left: 0,
-          right: 0,
+          start: 0,
+          end: 0,
           [anchor]: 0,
           zIndex,
         } as ViewStyle,
@@ -100,6 +106,7 @@ function ToastStackItem({
       // holds, so leaving it hit-testable costs no extra hit area.
       onLayout={handleLayout}
       {...hoverProps}
+      {...focusProps}
     >
       {children}
     </Animated.View>
@@ -289,7 +296,7 @@ export function ToastStack({
   const ordered = [...items].reverse();
 
   return (
-    <View style={[containerStyle, { height: stackHeight }]} pointerEvents="box-none">
+    <View style={[containerStyle, { height: stackHeight }, pointerEventsStyles.boxNone]}>
       {ordered.map((item, index) => {
         // Queue bookkeeping is the provider's business; only presentation props
         // reach the toast.

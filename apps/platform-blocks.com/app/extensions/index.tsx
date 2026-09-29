@@ -28,7 +28,7 @@ export default function ExtensionsScreen() {
         {/* The registry answers "what exists"; this answers "what one is" —
             without it, an extension reads as nothing more than a dependency. */}
         <Column gap="md">
-          <Text color="secondary">{EXTENSIONS_DEFINITION}</Text>
+          <Text c="secondary">{EXTENSIONS_DEFINITION}</Text>
           <Flex direction="row" wrap="wrap" gap="md">
             {EXTENSION_CONTRACT.map(point => (
               <Card
@@ -38,8 +38,8 @@ export default function ExtensionsScreen() {
                 style={{ flexBasis: 280, flexGrow: 1 }}
               >
                 <Column gap="xs">
-                  <Text weight="semibold">{point.title}</Text>
-                  <Text variant="small" color="secondary">{point.detail}</Text>
+                  <Text fw="semibold">{point.title}</Text>
+                  <Text variant="small" c="secondary">{point.detail}</Text>
                 </Column>
               </Card>
             ))}
@@ -61,7 +61,7 @@ export default function ExtensionsScreen() {
               <Flex direction="column" justify="space-between" gap="md" style={{ flex: 1 }}>
                 <Column gap="sm">
                   <Flex direction="row" align="center" gap="sm" wrap="wrap">
-                    <Text variant="h4" weight="semibold">{extension.name}</Text>
+                    <Text variant="h4" fw="semibold">{extension.name}</Text>
                     <Chip
                       size="sm"
                       variant="light"
@@ -70,7 +70,7 @@ export default function ExtensionsScreen() {
                       {extension.official ? 'official' : 'community'}
                     </Chip>
                   </Flex>
-                  <Text color="secondary">{extension.description}</Text>
+                  <Text c="secondary">{extension.description}</Text>
                 </Column>
                 <Flex direction="row" gap="sm" wrap="wrap">
                   <BrandButton
@@ -96,14 +96,14 @@ export default function ExtensionsScreen() {
         <Card variant="outline" p="lg">
           <Column gap="md">
             <Title order={3}>Build your own</Title>
-            <Text color="secondary">{EXTENSIONS_INVITE}</Text>
+            <Text c="secondary">{EXTENSIONS_INVITE}</Text>
             <Column gap="sm">
               {EXTENSIONS_PUBLISH_STEPS.map((step, index) => (
                 <Flex key={step.title} direction="row" gap="sm" align="flex-start">
                   <Chip size="sm" variant="light" color="primary">{index + 1}</Chip>
                   <Column gap={2} style={{ flex: 1 }}>
-                    <Text weight="semibold">{step.title}</Text>
-                    <Text variant="small" color="secondary">{step.detail}</Text>
+                    <Text fw="semibold">{step.title}</Text>
+                    <Text variant="small" c="secondary">{step.detail}</Text>
                   </Column>
                 </Flex>
               ))}

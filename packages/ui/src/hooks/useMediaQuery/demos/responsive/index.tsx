@@ -8,23 +8,23 @@ export function Demo() {
   return (
     <Block>
       <Row gap="xs" wrap="wrap">
-        <Badge variant={isCompact ? 'light' : 'outline'} color={isCompact ? 'success' : 'gray'}>
+        <Badge variant={isCompact ? 'light' : 'outline'} c={isCompact ? 'success' : 'gray'}>
           Compact (≤640px)
         </Badge>
-        <Badge variant={isWide ? 'light' : 'outline'} color={isWide ? 'success' : 'gray'}>
+        <Badge variant={isWide ? 'light' : 'outline'} c={isWide ? 'success' : 'gray'}>
           Wide (≥1024px)
         </Badge>
       </Row>
 
       <Row gap="md" wrap="wrap">
         {Array.from({ length: columns }).map((_, i) => (
-          <Block key={i} bg="primary" p="md" radius="md" minW={120}>
+          <Block key={i} bg="primary" p="md" radius="md" miw={120}>
             <Text c="white">Card {i + 1}</Text>
           </Block>
         ))}
       </Row>
 
-      <Text size="sm" color="muted">
+      <Text size="sm" c="muted">
         Resize the viewport (or rotate the device) to see the layout adapt.
       </Text>
     </Block>

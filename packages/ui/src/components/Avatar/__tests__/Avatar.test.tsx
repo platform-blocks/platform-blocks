@@ -22,14 +22,13 @@ import { View } from 'react-native';
 import { Avatar } from '../Avatar';
 
 // Mock the theme
-jest.mock('../../../core/theme', () => ({
+jest.mock('../../../core/theme/ThemeProvider', () => ({
+  ...jest.requireActual('../../../core/theme/ThemeProvider'),
   useTheme: () => ({
+    ...jest.requireActual('../../../core/theme/defaultTheme').DEFAULT_THEME,
     colors: {
       gray: ['#f8f9fa', '#f1f3f5', '#e9ecef', '#dee2e6', '#ced4da', '#adb5bd', '#868e96', '#495057', '#343a40', '#212529'],
       success: ['#ebfbee', '#d3f9d8', '#b2f2bb', '#8ce99a', '#69db7c', '#51cf66', '#40c057', '#37b24d', '#2f9e44', '#2b8a3e'],
-    },
-    text: {
-      white: '#ffffff',
     },
     shadows: {
       xs: '0 1px 2px rgba(0,0,0,0.1)',
@@ -116,8 +115,8 @@ describe('Avatar - Type Safety and Prop Validation', () => {
   });
 
   describe('Color Props', () => {
-    it('should accept backgroundColor', () => {
-      const { UNSAFE_getByType } = render(<Avatar backgroundColor="#ff0000" />);
+    it('should accept bg', () => {
+      const { UNSAFE_getByType } = render(<Avatar bg="#ff0000" />);
       expect(UNSAFE_getByType(View)).toBeTruthy();
     });
 
@@ -255,7 +254,7 @@ describe('Avatar - Type Safety and Prop Validation', () => {
 
     it('should handle fallback with custom colors', () => {
       const { getByText } = render(
-        <Avatar fallback="AB" backgroundColor="#ff0000" textColor="#ffffff" />
+        <Avatar fallback="AB" bg="#ff0000" textColor="#ffffff" />
       );
       expect(getByText('AB')).toBeTruthy();
     });
@@ -274,7 +273,7 @@ describe('Avatar - Type Safety and Prop Validation', () => {
           size="xl"
           src="https://example.com/avatar.jpg"
           fallback="JD"
-          backgroundColor="#ff0000"
+          bg="#ff0000"
           textColor="#ffffff"
           online={true}
           indicatorColor="#00ff00"

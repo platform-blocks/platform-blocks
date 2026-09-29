@@ -29,10 +29,10 @@ export function Demo() {
     <Block>
       {FRACTION_SETTINGS.map(({ key, label, precision, helper }) => (
         <Block key={key}>
-          <Text variant="small" color="muted">
+          <Text variant="small" c="muted">
             {label}
           </Text>
-          <Rating
+          <Rating accessibilityLabel="Rating"
             value={values[key]}
             onChange={(next) => setValues((prev) => ({ ...prev, [key]: next }))}
             allowFraction
@@ -43,7 +43,7 @@ export function Demo() {
             hoverColor={theme.colors.highlight[6]}
             showTooltip
           />
-          <Text variant="small" color="muted">
+          <Text variant="small" c="muted">
             {helper}
           </Text>
         </Block>

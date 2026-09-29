@@ -15,7 +15,7 @@ export function Demo() {
         closeOnSelect
         fullWidth
       />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         {value && value[0] && value[1]
           ? `${value[0].toLocaleDateString()} – ${value[1].toLocaleDateString()}`
           : 'Select a start and end date'}

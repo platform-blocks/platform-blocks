@@ -1,5 +1,5 @@
-import React from 'react';
-import { BaseInputProps, ExtendedTextInputProps } from '../Input/types';
+import type { TextFieldBaseProps } from '../_internal/Field/fieldProps';
+import type { ExtendedTextInputProps } from '../Input/types';
 
 /**
  * Built-in country presets. Any other string is accepted and falls back to the
@@ -52,7 +52,9 @@ export interface PhoneChangeMeta {
 }
 
 export interface PhoneInputProps
-  extends Omit<BaseInputProps, 'value' | 'onChangeText'> {
+  extends Omit<TextFieldBaseProps, 'value' | 'defaultValue' | 'onChangeText'> {
+  /** Id of the TextInput; label/error ids derive from it. Generated when omitted. */
+  id?: string;
   /** Phone number value (digits only). Omit for an uncontrolled field. */
   value?: string;
   /** Initial value while uncontrolled. */
@@ -88,4 +90,6 @@ export interface PhoneInputProps
   mask?: string;
   /** Additional props forwarded to the underlying TextInput. */
   textInputProps?: ExtendedTextInputProps;
+  /** Accessible name of the country picker button (`selectableCountry`); receives the country name. */
+  countryPickerLabel?: (countryName: string) => string;
 }

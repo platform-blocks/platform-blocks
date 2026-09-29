@@ -1,17 +1,18 @@
-import React from 'react';
-import { ViewStyle, StyleProp } from 'react-native';
-import type { SpacingProps } from '../../core/utils/spacing';
-import type { PolymorphicFactory } from '../../core/factory';
+import type React from 'react';
+import type { ViewProps, ViewStyle } from 'react-native';
+
+import type { PolymorphicFactory } from '../../core/factory/polymorphicFactory';
+import type { ShadowToken } from '../../core/theme/tokens';
+import type { BaseProps, RadiusValue } from '../../core/types/base';
 
 /**
- * Base styling props for the Block component
+ * Layout props for the Block component. Size, background and opacity (`w`,
+ * `h`, `miw`, `maw`, `mih`, `mah`, `bg`, `opacity`) are the shared box props
+ * from `BaseProps`.
  */
 export interface BlockStyleProps {
-  /** Background color for the block */
-  bg?: string;
-  
-  /** Border radius for rounded corners */
-  radius?: number | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  /** Border radius: a `theme.radii` token, px number, `'none'` or `'full'`. */
+  radius?: RadiusValue;
   
   /** Border width */
   borderWidth?: number;
@@ -19,35 +20,14 @@ export interface BlockStyleProps {
   /** Border color */
   borderColor?: string;
   
-  /** Shadow depth (0-5) */
-  shadow?: number | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  /** Shadow: a `theme.shadows` token, or a legacy depth 0–5 (0 = none … 5 = xl). */
+  shadow?: number | ShadowToken;
   
-  /** Opacity (0-1) */
-  opacity?: number;
-  
-  /** Width of the block */
-  w?: number | string | 'auto' | 'full';
-  
-  /** Height of the block */
-  h?: number | string | 'auto' | 'full';
-  
-  /** Whether to take full width (100%) - shorthand for w="full" */
+  /** Whether to take full width (100%) - shorthand for w="full"; an explicit `w` wins */
   fullWidth?: boolean;
   
   /** Makes block take full available height (flex: 1) - useful for scrollable containers */
   fluid?: boolean;
-  
-  /** Minimum width */
-  minW?: number | string;
-  
-  /** Minimum height */
-  minH?: number | string;
-  
-  /** Maximum width */
-  maxW?: number | string;
-  
-  /** Maximum height */
-  maxH?: number | string;
   
   /** Flex grow */
   grow?: boolean | number;
@@ -70,8 +50,8 @@ export interface BlockStyleProps {
   /** Flex wrap */
   wrap?: boolean | 'nowrap' | 'wrap' | 'wrap-reverse';
   
-  /** Gap between children. Defaults to `'sm'`; pass `0` to remove it. */
-  gap?: number | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  /** Gap between children (`theme.spacing` token or px). Defaults to `'sm'`; pass `0` to remove it. */
+  gap?: number | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
   
   /** Position type */
   position?: 'relative' | 'absolute';
@@ -79,19 +59,19 @@ export interface BlockStyleProps {
   /** Top position */
   top?: number | string;
   
-  /** Right position */
+  /** Right position (physical; use `end` to mirror in right-to-left layouts) */
   right?: number | string;
   
   /** Bottom position */
   bottom?: number | string;
   
-  /** Left position */
+  /** Left position (physical; use `start` to mirror in right-to-left layouts) */
   left?: number | string;
   
-  /** Start position (logical property - becomes left in LTR, right in RTL) */
+  /** Start inset (logical: left in LTR, right in RTL) */
   start?: number | string;
   
-  /** End position (logical property - becomes right in LTR, left in RTL) */
+  /** End inset (logical: right in LTR, left in RTL) */
   end?: number | string;
   
   /** Z-index */
@@ -102,37 +82,31 @@ export interface BlockStyleProps {
 }
 
 /**
- * Props for the Block component.
- * A polymorphic building block component that can render as any element.
+ * Props for the Block component. Besides its layout props, Block accepts every
+ * React Native `View` prop (`role`, `aria-*`, `onLayout`, `pointerEvents`, …)
+ * and forwards them to the rendered element.
  */
-export interface BlockProps extends SpacingProps, BlockStyleProps {
+export interface BlockProps
+  extends BaseProps<ViewStyle>,
+    BlockStyleProps,
+    Omit<ViewProps, 'style' | 'testID' | 'children'> {
   /** Child elements to render inside the block */
   children?: React.ReactNode;
-  
-  /** The component to render as */
+
+  /**
+   * A custom component to render instead of `View`. It receives the resolved
+   * `style` and every other forwarded prop. HTML tag names (`'div'`,
+   * `'button'`, …) render a `View` — use `role` for semantics.
+   */
   component?: React.ElementType;
-  
-  /** Custom style object */
-  style?: StyleProp<ViewStyle>;
-  
-  /** Test ID for testing purposes */
-  testID?: string;
-  
-  /** Accessibility label */
-  accessibilityLabel?: string;
-  
-  /** Whether the element is accessible */
-  accessible?: boolean;
-  
-  /** Accessibility role */
-  accessibilityRole?: string;
-  
-  /** Custom className (for web) */
+
+  /** Custom className, forwarded to a custom `component` only (web). */
   className?: string;
 }
 
 /**
- * Factory type for the Block component
+ * @deprecated Block is built with `factory`; this polymorphic type is unused and
+ * will be removed with `polymorphicFactory`.
  */
 export type BlockFactory = PolymorphicFactory<{
   props: BlockProps;

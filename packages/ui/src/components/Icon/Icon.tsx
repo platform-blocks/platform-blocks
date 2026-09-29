@@ -1,16 +1,20 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, type ViewProps, type ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+
+import { a11yProps, type A11yProps } from '../../core/accessibility/a11yProps';
 import { factory } from '../../core/factory';
-import { getIconSize } from '../../core/theme/sizes';
-import { useTheme } from '../../core/theme/ThemeProvider';
-// Avoid CSS variable colors on native; prefer theme colors directly
-import { getSpacingStyles } from '../../core/utils/spacing';
-import { iconRegistry, registerIcons } from './registry';
-import { tablerIcons } from './icons/tabler';
-import type { IconProps } from './types';
+import { isWeb } from '../../core/platform';
 import { useDirection } from '../../core/providers/DirectionProvider';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveIconSize } from '../../core/theme/tokens';
+import { isDev, warnOnce } from '../../core/utils/logger';
 import { shouldMirrorIcon } from '../../core/utils/rtl';
+import { resolveStyleProps } from '../../core/utils/spacing';
+import { tablerIcons } from './icons/tabler';
+import { iconRegistry, registerIcons } from './registry';
+import type { ExternalIconComponent, IconProps } from './types';
 
 // Initialize icons on first import. The default set is backed by
 // `@tabler/icons-react-native`; consumers can add more via `registerIcon(s)`.
@@ -22,6 +26,37 @@ const initializeIcons = () => {
   }
 };
 
+const MIRROR_STYLE: ViewStyle = { transform: [{ scaleX: -1 }] };
+
+type IconA11yProps = A11yProps & Pick<ViewProps, 'importantForAccessibility'>;
+
+/**
+ * A decorative icon is removed from the accessibility tree without hiding the
+ * element itself from queries: `aria-hidden` on web (browsers otherwise may
+ * announce an unlabelled `<svg>` as "image"), and `importantForAccessibility="no"`
+ * on native — a plain View wrapping an unlabelled Svg is never an accessibility
+ * element there, and `no` (unlike `no-hide-descendants`) keeps `testID` queryable.
+ */
+const DECORATIVE_A11Y: IconA11yProps = isWeb ? a11yProps({ hidden: true }) : { importantForAccessibility: 'no' };
+
+/**
+ * Accessibility for an icon: decorative (hidden from assistive technology)
+ * unless it has an accessible name, in which case it is announced as an image.
+ * Icons almost always sit inside a labelled control, where announcing
+ * "chevron-down icon" would only add noise.
+ */
+function getIconA11y(name: string | undefined, decorative: boolean | undefined, accessibleName: string | undefined): IconA11yProps {
+  const isDecorative = decorative ?? !accessibleName;
+  if (isDecorative) return DECORATIVE_A11Y;
+  if (!accessibleName) {
+    warnOnce(
+      `Icon.label:${name ?? 'custom'}`,
+      `Icon "${name ?? 'custom'}" is marked decorative={false} but has no label; pass \`label\` (or \`accessibilityLabel\`) so screen readers can announce it.`
+    );
+  }
+  return a11yProps({ role: 'img', label: accessibleName, accessible: true });
+}
+
 export const Icon = factory<{
   props: IconProps;
   ref: View;
@@ -32,89 +67,69 @@ export const Icon = factory<{
     size = 'md',
     color,
     stroke = 1.5,
-    variant = 'outlined',
+    variant,
     style,
     label,
-    decorative = false,
+    accessibilityLabel,
+    title,
+    decorative,
     mirrorInRTL,
+    testID,
     ...spacingProps
   } = props;
-  
+
   const theme = useTheme();
   const { isRTL } = useDirection();
-  
-  // Initialize icons if not already done
+
   initializeIcons();
-  
-  // Resolve size using UI package size system
-  const resolvedSize = getIconSize(size);
-  
-  // Use explicit color if provided; otherwise fall back to theme token
-  const resolvedColor = color
-    || (theme?.text?.primary
-      || (theme as any)?.colors?.gray?.[8]
-      || '#333333');
-  
-  // Get spacing styles
-  const spacingStyle = getSpacingStyles(spacingProps);
-  
-  // Determine if icon should be mirrored
-  const shouldMirror = mirrorInRTL !== undefined
-    ? mirrorInRTL
-    : shouldMirrorIcon(name ?? '', isRTL);
-  const applyMirror = isRTL && shouldMirror;
+
+  const resolvedSize = resolveIconSize(theme, size);
+  const resolvedColor = resolveAccentColor(theme, color) ?? theme.text?.primary;
+  const spacingStyle = resolveStyleProps(spacingProps, theme);
+  const iconA11y = getIconA11y(name, decorative, label ?? accessibilityLabel ?? title);
+
+  const shouldMirror = mirrorInRTL !== undefined ? mirrorInRTL : shouldMirrorIcon(name ?? '', isRTL);
+  const mirrorStyle = isRTL && shouldMirror ? MIRROR_STYLE : null;
 
   // Shared wrapper style for component-based icons (external libs + Tabler).
-  const wrapperStyle = [
-    applyMirror && { transform: [{ scaleX: -1 }] },
-    spacingStyle,
-    style,
-  ];
+  const wrapperStyle = [mirrorStyle, spacingStyle, style];
 
   // Render a component-based icon (Tabler / external lib) with resolved props.
-  const renderComponentIcon = (Cmp: React.ComponentType<any>) => (
-    <View ref={ref} style={wrapperStyle}>
-      <Cmp
-        size={resolvedSize}
-        color={resolvedColor}
-        strokeWidth={stroke}
-        accessibilityLabel={decorative ? undefined : label || `${name ?? 'icon'} icon`}
-        accessibilityRole={decorative ? 'none' : 'image'}
-      />
+  // The wrapper carries the accessibility props; the glyph itself is never a
+  // separate accessibility node.
+  const renderComponentIcon = (Cmp: ExternalIconComponent) => (
+    <View ref={ref} style={wrapperStyle} testID={testID} {...iconA11y}>
+      <Cmp size={resolvedSize} color={resolvedColor} strokeWidth={stroke} />
     </View>
   );
 
   // 1) Explicit external icon via `icon` prop takes precedence over `name`.
   if (icon) {
     if (React.isValidElement(icon)) {
-      return <View ref={ref} style={wrapperStyle}>{icon}</View>;
+      return (
+        <View ref={ref} style={wrapperStyle} testID={testID} {...iconA11y}>
+          {icon}
+        </View>
+      );
     }
-    return renderComponentIcon(icon as React.ComponentType<any>);
+    return renderComponentIcon(icon as ExternalIconComponent);
   }
 
-  // Get icon from registry
   const iconDef = name ? iconRegistry[name] : undefined;
+  const boxStyle = { width: resolvedSize, height: resolvedSize };
 
   if (!iconDef) {
-    // Return empty view for missing icons in production
-    if (process.env.NODE_ENV === 'production') {
-      return <View ref={ref} style={[{ width: resolvedSize, height: resolvedSize }, spacingStyle, style]} />;
+    if (!isDev) {
+      return <View ref={ref} style={[boxStyle, spacingStyle, style]} testID={testID} {...DECORATIVE_A11Y} />;
     }
-    // Show warning in development
-    console.warn(`Icon "${name}" not found in registry`);
+    warnOnce(`icon:${name}`, `Icon "${name}" not found in registry`);
+    // Visible dev-only placeholder so a typo'd name is noticed.
     return (
-      <View 
+      <View
         ref={ref}
-        style={[
-          { 
-            width: resolvedSize, 
-            height: resolvedSize, 
-            backgroundColor: (theme as any)?.colors?.error?.[5] || '#ff0000', 
-            opacity: 0.3 
-          }, 
-          spacingStyle,
-          style
-        ]} 
+        style={[boxStyle, { backgroundColor: theme.colors?.error?.[5], opacity: 0.3 }, spacingStyle, style]}
+        testID={testID}
+        {...DECORATIVE_A11Y}
       />
     );
   }
@@ -128,8 +143,7 @@ export const Icon = factory<{
     preserveStrokeOnFill = false,
   } = iconDef;
 
-  // Use provided variant or fall back to icon's default variant
-  const resolvedVariant = variant || defaultVariant;
+  const resolvedVariant = variant ?? defaultVariant;
 
   // Component-based registry entry (Tabler): pick filled/outlined variant.
   if (outlined || filled) {
@@ -139,27 +153,17 @@ export const Icon = factory<{
     }
   }
 
-  // Handle string content (SVG path)
+  // Legacy SVG path content.
   if (typeof content === 'string') {
     const isFilled = resolvedVariant === 'filled';
-    
-    // Calculate stroke width scaled to icon size
-    // Base stroke width is designed for 24x24, scale it proportionally
+    // Base stroke width is designed for 24x24; scale it proportionally.
     const scaledStrokeWidth = stroke * (resolvedSize / 24);
     const fillColor = isFilled ? resolvedColor : 'none';
     const strokeColor = isFilled && !preserveStrokeOnFill ? 'none' : resolvedColor;
     const appliedStrokeWidth = isFilled && !preserveStrokeOnFill ? 0 : scaledStrokeWidth;
-    
-    // Apply mirror transform if needed
-    const containerStyle = [
-      { width: resolvedSize, height: resolvedSize },
-      applyMirror && { transform: [{ scaleX: -1 }] },
-      spacingStyle,
-      style
-    ];
-    
+
     return (
-      <View ref={ref} style={containerStyle}>
+      <View ref={ref} style={[boxStyle, mirrorStyle, spacingStyle, style]} testID={testID} {...iconA11y}>
         <Svg
           width="100%"
           height="100%"
@@ -169,41 +173,29 @@ export const Icon = factory<{
           strokeWidth={appliedStrokeWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
-          accessibilityLabel={decorative ? undefined : label || `${name} icon`}
-          accessibilityRole={decorative ? 'none' : 'image'}
         >
-          <Path
-            d={content}
-            fill={fillColor}
-            stroke={strokeColor}
-            strokeWidth={appliedStrokeWidth}
-          />
+          <Path d={content} fill={fillColor} stroke={strokeColor} strokeWidth={appliedStrokeWidth} />
         </Svg>
       </View>
     );
   }
-  
-  // Handle component content
+
   if (typeof content !== 'function') {
-    return <View ref={ref} style={[{ width: resolvedSize, height: resolvedSize }, spacingStyle, style]} />;
+    return <View ref={ref} style={[boxStyle, spacingStyle, style]} testID={testID} {...DECORATIVE_A11Y} />;
   }
+
+  // Legacy component content: wrapped so the ref, testID and accessibility
+  // props always land on a host view.
   const IconComponent = content;
-  const componentStyle = [
-    applyMirror && { transform: [{ scaleX: -1 }] },
-    spacingStyle,
-    style
-  ];
-  
   return (
-    <IconComponent
-      ref={ref}
-      width={resolvedSize}
-      height={resolvedSize}
-      color={resolvedColor}
-      strokeWidth={stroke}
-      stroke={stroke}
-      style={componentStyle}
-      accessibilityLabel={decorative ? undefined : label || `${name} icon`}
-    />
+    <View ref={ref} style={wrapperStyle} testID={testID} {...iconA11y}>
+      <IconComponent
+        width={resolvedSize}
+        height={resolvedSize}
+        color={resolvedColor}
+        strokeWidth={stroke}
+        stroke={stroke}
+      />
+    </View>
   );
-});
+}, { displayName: 'Icon' });

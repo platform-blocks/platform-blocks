@@ -8,7 +8,7 @@ export function Demo() {
 
   return (
     <Block fullWidth>
-      <Knob
+      <Knob accessibilityLabel="Cutoff"
         value={cutoff}
         onChange={setCutoff}
         min={200}

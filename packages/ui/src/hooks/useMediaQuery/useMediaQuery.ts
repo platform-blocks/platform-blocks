@@ -1,14 +1,24 @@
-import { useEffect, useState } from 'react';
-import { Dimensions, Platform } from 'react-native';
+import { useCallback, useSyncExternalStore } from 'react';
+
+import { hasDOM, isWeb } from '../../core/platform/flags';
+import {
+  getViewportSnapshot,
+  subscribeViewport,
+  type ViewportSize,
+} from '../../core/responsive/viewportStore';
 
 /**
- * Subscribes to a CSS media query (web) or Dimensions changes (native) and
- * returns whether the query currently matches.
+ * Subscribes to a CSS media query (web) or the viewport (native) and returns
+ * whether the query currently matches.
  *
  * On web: uses `window.matchMedia(query)`.
- * On native: parses `(min-width: Npx)` / `(max-width: Npx)` and watches
- * `Dimensions.addEventListener('change')`. Other CSS features are returned as
- * the `initialValue` since RN can't evaluate them.
+ * On native: parses `(min-width: Npx)` / `(max-width: Npx)` /
+ * `(min-height: Npx)` / `(max-height: Npx)` against the shared viewport store
+ * (`core/responsive`). Other CSS features return `initialValue`, since RN
+ * can't evaluate them.
+ *
+ * Hydration-safe: static rendering and the hydration pass both see
+ * `initialValue`; the client re-renders with the real value right after.
  *
  * @example
  * const isCompact = useMediaQuery('(max-width: 640px)');
@@ -18,66 +28,67 @@ export function useMediaQuery(
   query: string,
   initialValue: boolean = false,
 ): boolean {
-  const [matches, setMatches] = useState<boolean>(() => evaluate(query, initialValue));
+  const subscribe = useCallback(
+    (onChange: () => void) => (isWeb ? subscribeMediaQuery(query, onChange) : subscribeViewport(onChange)),
+    [query],
+  );
+  const getSnapshot = useCallback(
+    () => (isWeb ? evaluateWeb(query, initialValue) : evaluateNative(query, initialValue, getViewportSnapshot())),
+    [query, initialValue],
+  );
+  const getServerSnapshot = useCallback(() => initialValue, [initialValue]);
 
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      if (typeof window === 'undefined' || !window.matchMedia) return;
-      const mql = window.matchMedia(query);
-      const handler = (event: MediaQueryListEvent | MediaQueryList) => {
-        setMatches(event.matches);
-      };
-      handler(mql);
-      // Some older browsers only expose addListener / removeListener.
-      if (mql.addEventListener) {
-        mql.addEventListener('change', handler as (event: MediaQueryListEvent) => void);
-        return () => mql.removeEventListener('change', handler as (event: MediaQueryListEvent) => void);
-      }
-      const legacy = mql as unknown as {
-        addListener: (cb: (e: MediaQueryListEvent) => void) => void;
-        removeListener: (cb: (e: MediaQueryListEvent) => void) => void;
-      };
-      const legacyHandler = handler as (e: MediaQueryListEvent) => void;
-      legacy.addListener(legacyHandler);
-      return () => legacy.removeListener(legacyHandler);
-    }
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
 
-    // Native: watch Dimensions, re-evaluate the parsed query.
-    const update = () => setMatches(evaluate(query, initialValue));
-    update();
-    const subscription = Dimensions.addEventListener('change', update);
-    return () => subscription?.remove?.();
-  }, [query, initialValue]);
+function hasMatchMedia(): boolean {
+  return hasDOM && typeof window.matchMedia === 'function';
+}
 
-  return matches;
+function subscribeMediaQuery(query: string, onChange: () => void): () => void {
+  if (!hasMatchMedia()) return () => {};
+  const mql = window.matchMedia(query);
+  if (typeof mql.addEventListener === 'function') {
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }
+  // Some older browsers only expose addListener / removeListener.
+  const legacy = mql as unknown as {
+    addListener?: (cb: () => void) => void;
+    removeListener?: (cb: () => void) => void;
+  };
+  legacy.addListener?.(onChange);
+  return () => legacy.removeListener?.(onChange);
+}
+
+function evaluateWeb(query: string, fallback: boolean): boolean {
+  if (!hasMatchMedia()) return fallback;
+  try {
+    return window.matchMedia(query).matches;
+  } catch {
+    // Malformed query in an old browser.
+    return fallback;
+  }
 }
 
 /**
- * Evaluates `query` synchronously where possible. Used both as the initial
- * useState lazy value and on every Dimensions `change` event on native.
+ * Native: supports the common width/height queries via simple parsing.
+ * Unparseable queries (e.g. `(prefers-color-scheme: dark)`) return `fallback`.
  */
-function evaluate(query: string, fallback: boolean): boolean {
-  if (Platform.OS === 'web') {
-    if (typeof window === 'undefined' || !window.matchMedia) return fallback;
-    return window.matchMedia(query).matches;
-  }
-
-  // Native: support the most common width-based queries via simple parsing.
-  const win = Dimensions.get('window');
+function evaluateNative(query: string, fallback: boolean, viewport: ViewportSize): boolean {
   const minMatch = query.match(/\(\s*min-width\s*:\s*(\d+)\s*px\s*\)/);
   const maxMatch = query.match(/\(\s*max-width\s*:\s*(\d+)\s*px\s*\)/);
   const minHeightMatch = query.match(/\(\s*min-height\s*:\s*(\d+)\s*px\s*\)/);
   const maxHeightMatch = query.match(/\(\s*max-height\s*:\s*(\d+)\s*px\s*\)/);
 
   if (!minMatch && !maxMatch && !minHeightMatch && !maxHeightMatch) {
-    // Unparseable query (e.g. `(prefers-color-scheme: dark)`) — return fallback.
     return fallback;
   }
 
-  if (minMatch && win.width < parseInt(minMatch[1], 10)) return false;
-  if (maxMatch && win.width > parseInt(maxMatch[1], 10)) return false;
-  if (minHeightMatch && win.height < parseInt(minHeightMatch[1], 10)) return false;
-  if (maxHeightMatch && win.height > parseInt(maxHeightMatch[1], 10)) return false;
+  if (minMatch && viewport.width < parseInt(minMatch[1], 10)) return false;
+  if (maxMatch && viewport.width > parseInt(maxMatch[1], 10)) return false;
+  if (minHeightMatch && viewport.height < parseInt(minHeightMatch[1], 10)) return false;
+  if (maxHeightMatch && viewport.height > parseInt(maxHeightMatch[1], 10)) return false;
 
   return true;
 }

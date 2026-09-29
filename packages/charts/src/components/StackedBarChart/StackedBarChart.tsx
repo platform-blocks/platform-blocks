@@ -28,7 +28,7 @@ import type { HitSeries, Mark } from '../../core/hittest/types';
 import { ChartInteractionEvent } from '../../types';
 import { bandScale, linearScale, generateNiceTicks } from '../../utils/scales';
 import type { Scale } from '../../utils/scales';
-import { getColorFromScheme, colorSchemes, formatNumber } from '../../utils';
+import { getColorFromScheme, createTickFormatter } from '../../utils';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -114,8 +114,8 @@ AnimatedStackedSegment.displayName = 'AnimatedStackedSegment';
 export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
   const {
     series,
-    width = 400,
-    height = 300,
+    w: width = 400,
+    h: height = 300,
     barSpacing = 0.25,
     title,
     subtitle,
@@ -158,7 +158,7 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
     }));
     const max = totals.size ? Math.max(...totals.values()) : 0;
     return resolveCartesianPadding({
-      yTickLabels: domainTickLabels([min, max], (value) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : `${value}`)),
+      yTickLabels: domainTickLabels([min, max], yAxis?.labelFormatter, theme.numberFormat),
       xTickLabels: categoryLabels,
       yTitle: yAxis?.title,
       xTitle: xAxis?.title,
@@ -170,7 +170,7 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
       containerHeight: height,
     });
   }, [series, categoryLabels, yAxis?.labelFormatter, yAxis?.title, xAxis?.title, yAxis?.show,
-      xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, width, height]);
+      xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, width, height, theme.numberFormat]);
   // Grown so the plot clears the title and legend overlays.
   const legendLabels = React.useMemo(
     () => (series ?? []).map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
@@ -206,7 +206,7 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
       const id = String(s.id ?? `stacked-${index}`);
       const override = interactionSeries?.find((entry) => entry.id === id);
       const visible = override ? override.visible !== false : s.visible !== false;
-      const color = s.color || theme.colors.accentPalette[index % theme.colors.accentPalette.length] || getColorFromScheme(index, colorSchemes.default);
+      const color = s.color || getColorFromScheme(index, theme.colors.accentPalette);
       return {
         id,
         name: s.name,
@@ -376,6 +376,7 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
     const fallbackCount = 5;
     return generateNiceTicks(layoutResult.valueDomain[0], layoutResult.valueDomain[1], fallbackCount);
   }, [layoutResult.valueDomain, yAxis?.ticks]);
+  const valueTickFormat = useMemo(() => createTickFormatter(valueTicks, theme.numberFormat), [valueTicks, theme.numberFormat]);
 
   const normalizedYTicks = useMemo(() => {
     if (plotHeight <= 0) return [] as number[];
@@ -489,8 +490,8 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
 
   return (
     <ChartContainer
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       padding={padding}
       animationDuration={animationDuration}
       disabled={disabled}
@@ -574,7 +575,7 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = (props) => {
           tickLabelWidth={basePadding.yTickLabelWidth}
           tickSize={yAxis?.tickLength ?? 4}
           tickPadding={6}
-          tickFormat={(value: number) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : formatNumber(value))}
+          tickFormat={(value: number) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : valueTickFormat(value))}
           label={yAxis?.title}
           stroke={yAxis?.color || theme.colors.grid}
           strokeWidth={yAxis?.thickness ?? 1}

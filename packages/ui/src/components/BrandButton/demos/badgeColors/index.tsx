@@ -7,19 +7,17 @@ export function Demo() {
         brand="github"
         primaryText="View on"
         secondaryText="GitHub"
-        backgroundColor="#ffffff"
+        bg="#ffffff"
         textColor="#24292e"
         borderColor="#24292e"
-        onPress={() => console.log('GitHub light pressed')}
       />
       <BrandButton
         brand="spotify"
         primaryText="Listen on"
         secondaryText="Spotify"
-        backgroundColor="#191414"
+        bg="#191414"
         textColor="#1DB954"
         borderColor="#1DB954"
-        onPress={() => console.log('Spotify custom pressed')}
       />
     </Block>
   );

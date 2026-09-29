@@ -8,15 +8,60 @@ export {
   SURFACE_LEVELS,
 } from './surfaces';
 export type { SurfaceInteractionState } from './surfaces';
+export { DEFAULT_TEXT_ROLES, getTextRole, resolveTextRole } from './textRoles';
+export type { TextRoleName, TextRoleStyle, TextRoles } from './types';
 export { DEFAULT_THEME } from './defaultTheme';
 export { DARK_THEME } from './darkTheme';
-export { mergeTheme, createTheme } from './utils';
+export {
+  mergeTheme,
+  createTheme,
+  normalizeTheme,
+  getBuiltInTheme,
+  resolveThemeForScheme,
+  isThemePair,
+} from './utils';
+export type {
+  PlatformBlocksThemePair,
+  ThemeBackgrounds,
+  ThemeBackgroundRole,
+  ControlSizes,
+  ControlSizeMetrics,
+  ZIndices,
+  ZIndexLayer,
+} from './types';
+export {
+  resolveSpacing,
+  resolveRadius,
+  resolveFontSize,
+  resolveLineHeight,
+  resolveIconSize,
+  getControlSize,
+  stepDown,
+  getBreakpoints,
+  onColor,
+  parsePx,
+  BREAKPOINT_KEYS,
+} from './tokens';
+export type { BreakpointValues, BreakpointKey, RadiusInput } from './tokens';
+export { DEFAULT_Z_INDICES, getZIndex } from './zIndices';
+export { deriveSemanticColors } from './semanticColors';
+export {
+  applyColorSchemeMarker,
+  getColorSchemeScript,
+  COLOR_SCHEME_ATTRIBUTE,
+  COLOR_SCHEME_STORAGE_KEY,
+  LIGHT_SCHEME_CLASS,
+  DARK_SCHEME_CLASS,
+} from './colorSchemeMarker';
+export type { ColorSchemeMarkerOptions, ColorSchemeScriptOptions } from './colorSchemeMarker';
+export { breakpointsFromTheme } from './breakpoints';
 export {
   PlatformBlocksThemeProvider,
   useTheme,
+  useOptionalTheme,
   useSafePlatformBlocksTheme
 } from './ThemeProvider';
-export { CSSVariables } from './CSSVariables';
+export { CSSVariables, createCSSVariablesStylesheet } from './CSSVariables';
 export { useColorScheme } from './useColorScheme';
 export {
   resolveColorProp,

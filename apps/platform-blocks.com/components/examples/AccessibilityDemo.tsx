@@ -76,7 +76,7 @@ const AccessibilityDemo: React.FC = () => {
     <AccessibleAnnouncer announcements={announcements}>
       <ScrollView style={{ flex: 1, }}>
         <View style={{ padding: DESIGN_TOKENS.spacing.lg }}>
-          <Text size="xl" weight="bold" style={{ marginBottom: DESIGN_TOKENS.spacing.xl }}>
+          <Text size="xl" fw="bold" style={{ marginBottom: DESIGN_TOKENS.spacing.xl }}>
             Accessibility Features Demo
           </Text>
 

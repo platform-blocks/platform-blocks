@@ -1,30 +1,26 @@
 /**
- * Universal props system for Platform Blocks components
- * Provides props that can be applied to all components in the library
- * Optimized for React Native (Expo) with web compatibility
+ * Universal props system for Platform Blocks components.
+ *
+ * @deprecated The visibility props are `VisibilityProps` (`core/types/base.ts`)
+ * and are implemented once by the component factory / `useVisibility`
+ * (`core/factory`). These helpers remain for back-compat.
  */
 
-import { Platform, Dimensions } from 'react-native';
+import { Platform } from 'react-native';
 import { ColorScheme } from '../theme/useColorScheme';
+import { DEFAULT_THEME } from '../theme/defaultTheme';
+import { getBreakpoints } from '../theme/tokens';
+import { getViewportSnapshot } from '../responsive/viewportStore';
+import type { VisibilityProps } from '../types/base';
 
-// Universal display props interface
-export interface UniversalProps {
-  /** Determines whether component should be hidden in light color scheme */
-  lightHidden?: boolean;
-  /** Determines whether component should be hidden in dark color scheme */
-  darkHidden?: boolean;
-}
+/** @deprecated use `VisibilityProps` from `core/types/base.ts`. */
+export type UniversalProps = Pick<VisibilityProps, 'lightHidden' | 'darkHidden'>;
 
-// Additional breakpoint-based visibility props (optional)
-export interface ResponsiveProps {
-  /** Hide component above this breakpoint */
-  hiddenFrom?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-  /** Show component only above this breakpoint */
-  visibleFrom?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-}
+/** @deprecated use `VisibilityProps` from `core/types/base.ts`. */
+export type ResponsiveProps = Pick<VisibilityProps, 'hiddenFrom' | 'visibleFrom'>;
 
-// Combined props
-export type UniversalSystemProps = UniversalProps & ResponsiveProps;
+/** @deprecated use `VisibilityProps` from `core/types/base.ts`. */
+export type UniversalSystemProps = VisibilityProps;
 
 /**
  * Generates CSS class names based on universal props
@@ -78,17 +74,10 @@ export function extractUniversalProps<T extends UniversalSystemProps>(
   return { universalProps, otherProps };
 }
 
-// Breakpoint pixel values for responsive props
-const BREAKPOINTS = {
-  xs: 576,
-  sm: 768,
-  md: 992,
-  lg: 1200,
-  xl: 1400
-} as const;
-
 /**
  * Determines if a component should be hidden based on responsive breakpoints
+ * (`theme.breakpoints` of the default theme). Point-in-time: reads the shared
+ * viewport store once; use `useVisibility` in components.
  */
 export function shouldHideForBreakpoint(
   universalProps: ResponsiveProps
@@ -98,7 +87,8 @@ export function shouldHideForBreakpoint(
     return false;
   }
 
-  const { width } = Dimensions.get('window');
+  const { width } = getViewportSnapshot();
+  const BREAKPOINTS = getBreakpoints(DEFAULT_THEME);
 
   if (universalProps.hiddenFrom) {
     const breakpoint = BREAKPOINTS[universalProps.hiddenFrom];

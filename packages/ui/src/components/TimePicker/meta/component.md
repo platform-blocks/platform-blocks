@@ -16,8 +16,9 @@ props:
   columnWidth: Width of each scroll column
   columnHeight: Max height of each scroll column
   disabled: Disable selection
+  accessibilityLabel: Accessible name of the column group (default "Time")
 ---
 
-Inline panel for selecting a time with hour/minute (and optional seconds) precision, rendered directly in the page rather than in a dialog — the time counterpart to `MonthPicker` and `YearPicker`. Supports 12-hour or 24-hour clocks, a meridiem column on 12-hour clocks, and custom step intervals for minutes and seconds. Works in controlled and uncontrolled modes.
+Inline panel for selecting a time with hour/minute (and optional seconds) precision, rendered directly in the page rather than in a dialog — the time counterpart to `MonthPicker` and `YearPicker`. Supports 12-hour or 24-hour clocks, a meridiem column on 12-hour clocks, and custom step intervals for minutes and seconds. Works in controlled and uncontrolled modes. Accessibility: a group named "Time" holding one adjustable wheel per column (named Hour / Minute / Second / Period); the visible captions are hidden from assistive technology so each column is announced once.
 
 For a form field that displays the selected time and opens this panel in a dialog, use [`TimePickerInput`](/components/TimePickerInput).

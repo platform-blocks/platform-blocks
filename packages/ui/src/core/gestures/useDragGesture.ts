@@ -126,7 +126,8 @@ export const useDragGesture = (options: UseDragGestureOptions = {}): UseDragGest
   configRef.current = { claimOnStart, activationDistance, lockPageScroll, lockTextSelection };
 
   const measureSurface = useCallback(() => {
-    const node = surfaceRef.current as any;
+    // On web the ref holds the DOM node, on native the host instance.
+    const node = surfaceRef.current as (View & Partial<Pick<HTMLElement, 'getBoundingClientRect'>>) | null;
     if (!node) return;
 
     if (Platform.OS === 'web') {
@@ -176,7 +177,7 @@ export const useDragGesture = (options: UseDragGestureOptions = {}): UseDragGest
     event: GestureResponderEvent,
     flags: { isFirst?: boolean; isFinal?: boolean } = {}
   ): DragPoint => {
-    const native: any = event?.nativeEvent ?? {};
+    const native: Partial<GestureResponderEvent['nativeEvent']> = event?.nativeEvent ?? {};
     const pageX = typeof native.pageX === 'number' ? native.pageX : 0;
     const pageY = typeof native.pageY === 'number' ? native.pageY : 0;
     const origin = originRef.current ?? { x: rectRef.current.x, y: rectRef.current.y };
@@ -202,7 +203,7 @@ export const useDragGesture = (options: UseDragGestureOptions = {}): UseDragGest
   }, []);
 
   const beginGesture = useCallback((event: GestureResponderEvent) => {
-    const native: any = event?.nativeEvent ?? {};
+    const native: Partial<GestureResponderEvent['nativeEvent']> = event?.nativeEvent ?? {};
     const pageX = typeof native.pageX === 'number' ? native.pageX : 0;
     const pageY = typeof native.pageY === 'number' ? native.pageY : 0;
     const locationX = typeof native.locationX === 'number' ? native.locationX : 0;

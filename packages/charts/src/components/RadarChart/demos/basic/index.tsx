@@ -6,8 +6,8 @@ export function Demo() {
   return (
     <RadarChart
       title="Team capability radar"
-      maxWidth={560}
-      height={380}
+      maw={560}
+      h={380}
       series={SERIES}
       maxValue={60}
       radialGrid={{ rings: 5, shape: 'polygon', showAxes: true }}

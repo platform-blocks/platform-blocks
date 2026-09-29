@@ -30,11 +30,11 @@ export const PrerequisitesList: React.FC = () => {
               target="_blank"
               variant="hover-underline"
               size="sm"
-              color={textColor}
+              c={textColor}
             >
               {version}
             </Link>
-            <Text variant="small" color="secondary">
+            <Text variant="small" c="secondary">
               {note}
             </Text>
           </View>

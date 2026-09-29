@@ -40,7 +40,7 @@ const ProseList: React.FC<{ items: string[]; ordered?: boolean }> = ({ items, or
   <Column gap="xs">
     {items.map((item, index) => (
       <View key={item} style={styles.listRow}>
-        <Text variant="p" color="secondary" style={styles.marker}>
+        <Text variant="p" c="secondary" style={styles.marker}>
           {ordered ? `${index + 1}.` : '•'}
         </Text>
         <View style={styles.listBody}>
@@ -72,7 +72,7 @@ export default function ContributeScreen() {
           <Prose>{CONTRIBUTE_INTRO}</Prose>
 
           <Column gap="md">
-            <Title order={2} size={28} weight="bold">Repo layout</Title>
+            <Title order={2} size={28} fw="bold">Repo layout</Title>
             <DataList orientation="horizontal" size="sm" labelWidth={220} withDivider>
               {CONTRIBUTE_REPO_LAYOUT.map(({ path, description }) => (
                 <DataList.Item key={path}>
@@ -91,7 +91,7 @@ export default function ContributeScreen() {
 
           {CONTRIBUTE_SECTIONS.map(({ key, title, lead, items, ordered, snippets, note }) => (
             <Column key={key} gap="md">
-              <Title order={2} size={28} weight="bold">{title}</Title>
+              <Title order={2} size={28} fw="bold">{title}</Title>
               <Prose>{lead}</Prose>
               {items ? <ProseList items={items} ordered={ordered} /> : null}
               {snippets?.map(snippet => (

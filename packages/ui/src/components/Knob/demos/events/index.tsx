@@ -8,7 +8,7 @@ export function Demo() {
 
   return (
     <Block direction="row" align="center" justify="space-evenly">
-      <Knob
+      <Knob accessibilityLabel="Value"
         value={value}
         onChange={setValue}
         onChangeEnd={setCommitted}

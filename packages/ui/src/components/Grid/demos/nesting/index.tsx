@@ -6,17 +6,15 @@ export function Demo() {
       <Grid columns={12} gap="md">
         <GridItem span={8}>
           <Card variant="outline">
-            {/* Block's own gap separates the label from the nested grid — no
-                margin on either one. */}
             <Block>
-              <Text weight="semibold" size="sm">
+              <Text size="sm" ta="center">
                 Parent span=8
               </Text>
               <Grid columns={6} gap="sm">
                 {Array.from({ length: 6 }).map((_, index) => (
                   <GridItem key={index} span={2}>
                     <Card variant="filled" p="xs">
-                      <Text size="xs" align="center">
+                      <Text size="xs" ta="center">
                         Nested {index + 1}
                       </Text>
                     </Card>
@@ -28,15 +26,12 @@ export function Demo() {
         </GridItem>
         <GridItem span={4}>
           <Card variant="outline">
-            <Text weight="semibold" size="sm">
+            <Text size="sm" ta="center">
               Sidebar span=4
             </Text>
           </Card>
         </GridItem>
       </Grid>
-      <Text size="sm" color="secondary">
-        GridItem components can render another Grid to illustrate nested layouts
-      </Text>
     </Block>
   );
 }

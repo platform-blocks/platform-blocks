@@ -10,7 +10,7 @@ export function Demo() {
           <Card w={56} h={56} radius="lg">
             <Indicator placement="top-right" size={size} offset={4} />
           </Card>
-          <Text variant="small">{typeof size === 'number' ? `${size} (numeric)` : size}</Text>
+          <Text variant="small">{size}</Text>
         </Block>
       ))}
     </Row>

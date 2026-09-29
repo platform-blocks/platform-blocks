@@ -1,0 +1,1810 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Slider - rendering matches snapshot for a compact slider with a custom formatter 1`] = `
+<View
+  style={
+    [
+      {
+        "width": "100%",
+      },
+      [
+        {
+          "flex": 1,
+        },
+        {
+          "alignSelf": "stretch",
+        },
+        {},
+        {},
+        undefined,
+      ],
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "marginBottom": 0,
+      }
+    }
+  >
+    <Text
+      nativeID="pb-_r_2_-label"
+      selectable={true}
+      style={
+        [
+          {
+            "color": "#1C1C1E",
+            "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+            "fontSize": 16,
+            "fontWeight": "600",
+            "lineHeight": 22.4,
+            "textAlign": "left",
+          },
+          {},
+          {
+            "color": "#1C1C1E",
+            "fontSize": 11,
+            "marginBottom": 0,
+          },
+        ]
+      }
+    >
+      Gain
+    </Text>
+  </View>
+  <View
+    onLayout={[Function]}
+    onMoveShouldSetResponder={[Function]}
+    onMoveShouldSetResponderCapture={[Function]}
+    onResponderEnd={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderReject={[Function]}
+    onResponderRelease={[Function]}
+    onResponderStart={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    onStartShouldSetResponderCapture={[Function]}
+    style={
+      [
+        {
+          "height": 40,
+          "justifyContent": "center",
+          "position": "relative",
+          "width": "100%",
+        },
+        {},
+      ]
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 2.5,
+            "position": "absolute",
+          },
+          {
+            "backgroundColor": "#D1D1D6",
+          },
+          {
+            "end": 9,
+            "start": 9,
+          },
+          {
+            "height": 5,
+            "top": 17.5,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "borderRadius": 2.5,
+            "position": "absolute",
+          },
+          {
+            "backgroundColor": "#666666",
+          },
+          {
+            "start": 9,
+            "width": 225.60000000000002,
+          },
+          {
+            "height": 5,
+            "top": 17.5,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#666666",
+            "borderRadius": 1,
+            "position": "absolute",
+          },
+          {
+            "height": 11,
+            "start": 9,
+            "top": 14.5,
+            "width": 2,
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#666666",
+            "borderRadius": 1,
+            "position": "absolute",
+          },
+          {
+            "height": 11,
+            "start": 79.5,
+            "top": 14.5,
+            "width": 2,
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#666666",
+            "borderRadius": 1,
+            "position": "absolute",
+          },
+          {
+            "height": 11,
+            "start": 150,
+            "top": 14.5,
+            "width": 2,
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#666666",
+            "borderRadius": 1,
+            "position": "absolute",
+          },
+          {
+            "height": 11,
+            "start": 220.5,
+            "top": 14.5,
+            "width": 2,
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#8E8E93",
+            "borderRadius": 1,
+            "position": "absolute",
+          },
+          {
+            "height": 11,
+            "start": 291,
+            "top": 14.5,
+            "width": 2,
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+    <View
+      accessibilityActions={
+        [
+          {
+            "label": "Increase value",
+            "name": "increment",
+          },
+          {
+            "label": "Decrease value",
+            "name": "decrement",
+          },
+        ]
+      }
+      accessible={true}
+      aria-label="Gain"
+      aria-valuemax={20}
+      aria-valuemin={-20}
+      aria-valuenow={12}
+      aria-valuetext="12 dB"
+      id="pb-_r_2_"
+      onAccessibilityAction={[Function]}
+      onBlur={[Function]}
+      onFocus={[Function]}
+      role="slider"
+      style={
+        [
+          {
+            "borderRadius": 9,
+            "height": 18,
+            "position": "absolute",
+            "transform": [
+              {
+                "scale": 1,
+              },
+            ],
+            "width": 18,
+            "zIndex": 1,
+          },
+          {
+            "backgroundColor": "#666666",
+            "borderColor": "#FFFFFF",
+            "borderWidth": 2,
+            "elevation": 2,
+            "shadowColor": "rgb(0, 0, 0)",
+            "shadowOffset": {
+              "height": 1,
+              "width": 0,
+            },
+            "shadowOpacity": 0.12,
+            "shadowRadius": 1.5,
+          },
+          {
+            "start": 225.60000000000002,
+            "top": 11,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      accessibilityElementsHidden={true}
+      aria-hidden={true}
+      importantForAccessibility="no-hide-descendants"
+      style={
+        [
+          {
+            "alignItems": "center",
+            "pointerEvents": "none",
+            "position": "absolute",
+            "start": 184.60000000000002,
+            "width": 100,
+          },
+          {
+            "bottom": 34,
+          },
+        ]
+      }
+    >
+      <View
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "padding": 12,
+            },
+            undefined,
+            {
+              "backgroundColor": "#FFFFFF",
+              "borderRadius": 6,
+            },
+            undefined,
+            {
+              "elevation": 4,
+              "shadowColor": "rgb(0, 0, 0)",
+              "shadowOffset": {
+                "height": 3,
+                "width": 0,
+              },
+              "shadowOpacity": 0.15,
+              "shadowRadius": 3,
+            },
+            {
+              "paddingBottom": 4,
+              "paddingEnd": 4,
+              "paddingStart": 4,
+              "paddingTop": 4,
+            },
+            {},
+            [
+              {
+                "margin": "auto",
+              },
+              undefined,
+            ],
+          ]
+        }
+      >
+        <Text
+          selectable={true}
+          style={
+            [
+              {
+                "color": "#1C1C1E",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+                "fontSize": 12,
+                "fontWeight": "400",
+                "lineHeight": 15.600000000000001,
+                "textAlign": "left",
+              },
+              {},
+              {
+                "textAlign": "center",
+              },
+            ]
+          }
+        >
+          12 dB
+        </Text>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`Slider - rendering matches snapshot for a horizontal range slider with ticks 1`] = `
+<View
+  style={
+    [
+      {
+        "width": "100%",
+      },
+      [
+        {
+          "marginBottom": 24,
+        },
+        {
+          "alignSelf": "stretch",
+        },
+        {},
+        {},
+        undefined,
+      ],
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "marginBottom": 0,
+      }
+    }
+  >
+    <Text
+      nativeID="pb-_r_3_-label"
+      selectable={true}
+      style={
+        [
+          {
+            "color": "#1C1C1E",
+            "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+            "fontSize": 16,
+            "fontWeight": "600",
+            "lineHeight": 22.4,
+            "textAlign": "left",
+          },
+          {},
+          {
+            "color": "#1C1C1E",
+            "fontSize": 13,
+            "marginBottom": 0,
+          },
+        ]
+      }
+    >
+      Selection
+    </Text>
+  </View>
+  <View
+    aria-label="Selection"
+    collapsable={false}
+    id="pb-_r_3_"
+    onLayout={[Function]}
+    onMoveShouldSetResponder={[Function]}
+    onMoveShouldSetResponderCapture={[Function]}
+    onResponderEnd={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderReject={[Function]}
+    onResponderRelease={[Function]}
+    onResponderStart={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    onStartShouldSetResponderCapture={[Function]}
+    role="group"
+    style={
+      [
+        {
+          "height": 40,
+          "justifyContent": "center",
+          "position": "relative",
+          "width": "100%",
+        },
+        {},
+      ]
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 3,
+            "position": "absolute",
+          },
+          {
+            "backgroundColor": "#D1D1D6",
+          },
+          {
+            "end": 10,
+            "start": 10,
+          },
+          {
+            "height": 6,
+            "top": 17,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "borderRadius": 3,
+            "position": "absolute",
+          },
+          {
+            "backgroundColor": "#666666",
+          },
+          {
+            "start": 56.66666666666666,
+            "width": 139.99999999999997,
+          },
+          {
+            "height": 6,
+            "top": 17,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#8E8E93",
+            "borderRadius": 1,
+            "position": "absolute",
+          },
+          {
+            "height": 12,
+            "start": 10,
+            "top": 14,
+            "width": 2,
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#666666",
+            "borderRadius": 1,
+            "position": "absolute",
+          },
+          {
+            "height": 12,
+            "start": 103.33333333333331,
+            "top": 14,
+            "width": 2,
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#666666",
+            "borderRadius": 1,
+            "position": "absolute",
+          },
+          {
+            "height": 12,
+            "start": 196.66666666666663,
+            "top": 14,
+            "width": 2,
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#8E8E93",
+            "borderRadius": 1,
+            "position": "absolute",
+          },
+          {
+            "height": 12,
+            "start": 290,
+            "top": 14,
+            "width": 2,
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "position": "absolute",
+          "start": -10,
+          "top": 48,
+          "width": 40,
+        }
+      }
+    >
+      <Text
+        selectable={true}
+        style={
+          [
+            {
+              "color": "#1C1C1E",
+              "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+              "fontSize": 10,
+              "fontWeight": "400",
+              "lineHeight": 12,
+              "textAlign": "left",
+            },
+            {},
+            {
+              "textAlign": "center",
+            },
+          ]
+        }
+      >
+        0
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "position": "absolute",
+          "start": 83.33333333333331,
+          "top": 48,
+          "width": 40,
+        }
+      }
+    >
+      <Text
+        selectable={true}
+        style={
+          [
+            {
+              "color": "#1C1C1E",
+              "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+              "fontSize": 10,
+              "fontWeight": "400",
+              "lineHeight": 12,
+              "textAlign": "left",
+            },
+            {},
+            {
+              "textAlign": "center",
+            },
+          ]
+        }
+      >
+        20
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "position": "absolute",
+          "start": 176.66666666666663,
+          "top": 48,
+          "width": 40,
+        }
+      }
+    >
+      <Text
+        selectable={true}
+        style={
+          [
+            {
+              "color": "#1C1C1E",
+              "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+              "fontSize": 10,
+              "fontWeight": "400",
+              "lineHeight": 12,
+              "textAlign": "left",
+            },
+            {},
+            {
+              "textAlign": "center",
+            },
+          ]
+        }
+      >
+        40
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "position": "absolute",
+          "start": 270,
+          "top": 48,
+          "width": 40,
+        }
+      }
+    >
+      <Text
+        selectable={true}
+        style={
+          [
+            {
+              "color": "#1C1C1E",
+              "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+              "fontSize": 10,
+              "fontWeight": "400",
+              "lineHeight": 12,
+              "textAlign": "left",
+            },
+            {},
+            {
+              "textAlign": "center",
+            },
+          ]
+        }
+      >
+        60
+      </Text>
+    </View>
+    <View
+      accessibilityActions={
+        [
+          {
+            "label": "Increase value",
+            "name": "increment",
+          },
+          {
+            "label": "Decrease value",
+            "name": "decrement",
+          },
+        ]
+      }
+      accessible={true}
+      aria-label="Selection, Minimum"
+      aria-valuemax={40}
+      aria-valuemin={0}
+      aria-valuenow={10}
+      aria-valuetext="10"
+      onAccessibilityAction={[Function]}
+      onBlur={[Function]}
+      onFocus={[Function]}
+      role="slider"
+      style={
+        [
+          {
+            "borderRadius": 10,
+            "height": 20,
+            "position": "absolute",
+            "transform": [
+              {
+                "scale": 1,
+              },
+            ],
+            "width": 20,
+            "zIndex": 1,
+          },
+          {
+            "backgroundColor": "#666666",
+            "borderColor": "#FFFFFF",
+            "borderWidth": 2,
+            "elevation": 2,
+            "shadowColor": "rgb(0, 0, 0)",
+            "shadowOffset": {
+              "height": 1,
+              "width": 0,
+            },
+            "shadowOpacity": 0.12,
+            "shadowRadius": 1.5,
+          },
+          {
+            "start": 46.66666666666666,
+            "top": 10,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      accessibilityActions={
+        [
+          {
+            "label": "Increase value",
+            "name": "increment",
+          },
+          {
+            "label": "Decrease value",
+            "name": "decrement",
+          },
+        ]
+      }
+      accessible={true}
+      aria-label="Selection, Maximum"
+      aria-valuemax={60}
+      aria-valuemin={10}
+      aria-valuenow={40}
+      aria-valuetext="40"
+      onAccessibilityAction={[Function]}
+      onBlur={[Function]}
+      onFocus={[Function]}
+      role="slider"
+      style={
+        [
+          {
+            "borderRadius": 10,
+            "height": 20,
+            "position": "absolute",
+            "transform": [
+              {
+                "scale": 1,
+              },
+            ],
+            "width": 20,
+            "zIndex": 2,
+          },
+          {
+            "backgroundColor": "#666666",
+            "borderColor": "#FFFFFF",
+            "borderWidth": 2,
+            "elevation": 2,
+            "shadowColor": "rgb(0, 0, 0)",
+            "shadowOffset": {
+              "height": 1,
+              "width": 0,
+            },
+            "shadowOpacity": 0.12,
+            "shadowRadius": 1.5,
+          },
+          {
+            "start": 186.66666666666663,
+            "top": 10,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      accessibilityElementsHidden={true}
+      aria-hidden={true}
+      importantForAccessibility="no-hide-descendants"
+      style={
+        [
+          {
+            "alignItems": "center",
+            "pointerEvents": "none",
+            "position": "absolute",
+            "start": 6.666666666666657,
+            "width": 100,
+          },
+          {
+            "bottom": 34,
+          },
+        ]
+      }
+    >
+      <View
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "padding": 12,
+            },
+            undefined,
+            {
+              "backgroundColor": "#FFFFFF",
+              "borderRadius": 6,
+            },
+            undefined,
+            {
+              "elevation": 4,
+              "shadowColor": "rgb(0, 0, 0)",
+              "shadowOffset": {
+                "height": 3,
+                "width": 0,
+              },
+              "shadowOpacity": 0.15,
+              "shadowRadius": 3,
+            },
+            {
+              "paddingBottom": 4,
+              "paddingEnd": 4,
+              "paddingStart": 4,
+              "paddingTop": 4,
+            },
+            {},
+            [
+              {
+                "margin": "auto",
+              },
+              undefined,
+            ],
+          ]
+        }
+      >
+        <Text
+          selectable={true}
+          style={
+            [
+              {
+                "color": "#1C1C1E",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+                "fontSize": 12,
+                "fontWeight": "400",
+                "lineHeight": 15.600000000000001,
+                "textAlign": "left",
+              },
+              {},
+              {
+                "textAlign": "center",
+              },
+            ]
+          }
+        >
+          10
+        </Text>
+      </View>
+    </View>
+    <View
+      accessibilityElementsHidden={true}
+      aria-hidden={true}
+      importantForAccessibility="no-hide-descendants"
+      style={
+        [
+          {
+            "alignItems": "center",
+            "pointerEvents": "none",
+            "position": "absolute",
+            "start": 146.66666666666663,
+            "width": 100,
+          },
+          {
+            "bottom": 34,
+          },
+        ]
+      }
+    >
+      <View
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "padding": 12,
+            },
+            undefined,
+            {
+              "backgroundColor": "#FFFFFF",
+              "borderRadius": 6,
+            },
+            undefined,
+            {
+              "elevation": 4,
+              "shadowColor": "rgb(0, 0, 0)",
+              "shadowOffset": {
+                "height": 3,
+                "width": 0,
+              },
+              "shadowOpacity": 0.15,
+              "shadowRadius": 3,
+            },
+            {
+              "paddingBottom": 4,
+              "paddingEnd": 4,
+              "paddingStart": 4,
+              "paddingTop": 4,
+            },
+            {},
+            [
+              {
+                "margin": "auto",
+              },
+              undefined,
+            ],
+          ]
+        }
+      >
+        <Text
+          selectable={true}
+          style={
+            [
+              {
+                "color": "#1C1C1E",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+                "fontSize": 12,
+                "fontWeight": "400",
+                "lineHeight": 15.600000000000001,
+                "textAlign": "left",
+              },
+              {},
+              {
+                "textAlign": "center",
+              },
+            ]
+          }
+        >
+          40
+        </Text>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`Slider - rendering matches snapshot for a horizontal slider with ticks and value labels 1`] = `
+<View
+  style={
+    [
+      {
+        "width": "100%",
+      },
+      [
+        {
+          "flex": 1,
+        },
+        {
+          "alignSelf": "stretch",
+        },
+        {},
+        {},
+        undefined,
+      ],
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "marginBottom": 0,
+      }
+    }
+  >
+    <Text
+      nativeID="pb-_r_0_-label"
+      selectable={true}
+      style={
+        [
+          {
+            "color": "#1C1C1E",
+            "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+            "fontSize": 16,
+            "fontWeight": "600",
+            "lineHeight": 22.4,
+            "textAlign": "left",
+          },
+          {},
+          {
+            "color": "#1C1C1E",
+            "fontSize": 13,
+            "marginBottom": 0,
+          },
+        ]
+      }
+    >
+      Playback speed
+    </Text>
+  </View>
+  <View
+    onLayout={[Function]}
+    onMoveShouldSetResponder={[Function]}
+    onMoveShouldSetResponderCapture={[Function]}
+    onResponderEnd={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderReject={[Function]}
+    onResponderRelease={[Function]}
+    onResponderStart={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    onStartShouldSetResponderCapture={[Function]}
+    style={
+      [
+        {
+          "height": 40,
+          "justifyContent": "center",
+          "position": "relative",
+          "width": "100%",
+        },
+        {},
+      ]
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 3,
+            "position": "absolute",
+          },
+          {
+            "backgroundColor": "#D1D1D6",
+          },
+          {
+            "end": 10,
+            "start": 10,
+          },
+          {
+            "height": 6,
+            "top": 17,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "borderRadius": 3,
+            "position": "absolute",
+          },
+          {
+            "backgroundColor": "#666666",
+          },
+          {
+            "start": 10,
+            "width": 140,
+          },
+          {
+            "height": 6,
+            "top": 17,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#666666",
+            "borderRadius": 1,
+            "position": "absolute",
+          },
+          {
+            "height": 12,
+            "start": 10,
+            "top": 14,
+            "width": 2,
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#666666",
+            "borderRadius": 1,
+            "position": "absolute",
+          },
+          {
+            "height": 12,
+            "start": 150,
+            "top": 14,
+            "width": 2,
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#8E8E93",
+            "borderRadius": 1,
+            "position": "absolute",
+          },
+          {
+            "height": 12,
+            "start": 290,
+            "top": 14,
+            "width": 2,
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "position": "absolute",
+          "start": -10,
+          "top": 48,
+          "width": 40,
+        }
+      }
+    >
+      <Text
+        selectable={true}
+        style={
+          [
+            {
+              "color": "#1C1C1E",
+              "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+              "fontSize": 10,
+              "fontWeight": "400",
+              "lineHeight": 12,
+              "textAlign": "left",
+            },
+            {},
+            {
+              "textAlign": "center",
+            },
+          ]
+        }
+      >
+        0%
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "position": "absolute",
+          "start": 130,
+          "top": 48,
+          "width": 40,
+        }
+      }
+    >
+      <Text
+        selectable={true}
+        style={
+          [
+            {
+              "color": "#1C1C1E",
+              "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+              "fontSize": 10,
+              "fontWeight": "400",
+              "lineHeight": 12,
+              "textAlign": "left",
+            },
+            {},
+            {
+              "textAlign": "center",
+            },
+          ]
+        }
+      >
+        45%
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "position": "absolute",
+          "start": 270,
+          "top": 48,
+          "width": 40,
+        }
+      }
+    >
+      <Text
+        selectable={true}
+        style={
+          [
+            {
+              "color": "#1C1C1E",
+              "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+              "fontSize": 10,
+              "fontWeight": "400",
+              "lineHeight": 12,
+              "textAlign": "left",
+            },
+            {},
+            {
+              "textAlign": "center",
+            },
+          ]
+        }
+      >
+        90%
+      </Text>
+    </View>
+    <View
+      accessibilityActions={
+        [
+          {
+            "label": "Increase value",
+            "name": "increment",
+          },
+          {
+            "label": "Decrease value",
+            "name": "decrement",
+          },
+        ]
+      }
+      accessible={true}
+      aria-label="Playback speed"
+      aria-valuemax={90}
+      aria-valuemin={0}
+      aria-valuenow={45}
+      aria-valuetext="45"
+      id="pb-_r_0_"
+      onAccessibilityAction={[Function]}
+      onBlur={[Function]}
+      onFocus={[Function]}
+      role="slider"
+      style={
+        [
+          {
+            "borderRadius": 10,
+            "height": 20,
+            "position": "absolute",
+            "transform": [
+              {
+                "scale": 1,
+              },
+            ],
+            "width": 20,
+            "zIndex": 1,
+          },
+          {
+            "backgroundColor": "#666666",
+            "borderColor": "#FFFFFF",
+            "borderWidth": 2,
+            "elevation": 2,
+            "shadowColor": "rgb(0, 0, 0)",
+            "shadowOffset": {
+              "height": 1,
+              "width": 0,
+            },
+            "shadowOpacity": 0.12,
+            "shadowRadius": 1.5,
+          },
+          {
+            "start": 140,
+            "top": 10,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      accessibilityElementsHidden={true}
+      aria-hidden={true}
+      importantForAccessibility="no-hide-descendants"
+      style={
+        [
+          {
+            "alignItems": "center",
+            "pointerEvents": "none",
+            "position": "absolute",
+            "start": 100,
+            "width": 100,
+          },
+          {
+            "bottom": 34,
+          },
+        ]
+      }
+    >
+      <View
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "padding": 12,
+            },
+            undefined,
+            {
+              "backgroundColor": "#FFFFFF",
+              "borderRadius": 6,
+            },
+            undefined,
+            {
+              "elevation": 4,
+              "shadowColor": "rgb(0, 0, 0)",
+              "shadowOffset": {
+                "height": 3,
+                "width": 0,
+              },
+              "shadowOpacity": 0.15,
+              "shadowRadius": 3,
+            },
+            {
+              "paddingBottom": 4,
+              "paddingEnd": 4,
+              "paddingStart": 4,
+              "paddingTop": 4,
+            },
+            {},
+            [
+              {
+                "margin": "auto",
+              },
+              undefined,
+            ],
+          ]
+        }
+      >
+        <Text
+          selectable={true}
+          style={
+            [
+              {
+                "color": "#1C1C1E",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+                "fontSize": 12,
+                "fontWeight": "400",
+                "lineHeight": 15.600000000000001,
+                "textAlign": "left",
+              },
+              {},
+              {
+                "textAlign": "center",
+              },
+            ]
+          }
+        >
+          45
+        </Text>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`Slider - rendering matches snapshot for a vertical range slider layout 1`] = `
+<View
+  style={
+    [
+      {
+        "width": "100%",
+      },
+      [
+        {
+          "marginEnd": 24,
+        },
+        null,
+        {},
+        {},
+        undefined,
+      ],
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "marginBottom": 0,
+      }
+    }
+  >
+    <Text
+      nativeID="pb-_r_1_-label"
+      selectable={true}
+      style={
+        [
+          {
+            "color": "#1C1C1E",
+            "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+            "fontSize": 16,
+            "fontWeight": "600",
+            "lineHeight": 22.4,
+            "textAlign": "left",
+          },
+          {},
+          {
+            "color": "#1C1C1E",
+            "fontSize": 13,
+            "marginBottom": 0,
+          },
+        ]
+      }
+    >
+      Viewport
+    </Text>
+  </View>
+  <View
+    aria-label="Viewport"
+    collapsable={false}
+    id="pb-_r_1_"
+    onLayout={[Function]}
+    onMoveShouldSetResponder={[Function]}
+    onMoveShouldSetResponderCapture={[Function]}
+    onResponderEnd={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderReject={[Function]}
+    onResponderRelease={[Function]}
+    onResponderStart={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    onStartShouldSetResponderCapture={[Function]}
+    role="group"
+    style={
+      [
+        {
+          "height": "100%",
+          "justifyContent": "center",
+          "position": "relative",
+          "width": 40,
+        },
+        {},
+      ]
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 3,
+            "position": "absolute",
+          },
+          {
+            "backgroundColor": "#D1D1D6",
+          },
+          {
+            "bottom": 10,
+            "top": 10,
+          },
+          {
+            "start": 7,
+            "width": 6,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "borderRadius": 3,
+            "position": "absolute",
+          },
+          {
+            "backgroundColor": "#666666",
+          },
+          {
+            "height": 140,
+            "top": 94.00000000000001,
+          },
+          {
+            "start": 7,
+            "width": 6,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      accessibilityActions={
+        [
+          {
+            "label": "Increase value",
+            "name": "increment",
+          },
+          {
+            "label": "Decrease value",
+            "name": "decrement",
+          },
+        ]
+      }
+      accessible={true}
+      aria-label="Viewport, Minimum"
+      aria-valuemax={70}
+      aria-valuemin={0}
+      aria-valuenow={20}
+      aria-valuetext="20"
+      onAccessibilityAction={[Function]}
+      onBlur={[Function]}
+      onFocus={[Function]}
+      role="slider"
+      style={
+        [
+          {
+            "borderRadius": 10,
+            "height": 20,
+            "position": "absolute",
+            "transform": [
+              {
+                "scale": 1,
+              },
+            ],
+            "width": 20,
+            "zIndex": 1,
+          },
+          {
+            "backgroundColor": "#666666",
+            "borderColor": "#FFFFFF",
+            "borderWidth": 2,
+            "elevation": 2,
+            "shadowColor": "rgb(0, 0, 0)",
+            "shadowOffset": {
+              "height": 1,
+              "width": 0,
+            },
+            "shadowOpacity": 0.12,
+            "shadowRadius": 1.5,
+          },
+          {
+            "start": 0,
+            "top": 224,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      accessibilityActions={
+        [
+          {
+            "label": "Increase value",
+            "name": "increment",
+          },
+          {
+            "label": "Decrease value",
+            "name": "decrement",
+          },
+        ]
+      }
+      accessible={true}
+      aria-label="Viewport, Maximum"
+      aria-valuemax={100}
+      aria-valuemin={20}
+      aria-valuenow={70}
+      aria-valuetext="70"
+      onAccessibilityAction={[Function]}
+      onBlur={[Function]}
+      onFocus={[Function]}
+      role="slider"
+      style={
+        [
+          {
+            "borderRadius": 10,
+            "height": 20,
+            "position": "absolute",
+            "transform": [
+              {
+                "scale": 1,
+              },
+            ],
+            "width": 20,
+            "zIndex": 2,
+          },
+          {
+            "backgroundColor": "#666666",
+            "borderColor": "#FFFFFF",
+            "borderWidth": 2,
+            "elevation": 2,
+            "shadowColor": "rgb(0, 0, 0)",
+            "shadowOffset": {
+              "height": 1,
+              "width": 0,
+            },
+            "shadowOpacity": 0.12,
+            "shadowRadius": 1.5,
+          },
+          {
+            "start": 0,
+            "top": 84.00000000000001,
+          },
+          undefined,
+        ]
+      }
+    />
+    <View
+      accessibilityElementsHidden={true}
+      aria-hidden={true}
+      importantForAccessibility="no-hide-descendants"
+      style={
+        [
+          {
+            "alignItems": "flex-end",
+            "height": 20,
+            "justifyContent": "center",
+            "pointerEvents": "none",
+            "position": "absolute",
+            "top": 224,
+          },
+          {
+            "end": 36,
+          },
+        ]
+      }
+    >
+      <View
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "padding": 12,
+            },
+            undefined,
+            {
+              "backgroundColor": "#FFFFFF",
+              "borderRadius": 6,
+            },
+            undefined,
+            {
+              "elevation": 2,
+              "shadowColor": "rgb(0, 0, 0)",
+              "shadowOffset": {
+                "height": 1,
+                "width": 0,
+              },
+              "shadowOpacity": 0.1,
+              "shadowRadius": 1.5,
+            },
+            {
+              "paddingBottom": 4,
+              "paddingEnd": 4,
+              "paddingStart": 4,
+              "paddingTop": 4,
+            },
+            {},
+            undefined,
+          ]
+        }
+      >
+        <Text
+          selectable={true}
+          style={
+            [
+              {
+                "color": "#1C1C1E",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+                "fontSize": 12,
+                "fontWeight": "400",
+                "lineHeight": 15.600000000000001,
+                "textAlign": "left",
+              },
+              {},
+              undefined,
+            ]
+          }
+        >
+          20
+        </Text>
+      </View>
+    </View>
+    <View
+      accessibilityElementsHidden={true}
+      aria-hidden={true}
+      importantForAccessibility="no-hide-descendants"
+      style={
+        [
+          {
+            "alignItems": "flex-end",
+            "height": 20,
+            "justifyContent": "center",
+            "pointerEvents": "none",
+            "position": "absolute",
+            "top": 84.00000000000001,
+          },
+          {
+            "end": 36,
+          },
+        ]
+      }
+    >
+      <View
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "padding": 12,
+            },
+            undefined,
+            {
+              "backgroundColor": "#FFFFFF",
+              "borderRadius": 6,
+            },
+            undefined,
+            {
+              "elevation": 2,
+              "shadowColor": "rgb(0, 0, 0)",
+              "shadowOffset": {
+                "height": 1,
+                "width": 0,
+              },
+              "shadowOpacity": 0.1,
+              "shadowRadius": 1.5,
+            },
+            {
+              "paddingBottom": 4,
+              "paddingEnd": 4,
+              "paddingStart": 4,
+              "paddingTop": 4,
+            },
+            {},
+            undefined,
+          ]
+        }
+      >
+        <Text
+          selectable={true}
+          style={
+            [
+              {
+                "color": "#1C1C1E",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif",
+                "fontSize": 12,
+                "fontWeight": "400",
+                "lineHeight": 15.600000000000001,
+                "textAlign": "left",
+              },
+              {},
+              undefined,
+            ]
+          }
+        >
+          70
+        </Text>
+      </View>
+    </View>
+  </View>
+</View>
+`;

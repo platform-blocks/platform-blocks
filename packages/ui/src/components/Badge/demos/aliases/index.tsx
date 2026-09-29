@@ -12,11 +12,7 @@ export function Demo() {
     <Block>
       <Row gap="sm" wrap="wrap">
         {badges.map((badge) => (
-          <Badge
-            key={`full-${badge.label}`}
-            variant={badge.variant}
-            color={badge.color}
-          >
+          <Badge key={`full-${badge.label}`} variant={badge.variant} c={badge.color}>
             {badge.label}
           </Badge>
         ))}

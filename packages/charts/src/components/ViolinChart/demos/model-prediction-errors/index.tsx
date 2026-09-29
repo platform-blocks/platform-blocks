@@ -7,7 +7,7 @@ export function Demo() {
     <ViolinChart
       title="Prediction error distribution per model version"
       subtitle="Mean absolute error (percentage points) across validation folds"
-      height={460}
+      h={460}
       series={ERROR_SERIES}
       samples={96}
       bandwidth={0.9}

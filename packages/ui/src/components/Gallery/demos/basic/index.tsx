@@ -19,7 +19,7 @@ export function Demo() {
       </Row>
 
       <Gallery
-        visible={openIndex !== null}
+        opened={openIndex !== null}
         images={SAMPLE_IMAGES}
         initialIndex={openIndex ?? 0}
         onClose={() => setOpenIndex(null)}

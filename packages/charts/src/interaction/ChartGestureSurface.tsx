@@ -13,14 +13,14 @@ export interface ChartGestureSurfaceProps extends Omit<UseChartPointerOptions, '
   plotWidth: number;
   plotHeight: number;
   /** Overlay size — usually the full chart (width/height). Defaults to filling parent. */
-  width?: number;
-  height?: number;
+  w?: number;
+  h?: number;
   style?: any;
   children?: React.ReactNode;
 }
 
 export const ChartGestureSurface: React.FC<ChartGestureSurfaceProps> = (props) => {
-  const { width, height, style, children, ...pointerOpts } = props;
+  const { w: width, h: height, style, children, ...pointerOpts } = props;
   const { handlers, ref, onLayout } = useChartPointer(pointerOpts);
 
   return (

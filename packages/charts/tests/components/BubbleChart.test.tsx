@@ -25,8 +25,8 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
         <InteractionSpy onRender={onContext} />
         <BubbleChart
           data={DATA}
-          width={420}
-          height={320}
+          w={420}
+          h={320}
           dataKey={{ x: 'rev', y: 'growth', z: 'val', label: 'name', id: 'name', color: 'color' }}
         />
       </ChartInteractionProvider>
@@ -57,5 +57,47 @@ describe('BubbleChart (point engine-swap)', () => {
     await waitFor(() => {
       expect(ctxRef?.pointer?.inside).toBe(false);
     });
+  });
+});
+
+describe('BubbleChart color scale config', () => {
+  const POINTS = [
+    { name: 'a', rev: 1, growth: 1, size: 10, score: 10 },
+    { name: 'b', rev: 2, growth: 2, size: 20, score: 40 },
+    { name: 'c', rev: 3, growth: 3, size: 30, score: 90 },
+  ];
+  const renderBubbles = (colorScale: React.ComponentProps<typeof BubbleChart>['colorScale'], dataKey: Record<string, string>) =>
+    render(
+      <ChartThemeProvider>
+        <BubbleChart data={POINTS} dataKey={{ x: 'rev', y: 'growth', ...dataKey } as any} colorScale={colorScale} w={400} h={300} />
+      </ChartThemeProvider>
+    );
+  const bubbleColors = (r: ReturnType<typeof renderBubbles>) =>
+    r.UNSAFE_root.findAll((n) => {
+      const style = n.props.style;
+      const flat = Array.isArray(style) ? Object.assign({}, ...style.filter(Boolean)) : style;
+      return typeof n.type === 'string' && typeof flat?.backgroundColor === 'string' && flat.backgroundColor.startsWith('#');
+    }).map((n) => {
+      const style = n.props.style;
+      const flat = Array.isArray(style) ? Object.assign({}, ...style.filter(Boolean)) : style;
+      return flat.backgroundColor;
+    });
+
+  it('reads the dataKey.color field by default', () => {
+    const colors = bubbleColors(renderBubbles(
+      { type: 'threshold', thresholds: [50], colors: ['#00aa00', '#aa0000'] },
+      { z: 'size', color: 'score' }
+    ));
+    expect(colors.filter((c) => c === '#00aa00')).toHaveLength(2);
+    expect(colors.filter((c) => c === '#aa0000')).toHaveLength(1);
+  });
+
+  it('reads bubble size when no color field is mapped', () => {
+    const colors = bubbleColors(renderBubbles(
+      { type: 'threshold', thresholds: [25], colors: ['#00aa00', '#aa0000'] },
+      { z: 'size' }
+    ));
+    expect(colors.filter((c) => c === '#00aa00')).toHaveLength(2);
+    expect(colors.filter((c) => c === '#aa0000')).toHaveLength(1);
   });
 });

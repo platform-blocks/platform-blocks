@@ -29,7 +29,7 @@ function LocaleSwitcher() {
       <Alert icon="globe" style={{ flexGrow: 1 }}>
         {/* Decorative sample copy, not a section heading — as an h4 it was
             the only heading between the page h1 and its h2 sections. */}
-        <Text size="lg" weight="semibold">{t('localization.helloWorld')}</Text>
+        <Text size="lg" fw="semibold">{t('localization.helloWorld')}</Text>
       </Alert>
     </Flex>
   );
@@ -40,7 +40,7 @@ function LocalizationContent() {
     <DocsPage>
       <Block gap="md" mb="lg">
         <DocsPageHeader tx="localization.title" />
-        <Text tx="localization.intro" color="muted" />
+        <Text tx="localization.intro" c="muted" />
 
         <Flex direction="column" gap="xl">
           {LOCALIZATION_STEPS.map(({ key, fileName, snippet, highlightLines }) => (

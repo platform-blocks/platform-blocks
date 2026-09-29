@@ -8,3 +8,5 @@ since: 1.0.0
 ---
 
 Tree component for displaying hierarchical data structures like file systems, navigation menus, or any nested content. 
+
+With `disclosure="nested"`, top-level branches drop their caret and read as headings: their labels use the theme's `sectionLabel` text role.

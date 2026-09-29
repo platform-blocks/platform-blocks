@@ -137,7 +137,7 @@ export function InputShowcase() {
           {/* Text Input Section */}
           <Card padding={20} style={{ minWidth: 280, flex: 1 }}>
             <Block direction="column" gap={16}>
-              <Text variant="h6" color="primary">Text Inputs</Text>
+              <Text variant="h6" c="primary">Text Inputs</Text>
 
               <Input
                 label="Basic Input"
@@ -198,13 +198,13 @@ export function InputShowcase() {
 
               {showValues && (
                 <Card padding={12} style={{ backgroundColor: '#f8fafc' }}>
-                  <Text size="xs" color="dimmed" weight="medium">Current Values:</Text>
-                  <Text size="xs" color="dimmed">Input: "{state.basicInput}"</Text>
-                  <Text size="xs" color="dimmed">Password: {'*'.repeat(state.password.length)}</Text>
-                  <Text size="xs" color="dimmed">Number: {state.numberValue}</Text>
-                  <Text size="xs" color="dimmed">PIN: {state.pin}</Text>
-                  <Text size="xs" color="dimmed">Phone (raw): {state.phone}</Text>
-                  <Text size="xs" color="dimmed">Phone (formatted): {state.phoneFormatted || '—'}</Text>
+                  <Text size="xs" c="dimmed" fw="medium">Current Values:</Text>
+                  <Text size="xs" c="dimmed">Input: "{state.basicInput}"</Text>
+                  <Text size="xs" c="dimmed">Password: {'*'.repeat(state.password.length)}</Text>
+                  <Text size="xs" c="dimmed">Number: {state.numberValue}</Text>
+                  <Text size="xs" c="dimmed">PIN: {state.pin}</Text>
+                  <Text size="xs" c="dimmed">Phone (raw): {state.phone}</Text>
+                  <Text size="xs" c="dimmed">Phone (formatted): {state.phoneFormatted || '—'}</Text>
                 </Card>
               )}
             </Block>
@@ -224,7 +224,7 @@ export function InputShowcase() {
 
           <Card style={{ flex: 1, minWidth: 280 }} padding={20}>
             <Block direction="column" gap={12}>
-              <Text size="sm" weight="medium">Checkboxes</Text>
+              <Text size="sm" fw="medium">Checkboxes</Text>
               <Checkbox
                 label="Enable notifications"
                 checked={state.checkbox1}
@@ -248,7 +248,7 @@ export function InputShowcase() {
             <Block direction="column" gap={16}>
 
               <Block direction="column" gap={12}>
-                <Text size="sm" weight="medium">Switches</Text>
+                <Text size="sm" fw="medium">Switches</Text>
                 <Switch
                   label="Dark mode"
                   checked={state.switch1}
@@ -271,11 +271,11 @@ export function InputShowcase() {
 
               {showValues && (
                 <Card padding={12} style={{ backgroundColor: '#f8fafc' }}>
-                  <Text size="xs" color="dimmed" weight="medium">Selection State:</Text>
-                  <Text size="xs" color="dimmed">Checkboxes: [{state.checkbox1 ? '✓' : '○'}, {state.checkbox2 ? '✓' : '○'}, {state.checkbox3 ? '✓' : '○'}]</Text>
-                  <Text size="xs" color="dimmed">Radio: {state.radioValue || 'none'}</Text>
-                  <Text size="xs" color="dimmed">Group: {state.radioGroupValue}</Text>
-                  <Text size="xs" color="dimmed">Switches: [{state.switch1 ? 'ON' : 'OFF'}, {state.switch2 ? 'ON' : 'OFF'}, {state.switch3 ? 'ON' : 'OFF'}]</Text>
+                  <Text size="xs" c="dimmed" fw="medium">Selection State:</Text>
+                  <Text size="xs" c="dimmed">Checkboxes: [{state.checkbox1 ? '✓' : '○'}, {state.checkbox2 ? '✓' : '○'}, {state.checkbox3 ? '✓' : '○'}]</Text>
+                  <Text size="xs" c="dimmed">Radio: {state.radioValue || 'none'}</Text>
+                  <Text size="xs" c="dimmed">Group: {state.radioGroupValue}</Text>
+                  <Text size="xs" c="dimmed">Switches: [{state.switch1 ? 'ON' : 'OFF'}, {state.switch2 ? 'ON' : 'OFF'}, {state.switch3 ? 'ON' : 'OFF'}]</Text>
                 </Card>
               )}
             </Block>
@@ -284,7 +284,7 @@ export function InputShowcase() {
           {/* Range & Slider Components */}
           {/* <Card padding={20} >
             <Block direction="column" gap={16}>
-              <Text variant="h6" color="primary">Sliders</Text>
+              <Text variant="h6" c="primary">Sliders</Text>
 
               <Block direction="column" gap={12}>
                 <Slider
@@ -311,9 +311,9 @@ export function InputShowcase() {
 
               {showValues && (
                 <Card padding={12} style={{ backgroundColor: '#f8fafc' }}>
-                  <Text size="xs" color="dimmed" weight="medium">Range Values:</Text>
-                  <Text size="xs" color="dimmed">Slider: {state.sliderValue}</Text>
-                  <Text size="xs" color="dimmed">Range: [{state.rangeValue[0]}, {state.rangeValue[1]}]</Text>
+                  <Text size="xs" c="dimmed" fw="medium">Range Values:</Text>
+                  <Text size="xs" c="dimmed">Slider: {state.sliderValue}</Text>
+                  <Text size="xs" c="dimmed">Range: [{state.rangeValue[0]}, {state.rangeValue[1]}]</Text>
                 </Card>
               )}
             </Block>
@@ -322,7 +322,7 @@ export function InputShowcase() {
           {/* Dropdown Components */}
           <Card padding={20} style={{ minWidth: 280, flex: 1 }}>
             <Block direction="column" gap={16}>
-              <Text variant="h6" color="primary">Dropdown Inputs</Text>
+              <Text variant="h6" c="primary">Dropdown Inputs</Text>
 
               <Select
                 label="Technology Stack"
@@ -358,9 +358,9 @@ export function InputShowcase() {
 
               {showValues && (
                 <Card padding={12} style={{ backgroundColor: '#f8fafc' }}>
-                  <Text size="xs" color="dimmed" weight="medium">Dropdown Values:</Text>
-                  <Text size="xs" color="dimmed">Select: {state.selectValue || 'none'}</Text>
-                  <Text size="xs" color="dimmed">AutoComplete: {state.autoCompleteValue || 'none'}</Text>
+                  <Text size="xs" c="dimmed" fw="medium">Dropdown Values:</Text>
+                  <Text size="xs" c="dimmed">Select: {state.selectValue || 'none'}</Text>
+                  <Text size="xs" c="dimmed">AutoComplete: {state.autoCompleteValue || 'none'}</Text>
                 </Card>
               )}
             </Block>
@@ -368,7 +368,7 @@ export function InputShowcase() {
 
           {/* Date & Time Components */}
           <Card padding={20} style={{ minWidth: 280, flex: 1 }}>
-            <Text variant="h6" color="primary">Date & Time</Text>
+            <Text variant="h6" c="primary">Date & Time</Text>
 
             <DatePickerInput
               label="Select Date"
@@ -384,22 +384,22 @@ export function InputShowcase() {
               label="Select Time"
               value={state.timeValue}
               onChange={(time) => updateState('timeValue', time)}
-              // inputWidth={240}
+              // w={240}
               panelWidth={240}
               fullWidth
               clearable
             />
             {state.timeValue && (
-              <Text size="sm" color="success">
+              <Text size="sm" c="success">
                 Selected: {`${state.timeValue.hours.toString().padStart(2, '0')}:${state.timeValue.minutes.toString().padStart(2, '0')}`}
               </Text>
             )}
 
             {showValues && (
               <Card padding={12} style={{ backgroundColor: '#f8fafc' }}>
-                <Text size="xs" color="dimmed" weight="medium">Date/Time Values:</Text>
-                <Text size="xs" color="dimmed">Date: {state.dateValue ? state.dateValue.toDateString() : 'none'}</Text>
-                <Text size="xs" color="dimmed">Time: {state.timeValue ? `${state.timeValue.hours}:${state.timeValue.minutes}` : 'none'}</Text>
+                <Text size="xs" c="dimmed" fw="medium">Date/Time Values:</Text>
+                <Text size="xs" c="dimmed">Date: {state.dateValue ? state.dateValue.toDateString() : 'none'}</Text>
+                <Text size="xs" c="dimmed">Time: {state.timeValue ? `${state.timeValue.hours}:${state.timeValue.minutes}` : 'none'}</Text>
               </Card>
             )}
           </Card>
@@ -407,7 +407,7 @@ export function InputShowcase() {
           {/* File Input */}
           <Card padding={20} style={{ minWidth: 280, flex: 1 }}>
             <Block direction="column" gap={16}>
-              <Text variant="h6" color="primary">File Input</Text>
+              <Text variant="h6" c="primary">File Input</Text>
 
               <FileInput
                 label="Upload File"
@@ -418,9 +418,9 @@ export function InputShowcase() {
 
               {showValues && state.fileValue && (
                 <Card padding={12} style={{ backgroundColor: '#f8fafc' }}>
-                  <Text size="xs" color="dimmed" weight="medium">File Info:</Text>
-                  <Text size="xs" color="dimmed">Name: {state.fileValue?.name || 'N/A'}</Text>
-                  <Text size="xs" color="dimmed">Size: {state.fileValue?.size ? `${Math.round(state.fileValue.size / 1024)} KB` : 'N/A'}</Text>
+                  <Text size="xs" c="dimmed" fw="medium">File Info:</Text>
+                  <Text size="xs" c="dimmed">Name: {state.fileValue?.name || 'N/A'}</Text>
+                  <Text size="xs" c="dimmed">Size: {state.fileValue?.size ? `${Math.round(state.fileValue.size / 1024)} KB` : 'N/A'}</Text>
                 </Card>
               )}
             </Block>

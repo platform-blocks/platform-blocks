@@ -244,8 +244,23 @@ describe('Joystick', () => {
     expect(handleChange).toHaveBeenCalledWith({ x: 0.25, y: 0 });
   });
 
-  it('honours a controlled value', () => {
-    const api = render(<Joystick shape="square" value={{ x: 0.5, y: -0.5 }} />);
-    expect(api.getByLabelText('Joystick')).toBeTruthy();
+  it('honours a controlled value and reports it', () => {
+    const api = render(<Joystick shape="square" value={{ x: 0.5, y: -0.5 }} accessibilityLabel="Pan / tilt" />);
+    const pad = api.getByLabelText('Pan / tilt');
+    expect(pad.props.role).toBe('slider');
+    expect(pad.props['aria-valuenow']).toBe(0.5);
+    expect(pad.props['aria-valuetext']).toBe('x 0.50  y -0.50');
+  });
+
+  it('takes its accessible name from the label', () => {
+    const api = render(<Joystick label="Camera" />);
+    expect(api.getByLabelText('Camera')).toBeTruthy();
+  });
+
+  it('drops the adjust actions while disabled', () => {
+    const api = render(<Joystick disabled accessibilityLabel="Stick" />);
+    const pad = api.getByLabelText('Stick');
+    expect(pad.props.accessibilityActions).toBeUndefined();
+    expect(pad.props['aria-disabled']).toBe(true);
   });
 });

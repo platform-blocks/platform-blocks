@@ -1,6 +1,6 @@
 ---
 title: Basic Usage
-description: Simple color picker with default settings.
+description: Color field with a hex input, live preview and preset swatches.
 ---
 
-Basic color picker example showing the default interface with color wheel, hex input, and preset swatches.
+Type a hex value (it is normalized to `#RRGGBB` when the field loses focus) or open the swatch palette with the button at the end of the field.

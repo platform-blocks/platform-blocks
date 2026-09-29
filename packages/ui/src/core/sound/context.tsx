@@ -1,13 +1,52 @@
-import React, { createContext, useContext, useReducer, useCallback, useRef } from 'react';
-import { useAccessibility } from '../accessibility/context';
+import React, { createContext, useContext, useReducer, useCallback, useMemo, useRef } from 'react';
+import { useOptionalHapticsSettings } from '../haptics/HapticsProvider';
+import { useReducedMotion } from '../motion/useReducedMotion';
 import { resolveOptionalModule } from '../../utils/optionalModule';
-import type { SoundContextType, SoundAsset, SoundOptions, SoundState, HapticFeedbackOptions } from './types';
+import type { SoundContextType, SoundAsset, SoundOptions, SoundSource, SoundState, HapticFeedbackOptions } from './types';
+import { devWarn, devError, warnOnce } from '../utils/logger';
 
-const Audio = resolveOptionalModule<any>('expo-audio', {
+/**
+ * An expo-audio `AudioPlayer`. Typed structurally (only what this provider
+ * touches) because expo-audio is an optional dependency.
+ */
+interface AudioPlayerLike {
+  play: () => void;
+  pause: () => void;
+  remove: () => void;
+  seekTo: (seconds: number) => Promise<void> | void;
+  volume: number;
+  loop: boolean;
+  playbackRate: number;
+  muted?: boolean;
+  duration?: number;
+}
+
+/** The part of expo-audio this provider calls. */
+interface ExpoAudioModule {
+  setAudioModeAsync?: (mode: {
+    allowsRecording?: boolean;
+    playsInSilentMode?: boolean;
+    shouldPlayInBackground?: boolean;
+    interruptionModeAndroid?: string;
+    shouldRouteThroughEarpiece?: boolean;
+  }) => Promise<void>;
+  createAudioPlayer?: (source: SoundSource) => AudioPlayerLike;
+}
+
+/** The part of expo-haptics `useHaptics` calls. */
+interface ExpoHapticsModule {
+  impactAsync: (style: string) => Promise<void>;
+  notificationAsync: (type: string) => Promise<void>;
+  selectionAsync: () => Promise<void>;
+  ImpactFeedbackStyle: { Light: string; Medium: string; Heavy: string };
+  NotificationFeedbackType: { Success: string; Warning: string; Error: string };
+}
+
+const Audio = resolveOptionalModule<ExpoAudioModule>('expo-audio', {
   devWarning: 'expo-audio not found, using mock sound implementation',
 });
 
-const Haptics = resolveOptionalModule<any>('expo-haptics', {
+const Haptics = resolveOptionalModule<ExpoHapticsModule>('expo-haptics', {
   devWarning: 'expo-haptics not found, using mock haptic implementation',
 });
 
@@ -16,25 +55,22 @@ interface SoundProviderState {
   volume: number;
   respectsReducedMotion: boolean;
   sounds: Map<string, SoundAsset>;
-  audioPlayers: Map<string, any>; // AudioPlayer instances from expo-audio
   soundStates: Map<string, SoundState>;
 }
 
-type SoundAction = 
+type SoundAction =
   | { type: 'SET_ENABLED'; payload: boolean }
   | { type: 'SET_VOLUME'; payload: number }
   | { type: 'SET_RESPECTS_REDUCED_MOTION'; payload: boolean }
   | { type: 'REGISTER_SOUND'; payload: SoundAsset }
   | { type: 'UNREGISTER_SOUND'; payload: string }
-  | { type: 'UPDATE_SOUND_STATE'; payload: { soundId: string; state: Partial<SoundState> } }
-  | { type: 'SET_AUDIO_PLAYER'; payload: { soundId: string; player: any } };
+  | { type: 'UPDATE_SOUND_STATE'; payload: { soundId: string; state: Partial<SoundState> } };
 
 const initialState: SoundProviderState = {
   enabled: true,
   volume: 1.0,
   respectsReducedMotion: true,
   sounds: new Map(),
-  audioPlayers: new Map(),
   soundStates: new Map(),
 };
 
@@ -52,20 +88,13 @@ const soundReducer = (state: SoundProviderState, action: SoundAction): SoundProv
         sounds: new Map(state.sounds).set(action.payload.id, action.payload),
       };
     case 'UNREGISTER_SOUND': {
+      // The player itself is paused and removed by `unregisterSound` before this
+      // dispatch (players live in a ref, not in reducer state).
       const newSounds = new Map(state.sounds);
-      const newAudioPlayers = new Map(state.audioPlayers);
       const newSoundStates = new Map(state.soundStates);
-      
       newSounds.delete(action.payload);
-      newAudioPlayers.delete(action.payload);
       newSoundStates.delete(action.payload);
-      
-      return {
-        ...state,
-        sounds: newSounds,
-        audioPlayers: newAudioPlayers,
-        soundStates: newSoundStates,
-      };
+      return { ...state, sounds: newSounds, soundStates: newSoundStates };
     }
     case 'UPDATE_SOUND_STATE': {
       const updatedStates = new Map(state.soundStates);
@@ -76,11 +105,6 @@ const soundReducer = (state: SoundProviderState, action: SoundAction): SoundProv
       } as SoundState);
       return { ...state, soundStates: updatedStates };
     }
-    case 'SET_AUDIO_PLAYER':
-      return {
-        ...state,
-        audioPlayers: new Map(state.audioPlayers).set(action.payload.soundId, action.payload.player),
-      };
     default:
       return state;
   }
@@ -96,14 +120,33 @@ interface SoundProviderProps {
   enableAudioMode?: boolean;
 }
 
+const NO_SOUNDS: SoundAsset[] = [];
+
+const releasePlayer = (player: AudioPlayerLike, soundId: string) => {
+  try {
+    player.pause();
+    player.remove();
+  } catch (error) {
+    devWarn(`Failed to clean up sound "${soundId}":`, error);
+  }
+};
+
 export const SoundProvider: React.FC<SoundProviderProps> = ({
   children,
-  initialSounds = [],
+  initialSounds = NO_SOUNDS,
   enableAudioMode = true,
 }) => {
   const [state, dispatch] = useReducer(soundReducer, initialState);
-  const { prefersReducedMotion } = useAccessibility();
+  const prefersReducedMotion = useReducedMotion();
   const initializationRef = useRef(false);
+  // Players are imperative handles, not render state: kept in a ref so callbacks
+  // always see the latest set and loading one doesn't re-render the tree.
+  const playersRef = useRef(new Map<string, AudioPlayerLike>());
+  // Latest state/preferences for the stable callbacks below.
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const reducedMotionRef = useRef(prefersReducedMotion);
+  reducedMotionRef.current = prefersReducedMotion;
 
   // Initialize audio mode
   React.useEffect(() => {
@@ -114,7 +157,7 @@ export const SoundProvider: React.FC<SoundProviderProps> = ({
         shouldPlayInBackground: false,
         interruptionModeAndroid: 'duckOthers',
         shouldRouteThroughEarpiece: false,
-      }).catch(console.warn);
+      }).catch(devWarn);
       initializationRef.current = true;
     }
   }, [enableAudioMode]);
@@ -126,25 +169,34 @@ export const SoundProvider: React.FC<SoundProviderProps> = ({
     });
   }, [initialSounds]);
 
-  const loadSound = useCallback(async (soundId: string): Promise<any | null> => {
+  // Release every player once, on unmount (not whenever the player set changes).
+  React.useEffect(() => {
+    const players = playersRef.current;
+    return () => {
+      players.forEach((player, soundId) => releasePlayer(player, soundId));
+      players.clear();
+    };
+  }, []);
+
+  const loadSound = useCallback(async (soundId: string): Promise<AudioPlayerLike | null> => {
     try {
-      const soundAsset = state.sounds.get(soundId);
+      const soundAsset = stateRef.current.sounds.get(soundId);
       if (!soundAsset || !soundAsset.source) {
-        console.warn(`Sound with ID "${soundId}" not found or has no source`);
+        devWarn(`Sound with ID "${soundId}" not found or has no source`);
         return null;
       }
 
-      // If Audio is not available, return null
+      // expo-audio isn't installed: sounds are a silent no-op (resolveOptionalModule
+      // already warned once, in development, when the module failed to load).
       if (!Audio?.createAudioPlayer) {
-        console.log(`[Sound Mock] Would load sound: ${soundId}`);
         return null;
       }
 
-      let audioPlayer = state.audioPlayers.get(soundId);
-      
+      let audioPlayer = playersRef.current.get(soundId);
+
       if (!audioPlayer) {
         audioPlayer = Audio.createAudioPlayer(soundAsset.source);
-        dispatch({ type: 'SET_AUDIO_PLAYER', payload: { soundId, player: audioPlayer } });
+        playersRef.current.set(soundId, audioPlayer);
 
         // Note: expo-audio uses different status tracking
         // We'll track basic state manually since status events work differently
@@ -168,44 +220,44 @@ export const SoundProvider: React.FC<SoundProviderProps> = ({
 
       return audioPlayer;
     } catch (error) {
-      console.error(`Failed to load sound "${soundId}":`, error);
+      devError(`Failed to load sound "${soundId}":`, error);
       return null;
     }
-  }, [state.sounds, state.audioPlayers]);
+  }, []);
 
   const playSound = useCallback(async (soundId: string, options: SoundOptions = {}) => {
+    const current = stateRef.current;
     // Check if sounds are globally disabled
-    if (!state.enabled) return;
+    if (!current.enabled) return;
 
-    const soundAsset = state.sounds.get(soundId);
+    const soundAsset = current.sounds.get(soundId);
     if (!soundAsset) {
-      console.warn(`Sound with ID "${soundId}" not found`);
+      devWarn(`Sound with ID "${soundId}" not found`);
       return;
     }
 
     // Check reduced motion preferences
-    if (state.respectsReducedMotion && 
-        soundAsset.respectsReducedMotion && 
-        prefersReducedMotion) {
+    if (current.respectsReducedMotion &&
+        soundAsset.respectsReducedMotion &&
+        reducedMotionRef.current) {
       return;
     }
 
     try {
       const audioPlayer = await loadSound(soundId);
       if (!audioPlayer) {
-        // In mock mode, just log the action
-        console.log(`[Sound Mock] Playing sound: ${soundId}`, options);
+        // No player (expo-audio missing, or the sound failed to load): no-op.
         return;
       }
 
       // Merge options with defaults
       const finalOptions = { ...soundAsset.defaultOptions, ...options };
-      const volume = (finalOptions.volume ?? 1) * state.volume;
+      const volume = (finalOptions.volume ?? 1) * stateRef.current.volume;
 
       // Apply options to the player
       audioPlayer.volume = volume;
       audioPlayer.loop = finalOptions.loop ?? false;
-      
+
       if (finalOptions.rate) {
         audioPlayer.playbackRate = finalOptions.rate;
       }
@@ -242,16 +294,15 @@ export const SoundProvider: React.FC<SoundProviderProps> = ({
       });
 
     } catch (error) {
-      console.error(`Failed to play sound "${soundId}":`, error);
+      devError(`Failed to play sound "${soundId}":`, error);
     }
-  }, [state.enabled, state.volume, state.respectsReducedMotion, prefersReducedMotion, loadSound]);
+  }, [loadSound]);
 
   const stopSound = useCallback(async (soundId: string) => {
     try {
-      const audioPlayer = state.audioPlayers.get(soundId);
+      const audioPlayer = playersRef.current.get(soundId);
       if (audioPlayer) {
         audioPlayer.pause();
-        // Update state
         dispatch({
           type: 'UPDATE_SOUND_STATE',
           payload: {
@@ -261,22 +312,22 @@ export const SoundProvider: React.FC<SoundProviderProps> = ({
         });
       }
     } catch (error) {
-      console.error(`Failed to stop sound "${soundId}":`, error);
+      devError(`Failed to stop sound "${soundId}":`, error);
     }
-  }, [state.audioPlayers]);
+  }, []);
 
   const stopAllSounds = useCallback(async () => {
     try {
-      Array.from(state.audioPlayers.values()).forEach(player => {
+      playersRef.current.forEach(player => {
         try {
           player.pause();
         } catch (error) {
-          console.warn('Failed to stop audio player:', error);
+          devWarn('Failed to stop audio player:', error);
         }
       });
-      
+
       // Update all states to not playing
-      Array.from(state.sounds.keys()).forEach(soundId => {
+      Array.from(stateRef.current.sounds.keys()).forEach(soundId => {
         dispatch({
           type: 'UPDATE_SOUND_STATE',
           payload: {
@@ -286,16 +337,15 @@ export const SoundProvider: React.FC<SoundProviderProps> = ({
         });
       });
     } catch (error) {
-      console.error('Failed to stop all sounds:', error);
+      devError('Failed to stop all sounds:', error);
     }
-  }, [state.audioPlayers, state.sounds]);
+  }, []);
 
   const preloadSounds = useCallback(async (soundIds: string[]) => {
     try {
-      const loadPromises = soundIds.map(soundId => loadSound(soundId));
-      await Promise.all(loadPromises);
+      await Promise.all(soundIds.map(soundId => loadSound(soundId)));
     } catch (error) {
-      console.error('Failed to preload sounds:', error);
+      devError('Failed to preload sounds:', error);
     }
   }, [loadSound]);
 
@@ -304,22 +354,17 @@ export const SoundProvider: React.FC<SoundProviderProps> = ({
   }, []);
 
   const unregisterSound = useCallback(async (soundId: string) => {
-    // Clean up audio player before unregistering
-    const audioPlayer = state.audioPlayers.get(soundId);
+    const audioPlayer = playersRef.current.get(soundId);
     if (audioPlayer) {
-      try {
-        audioPlayer.pause();
-        audioPlayer.remove(); // Clean up the player
-      } catch (error) {
-        console.warn(`Failed to clean up sound "${soundId}":`, error);
-      }
+      releasePlayer(audioPlayer, soundId);
+      playersRef.current.delete(soundId);
     }
     dispatch({ type: 'UNREGISTER_SOUND', payload: soundId });
-  }, [state.audioPlayers]);
+  }, []);
 
   const setEnabled = useCallback((enabled: boolean) => {
     dispatch({ type: 'SET_ENABLED', payload: enabled });
-    
+
     // Stop all sounds if disabling
     if (!enabled) {
       stopAllSounds();
@@ -334,25 +379,14 @@ export const SoundProvider: React.FC<SoundProviderProps> = ({
     dispatch({ type: 'SET_RESPECTS_REDUCED_MOTION', payload: respects });
   }, []);
 
+  /** Snapshot getter: reads the latest state; it doesn't subscribe the caller to changes. */
   const getSoundState = useCallback((soundId: string): SoundState | null => {
-    return state.soundStates.get(soundId) || null;
-  }, [state.soundStates]);
+    return stateRef.current.soundStates.get(soundId) || null;
+  }, []);
 
-  // Cleanup on unmount
-  React.useEffect(() => {
-    return () => {
-      Array.from(state.audioPlayers.values()).forEach(player => {
-        try {
-          player.pause();
-          player.remove();
-        } catch (error) {
-          console.warn('Failed to cleanup audio player:', error);
-        }
-      });
-    };
-  }, [state.audioPlayers]);
-
-  const contextValue: SoundContextType = {
+  // Only the settings are reactive; every function above is stable, so playing a
+  // sound (which updates per-sound state) doesn't re-render `useSound()` consumers.
+  const contextValue = useMemo<SoundContextType>(() => ({
     enabled: state.enabled,
     volume: state.volume,
     respectsReducedMotion: state.respectsReducedMotion,
@@ -366,7 +400,21 @@ export const SoundProvider: React.FC<SoundProviderProps> = ({
     setVolume,
     setRespectsReducedMotion,
     getSoundState,
-  };
+  }), [
+    state.enabled,
+    state.volume,
+    state.respectsReducedMotion,
+    playSound,
+    stopSound,
+    stopAllSounds,
+    preloadSounds,
+    registerSound,
+    unregisterSound,
+    setEnabled,
+    setVolume,
+    setRespectsReducedMotion,
+    getSoundState,
+  ]);
 
   return (
     <SoundContext.Provider value={contextValue}>
@@ -375,13 +423,49 @@ export const SoundProvider: React.FC<SoundProviderProps> = ({
   );
 };
 
+const noopAsync = async (): Promise<void> => {};
+
 /**
- * Hook to access the sound context
+ * What `useSound()` returns outside a `SoundProvider`: sounds disabled, every
+ * method a no-op. `PlatformBlocksProvider` doesn't mount a SoundProvider, so
+ * components and hooks must work without one.
+ */
+const NOOP_SOUND_CONTEXT: SoundContextType = Object.freeze({
+  enabled: false,
+  volume: 1,
+  respectsReducedMotion: true,
+  playSound: noopAsync,
+  stopSound: noopAsync,
+  stopAllSounds: noopAsync,
+  preloadSounds: noopAsync,
+  registerSound: () => {},
+  unregisterSound: noopAsync,
+  setEnabled: () => {},
+  setVolume: () => {},
+  setRespectsReducedMotion: () => {},
+  getSoundState: () => null,
+});
+
+/**
+ * The sound context, or `null` when no `SoundProvider` is mounted — for
+ * components that play sounds only when the app opted in.
+ */
+export const useSoundOptional = (): SoundContextType | null => useContext(SoundContext);
+
+/**
+ * Hook to access the sound context. Outside a `SoundProvider` it returns a
+ * silent no-op implementation (and warns once in development) instead of
+ * throwing; use `useSoundOptional()` to detect the provider.
  */
 export const useSound = (): SoundContextType => {
   const context = useContext(SoundContext);
   if (!context) {
-    throw new Error('useSound must be used within a SoundProvider');
+    warnOnce(
+      'useSound:no-provider',
+      '[platform-blocks] useSound() was called outside a <SoundProvider>; sounds are disabled. ' +
+        'Mount a <SoundProvider> to play sounds, or use useSoundOptional() to check for one.'
+    );
+    return NOOP_SOUND_CONTEXT;
   }
   return context;
 };
@@ -390,19 +474,26 @@ export const useSound = (): SoundContextType => {
  * Hook for haptic feedback
  */
 export const useHaptics = () => {
-  const { prefersReducedMotion } = useAccessibility();
+  const prefersReducedMotion = useReducedMotion();
+  const hapticsSettings = useOptionalHapticsSettings();
+  const hapticsEnabled = hapticsSettings?.enabled ?? true;
 
   const triggerHaptic = useCallback(async (options: HapticFeedbackOptions = {}) => {
     const { type = 'light', respectsReducedMotion = true } = options;
+
+    // The app-level HapticsProvider switch (also used by `temporarilyDisable`).
+    if (!hapticsEnabled) {
+      return;
+    }
 
     // Check reduced motion preferences
     if (respectsReducedMotion && prefersReducedMotion) {
       return;
     }
 
-    // If Haptics is not available, log the action
+    // expo-haptics isn't installed: haptics are a silent no-op (resolveOptionalModule
+    // already warned once, in development, when the module failed to load).
     if (!Haptics) {
-      console.log(`[Haptic Mock] Would trigger haptic: ${type}`);
       return;
     }
 
@@ -431,9 +522,9 @@ export const useHaptics = () => {
           break;
       }
     } catch (error) {
-      console.warn('Haptic feedback failed:', error);
+      devWarn('Haptic feedback failed:', error);
     }
-  }, [prefersReducedMotion]);
+  }, [prefersReducedMotion, hapticsEnabled]);
 
   return { triggerHaptic };
 };

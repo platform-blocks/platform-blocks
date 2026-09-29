@@ -1,142 +1,88 @@
-import { ViewStyle, TextStyle, Platform } from 'react-native';
-import { useTheme } from '../../core/theme';
-import { KeyCapStyleProps } from './types';
+import type { TextStyle, ViewStyle } from 'react-native';
+
+import { webStyle } from '../../core/platform';
+import { resolveAccentColor, resolveLineColor } from '../../core/theme/resolveColors';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { onColor, resolveShadow } from '../../core/theme/tokens';
 import type { PlatformBlocksTheme } from '../../core/theme/types';
+import { resolveVariantRoles } from '../../core/theme/variantRoles';
+import { resolveRoleColor } from '../Button/styles';
+import type { KeyCapStyleProps } from './types';
 
 export const useKeyCapStyles = (props: KeyCapStyleProps) => {
   const theme = useTheme();
   return getKeyCapStyles(theme, props);
 };
 
-export const getKeyCapStyles = (theme: PlatformBlocksTheme, props: KeyCapStyleProps) => {
-  const { metrics, variant, color, pressed } = props;
+/**
+ * Container + label style of a key cap. The `default` variant is a neutral,
+ * slightly raised key (a heavier bottom edge); the others tint with `color`.
+ */
+export const getKeyCapStyles = (
+  theme: PlatformBlocksTheme,
+  { metrics, variant, color, pressed }: KeyCapStyleProps
+): { container: ViewStyle; text: TextStyle } => {
   const { height, paddingHorizontal, fontSize, minWidth } = metrics;
 
-  const getColorScheme = () => {
-    const colorMap = {
-      primary: theme.colors.primary,
-      secondary: theme.colors.secondary,
-      success: theme.colors.success,
-      warning: theme.colors.warning,
-      error: theme.colors.error,
-      gray: theme.colors.gray,
-    };
-
-    return colorMap[color] || colorMap.gray;
-  };
-
-  const colorScheme = getColorScheme();
-
-  const getVariantStyles = (): { container: ViewStyle; text: TextStyle } => {
-    const isDark = theme.colorScheme === 'dark';
-
-    switch (variant) {
-      case 'minimal':
-        return {
-          container: {
-            backgroundColor: 'transparent',
-            borderWidth: 0,
-            boxShadow: 'none',
-          },
-          text: {
-            color: colorScheme[6],
-          },
-        };
-
-      case 'outline':
-        return {
-          container: {
-            backgroundColor: 'transparent',
-            borderWidth: 1,
-            borderColor: colorScheme[4],
-            boxShadow: 'none',
-          },
-          text: {
-            color: colorScheme[6],
-          },
-        };
-
-      case 'filled':
-        return {
-          container: {
-            backgroundColor: colorScheme[5],
-            borderWidth: 0,
-            boxShadow: 'none',
-          },
-          text: {
-            color: '#FFFFFF',
-          },
-        };
-
-      case 'default':
-      default:
-        return {
-          container: {
-            backgroundColor: theme.colors.surface[2],
-            borderWidth: 1,
-            borderColor: theme.colors.surface[3],
-            borderBottomWidth: 2,
-            borderBottomColor: theme.colors.surface[4],
-            boxShadow: isDark
-              ? '0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 1px 3px rgba(0, 0, 0, 0.2)'
-              : '0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 1px 3px rgba(0, 0, 0, 0.1)',
-            elevation: 3,
-          },
-          text: {
-            color: theme.text.primary,
-          },
-        };
-    }
-  };
-
-  const variantStyles = getVariantStyles();
-
-  const pressedModifications = pressed
-    ? {
-        container: {
-          transform: [{ translateY: 1 }],
-          borderBottomWidth: 1,
-          boxShadow: variant === 'default'
-            ? 'inset 0 1px 2px rgba(0, 0, 0, 0.1)'
-            : 'none',
-          backgroundColor: variant === 'default'
-            ? theme.colors.surface[3]
-            : variantStyles.container.backgroundColor,
-        },
-        text: {},
-      }
-    : {
-        container: {},
-        text: {},
+  let container: ViewStyle;
+  let textColor: string;
+  switch (variant) {
+    case 'minimal':
+      container = { backgroundColor: 'transparent', borderWidth: 0 };
+      textColor = resolveVariantRoles(theme, { variant: 'outline', color: resolveRoleColor(theme, color) }).text;
+      break;
+    case 'outline':
+      container = {
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        borderColor: resolveLineColor(theme, color) ?? theme.backgrounds.borderStrong,
       };
-
-  const containerStyle: ViewStyle = {
-    minWidth,
-    height,
-    paddingHorizontal,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 6,
-    ...variantStyles.container,
-    ...pressedModifications.container,
-  };
-
-  const textStyle: TextStyle = {
-    fontSize,
-    fontFamily: Platform.OS === 'web'
-      ? 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace'
-      : Platform.OS === 'ios'
-        ? 'Menlo-Regular'
-        : 'monospace',
-    fontWeight: '500',
-    textAlign: 'center',
-    lineHeight: fontSize * 1.2,
-    ...variantStyles.text,
-    ...pressedModifications.text,
-  };
+      textColor = resolveVariantRoles(theme, { variant: 'outline', color: resolveRoleColor(theme, color) }).text;
+      break;
+    case 'filled': {
+      const fill = resolveAccentColor(theme, color) ?? theme.text.link;
+      container = { backgroundColor: fill, borderWidth: 0 };
+      textColor = onColor(theme, fill);
+      break;
+    }
+    case 'default':
+    default:
+      container = {
+        backgroundColor: pressed ? theme.backgrounds.border : theme.backgrounds.subtle,
+        borderWidth: 1,
+        borderColor: theme.backgrounds.border,
+        borderBottomWidth: pressed ? 1 : 2,
+        borderBottomColor: theme.backgrounds.borderStrong,
+        ...(pressed ? null : resolveShadow(theme, 'xs')),
+        // A faint top-lit gradient reads as a physical key on web.
+        ...webStyle(
+          pressed
+            ? {}
+            : { backgroundImage: `linear-gradient(180deg, ${theme.backgrounds.surface} 0%, ${theme.backgrounds.subtle} 100%)` }
+        ),
+      };
+      textColor = theme.text.primary;
+      break;
+  }
 
   return {
-    container: containerStyle,
-    text: textStyle,
+    container: {
+      minWidth,
+      height,
+      paddingHorizontal,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...container,
+      ...(pressed ? { transform: [{ translateY: 1 }] } : null),
+      ...webStyle({ userSelect: 'none', cursor: 'default' }),
+    },
+    text: {
+      fontSize,
+      fontFamily: theme.fontFamilyMono,
+      fontWeight: '500',
+      textAlign: 'center',
+      lineHeight: Math.round(fontSize * 1.2),
+      color: textColor,
+    },
   };
 };

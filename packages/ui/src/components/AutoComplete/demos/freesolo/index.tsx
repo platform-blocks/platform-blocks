@@ -1,27 +1,25 @@
-import { useState } from 'react'
+import { AutoComplete, Block } from '@platform-blocks/ui';
 
-import { AutoComplete, Block, Text } from '@platform-blocks/ui'
-import { fruits } from '../data'
+const fruits = [
+  { label: 'Apple', value: 'apple' },
+  { label: 'Banana', value: 'banana' },
+  { label: 'Orange', value: 'orange' },
+  { label: 'Grape', value: 'grape' },
+  { label: 'Mango', value: 'mango' },
+  { label: 'Pineapple', value: 'pineapple' },
+];
 
 export function Demo() {
-  const [value, setValue] = useState('')
-
   return (
-    <Block w={400}>
+    <Block fullWidth>
       <AutoComplete
         label="Favorite fruit"
         placeholder="Type anything..."
         data={fruits}
-        value={value}
-        onChangeText={setValue}
-        onSelect={(item) => setValue(item.label)}
         freeSolo
         minSearchLength={0}
         fullWidth
       />
-      <Text size="xs" color="secondary">
-        Current value: {value || '(empty)'}
-      </Text>
     </Block>
-  )
+  );
 }

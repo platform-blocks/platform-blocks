@@ -1,4 +1,4 @@
-import { Block, Markdown, Text } from '@platform-blocks/ui';
+import { Block, Markdown } from '@platform-blocks/ui';
 
 const CONTENT = `# Hello Markdown
 
@@ -16,9 +16,6 @@ export function Demo() {
   return (
     <Block fullWidth>
       <Markdown>{CONTENT}</Markdown>
-      <Text size="sm" color="secondary">
-        Rendered using the default Markdown renderer
-      </Text>
     </Block>
   );
 }

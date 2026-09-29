@@ -8,7 +8,7 @@ export function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Horizontal layout
         </Text>
         <RadioGroup
@@ -25,7 +25,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Vertical layout
         </Text>
         <RadioGroup

@@ -11,7 +11,7 @@ const renderWithTheme = (ui: React.ReactElement) =>
 describe('ChartContainer', () => {
   it('provides context and renders children', () => {
     const { getByTestId } = renderWithTheme(
-      <ChartContainer width={300} height={200} testID="chart-root">
+      <ChartContainer w={300} h={200} testID="chart-root">
         <ChartTitle title="Revenue" subtitle="FY25" />
       </ChartContainer>
     );
@@ -21,7 +21,7 @@ describe('ChartContainer', () => {
 
   it('renders legend items with accessibility state', () => {
     const { getByText } = renderWithTheme(
-      <ChartContainer width={320} height={240}>
+      <ChartContainer w={320} h={240}>
         <ChartLegend
           items={[
             { label: 'North', color: '#4f46e5' },
@@ -43,7 +43,7 @@ describe('ChartContainer', () => {
 
     const { getByTestId } = renderWithTheme(
       <ChartInteractionProvider config={{ pointerRAF: false }}>
-        <ChartContainer width={320} height={240}>
+        <ChartContainer w={320} h={240}>
           <InteractionConfigSpy />
         </ChartContainer>
       </ChartInteractionProvider>

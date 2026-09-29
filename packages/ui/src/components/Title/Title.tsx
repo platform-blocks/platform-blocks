@@ -1,14 +1,16 @@
 import React from 'react';
-import { View } from 'react-native';
-import { useMergedRef } from '../../core/utils';
-import { Text, type TextProps } from '../Text';
-import type { TitleProps } from './types';
-import { useTheme } from '../../core/theme';
-import { Block } from '../Block';
-import { useTitleRegistration } from '../../hooks/useTitleRegistration';
-import { useDirection } from '../../core/providers/DirectionProvider';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
 
-const levelToVariant: Record<number, TextProps['variant']> = {
+import { factory } from '../../core/factory/factory';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
+import { useTitleRegistration } from '../../hooks/useTitleRegistration';
+import { Block } from '../Block';
+import { Text, type HTMLTextVariant } from '../Text';
+import type { TitleProps } from './types';
+
+const LEVEL_TO_TAG: Record<number, HTMLTextVariant> = {
   1: 'h1',
   2: 'h2',
   3: 'h3',
@@ -17,37 +19,59 @@ const levelToVariant: Record<number, TextProps['variant']> = {
   6: 'h6',
 };
 
-export const Title = React.forwardRef<View, TitleProps>(({
-  text,
-  order = 2,
-  underline = false,
-  afterline = false,
-  underlineColor,
-  underlineStroke = 2,
-  afterlineGap = 12,
-  underlineOffset = 4,
-  prefix = false,
-  prefixVariant = 'bar',
-  prefixColor,
-  prefixSize = 4,
-  prefixLength = 28,
-  prefixGap = 12,
-  prefixRadius,
-  style,
-  containerStyle,
-  children,
-  startIcon,
-  endIcon,
-  action, // right action button to the very right of the screen - after the afterline
-  subtitle,
-  subtitleProps,
-  subtitleSpacing = 8,
-  ...textProps
-}, ref) => {
+const styles = StyleSheet.create({
+  root: { width: '100%' },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  // Shrinkable so a title longer than its container wraps instead of running
+  // off the edge — narrow screens hit this with any long heading.
+  titleRow: { flexDirection: 'row', alignItems: 'center', flexShrink: 1, minWidth: 0 },
+  text: { fontWeight: '700' },
+  underline: { alignSelf: 'flex-start', minWidth: 40 },
+  afterlineRow: { flexDirection: 'row', alignItems: 'center', width: '100%' },
+  line: { flex: 1, marginStart: 12 },
+});
+
+/**
+ * A heading. `order` (1–6) sets the heading level exposed to assistive
+ * technology (web: `<h1>`–`<h6>`; native: `role="heading"`) and the default
+ * typography; `variant` only restyles it.
+ */
+export const Title = factory<{ props: TitleProps; ref: View }>((allProps, ref) => {
+  const { styleProps, otherProps } = extractStyleProps(allProps);
+  const {
+    text,
+    order = 2,
+    underline = false,
+    afterline = false,
+    underlineColor,
+    underlineStroke = 2,
+    afterlineGap = 12,
+    underlineOffset = 4,
+    prefix = false,
+    prefixVariant = 'bar',
+    prefixColor,
+    prefixSize = 4,
+    prefixLength = 28,
+    prefixGap = 12,
+    prefixRadius,
+    style,
+    containerStyle,
+    children,
+    startIcon,
+    endIcon,
+    action, // trailing action, after the afterline
+    subtitle,
+    subtitleProps,
+    subtitleSpacing = 8,
+    variant,
+    as,
+    ...textProps
+  } = otherProps;
+
   const theme = useTheme();
-  const { isRTL } = useDirection();
+  const spacingStyle = useStyleProps(styleProps);
   const color = underlineColor || theme.colors.primary?.[5] || theme.text.primary;
-  const variant = levelToVariant[order] || 'h2';
+  const headingTag = LEVEL_TO_TAG[order] || 'h2';
 
   // Auto-register this title with the registry for TableOfContents. An explicit
   // `id` becomes both the heading's element id and its registry id, so a link
@@ -56,14 +80,17 @@ export const Title = React.forwardRef<View, TitleProps>(({
   const { elementRef } = useTitleRegistration({
     text: titleText,
     order,
-    id: (textProps as { id?: string }).id,
+    id: textProps.id,
     autoRegister: !!titleText, // Only register if we have text content
   });
+  const rootRef = useMergedRef(elementRef, ref);
 
-  const resolvedPrefixColor = prefixColor || color;
+  const lineStyle: ViewStyle = { height: underlineStroke, backgroundColor: color, borderRadius: underlineStroke / 2 };
+
   const renderPrefix = () => {
     if (!prefix) return null;
     if (React.isValidElement(prefix)) return prefix;
+    const resolvedPrefixColor = prefixColor || color;
     if (prefixVariant === 'dot') {
       const size = prefixSize || 6;
       return (
@@ -74,7 +101,7 @@ export const Title = React.forwardRef<View, TitleProps>(({
             height: size,
             borderRadius: size / 2,
             backgroundColor: resolvedPrefixColor,
-            ...(isRTL ? { marginLeft: prefixGap } : { marginRight: prefixGap })
+            marginEnd: prefixGap,
           }}
         />
       );
@@ -87,111 +114,65 @@ export const Title = React.forwardRef<View, TitleProps>(({
           width: prefixSize,
           height: prefixLength,
           backgroundColor: resolvedPrefixColor,
-          borderRadius: prefixRadius ?? (prefixSize / 2),
-          ...(isRTL ? { marginLeft: prefixGap } : { marginRight: prefixGap })
+          borderRadius: prefixRadius ?? prefixSize / 2,
+          marginEnd: prefixGap,
         }}
       />
     );
   };
 
-  // Build underline element
-  const Underline = underline ? (
-    <View
-      testID="title-underline"
-      style={{
-        height: underlineStroke,
-        backgroundColor: color,
-        marginTop: underlineOffset,
-        borderRadius: underlineStroke / 2,
-        alignSelf: 'flex-start',
-        minWidth: 40,
-      }}
-    />
-  ) : null;
-
-  // Afterline layout: text + flexible line filling rest
-  const Afterline = afterline ? (
-    <View testID="title-afterline" style={{ flexDirection: 'row', alignItems: 'center', width: '100%', marginTop: underline ? afterlineGap : 4 }}>
-      <View style={{ 
-        flex: 1, 
-        height: underlineStroke, 
-        backgroundColor: color, 
-        borderRadius: underlineStroke / 2, 
-        ...(isRTL ? { marginRight: 12 } : { marginLeft: 12 })
-      }} />
-    </View>
-  ) : null;
-
   const renderSubtitle = () => {
     if (!subtitle) return null;
-
-    const spacingStyle = { marginTop: subtitleSpacing };
+    const subtitleSpacingStyle = { marginTop: subtitleSpacing };
 
     if (React.isValidElement(subtitle)) {
-      return (
-        <View style={spacingStyle}>
-          {subtitle}
-        </View>
-      );
+      return <View style={subtitleSpacingStyle}>{subtitle}</View>;
     }
 
     return (
-      <Text
-        variant="p"
-        color="secondary"
-        {...subtitleProps}
-        style={[spacingStyle, subtitleProps?.style]}
-      >
+      <Text variant="p" c="secondary" {...subtitleProps} style={[subtitleSpacingStyle, subtitleProps?.style]}>
         {subtitle}
       </Text>
     );
   };
 
   return (
-    <View ref={useMergedRef(elementRef, ref)} style={[{ width: '100%' }, containerStyle]}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        {/* shrinkable so a title longer than its container wraps instead of
-            running off the edge — narrow screens hit this with any long heading */}
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          flexShrink: 1,
-          minWidth: 0,
-          // flex: action ? 1 : undefined
-        }}>
+    <View ref={rootRef} style={[styles.root, spacingStyle, containerStyle]}>
+      <View style={styles.row}>
+        <View style={styles.titleRow}>
           {startIcon && <Block mr={8}>{startIcon}</Block>}
           {renderPrefix()}
           <Text
-            variant={variant}
             {...textProps}
-            style={[{ fontWeight: '700' }, style]}
+            variant={variant ?? headingTag}
+            // The heading level always follows `order`, whatever `variant` styles it as.
+            as={as ?? headingTag}
+            style={[styles.text, style]}
           >
             {text || children}
           </Text>
           {endIcon && <Block ml={8}>{endIcon}</Block>}
         </View>
         {afterline && !underline && (
-          <View
-            testID="title-afterline-inline"
-            style={{ 
-              flex: 1, 
-              height: underlineStroke, 
-              backgroundColor: color, 
-              borderRadius: underlineStroke / 2,
-              ...(isRTL ? { marginRight: 12 } : { marginLeft: 12 })
-            }}
-          />
+          <View testID="title-afterline-inline" style={[styles.line, lineStyle]} />
         )}
         {action && <Block ml={12}>{action}</Block>}
       </View>
-      {underline && Underline}
-      {underline && afterline && Afterline}
+      {underline && (
+        <View
+          testID="title-underline"
+          style={[styles.underline, lineStyle, { marginTop: underlineOffset }]}
+        />
+      )}
+      {underline && afterline && (
+        <View testID="title-afterline" style={[styles.afterlineRow, { marginTop: afterlineGap }]}>
+          <View style={[styles.line, lineStyle]} />
+        </View>
+      )}
       {renderSubtitle()}
     </View>
   );
-});
-
-Title.displayName = 'Title';
+}, { displayName: 'Title' });
 
 export default Title;
 
@@ -199,13 +180,10 @@ export default Title;
 // These mirror the simple Text aliases but allow underline/afterline/prefix usage directly.
 type HeadingProps = Omit<TitleProps, 'order'>;
 
-const createHeading = (order: TitleProps['order'], displayName: string) => {
-  const Heading = React.forwardRef<View, HeadingProps>((props, ref) => (
-    <Title ref={ref} order={order} {...props} />
-  ));
-  Heading.displayName = displayName;
-  return Heading;
-};
+const createHeading = (order: TitleProps['order'], displayName: string) =>
+  factory<{ props: HeadingProps; ref: View }>((props, ref) => <Title ref={ref} order={order} {...props} />, {
+    displayName,
+  });
 
 export const Heading1 = createHeading(1, 'Heading1');
 export const Heading2 = createHeading(2, 'Heading2');

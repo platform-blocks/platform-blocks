@@ -1,4 +1,4 @@
-import { Card, Spoiler, Text } from '@platform-blocks/ui';
+import { Block, Spoiler, Text } from '@platform-blocks/ui';
 import { Image, Platform, View } from 'react-native';
 
 const paragraphs = [
@@ -11,8 +11,8 @@ export function Demo() {
   const isWeb = Platform.OS === 'web';
 
   return (
-    <Card p="md">
-      <Spoiler maxHeight={isWeb ? 220 : 260}>
+    <Block fullWidth>
+      <Spoiler mah={isWeb ? 220 : 260}>
         <View style={{ flexDirection: isWeb ? 'row' : 'column' }}>
           <Image
             source={require('../../../../assets/images/scene-ocean.png')}
@@ -27,6 +27,6 @@ export function Demo() {
           </View>
         </View>
       </Spoiler>
-    </Card>
+    </Block>
   );
 }

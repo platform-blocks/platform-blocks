@@ -20,14 +20,16 @@ export function Demo() {
     <Block fullWidth>
       {sections.map(({ label, props }) => (
         <Block key={label} fullWidth>
-          <Text size="sm" weight="semibold">
+          <Text size="sm" fw="semibold">
             {label}
           </Text>
           <Grid columns={6} {...props}>
             {Array.from({ length: 12 }).map((_, index) => (
               <GridItem key={index} span={1}>
-                <Card>
-                  <Text size="sm">Item {index + 1}</Text>
+                <Card variant="outline">
+                  <Text size="sm" ta="center">
+                    Item {index + 1}
+                  </Text>
                 </Card>
               </GridItem>
             ))}

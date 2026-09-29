@@ -1,4 +1,4 @@
-import type { SoundAsset } from './types';
+import type { SoundAsset, SoundSource } from './types';
 
 /**
  * Utility functions for working with sound collections
@@ -27,7 +27,7 @@ export const getSoundsByCategory = (
  */
 export const createSound = (
   id: string,
-  source: any,
+  source: SoundSource,
   options: Partial<Omit<SoundAsset, 'id' | 'source'>>
 ): SoundAsset => {
   return {

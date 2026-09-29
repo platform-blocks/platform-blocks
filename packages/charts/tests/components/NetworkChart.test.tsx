@@ -27,7 +27,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, multiTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <NetworkChart nodes={NODES} links={LINKS} width={480} height={320} disabled />
+        <NetworkChart nodes={NODES} links={LINKS} w={480} h={320} disabled />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );

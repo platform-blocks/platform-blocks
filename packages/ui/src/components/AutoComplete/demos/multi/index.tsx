@@ -1,54 +1,43 @@
-import { useState } from 'react'
-
-import { AutoComplete, Block, Chip, Icon } from '@platform-blocks/ui';
+import { useState } from 'react';
+import { AutoComplete, Block } from '@platform-blocks/ui';
 import type { AutoCompleteOption } from '@platform-blocks/ui';
-import { musicGenres } from '../data'
+
+const genres = [
+  { label: 'Pop', value: 'pop' },
+  { label: 'Rock', value: 'rock' },
+  { label: 'Hip Hop', value: 'hiphop' },
+  { label: 'Jazz', value: 'jazz' },
+  { label: 'Classical', value: 'classical' },
+  { label: 'Electronic', value: 'electronic' },
+  { label: 'Country', value: 'country' },
+  { label: 'R&B', value: 'rnb' },
+];
 
 export function Demo() {
-  const [inputValue, setInputValue] = useState('')
-  const [selectedGenres, setSelectedGenres] = useState<AutoCompleteOption[]>([])
+  const [selectedGenres, setSelectedGenres] = useState<AutoCompleteOption[]>([]);
 
   const handleToggle = (option: AutoCompleteOption) => {
-    const isSelected = selectedGenres.some((genre) => genre.value === option.value)
+    const isSelected = selectedGenres.some((genre) => genre.value === option.value);
 
     setSelectedGenres((current) =>
       isSelected
         ? current.filter((genre) => genre.value !== option.value)
         : [...current, option],
-    )
-  }
+    );
+  };
 
   return (
-    <Block w={400}>
+    <Block fullWidth>
       <AutoComplete
         label="Music genres"
         placeholder="Search genres..."
-        data={musicGenres}
-        value={inputValue}
-        onChangeText={setInputValue}
+        data={genres}
         onSelect={handleToggle}
         multiSelect
         selectedValues={selectedGenres}
         minSearchLength={0}
-        clearable
-        onClear={() => {
-          setSelectedGenres([])
-          setInputValue('')
-        }}
-        selectedValuesContainerStyle={{ flexWrap: 'wrap', gap: 6 }}
-        renderSelectedValue={(item, _index, helpers) => (
-          <Chip
-            key={item.value}
-            size="sm"
-            variant="surface"
-            endIcon={<Icon name="x" size={12} color="currentColor" />}
-            onRemove={helpers.onRemove}
-          >
-            {item.label}
-          </Chip>
-        )}
-        inputWidth={400}
+        fullWidth
       />
     </Block>
-  )
+  );
 }

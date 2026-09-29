@@ -46,7 +46,7 @@ export function Demo() {
         <Text variant="p" mb="sm">✅ New Pattern (Wrapper):</Text>
         <ComponentWithDisclaimer 
           disclaimer={`Selected view: ${view}`}
-          disclaimerProps={{ size: 'sm', color: 'muted' }}
+          disclaimerProps={{ size: 'sm', c: 'muted' }}
         >
           <ToggleGroup
             value={view}
@@ -74,7 +74,7 @@ export function Demo() {
           <ToggleButton value="grid">Grid View</ToggleButton>
           <ToggleButton value="block">Block View</ToggleButton>
         </ToggleGroup>
-        <Disclaimer size="sm" color="muted">
+        <Disclaimer size="sm" c="muted">
           Selected view: {view}
         </Disclaimer>
       </Block>

@@ -2,12 +2,10 @@ import { useMemo, useState } from 'react';
 import {
   Block,
   Button,
-  Card,
   Row,
   spotlight,
   Spotlight,
   SpotlightProvider,
-  Text,
   type SpotlightProps,
   useSpotlightStoreInstance,
 } from '@platform-blocks/ui';
@@ -73,22 +71,12 @@ export function Demo() {
   return (
     <SpotlightProvider>
       <Block>
-        <Card p="md">
-          <Block>
-            <Text size="sm" color="secondary">
-              Combine local stores with the global `spotlight` helper. This demo adds actions to its scoped store while still toggling the shared palette.
-            </Text>
-            <Row gap="sm" wrap="wrap">
-              <Button onPress={() => store.open()}>Open demo store</Button>
-              <Button variant="outline" onPress={() => spotlight.toggle()}>
-                Toggle global spotlight
-              </Button>
-            </Row>
-            <Text size="xs" color="secondary">
-              Select “Add dynamic action” to append more commands on the fly.
-            </Text>
-          </Block>
-        </Card>
+        <Row gap="sm" wrap="wrap">
+          <Button onPress={() => store.open()}>Open scoped store</Button>
+          <Button variant="outline" onPress={() => spotlight.toggle()}>
+            Toggle global spotlight
+          </Button>
+        </Row>
         <Spotlight actions={actions} store={store} />
         <Spotlight actions={globalActions} />
       </Block>

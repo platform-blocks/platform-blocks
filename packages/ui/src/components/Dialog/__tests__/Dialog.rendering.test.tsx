@@ -1,7 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { Text as RNText } from 'react-native';
-import * as ReactNative from 'react-native';
 
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
@@ -13,11 +12,8 @@ jest.mock('react-native', () => {
 // React Native Reanimated mock provided globally via jest.setup
 
 jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaInsetsContext: require('react').createContext(null),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-}));
-
-jest.mock('../../../hooks/useHotkeys', () => ({
-  useEscapeKey: jest.fn(),
 }));
 
 jest.mock('../../../core/providers/DirectionProvider', () => ({
@@ -48,7 +44,7 @@ jest.mock('../../Button/Button', () => {
       React.createElement(
         Pressable,
         {
-          accessibilityRole: 'button',
+          role: 'button',
           onPress,
           testID,
           ...rest,
@@ -77,17 +73,11 @@ jest.mock('../../Icon', () => {
 
 import { Dialog } from '../Dialog';
 
-jest.spyOn(ReactNative, 'useWindowDimensions').mockReturnValue({
-  width: 1024,
-  height: 768,
-  scale: 2,
-  fontScale: 2,
-});
 
 describe('Dialog - rendering', () => {
   it('matches snapshot for modal dialog with title and content', () => {
     const { toJSON } = render(
-      <Dialog visible title="Modal Title" onClose={jest.fn()}>
+      <Dialog opened title="Modal Title" onClose={jest.fn()}>
         <RNText>Modal body copy</RNText>
       </Dialog>
     );
@@ -98,7 +88,7 @@ describe('Dialog - rendering', () => {
   it('matches snapshot for bottom sheet dialog without close button', () => {
     const { toJSON } = render(
       <Dialog
-        visible
+        opened
         title="Actions"
         variant="bottomsheet"
         closable={false}

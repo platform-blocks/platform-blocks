@@ -20,22 +20,16 @@ import { render } from '@testing-library/react-native';
 import { View } from 'react-native';
 import { Loader } from '../Loader';
 
-// Mock getIconSize and getSpacing functions
+// Spy on the theme-aware icon-size resolver the Loader sizes itself with.
 const mockGetIconSize = jest.fn((size) => {
   if (typeof size === 'number') return size;
   const sizes = { xs: 16, sm: 20, md: 24, lg: 32, xl: 40, '2xl': 48, '3xl': 56 };
   return sizes[size as keyof typeof sizes] || 24;
 });
 
-const mockGetSpacing = jest.fn((size) => {
-  if (typeof size === 'number') return size * 8;
-  const sizes = { xs: 8, sm: 12, md: 16, lg: 24, xl: 32, '2xl': 40, '3xl': 48 };
-  return sizes[size as keyof typeof sizes] || 16;
-});
-
-jest.mock('../../../core/theme/sizes', () => ({
-  getIconSize: (size: any) => mockGetIconSize(size),
-  getSpacing: (size: any) => mockGetSpacing(size)
+jest.mock('../../../core/theme/tokens', () => ({
+  ...jest.requireActual('../../../core/theme/tokens'),
+  resolveIconSize: (_theme: unknown, size: any) => mockGetIconSize(size),
 }));
 
 // Mock theme
@@ -356,6 +350,21 @@ describe('Loader - Rendering and Behavior', () => {
     it('should render with accessibility in mind', () => {
       const { UNSAFE_getByType } = render(<Loader />);
       expect(UNSAFE_getByType(View)).toBeTruthy();
+    });
+
+    it('is a busy, indeterminate progressbar named "Loading" by default', () => {
+      const { getByTestId } = render(<Loader testID="busy-loader" />);
+      const { props } = getByTestId('busy-loader');
+      expect(props.role).toBe('progressbar');
+      expect(props['aria-busy']).toBe(true);
+      expect(props['aria-label']).toBe('Loading');
+      expect(props['aria-valuenow']).toBeUndefined();
+      expect(props.accessibilityRole).toBeUndefined();
+    });
+
+    it('takes a custom accessible name', () => {
+      const { getByLabelText } = render(<Loader accessibilityLabel="Fetching orders" />);
+      expect(getByLabelText('Fetching orders')).toBeTruthy();
     });
   });
 });

@@ -8,7 +8,7 @@ export function Demo() {
 
   return (
     <Block align="flex-start">
-      <Badge color={opened ? 'success' : 'gray'}>{opened ? 'Open' : 'Closed'}</Badge>
+      <Badge c={opened ? 'success' : 'gray'}>{opened ? 'Open' : 'Closed'}</Badge>
 
       <Row gap="sm" wrap="wrap">
         <Button onPress={open}>open</Button>
@@ -16,7 +16,7 @@ export function Demo() {
         <Button variant="ghost" onPress={toggle}>toggle</Button>
       </Row>
 
-      <Dialog visible={opened} title="Dialog title" onClose={close}>
+      <Dialog opened={opened} title="Dialog title" onClose={close}>
         <Block p="md">
           <Text>This dialog's open state is managed by useDisclosure.</Text>
           <Button onPress={close}>Close</Button>
