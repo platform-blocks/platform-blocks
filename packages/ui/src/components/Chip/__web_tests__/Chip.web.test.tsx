@@ -1,10 +1,10 @@
 import React from 'react';
 import { fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { Chip } from '../Chip';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('Chip (react-native-web DOM)', () => {
   it('a static chip has no interactive role', () => {

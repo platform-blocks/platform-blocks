@@ -5,7 +5,7 @@ on mobile), an aside, the main content area, a footer and a mobile bottom
 navigation — positioned from one set of per-breakpoint sizes.
 
 ```tsx
-import { AppShell, useAppShellApi } from '@platform-blocks/ui';
+import { AppShell, useAppShellApi } from '@plocks/ui';
 
 function MenuButton() {
   const { toggleNavbar } = useAppShellApi();
@@ -45,7 +45,7 @@ export function App() {
 | `AppShell.BottomNav` | `navigation` when labelled | Mobile bottom container. |
 | `AppShell.BottomAppBar` | `navigation` | Items with icons, labels, badges; active item is `aria-current="page"`. |
 | `AppShell.Section` | — | `grow` / `withScrollArea` inside navbar or aside. |
-| `AppShell.MobileMenu` | `dialog` (modal) | Native menu used with `mobileMenu`; `opened` / `onClose` (`visible` is deprecated). |
+| `AppShell.MobileMenu` | `dialog` (modal) | Native menu used with `mobileMenu`; `opened` / `onClose`. |
 
 Each section takes `accessibilityLabel`, `withBorder`, `zIndex`, `style`,
 `testID` and the spacing props.

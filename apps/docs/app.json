@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "plocks -docs",
+    "slug": "plocks-docs",
+    "version": "0.1.0",
+    "scheme": "plocks-docs",
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "static"
+    },
+    "extra": {
+      "router": {}
+    },
+    "plugins": [
+      "expo-router",
+      "expo-document-picker",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
+        }
+      ]
+    ],
+    "android": {
+      "package": "dev.plocks.docs",
+      "permissions": [
+        "VIBRATE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#18161D"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "dev.plocks.docs",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "owner": "joshstovall",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "icon": "./assets/icon.png"
+  }
+}

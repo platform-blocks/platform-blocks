@@ -10,7 +10,6 @@ import { useTransitionDuration } from '../../core/motion/useTransitionDuration';
 import { isAndroid, isWeb, webStyle } from '../../core/platform';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveFontSize } from '../../core/theme/tokens';
-import { warnOnce } from '../../core/utils/logger';
 import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
 import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 import { useControllableState } from '../../hooks/useControllableState';
@@ -41,9 +40,6 @@ export const Spoiler = factory<{ props: SpoilerProps; ref: View }>((allProps, re
     expanded: expandedProp,
     defaultExpanded,
     onExpandedChange,
-    initiallyOpen,
-    opened: openedProp,
-    onToggle,
     showLabel = 'Show more',
     hideLabel = 'Hide',
     transitionDuration: transitionDurationProp,
@@ -58,27 +54,17 @@ export const Spoiler = factory<{ props: SpoilerProps; ref: View }>((allProps, re
     controlProps,
   } = otherProps;
 
-  if (initiallyOpen !== undefined) {
-    warnOnce('Spoiler.initiallyOpen', '[platform-blocks] Spoiler: `initiallyOpen` is deprecated; use `defaultExpanded`.');
-  }
-  if (openedProp !== undefined) {
-    warnOnce('Spoiler.opened', '[platform-blocks] Spoiler: `opened` is deprecated; use `expanded`.');
-  }
-  if (onToggle !== undefined) {
-    warnOnce('Spoiler.onToggle', '[platform-blocks] Spoiler: `onToggle` is deprecated; use `onExpandedChange`.');
-  }
-
   const theme = useTheme();
   const spacingStyles = useStyleProps(styleProps);
-  const contentId = useA11yId(undefined, 'pb-spoiler');
+  const contentId = useA11yId(undefined, 'plocks-spoiler');
   // Reduced motion (or `transitionDuration={0}`) → 0: jump to the end state.
   const transitionDuration = useTransitionDuration(transitionDurationProp, 180);
 
   const [expanded, setExpanded] = useControllableState<boolean>({
-    value: expandedProp !== undefined ? expandedProp : openedProp,
-    defaultValue: defaultExpanded ?? initiallyOpen,
+    value: expandedProp,
+    defaultValue: defaultExpanded,
     finalValue: false,
-    onChange: onExpandedChange ?? onToggle,
+    onChange: onExpandedChange,
   });
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
   const [hasMeasured, setHasMeasured] = useState(false);
@@ -197,7 +183,7 @@ export const Spoiler = factory<{ props: SpoilerProps; ref: View }>((allProps, re
           })}
         >
           {renderControl ? (
-            renderControl({ expanded, opened: expanded, toggle, showLabel, hideLabel })
+            renderControl({ expanded, toggle, showLabel, hideLabel })
           ) : (
             <Text
               {...mergeSlotProps(

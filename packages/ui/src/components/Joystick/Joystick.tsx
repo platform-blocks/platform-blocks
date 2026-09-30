@@ -15,7 +15,7 @@ import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveComponentSize } from '../../core/theme/componentSize';
 import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { resolveShadow } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import { warnOnce } from '../../core/utils/logger';
 import { useStyleProps } from '../../core/utils/spacing';
 import { useControllableState } from '../../hooks/useControllableState';
@@ -54,7 +54,7 @@ interface VariantVisuals {
 
 const getVariantVisuals = (
   variant: JoystickVariant,
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   baseColor: string,
   handleColor: string
 ): VariantVisuals => {
@@ -458,7 +458,7 @@ export const Joystick = factory<{ props: JoystickProps; ref: View }>((props, ref
       </View>
 
       {readout ? (
-        <Text size="xs" c="dimmed" style={[styles.readout, valueLabelStyle]}>
+        <Text size="xs" c="muted" style={[styles.readout, valueLabelStyle]}>
           {readout}
         </Text>
       ) : null}

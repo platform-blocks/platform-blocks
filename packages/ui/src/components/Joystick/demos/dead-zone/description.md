@@ -5,7 +5,6 @@ order: 30
 tags: [deadZone, step, snapping]
 highlightLines: []
 status: stable
-since: 1.1.0
 hidden: false
 ---
 

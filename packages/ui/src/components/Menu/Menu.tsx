@@ -1,9 +1,7 @@
 import React, {
   cloneElement,
-  createContext,
   isValidElement,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -52,30 +50,12 @@ import type {
   MenuFactoryPayload,
 } from './types';
 import { useMenuStyles } from './styles';
+import { MenuCheckboxItem, MenuRadioGroup, MenuRadioItem } from './MenuChoiceItems';
 
-/** @internal shared with ContextMenu */
-export interface MenuContextValue {
-  /** Closes the whole menu chain (an item was chosen). */
-  closeMenu: () => void;
-  opened: boolean;
-}
-
-const MenuContext = createContext<MenuContextValue | null>(null);
-
-const FALLBACK_MENU_CONTEXT: MenuContextValue = { closeMenu: () => {}, opened: false };
-
-/** The enclosing menu. Outside a Menu: a no-op context (and a dev warning), never a throw. */
-export function useMenuContext(): MenuContextValue {
-  const context = useContext(MenuContext);
-  if (!context) {
-    warnOnce(
-      'Menu:no-context',
-      '[platform-blocks] Menu.Item / Menu.Sub was rendered outside a <Menu>; it renders as a plain item.'
-    );
-    return FALLBACK_MENU_CONTEXT;
-  }
-  return context;
-}
+import { MenuContext, useMenuContext } from './MenuContext';
+import type { MenuContextValue } from './MenuContext';
+export { useMenuContext } from './MenuContext';
+export type { MenuContextValue } from './MenuContext';
 
 /** Where keyboard focus lands when a menu opens. */
 export type MenuInitialFocus = 'first' | 'last' | 'none';
@@ -175,6 +155,7 @@ export interface MenuListProps {
   onTabOut: () => void;
   /** Submenus: the "back" arrow (Left, Right in RTL) closes this level. */
   onNavigateBack?: () => void;
+  onNavigateHorizontal?: (direction: -1 | 1) => void;
   labelledBy?: string;
   label?: string;
   onPointerEnter?: () => void;
@@ -199,6 +180,7 @@ export function MenuList({
   focusRequest,
   onTabOut,
   onNavigateBack,
+  onNavigateHorizontal,
   labelledBy,
   label,
   onPointerEnter,
@@ -295,11 +277,17 @@ export function MenuList({
         onNavigateBack();
         return;
       }
+      if (onNavigateHorizontal && (event.key === 'ArrowLeft' || event.key === 'ArrowRight') && items[index]?.getAttribute('aria-haspopup') !== 'menu') {
+        event.preventDefault();
+        event.stopPropagation();
+        onNavigateHorizontal(event.key === 'ArrowRight' ? (rtl ? -1 : 1) : (rtl ? 1 : -1));
+        return;
+      }
       // From the container itself, Down starts at the top and Up at the bottom.
       const start = index >= 0 ? index : event.key === 'ArrowUp' ? items.length : -1;
       handleRovingKeyDown(event, start);
     },
-    [collectItems, handleRovingKeyDown, onNavigateBack, onTabOut, rtl]
+    [collectItems, handleRovingKeyDown, onNavigateBack, onNavigateHorizontal, onTabOut, rtl]
   );
 
   const body = scrollable ? (
@@ -350,6 +338,7 @@ function MenuBase(props: MenuProps, ref: Ref<View>) {
     closeOnEscape = true,
     onOpen,
     onClose,
+    onNavigateHorizontal,
     w = 'auto',
     mah: maxH = 300,
     shadow = 'md',
@@ -390,7 +379,7 @@ function MenuBase(props: MenuProps, ref: Ref<View>) {
 
   const { triggerElement, dropdownElement } = useMemo(() => splitMenuChildren(children), [children]);
   if (!triggerElement) {
-    warnOnce('Menu:no-trigger', '[platform-blocks] Menu needs a trigger element (a child other than Menu.Dropdown).');
+    warnOnce('Menu:no-trigger', '[plocks] Menu needs a trigger element (a child other than Menu.Dropdown).');
   }
   const dropdownProps = dropdownElement?.props;
   const items = dropdownProps?.children;
@@ -583,6 +572,7 @@ function MenuBase(props: MenuProps, ref: Ref<View>) {
       initialFocus={initialFocus}
       focusRequest={focusRequest}
       onTabOut={closeMenu}
+      onNavigateHorizontal={onNavigateHorizontal}
       labelledBy={isContext ? undefined : resolvedTriggerId}
       label={ariaLabel}
       onPointerEnter={isHover ? hoverOpen : undefined}
@@ -870,4 +860,7 @@ export const Menu = withStatics(MenuRoot, {
   Divider: MenuDivider,
   Dropdown: MenuDropdown,
   Sub: MenuSub,
+  CheckboxItem: MenuCheckboxItem,
+  RadioGroup: MenuRadioGroup,
+  RadioItem: MenuRadioItem,
 });

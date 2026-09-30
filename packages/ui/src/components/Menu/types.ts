@@ -38,6 +38,8 @@ export interface MenuProps extends BaseProps {
   onOpen?: () => void;
   /** Called when the menu closes. */
   onClose?: () => void;
+  /** @internal Menubar moves to another top-level menu on horizontal arrows. */
+  onNavigateHorizontal?: (direction: -1 | 1) => void;
   /**
    * Menu width: a number, `'target'` (the trigger's width) or `'auto'` (as wide
    * as the longest item, never narrower than the trigger).
@@ -117,3 +119,12 @@ export interface MenuFactoryPayload {
   props: MenuProps;
   ref: View;
 }
+
+export interface MenuCheckboxItemProps extends Omit<MenuItemProps, 'onPress' | 'closeMenuOnClick'> {
+  /** Controlled checked state. */ checked?: boolean;
+  /** Initial checked state. @default false */ defaultChecked?: boolean;
+  /** Called when toggled. */ onChange?: (checked: boolean) => void;
+  /** Close the menu after toggling. @default false */ closeMenuOnClick?: boolean;
+}
+export interface MenuRadioGroupProps extends BaseProps { children: ReactNode; value?: string; defaultValue?: string; onChange?: (value: string) => void }
+export interface MenuRadioItemProps extends Omit<MenuItemProps, 'onPress' | 'closeMenuOnClick'> { value: string; closeMenuOnClick?: boolean }

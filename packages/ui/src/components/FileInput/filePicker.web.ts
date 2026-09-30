@@ -23,7 +23,7 @@ export function pickFiles({ accept, multiple }: PickFilesOptions): Promise<FileI
     input.multiple = multiple;
     if (accept.length > 0) input.accept = accept.join(',');
     input.style.display = 'none';
-    input.setAttribute('data-pb-file-picker', '');
+    input.setAttribute('data-plocks-file-picker', '');
 
     const finish = (files: FileInputSource[] | null) => {
       input.remove();

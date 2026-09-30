@@ -2,31 +2,26 @@
  * Global CSS the library injects on web.
  *
  * - A zero-specificity keyboard focus ring (`:focus-visible`) for every
- *   focusable element, drawn in `--platform-blocks-focus-ring`. It uses
+ *   focusable element, drawn in `--plocks-focus-ring`. It uses
  *   `:where()` so any host-app or component style overrides it. The library's
- *   own text inputs opt out of the raw outline with `dataSet={{ pbInput: 'true' }}`
- *   (`[data-pb-input]`) and draw a ring on their frame instead.
+ *   own text inputs opt out of the raw outline with `dataSet={{ plocksInput: 'true' }}`
+ *   (`[data-plocks-input]`) and draw a ring on their frame instead.
  * - A text-input appearance reset (zero specificity; checkboxes, radios,
  *   ranges and selects are left alone so host-app controls keep their chrome).
- * - Class-based light/dark/breakpoint visibility for the deprecated
- *   `withUniversalProps` HOC, keyed to `theme.breakpoints`.
  *
  * There is deliberately NO global `outline: none` — that hid keyboard focus
  * for the whole page, host-app inputs included.
  */
 
-import { useEffect, useLayoutEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Platform } from 'react-native';
 
 import { DEFAULT_THEME } from '../theme/defaultTheme';
 import { useTheme } from '../theme/ThemeProvider';
-import { getBreakpoints, type BreakpointValues } from '../theme/tokens';
-import type { PlatformBlocksTheme } from '../theme/types';
+import { useIsomorphicLayoutEffect } from '../hooks/useIsomorphicLayoutEffect';
 
 export interface UniversalCSSOptions {
-  /** Breakpoint widths in px (defaults to the default theme's table). */
-  breakpoints?: BreakpointValues;
-  /** Fallback color for the focus ring when `--platform-blocks-focus-ring` is not defined. */
+  /** Fallback color for the focus ring when `--plocks-focus-ring` is not defined. */
   focusRing?: string;
 }
 
@@ -40,19 +35,18 @@ export const FOCUS_RING_SELECTOR =
  * argument it uses the default theme.
  */
 export function generateUniversalCSS(options: UniversalCSSOptions = {}): string {
-  const breakpoints = options.breakpoints ?? getBreakpoints(DEFAULT_THEME);
   const focusRing = options.focusRing ?? DEFAULT_THEME.states?.focusRing ?? 'rgba(59,130,246,0.45)';
 
   const universalCSS = `
     /* Keyboard focus ring — zero specificity, so any component or app style wins. */
     :where(${FOCUS_RING_SELECTOR}):focus-visible {
-      outline: 2px solid var(--platform-blocks-focus-ring, ${focusRing});
+      outline: 2px solid var(--plocks-focus-ring, ${focusRing});
       outline-offset: 2px;
     }
 
     /* Library text inputs draw their own ring on the field frame. */
-    :where([data-pb-input]):focus,
-    :where([data-pb-input]):focus-visible {
+    :where([data-plocks-input]):focus,
+    :where([data-plocks-input]):focus-visible {
       outline: none;
     }
 
@@ -62,46 +56,12 @@ export function generateUniversalCSS(options: UniversalCSSOptions = {}): string 
       -moz-appearance: none;
       appearance: none;
     }
-
-    /* Color scheme based visibility (withUniversalProps) */
-    .platform-blocks-light-hidden {
-      display: none !important;
-    }
-
-    [data-platform-blocks-color-scheme="dark"] .platform-blocks-light-hidden {
-      display: revert !important;
-    }
-
-    .platform-blocks-dark-hidden {
-      display: revert !important;
-    }
-
-    [data-platform-blocks-color-scheme="dark"] .platform-blocks-dark-hidden {
-      display: none !important;
-    }
-
-    /* Responsive visibility classes */
-    ${(Object.keys(breakpoints) as (keyof BreakpointValues)[]).map((breakpoint) => `
-      @media (min-width: ${breakpoints[breakpoint]}px) {
-        .platform-blocks-hidden-from-${breakpoint} {
-          display: none !important;
-        }
-      }
-
-      @media (max-width: ${breakpoints[breakpoint] - 0.02}px) {
-        .platform-blocks-visible-from-${breakpoint} {
-          display: none !important;
-        }
-      }
-    `).join('\n')}
   `;
 
   return universalCSS.replace(/\s+/g, ' ').trim();
 }
 
-const STYLE_ID = 'platform-blocks-universal-css';
-const useIsomorphicLayoutEffect = Platform.OS === 'web' && typeof document !== 'undefined' ? useLayoutEffect : useEffect;
-
+const STYLE_ID = 'plocks-universal-css';
 /** Mounted instances in registration order; the latest one's CSS is the one in the document. */
 const instances: { css: string }[] = [];
 
@@ -121,11 +81,6 @@ function syncStyleTag(): void {
   if (element.textContent !== css) element.textContent = css;
 }
 
-/** Theme-derived options for `generateUniversalCSS`. */
-export function universalCSSOptionsFromTheme(theme: PlatformBlocksTheme): UniversalCSSOptions {
-  return { breakpoints: getBreakpoints(theme), focusRing: theme.states?.focusRing };
-}
-
 /**
  * Injects the global CSS (web only; renders nothing). Nested providers share
  * one `<style>` tag (they differ at most in the focus-ring fallback color), and
@@ -135,11 +90,10 @@ export function universalCSSOptionsFromTheme(theme: PlatformBlocksTheme): Univer
 export function UniversalCSS() {
   const theme = useTheme();
   const isWeb = Platform.OS === 'web' && typeof document !== 'undefined';
-  const breakpoints = getBreakpoints(theme);
   const focusRing = theme.states?.focusRing;
   const css = useMemo(
-    () => (isWeb ? generateUniversalCSS({ breakpoints, focusRing }) : ''),
-    [isWeb, breakpoints, focusRing]
+    () => (isWeb ? generateUniversalCSS({ focusRing }) : ''),
+    [isWeb, focusRing]
   );
 
   useIsomorphicLayoutEffect(() => {

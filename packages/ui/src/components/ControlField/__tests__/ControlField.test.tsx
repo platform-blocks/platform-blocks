@@ -2,7 +2,6 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 
 import { ControlField } from '../ControlField';
-import { resetWarnOnce } from '../../../core/utils/logger';
 
 jest.mock('../../../core/theme/ThemeProvider', () => ({
   ...jest.requireActual('../../../core/theme/ThemeProvider'),
@@ -88,34 +87,8 @@ describe('ControlField', () => {
     expect(getByRole('alert')).toBeTruthy();
   });
 
-  it('keeps the deprecated aliases working, with a dev warning', () => {
-    resetWarnOnce();
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const onSelectedChange = jest.fn();
-    const { getByTestId } = render(
-      <ControlField testID="cf" label="Wifi" isSelected={false} onSelectedChange={onSelectedChange} isDisabled={false} />
-    );
-    fireEvent.press(getByTestId('cf'));
-    expect(onSelectedChange).toHaveBeenCalledWith(true);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('`isSelected` is deprecated'));
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('`onSelectedChange` is deprecated'));
-    warn.mockRestore();
-  });
-
-  it('lets the canonical props win over their aliases', () => {
-    const onChange = jest.fn();
-    const onSelectedChange = jest.fn();
-    const { getByTestId } = render(
-      <ControlField testID="cf" label="Wifi" checked isSelected={false} onChange={onChange} onSelectedChange={onSelectedChange} />
-    );
-    expect(getByTestId('indicator-switch-on', { includeHiddenElements: true })).toBeTruthy();
-    fireEvent.press(getByTestId('cf'));
-    expect(onChange).toHaveBeenCalledWith(false);
-    expect(onSelectedChange).not.toHaveBeenCalled();
-  });
-
-  it('marks the field invalid without a message when isInvalid is set alone', () => {
-    const { getByTestId, queryByRole } = render(<ControlField testID="cf" label="Agree" isInvalid />);
+  it('marks the field invalid without a message when error is true', () => {
+    const { getByTestId, queryByRole } = render(<ControlField testID="cf" label="Agree" error />);
     expect(queryByRole('alert')).toBeNull();
     expect(getByTestId('cf')).toBeTruthy();
   });

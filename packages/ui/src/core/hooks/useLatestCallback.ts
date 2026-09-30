@@ -1,9 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
-import { hasDOM, isNative } from '../platform';
-
-// useLayoutEffect warns during React 18 server rendering; there's nothing to
-// sync on the server anyway.
-const useIsomorphicLayoutEffect = hasDOM || isNative ? useLayoutEffect : useEffect;
+import { useCallback, useRef } from 'react';
+import { useIsomorphicLayoutEffect } from './useIsomorphicLayoutEffect';
 
 /**
  * Returns a function with a stable identity that always calls the latest `fn`.

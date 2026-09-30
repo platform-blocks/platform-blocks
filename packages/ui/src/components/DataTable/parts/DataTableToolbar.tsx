@@ -9,15 +9,14 @@ import { Checkbox } from '../../Checkbox';
 import { Flex } from '../../Flex';
 import { Icon } from '../../Icon';
 import { Input } from '../../Input';
-import { Row } from '../../Layout';
 import { Popover } from '../../Popover';
 import { Text } from '../../Text';
-import { ComponentWithDisclaimer } from '../../_internal/Disclaimer';
 import type { DataTableBulkAction, DataTableColumn, DataTableFilter, DataTableRowId } from '../types';
 import type { DataTableColors } from './shared';
 
 export interface DataTableToolbarProps<T> {
   colors: DataTableColors;
+  compact: boolean;
   data: T[];
   columns: DataTableColumn<T>[];
   selectedRows: DataTableRowId[];
@@ -38,279 +37,189 @@ export interface DataTableToolbarProps<T> {
   showColumnVisibilityManager: boolean;
   hiddenSet: ReadonlySet<string>;
   setHiddenColumns: React.Dispatch<React.SetStateAction<string[]>>;
+  onResetColumns: () => void;
 }
 
-/**
- * The toolbar above the table: bulk actions for the selection, the search &
- * filter popover, edit-mode toggle, CSV export and the column visibility manager.
- */
+/** Search remains visible; secondary controls adapt to the table's own width. */
 export function DataTableToolbar<T>({
-  colors,
-  data,
-  columns,
-  selectedRows,
-  bulkActions,
-  searchable,
-  searchPlaceholder,
-  searchValue,
-  onSearchChange,
-  activeFilters,
-  getColumnFilter,
-  onClearFilters,
-  onRemoveFilter,
-  renderFilterControl,
-  editMode,
-  onEditModeChange,
-  exportable,
-  onExport,
-  showColumnVisibilityManager,
-  hiddenSet,
-  setHiddenColumns,
+  colors, compact, data, columns, selectedRows, bulkActions, searchable, searchPlaceholder,
+  searchValue, onSearchChange, activeFilters, getColumnFilter, onClearFilters,
+  onRemoveFilter, renderFilterControl, editMode, onEditModeChange, exportable,
+  onExport, showColumnVisibilityManager, hiddenSet, setHiddenColumns, onResetColumns,
 }: DataTableToolbarProps<T>) {
   const theme = useTheme();
   const space = (token: 'xs' | 'sm' | 'md') => {
     const value = resolveSpacing(theme, token);
     return typeof value === 'number' ? value : 0;
   };
-  const filterableColumns = columns.filter((c) => c.filterable);
-  const hasFilterUi = filterableColumns.length > 0;
+  const filterableColumns = columns.filter((column) => column.filterable);
+  const hasSecondaryActions = !!onEditModeChange || exportable || showColumnVisibilityManager;
+  const visibleCount = columns.length - columns.filter((column) => hiddenSet.has(column.key)).length;
+
+  const columnsContent = (
+    <View style={styles.columnsBody}>
+      <View style={styles.columnsHeading}>
+        <Text variant="small" fw="semibold">Columns</Text>
+        <Button size="xs" variant="ghost" onPress={onResetColumns}>Reset columns</Button>
+      </View>
+      <ScrollView style={styles.columnsList}>
+        {columns.map((column) => {
+          const checked = !hiddenSet.has(column.key);
+          return (
+            <Checkbox
+              key={column.key}
+              label={column.header}
+              checked={checked}
+              disabled={checked && visibleCount <= 1}
+              onChange={() => setHiddenColumns((previous) =>
+                previous.includes(column.key)
+                  ? previous.filter((key) => key !== column.key)
+                  : [...previous, column.key]
+              )}
+              style={styles.columnsCheckbox}
+            />
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+
+  const filtersControl = filterableColumns.length > 0 ? (
+    <Popover position="bottom-end" offset={{ mainAxis: 8 }} w={compact ? 280 : 320} trapFocus>
+      <Popover.Target>
+        <Button variant="outline" size="sm" startSection={<Icon name="filter" size={14} decorative />}>
+          {activeFilters.length ? `Filters (${activeFilters.length})` : 'Filters'}
+        </Button>
+      </Popover.Target>
+      <Popover.Dropdown>
+        <Flex direction="column" gap={space('sm')} style={[styles.popoverBody, compact && styles.popoverBodyCompact]}>
+          <Flex direction="row" justify="space-between" align="center">
+            <Text variant="small" textRole="panelTitle">Filters</Text>
+            {activeFilters.length > 0 && (
+              <Button variant="ghost" size="xs" onPress={onClearFilters}>Clear all</Button>
+            )}
+          </Flex>
+          {activeFilters.map((filter) => {
+            const column = columns.find((candidate) => candidate.key === filter.column);
+            const name = typeof column?.header === 'string' ? column.header : filter.column;
+            return (
+              <View
+                key={filter.column}
+                style={[
+                  styles.chip,
+                  { backgroundColor: colors.selectedBg, paddingHorizontal: space('sm'), paddingVertical: space('xs'),
+                    borderRadius: resolveRadius(theme, 'sm'), gap: space('xs') },
+                ]}
+              >
+                <Text variant="small" style={{ color: colors.text }}>
+                  {name}: {filter.operator} "{String(filter.value)}"
+                </Text>
+                <Pressable
+                  onPress={() => onRemoveFilter(filter.column)}
+                  {...a11yProps({ role: 'button', label: `Remove ${name} filter` })}
+                  hitSlop={8}
+                  style={styles.chipRemove}
+                >
+                  <Icon name="x" size={12} color={colors.accent} decorative />
+                </Pressable>
+              </View>
+            );
+          })}
+          {filterableColumns.map((column) => (
+            <View key={column.key}>{renderFilterControl(column, false, false)}</View>
+          ))}
+        </Flex>
+      </Popover.Dropdown>
+    </Popover>
+  ) : null;
+
+  const editControl = onEditModeChange ? (
+    <Button variant={editMode ? 'filled' : 'outline'} size="sm" onPress={() => onEditModeChange(!editMode)}>
+      {editMode ? 'Exit Edit' : 'Edit'}
+    </Button>
+  ) : null;
+  const exportControl = exportable ? (
+    <Button variant="outline" size="sm" startSection={<Icon name="download" size={14} decorative />}
+      onPress={onExport} accessibilityLabel="Export as CSV">
+      Export
+    </Button>
+  ) : null;
 
   return (
-    <View style={[styles.toolbar, { marginBottom: space('md'), paddingHorizontal: space('xs') }]}>
-      <Flex gap={space('md')} align="center">
-        {selectedRows.length > 0 && bulkActions.length > 0 && (
-          <Flex gap={8}>
-            <Text variant="small" c="muted">
-              {selectedRows.length} selected
-            </Text>
-            {bulkActions.map((action) => (
-              <Button
-                key={action.key}
-                variant="outline"
-                size="sm"
-                startSection={action.icon}
-                onPress={() => action.action(selectedRows, data)}
-              >
-                {action.label}
-              </Button>
-            ))}
-          </Flex>
-        )}
-      </Flex>
-
-      <Flex gap={8}>
-        {/* Search & Filter Popover */}
-        {(searchable || hasFilterUi) && (
-          <Popover position="bottom-end" offset={{ mainAxis: 12 }} w={320} trapFocus>
-            <Popover.Target>
-              <Button variant="outline" size="sm" startSection={<Icon name="search" size={14} decorative />}>
-                Search
-                {(searchValue || activeFilters.length > 0) && (
-                  <View style={[styles.activeDot, { backgroundColor: colors.accent }]} />
-                )}
-              </Button>
-            </Popover.Target>
-            <Popover.Dropdown>
-              <Flex direction="column" gap={space('md')} style={styles.popoverBody}>
-                <Text variant="small" textRole="panelTitle">
-                  Search & Filter
-                </Text>
-
-                {searchable && (
-                  <View style={[styles.searchSection, { borderBottomColor: colors.hairline, paddingBottom: space('sm') }]}>
-                    <Flex direction="column" gap={space('xs')}>
-                      <Text variant="small" textRole="sectionLabel">
-                        Search
-                      </Text>
-                      <Input
-                        placeholder={searchPlaceholder}
-                        value={searchValue}
-                        onChangeText={onSearchChange}
-                        startSection={<Icon name="search" size={16} decorative />}
-                        size="sm"
-                        accessibilityLabel="Search"
-                      />
-                    </Flex>
-                  </View>
-                )}
-
-                {hasFilterUi && (
-                  <Flex direction="column" gap={space('sm')}>
-                    <Flex direction="row" justify="space-between" align="center">
-                      <Text variant="small" textRole="sectionLabel">
-                        Filters
-                      </Text>
-                      {activeFilters.length > 0 && (
-                        <Button variant="ghost" size="xs" onPress={onClearFilters}>
-                          Clear all
-                        </Button>
-                      )}
-                    </Flex>
-
-                    {activeFilters.length > 0 && (
-                      <Flex direction="column" gap={space('xs')} style={{ marginBottom: space('sm') }}>
-                        {activeFilters.map((filter) => {
-                          const column = columns.find((c) => c.key === filter.column);
-                          const name = typeof column?.header === 'string' ? column.header : filter.column;
-                          return (
-                            <View
-                              key={filter.column}
-                              style={[
-                                styles.chip,
-                                {
-                                  backgroundColor: colors.selectedBg,
-                                  paddingHorizontal: space('sm'),
-                                  paddingVertical: space('xs'),
-                                  borderRadius: resolveRadius(theme, 'sm'),
-                                  gap: space('xs'),
-                                },
-                              ]}
-                            >
-                              <Text variant="small" style={{ color: colors.text }}>
-                                {column?.header || filter.column}: {filter.operator} "{String(filter.value)}"
-                              </Text>
-                              <Pressable
-                                onPress={() => onRemoveFilter(filter.column)}
-                                {...a11yProps({ role: 'button', label: `Remove ${name} filter` })}
-                                hitSlop={8}
-                                style={styles.chipRemove}
-                              >
-                                <Icon name="x" size={12} color={colors.accent} decorative />
-                              </Pressable>
-                            </View>
-                          );
-                        })}
-                      </Flex>
-                    )}
-
-                    <Flex direction="column" gap={space('sm')}>
-                      {filterableColumns.map((column) => {
-                        const currentFilter = getColumnFilter(column.key);
-                        return (
-                          <View key={`${column.key}-${currentFilter?.value ?? 'no-filter'}`}>
-                            {renderFilterControl(column, false, false)}
-                          </View>
-                        );
-                      })}
-                    </Flex>
-                  </Flex>
-                )}
-              </Flex>
-            </Popover.Dropdown>
-          </Popover>
-        )}
-
-        {onEditModeChange && (
-          <Button variant={editMode ? 'filled' : 'outline'} size="sm" onPress={() => onEditModeChange(!editMode)}>
-            {editMode ? 'Exit Edit' : 'Edit'}
-          </Button>
-        )}
-        {exportable && (
-          <Button
-            variant="outline"
-            size="sm"
-            startSection={<Icon name="download" size={14} decorative />}
-            onPress={onExport}
-            accessibilityLabel="Export as CSV"
-          >
-            Export
-          </Button>
-        )}
-        {showColumnVisibilityManager && (
-          <Popover position="bottom-end" offset={{ mainAxis: 12 }} w={280} trapFocus>
+    <View style={[styles.toolbar, compact && styles.toolbarCompact, { padding: space('md'), borderBottomColor: colors.hairline }]}>
+      {searchable && (
+        <Input
+          placeholder={searchPlaceholder}
+          value={searchValue}
+          onChangeText={onSearchChange}
+          startSection={<Icon name="search" size={16} decorative />}
+          size="sm"
+          accessibilityLabel="Search"
+          style={[styles.searchInput, compact && styles.searchInputCompact]}
+        />
+      )}
+      <View style={[styles.actions, compact && styles.actionsCompact]}>
+        {selectedRows.length > 0 && <Text variant="small" c="muted">{selectedRows.length} selected</Text>}
+        {filtersControl}
+        {!compact && editControl}
+        {!compact && exportControl}
+        {!compact && showColumnVisibilityManager && (
+          <Popover position="bottom-end" offset={{ mainAxis: 8 }} w={280} trapFocus>
             <Popover.Target>
               <Button variant="outline" size="sm" startSection={<Icon name="eye" size={14} decorative />}>
                 Columns
               </Button>
             </Popover.Target>
+            <Popover.Dropdown>{columnsContent}</Popover.Dropdown>
+          </Popover>
+        )}
+        {compact && hasSecondaryActions && (
+          <Popover position="bottom-end" offset={{ mainAxis: 8 }} w={280} trapFocus>
+            <Popover.Target>
+              <Button variant="outline" size="sm" startSection={<Icon name="dots" size={14} decorative />}>
+                More
+              </Button>
+            </Popover.Target>
             <Popover.Dropdown>
-              <View style={styles.columnsBody}>
-                <ComponentWithDisclaimer
-                  disclaimer="Selected view determines the layout style"
-                  disclaimerProps={{ c: 'muted', size: 'sm' }}
-                >
-                  <Row>
-                    <Button
-                      size="xs"
-                      title="Deselect All"
-                      variant={hiddenSet.size === columns.length ? 'filled' : 'outline'}
-                      onPress={() => setHiddenColumns(columns.map((c) => c.key))}
-                      style={styles.columnsButton}
-                    />
-                    <Button
-                      size="xs"
-                      title="Select All"
-                      variant={hiddenSet.size === 0 ? 'filled' : 'outline'}
-                      onPress={() => setHiddenColumns([])}
-                      style={styles.columnsButton}
-                    />
-                  </Row>
-                </ComponentWithDisclaimer>
-
-                <ScrollView style={styles.columnsList}>
-                  {columns.map((col) => (
-                    <Checkbox
-                      key={col.key}
-                      label={col.header}
-                      checked={!hiddenSet.has(col.key)}
-                      onChange={() =>
-                        setHiddenColumns((prev) =>
-                          prev.includes(col.key) ? prev.filter((h) => h !== col.key) : [...prev, col.key]
-                        )
-                      }
-                      style={styles.columnsCheckbox}
-                    />
-                  ))}
-                </ScrollView>
+              <View style={styles.moreBody}>
+                {editControl}
+                {exportControl}
+                {showColumnVisibilityManager && columnsContent}
               </View>
             </Popover.Dropdown>
           </Popover>
         )}
-      </Flex>
+      </View>
+      {selectedRows.length > 0 && bulkActions.length > 0 && (
+        <ScrollView horizontal style={styles.bulkRow} contentContainerStyle={styles.bulkContent}>
+          {bulkActions.map((action) => (
+            <Button key={action.key} variant="outline" size="sm" startSection={action.icon}
+              onPress={() => action.action(selectedRows, data)}>
+              {action.label}
+            </Button>
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  activeDot: {
-    borderRadius: 3,
-    height: 6,
-    marginStart: 4,
-    width: 6,
-  },
-  chip: {
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-  chipRemove: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 24,
-    minWidth: 24,
-  },
-  columnsBody: {
-    maxHeight: 300,
-    padding: 8,
-    width: 260,
-  },
-  columnsButton: {
-    marginBottom: 8,
-  },
-  columnsCheckbox: {
-    marginBottom: 4,
-  },
-  columnsList: {
-    maxHeight: 200,
-  },
-  popoverBody: {
-    width: 320,
-  },
-  searchSection: {
-    borderBottomWidth: 1,
-  },
-  toolbar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
+  actions: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' },
+  actionsCompact: { justifyContent: 'space-between', width: '100%' },
+  bulkContent: { gap: 8 },
+  bulkRow: { width: '100%' },
+  chip: { alignItems: 'center', flexDirection: 'row' },
+  chipRemove: { alignItems: 'center', justifyContent: 'center', minHeight: 24, minWidth: 24 },
+  columnsBody: { maxHeight: 300, padding: 8, width: 260 },
+  columnsCheckbox: { marginBottom: 4 },
+  columnsHeading: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  columnsList: { maxHeight: 220 },
+  moreBody: { gap: 8, padding: 8 },
+  popoverBody: { width: 320 },
+  popoverBodyCompact: { width: 260 },
+  searchInput: { flexGrow: 1, minWidth: 180, maxWidth: 360 },
+  searchInputCompact: { maxWidth: undefined, width: '100%' },
+  toolbar: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' },
+  toolbarCompact: { alignItems: 'stretch', flexDirection: 'column' },
 });

@@ -1,11 +1,11 @@
 /**
  * The color-scheme DOM marker — ONE code path for both halves of it:
  *
- *   <html data-platform-blocks-color-scheme="light|dark" class="platform-blocks-dark">
+ *   <html data-plocks-color-scheme="light|dark" class="plocks-dark">
  *
  * - The attribute always carries the resolved scheme. `UniversalCSS` and app
  *   CSS key off it.
- * - The `.platform-blocks-light` / `.platform-blocks-dark` class is stamped
+ * - The `.plocks-light` / `.plocks-dark` class is stamped
  *   only for an EXPLICIT choice (mode `light` / `dark`). In `auto` mode both
  *   classes are removed so the `prefers-color-scheme` block emitted by
  *   `createThemeColorVariablesCss` stays in control.
@@ -20,26 +20,26 @@ export type ColorSchemeMode = 'light' | 'dark' | 'auto';
 export interface ColorSchemeMarkerOptions {
   /** Element that carries the marker. Default: the document element (`html`). */
   selector?: string;
-  /** Attribute holding the resolved scheme. Default `data-platform-blocks-color-scheme`. */
+  /** Attribute holding the resolved scheme. Default `data-plocks-color-scheme`. */
   attribute?: string;
-  /** Class for an explicit light choice. Default `platform-blocks-light`. */
+  /** Class for an explicit light choice. Default `plocks-light`. */
   lightClass?: string;
-  /** Class for an explicit dark choice. Default `platform-blocks-dark`. */
+  /** Class for an explicit dark choice. Default `plocks-dark`. */
   darkClass?: string;
   /**
    * Optional attribute recording an explicit mode (`ThemeModeConfig.domConfig.attribute`,
-   * e.g. `data-platform-blocks-manual`); removed in `auto` mode.
+   * e.g. `data-plocks-manual`); removed in `auto` mode.
    */
   modeAttribute?: string;
   /** Also set `style.colorScheme` (native form controls, scrollbars). Default `true`. */
   setColorSchemeStyle?: boolean;
 }
 
-export const COLOR_SCHEME_ATTRIBUTE = 'data-platform-blocks-color-scheme';
-export const LIGHT_SCHEME_CLASS = 'platform-blocks-light';
-export const DARK_SCHEME_CLASS = 'platform-blocks-dark';
-/** localStorage key `ThemeModeProvider` persists the mode under. */
-export const COLOR_SCHEME_STORAGE_KEY = 'platform-blocks-theme-mode';
+export const COLOR_SCHEME_ATTRIBUTE = 'data-plocks-color-scheme';
+export const LIGHT_SCHEME_CLASS = 'plocks-light';
+export const DARK_SCHEME_CLASS = 'plocks-dark';
+/** localStorage key the mode is persisted under (`PlocksProvider`'s `themeModeConfig`). */
+export const COLOR_SCHEME_STORAGE_KEY = 'plocks-theme-mode';
 
 function resolveTarget(selector: string | undefined): HTMLElement | null {
   if (typeof document === 'undefined') return null;
@@ -80,7 +80,7 @@ export function applyColorSchemeMarker(
 }
 
 export interface ColorSchemeScriptOptions extends Omit<ColorSchemeMarkerOptions, 'setColorSchemeStyle'> {
-  /** localStorage key holding `'light' | 'dark' | 'auto'`. Default `platform-blocks-theme-mode` (what `ThemeModeProvider` writes). */
+  /** localStorage key holding `'light' | 'dark' | 'auto'`. Default `plocks-theme-mode` (what `themeModeConfig` writes). */
   storageKey?: string;
   /** Mode when nothing is stored. Default `'auto'` (follow `prefers-color-scheme`). */
   defaultMode?: ColorSchemeMode;
@@ -91,7 +91,7 @@ export interface ColorSchemeScriptOptions extends Omit<ColorSchemeMarkerOptions,
 /**
  * An inline script (as a string) that marks the document with the reader's
  * color scheme BEFORE first paint — read from `localStorage` (the mode
- * `ThemeModeProvider` persists), falling back to `defaultMode` and, for
+ * `themeModeConfig` persists), falling back to `defaultMode` and, for
  * `'auto'`, to `prefers-color-scheme`. It sets exactly what the providers set
  * after hydration (see `applyColorSchemeMarker`), so they pick up where it
  * leaves off instead of fighting it.

@@ -9,7 +9,6 @@ export * from './providers';
 export * from './responsive';
 export * from './i18n';
 export * from './accessibility';
-export * from './sound';
 
 // Utils exports (avoiding conflicts)
 export {
@@ -17,9 +16,7 @@ export {
   extractStyleProps,
   useStyleProps,
   getLayoutStyles,
-  extractLayoutProps,
-  UniversalProps,
-  ResponsiveProps
+  extractLayoutProps
 } from './utils';
 
 // Unified styling system
@@ -63,6 +60,5 @@ export {
   rem,
   px,
   getSize,
-  getShadow,
   getColor
 } from './utils';

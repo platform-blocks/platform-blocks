@@ -25,8 +25,6 @@ export type DialogVariant = 'modal' | 'bottomsheet' | 'fullscreen';
 export interface DialogProps extends BaseProps {
   /** Whether the dialog is shown. */
   opened?: boolean;
-  /** @deprecated Use `opened`. */
-  visible?: boolean;
   /** Presentation style of the dialog. @default 'modal' */
   variant?: DialogVariant;
   /** Title shown in the header; also the dialog's accessible name. */

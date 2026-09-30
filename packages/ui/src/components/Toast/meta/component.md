@@ -33,4 +33,4 @@ examples:
   - text-customization
 ---
 
-The Toast component provides non-blocking notification messages that appear temporarily to give feedback about an operation or event. Title and body each accept full `<Text>` props via `titleProps` / `bodyProps` — also forwarded by every `useToast()` shortcut.
+Toast displays a temporary notification about an action or event.

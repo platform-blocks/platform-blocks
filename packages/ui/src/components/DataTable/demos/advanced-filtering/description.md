@@ -5,7 +5,6 @@ order: 20
 tags: [datatable, filters]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

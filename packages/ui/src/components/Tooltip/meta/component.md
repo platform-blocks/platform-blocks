@@ -1,7 +1,7 @@
 ---
 title: Tooltip
 description: A contextual information overlay that appears on hover, focus, or press to provide additional details without cluttering the interface.
-source: "@platform-blocks/ui"
+source: "@plocks/ui"
 status: "stable"
 category: overlay
 playground: true
@@ -18,7 +18,7 @@ variants:
   - name: "debug"
     description: "Debug mode for development and positioning testing"
 dependencies:
-  - "@platform-blocks/core"
+  - "@plocks/core"
 related:
   - "Popover"
   - "Menu"

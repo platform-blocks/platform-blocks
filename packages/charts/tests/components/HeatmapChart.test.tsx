@@ -142,8 +142,8 @@ describe('HeatmapChart shared color scales', () => {
     expect(countFill(r, high)).toBeGreaterThan(0);
   });
 
-  it('keeps legacy configs on their own path', () => {
-    const r = renderScale({ colorScale: { type: 'quantize', colors: ['#010101', '#020202'] } });
+  it('splits the data extent into equal threshold bands', () => {
+    const r = renderScale({ colorScale: { type: 'threshold', colors: ['#010101', '#020202'] } });
     expect(countFill(r, '#010101')).toBeGreaterThan(0);
     expect(countFill(r, '#020202')).toBeGreaterThan(0);
   });

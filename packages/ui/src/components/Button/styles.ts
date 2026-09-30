@@ -4,7 +4,7 @@ import { isNative, isWeb, webStyle } from '../../core/platform';
 import { resolveAccentColor } from '../../core/theme/resolveColors';
 import type { SizeValue } from '../../core/theme/sizes';
 import { getControlSize } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import { CORE_COLORS, resolveVariantRoles, type VariantRole, type VariantRoles } from '../../core/theme/variantRoles';
 import type { ButtonVariant } from './types';
 
@@ -29,7 +29,7 @@ export const getCanonicalVariant = (variant: ButtonVariant | undefined): Variant
   variant ? CANONICAL_VARIANTS[variant] : undefined;
 
 export interface ButtonStyleParams {
-  theme: PlatformBlocksTheme;
+  theme: PlocksTheme;
   variant: ButtonVariant;
   size: SizeValue;
   disabled: boolean;
@@ -140,14 +140,14 @@ export const getButtonStyles = ({
  * as tokens (the shared resolver does its own palette lookup); `palette.shade`
  * and raw CSS colors are pre-resolved to a concrete value.
  */
-export const resolveRoleColor = (theme: PlatformBlocksTheme, token?: string): string => {
+export const resolveRoleColor = (theme: PlocksTheme, token?: string): string => {
   if (!token) return 'primary';
   if ((CORE_COLORS as readonly string[]).includes(token)) return token;
   return resolveAccentColor(theme, token) ?? token;
 };
 
 export interface ButtonTextColorParams {
-  theme: PlatformBlocksTheme;
+  theme: PlocksTheme;
   variant: ButtonVariant;
   roles: VariantRoles | null;
   /** Explicit `textColor` prop, if any — always wins. */
@@ -191,7 +191,7 @@ export const resolveButtonTextColor = ({
  * variants (default, secondary, ghost, link, none), which keep their bespoke styling.
  */
 export const resolveButtonRoles = (
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   canonicalVariant: VariantRole | undefined,
   roleColor: string,
   gradientStops: [string, string],
@@ -214,15 +214,15 @@ export const getButtonPressedStyle = (variant: ButtonVariant): StyleProp<ViewSty
 ];
 
 /** Accent text color used by ghost/link when the consumer requests a tint. */
-export const resolveAccentTextColor = (theme: PlatformBlocksTheme, roleColor: string): string =>
+export const resolveAccentTextColor = (theme: PlocksTheme, roleColor: string): string =>
   resolveVariantRoles(theme, { variant: 'outline', color: roleColor }).text;
 
 /** Gap between the label and any start/end section. */
-export const getButtonIconSpacing = (theme: PlatformBlocksTheme, size: SizeValue): number =>
+export const getButtonIconSpacing = (theme: PlocksTheme, size: SizeValue): number =>
   getControlSize(theme, size).gap;
 
 /** Base label style, before `labelProps` is merged over it. */
-export const getButtonLabelStyle = (theme: PlatformBlocksTheme, size: SizeValue, variant: ButtonVariant): TextStyle => ({
+export const getButtonLabelStyle = (theme: PlocksTheme, size: SizeValue, variant: ButtonVariant): TextStyle => ({
   lineHeight: Math.round(getControlSize(theme, size).fontSize * 1.3),
   textAlignVertical: 'center',
   ...(variant === 'link' ? { textDecorationLine: 'underline' } : null),

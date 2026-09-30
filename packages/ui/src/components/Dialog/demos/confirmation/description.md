@@ -5,7 +5,6 @@ order: 30
 tags: [dialog, confirmation, destructive]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

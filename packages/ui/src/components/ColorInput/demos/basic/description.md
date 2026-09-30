@@ -1,5 +1,5 @@
 ---
-title: Basic Usage
+title: Basics
 description: Color field with a hex input, live preview and preset swatches.
 ---
 

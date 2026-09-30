@@ -28,7 +28,7 @@ interface SafeAreaBoundaryProps {
 
 /**
  * Mounts a SafeAreaProvider unless one is already above: Expo Router mounts
- * its own at the root, and a nested PlatformBlocksProvider sits under the outer
+ * its own at the root, and a nested PlocksProvider sits under the outer
  * one's. React Navigation's navigators, mounted below, reuse ours. Dialog, the
  * dropdown sheets, AppShell and useDeviceInfo read their insets from it — with
  * no provider they all see zero and draw under the notch and the home

@@ -1,4 +1,4 @@
-import { Block, Slider, RangeSlider, Text } from '@platform-blocks/ui';
+import { Block, Slider, RangeSlider, Text } from '@plocks/ui';
 
 export function Demo() {
   return (

@@ -14,7 +14,7 @@ import { webProps } from '../../core/platform';
 import { resolveAccentColor, resolveColorProp } from '../../core/theme/resolveColors';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveFontSize, resolveRadius, resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import { fastHash } from '../../core/utils/hash';
 import { isDev, warnOnce } from '../../core/utils/logger';
 import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
@@ -24,6 +24,7 @@ import { Flex } from '../Flex';
 import { Sup, Text } from '../Text';
 
 import type { TabItem, TabsProps } from './types';
+import { useElementSize } from '../../hooks/useElementSize';
 
 type TabsVariant = NonNullable<TabsProps['variant']>;
 type TabsOrientation = NonNullable<TabsProps['orientation']>;
@@ -37,7 +38,7 @@ const TAB_MIN_HEIGHT = 40;
  * names stay unresolved on purpose — the tint comes from `color`, so a bare name
  * here is more likely a mistake than a request for a particular shade.
  */
-const resolveThemeColor = (theme: PlatformBlocksTheme, token?: string): string | undefined =>
+const resolveThemeColor = (theme: PlocksTheme, token?: string): string | undefined =>
   resolveColorProp(theme, token, { scopes: ['text'], shades: [] });
 
 /**
@@ -49,7 +50,7 @@ const resolveThemeColor = (theme: PlatformBlocksTheme, token?: string): string |
  */
 const getTabStyles = createThemedStyles(
   (
-    theme: PlatformBlocksTheme,
+    theme: PlocksTheme,
     variant: TabsVariant,
     size: SizeValue,
     color: string,
@@ -240,11 +241,9 @@ const getTabStyles = createThemedStyles(
 export const Tabs = factory<{ props: TabsProps; ref: View }>((props, ref) => {
   const {
     items,
-    value: valueProp,
+    value,
     defaultValue,
     onChange,
-    activeTab: activeTabProp,
-    onTabChange,
     activationMode = 'automatic',
     variant = 'line',
     size = 'sm',
@@ -278,22 +277,13 @@ export const Tabs = factory<{ props: TabsProps; ref: View }>((props, ref) => {
     ...rest
   } = props;
 
-  if (activeTabProp !== undefined) {
-    warnOnce('Tabs.activeTab', '[platform-blocks] Tabs: `activeTab` is deprecated; use `value`.');
-  }
-  if (onTabChange !== undefined) {
-    warnOnce('Tabs.onTabChange', '[platform-blocks] Tabs: `onTabChange` is deprecated; use `onChange`.');
-  }
-  const controlledValue = valueProp !== undefined ? valueProp : activeTabProp;
-  const handleChange = onChange ?? onTabChange;
-
   const { styleProps } = extractStyleProps(rest);
   const spacingStyles = useStyleProps(styleProps);
 
   const theme = useTheme();
   const resolvedRadius = radius !== undefined ? resolveRadius(theme, radius) : undefined;
   const isVertical = orientation === 'vertical';
-  const baseId = useA11yId(undefined, 'pb-tabs');
+  const baseId = useA11yId(undefined, 'plocks-tabs');
   const panelId = `${baseId}-panel`;
   const tabId = (index: number) => `${baseId}-tab-${index}`;
 
@@ -303,23 +293,23 @@ export const Tabs = factory<{ props: TabsProps; ref: View }>((props, ref) => {
   const persistStoreRef = useRef<Map<string, string> | undefined>(undefined);
   if (!persistStoreRef.current) {
     const globalWithStore = globalThis as typeof globalThis & {
-      __PLATFORM_BLOCKS_TABS_PERSIST__?: Map<string, string>;
+      __PLOCKS_TABS_PERSIST__?: Map<string, string>;
     };
-    if (!globalWithStore.__PLATFORM_BLOCKS_TABS_PERSIST__) {
-      globalWithStore.__PLATFORM_BLOCKS_TABS_PERSIST__ = new Map<string, string>();
+    if (!globalWithStore.__PLOCKS_TABS_PERSIST__) {
+      globalWithStore.__PLOCKS_TABS_PERSIST__ = new Map<string, string>();
     }
-    persistStoreRef.current = globalWithStore.__PLATFORM_BLOCKS_TABS_PERSIST__;
+    persistStoreRef.current = globalWithStore.__PLOCKS_TABS_PERSIST__;
   }
   // Auto key only when uncontrolled + autoPersist
   const autoKeyRef = useRef<string | null>(null);
-  if (autoKeyRef.current === null && !persistKey && autoPersist && controlledValue === undefined) {
+  if (autoKeyRef.current === null && !persistKey && autoPersist && value === undefined) {
     const sig = items.map((i) => i.key).join('|') + '|' + variant + '|' + orientation + '|' + location;
     autoKeyRef.current = 'tabs-' + fastHash(sig);
   }
   const effectivePersistKey = persistKey || autoKeyRef.current || undefined;
 
   const [storedValue, setValue, isControlled] = useControllableState<string>({
-    value: controlledValue,
+    value,
     // Restores the persisted tab on first mount, else `defaultValue`, else the first item.
     defaultValue: () => {
       if (effectivePersistKey && persistStoreRef.current?.has(effectivePersistKey)) {
@@ -328,7 +318,7 @@ export const Tabs = factory<{ props: TabsProps; ref: View }>((props, ref) => {
       return defaultValue ?? items[0]?.key ?? '';
     },
     finalValue: '',
-    onChange: handleChange,
+    onChange,
   });
 
   // A value whose tab no longer exists renders as the first tab (the effect
@@ -404,7 +394,7 @@ export const Tabs = factory<{ props: TabsProps; ref: View }>((props, ref) => {
 
   // Tab layout measurements
   const [tabLayouts, setTabLayouts] = useState<Record<string, LayoutRectangle>>({});
-  const [containerSize, setContainerSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const containerSize = useElementSize();
   const [contentVersions, setContentVersions] = useState<Record<string, number>>({});
   const [layoutVersion, setLayoutVersion] = useState(0);
   const labelCacheRef = useRef<Record<string, { label: TabItem['label']; subLabel?: TabItem['subLabel'] }>>({});
@@ -416,11 +406,6 @@ export const Tabs = factory<{ props: TabsProps; ref: View }>((props, ref) => {
       ...prev,
       [tabKey]: { x, y, width, height },
     }));
-  }, []);
-
-  const handleContainerLayout = useCallback((event: LayoutChangeEvent) => {
-    const { width, height } = event.nativeEvent.layout;
-    setContainerSize((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
   }, []);
 
   // Detect runtime label/subLabel or ordering changes and invalidate layouts when needed
@@ -662,7 +647,7 @@ export const Tabs = factory<{ props: TabsProps; ref: View }>((props, ref) => {
       // An icon-only label: nothing to derive the tab's accessible name from.
       warnOnce(
         `Tabs.label.${item.key}`,
-        `[platform-blocks] Tabs: tab "${item.key}" has no text label; pass \`accessibilityLabel\` so screen readers can name it.`
+        `[plocks] Tabs: tab "${item.key}" has no text label; pass \`accessibilityLabel\` so screen readers can name it.`
       );
     }
 
@@ -720,23 +705,30 @@ export const Tabs = factory<{ props: TabsProps; ref: View }>((props, ref) => {
           </View>
         ) : null}
         {navigationOnly ? (
-          <Text
-            {...mergeSlotProps(
-              {
-                fw: isActive ? '600' : '500',
-                c: isActive ? activeTextColor : undefined,
-                style: [
-                  styles.tabText,
-                  isActive && styles.activeTabText,
-                  textStyle,
-                  activeTextColor && isActive ? { color: activeTextColor } : null,
-                ],
-              },
-              labelProps
+          <Flex gap={6} align="center" direction="row">
+            <Text
+              {...mergeSlotProps(
+                {
+                  fw: isActive ? '600' : '500',
+                  c: isActive ? activeTextColor : undefined,
+                  style: [
+                    styles.tabText,
+                    isActive && styles.activeTabText,
+                    textStyle,
+                    activeTextColor && isActive ? { color: activeTextColor } : null,
+                  ],
+                },
+                labelProps
+              )}
+            >
+              {item.label}
+            </Text>
+            {!item.subLabel ? null : typeof item.subLabel === 'string' || typeof item.subLabel === 'number' ? (
+              <Sup c={isActive ? activeTextColor : undefined}>{item.subLabel}</Sup>
+            ) : (
+              item.subLabel
             )}
-          >
-            {item.label}
-          </Text>
+          </Flex>
         ) : (
           <Flex gap={6} align="center" direction={isVertical ? 'column' : 'row'}>
             <Text
@@ -823,7 +815,7 @@ export const Tabs = factory<{ props: TabsProps; ref: View }>((props, ref) => {
   const body = navigationOnly ? children : panel;
 
   return (
-    <View ref={ref} testID={testID} style={[styles.container, spacingStyles, style]} onLayout={handleContainerLayout}>
+    <View ref={ref} testID={testID} style={[styles.container, spacingStyles, style]} onLayout={containerSize.onLayout}>
       {isEnd ? body : null}
       {header}
       {isEnd ? null : body}

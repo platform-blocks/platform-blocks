@@ -1,4 +1,4 @@
-import { Avatar } from '@platform-blocks/ui';
+import { Avatar } from '@plocks/ui';
 
 export function Demo() {
   return (

@@ -3,7 +3,6 @@ import { FlatList } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 import { Wheel } from '../Wheel';
-import { resetWarnOnce } from '../../../core/utils/logger';
 
 const mockSelection = jest.fn();
 
@@ -136,18 +135,5 @@ describe('Wheel', () => {
     expect(wheel.props.role).toBe('slider');
     expect(wheel.props['aria-valuenow']).toBe(1);
     expect(wheel.props['aria-valuetext']).toBe('15');
-  });
-
-  it('still calls the deprecated onValueChange, with a dev warning', () => {
-    resetWarnOnce();
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const onValueChange = jest.fn();
-    const { getByLabelText } = render(
-      <Wheel label="Minute" items={items} defaultValue={0} onValueChange={onValueChange} />
-    );
-    fireEvent(getByLabelText('Minute'), 'accessibilityAction', { nativeEvent: { actionName: 'increment' } });
-    expect(onValueChange).toHaveBeenCalledWith(15);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('`onValueChange` is deprecated'));
-    warn.mockRestore();
   });
 });

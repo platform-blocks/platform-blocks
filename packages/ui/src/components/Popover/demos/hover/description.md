@@ -4,7 +4,6 @@ category: usage
 order: 15
 tags: [popover, hover, trigger]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

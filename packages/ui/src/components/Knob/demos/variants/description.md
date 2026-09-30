@@ -5,7 +5,6 @@ order: 15
 tags: [variant, style, preset]
 highlightLines: []
 status: experimental
-since: 1.0.0
 hidden: false
 ---
 

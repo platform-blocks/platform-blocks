@@ -1,7 +1,7 @@
 ---
 title: Toggle
 description: "A toggle button group component for selecting between multiple options with support for single and multi-selection modes."
-source: "@platform-blocks/ui"
+source: "@plocks/ui"
 status: "stable"  
 category: input
 playground: true
@@ -20,7 +20,7 @@ variants:
   - name: "standalone"
     description: "Individual toggle buttons outside of a group"
 dependencies:
-  - "@platform-blocks/core"
+  - "@plocks/core"
 related:
   - "Radio"
   - "Checkbox"

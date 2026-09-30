@@ -1,0 +1,34 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://plocks.dev/sitemap.xml
+
+# LLM-friendly documentation
+# See https://llmstxt.org for more info
+# /llms.txt indexes per-page Markdown under /llms/; /llms-small.txt is every API in one
+# compact file and /llms-full.txt everything in full. Docs pages also serve <route>.md.
+Allow: /llms.txt
+Allow: /llms-small.txt
+Allow: /llms-full.txt
+Allow: /llms/
+
+# Specific rules for search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Block access to development/internal files
+Disallow: /*.json$
+Disallow: /node_modules/
+Disallow: /.git/
+Disallow: /src/
+Disallow: /scripts/
+
+# Allow access to important assets
+Allow: /favicon.ico
+Allow: /apple-touch-icon.png
+Allow: /manifest.json
+Allow: /static/

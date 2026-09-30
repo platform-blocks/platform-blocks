@@ -1,4 +1,5 @@
-import { Blockquote } from '@platform-blocks/ui';
+import { Blockquote } from '@plocks/ui';
+import { BrandIcon } from '@plocks/brands';
 
 export function Demo() {
   return (
@@ -13,12 +14,12 @@ export function Demo() {
       rating={{ value: 5, max: 5, showValue: true }}
       source={{
         name: 'Google Business',
-        brand: 'google',
+        icon: <BrandIcon brand="google" size="sm" />,
       }}
       date="2024-06-12"
       verified
     >
-      Platform Blocks helped us ship an entirely new settings experience in a single sprint. The components feel native on every platform.
+      plocks helped us ship an entirely new settings experience in a single sprint. The components feel native on every platform.
     </Blockquote>
   );
 }

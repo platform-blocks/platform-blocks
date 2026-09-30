@@ -1,10 +1,10 @@
 import React from 'react';
 import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { PinInput } from '../PinInput';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('PinInput (react-native-web DOM)', () => {
   it('is a labelled group of named cells', () => {
@@ -20,7 +20,7 @@ describe('PinInput (react-native-web DOM)', () => {
       'Verification code, digit 4 of 4',
     ]);
     // The library ring replaces the raw browser outline.
-    expect(cells[0].getAttribute('data-pb-input')).toBe('true');
+    expect(cells[0].getAttribute('data-plocks-input')).toBe('true');
   });
 
   it('links the error to every cell and marks them invalid', () => {

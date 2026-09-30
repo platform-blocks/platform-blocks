@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavTree, type NavTreeItem } from '@platform-blocks/ui';
+import { NavTree, type NavTreeItem } from '@plocks/ui';
 
 const ROUTES: NavTreeItem[] = [
   { label: 'Button', href: '/components/Button', group: 'Input' },

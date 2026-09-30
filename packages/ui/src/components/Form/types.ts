@@ -152,9 +152,8 @@ export interface FormFieldProps extends BaseProps<ViewStyle> {
   /**
    * Where the label goes. `'start'` / `'end'` put it beside the field (logical:
    * they follow the reading direction).
-   * `'left'` / `'right'` are deprecated aliases of `'start'` / `'end'`.
    */
-  labelPosition?: 'top' | 'start' | 'end' | 'left' | 'right';
+  labelPosition?: 'top' | 'start' | 'end';
 
   /** Children components */
   children: React.ReactNode;

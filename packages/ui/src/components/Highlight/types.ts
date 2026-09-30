@@ -1,12 +1,12 @@
 import type { StyleProp, TextStyle } from 'react-native';
 
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import type { TextProps } from '../Text/Text';
 
 export type HighlightValue = string | number;
 
 /** Styles for the highlighted fragments, or a function of the theme returning them. */
-export type HighlightStyles = StyleProp<TextStyle> | ((theme: PlatformBlocksTheme) => StyleProp<TextStyle>);
+export type HighlightStyles = StyleProp<TextStyle> | ((theme: PlocksTheme) => StyleProp<TextStyle>);
 
 /**
  * Props for `Highlight`. Everything `Text` accepts (typography, `color`,

@@ -1,11 +1,10 @@
 ---
-title: Project Milestones
+title: Basics
 category: basics
 order: 10
 tags: [timeline]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

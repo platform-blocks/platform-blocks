@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { DataTable } from '@platform-blocks/ui';
-import type { DataTableColumn, DataTableFilter } from '@platform-blocks/ui';
+import { DataTable } from '@plocks/ui';
+import type { DataTableColumn, DataTableFilter } from '@plocks/ui';
 
 import { departmentFilterOptions, people, statusFilterOptions, type Person } from '../data';
 

@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react-native';
 import { SafeAreaInsetsContext, SafeAreaProvider } from 'react-native-safe-area-context';
 import type { EdgeInsets, Metrics } from 'react-native-safe-area-context';
 
-import { PlatformBlocksProvider } from '../../theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../theme/PlocksProvider';
 import { Dialog } from '../../../components/Dialog';
 
 // What the native module reports as the window's insets at launch; jest has no
@@ -41,21 +41,21 @@ function countSafeAreaProviders(node: ReturnType<ReturnType<typeof render>['toJS
   return own + (node.children ?? []).reduce((sum, child) => sum + countSafeAreaProviders(child as never), 0);
 }
 
-describe('PlatformBlocksProvider safe area', () => {
+describe('PlocksProvider safe area', () => {
   afterEach(() => {
     mockWindowMetrics = null;
   });
 
   it('provides the window insets on the first render, without an app-level SafeAreaProvider', () => {
     mockWindowMetrics = NOTCHED_PHONE;
-    const { seen } = renderProbe((probe) => <PlatformBlocksProvider>{probe}</PlatformBlocksProvider>);
+    const { seen } = renderProbe((probe) => <PlocksProvider>{probe}</PlocksProvider>);
 
     expect(screen.getByText('probe')).toBeTruthy();
     expect(seen[0]).toEqual(NOTCHED_PHONE.insets);
   });
 
   it('starts from zero insets when the native module reports none', () => {
-    const { seen } = renderProbe((probe) => <PlatformBlocksProvider>{probe}</PlatformBlocksProvider>);
+    const { seen } = renderProbe((probe) => <PlocksProvider>{probe}</PlocksProvider>);
 
     expect(screen.getByText('probe')).toBeTruthy();
     expect(seen[0]).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
@@ -66,7 +66,7 @@ describe('PlatformBlocksProvider safe area', () => {
     const routerInsets = { top: 20, right: 0, bottom: 0, left: 0 };
     const { seen, toJSON } = renderProbe((probe) => (
       <SafeAreaProvider initialMetrics={{ frame: NOTCHED_PHONE.frame, insets: routerInsets }}>
-        <PlatformBlocksProvider>{probe}</PlatformBlocksProvider>
+        <PlocksProvider>{probe}</PlocksProvider>
       </SafeAreaProvider>
     ));
 
@@ -74,11 +74,11 @@ describe('PlatformBlocksProvider safe area', () => {
     expect(countSafeAreaProviders(toJSON())).toBe(1);
   });
 
-  it('mounts one provider for nested PlatformBlocksProviders', () => {
+  it('mounts one provider for nested PlocksProviders', () => {
     const { toJSON } = renderProbe((probe) => (
-      <PlatformBlocksProvider>
-        <PlatformBlocksProvider>{probe}</PlatformBlocksProvider>
-      </PlatformBlocksProvider>
+      <PlocksProvider>
+        <PlocksProvider>{probe}</PlocksProvider>
+      </PlocksProvider>
     ));
 
     expect(countSafeAreaProviders(toJSON())).toBe(1);
@@ -87,7 +87,7 @@ describe('PlatformBlocksProvider safe area', () => {
   it('mounts none with withSafeAreaProvider={false}', () => {
     mockWindowMetrics = NOTCHED_PHONE;
     const { seen, toJSON } = renderProbe((probe) => (
-      <PlatformBlocksProvider withSafeAreaProvider={false}>{probe}</PlatformBlocksProvider>
+      <PlocksProvider withSafeAreaProvider={false}>{probe}</PlocksProvider>
     ));
 
     expect(seen[0]).toBeNull();
@@ -97,11 +97,11 @@ describe('PlatformBlocksProvider safe area', () => {
   it('keeps a fullscreen Dialog clear of the notch and the home indicator', () => {
     mockWindowMetrics = NOTCHED_PHONE;
     render(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <Dialog opened variant="fullscreen" onClose={() => {}} testID="dialog">
           <Text>content</Text>
         </Dialog>
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
 
     const style = StyleSheet.flatten(screen.getByTestId('dialog').props.style);

@@ -11,7 +11,7 @@ import { withAlpha } from '../../core/theme/colorUtils';
 import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { onColor, resolveFontSize, resolveRadius, resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 import { useScrollSpy } from '../../hooks/useScrollSpy';
 import { Text } from '../Text';
@@ -24,7 +24,7 @@ const DEFAULT_CONTAINER = 'main, [role="main"], .main-content, #main-content, ar
 /** Colors + container style for one (theme, variant, color, autoContrast, size, radius) combination. */
 const getTocStyles = createThemedStyles(
   (
-    theme: PlatformBlocksTheme,
+    theme: PlocksTheme,
     variant: TocVariant,
     color: string | undefined,
     autoContrast: boolean,

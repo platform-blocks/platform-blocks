@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Slider } from '@platform-blocks/ui';
+import { Block, Slider } from '@plocks/ui';
 
 export function Demo() {
   const [value, setValue] = useState(25);

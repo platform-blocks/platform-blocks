@@ -8,7 +8,7 @@ import { DEFAULT_THEME } from '../../core/theme/defaultTheme';
 import { resolveColorProp, resolveTextColor } from '../../core/theme/resolveColors';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { onColor } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import { Text } from '../Text';
 import type { TextProps } from '../Text/Text';
 import type { HighlightProps, HighlightValue } from './types';
@@ -85,7 +85,7 @@ const splitSegments = (text: string, matcher: Matcher, caseSensitive: boolean): 
  * syntax (`'teal.3'`), a background role (`'selected'`) or a CSS color is used
  * as given.
  */
-const resolveMarkBackground = (theme: PlatformBlocksTheme, highlightColor: string | undefined): string => {
+const resolveMarkBackground = (theme: PlocksTheme, highlightColor: string | undefined): string => {
   if (highlightColor) {
     return (
       resolveColorProp(theme, highlightColor, { scopes: ['backgrounds'], shades: [PALETTE_MARK_SHADE, 0] }) ??
@@ -96,7 +96,7 @@ const resolveMarkBackground = (theme: PlatformBlocksTheme, highlightColor: strin
 };
 
 /** Keeps the surrounding text color on the marker when it is readable there, else picks one that is. */
-const readableTextOn = (theme: PlatformBlocksTheme, background: string, preferred: string): string => {
+const readableTextOn = (theme: PlocksTheme, background: string, preferred: string): string => {
   const backgroundHex = normalizeHex(background);
   if (backgroundHex && normalizeHex(preferred) && contrastRatio(preferred, backgroundHex) >= MIN_TEXT_CONTRAST) {
     return preferred;

@@ -24,7 +24,7 @@ props:
     default: Hide
   - name: defaultExpanded
     type: boolean
-    description: Whether the spoiler starts expanded when uncontrolled (replaces the deprecated `initiallyOpen`)
+    description: Whether the spoiler starts expanded when uncontrolled
     default: false
   - name: transitionDuration
     type: number
@@ -36,10 +36,10 @@ props:
     default: sm
   - name: expanded
     type: boolean
-    description: Controlled expanded state (replaces the deprecated `opened`). Pair with `onExpandedChange`.
+    description: Controlled expanded state. Pair with `onExpandedChange`.
   - name: onExpandedChange
     type: (expanded: boolean) => void
-    description: Called with the requested expanded state whenever the control is pressed (replaces the deprecated `onToggle`)
+    description: Called with the requested expanded state whenever the control is pressed
   - name: disabled
     type: boolean
     description: Disables the show/hide control
@@ -66,10 +66,8 @@ examples:
   - sizes
   - newspaper
   - customControl
-  - initiallyOpen
+  - defaultExpanded
   - control-customization
 ---
 
-The toggle is a button with `aria-expanded` and `aria-controls` pointing at the clamped content.
-
-The Spoiler component automatically collapses content that exceeds a specified height, providing a show/hide toggle to reveal the full content.
+Spoiler collapses long content behind a show or hide control.

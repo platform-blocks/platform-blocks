@@ -4,7 +4,6 @@ category: behavior
 order: 50
 tags: [avatars, status]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

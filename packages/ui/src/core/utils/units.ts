@@ -56,60 +56,17 @@ export function getSize(
     }
 
     // Return as CSS custom property
-    return `var(--platform-blocks-${prefix}-${size}, ${size})`;
+    return `var(--plocks-${prefix}-${size}, ${size})`;
   }
 
   return size;
 }
 
 /**
- * Gets font size value
- *
- * @deprecated Returns a web-only CSS variable string that is inert on React Native and unused by the library; read `theme.fontSizes` instead. Will be removed in the next major.
- */
-export function getFontSize(size: string | undefined): string | undefined {
-  if (!size) {
-    return undefined;
-  }
-
-  return `var(--platform-blocks-font-size-${size})`;
-}
-
-/**
- * Gets radius value
- *
- * @deprecated Returns a web-only CSS variable string that is inert on React Native and unused by the library; read `theme.radii` instead. Will be removed in the next major.
- */
-export function getRadius(radius: string | number | undefined): string | undefined {
-  if (radius === undefined) {
-    return undefined;
-  }
-
-  if (typeof radius === 'number') {
-    return rem(radius);
-  }
-
-  return `var(--platform-blocks-radius-${radius})`;
-}
-
-/**
- * Gets shadow value
- *
- * @deprecated Returns a web-only CSS variable string that is inert on React Native and unused by the library; read `theme.shadows` instead. Will be removed in the next major.
- */
-export function getShadow(shadow: string | undefined): string | undefined {
-  if (!shadow) {
-    return undefined;
-  }
-
-  return `var(--platform-blocks-shadow-${shadow})`;
-}
-
-/**
  * Reference a theme color as a CSS variable — `getColor('primary', 6)` yields
- * `var(--platform-blocks-palette-primary-6)`, one of the variables `CSSVariables`
- * emits (palettes are published as `--platform-blocks-palette-<name>-<index>`;
- * the old `--platform-blocks-color-*` names are gone).
+ * `var(--plocks-palette-primary-6)`, one of the variables `CSSVariables`
+ * emits (palettes are published as `--plocks-palette-<name>-<index>`;
+ * the old `--plocks-color-*` names are gone).
  *
  * **Web only.** React Native has no `var()`, so the returned string is inert on
  * native. To resolve a color prop to a concrete value on every platform, use
@@ -126,8 +83,8 @@ export function getColor(color: string | undefined, shade?: number | string): st
   }
 
   if (shade !== undefined) {
-    return `var(--platform-blocks-palette-${color}-${shade})`;
+    return `var(--plocks-palette-${color}-${shade})`;
   }
 
-  return `var(--platform-blocks-palette-${color}-5)`; // Default to middle shade
+  return `var(--plocks-palette-${color}-5)`; // Default to middle shade
 }

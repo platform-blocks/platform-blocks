@@ -382,56 +382,11 @@ export function createSmoothPath(points: { x: number; y: number }[]): string {
 /**
  * Default color schemes
  */
-// Validated categorical palette (light surface). The slot order is the CVD-safety
-// mechanism — see colors.ts `paletteDefaultLight`. Keep in sync with that export.
-const FALLBACK_DEFAULT_SCHEME = [
-  '#2a78d6', // blue
-  '#eb6834', // orange
-  '#1baf7a', // aqua
-  '#eda100', // yellow
-  '#e87ba4', // magenta
-  '#008300', // green
-  '#4a3aa7', // violet
-  '#e34948', // red
-] as const;
-
 /**
- * @deprecated Charts read `useChartTheme().colors.accentPalette`; this global only
- * mirrors the root `ChartThemeProvider`'s palette for code written against it.
+ * The palette color for a slot, wrapping past the end. Charts pass the theme's
+ * `accentPalette`.
  */
-export const colorSchemes: { default: string[]; pastel: string[] } = {
-  default: [...FALLBACK_DEFAULT_SCHEME],
-  pastel: [
-    '#93c5fd', // blue-300
-    '#fca5a5', // red-300
-    '#6ee7b7', // green-300
-    '#fcd34d', // amber-300
-    '#c4b5fd', // violet-300
-    '#fdba74', // orange-300
-    '#67e8f9', // cyan-300
-    '#f9a8d4', // pink-300
-  ],
-};
-
-/**
- * Replace the default categorical palette while preserving reference identity for consumers.
- * @deprecated No chart reads this global any more. Set the palette with
- * `<ChartThemeProvider value={{ colors: { accentPalette } }}>` instead.
- */
-export function setDefaultColorScheme(palette?: string[]) {
-  const next = Array.isArray(palette) && palette.length ? palette : [...FALLBACK_DEFAULT_SCHEME];
-  colorSchemes.default = next.map(color => `${color}`);
-  return colorSchemes.default;
-}
-
-/**
- * The palette color for a slot, wrapping past the end. Pass the palette explicitly —
- * the theme's `accentPalette` — rather than relying on the deprecated global default.
- */
-export function getColorFromScheme(
-  index: number,
-  scheme: string[] = colorSchemes.default
-): string {
+export function getColorFromScheme(index: number, scheme: readonly string[]): string {
   return scheme[index % scheme.length];
 }
 

@@ -20,11 +20,11 @@ import { Text } from '../../../components/Text';
 import { Divider } from '../../../components/Divider';
 import { Link } from '../../../components/Link';
 import { getSwitchActiveColor } from '../../../components/Switch/styles';
-import { PlatformBlocksThemeProvider } from '../ThemeProvider';
+import { ThemeScope } from '../ThemeProvider';
 import { DEFAULT_THEME } from '../defaultTheme';
 
 const wrap = (ui: React.ReactElement) =>
-  render(<PlatformBlocksThemeProvider>{ui}</PlatformBlocksThemeProvider>);
+  render(<ThemeScope>{ui}</ThemeScope>);
 
 const colorOf = (el: any): string | undefined =>
   (StyleSheet.flatten(el.props.style) as any)?.color;
@@ -46,10 +46,6 @@ describe('Text: color and its `c` shorthand', () => {
     // spellings of the same token rendered as different colors.
     expect(colorOf(wrap(<Text c="error">x</Text>).getByText('x')))
       .toBe(DEFAULT_THEME.colors.error[6]);
-  });
-
-  it('resolves `dimmed` to the muted text token', () => {
-    expect(colorOf(wrap(<Text c="dimmed">x</Text>).getByText('x'))).toBe(DEFAULT_THEME.text.muted);
   });
 });
 

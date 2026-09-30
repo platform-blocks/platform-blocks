@@ -7,7 +7,7 @@ import { hexToRgb, withAlpha } from '../../core/theme/colorUtils';
 import { resolveLineColor } from '../../core/theme/resolveColors';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 import { resolveLinearGradient } from '../../utils/optionalDependencies';
 import { Text } from '../Text';
@@ -15,7 +15,7 @@ import type { DividerFactoryPayload } from './types';
 
 const { LinearGradient, hasLinearGradient } = resolveLinearGradient();
 
-const px = (theme: PlatformBlocksTheme, value: SizeValue): number => {
+const px = (theme: PlocksTheme, value: SizeValue): number => {
   const resolved = resolveSpacing(theme, value);
   return typeof resolved === 'number' ? resolved : 0;
 };

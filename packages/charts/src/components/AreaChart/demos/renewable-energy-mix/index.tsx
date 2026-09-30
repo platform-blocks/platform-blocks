@@ -1,4 +1,4 @@
-import { AreaChart } from '@platform-blocks/charts';
+import { AreaChart } from '@plocks/charts';
 
 import { MONTH_LABELS, RENEWABLE_SERIES } from './data';
 

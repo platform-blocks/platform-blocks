@@ -168,7 +168,7 @@ const DrawerNavigator = factory<{ props: DrawerNavigatorProps; ref: View }>((pro
   const reducedMotion = useReducedMotion();
   const screens = useScreens<DrawerOptions>(children);
 
-  const drawerId = `pb-drawer-${sanitizeId(useId())}`;
+  const drawerId = `plocks-drawer-${sanitizeId(useId())}`;
   const panelRef = useRef<View>(null);
   const menuButtonRef = useRef<View>(null);
 

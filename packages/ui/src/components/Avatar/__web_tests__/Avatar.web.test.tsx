@@ -1,11 +1,11 @@
 import React from 'react';
 import { render as rtlRender, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { Avatar } from '../Avatar';
 import { AvatarGroup } from '../AvatarGroup';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('Avatar (react-native-web DOM)', () => {
   it('is an image named by accessibilityLabel and forwards a ref', () => {

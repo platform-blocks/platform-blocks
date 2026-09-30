@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, View, type Role, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { a11yProps, roleFromAccessibilityRole } from '../../core/accessibility/a11yProps';
+import { a11yProps } from '../../core/accessibility/a11yProps';
 import { factory, withStatics } from '../../core/factory/factory';
 import type { ShadowValue } from '../../core/theme/shadow';
 import { useTheme } from '../../core/theme/ThemeProvider';
@@ -9,7 +9,6 @@ import { resolveRadius, resolveSpacing } from '../../core/theme/tokens';
 import type { SizeValue, SurfaceLevel } from '../../core/theme/types';
 import { resolveGradientStops } from '../../core/theme/variantRoles';
 import { extractLayoutProps, getLayoutStyles } from '../../core/utils/layout';
-import { warnOnce } from '../../core/utils/logger';
 import { extractShadowProps } from '../../core/utils/shadow';
 import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 import { resolveLinearGradient } from '../../utils/optionalDependencies';
@@ -17,7 +16,7 @@ import { SurfaceContext } from '../Surface/SurfaceContext';
 import { useSurfaceStyles } from '../Surface/useSurfaceStyles';
 import { CardContext, type CardContextValue } from './CardContext';
 import { CardSection, isCardSection } from './CardSection';
-import type { CardProps, CardSectionProps, PlatformBlocksTheme } from './types';
+import type { CardProps, CardSectionProps, PlocksTheme } from './types';
 
 const { LinearGradient: OptionalLinearGradient } = resolveLinearGradient();
 
@@ -52,7 +51,7 @@ interface CardVariantConfig {
   };
 }
 
-const resolvePadding = (theme: PlatformBlocksTheme, padding: SizeValue | undefined): number => {
+const resolvePadding = (theme: PlocksTheme, padding: SizeValue | undefined): number => {
   if (typeof padding === 'number') return padding;
   const resolved = resolveSpacing(theme, padding ?? 'md');
   return typeof resolved === 'number' ? resolved : 0;
@@ -65,7 +64,7 @@ const styles = StyleSheet.create({
   gradient: { zIndex: -1 },
 });
 
-const getVariantConfig = (theme: PlatformBlocksTheme, variant: CardVariant): CardVariantConfig => {
+const getVariantConfig = (theme: PlocksTheme, variant: CardVariant): CardVariantConfig => {
   switch (variant) {
     case 'outline':
       return {
@@ -148,10 +147,17 @@ const CardRoot = factory<{ props: CardProps; ref: View }>((allProps, ref) => {
     withBorder,
     borderColor,
     borderWidth,
+    flex,
+    shrink,
+    position,
+    top,
+    left,
+    zIndex,
+    borderTopWidth,
+    borderTopColor,
+    borderStyle,
     clip,
     role,
-    accessibilityRole,
-    accessibilityState,
     ...rest
   } = otherProps;
 
@@ -191,6 +197,16 @@ const CardRoot = factory<{ props: CardProps; ref: View }>((allProps, ref) => {
 
   const spacingStyles = useStyleProps(styleProps);
   const layoutStyles = getLayoutStyles(layoutProps);
+  const directStyle: ViewStyle = {};
+  if (flex !== undefined) directStyle.flex = flex;
+  if (shrink !== undefined) directStyle.flexShrink = shrink;
+  if (position !== undefined) directStyle.position = position;
+  if (top !== undefined) directStyle.top = top;
+  if (left !== undefined) directStyle.left = left;
+  if (zIndex !== undefined) directStyle.zIndex = zIndex;
+  if (borderTopWidth !== undefined) directStyle.borderTopWidth = borderTopWidth;
+  if (borderTopColor !== undefined) directStyle.borderTopColor = borderTopColor;
+  if (borderStyle !== undefined) directStyle.borderStyle = borderStyle;
 
   const combinedStyles = [
     styles.base,
@@ -201,6 +217,7 @@ const CardRoot = factory<{ props: CardProps; ref: View }>((allProps, ref) => {
     surface.shadowStyle,
     spacingStyles,
     layoutStyles,
+    ...(Object.keys(directStyle).length ? [directStyle] : []),
     style,
   ];
 
@@ -243,32 +260,13 @@ const CardRoot = factory<{ props: CardProps; ref: View }>((allProps, ref) => {
     />
   ) : null;
 
-  // Legacy a11y props: `accessibilityRole` → `role`, `accessibilityState` →
-  // aria-* (react-native-web ignores accessibilityState).
-  if (accessibilityState) {
-    warnOnce(
-      'Card.accessibilityState',
-      '[platform-blocks] Card `accessibilityState` is deprecated; pass aria-* props (aria-checked, aria-selected, …) instead.'
-    );
-  }
-  const resolvedRole = role ?? (roleFromAccessibilityRole(accessibilityRole) as Role | undefined);
-  const legacyA11y = accessibilityState
-    ? a11yProps({
-        checked: accessibilityState.checked,
-        selected: accessibilityState.selected,
-        expanded: accessibilityState.expanded,
-        busy: accessibilityState.busy,
-      })
-    : null;
-
   if (onPress) {
     return (
       <SurfaceContext.Provider value={surfaceContextValue}>
         <CardContext.Provider value={cardContextValue}>
           <Pressable
             ref={ref}
-            {...a11yProps({ role: resolvedRole ?? 'button', disabled: disabled || accessibilityState?.disabled })}
-            {...legacyA11y}
+            {...a11yProps({ role: role ?? 'button', disabled })}
             {...rest}
             onPress={disabled ? undefined : onPress}
             disabled={disabled}
@@ -291,8 +289,7 @@ const CardRoot = factory<{ props: CardProps; ref: View }>((allProps, ref) => {
       <CardContext.Provider value={cardContextValue}>
         <View
           ref={ref}
-          {...a11yProps({ role: resolvedRole, disabled: disabled || accessibilityState?.disabled })}
-          {...legacyA11y}
+          {...a11yProps({ role, disabled })}
           {...rest}
           style={combinedStyles}
         >

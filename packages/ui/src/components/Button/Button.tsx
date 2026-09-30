@@ -93,12 +93,9 @@ export const Button = factory<{ props: ButtonProps; ref: View }>((allProps, ref)
     color,
     textColor: textColorProp,
     icon,
-    startSection: startSectionProp,
-    endSection: endSectionProp,
-    startIcon,
-    endIcon,
+    startSection,
+    endSection,
     tooltip,
-    tooltipPosition = 'top',
     transitionDuration,
     radius,
     shadow,
@@ -110,11 +107,6 @@ export const Button = factory<{ props: ButtonProps; ref: View }>((allProps, ref)
     ...rest
   } = otherProps;
 
-  if (startIcon !== undefined) warnOnce('Button.startIcon', 'Button: `startIcon` is deprecated; use `startSection`.');
-  if (endIcon !== undefined) warnOnce('Button.endIcon', 'Button: `endIcon` is deprecated; use `endSection`.');
-  const startSection = startSectionProp ?? startIcon;
-  const endSection = endSectionProp ?? endIcon;
-
   const theme = useTheme();
   const reducedMotion = useReducedMotion();
   const effectiveVariant = variant === 'gradient' && !hasLinearGradient ? 'filled' : variant;
@@ -123,9 +115,8 @@ export const Button = factory<{ props: ButtonProps; ref: View }>((allProps, ref)
   // can hold that width instead of collapsing around the loader.
   const [measuredWidth, setMeasuredWidth] = useState<number | null>(null);
 
-  // `tooltip` accepts a string shorthand or a full Tooltip config; `tooltipPosition`
-  // is the legacy default and yields to an explicit `position` in the object form.
-  const tooltipProps = resolveTooltipProps(tooltip, { position: tooltipPosition });
+  // `tooltip` accepts a string shorthand or a full Tooltip config.
+  const tooltipProps = resolveTooltipProps(tooltip);
   const tooltipText = getTooltipText(tooltip);
 
   const handleLayout = useCallback(

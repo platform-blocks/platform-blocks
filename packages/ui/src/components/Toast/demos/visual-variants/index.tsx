@@ -1,4 +1,4 @@
-import { Block, Icon, Text, Toast } from '@platform-blocks/ui';
+import { Block, Icon, Text, Toast } from '@plocks/ui';
 
 const VARIANTS = ['light', 'filled', 'outline'] as const;
 

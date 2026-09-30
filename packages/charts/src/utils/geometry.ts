@@ -5,8 +5,8 @@
 //   - 0° points straight UP (12 o'clock)
 //   - positive angles rotate CLOCKWISE
 //
-// This matches every pre-existing radial helper (PieChart, RadialBarChart,
-// GaugeChart all subtracted 90° from a standard math angle). All radial charts
+// This matches the pre-existing radial helpers (PieChart and RadialBarChart
+// both subtracted 90° from a standard math angle). All radial charts
 // and hit-testers MUST delegate here rather than re-deriving the transform, so
 // the top-origin / clockwise convention is defined in exactly one place.
 

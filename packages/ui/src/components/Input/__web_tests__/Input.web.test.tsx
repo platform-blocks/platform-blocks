@@ -1,12 +1,12 @@
 import React from 'react';
 import { fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { FormField } from '../../Form/FormField';
 import { Input } from '../Input';
 import { PasswordInput } from '../PasswordInput';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('Input (react-native-web DOM)', () => {
   it('associates the label and describes the input by its helper text', () => {
@@ -19,7 +19,7 @@ describe('Input (react-native-web DOM)', () => {
     expect(input.getAttribute('aria-required')).toBe('true');
     expect(document.getElementById('email-helper')?.textContent).toBe('Work address');
     // UniversalCSS drops the raw outline for library inputs; the frame draws the ring.
-    expect(input.getAttribute('data-pb-input')).toBe('true');
+    expect(input.getAttribute('data-plocks-input')).toBe('true');
   });
 
   it('marks the input invalid and announces the error it is described by', () => {

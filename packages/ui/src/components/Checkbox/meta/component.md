@@ -28,6 +28,5 @@ examples:
   - Indeterminate state
   - Label customization with labelProps / descriptionProps
 ---
-The Checkbox component allows users to select one or more options from a set. Supports different states, colors, and group functionality.
 
-The box is the single focusable control (`role="checkbox"`, `aria-checked`, `"mixed"` when indeterminate); the label beside it is linked through `aria-labelledby` and toggles the same control when pressed, like an HTML `<label>`. Space toggles it on the web. `style` and spacing props apply to the whole field; `ref` and `testID` go to the control.
+Checkbox lets users select options individually or in a group.

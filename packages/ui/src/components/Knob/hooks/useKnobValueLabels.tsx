@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View } from 'react-native';
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 
-import type { PlatformBlocksTheme } from '../../../core/theme/types';
+import type { PlocksTheme } from '../../../core/theme/types';
 import { Text } from '../../Text';
 import type {
   KnobBehavior,
@@ -50,7 +50,7 @@ type UseKnobValueLabelsOptions = {
   min: number;
   max: number;
   displayValue: number;
-  theme: PlatformBlocksTheme;
+  theme: PlocksTheme;
   labelColor: string;
   activeMark?: KnobMark | null;
 };

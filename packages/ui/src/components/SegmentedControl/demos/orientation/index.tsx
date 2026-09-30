@@ -1,4 +1,4 @@
-import { Row, SegmentedControl } from '@platform-blocks/ui';
+import { Row, SegmentedControl } from '@plocks/ui';
 
 const data = ['React', 'Angular', 'Vue'];
 

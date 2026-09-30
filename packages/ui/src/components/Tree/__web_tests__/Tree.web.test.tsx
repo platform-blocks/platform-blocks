@@ -1,11 +1,11 @@
 import React from 'react';
 import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { Tree } from '../Tree';
 import type { TreeNode } from '../types';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 const DATA: TreeNode[] = [
   {

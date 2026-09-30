@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Icon, Spoiler, Text } from '@platform-blocks/ui';
+import { Block, Icon, Spoiler, Text } from '@plocks/ui';
 
 export function Demo() {
   const [isOpen, setIsOpen] = useState(false);

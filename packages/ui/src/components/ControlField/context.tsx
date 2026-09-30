@@ -9,14 +9,22 @@ const ControlFieldGroupContext = createContext<ControlFieldGroupContextValue | n
 
 export const ControlFieldGroupProvider = ControlFieldGroupContext.Provider;
 
-/** Read the enclosing `ControlField.Group` config, if any (non-throwing). */
+/**
+ * Returns the shared config of the enclosing `ControlField.Group` (its default
+ * `size` for child rows), or `null` outside a group — never throws.
+ */
 export function useControlFieldGroup(): ControlFieldGroupContextValue | null {
   return useContext(ControlFieldGroupContext);
 }
 
 /**
- * Access the enclosing `ControlField` state. Intended for the compound
- * sub-components (`ControlField.Indicator`, etc.) and custom controls.
+ * Returns the enclosing `ControlField`'s state (`checked`, `onChange`,
+ * `disabled`, `invalid`, `required`, `size`, `ids`, …) for custom controls
+ * and compound parts, and throws outside a `<ControlField>` — use
+ * `useControlFieldContext()` for a non-throwing read.
+ *
+ * Intended for the compound sub-components (`ControlField.Indicator`, etc.)
+ * and custom controls.
  */
 export function useControlField(): ControlFieldContextValue {
   const ctx = useContext(ControlFieldContext);
@@ -26,7 +34,11 @@ export function useControlField(): ControlFieldContextValue {
   return ctx;
 }
 
-/** Non-throwing variant for optional consumers. */
+/**
+ * Returns the enclosing `ControlField`'s state, or `null` outside one — the
+ * non-throwing variant of `useControlField()`, for controls that also work on
+ * their own.
+ */
 export function useControlFieldContext(): ControlFieldContextValue | null {
   return useContext(ControlFieldContext);
 }

@@ -5,7 +5,6 @@ order: 80
 tags: [datatable, pagination, server, api, manual]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

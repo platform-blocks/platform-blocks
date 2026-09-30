@@ -1,4 +1,4 @@
-import { Avatar, Row } from '@platform-blocks/ui';
+import { Avatar, Row } from '@plocks/ui';
 
 const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
 

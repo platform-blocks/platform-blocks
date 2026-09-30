@@ -1,4 +1,4 @@
-import { Block, Icon, Title } from '@platform-blocks/ui';
+import { Block, Icon, Title } from '@plocks/ui';
 
 export function Demo() {
   return (

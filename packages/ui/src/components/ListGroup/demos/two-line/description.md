@@ -4,7 +4,6 @@ category: basics
 order: 20
 tags: [list, label, description, settings]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

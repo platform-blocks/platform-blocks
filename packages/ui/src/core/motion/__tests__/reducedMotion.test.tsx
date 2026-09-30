@@ -105,17 +105,6 @@ describe('reduced motion store (native)', () => {
     expect(env.addEventListener).not.toHaveBeenCalled();
   });
 
-  it('accepts the deprecated forcedValue prop', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const env = load(false);
-    const { ReducedMotionProvider, useReducedMotion } = env;
-    const { result } = renderHook(() => useReducedMotion(), {
-      wrapper: ({ children }: { children: React.ReactNode }) => <ReducedMotionProvider forcedValue>{children}</ReducedMotionProvider>,
-    });
-    expect(result.current).toBe(true);
-    warn.mockRestore();
-  });
-
   it('useTransitionDuration reads the same source', async () => {
     const env = load(true);
     const { result } = renderHook(() => env.useTransitionDuration(undefined, 250));

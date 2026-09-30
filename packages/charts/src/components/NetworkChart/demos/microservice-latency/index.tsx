@@ -1,4 +1,4 @@
-import { NetworkChart } from '@platform-blocks/charts';
+import { NetworkChart } from '@plocks/charts';
 
 import { DEPENDENCIES, SERVICES } from './data';
 

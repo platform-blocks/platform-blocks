@@ -27,7 +27,7 @@ describe('useFieldA11y (native)', () => {
   it('generates a stable, sanitized id when none is given', () => {
     const { result, rerender } = renderHook(() => useFieldA11y({ label: 'Name' }));
     const first = result.current.ids.control;
-    expect(first).toMatch(/^pb-[A-Za-z0-9_-]+$/);
+    expect(first).toMatch(/^plocks-[A-Za-z0-9_-]+$/);
     rerender({});
     expect(result.current.ids.control).toBe(first);
   });
@@ -87,9 +87,9 @@ describe('useFieldA11y (native)', () => {
 
 describe('id helpers', () => {
   it('sanitizes React ids of every version', () => {
-    expect(sanitizeId(':r0:')).toBe('pb-r0');
-    expect(sanitizeId('«r1»')).toBe('pb-r1');
-    expect(sanitizeId('_r_2_')).toBe('pb-_r_2_');
+    expect(sanitizeId(':r0:')).toBe('plocks-r0');
+    expect(sanitizeId('«r1»')).toBe('plocks-r1');
+    expect(sanitizeId('_r_2_')).toBe('plocks-_r_2_');
   });
 
   it('extracts text from nodes', () => {

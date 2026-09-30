@@ -1,7 +1,5 @@
 // Accessible / semantic color palettes & assignment utilities
 
-import { colorSchemes } from './utils';
-
 /**
  * Default categorical palette — validated for both color schemes.
  *
@@ -113,7 +111,7 @@ function hashString(str: string): number {
  * Creates a color assignment function based on palette and hashing options
  * @param opts - Color assignment options
  * @param defaultPalette - What `'default'` (or no palette) resolves to. Charts pass
- *   the theme's `accentPalette`; without it the legacy global default is used.
+ *   the theme's `accentPalette`; without it the built-in default palette is used.
  * @returns Function that assigns colors by index or id
  */
 export function createColorAssigner(opts: ColorAssignOptions = {}, defaultPalette?: string[]) {
@@ -121,7 +119,7 @@ export function createColorAssigner(opts: ColorAssignOptions = {}, defaultPalett
   if (Array.isArray(opts.palette)) {
     palette = opts.palette;
   } else if (!opts.palette || opts.palette === 'default') {
-    palette = defaultPalette?.length ? defaultPalette : colorSchemes.default;
+    palette = defaultPalette?.length ? defaultPalette : registry.default;
   } else {
     palette = registry[opts.palette] || registry.default;
   }

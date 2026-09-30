@@ -1,4 +1,4 @@
-import { AreaChart } from '@platform-blocks/charts';
+import { AreaChart } from '@plocks/charts';
 
 import { WEEKLY_SIGNUPS } from './data';
 

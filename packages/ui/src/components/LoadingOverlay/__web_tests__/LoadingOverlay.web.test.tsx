@@ -34,7 +34,7 @@ describe('LoadingOverlay (react-native-web DOM)', () => {
   });
 
   it('announces only waits longer than announceAfter', () => {
-    const live = () => document.querySelector('[data-pb-announcer] [aria-live="polite"]')?.textContent ?? '';
+    const live = () => document.querySelector('[data-plocks-announcer] [aria-live="polite"]')?.textContent ?? '';
     const { rerender } = render(<Region visible />);
     act(() => {
       jest.advanceTimersByTime(500);

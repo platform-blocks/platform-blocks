@@ -1,4 +1,4 @@
-import { BarChart } from '@platform-blocks/charts';
+import { BarChart } from '@plocks/charts';
 
 import { REGIONAL_REVENUE } from './data';
 

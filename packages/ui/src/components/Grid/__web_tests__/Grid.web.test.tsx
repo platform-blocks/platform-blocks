@@ -15,8 +15,8 @@ describe('Grid (web)', () => {
     );
     const grid = screen.getByRole('list', { name: 'Plans' });
     expect(grid).toBe(screen.getByTestId('grid'));
-    expect(grid.getAttribute('data-pb-grid')).toMatch(/^c/);
-    expect(grid.querySelectorAll('[data-pb-grid-cell]')).toHaveLength(2);
+    expect(grid.getAttribute('data-plocks-grid')).toMatch(/^c/);
+    expect(grid.querySelectorAll('[data-plocks-grid-cell]')).toHaveLength(2);
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
   });
 });

@@ -258,13 +258,6 @@ describe('Button Component', () => {
       expect(props.tooltip).toBe('Click to save');
     });
 
-    it('should accept tooltipPosition', () => {
-      const props: ButtonProps = { 
-        tooltip: 'Info',
-        tooltipPosition: 'top'
-      };
-      expect(props.tooltipPosition).toBe('top');
-    });
   });
 
   // ============================================================================
@@ -401,7 +394,6 @@ describe('Button Component', () => {
         icon: 'info',
         variant: 'ghost',
         tooltip: 'More information',
-        tooltipPosition: 'top',
       };
 
       expect(props.variant).toBe('ghost');

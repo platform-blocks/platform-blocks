@@ -1,4 +1,4 @@
-import { Block, Table } from '@platform-blocks/ui';
+import { Block, Table } from '@plocks/ui';
 
 const columns = [
   { key: 'name', minWidth: 140 },

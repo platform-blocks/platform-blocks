@@ -8,7 +8,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-/** Every icon name registered in the default Tabler-backed registry. */
+/** Every icon name registered in the built-in Tabler-derived registry. */
 export function readIconNames(uiSrc: string): string[] {
   const file = join(uiSrc, 'components', 'Icon', 'icons', 'tabler.ts');
   const source = readFileSync(file, 'utf8');
@@ -23,13 +23,13 @@ export function readIconNames(uiSrc: string): string[] {
 /** How `name` resolves and what to do outside the registry — prose plus one snippet. */
 export function iconUsageLines(version: string, count: number): string[] {
   return [
-    `\`@platform-blocks/ui@${version}\` registers ${count} icons by default,`,
-    'backed by `@tabler/icons-react-native`. These are the only strings `name`',
+    `\`@plocks/ui@${version}\` registers ${count} icons by default,`,
+    'using bundled Tabler-derived glyphs. These are the only strings `name`',
     'accepts out of the box — anything else renders nothing, so **do not guess an',
     'icon name**; pick one from this list or pass a component instead.',
     '',
     '```tsx',
-    "import { Icon, IconButton } from '@platform-blocks/ui';",
+    "import { Icon, IconButton } from '@plocks/ui';",
     '',
     '<Icon name="check" size="sm" />',
     '<IconButton icon="trash" onPress={remove} accessibilityLabel="Delete" />',
@@ -41,7 +41,7 @@ export function iconUsageLines(version: string, count: number): string[] {
     '',
     'There is no public API for registering additional names —',
     '`registerIcon` / `registerIcons` exist in the source but are not exported',
-    'from the package root or from `@platform-blocks/ui/Icon`. Pass a component',
+    'from the package root or from `@plocks/ui/Icon`. Pass a component',
     'for anything outside this list.',
   ];
 }

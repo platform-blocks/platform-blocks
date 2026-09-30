@@ -1,6 +1,6 @@
 import type { ComponentSizeValue } from '../../core/theme/componentSize';
 import { getControlSize, resolveFontSize, stepDown } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 
 /**
  * Row geometry for one density step. `rowHeight` is the floor every row is
@@ -20,7 +20,7 @@ export interface TreeMetrics {
   checkboxSize: SizeValue;
 }
 
-type ThemeLike = Partial<PlatformBlocksTheme> | null | undefined;
+type ThemeLike = Partial<PlocksTheme> | null | undefined;
 
 /**
  * Rows are compact controls, so they take the theme's control metrics one step

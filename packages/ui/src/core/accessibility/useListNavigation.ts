@@ -63,7 +63,8 @@ export interface UseListNavigationResult {
  * @example
  * const nav = useListNavigation({ count: items.length, activeIndex, onActiveChange: setActiveIndex,
  *   onSelect: (i) => pick(items[i]), getId: (i) => `${listId}-opt-${i}`, listId, opened, onOpen, onClose });
- * <TextInput {...nav.inputProps} />
+ * const { onKeyDown, ...inputProps } = nav.inputProps;
+ * <TextInput {...inputProps} onKeyPress={onKeyDown} /> // react-native-web routes TextInput keys through onKeyPress
  * <View {...nav.listProps}>{items.map((item, i) => <Pressable key={item.id} {...nav.getOptionProps(i)} />)}</View>
  */
 export function useListNavigation(options: UseListNavigationOptions): UseListNavigationResult {

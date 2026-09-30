@@ -4,7 +4,6 @@ import { View, type ViewStyle } from 'react-native';
 import { factory } from '../../core/factory/factory';
 import { useLatestCallback } from '../../core/hooks/useLatestCallback';
 import { hasDOM } from '../../core/platform/flags';
-import { warnOnce } from '../../core/utils/logger';
 import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 
 import { NavigationProvider } from './NavigationContext';
@@ -48,18 +47,10 @@ const NavigationContainerBase = factory<{ props: NavigationContainerProps; ref: 
     children,
     initialState = defaultInitialState,
     onStateChange,
-    theme,
     linking,
     style,
     testID,
   } = otherProps;
-
-  if (theme !== undefined) {
-    warnOnce(
-      'NavigationContainer.theme',
-      '[platform-blocks] NavigationContainer: `theme` is ignored; the navigators read the platform-blocks theme.'
-    );
-  }
 
   const spacing = useStyleProps(styleProps);
   const linkingConfig = linking?.config;

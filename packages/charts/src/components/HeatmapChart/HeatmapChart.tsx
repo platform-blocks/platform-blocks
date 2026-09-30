@@ -6,7 +6,6 @@ import {
   HeatmapCell,
   HeatmapColorScaleConfig,
   HeatmapColorStop,
-  HeatmapSharedColorScaleConfig,
   HeatmapDataTablePayload,
   HeatmapValueFormatter,
   HeatmapLabelDisplayRule,
@@ -25,8 +24,6 @@ import { AnimatedHeatmapCell } from './AnimatedHeatmapCell';
 import type { Scale } from '../../utils/scales';
 import {
   createColorScale,
-  interpolateColor,
-  interpolateColors,
   resolveColorScaleColors,
   type ColorScaleContext,
 } from '../../utils/colorScale';
@@ -39,7 +36,6 @@ type ProcessedHeatmapCell = HeatmapCell & {
   width: number;
   height: number;
   color: string;
-  normalizedValue: number;
   displayValue?: string;
   showLabel: boolean;
   index: number;
@@ -104,42 +100,12 @@ function resolveValueFormatter(
   return undefined;
 }
 
-function deriveLegendStops(
-  scale: HeatmapColorScaleConfig,
-  fallbackColors: string[],
-  min: number,
-  max: number
-): HeatmapColorStop[] {
-  if (scale.stops && scale.stops.length) {
-    return [...scale.stops].sort((a, b) => a.value - b.value);
-  }
-  if (fallbackColors.length <= 1) {
-    return [
-      { value: min, color: fallbackColors[0] ?? '#0EA5E9' },
-      { value: max, color: fallbackColors[fallbackColors.length - 1] ?? '#1D4ED8' },
-    ];
-  }
-  const span = fallbackColors.length - 1;
-  return fallbackColors.map((color, index) => {
-    const t = index / span;
-    const value = min + (max - min) * t;
-    return { value, color };
-  });
-}
-
-const SHARED_SCALE_TYPES = new Set(['sequential', 'diverging', 'threshold']);
 // What a heatmap with no colorScale gets: one hue, light → dark.
-const DEFAULT_SHARED_SCALE: HeatmapSharedColorScaleConfig = { type: 'sequential' };
-
-function isSharedColorScale(
-  scale: HeatmapChartProps['colorScale']
-): scale is HeatmapSharedColorScaleConfig {
-  return !!scale && SHARED_SCALE_TYPES.has(scale.type as string);
-}
+const DEFAULT_COLOR_SCALE: HeatmapColorScaleConfig = { type: 'sequential' };
 
 /** Legend stops sampled from a shared scale; threshold bands get hard edges. */
 function deriveSharedLegendStops(
-  scale: HeatmapSharedColorScaleConfig,
+  scale: HeatmapColorScaleConfig,
   colorAt: (value: number) => string,
   bandCount: number,
   min: number,
@@ -280,14 +246,9 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
     [valueFormatter]
   );
 
-  // A shared config (sequential / diverging / threshold), or none at all, runs through
-  // the shared color scale. Legacy linear / log / quantize configs keep their own path.
-  const sharedScale = colorScale == null
-    ? DEFAULT_SHARED_SCALE
-    : isSharedColorScale(colorScale) ? colorScale : null;
-  const scale: HeatmapColorScaleConfig = sharedScale ? {} : (colorScale as HeatmapColorScaleConfig);
-  const minVal = sharedScale?.domain?.[0] ?? scale.min ?? (cells.length ? Math.min(...cells.map((c) => c.value)) : 0);
-  const maxVal = sharedScale?.domain?.[1] ?? scale.max ?? (cells.length ? Math.max(...cells.map((c) => c.value)) : 1);
+  const scale = colorScale ?? DEFAULT_COLOR_SCALE;
+  const minVal = scale.domain?.[0] ?? (cells.length ? Math.min(...cells.map((c) => c.value)) : 0);
+  const maxVal = scale.domain?.[1] ?? (cells.length ? Math.max(...cells.map((c) => c.value)) : 1);
   const scaleContext = React.useMemo<ColorScaleContext>(
     () => ({
       base: theme.colors.accentPalette[0],
@@ -297,23 +258,12 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
     }),
     [theme.colors.accentPalette, theme.colors.background, theme.colors.textPrimary]
   );
-  const colors = sharedScale
-    ? resolveColorScaleColors(sharedScale, scaleContext)
-    : scale.stops?.length
-      ? scale.stops.map((stop) => stop.color)
-      : scale.colors || resolveColorScaleColors({}, scaleContext);
-  const sharedColorAt = React.useMemo(
-    () => (sharedScale ? createColorScale(sharedScale, [minVal, maxVal], scaleContext) : null),
-    // `sharedScale` is often an inline object; its source prop is the stable dependency.
+  const colors = resolveColorScaleColors(scale, scaleContext);
+  const colorAt = React.useMemo(
+    () => createColorScale(scale, [minVal, maxVal], scaleContext),
     [colorScale, minVal, maxVal, scaleContext]
   );
-
-  const sortedStops = React.useMemo(() => {
-    if (!scale.stops || !scale.stops.length) return null;
-    return [...scale.stops].sort((a, b) => a.value - b.value);
-  }, [scale.stops]);
-
-  const nullFill = sharedScale?.nullColor ?? scale.nullColor ?? 'rgba(148, 163, 184, 0.2)';
+  const nullFill = scale.nullColor ?? 'rgba(148, 163, 184, 0.2)';
 
   // --- Gradient (color-scale) legend --------------------------------------
   // A heatmap's natural legend is a min→max color-scale bar, not a categorical
@@ -341,12 +291,8 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
     if (gradientLegend?.stops && gradientLegend.stops.length) {
       return [...gradientLegend.stops].sort((a, b) => a.value - b.value);
     }
-    if (sharedScale && sharedColorAt) {
-      return deriveSharedLegendStops(sharedScale, sharedColorAt, colors.length, minVal, maxVal);
-    }
-    return deriveLegendStops(scale, colors, minVal, maxVal);
-    // `scale`/`colors` are derived from `colorScale` each render; depend on the source.
-  }, [gradientLegendEnabled, gradientLegend?.stops, colorScale, colors, minVal, maxVal, sharedColorAt]);
+    return deriveSharedLegendStops(scale, colorAt, colors.length, minVal, maxVal);
+  }, [gradientLegendEnabled, gradientLegend?.stops, colorScale, colors, minVal, maxVal, colorAt]);
 
   const formatLegendValue = React.useCallback(
     (value: number, percent: number) => {
@@ -358,78 +304,13 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
     [gradientLegend, maxVal, minVal, theme.numberFormat]
   );
 
-  const normalizeValue = React.useCallback((value: number) => {
-    if (!Number.isFinite(value)) return 0;
-    if (maxVal === minVal) return 0.5;
-    if (scale.type === 'log') {
-      const safeMin = minVal <= 0 ? 1e-6 : minVal;
-      const safeMax = Math.max(maxVal, safeMin * (1 + 1e-6));
-      const clamped = Math.max(safeMin, Math.min(safeMax, value));
-      const numerator = Math.log(clamped) - Math.log(safeMin);
-      const denominator = Math.log(safeMax) - Math.log(safeMin);
-      if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) {
-        return 0;
-      }
-      return Math.min(1, Math.max(0, numerator / denominator));
-    }
-    const numerator = value - minVal;
-    const denominator = maxVal - minVal;
-    if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) {
-      return 0;
-    }
-    return Math.min(1, Math.max(0, numerator / denominator));
-  }, [maxVal, minVal, scale.type]);
-
   const resolveColor = React.useCallback((value: number | null | undefined) => {
     if (value == null || !Number.isFinite(value)) {
       return nullFill;
     }
 
-    if (sharedColorAt) return sharedColorAt(value);
-
-    if (sortedStops && sortedStops.length) {
-      if (scale.type === 'quantize') {
-        for (let i = 0; i < sortedStops.length; i += 1) {
-          if (value <= sortedStops[i].value) {
-            return sortedStops[i].color;
-          }
-        }
-        return sortedStops[sortedStops.length - 1].color;
-      }
-
-      let lower = sortedStops[0];
-      let upper = sortedStops[sortedStops.length - 1];
-      for (let i = 0; i < sortedStops.length; i += 1) {
-        const stop = sortedStops[i];
-        if (value === stop.value) {
-          return stop.color;
-        }
-        if (value > stop.value) {
-          lower = stop;
-          continue;
-        }
-        upper = stop;
-        break;
-      }
-
-      if (upper === lower || upper.value === lower.value) {
-        return lower.color;
-      }
-
-      const ratio = (value - lower.value) / (upper.value - lower.value);
-      return interpolateColor(lower.color, upper.color, Math.min(1, Math.max(0, ratio)));
-    }
-
-    if (scale.type === 'quantize' && colors.length > 0) {
-      const binCount = colors.length;
-      const norm = normalizeValue(value);
-      const index = Math.min(binCount - 1, Math.floor(norm * binCount));
-      return colors[index] ?? colors[colors.length - 1];
-    }
-
-    const norm = normalizeValue(value);
-    return interpolateColors(colors, norm);
-  }, [colors, normalizeValue, nullFill, scale.type, sortedStops, sharedColorAt]);
+    return colorAt(value);
+  }, [colorAt, nullFill]);
 
   const formatXTick = React.useCallback((value: number) => {
     if (Number.isNaN(value)) return '';
@@ -649,7 +530,6 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
     return cells.map((cell, index) => {
       const pixelX = cell.x * (cellW + gap);
       const pixelY = cell.y * (cellH + gap);
-      const normalizedValue = normalizeValue(cell.value);
       const color = cell.color ?? resolveColor(cell.value);
       const rowSum = rowTotals[cell.y] ?? 0;
       const columnSum = columnTotals[cell.x] ?? 0;
@@ -682,7 +562,6 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
         width: cellW,
         height: cellH,
         color,
-        normalizedValue,
         displayValue,
         formattedValue,
         rowSum,
@@ -695,7 +574,7 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
         showLabel: shouldShowCellLabel(cell, rowPercent, columnPercent, overallPercent),
       };
     });
-  }, [cells, cellW, cellH, gap, normalizeValue, resolveColor, totals, resolvedFormatter, minVal, maxVal, rowLabels, columnLabels, shouldShowCellLabel]);
+  }, [cells, cellW, cellH, gap, resolveColor, totals, resolvedFormatter, minVal, maxVal, rowLabels, columnLabels, shouldShowCellLabel]);
 
   const totalCells = processedCells.length;
   const animationDisabled = disableAnimation || totalCells > maxAnimatedCells;

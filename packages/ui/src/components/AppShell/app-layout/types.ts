@@ -1,7 +1,7 @@
 import type React from 'react';
 import type { PlatformOSType, Role, StyleProp, ViewStyle } from 'react-native';
 
-import type { PlatformBlocksTheme } from '../../../core/theme/types';
+import type { PlocksTheme } from '../../../core/theme/types';
 import type { AppShellMainProps, ResponsiveSize, Breakpoint, StatusBarConfig } from '../types';
 
 export type LayoutVisibilityFn = (ctx: AppLayoutRuntimeContext) => boolean;
@@ -150,7 +150,7 @@ export interface AppLayoutRuntimeContext {
   isMobile: boolean;
   isLandscape: boolean;
   orientation: 'portrait' | 'landscape';
-  theme: PlatformBlocksTheme;
+  theme: PlocksTheme;
   colorScheme: string | undefined;
   reducedMotion: boolean;
   meta?: Record<string, unknown>;

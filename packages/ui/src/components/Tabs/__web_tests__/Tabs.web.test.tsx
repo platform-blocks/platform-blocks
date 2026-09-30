@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Text } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { DirectionProvider } from '../../../core/providers/DirectionProvider';
 import { Tabs } from '../Tabs';
 import type { TabsProps } from '../types';
@@ -15,9 +15,9 @@ const ITEMS: TabsProps['items'] = [
 
 function renderTabs(props: Partial<TabsProps> = {}) {
   return render(
-    <PlatformBlocksProvider>
+    <PlocksProvider>
       <Tabs items={ITEMS} autoPersist={false} {...props} />
-    </PlatformBlocksProvider>
+    </PlocksProvider>
   );
 }
 
@@ -66,11 +66,11 @@ describe('Tabs (react-native-web DOM)', () => {
   it('flips horizontal arrows under RTL', () => {
     const onChange = jest.fn();
     render(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <DirectionProvider initialDirection="rtl">
           <Tabs items={ITEMS} autoPersist={false} onChange={onChange} />
         </DirectionProvider>
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     const tabs = screen.getAllByRole('tab');
     act(() => tabs[0].focus());
@@ -117,9 +117,9 @@ describe('Tabs (react-native-web DOM)', () => {
     function Controlled() {
       const [value, setValue] = useState('one');
       return (
-        <PlatformBlocksProvider>
+        <PlocksProvider>
           <Tabs items={ITEMS} value={value} onChange={setValue} />
-        </PlatformBlocksProvider>
+        </PlocksProvider>
       );
     }
     render(<Controlled />);

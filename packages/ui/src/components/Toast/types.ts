@@ -10,11 +10,6 @@ export type ToastVariant = 'light' | 'filled' | 'outline';
 export type ToastSeverity = 'info' | 'success' | 'warning' | 'error';
 /** Edge a toast travels from when it enters (derived from its stack's screen position). */
 export type ToastDirection = 'top' | 'bottom' | 'left' | 'right';
-/**
- * @deprecated Use `ToastDirection`. (The public `ToastPosition` exported from
- * the package is the stack's screen position — see `ToastStackPosition`.)
- */
-export type ToastPosition = ToastDirection;
 export type ToastAnimationType = 'slide' | 'fade' | 'bounce' | 'scale';
 
 /** Metrics a single `size` token resolves to. */

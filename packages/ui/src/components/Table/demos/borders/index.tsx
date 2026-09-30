@@ -1,4 +1,4 @@
-import { Block, Table } from '@platform-blocks/ui';
+import { Block, Table } from '@plocks/ui';
 
 const data = {
   head: ['ID', 'Region', 'Sales', 'Growth %'],

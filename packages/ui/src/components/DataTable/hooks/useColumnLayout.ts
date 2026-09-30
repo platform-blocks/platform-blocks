@@ -33,6 +33,13 @@ export interface ColumnLayout<T> {
   reorderColumn: (fromKey: string, toKey: string) => void;
   /** Move a column one slot towards the start (-1) or end (1) among the visible columns. */
   moveColumn: (columnKey: string, dir: -1 | 1) => void;
+  resetColumns: () => void;
+}
+
+function validHidden<T>(hidden: string[], columns: DataTableColumn<T>[]): string[] {
+  const keys = new Set(columns.map((column) => column.key));
+  const next = hidden.filter((key) => keys.has(key));
+  return columns.length > 0 && next.length === columns.length ? next.filter((key) => key !== columns[0].key) : next;
 }
 
 /** Calls `callback(value)` whenever `value` changes after mount (never for the initial value). */
@@ -67,8 +74,14 @@ export function useColumnLayout<T>({
     });
     return { ...initial, ...readPref<ColumnWidths>(id, 'columnWidths', {}) };
   });
-  const [hiddenColumns, setHiddenColumns] = useState<string[]>(() =>
-    readPref<string[]>(id, 'hiddenColumns', initialHiddenColumns)
+  const [hiddenColumns, setInternalHiddenColumns] = useState<string[]>(() =>
+    validHidden(readPref<string[]>(id, 'hiddenColumns', initialHiddenColumns), columns)
+  );
+  const setHiddenColumns = useCallback<Dispatch<SetStateAction<string[]>>>(
+    (next) => setInternalHiddenColumns((previous) =>
+      validHidden(typeof next === 'function' ? next(previous) : next, columns)
+    ),
+    [columns]
   );
   // Runtime column pinning overrides the static `column.sticky` (menu-driven).
   const [pinnedColumns, setPinnedColumns] = useState<Record<string, PinSide>>(() => {
@@ -106,7 +119,7 @@ export function useColumnLayout<T>({
     return [...ordered, ...missing];
   }, [columns, columnOrder]);
 
-  const hiddenSet = useMemo<ReadonlySet<string>>(() => new Set(hiddenColumns), [hiddenColumns]);
+  const hiddenSet = useMemo<ReadonlySet<string>>(() => new Set(validHidden(hiddenColumns, columns)), [hiddenColumns, columns]);
 
   const visibleColumns = useMemo(
     () => orderedColumns.filter((c) => !hiddenSet.has(c.key)),
@@ -150,6 +163,20 @@ export function useColumnLayout<T>({
     });
   }, []);
 
+  const resetColumns = useCallback(() => {
+    setHiddenColumns([]);
+    const widths: ColumnWidths = {};
+    const pins: Record<string, PinSide> = {};
+    columns.forEach((column) => {
+      if (column.width) widths[column.key] = column.width;
+      if (column.sticky) pins[column.key] = column.sticky;
+    });
+    setColumnWidths(widths);
+    setPinnedColumns(pins);
+    setInternalColumnOrder(null);
+    if (isOrderControlled) notifyOrder(columns.map((column) => column.key));
+  }, [columns, isOrderControlled, notifyOrder, setHiddenColumns]);
+
   return useMemo(
     () => ({
       orderedColumns,
@@ -163,17 +190,20 @@ export function useColumnLayout<T>({
       setColumnPin,
       reorderColumn,
       moveColumn,
+      resetColumns,
     }),
     [
       orderedColumns,
       visibleColumns,
       hiddenColumns,
       hiddenSet,
+      setHiddenColumns,
       columnWidths,
       pinnedColumns,
       setColumnPin,
       reorderColumn,
       moveColumn,
+      resetColumns,
     ]
   );
 }

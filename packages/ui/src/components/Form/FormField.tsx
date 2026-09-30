@@ -2,9 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, type ViewStyle } from 'react-native';
 import { factory } from '../../core/factory/factory';
 import { useThemedStyles } from '../../core/hooks/useThemedStyles';
-import { warnOnce } from '../../core/utils/logger';
 import { useStyleProps } from '../../core/utils/spacing';
-import { Field, type FieldLabelPosition } from '../_internal/Field/Field';
+import { Field } from '../_internal/Field/Field';
 import { FormFieldContextProvider, useOptionalFormContext, type FormFieldContextValue } from './FormContext';
 import type { FormFieldProps, FormFieldValidation } from './types';
 
@@ -12,14 +11,6 @@ const FULL_WIDTH: ViewStyle = { width: '100%' };
 
 const hasContent = (node: React.ReactNode) =>
   node !== undefined && node !== null && node !== false && node !== '';
-
-const LABEL_POSITION: Record<NonNullable<FormFieldProps['labelPosition']>, FieldLabelPosition> = {
-  top: 'top',
-  start: 'start',
-  end: 'end',
-  left: 'start',
-  right: 'end',
-};
 
 /**
  * One field of a form (`Form.Field`, also exported as `FormField` for form
@@ -49,13 +40,6 @@ export const FormField = factory<{ props: FormFieldProps; ref: View }>(
     },
     ref
   ) => {
-    if (labelPosition === 'left' || labelPosition === 'right') {
-      warnOnce(
-        'FormField.labelPosition.leftRight',
-        `[platform-blocks] FormField: labelPosition="${labelPosition}" is deprecated. Use "${LABEL_POSITION[labelPosition]}".`
-      );
-    }
-
     const form = useOptionalFormContext();
     const spacingStyles = useStyleProps(spacing);
     const styles = useThemedStyles(
@@ -139,7 +123,6 @@ export const FormField = factory<{ props: FormFieldProps; ref: View }>(
 
     // With a label, the frame shows the form's error for this field (once touched).
     const formError = name && form?.touched[name] ? form.errors[name] || undefined : undefined;
-    const position = LABEL_POSITION[labelPosition] ?? 'top';
 
     return (
       <FormFieldContextProvider value={fieldContext}>
@@ -151,9 +134,9 @@ export const FormField = factory<{ props: FormFieldProps; ref: View }>(
             helperText={helperText}
             required={required}
             disabled={disabled}
-            labelPosition={position}
+            labelPosition={labelPosition}
           >
-            {position === 'top' ? children : <View style={styles.control}>{children}</View>}
+            {labelPosition === 'top' ? children : <View style={styles.control}>{children}</View>}
           </Field>
         </View>
       </FormFieldContextProvider>

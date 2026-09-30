@@ -10,7 +10,7 @@ props:
   v: Alias for variant
   c: Theme palette name or CSS color
   size: Size token (xs–3xl)
-  startSection / endSection: Slot content (startIcon / endIcon are deprecated aliases)
+  startSection / endSection: Slot content
   onRemove: Show a remove button (also `removePosition: 'left' | 'right'`)
   textStyle: Raw TextStyle escape hatch on the inner label
   labelProps: Override props applied to the inner label `<Text>` (style, fw, ff, size, c)
@@ -22,4 +22,5 @@ examples:
   - shadow
   - aliases
 ---
-The Badge component displays compact elements that represent an input, attribute, or action. Supports different colors, sizes, and interactive features like removal. Inner label accepts the full Text-prop API via `labelProps`.
+
+Badge displays a compact status or count on a parent element.

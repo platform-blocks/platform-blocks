@@ -5,7 +5,6 @@ order: 40
 tags: [spoiler, render-control, controlled]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

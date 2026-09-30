@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { AutoComplete, Block } from '@platform-blocks/ui';
-import type { AutoCompleteOption } from '@platform-blocks/ui';
+import { AutoComplete, Block } from '@plocks/ui';
+import type { AutoCompleteOption } from '@plocks/ui';
 
 const fruits = [
   { label: 'Apple', value: 'apple' },

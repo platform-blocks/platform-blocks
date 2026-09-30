@@ -1,4 +1,4 @@
-import { AreaChart } from '@platform-blocks/charts';
+import { AreaChart } from '@plocks/charts';
 
 import { SEVERITY_SERIES, WEEKS } from './data';
 

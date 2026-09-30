@@ -4,7 +4,6 @@ category: usage
 order: 10
 tags: [global, palette]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

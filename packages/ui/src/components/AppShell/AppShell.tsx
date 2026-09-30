@@ -13,7 +13,7 @@ import { isBreakpointAtLeast } from '../../core/responsive';
 import { shellChrome } from '../../core/theme/cssVariableTheme';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeToken } from '../../core/theme/types';
+import type { PlocksTheme, SizeToken } from '../../core/theme/types';
 import { getZIndex, type ZIndexLayer } from '../../core/theme/zIndices';
 import { useStyleProps } from '../../core/utils/spacing';
 import {
@@ -66,7 +66,7 @@ const renderContent = (content: React.ReactNode | (() => React.ReactNode)): Reac
 
 /** `padding` at one breakpoint, in px: numbers pass through, tokens resolve through `theme.spacing`. */
 const resolveMainPadding = (
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   padding: ResponsiveSize | undefined,
   breakpoint: Breakpoint
 ): number | undefined => {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Checkbox, ControlField } from '@platform-blocks/ui';
+import { Block, Checkbox, ControlField } from '@plocks/ui';
 
 export function Demo() {
   const [subscribed, setSubscribed] = useState(false);

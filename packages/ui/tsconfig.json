@@ -32,16 +32,16 @@
     // Paths resolve relative to this file (no baseUrl). Demos import the
     // package by its public name; these point that at the source.
     "paths": {
-      "platform-blocks": [
+      "plocks": [
         "./src/index.ts"
       ],
-      "platform-blocks/*": [
+      "plocks/*": [
         "./src/*"
       ],
-      "@platform-blocks/ui": [
+      "@plocks/ui": [
         "./src/index.ts"
       ],
-      "@platform-blocks/ui/*": [
+      "@plocks/ui/*": [
         "./src/*"
       ]
     }

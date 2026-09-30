@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Chip, Row, Text, Block } from '@platform-blocks/ui';
+import { Chip, Row, Text, Block } from '@plocks/ui';
 
 const TOPICS = ['React', 'React Native', 'Expo', 'TypeScript'];
 

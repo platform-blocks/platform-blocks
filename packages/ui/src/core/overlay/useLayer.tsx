@@ -1,9 +1,7 @@
 import React, {
   createContext,
   useContext,
-  useEffect,
   useId,
-  useLayoutEffect,
   useRef,
   useSyncExternalStore,
 } from 'react';
@@ -28,9 +26,7 @@ import {
   subscribeLayerStack,
 } from './layerStack';
 import type { LayerBehavior, LayerDismissReason } from './layerStack';
-
-// useLayoutEffect warns during server rendering; nothing to register there anyway.
-const useIsomorphicLayoutEffect = hasDOM || isNative ? useLayoutEffect : useEffect;
+import { useIsomorphicLayoutEffect } from '../hooks/useIsomorphicLayoutEffect';
 
 /** Id of the layer the current subtree renders inside (null at the root). */
 const LayerContext = createContext<string | null>(null);
@@ -178,7 +174,7 @@ function sendNativeAccessibilityFocus(node: unknown): void {
  */
 export function useLayer(options: UseLayerOptions): UseLayerResult {
   const generatedId = useId();
-  const id = options.id ?? `pb-layer-${sanitizeId(generatedId)}`;
+  const id = options.id ?? `plocks-layer-${sanitizeId(generatedId)}`;
   const contextParentId = useContext(LayerContext);
   const parentId = options.parentId !== undefined ? options.parentId : contextParentId;
 

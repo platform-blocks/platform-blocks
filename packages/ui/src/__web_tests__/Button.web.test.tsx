@@ -2,7 +2,7 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../core/theme/PlocksProvider';
 import { Button } from '../components/Button';
 
 describe('Button (react-native-web DOM)', () => {
@@ -13,9 +13,9 @@ describe('Button (react-native-web DOM)', () => {
   it('renders a DOM button with an accessible name that fires onPress on click', () => {
     const onPress = jest.fn();
     render(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <Button title="Save" onPress={onPress} />
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
 
     const button = screen.getByRole('button', { name: 'Save' });

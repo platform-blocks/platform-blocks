@@ -1,4 +1,4 @@
-import { Badge, Block, Row, Text, useOverlayMode } from '@platform-blocks/ui';
+import { Badge, Block, Row, Text, useOverlayMode } from '@plocks/ui';
 
 export function Demo() {
   const { shouldUseModal, shouldUseOverlay, isMobileExperience, isDesktopExperience, isWeb } = useOverlayMode();

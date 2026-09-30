@@ -33,7 +33,7 @@ import type {
   RegisteredDropdown,
   ArrowPosition,
 } from './types';
-import { PlatformBlocksThemeProvider, useTheme } from '../../core/theme/ThemeProvider';
+import { ThemeScope, useTheme } from '../../core/theme/ThemeProvider';
 import { useControllableState } from '../../hooks/useControllableState';
 
 interface PopoverContextValue {
@@ -507,9 +507,9 @@ const PopoverDropdownBase = (props: PopoverDropdownProps, _ref: React.Ref<View>)
 
   const dropdownValue = useMemo<RegisteredDropdown>(() => ({
     content: (
-      <PlatformBlocksThemeProvider theme={theme} inherit>
+      <ThemeScope theme={theme} inherit>
         {children}
-      </PlatformBlocksThemeProvider>
+      </ThemeScope>
     ),
     style,
     trapFocus,

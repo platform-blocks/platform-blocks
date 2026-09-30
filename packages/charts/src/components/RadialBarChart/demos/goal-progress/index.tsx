@@ -1,4 +1,4 @@
-import { RadialBarChart } from '@platform-blocks/charts';
+import { RadialBarChart } from '@plocks/charts';
 
 import { GOAL } from './data';
 

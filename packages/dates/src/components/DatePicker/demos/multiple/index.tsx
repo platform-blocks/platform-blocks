@@ -1,0 +1,23 @@
+import React, { useState } from 'react';
+import { Block, Text } from '@plocks/ui';
+import { DatePicker } from '@plocks/dates';
+
+export function Demo() {
+  const [value, setValue] = useState<Date[]>([]);
+
+  return (
+    <Block fullWidth>
+      <DatePicker
+        type="multiple"
+        value={value}
+        onChange={(next) => setValue((next as Date[]) ?? [])}
+        calendarProps={{ numberOfMonths: 2, withCellSpacing: true }}
+      />
+      <Text size="sm" c="secondary">
+        {value.length > 0
+          ? value.map((date) => date.toLocaleDateString()).join(', ')
+          : 'Select one or more dates'}
+      </Text>
+    </Block>
+  );
+}

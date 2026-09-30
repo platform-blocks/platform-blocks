@@ -1,4 +1,4 @@
-import { AutoComplete, Block, Column, Icon, MenuItemButton, Row, Text } from '@platform-blocks/ui';
+import { AutoComplete, Block, Column, Icon, MenuItemButton, Row, Text } from '@plocks/ui';
 
 interface RichSportOption {
   label: string;

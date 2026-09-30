@@ -1,5 +1,5 @@
 import type {
-  PlatformBlocksTheme,
+  PlocksTheme,
   SurfaceLevel,
   SurfaceScale,
   SurfaceToken,
@@ -24,22 +24,21 @@ export function clampSurfaceLevel(level: number): SurfaceLevel {
 }
 
 /**
- * Build an elevation ladder out of a theme that predates `theme.surfaces`.
+ * Build an elevation ladder for a theme without `theme.surfaces`.
  *
  * `backgrounds` already encodes an implicit ordering (base → surface →
- * elevated), it just doesn't say so. Deriving from it means every existing
- * custom theme gets a usable ladder without touching its definition.
+ * elevated), it just doesn't say so. Deriving from it gives a custom theme a
+ * usable ladder without defining one.
  */
-function deriveSurfaceScale(theme: PlatformBlocksTheme): SurfaceScale {
-  const backgrounds = theme.backgrounds ?? ({} as PlatformBlocksTheme['backgrounds']);
-  const border = backgrounds.border ?? theme.semantic?.borderDefault ?? 'rgba(0,0,0,0.08)';
-  const subtleBorder = theme.semantic?.borderSubtle ?? border;
+function deriveSurfaceScale(theme: PlocksTheme): SurfaceScale {
+  const backgrounds = theme.backgrounds ?? ({} as PlocksTheme['backgrounds']);
+  const border = backgrounds.border ?? backgrounds.borderStrong ?? 'rgba(0,0,0,0.08)';
   const base = backgrounds.base ?? backgrounds.surface ?? '#FFFFFF';
   const surface = backgrounds.surface ?? base;
   const elevated = backgrounds.elevated ?? surface;
 
   return {
-    0: { background: base, border: subtleBorder, shadow: 'none' },
+    0: { background: base, border, shadow: 'none' },
     1: { background: surface, border, shadow: 'xs' },
     2: { background: elevated, border, shadow: 'md' },
     3: { background: elevated, border, shadow: 'xl' },
@@ -54,7 +53,7 @@ function deriveSurfaceScale(theme: PlatformBlocksTheme): SurfaceScale {
  * only some levels still resolves the rest.
  */
 export function resolveSurface(
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   level: SurfaceLevel | number = 1
 ): SurfaceToken {
   const resolvedLevel = clampSurfaceLevel(level);
@@ -72,7 +71,7 @@ export function resolveSurface(
 
 /** Convenience accessor for just the fill — the most common single lookup. */
 export function resolveSurfaceBackground(
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   level: SurfaceLevel | number = 1
 ): string {
   return resolveSurface(theme, level).background;
@@ -102,7 +101,7 @@ const INTERACTION_ALPHA: Record<SurfaceInteractionState, { light: number; dark: 
  * in dark mode and darkens in light mode at every level.
  */
 export function surfaceInteractionTint(
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   state: SurfaceInteractionState = 'hover'
 ): string {
   // The theme's own hover / pressed roles win (the built-in themes define

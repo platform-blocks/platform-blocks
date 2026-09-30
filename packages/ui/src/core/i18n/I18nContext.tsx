@@ -18,6 +18,28 @@ const defaultConfig: I18nConfig = {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
+// Hermes builds can omit Intl.RelativeTimeFormat. Keep the formatter usable
+// without requiring every app to install a global polyfill.
+function formatRelativeTime(locale: string, value: number, unit: Intl.RelativeTimeFormatUnit, opts?: Intl.RelativeTimeFormatOptions): string {
+  if (typeof Intl.RelativeTimeFormat === 'function') {
+    return new Intl.RelativeTimeFormat(locale, opts).format(value, unit);
+  }
+  const singular = unit.replace(/s$/, '');
+  const amount = new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }).format(Math.abs(value));
+  const label = opts?.style === 'narrow'
+    ? ({ second: 's', minute: 'm', hour: 'h', day: 'd', week: 'w', month: 'mo', quarter: 'q', year: 'y' } as Record<string, string>)[singular]
+    : `${singular}${Math.abs(value) === 1 ? '' : 's'}`;
+  if (opts?.numeric === 'auto' && value === 0) {
+    if (singular === 'day') return 'today';
+    if (singular === 'week') return 'this week';
+    if (singular === 'month') return 'this month';
+    if (singular === 'year') return 'this year';
+  }
+  if (opts?.numeric === 'auto' && singular === 'day' && value === -1) return 'yesterday';
+  if (opts?.numeric === 'auto' && singular === 'day' && value === 1) return 'tomorrow';
+  return value < 0 ? `${amount} ${label} ago` : `in ${amount} ${label}`;
+}
+
 type TranslationEntry = string | TranslationFunction;
 
 const isEntry = (value: unknown): value is TranslationEntry =>
@@ -84,10 +106,10 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({ initial, children })
 
   const formatNumber = useCallback((value: number, opts?: Intl.NumberFormatOptions) => new Intl.NumberFormat(locale, opts).format(value), [locale]);
   const formatDate = useCallback((value: Date, opts?: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale, opts).format(value), [locale]);
-  const formatRelativeTime = useCallback((value: number, unit: Intl.RelativeTimeFormatUnit, opts?: Intl.RelativeTimeFormatOptions) => new Intl.RelativeTimeFormat(locale, opts).format(value, unit), [locale]);
+  const relativeTime = useCallback((value: number, unit: Intl.RelativeTimeFormatUnit, opts?: Intl.RelativeTimeFormatOptions) => formatRelativeTime(locale, value, unit, opts), [locale]);
   const hasKey = useCallback((key: string) => !!resolveKey(resources[locale]?.translation, key) || !!resolveKey(resources[fallbackLocale]?.translation, key), [locale, resources, fallbackLocale]);
 
-  const value = useMemo<I18nContextValue>(() => ({ locale, setLocale, t, formatNumber, formatDate, formatRelativeTime, hasKey }), [locale, t, formatNumber, formatDate, formatRelativeTime, hasKey]);
+  const value = useMemo<I18nContextValue>(() => ({ locale, setLocale, t, formatNumber, formatDate, formatRelativeTime: relativeTime, hasKey }), [locale, t, formatNumber, formatDate, relativeTime, hasKey]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 };
@@ -105,12 +127,12 @@ function interpolate(entry: string, params?: TranslationParams): string {
 const FALLBACK_I18N: I18nContextValue = {
   locale: defaultConfig.locale,
   setLocale: () => {
-    warnOnce('i18n.setLocale', 'setLocale() has no effect without an I18nProvider (mounted by PlatformBlocksProvider).');
+    warnOnce('i18n.setLocale', 'setLocale() has no effect without an I18nProvider (mounted by PlocksProvider).');
   },
   t: (key, params) => interpolate(key, params),
   formatNumber: (value, opts) => new Intl.NumberFormat(defaultConfig.locale, opts).format(value),
   formatDate: (value, opts) => new Intl.DateTimeFormat(defaultConfig.locale, opts).format(value),
-  formatRelativeTime: (value, unit, opts) => new Intl.RelativeTimeFormat(defaultConfig.locale, opts).format(value, unit),
+  formatRelativeTime: (value, unit, opts) => formatRelativeTime(defaultConfig.locale, value, unit, opts),
   hasKey: () => false,
 };
 

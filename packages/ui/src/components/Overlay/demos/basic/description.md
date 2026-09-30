@@ -1,10 +1,9 @@
 ---
-title: Overlay patterns
+title: Basics
 category: surfaces
 order: 10
 tags: [overlays, effects]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

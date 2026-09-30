@@ -109,7 +109,7 @@ function SelectInner<T>(props: SelectProps<T>, ref: React.ForwardedRef<SelectHan
   const spacingStyles = useStyleProps(props);
   const renderDisclaimer = useDisclaimer(disclaimer, disclaimerProps);
 
-  const baseId = useA11yId(undefined, 'pb-select');
+  const baseId = useA11yId(undefined, 'plocks-select');
   const listId = `${baseId}-listbox`;
   const hasLabel = hasContent(label);
 

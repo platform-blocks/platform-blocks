@@ -53,12 +53,11 @@ props:
     description: Whether the menu is disabled
     default: false
 examples:
+  - choiceItems
   - basic
   - submenu
   - context
   - positioning
 ---
 
-The Menu component provides a dropdown interface for navigation links, actions, and contextual options. It supports flexible positioning, full keyboard navigation (arrow keys, typeahead, Home/End), nested submenus, and click, hover or context-menu triggers. Compound members are available as `Menu.Item`, `Menu.Label`, `Menu.Divider`, `Menu.Dropdown` and `Menu.Sub` (or the matching named exports).
-
-`Menu.Label` renders a section header in the theme's `sectionLabel` text role; restyle one with `textProps`.
+The Menu component provides a dropdown interface for navigation links, actions, and contextual options.

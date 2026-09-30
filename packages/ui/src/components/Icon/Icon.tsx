@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, type ViewProps, type ViewStyle } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 
 import { a11yProps, type A11yProps } from '../../core/accessibility/a11yProps';
 import { factory } from '../../core/factory';
@@ -16,8 +15,8 @@ import { tablerIcons } from './icons/tabler';
 import { iconRegistry, registerIcons } from './registry';
 import type { ExternalIconComponent, IconProps } from './types';
 
-// Initialize icons on first import. The default set is backed by
-// `@tabler/icons-react-native`; consumers can add more via `registerIcon(s)`.
+// Initialize icons on first import. The default set is bundled with plocks;
+// consumers can add more via `registerIcon(s)`.
 let iconsInitialized = false;
 const initializeIcons = () => {
   if (!iconsInitialized) {
@@ -134,68 +133,12 @@ export const Icon = factory<{
     );
   }
 
-  const {
-    content,
-    outlined,
-    filled,
-    viewBox = '0 0 24 24',
-    variant: defaultVariant = 'outlined',
-    preserveStrokeOnFill = false,
-  } = iconDef;
+  const { outlined, filled, variant: defaultVariant = 'outlined' } = iconDef;
 
   const resolvedVariant = variant ?? defaultVariant;
 
-  // Component-based registry entry (Tabler): pick filled/outlined variant.
-  if (outlined || filled) {
-    const Cmp = resolvedVariant === 'filled' ? (filled ?? outlined) : (outlined ?? filled);
-    if (Cmp) {
-      return renderComponentIcon(Cmp);
-    }
-  }
-
-  // Legacy SVG path content.
-  if (typeof content === 'string') {
-    const isFilled = resolvedVariant === 'filled';
-    // Base stroke width is designed for 24x24; scale it proportionally.
-    const scaledStrokeWidth = stroke * (resolvedSize / 24);
-    const fillColor = isFilled ? resolvedColor : 'none';
-    const strokeColor = isFilled && !preserveStrokeOnFill ? 'none' : resolvedColor;
-    const appliedStrokeWidth = isFilled && !preserveStrokeOnFill ? 0 : scaledStrokeWidth;
-
-    return (
-      <View ref={ref} style={[boxStyle, mirrorStyle, spacingStyle, style]} testID={testID} {...iconA11y}>
-        <Svg
-          width="100%"
-          height="100%"
-          viewBox={viewBox}
-          fill={fillColor}
-          stroke={strokeColor}
-          strokeWidth={appliedStrokeWidth}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <Path d={content} fill={fillColor} stroke={strokeColor} strokeWidth={appliedStrokeWidth} />
-        </Svg>
-      </View>
-    );
-  }
-
-  if (typeof content !== 'function') {
-    return <View ref={ref} style={[boxStyle, spacingStyle, style]} testID={testID} {...DECORATIVE_A11Y} />;
-  }
-
-  // Legacy component content: wrapped so the ref, testID and accessibility
-  // props always land on a host view.
-  const IconComponent = content;
-  return (
-    <View ref={ref} style={wrapperStyle} testID={testID} {...iconA11y}>
-      <IconComponent
-        width={resolvedSize}
-        height={resolvedSize}
-        color={resolvedColor}
-        strokeWidth={stroke}
-        stroke={stroke}
-      />
-    </View>
-  );
+  const Cmp = resolvedVariant === 'filled' ? (filled ?? outlined) : (outlined ?? filled);
+  return Cmp
+    ? renderComponentIcon(Cmp)
+    : <View ref={ref} style={[boxStyle, spacingStyle, style]} testID={testID} {...DECORATIVE_A11Y} />;
 }, { displayName: 'Icon' });

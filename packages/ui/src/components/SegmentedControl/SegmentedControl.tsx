@@ -138,7 +138,7 @@ export const SegmentedControl = factory<{
   const shouldHugContent = !isFullWidth && styleProps.w === undefined;
 
   const reducedMotion = useReducedMotion();
-  const labelId = useA11yId(undefined, 'pb-segmented-label');
+  const labelId = useA11yId(undefined, 'plocks-segmented-label');
 
   const items = useMemo(() => normalizeData(data), [data]);
   const initialFallback = useMemo(() => {

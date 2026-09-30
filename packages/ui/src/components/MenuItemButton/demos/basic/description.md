@@ -1,5 +1,5 @@
 ---
-title: Basic Menu
+title: Basics
 description: Simple dropdown menu with icons and dividers.
 ---
 

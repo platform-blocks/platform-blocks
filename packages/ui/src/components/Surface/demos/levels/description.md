@@ -5,7 +5,6 @@ order: 10
 tags: [elevation, levels]
 highlightLines: []
 status: stable
-since: 0.11.0
 hidden: false
 ---
 

@@ -34,12 +34,18 @@ props:
   - name: selectedRows
     type: (string|number)[]
     description: Selected row IDs (controlled). Omit it to let the table manage selection
+  - name: getRowId
+    type: (row, index) => string | number
+    description: Stable row ID; required when selection, expandable rows, or edit mode is enabled
   - name: onSelectionChange
     type: (selected) => void
     description: Called with the selected row IDs when the selection changes
   - name: onRowClick
     type: (row, index) => void
-    description: Fires when a body cell is pressed, or activated with Enter / Space. Makes the table an ARIA grid with arrow-key cell navigation (web)
+    description: Fires when a body cell is pressed, or activated with Enter / Space. Ungrouped, non-virtual web tables use ARIA grid navigation
+  - name: onCellEdit
+    type: (index, columnKey, value, rowId, row) => void
+    description: Commits an edit against the current visible row; rowId and row identify the record even after sorting
   - name: loading
     type: boolean
     description: Whether table is in loading state
@@ -87,6 +93,10 @@ props:
   - name: cellTextProps
     type: "Omit<TextProps, 'children'>"
     description: Override props applied to default-rendered cell text (cells without a custom `cell` renderer)
+  - name: showColumnMenu
+    type: boolean
+    description: Show the options menu in each column header
+    default: true
 examples:
   - basic
   - advanced-filtering
@@ -98,11 +108,4 @@ examples:
   - server-side
 ---
 
-The DataTable component provides a feature-rich interface for displaying tabular data with sorting, pagination, row selection, and customizable columns.
-
-## Accessibility
-
-- Read-only tables render with `table` / `row` / `columnheader` / `cell` roles; with `onRowClick` or edit mode the table becomes an ARIA `grid` (`treegrid` with expandable rows) whose cells share one tab stop — arrow keys move between cells, Home / End jump to the row ends, PageUp / PageDown move ten rows, and Enter / Space activate the cell.
-- Sortable headers are buttons, and their column header reports the current order through `aria-sort`.
-- Selection checkboxes are labelled "Select all rows" / "Select row n"; the header checkbox reports the mixed state when some rows are selected.
-- Pass `ariaLabel` to name the table.
+DataTable displays tabular data with sorting, pagination, selection, and editable cells.

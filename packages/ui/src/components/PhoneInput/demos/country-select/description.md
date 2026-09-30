@@ -5,7 +5,6 @@ order: 25
 tags: [country, picker, dial-code, phone]
 highlightLines: []
 status: experimental
-since: 1.0.0
 hidden: false
 ---
 

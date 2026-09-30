@@ -1,7 +1,7 @@
 ---
 title: HoverCard
 description: Floating preview card shown while the pointer rests on (or keyboard focus is on) a target, for supplementary details like profile or link previews.
-source: "@platform-blocks/ui"
+source: "@plocks/ui"
 status: "beta"
 category: overlay
 playground: true
@@ -12,7 +12,7 @@ variants:
   - name: "click"
     description: "Press-to-toggle card with interactive content"
 dependencies:
-  - "@platform-blocks/core"
+  - "@plocks/core"
 related:
   - "Popover"
   - "Tooltip"
@@ -58,4 +58,4 @@ props:
     description: "Never open"
 ---
 
-`HoverCard` shows supplementary content next to a target — a user or link preview — without a click. It is positioned with the shared overlay primitive (flips and shifts to stay on screen, follows scroll), sits on the elevation ladder's level 2 surface, and is dismissible with Escape.
+HoverCard shows supplementary content beside a target on hover or focus.

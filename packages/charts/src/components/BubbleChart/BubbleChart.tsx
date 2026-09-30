@@ -13,9 +13,6 @@ import type { Scale } from '../../utils/scales';
 import { AnimatedBubble } from './AnimatedBubble';
 import type { ActiveTarget } from '../../core/hittest/types';
 
-// Backwards compatibility alias
-export type SimpleBubbleChartProps = BubbleChartProps;
-
 const clamp01 = (value: number) => {
   if (!Number.isFinite(value)) return 0;
   if (value < 0) return 0;

@@ -4,7 +4,6 @@ category: theming
 order: 40
 tags: [underline, afterline]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

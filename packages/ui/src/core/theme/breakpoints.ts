@@ -1,6 +1,6 @@
 import { DEFAULT_BREAKPOINT_VALUES } from './scales';
 import { getBreakpoints } from './tokens';
-import type { PlatformBlocksTheme } from './types';
+import type { PlocksTheme } from './types';
 
 export interface Breakpoints {
   /** Base breakpoint (0px) */
@@ -31,7 +31,7 @@ export const DEFAULT_BREAKPOINTS: Breakpoints = {
 const themeBreakpointsCache = new WeakMap<object, Breakpoints>();
 
 /** A theme's breakpoint table in the `Breakpoints` shape (cached per theme table). */
-export function breakpointsFromTheme(theme: Partial<PlatformBlocksTheme> | null | undefined): Breakpoints {
+export function breakpointsFromTheme(theme: Partial<PlocksTheme> | null | undefined): Breakpoints {
   const table = theme?.breakpoints;
   if (!table) return DEFAULT_BREAKPOINTS;
   const cached = themeBreakpointsCache.get(table);

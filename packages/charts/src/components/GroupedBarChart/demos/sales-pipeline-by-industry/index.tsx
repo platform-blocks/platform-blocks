@@ -1,4 +1,4 @@
-import { GroupedBarChart } from '@platform-blocks/charts';
+import { GroupedBarChart } from '@plocks/charts';
 
 import { SERIES } from './data';
 

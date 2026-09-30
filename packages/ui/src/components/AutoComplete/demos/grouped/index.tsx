@@ -1,4 +1,4 @@
-import { AutoComplete, Block } from '@platform-blocks/ui';
+import { AutoComplete, Block } from '@plocks/ui';
 
 const countries = [
   { label: 'United States', value: 'us', group: 'North America' },

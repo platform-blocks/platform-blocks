@@ -1,4 +1,4 @@
-import { Block, Divider, Text } from '@platform-blocks/ui';
+import { Block, Divider, Text } from '@plocks/ui';
 
 const COLORS = ['border', 'subtle', 'muted', 'gray', 'primary', 'secondary', 'success', 'warning', 'error'] as const;
 

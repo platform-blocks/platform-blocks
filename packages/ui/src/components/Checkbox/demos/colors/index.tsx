@@ -1,4 +1,4 @@
-import { Block, Checkbox } from '@platform-blocks/ui';
+import { Block, Checkbox } from '@plocks/ui';
 
 const COLORS = ['primary', 'secondary', 'success', 'warning', 'error'] as const;
 

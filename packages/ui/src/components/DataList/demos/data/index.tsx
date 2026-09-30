@@ -1,4 +1,4 @@
-import { DataList } from '@platform-blocks/ui';
+import { DataList } from '@plocks/ui';
 
 const details = [
   { label: 'Order', value: '#SS-10428' },

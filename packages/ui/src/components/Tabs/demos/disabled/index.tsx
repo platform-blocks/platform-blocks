@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Tabs, Text } from '@platform-blocks/ui';
+import { Block, Tabs, Text } from '@plocks/ui';
 
 const ITEMS = [
   {

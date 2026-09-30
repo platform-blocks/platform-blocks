@@ -1,4 +1,4 @@
-import { Block, Text } from '@platform-blocks/ui';
+import { Block, Text } from '@plocks/ui';
 
 const TRACKING = [-1, -0.5, 0, 0.5, 1, 2, 4];
 

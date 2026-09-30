@@ -1,4 +1,4 @@
-import { Block, Chip, Divider, Text } from '@platform-blocks/ui';
+import { Block, Chip, Divider, Text } from '@plocks/ui';
 
 export function Demo() {
   return (

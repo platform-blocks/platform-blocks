@@ -64,7 +64,7 @@ const EMPTY: WebProps = Object.freeze({}) as WebProps;
  * dropped. Spread onto any RN host component:
  *
  * ```tsx
- * <View {...webProps({ onKeyDown, tabIndex: 0, dataSet: { pbInput: 'true' } })} />
+ * <View {...webProps({ onKeyDown, tabIndex: 0, dataSet: { plocksInput: 'true' } })} />
  * ```
  */
 export function webProps(props: WebProps): WebProps {

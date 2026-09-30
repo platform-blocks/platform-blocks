@@ -6,9 +6,8 @@ import { getNodeText } from '../../core/accessibility/useA11yId';
 import { factory } from '../../core/factory';
 import { webStyle } from '../../core/platform';
 import { useTheme } from '../../core/theme/ThemeProvider';
-import { getControlSize, resolveRadius, resolveShadow, stepDown } from '../../core/theme/tokens';
+import { getControlSize, resolveRadius, resolveShadow } from '../../core/theme/tokens';
 import { resolveGradientStops, resolveVariantRoles } from '../../core/theme/variantRoles';
-import { warnOnce } from '../../core/utils/logger';
 import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
 import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
 import { resolveLinearGradient } from '../../utils/optionalDependencies';
@@ -18,8 +17,8 @@ import type { BadgeProps, BadgeVariant } from './types';
 
 const { LinearGradient: OptionalLinearGradient, hasLinearGradient } = resolveLinearGradient();
 
-/** A badge is a label, not a control: it sits well below the compact control height. */
-const BADGE_HEIGHT_RATIO = 0.625;
+/** A badge is a label, not a control: it sits at half the matching control height. */
+const BADGE_HEIGHT_RATIO = 0.5;
 const BADGE_PADDING_RATIO = 0.8;
 
 const ABSOLUTE_FILL: ViewStyle = { position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 };
@@ -36,8 +35,8 @@ const CONTENT_STYLE: ViewStyle = {
 };
 
 /**
- * A small status label. Metrics derive from the compact control size
- * (`getControlSize(theme, stepDown(size))`): `md` is 20px tall. `onPress` makes
+ * A small status label. Metrics derive from the matching control size:
+ * `md` is 20px tall. `onPress` makes
  * it a button; `onRemove` adds a remove button named "Remove <label>".
  */
 export const Badge = factory<{ props: BadgeProps; ref: View }>((props, ref) => {
@@ -49,10 +48,8 @@ export const Badge = factory<{ props: BadgeProps; ref: View }>((props, ref) => {
     color,
     c,
     onPress,
-    startSection: startSectionProp,
-    endSection: endSectionProp,
-    startIcon,
-    endIcon,
+    startSection,
+    endSection,
     onRemove,
     removePosition = 'right',
     removeButtonLabel,
@@ -60,16 +57,11 @@ export const Badge = factory<{ props: BadgeProps; ref: View }>((props, ref) => {
     style,
     textStyle,
     labelProps,
-    radius = 'md',
+    radius = 'full',
     shadow = 'none',
     testID,
     ...rest
   } = props;
-
-  if (startIcon !== undefined) warnOnce('Badge.startIcon', 'Badge: `startIcon` is deprecated; use `startSection`.');
-  if (endIcon !== undefined) warnOnce('Badge.endIcon', 'Badge: `endIcon` is deprecated; use `endSection`.');
-  const startSection = startSectionProp ?? startIcon;
-  const endSection = endSectionProp ?? endIcon;
 
   const theme = useTheme();
   const { styleProps, otherProps: a11yRest } = extractStyleProps(rest);
@@ -81,8 +73,11 @@ export const Badge = factory<{ props: BadgeProps; ref: View }>((props, ref) => {
   const effectiveVariant: BadgeVariant =
     requestedVariant === 'gradient' && !hasLinearGradient ? 'filled' : requestedVariant;
 
-  const control = getControlSize(theme, stepDown(size));
+  const control = getControlSize(theme, size);
   const height = typeof size === 'number' ? size : Math.round(control.height * BADGE_HEIGHT_RATIO);
+  const fontSize = typeof size === 'number'
+    ? Math.max(8, Math.round(size * 0.6))
+    : Math.max(8, control.fontSize - 2);
   const borderRadius = resolveRadius(theme, radius);
 
   const gradientStops = useMemo(
@@ -113,7 +108,13 @@ export const Badge = factory<{ props: BadgeProps; ref: View }>((props, ref) => {
     // Badges are flat unless the consumer opts in via `shadow`.
     ...resolveShadow(theme, shadow),
   };
-  const labelStyle: TextStyle = { fontSize: control.fontSize, textAlign: 'center', color: roles.text };
+  const labelStyle: TextStyle = {
+    fontSize,
+    lineHeight: Math.round(fontSize * 1.2),
+    letterSpacing: -fontSize * 0.02,
+    textAlign: 'center',
+    color: roles.text,
+  };
   const gap = control.gap;
 
   const labelText = getNodeText(children);

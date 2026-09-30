@@ -2,7 +2,8 @@
 /**
  * Demo index generator (Phase 0)
  * Responsibilities:
- *   - Scan component demo directories: ui/src/components/<Component>/demo/*.tsx
+ *   - Scan component demo directories of every workspace package:
+ *     packages/<pkg>/src/components/<Component>/demos/
  *   - Read optional paired markdown (.md) with YAML frontmatter for metadata
  *   - Emit generated artifacts to docs/data/generated/
  */
@@ -11,14 +12,23 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
-import { GITHUB_REPO, SITE_URL } from '../apps/platform-blocks.com/config/urls';
-import { LLMS_SHARED_PROPS_URL } from '../apps/platform-blocks.com/config/llmsDocs';
+import { GITHUB_REPO, SITE_URL } from '../apps/docs/config/urls';
+import { LLMS_SHARED_PROPS_URL } from '../apps/docs/config/llmsDocs';
+import { CHARTS_PACKAGE, UI_PACKAGE, listWorkspacePackages, packageContaining } from './lib/packages';
 
 const ROOT = path.resolve(__dirname, '..');
+const PACKAGES = listWorkspacePackages(ROOT);
 const UI_COMPONENTS_DIR = path.join(ROOT, 'packages', 'ui', 'src', 'components');
 const UI_HOOKS_DIR = path.join(ROOT, 'packages', 'ui', 'src', 'hooks');
-const CHARTS_COMPONENTS_DIR = path.join(ROOT, 'packages', 'charts', 'src', 'components'); // charts components directory
-const OUTPUT_DIR = path.join(ROOT, 'apps', 'platform-blocks.com', 'data', 'generated');
+const CHARTS = PACKAGES.find(pkg => pkg.name === CHARTS_PACKAGE);
+const CHARTS_COMPONENTS_DIR = CHARTS?.components;
+/**
+ * Packages whose components are documented as components: @plocks/ui and the
+ * add-on packages beside it (dates, code, …). Charts are collected separately —
+ * they default to the `charts` category and keep their own route.
+ */
+const COMPONENT_PACKAGES = PACKAGES.filter(pkg => pkg !== CHARTS);
+const OUTPUT_DIR = path.join(ROOT, 'apps', 'docs', 'data', 'generated');
 // Per-component markdown consumed by the docs app (CopyPageMenu) and by
 // scripts/generate-llms.ts, which publishes it under public/llms/.
 const COMPONENT_MARKDOWN_DIR = path.join(OUTPUT_DIR, 'component-markdown');
@@ -35,7 +45,6 @@ interface DemoMeta {
   category: string;
   order: number;
   status?: string;
-  since?: string;
   hidden?: boolean;
   highlightLines?: (number | string)[];
   renderStyle?: 'auto' | 'center';
@@ -72,6 +81,14 @@ const GITHUB_BRANCH = 'main';
 function githubUrlFor(absPath: string): string {
   const relative = path.relative(ROOT, absPath).split(path.sep).join('/');
   return `${GITHUB_REPO}/blob/${GITHUB_BRANCH}/${relative}`;
+}
+
+/**
+ * Specifier the generated demo manifest imports a demo by, relative to the
+ * manifest itself (`../../../../packages/<pkg>/src/components/…`).
+ */
+function manifestImportPath(absPath: string): string {
+  return path.relative(OUTPUT_DIR, absPath).split(path.sep).join('/');
 }
 
 /** Attaches `githubUrl` to `index.tsx` and keeps the sibling files' own links. */
@@ -199,12 +216,12 @@ function parseHighlight(val: any): (number | string)[] | undefined {
 
 /**
  * Extensions a demo folder can contribute as an extra source tab (`data.ts`,
- * `theme.ts`, `fixtures.json`, …). `index.tsx` is the demo entry and is added
+ * `theme.ts`, `fixtures.json`, `content.md`, …). `index.tsx` is the demo entry and is added
  * first by the caller; `metadata.ts` and the description markdown are docs
  * plumbing rather than example source, so they stay out of the tab strip.
  */
-const DEMO_FILE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.json', '.css']);
-const DEMO_FILE_EXCLUDE = new Set(['index.tsx', 'index.ts', 'metadata.ts']);
+const DEMO_FILE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.md']);
+const DEMO_FILE_EXCLUDE = new Set(['index.tsx', 'index.ts', 'metadata.ts', 'description.md']);
 
 function collectDemoFiles(folderPath: string): DemoFile[] {
   let entries: string[] = [];
@@ -212,6 +229,7 @@ function collectDemoFiles(folderPath: string): DemoFile[] {
   return entries
     .filter(name => !name.startsWith('.'))
     .filter(name => !DEMO_FILE_EXCLUDE.has(name))
+    .filter(name => !/^description\.[a-z]{2}\.md$/.test(name))
     .filter(name => DEMO_FILE_EXTENSIONS.has(path.extname(name)))
     .filter(name => { try { return fs.statSync(path.join(folderPath, name)).isFile(); } catch { return false; } })
     .sort()
@@ -278,12 +296,14 @@ function collectDemos() {
   // Track source directory per component so props extraction works across multiple roots
   const componentSourceDir: Record<string, string> = {};
 
-  const components = fs.readdirSync(UI_COMPONENTS_DIR).filter(f => fs.statSync(path.join(UI_COMPONENTS_DIR, f)).isDirectory());
+  const components = COMPONENT_PACKAGES.flatMap(pkg => fs.readdirSync(pkg.components)
+    .filter(f => fs.statSync(path.join(pkg.components, f)).isDirectory())
+    .map(comp => ({ comp, componentsDir: pkg.components })));
 
-  for (const comp of components) {
-    componentSourceDir[comp] = path.join(UI_COMPONENTS_DIR, comp);
-    const demoDir = path.join(UI_COMPONENTS_DIR, comp, 'demos');
-    const metaDir = path.join(UI_COMPONENTS_DIR, comp, 'meta');
+  for (const { comp, componentsDir } of components) {
+    componentSourceDir[comp] = path.join(componentsDir, comp);
+    const demoDir = path.join(componentsDir, comp, 'demos');
+    const metaDir = path.join(componentsDir, comp, 'meta');
     if (!fs.existsSync(demoDir)) continue;
 
     const entries = fs.readdirSync(demoDir);
@@ -311,12 +331,11 @@ function collectDemos() {
     } else {
       console.warn(`[generate-demos] Missing canonical meta/component.md for ${comp}`);
     }
-    const tsxFiles = entries.filter(f => f.endsWith('.tsx'));
     const subfolders = entries.filter(f => fs.existsSync(path.join(demoDir, f)) && fs.statSync(path.join(demoDir, f)).isDirectory());
 
     codeByComponent[comp] = codeByComponent[comp] || {};
 
-    // 1. New structure: each subfolder is a demo (expects index.tsx, optional description.md, metadata.ts)
+    // Each subfolder is a demo (index.tsx, optional description.md and metadata.ts)
     for (const folder of subfolders) {
       const indexPath = path.join(demoDir, folder, 'index.tsx');
       if (!fs.existsSync(indexPath)) continue; // skip non-demo folders
@@ -330,7 +349,7 @@ function collectDemos() {
       }
       const codeHash = sha256(codeSnippet);
       const id = `${comp}.${folder}`;
-      const relImport = `../../../../packages/ui/src/components/${comp}/demos/${folder}`;
+      const relImport = manifestImportPath(path.join(demoDir, folder));
       // Sibling sources (data.ts, fixtures.json, …) become extra file tabs in
       // the docs code panel. Emitted only when the demo actually has them.
       const localFiles = collectDemoFiles(path.join(demoDir, folder));
@@ -399,7 +418,6 @@ function collectDemos() {
         category: meta.category || 'general',
         order: typeof meta.order === 'number' ? meta.order : 100,
         status: meta.status,
-        since: meta.since,
         hidden: meta.hidden === true,
         highlightLines: parseHighlight(meta.highlightLines),
         renderStyle: ['center', 'auto'].includes(meta.renderStyle) ? meta.renderStyle : undefined,
@@ -411,67 +429,11 @@ function collectDemos() {
       });
     }
 
-    // 2. Legacy flat .tsx files (kept for incremental migration)
-    for (const file of tsxFiles) {
-      if (file === 'index.ts' || file === 'index.tsx') continue; // ignore aggregator
-      const baseName = file.replace(/\.tsx$/, '');
-      const prefix = `${comp}.demo.`;
-      let short = baseName.startsWith(prefix) ? baseName.slice(prefix.length) : baseName;
-      short = short.replace(/\.+/g, '-');
-      const id = `${comp}.${short}`;
-      if (codeByComponent[comp][id]) continue; // skip if new structure already registered same id
-      const tsxPath = path.join(demoDir, file);
-      const raw = fs.readFileSync(tsxPath, 'utf8');
-      const codeHash = sha256(raw);
-      const relImport = `../../../../packages/ui/src/components/${comp}/demos/${baseName}`;
-      codeByComponent[comp][id] = { code: raw, hash: codeHash, importPath: relImport, githubUrl: githubUrlFor(tsxPath) };
-      const mdPath = path.join(demoDir, `${baseName}.md`);
-      let meta: any = {};
-      let mdBody = '';
-      const localizedDescriptions2: Record<string, string> = {};
-      try {
-        const localeFiles = fs.readdirSync(demoDir).filter(f => f.startsWith(baseName + '.description.') && f.endsWith('.md'));
-        for (const lf of localeFiles) {
-          const rawLoc = fs.readFileSync(path.join(demoDir, lf), 'utf8');
-          const { body } = parseFrontmatter(rawLoc);
-          const parts = lf.split('.');
-          const locale = parts[parts.length - 2];
-          localizedDescriptions2[locale] = body.trim();
-        }
-      } catch { }
-      if (fs.existsSync(mdPath)) {
-        const mdRaw = fs.readFileSync(mdPath, 'utf8');
-        const { frontmatter, body } = parseFrontmatter(mdRaw);
-        meta = frontmatter;
-        mdBody = body.trim();
-      }
-      const title = meta.title || short.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      demos.push({
-        id,
-        component: comp,
-        demo: short,
-        title,
-        description: meta.description || mdBody || '',
-        localizedDescriptions: Object.keys(localizedDescriptions2).length ? localizedDescriptions2 : undefined,
-        tags: Array.isArray(meta.tags) ? meta.tags : [],
-        category: meta.category || 'general',
-        order: typeof meta.order === 'number' ? meta.order : 100,
-        status: meta.status,
-        since: meta.since,
-        hidden: meta.hidden === true,
-        highlightLines: parseHighlight(meta.highlightLines),
-        renderStyle: ['center', 'auto'].includes(meta.renderStyle) ? meta.renderStyle : undefined,
-        codeCopy: meta.codeCopy === true || meta.codeCopy === false ? meta.codeCopy : undefined,
-        codeLineNumbers: meta.codeLineNumbers === true || meta.codeLineNumbers === false ? meta.codeLineNumbers : undefined,
-        codeSpoiler: meta.codeSpoiler === true,
-        codeSpoilerMaxHeight: typeof meta.codeSpoilerMaxHeight === 'number' ? meta.codeSpoilerMaxHeight : undefined,
-        previewCenter: meta.previewCenter === true ? true : undefined,
-      });
-    }
+
   }
 
   // Also collect from charts package if present
-  if (fs.existsSync(CHARTS_COMPONENTS_DIR)) {
+  if (CHARTS_COMPONENTS_DIR) {
     const chartComponents = fs.readdirSync(CHARTS_COMPONENTS_DIR).filter(f => fs.statSync(path.join(CHARTS_COMPONENTS_DIR, f)).isDirectory());
     if (process.env.DEMOS_DEBUG) {
       console.log('[generate-demos][charts] Candidate component dirs:', chartComponents);
@@ -507,11 +469,10 @@ function collectDemos() {
         console.warn(`[generate-demos] Missing canonical meta/component.md for chart ${comp}`);
       }
 
-      const tsxFiles = entries.filter(f => f.endsWith('.tsx'));
-      const subfolders = entries.filter(f => fs.existsSync(path.join(demoDir, f)) && fs.statSync(path.join(demoDir, f)).isDirectory());
+        const subfolders = entries.filter(f => fs.existsSync(path.join(demoDir, f)) && fs.statSync(path.join(demoDir, f)).isDirectory());
       codeByComponent[comp] = codeByComponent[comp] || {};
 
-      // New structured demos
+      // Structured demos
       for (const folder of subfolders) {
         const indexPath = path.join(demoDir, folder, 'index.tsx');
         if (!fs.existsSync(indexPath)) continue;
@@ -524,7 +485,7 @@ function collectDemos() {
         if (codeMatch) codeSnippet = codeMatch[1];
         const codeHash = sha256(codeSnippet);
         const id = `${comp}.${folder}`;
-        const relImport = `../../../../packages/charts/src/components/${comp}/demos/${folder}`;
+        const relImport = manifestImportPath(path.join(demoDir, folder));
         const chartExtraFiles = collectDemoFiles(path.join(demoDir, folder));
         codeByComponent[comp][id] = {
           code: codeSnippet,
@@ -555,7 +516,6 @@ function collectDemos() {
           category: meta.category || 'charts',
           order: typeof meta.order === 'number' ? meta.order : 100,
           status: meta.status,
-          since: meta.since,
           hidden: meta.hidden === true,
           highlightLines: parseHighlight(meta.highlightLines),
           renderStyle: ['center', 'auto'].includes(meta.renderStyle) ? meta.renderStyle : undefined,
@@ -567,55 +527,7 @@ function collectDemos() {
         });
       }
 
-      // Legacy flat .tsx demo files
-      for (const file of tsxFiles) {
-        if (file === 'index.ts' || file === 'index.tsx') continue;
-        const baseName = file.replace(/\.tsx$/, '');
-        const prefix = `${comp}.demo.`;
-        let short = baseName.startsWith(prefix) ? baseName.slice(prefix.length) : baseName;
-        short = short.replace(/\.+/g, '-');
-        const id = `${comp}.${short}`;
-        if (codeByComponent[comp][id]) continue;
-        const tsxPath = path.join(demoDir, file);
-        const raw = fs.readFileSync(tsxPath, 'utf8');
-        if (process.env.DEMOS_DEBUG) {
-          console.log(`[generate-demos][charts] Processing legacy demo file: ${comp}/${file}`);
-        }
-        const codeHash = sha256(raw);
-        const relImport = `../../../../packages/charts/src/components/${comp}/demos/${baseName}`;
-        codeByComponent[comp][id] = { code: raw, hash: codeHash, importPath: relImport, githubUrl: githubUrlFor(tsxPath) };
-        const mdPath = path.join(demoDir, `${baseName}.md`);
-        let meta: any = {};
-        let mdBody = '';
-        if (fs.existsSync(mdPath)) {
-          const mdRaw = fs.readFileSync(mdPath, 'utf8');
-          const { frontmatter, body } = parseFrontmatter(mdRaw);
-          meta = frontmatter;
-          mdBody = body.trim();
-        }
-        const title = meta.title || short.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        demos.push({
-          id,
-          component: comp,
-          demo: short,
-          title,
-          description: meta.description || mdBody || '',
-          localizedDescriptions: undefined,
-          tags: Array.isArray(meta.tags) ? meta.tags : [],
-          category: meta.category || 'charts',
-          order: typeof meta.order === 'number' ? meta.order : 100,
-          status: meta.status,
-          since: meta.since,
-          hidden: meta.hidden === true,
-          highlightLines: parseHighlight(meta.highlightLines),
-          renderStyle: ['center', 'auto'].includes(meta.renderStyle) ? meta.renderStyle : undefined,
-          codeCopy: meta.codeCopy === true || meta.codeCopy === false ? meta.codeCopy : undefined,
-          codeLineNumbers: meta.codeLineNumbers === true || meta.codeLineNumbers === false ? meta.codeLineNumbers : undefined,
-          codeSpoiler: meta.codeSpoiler || true,
-          codeSpoilerMaxHeight: typeof meta.codeSpoilerMaxHeight === 'number' ? meta.codeSpoilerMaxHeight : undefined,
-          previewCenter: meta.previewCenter === true ? true : undefined,
-        });
-      }
+
     }
   }
 
@@ -673,8 +585,8 @@ function collectDemos() {
       if (!jsDocLines.length) return { description: undefined as string | undefined, tags: '' };
       const content = jsDocLines.join('\n');
       // The description is everything before the first `@tag`. Filtering only
-      // the lines that *start* with `@` leaks the continuation lines of a
-      // wrapped tag (a multi-line `@deprecated` note) into the description.
+      // the lines that *start* with `@` leaks continuation lines of a
+      // wrapped tag into the description.
       const stripped = jsDocLines.map(l => l.replace(/^\s*\* ?/, ''));
       const firstTag = stripped.findIndex(l => l.trim().startsWith('@'));
       const cleaned = (firstTag === -1 ? stripped : stripped.slice(0, firstTag))
@@ -731,17 +643,16 @@ function collectDemos() {
       const optional = sigMatch[0].includes(name + '?:');
       const { description: jsDesc, tags } = flushJsDoc();
       const description = jsDesc || pendingLineComment || trailingComment;
-      let deprecated: boolean | undefined; let internal: boolean | undefined; let jsDefault: string | undefined;
+      let internal: boolean | undefined; let jsDefault: string | undefined;
       if (tags) {
         const tagLines = tags.split(/@/).slice(1).map(s => s.trim());
         for (const t of tagLines) {
-          if (t.startsWith('deprecated')) deprecated = true;
           if (t.startsWith('internal')) internal = true;
           const defMatch = t.match(/^default\s+([^\n]*)/); if (defMatch) jsDefault = defMatch[1].trim();
         }
       }
       pendingLineComment = undefined;
-      if (name) { collected.push({ name, type: typePortion, required: !optional, defaultValue: jsDefault || defaultValue, description, deprecated, internal }); dedupe.add(name); }
+      if (name) { collected.push({ name, type: typePortion, required: !optional, defaultValue: jsDefault || defaultValue, description, internal }); dedupe.add(name); }
     }
     return collected;
   }
@@ -834,9 +745,10 @@ function collectDemos() {
       }
     }
   };
-  // Pre-scan shared type files: everything under packages/charts/src plus each UI
-  // component's `types.ts`. This covers cross-component bases (LineChartProps,
-  // ComboChartProps) and shared bases (BaseChartProps, SpacingProps).
+  // Pre-scan shared type files: everything under packages/charts/src plus each
+  // component's `types.ts` in the other packages. This covers cross-component
+  // bases (LineChartProps, ComboChartProps) and shared bases (BaseChartProps,
+  // SpacingProps).
   const walkTs = (dir: string, pick: (f: string) => boolean, acc: string[] = []): string[] => {
     let entries: fs.Dirent[];
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return acc; }
@@ -847,9 +759,12 @@ function collectDemos() {
     }
     return acc;
   };
-  const chartsSrc = path.join(ROOT, 'packages', 'charts', 'src');
-  for (const f of walkTs(chartsSrc, f => f.endsWith('.ts') && !f.endsWith('.d.ts'))) scanForInterfaces(f);
-  for (const f of walkTs(UI_COMPONENTS_DIR, f => /(?:^|\/)types\.ts$|\.types\.ts$/.test(f.replace(/\\/g, '/')))) scanForInterfaces(f);
+  if (CHARTS) {
+    for (const f of walkTs(CHARTS.src, f => f.endsWith('.ts') && !f.endsWith('.d.ts'))) scanForInterfaces(f);
+  }
+  for (const pkg of COMPONENT_PACKAGES) {
+    for (const f of walkTs(pkg.components, f => /(?:^|\/)types\.ts$|\.types\.ts$/.test(f.replace(/\\/g, '/')))) scanForInterfaces(f);
+  }
   // Shared prop bags live in core, not in any component's `types.ts` —
   // `BorderRadiusProps` (core/theme/radius) and `ShadowProps` (core/theme/shadow)
   // are extended by Card, Surface, Badge and others, and were silently dropped
@@ -859,8 +774,13 @@ function collectDemos() {
   // Then every other component source file. Bases increasingly live beside the
   // implementation (`PickerFieldBaseProps` in DatePickerInput/PickerField.tsx,
   // `FieldBaseProps` in _internal/Field/fieldProps.ts); the index is
-  // first-wins, so the `types.ts` files scanned above keep precedence.
-  for (const f of walkTs(UI_COMPONENTS_DIR, f => /\.tsx?$/.test(f) && !f.endsWith('.d.ts') && !/__(web_)?tests__/.test(f.replace(/\\/g, '/')))) scanForInterfaces(f);
+  // first-wins, so the `types.ts` files scanned above keep precedence. The
+  // add-on packages are scanned whole — they have no `core`, and their own
+  // modules (media's sound system) sit beside `components`.
+  const isSourceFile = (f: string) => /\.tsx?$/.test(f) && !f.endsWith('.d.ts') && !/__(web_)?tests__/.test(f.replace(/\\/g, '/'));
+  for (const pkg of COMPONENT_PACKAGES) {
+    for (const f of walkTs(pkg.name === UI_PACKAGE ? pkg.components : pkg.src, isSourceFile)) scanForInterfaces(f);
+  }
 
   // Split an `extends` clause into base specs, honouring `Omit<Base, 'k' | 'j'>`,
   // `Pick<Base, 'k' | 'j'>` and `Partial<Base>`.
@@ -923,7 +843,7 @@ function collectDemos() {
       path.join(compDir, `${comp}.types.ts`),
       path.join(compDir, `${comp}.types.tsx`),
       // For charts, also fallback to shared root types file so interfaces like HeatmapChartProps are discovered.
-      /charts\/src\//.test(compDir.replace(/\\/g, '/')) ? path.join(ROOT, 'packages', 'charts', 'src', 'types.ts') : ''
+      CHARTS && packageContaining([CHARTS], compDir) ? path.join(CHARTS.src, 'types.ts') : ''
     ].filter(f => f && fs.existsSync(f));
     if (!candidateFiles.length) continue;
     for (const f of candidateFiles) scanForInterfaces(f);
@@ -1057,19 +977,23 @@ function collectDemos() {
   // components/Layout, but they are Flex with the direction fixed.
   const SUBCOMPONENT_HOSTS: Record<string, string> = { Layout: 'Flex' };
 
+  // Keyed by the component folder's absolute path: each package has its own barrel.
   const exportsByDir = new Map<string, string[]>();
-  try {
-    const barrel = fs.readFileSync(path.join(ROOT, 'packages', 'ui', 'src', 'index.ts'), 'utf8')
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .replace(/\/\/.*$/gm, '');
-    // `export { A, B } from './components/Dir'` — value exports only; the
-    // `export type { … }` form never matches `export\s*\{`.
-    for (const match of barrel.matchAll(/export\s*\{([^}]*)\}\s*from\s*'\.\/components\/([^'/]+)[^']*'/g)) {
-      const names = match[1].split(',').map(part => part.trim()).filter(part => part && !part.startsWith('type '))
-        .map(part => part.match(/\bas\s+([A-Za-z_$][\w$]*)$/)?.[1] ?? part);
-      exportsByDir.set(match[2], [...(exportsByDir.get(match[2]) ?? []), ...names]);
-    }
-  } catch { /* no barrel: nothing to add */ }
+  for (const pkg of PACKAGES) {
+    try {
+      const barrel = fs.readFileSync(pkg.entry, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '');
+      // `export { A, B } from './components/Dir'` — value exports only; the
+      // `export type { … }` form never matches `export\s*\{`.
+      for (const match of barrel.matchAll(/export\s*\{([^}]*)\}\s*from\s*'\.\/components\/([^'/]+)[^']*'/g)) {
+        const names = match[1].split(',').map(part => part.trim()).filter(part => part && !part.startsWith('type '))
+          .map(part => part.match(/\bas\s+([A-Za-z_$][\w$]*)$/)?.[1] ?? part);
+        const dir = path.join(pkg.components, match[2]);
+        exportsByDir.set(dir, [...(exportsByDir.get(dir) ?? []), ...names]);
+      }
+    } catch { /* no barrel: nothing to add */ }
+  }
 
   // `${name}Props`, interface or alias, with its `extends` chain resolved the
   // same way as a component's own props. Every component source file is in the
@@ -1083,12 +1007,9 @@ function collectDemos() {
   };
 
   for (const [dir, names] of exportsByDir) {
-    const host = SUBCOMPONENT_HOSTS[dir] ?? dir;
+    const host = SUBCOMPONENT_HOSTS[path.basename(dir)] ?? path.basename(dir);
     if (!componentMeta[host]) continue;
-    const files = walkTs(
-      path.join(UI_COMPONENTS_DIR, dir),
-      f => /\.tsx?$/.test(f) && !f.endsWith('.d.ts') && !/__(web_)?tests__/.test(f.replace(/\\/g, '/')),
-    );
+    const files = walkTs(dir, isSourceFile);
     const sources = files.map(f => fs.readFileSync(f, 'utf8'));
 
     for (const name of new Set(names)) {
@@ -1194,6 +1115,8 @@ function collectDemos() {
   }
   for (const [comp, hooks] of Object.entries(relatedHooks)) {
     componentMeta[comp].relatedHooks = hooks.map(hook => hook.name);
+    // Signature + summary for the component page's Hooks tab.
+    componentMeta[comp].hooks = hooks;
   }
 
   return { demos, codeByComponent, componentMeta, propsMeta, componentSourceDir, warningCounts, componentWarnings, subcomponents, relatedHooks, typeDocs };
@@ -1364,7 +1287,6 @@ function collectHooks() {
         category: meta.category || 'general',
         order: typeof meta.order === 'number' ? meta.order : 100,
         status: meta.status,
-        since: meta.since,
         hidden: meta.hidden === true,
         highlightLines: parseHighlight(meta.highlightLines),
         renderStyle: ['center', 'auto'].includes(meta.renderStyle) ? meta.renderStyle : undefined,
@@ -1554,7 +1476,7 @@ function restatesName(name: string, description: string): boolean {
  * where the name and type carry most of the meaning).
  */
 function formatProp(prop: Record<string, any>, compact: boolean, descriptions = true): string {
-  const flags = [prop.required ? 'required' : null, prop.deprecated ? 'deprecated' : null].filter(Boolean);
+  const flags = [prop.required ? 'required' : null].filter(Boolean);
   let type = compactParagraph(prop.values ?? prop.type);
   // A literal union's members are the API, so only other types are clipped.
   if (compact && !prop.values) type = clip(type, 100);
@@ -1587,8 +1509,7 @@ interface PropsListOptions {
 /**
  * One line per prop — `name (required): Type = default — description` — rather
  * than a five-column table whose Required and Default cells were empty on
- * almost every row. `@internal` props are left out; deprecated ones are marked
- * (and dropped from the compact variant) so they are not copied into new code.
+ * almost every row. `@internal` props are left out.
  *
  * Inherited props fold into one line each: the shared bags into a pointer at
  * the shared-props guide, and props inherited from another documented
@@ -1597,7 +1518,7 @@ interface PropsListOptions {
  */
 function buildPropsList(props: Array<Record<string, any>>, options: PropsListOptions = {}): string {
   const { compact = false, descriptions = true, self, pages, sharedNames = true } = options;
-  const visible = props.filter(prop => !prop.internal && !(compact && prop.deprecated));
+  const visible = props.filter(prop => !prop.internal);
   if (!visible.length) return '_No documented props yet._';
 
   const shared = new Map<string, string[]>();
@@ -1697,7 +1618,7 @@ function buildComponentMarkdown(name: string, context: ComponentMarkdownContext,
   }
 
   const packageName = componentMeta.packageName
-    || (componentMeta.category === 'charts' ? '@platform-blocks/charts' : '@platform-blocks/ui');
+    || (componentMeta.category === 'charts' ? CHARTS_PACKAGE : UI_PACKAGE);
   if (compact) {
     // One line in place of the Metadata section.
     const status = componentMeta.status && componentMeta.status !== 'stable' ? ` · Status: ${componentMeta.status}` : '';
@@ -1705,15 +1626,15 @@ function buildComponentMarkdown(name: string, context: ComponentMarkdownContext,
   }
   const metaList: string[] = [];
   metaList.push(`- Import: \`import { ${name} } from '${packageName}';\``);
-  if (packageName === '@platform-blocks/charts') {
-    metaList.push('- Install: `npm install @platform-blocks/charts` — a separate package from `@platform-blocks/ui`');
+  if (packageName !== UI_PACKAGE) {
+    metaList.push(`- Install: \`npm install ${packageName}\` — a separate package from \`${UI_PACKAGE}\``);
   }
   if (componentMeta.status && componentMeta.status !== 'stable') metaList.push(`- Status: ${componentMeta.status}`);
   if (!compact) {
     const componentTags = formatTagList(componentMeta.tags);
     if (componentTags) metaList.push(`- Tags: ${componentTags}`);
     // Charts have their own detail route; everything else lives under /components.
-    metaList.push(`- Docs: ${SITE_URL}/${packageName === '@platform-blocks/charts' ? 'charts' : 'components'}/${name}`);
+    metaList.push(`- Docs: ${SITE_URL}/${packageName === CHARTS_PACKAGE ? 'charts' : 'components'}/${name}`);
     if (componentMeta.sourcePath) {
       metaList.push(`- Source: ${GITHUB_REPO}/tree/${GITHUB_BRANCH}/${componentMeta.sourcePath}`);
     }
@@ -1803,9 +1724,8 @@ function generate() {
     if (!meta) continue;
     const relative = path.relative(ROOT, sourceDir).split(path.sep).join('/');
     meta.sourcePath = relative;
-    meta.packageName = relative.startsWith('packages/charts/')
-      ? '@platform-blocks/charts'
-      : '@platform-blocks/ui';
+    // The package the folder lives in, unless meta/component.md names one.
+    meta.packageName = meta.packageName || packageContaining(PACKAGES, sourceDir)?.name || UI_PACKAGE;
     if (fs.existsSync(path.join(sourceDir, 'meta', 'component.md'))) {
       meta.docsPath = `${relative}/meta/component.md`;
     }

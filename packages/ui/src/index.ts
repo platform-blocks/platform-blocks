@@ -11,11 +11,11 @@
 // =============================================================================
 
 // Theme & Provider
-export { PlatformBlocksProvider, BUILT_IN_DARK_THEME } from './core/theme/PlatformBlocksProvider';
+export { PlocksProvider, BUILT_IN_DARK_THEME } from './core/theme/PlocksProvider';
 export { HapticsProvider, useHapticsSettings } from './core/haptics/HapticsProvider';
-export { useTheme, useThemeVisuals, useThemeLayout, PlatformBlocksThemeProvider } from './core/theme/ThemeProvider';
-export type { ThemeVisuals, ThemeLayout, PlatformBlocksThemeProviderProps } from './core/theme/ThemeProvider';
-export { ThemeModeProvider, useThemeMode, type ThemeModeConfig, type ColorSchemeMode } from './core/theme/ThemeModeProvider';
+export { useTheme, useThemeVisuals, useThemeLayout } from './core/theme/ThemeProvider';
+export type { ThemeVisuals, ThemeLayout } from './core/theme/ThemeProvider';
+export { useThemeMode, type ThemeModeConfig, type ColorSchemeMode } from './core/theme/ThemeModeProvider';
 export { createTheme } from './core/theme/utils';
 export { DEFAULT_THEME } from './core/theme/defaultTheme';
 export { DARK_THEME } from './core/theme/darkTheme';
@@ -35,8 +35,10 @@ export {
 export type { ThemeColorVariablesCssOptions, ShellChromeColors, ShellChromeToken } from './core/theme/cssVariableTheme';
 export { useColorScheme } from './core/theme/useColorScheme';
 export { I18nProvider, useI18n } from './core/i18n';
-export { OverlayProvider, useOverlay, useOverlayApi, useOverlays } from './core/providers/OverlayProvider';
-export { DirectionProvider, useDirection, useDirectionSafe } from './core/providers/DirectionProvider';
+export { OverlayProvider, useOverlayApi, useOverlays } from './core/providers/OverlayProvider';
+export { OverlayRenderer } from './core/providers/OverlayRenderer';
+export type { OverlayRendererProps } from './core/providers/OverlayRenderer';
+export { DirectionProvider, useDirection } from './core/providers/DirectionProvider';
 export type { Direction, DirectionContextValue, DirectionProviderProps, StorageController } from './core/providers/DirectionProvider';
 export { KeyboardManagerProvider, useKeyboardManager, useKeyboardManagerOptional } from './core/providers/KeyboardManagerProvider';
 export type { KeyboardManagerProviderProps, KeyboardManagerContextValue } from './core/providers/KeyboardManagerProvider';
@@ -56,6 +58,10 @@ export { useListNavigation } from './core/accessibility/useListNavigation';
 export type { UseListNavigationOptions, UseListNavigationResult } from './core/accessibility/useListNavigation';
 export { useAdjustable } from './core/accessibility/useAdjustable';
 export type { UseAdjustableOptions, UseAdjustableResult, AdjustableProps } from './core/accessibility/useAdjustable';
+export type { ListNavigationOptionProps } from './core/accessibility/useListNavigation';
+export { readKey, consumeEvent, focusNode } from './core/accessibility/keyboard';
+export type { KeyboardEventLike } from './core/accessibility/keyboard';
+export { useA11yId } from './core/accessibility/useA11yId';
 // Motion
 export { useReducedMotion } from './core/motion/useReducedMotion';
 export { ReducedMotionProvider } from './core/motion/ReducedMotionProvider';
@@ -67,10 +73,7 @@ export { useLatestCallback } from './core/hooks/useLatestCallback';
 // under a distinct name so the root `useHaptics` can stay the documented hook from
 // `./hooks/useHaptics` (impactPressIn / notifySuccess / selection …), which is what
 // Button, IconButton, and Toast use internally.
-export { SoundProvider, useSound, useHaptics as useSoundHaptics, getAllSounds, getSoundsByCategory, createSound, DEFAULT_SOUND_IDS } from './core/sound';
-export { useSoundOptional } from './core/sound/context';
-export type { SoundAsset, SoundOptions, HapticFeedbackOptions } from './core/sound';
-export { factory, polymorphicFactory } from './core/factory';
+export { factory } from './core/factory';
 export { BreakpointProvider } from './core/responsive';
 
 // Design tokens — resolve scale tokens against the current theme (DESIGN §1)
@@ -89,12 +92,26 @@ export {
 } from './core/theme/tokens';
 export type { ControlSizeMetrics, BreakpointValues, ShadowToken, RadiusInput } from './core/theme/tokens';
 export { resolveScrim } from './core/theme/tokens';
+export { SCALE_KEYS } from './core/theme/scales';
+export type { ScaleKey } from './core/theme/scales';
+export {
+  resolveColorProp,
+  resolveTextColor,
+  resolveBg,
+  resolveAccentColor,
+  resolveLineColor,
+} from './core/theme/resolveColors';
+export type { ThemeColor, ThemeColorToken, ColorScope, ResolveColorOptions } from './core/theme/resolveColors';
+export { resolveSurface, surfaceInteractionTint } from './core/theme/surfaces';
+export type { SurfaceInteractionState } from './core/theme/surfaces';
+export { normalizeHex } from './core/theme/colorUtils';
+export { DEFAULT_FONT_FAMILY_MONO } from './core/theme/defaultTheme';
 export { DEFAULT_TEXT_ROLES, getTextRole, resolveTextRole } from './core/theme/textRoles';
 export type { TextRoleName, TextRoleStyle, TextRoles } from './core/theme/types';
 export { DEFAULT_Z_INDICES, getZIndex } from './core/theme/zIndices';
 export type { ZIndices, ZIndexLayer } from './core/theme/zIndices';
 export { getBuiltInTheme } from './core/theme/utils';
-export type { PlatformBlocksThemePair, PlatformBlocksThemeOther, ThemeBackgrounds, ControlSizes } from './core/theme/types';
+export type { PlocksThemePair, PlocksThemeOther, ThemeBackgrounds, ControlSizes } from './core/theme/types';
 export { themeCssVariables } from './core/theme/cssVariableTheme';
 export { getColorSchemeScript, applyColorSchemeMarker } from './core/theme/colorSchemeMarker';
 export type { ColorSchemeScriptOptions, ColorSchemeMarkerOptions } from './core/theme/colorSchemeMarker';
@@ -126,9 +143,6 @@ export {
   rem,
   px,
   getSize,
-  getFontSize,
-  getRadius,
-  getShadow,
   getColor,
   debounce,
   throttle,
@@ -180,17 +194,6 @@ export { OverlayHost } from './core/overlay/OverlayHost';
 export type { OverlayHostProps } from './core/overlay/OverlayHost';
 export type { OverlayConfig, OverlayLayerOptions } from './core/providers/OverlayProvider';
 
-// Size system (granular exports)
-export {
-  resolveSize,
-  getIconSize,
-  getHeight,
-  getSpacing,
-  getLineHeight,
-  COMPONENT_SIZES,
-  SIZE_SCALES,
-} from './core/theme/sizes';
-
 // Breakpoints
 export { DEFAULT_BREAKPOINTS, resolveResponsiveProp } from './core/theme/breakpoints';
 
@@ -215,6 +218,11 @@ export {
   useTitleRegistration,
   useOverlayMode,
   useHaptics,
+  usePersistedState,
+  useElementSize,
+  useKeyboardHeight,
+  usePagination,
+  getPaginationRange,
 } from './hooks';
 export type { UseHapticsOptions, UseHapticsReturn } from './hooks';
 
@@ -259,11 +267,9 @@ export { ShimmerText } from './components/ShimmerText';
 export { GradientText } from './components/GradientText';
 export { Highlight } from './components/Highlight';
 export { Title, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6 } from './components/Title';
-export { Markdown } from './components/Markdown';
 
 // Form Components
 export { Button } from './components/Button';
-export { BrandButton } from './components/BrandButton';
 export { Input, PasswordInput, TextInputBase } from './components/Input';
 export { TextArea } from './components/TextArea';
 export { NumberInput } from './components/NumberInput';
@@ -282,15 +288,7 @@ export { Search } from './components/Search';
 export { Select } from './components/Select';
 export { AutoComplete } from './components/AutoComplete';
 export { FileInput } from './components/FileInput';
-export { DatePicker, Calendar, MiniCalendar, Month, Day } from './components/DatePicker';
-export { MonthPicker } from './components/MonthPicker';
-export { YearPicker } from './components/YearPicker';
-export { DatePickerInput } from './components/DatePickerInput';
-export { MonthPickerInput } from './components/MonthPickerInput';
-export { YearPickerInput } from './components/YearPickerInput';
 export { Wheel } from './components/Wheel';
-export { TimePicker } from './components/TimePicker';
-export { TimePickerInput } from './components/TimePickerInput';
 export { PhoneInput } from './components/PhoneInput';
 export { ColorInput } from './components/ColorInput';
 export { ColorPicker } from './components/ColorPicker';
@@ -313,8 +311,15 @@ export { Badge } from './components/Badge';
 export { Blockquote } from './components/Blockquote';
 export * from './components/Indicator';
 export { Block } from './components/Block';
+export { BackgroundImage } from './components/BackgroundImage';
+export { Gradient } from './components/Gradient';
+export { MotionBlock } from './components/MotionBlock';
+export { ScrollArea } from './components/ScrollArea';
+export { SafeArea } from './components/SafeArea';
+export { KeyboardAvoidingArea } from './components/KeyboardAvoidingArea';
 export { Surface, useSurfaceLevel } from './components/Surface';
 export { Card } from './components/Card';
+export { StickyNote } from './components/StickyNote';
 export { Chip } from './components/Chip';
 export { DataTable } from './components/DataTable';
 export { Disclaimer, ComponentWithDisclaimer, useDisclaimer, withDisclaimer, extractDisclaimerProps } from './components/_internal/Disclaimer';
@@ -353,17 +358,6 @@ export { LoadingOverlay } from './components/LoadingOverlay';
 export { ContextMenu } from './components/ContextMenu';
 export { Popover } from './components/Popover';
 export { HoverCard } from './components/HoverCard';
-export {
-  Spotlight,
-  SpotlightProvider,
-  useSpotlightStore,
-  spotlight,
-  createSpotlightStore,
-  useSpotlightStoreInstance,
-  useDirectSpotlightState,
-  directSpotlight,
-  onSpotlightRequested
-} from './components/Spotlight';
 export { FloatingActions } from './components/FloatingActions';
 
 // Permission Components
@@ -373,18 +367,7 @@ export { FloatingActions } from './components/FloatingActions';
 export { Icon } from './components/Icon';
 export { IconButton } from './components/IconButton';
 export { Image } from './components/Image';
-export { BrandIcon, brandIcons } from './components/BrandIcon';
-export { Carousel } from './components/Carousel';
-export { Gallery } from './components/Gallery';
-export { Video } from './components/Video';
-export type {
-  VideoProps,
-  VideoRef,
-  VideoSource,
-  VideoState,
-  VideoTimelineEvent,
-} from './components/Video';
-export { AudioPlayer } from './components/AudioPlayer';
+export { Lightbox } from './components/Lightbox';
 export { Waveform } from './components/Waveform';
 
 // Utility Components
@@ -392,9 +375,7 @@ export { Collapse } from './components/Collapse';
 export { Divider } from './components/Divider';
 export { Space } from './components/Space';
 export { Link } from './components/Link';
-export { CodeBlock } from './components/CodeBlock';
 export { CopyButton } from './components/CopyButton/CopyButton';
-export { QRCode } from './components/QRCode';
 export { KeyCap } from './components/KeyCap';
 export { Spoiler } from './components/Spoiler';
 export { PressAnimation, withPressAnimation, AnimatedPressable } from './components/_internal/PressAnimation/PressAnimation';
@@ -406,14 +387,15 @@ export { Accordion } from './components/Accordion';
 // =============================================================================
 
 // Core types
-export type { PlatformBlocksTheme, PlatformBlocksThemeOverride } from './core/theme/types';
-export type { PlatformBlocksProviderProps } from './core/theme/PlatformBlocksProvider';
+export type { PlocksTheme, PlocksThemeOverride } from './core/theme/types';
+export type { PlocksProviderProps } from './core/theme/PlocksProvider';
 export type { ColorScheme } from './core/theme/useColorScheme';
 export type { SizeValue } from './core/theme/sizes';
 export {
   COMPONENT_SIZE_ORDER,
   DEFAULT_COMPONENT_SIZE,
   clampComponentSize,
+  isComponentSize,
   resolveComponentSize,
 } from './core/theme/componentSize';
 export type {
@@ -431,6 +413,18 @@ export type { ScrollSpyOptions, UseScrollSpyItem } from './hooks';
 export type { UseMaskedInputOptions, UseMaskedInputReturn } from './hooks';
 export type { UseTitleRegistrationOptions } from './hooks';
 export type { UseOverlayModeOptions, UseOverlayModeResult } from './hooks';
+export type {
+  PersistedStateControls,
+  PersistedStateStorage,
+  UsePersistedStateOptions,
+  UsePersistedStateReturn,
+  ElementSize,
+  UseElementSizeReturn,
+  UseKeyboardHeightOptions,
+  PaginationRangeItem,
+  UsePaginationOptions,
+  UsePaginationReturn,
+} from './hooks';
 
 // Shared gesture plumbing — the pan/scroll-lock layer behind Slider, Knob,
 // Joystick and Rating, exported so app code can build its own drag surfaces
@@ -450,7 +444,6 @@ export type {
 
 // Component props types (exported alongside components for co-location)
 export type { ButtonProps } from './components/Button';
-export type { BrandButtonProps, BrandPlatform, BrandConfig } from './components/BrandButton';
 export type { TreeProps, TreeNode, TreeNodeState } from './components/Tree';
 export type { NavTreeProps, NavTreeItem, BuildNavTreeOptions } from './components/NavTree';
 export type { TextProps } from './components/Text';
@@ -485,20 +478,12 @@ export type { SearchProps } from './components/Search';
 export type { SelectProps, SelectOption } from './components/Select';
 export type { AutoCompleteProps, AutoCompleteOption } from './components/AutoComplete';
 export type { FileInputProps, FileInputFile } from './components/FileInput';
-export type { DatePickerProps, CalendarProps, MiniCalendarProps } from './components/DatePicker';
-export type { MonthPickerProps } from './components/MonthPicker';
-export type { YearPickerProps } from './components/YearPicker';
-export type { DatePickerInputProps } from './components/DatePickerInput';
-export type { MonthPickerInputProps } from './components/MonthPickerInput';
-export type { YearPickerInputProps } from './components/YearPickerInput';
 export type { WheelItem, WheelProps, WheelValue } from './components/Wheel';
-export type { TimePickerProps, TimePickerValue } from './components/TimePicker/types';
-export type { TimePickerInputProps } from './components/TimePickerInput';
 export type { PhoneInputProps } from './components/PhoneInput';
 export type { ColorInputProps } from './components/ColorInput';
 export type { ColorPickerProps } from './components/ColorPicker';
 export type { RatingProps, RatingIcon } from './components/Rating';
-export type { RollingNumberProps, RollingNumberTimingFunction } from './components/RollingNumber';
+export type { RollingNumberProps, RollingNumberTimingFunction, RollingNumberTrend } from './components/RollingNumber';
 export type { FormProps } from './components/Form';
 export type { BreadcrumbsProps } from './components/Breadcrumbs';
 export type { MenuProps, MenuItemProps, MenuSubProps } from './components/Menu';
@@ -509,6 +494,7 @@ export type { AvatarProps, AvatarGroupProps } from './components/Avatar';
 export type { BadgeProps } from './components/Badge';
 export type { IndicatorProps } from './components/Indicator';
 export type { CardProps } from './components/Card';
+export type { StickyNoteProps, StickyNoteColor } from './components/StickyNote';
 export type { SurfaceProps, SurfaceLevel } from './components/Surface';
 export type { ChipProps } from './components/Chip';
 export type { DataTableProps, DataTableColumn, DataTableFilter, DataTableSort, DataTablePagination } from './components/DataTable';
@@ -544,30 +530,23 @@ export type { TooltipProps, TooltipConfig, TooltipPropValue } from './components
 export type { ContextMenuProps } from './components/ContextMenu';
 export type { PopoverProps, PopoverTargetProps, PopoverDropdownProps } from './components/Popover';
 export type { HoverCardProps, HoverCardPosition, HoverCardShadow } from './components/HoverCard';
-export type { SpotlightProps } from './components/Spotlight';
 
-export type { BrandIconProps, BrandName } from './components/BrandIcon';
 export type { CollapseProps } from './components/Collapse';
 export type { IconButtonProps } from './components/IconButton';
-export type { CarouselProps } from './components/Carousel';
-export type { GalleryProps, GalleryItem } from './components/Gallery';
+export type { LightboxProps, LightboxItem } from './components/Lightbox';
 export type { ImageProps } from './components/Image';
-export type { AudioPlayerProps, AudioPlayerRef } from './components/AudioPlayer';
 export type { WaveformProps } from './components/Waveform';
 export type { DividerProps } from './components/Divider';
 export type { SpaceProps } from './components/Space';
 export type { LinkProps } from './components/Link';
-export type { CodeBlockProps } from './components/CodeBlock';
 export type { CopyButtonProps } from './components/CopyButton/types';
-export type { QRCodeProps } from './components/QRCode';
 export type { KeyCapProps } from './components/KeyCap';
 export type { SpoilerProps } from './components/Spoiler';
 export type { FloatingActionsProps, FloatingActionItem } from './components/FloatingActions';
 export type { PressAnimationProps } from './components/_internal/PressAnimation/PressAnimation';
 export type { AccordionProps, AccordionItemType } from './components/Accordion';
-export type { MarkdownProps, MarkdownComponentMap } from './components/Markdown';
 export type { AppShellProps } from './components/AppShell';
-export type { AppShellBottomNavProps, BottomAppBarItem } from './components/AppShell';
+export type { AppShellBottomNavProps, BottomAppBarProps, BottomAppBarItem } from './components/AppShell';
 export type {
   AppLayoutBlueprint,
   AppLayoutRuntimeContext,
@@ -584,11 +563,17 @@ export type {
 } from './components/AppShell';
 
 // ---------------------------------------------------------------------------
-// Sub-component, handle, and supporting types surfaced by the component
-// migration. Generic names are prefixed with their component to keep the root
+// Sub-component, handle, and supporting types. Generic names are prefixed
+// with their component to keep the root
 // namespace unambiguous.
 // ---------------------------------------------------------------------------
 export type { BlockProps, BlockStyleProps } from './components/Block';
+export type { BackgroundImageProps } from './components/BackgroundImage';
+export type { GradientProps } from './components/Gradient';
+export type { MotionBlockProps } from './components/MotionBlock';
+export type { ScrollAreaProps } from './components/ScrollArea';
+export type { SafeAreaProps } from './components/SafeArea';
+export type { KeyboardAvoidingAreaProps } from './components/KeyboardAvoidingArea';
 export type { RowProps, ColumnProps } from './components/Layout';
 export type { BlockquoteProps } from './components/Blockquote';
 export type { BreadcrumbItem } from './components/Breadcrumbs';
@@ -599,9 +584,7 @@ export type { TableOfContentsControlProps, TocItem } from './components/TableOfC
 export type { CollapseTiming } from './components/Collapse';
 export type { SpoilerControlArgs } from './components/Spoiler';
 export type { AccordionRef, AccordionType, AccordionVariant, AccordionToggleDetail, OnAccordionToggle, AccordionAnimationProp } from './components/Accordion';
-export type { CodeBlockFile, CodeBlockVariant, CodeBlockColorOverrides, CodeBlockTextPalette, CodeBlockToken } from './components/CodeBlock';
 export type { HighlightStyles, HighlightValue } from './components/Highlight';
-export type { MarkdownTableAlignment } from './components/Markdown';
 export type { SkeletonShape } from './components/Skeleton';
 export type { LoaderVariant } from './components/Loader';
 export type { ProgressLabelPosition, ProgressFieldProps, ProgressInteractionProps } from './components/Progress';
@@ -614,20 +597,14 @@ export type { TextAreaProps } from './components/TextArea';
 export { FormLayout, FormSection, FormGroup } from './components/FormLayout';
 export type { FormLayoutProps, FormSectionProps, FormGroupProps } from './components/FormLayout';
 export type { FormFieldProps, FormInputProps, FormLabelProps, FormErrorProps, FormSubmitProps, FormValues, FormFieldDependency, ValidationSchema } from './components/Form';
-export type { BaseInputProps, TextInputBaseProps, ExtendedTextInputProps, ValidationRule, ValidatorFunction } from './components/Input';
+export type { TextInputBaseProps, ExtendedTextInputProps, ValidationRule, ValidatorFunction } from './components/Input';
 export type { FileInputSource, FileInputUploadSettings, FileUploadHelpers } from './components/FileInput';
 export type { NumberFormat, ThousandsGroupStyle } from './components/NumberInput';
 export type { PhoneCountryCode, PhoneChangeMeta, PhoneFormat } from './components/PhoneInput';
 export type { SelectHandle } from './components/Select';
 export type { AutoCompleteHandle } from './components/AutoComplete';
-export type { DatePickerInputHandle } from './components/DatePickerInput';
-export type { MonthPickerInputHandle } from './components/MonthPickerInput';
-export type { YearPickerInputHandle } from './components/YearPickerInput';
-export type { TimePickerInputHandle } from './components/TimePickerInput';
 export type { ColorSwatchProps, ColorSwatchRole } from './components/ColorSwatch';
-export type { DayProps, MonthProps, MiniCalendarControlProps, CalendarLevel, CalendarType, CalendarValue, DateTimePickerProps } from './components/DatePicker';
 export type { ButtonVariant, ButtonAccessibilityProps, PassthroughAccessibilityProps } from './components/Button';
-export type { BrandButtonVariant, BrandButtonBreakpoint } from './components/BrandButton';
 export type { IconButtonVariant } from './components/IconButton';
 export type { CopyButtonVariant } from './components/CopyButton';
 export type { ChipVariant } from './components/Chip';
@@ -638,14 +615,9 @@ export { useKeyCapStyles, getKeyCapStyles } from './components/KeyCap';
 export type { MenuItemButtonProps, MenuItemColor } from './components/MenuItemButton';
 export type { IconProps, IconSize, IconVariant, IconDefinition, IconRegistry, ExternalIconProps, ExternalIconComponent } from './components/Icon';
 export { registerIcon, registerIcons, getIconNames, hasIcon } from './components/Icon';
-export type { BrandIconDefinition, BrandShape } from './components/BrandIcon';
-export type { GalleryModalProps, GalleryThumbnailProps, GalleryControlsProps, GalleryMetadataProps } from './components/Gallery';
-export type { VideoControls, VideoTimelineEventData, VideoQuality, VideoPlaybackRate } from './components/Video';
-export type { AudioPlayerControls, PlaybackState as AudioPlaybackState, ProgressData as AudioProgressData, AudioLoadData, AudioError, AudioMetadata, KeyboardShortcuts as AudioPlayerKeyboardShortcuts } from './components/AudioPlayer';
+export type { LightboxModalProps, LightboxThumbnailProps, LightboxControlsProps, LightboxMetadataProps } from './components/Lightbox';
 export { WaveformSkeleton } from './components/Waveform';
 export type { WaveformMarker, PerformanceMetrics as WaveformPerformanceMetrics, WaveformSkeletonProps } from './components/Waveform';
-export { QRCodeSVG } from './components/QRCode';
-export type { QRCodeSVGProps } from './components/QRCode';
 export type { MasonryViewToken, MasonryFlashListProps } from './components/Masonry';
 export { MobileMenu, resolveNavbarReservedWidth, resolveContentBottom, isMobileBreakpoint, DEFAULT_HEADER, DEFAULT_NAVBAR, DEFAULT_ASIDE, DEFAULT_FOOTER, DEFAULT_BOTTOM_NAV, APP_SHELL_META } from './components/AppShell';
 export type { AppShellHeaderProps, AppShellNavbarProps, AppShellAsideProps, AppShellFooterProps, AppShellMainProps, AppShellSectionProps, MobileMenuProps, MobileMenuConfig, StatusBarManagerProps, StatusBarConfig, HeaderConfig, NavbarConfig, AsideConfig, FooterConfig, BottomNavConfig, LayoutVisibilityConfig, LayoutType as AppShellLayoutType, ResponsiveSize as AppShellResponsiveSize, Breakpoint as AppShellBreakpoint, AppShellContextValue, AppShellApi, AppShellLayoutValue, AppShellCssConfig, AppShellCssOptions, AppShellCssVar, AppLayoutProviderProps, AppLayoutRendererProps, LayoutMainExtraProps } from './components/AppShell';
@@ -658,11 +630,8 @@ export type { TooltipEvents, TooltipPositionType } from './components/Tooltip';
 export type { ContextMenuItem, ContextMenuTriggerProps } from './components/ContextMenu';
 export type { DialogFocusable, DialogVariant, DialogContextValue } from './components/Dialog';
 export { useActiveToasts, toasts } from './components/Toast';
-export type { ToastOptions, ToastStackPosition, ToastPosition, ToastDirection, ToastVariant, ToastSeverity, ToastAction, SeverityToastOptions, ToastShortcut, ToastMessage, ToastQueueOptions } from './components/Toast';
+export type { ToastOptions, ToastStackPosition, ToastDirection, ToastVariant, ToastSeverity, ToastAction, SeverityToastOptions, ToastShortcut, ToastMessage, ToastQueueOptions } from './components/Toast';
 export type { PopoverMiddlewares, FloatingStrategy, ArrowPosition } from './components/Popover';
-export type { SpotlightSearchProps, SpotlightActionProps, SpotlightActionData, SpotlightItem, SpotlightStore } from './components/Spotlight';
-export { SoundButton } from './components/Button/SoundButton';
-export type { SoundButtonProps } from './components/Button/SoundButton';
 export type { UseScrollSpyReturn } from './hooks/useScrollSpy';
 export type { UseTitleRegistrationReturn } from './hooks/useTitleRegistration';
 export type { CheckboxLabelPosition } from './components/Checkbox';
@@ -670,3 +639,59 @@ export type { SwitchVariant, SwitchLabelPosition } from './components/Switch';
 export type { RadioGroupOption, RadioLabelPosition } from './components/Radio';
 export type { ControlFieldIds, ControlFieldPart, ControlFieldLabelProps, ControlFieldDescriptionProps, ControlFieldIndicatorProps, ControlFieldErrorProps } from './components/ControlField';
 export type { SliderBaseProps, SliderTick } from './components/Slider';
+
+// =============================================================================
+// Building blocks — what @plocks/dates, /spotlight, /media, /code, /carousel,
+// /brands and /qrcode are built from. Public so extensions can build on them the same way.
+// =============================================================================
+
+export { Field } from './components/_internal/Field/Field';
+export type { FieldBaseProps, TextFieldBaseProps } from './components/_internal/Field/fieldProps';
+export { DropdownSheet } from './components/_internal/DropdownSheet/DropdownSheet';
+export type { DropdownSheetProps, DropdownSheetPlacement } from './components/_internal/DropdownSheet/DropdownSheet';
+export { PickerTrigger } from './components/Select/PickerTrigger';
+export type { PickerTriggerProps } from './components/Select/PickerTrigger';
+export { getDropdownSurfaceStyle } from './components/Select/fieldControlStyles';
+export type { HTMLTextVariant } from './components/Text/Text';
+export type { ResponsiveSize } from './components/AppShell/types';
+export type { Breakpoint } from './core/responsive';
+export { useOptionalHapticsSettings } from './core/haptics/HapticsProvider';
+export { mergeSlotProps } from './core/utils/mergeSlotProps';
+export { useMergedRef } from './core/utils/mergeRefs';
+export { getLayoutStyles } from './core/utils/layout';
+export type { LayoutProps } from './core/utils/layout';
+export { resolveImageSource } from './utils/imageSource';
+export { resolveOptionalModule } from './utils/optionalModule';
+export type { ResolveOptionalModuleOptions } from './utils/optionalModule';
+// Dev-only logging (silent in production builds).
+export { devLog, devWarn, devError, warnOnce } from './core/utils/logger';
+
+// New Mantine-inspired components
+export { ActionBar, ActionBarDivider, ActionBarCloseButton } from './components/ActionBar';
+export type { ActionBarProps, ActionBarDividerProps, ActionBarCloseButtonProps } from './components/ActionBar';
+export { Menubar, MenubarMenu, MenubarTarget, MenubarDropdown } from './components/Menubar';
+export type { MenubarProps, MenubarMenuProps, MenubarTargetProps, MenubarDropdownProps } from './components/Menubar';
+export { EmptyState, EmptyStateIndicator, EmptyStateTitle, EmptyStateDescription, EmptyStateActions } from './components/EmptyState';
+export type { EmptyStateProps, EmptyStateIndicatorProps, EmptyStateTitleProps, EmptyStateDescriptionProps, EmptyStateActionsProps } from './components/EmptyState';
+export { ComboboxPopover, ComboboxPopoverTarget } from './components/ComboboxPopover';
+export type { ComboboxPopoverProps, ComboboxPopoverSingleProps, ComboboxPopoverMultipleProps, ComboboxPopoverItem, ComboboxPopoverGroup, ComboboxPopoverData, ComboboxPopoverOption, ComboboxPopoverTargetProps, ComboboxPopoverFilter, ComboboxPopoverFilterInput, ComboboxPopoverRenderOptionInput } from './components/ComboboxPopover';
+export { TreeSelect } from './components/TreeSelect';
+export type { TreeSelectProps, TreeSelectSingleProps, TreeSelectMultipleProps } from './components/TreeSelect';
+export { FloatingWindow, FloatingWindowDragHandle, FloatingWindowResizeHandle, useFloatingWindow } from './components/FloatingWindow';
+export type { FloatingWindowProps, FloatingWindowDragHandleProps, FloatingWindowResizeHandleProps, FloatingWindowPosition, FloatingWindowInitialPosition, FloatingWindowDimensions, FloatingWindowHandle, UseFloatingWindowOptions, UseFloatingWindowReturn } from './components/FloatingWindow';
+export { OverflowList } from './components/OverflowList';
+export type { OverflowListProps } from './components/OverflowList';
+export { Marquee } from './components/Marquee';
+export type { MarqueeProps } from './components/Marquee';
+export { Scroller, useScroller } from './components/Scroller';
+export type { ScrollerProps, UseScrollerOptions, UseScrollerReturn } from './components/Scroller';
+export { Splitter, SplitterPane, useSplitter } from './components/Splitter';
+export type { SplitterProps, SplitterPaneProps, SplitterPaneSize, SplitterHandle, SplitterPanelOptions, UseSplitterOptions, UseSplitterReturn } from './components/Splitter';
+export { Cascader } from './components/Cascader';
+export type { CascaderProps, CascaderOption } from './components/Cascader';
+export { FloatingIndicator } from './components/FloatingIndicator';
+export type { FloatingIndicatorProps } from './components/FloatingIndicator';
+export { MenuCheckboxItem, MenuRadioGroup, MenuRadioItem } from './components/Menu';
+export type { MenuCheckboxItemProps, MenuRadioGroupProps, MenuRadioItemProps } from './components/Menu';
+export { ViewportPortal } from './core/overlay';
+export type { ViewportPortalProps } from './core/overlay';

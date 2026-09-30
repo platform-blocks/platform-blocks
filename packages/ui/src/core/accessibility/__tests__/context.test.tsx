@@ -3,7 +3,8 @@ import { AccessibilityInfo, Text } from 'react-native';
 import { act, render, renderHook } from '@testing-library/react-native';
 
 import { AccessibilityProvider, useAccessibility, useOptionalAccessibility } from '../context';
-import { useAnnouncer, useFocus, useReducedMotion, useScreenReader } from '../hooks';
+import { useAnnouncer, useFocus, useScreenReader } from '../hooks';
+import { useReducedMotion } from '../../motion/useReducedMotion';
 import { resetWarnOnce } from '../../utils/logger';
 
 describe('accessibility hooks without a provider', () => {
@@ -23,8 +24,7 @@ describe('accessibility hooks without a provider', () => {
       screenReader: useScreenReader(),
     }));
     expect(result.current.focus.isFocused).toBe(false);
-    expect(result.current.motion.prefersReducedMotion).toBe(false);
-    expect(result.current.motion.getDuration(200)).toBe(200);
+    expect(result.current.motion).toBe(false);
     expect(result.current.screenReader.enabled).toBe(false);
 
     act(() => result.current.announcer.announce('Saved'));
@@ -133,8 +133,6 @@ describe('AccessibilityProvider', () => {
       <AccessibilityProvider reducedMotion>{children}</AccessibilityProvider>
     );
     const { result } = renderHook(() => useReducedMotion(), { wrapper });
-    expect(result.current.prefersReducedMotion).toBe(true);
-    expect(result.current.getDuration(300)).toBe(0);
-    expect(result.current.getScale(0.9)).toBe(1);
+    expect(result.current).toBe(true);
   });
 });

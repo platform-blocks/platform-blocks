@@ -17,7 +17,7 @@ const WRITE_DELAY_MS = 50;
 /** Messages are cleared after this long so a virtual cursor doesn't find stale text. */
 const CLEAR_AFTER_MS = 7000;
 
-const CONTAINER_ATTR = 'data-pb-announcer';
+const CONTAINER_ATTR = 'data-plocks-announcer';
 
 interface LiveRegion {
   node: HTMLElement;

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text as RNText, View } from 'react-native';
 import type { StyleProp, TextStyle } from 'react-native';
 import Animated, {
@@ -19,10 +19,12 @@ import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveTextColor } from '../../core/theme/resolveColors';
 import { resolveFontSize, resolveLineHeight } from '../../core/theme/tokens';
 import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
-import { formatRollingValue, toRollingCells } from './formatValue';
+import { formatRollingValue, nextRollPosition, toRollingCells } from './formatValue';
 import type { RollingNumberProps, RollingNumberTimingFunction } from './types';
 
-const DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+// A trailing 0 after 9, so a column rolling forward past 9 lands on a 0 that
+// is identical to the first entry — the wrap back to the top is invisible.
+const STRIP = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 
 const DEFAULT_DURATION = 600;
 
@@ -69,6 +71,8 @@ const unselectableText = webStyle({ userSelect: 'none' });
 
 interface RollingDigitProps {
   digit: number;
+  /** `1` rolls forward, `-1` backward, `0` straight to the digit. */
+  direction: number;
   height: number;
   duration: number;
   delay: number;
@@ -81,14 +85,15 @@ interface RollingDigitProps {
  * One digit column: a 0–9 strip inside a one-line-tall window, translated so the
  * active digit sits in view.
  *
- * The strip is fixed at ten entries rather than being rebuilt per transition, so
- * a change of any size is a single interruptible `translateY` animation. That
- * also means a 9 → 0 carry rolls back through the strip instead of forward past
- * a repeated zero, which is the same trade every fixed-strip implementation makes
- * and keeps an interrupted animation from ever landing between digits.
+ * The column's position is an unbounded count rather than the digit itself, so it
+ * can roll in the direction the whole number moved: 19 → 20 carries the ones
+ * column forward 9 → 0 like an odometer instead of unwinding it back through
+ * 8…1. Every change is still a single interruptible `translateY` animation to an
+ * integer, so an interrupted roll never lands between digits.
  */
 const RollingDigit = React.memo(function RollingDigit({
   digit,
+  direction,
   height,
   duration,
   delay,
@@ -96,7 +101,11 @@ const RollingDigit = React.memo(function RollingDigit({
   animateOnMount,
   textStyle,
 }: RollingDigitProps) {
-  const position = useSharedValue(animateOnMount && duration > 0 ? 0 : digit);
+  const initialPosition = animateOnMount && duration > 0 ? 0 : digit;
+  const position = useSharedValue(initialPosition);
+  // Where the column is headed, which the next roll starts counting from — the
+  // live shared value may still be mid-animation.
+  const targetRef = useRef(initialPosition);
   const mountedRef = useRef(false);
 
   useEffect(() => {
@@ -106,21 +115,27 @@ const RollingDigit = React.memo(function RollingDigit({
     // `duration` is 0 under reduced motion: jump straight to the digit.
     if (duration <= 0 || (isMount && !animateOnMount)) {
       cancelAnimation(position);
+      targetRef.current = digit;
       position.value = digit;
       return;
     }
 
+    // Animating in on mount counts up from zero.
+    const target = nextRollPosition(targetRef.current, digit, isMount ? 1 : direction);
+    targetRef.current = target;
+
     // Assigning a new animation retargets from wherever the column is now, so a
     // value that changes faster than the roll never snaps.
-    const roll = withTiming(digit, { duration, easing });
+    const roll = withTiming(target, { duration, easing });
     position.value = delay > 0 ? withDelay(delay, roll) : roll;
-  }, [digit, duration, delay, easing, animateOnMount, position]);
+  }, [digit, direction, duration, delay, easing, animateOnMount, position]);
 
   useEffect(() => () => cancelAnimation(position), [position]);
 
-  const stripStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -position.value * height }],
-  }));
+  const stripStyle = useAnimatedStyle(() => {
+    const offset = ((position.value % 10) + 10) % 10;
+    return { transform: [{ translateY: -offset * height }] };
+  });
 
   const windowStyle = useMemo(() => [styles.column, { height }], [height]);
   const glyphStyle = useMemo(() => [textStyle, { height, lineHeight: height }], [textStyle, height]);
@@ -128,8 +143,8 @@ const RollingDigit = React.memo(function RollingDigit({
   return (
     <View style={windowStyle}>
       <Animated.View style={stripStyle}>
-        {DIGITS.map((value) => (
-          <RNText key={value} style={glyphStyle} allowFontScaling={false}>
+        {STRIP.map((value, index) => (
+          <RNText key={index} style={glyphStyle} allowFontScaling={false}>
             {value}
           </RNText>
         ))}
@@ -164,6 +179,7 @@ export const RollingNumber = factory<{
     animationDuration,
     timingFunction = 'ease',
     stagger = 0,
+    trend,
     animateOnMount = false,
     size = 'md',
     c: color,
@@ -217,6 +233,19 @@ export const RollingNumber = factory<{
     [formatted, decimalSeparator]
   );
 
+  // Which way the columns roll comes from the value as a whole, not from each
+  // digit. The digits show the magnitude, so by default -19 → -20 rolls forward
+  // too. Held in state (updated during render) so it survives unrelated
+  // re-renders.
+  const [change, setChange] = useState({ value, direction: 0 });
+  if (!Object.is(change.value, value)) {
+    const delta = typeof trend === 'function'
+      ? trend(change.value, value)
+      : Math.abs(value) - Math.abs(change.value);
+    setChange({ value, direction: Math.sign(delta) || 0 });
+  }
+  const direction = typeof trend === 'number' ? Math.sign(trend) || 0 : change.direction;
+
   const fullText = `${prefix ?? ''}${formatted}${suffix ?? ''}`;
   const spokenText = accessibilityLabel ?? fullText;
 
@@ -253,6 +282,7 @@ export const RollingNumber = factory<{
             <RollingDigit
               key={cell.key}
               digit={Number(cell.char)}
+              direction={direction}
               height={lineHeight}
               duration={duration}
               // Right-to-left stagger: the ones column leads and the carries

@@ -5,7 +5,6 @@ order: 30
 tags: [animation, duration, easing, stagger]
 highlightLines: []
 status: stable
-since: 1.1.0
 hidden: false
 ---
 

@@ -1,4 +1,4 @@
-import { Accordion } from '@platform-blocks/ui';
+import { Accordion } from '@plocks/ui';
 import { setupSteps } from '../data';
 
 export function Demo() {

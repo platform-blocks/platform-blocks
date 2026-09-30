@@ -1,5 +1,5 @@
-import { Avatar, Chip, DataTable, Text } from '@platform-blocks/ui';
-import type { DataTableColumn } from '@platform-blocks/ui';
+import { Avatar, Chip, DataTable, Text } from '@plocks/ui';
+import type { DataTableColumn } from '@plocks/ui';
 
 import { people, type Person } from '../data';
 

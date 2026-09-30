@@ -1,11 +1,10 @@
 ---
-title: Basic usage
+title: Basics
 category: basics
 order: 10
 tags: [status, notification]
 highlightLines: []
 status: stable
-since: 0.4.0
 hidden: false
 ---
 

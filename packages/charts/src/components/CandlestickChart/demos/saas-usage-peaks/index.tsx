@@ -1,4 +1,4 @@
-import { CandlestickChart } from '@platform-blocks/charts';
+import { CandlestickChart } from '@plocks/charts';
 
 import { USAGE_SERIES, UsageCandle, annotations } from './data';
 

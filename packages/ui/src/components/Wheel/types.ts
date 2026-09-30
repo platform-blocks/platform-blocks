@@ -20,8 +20,6 @@ export interface WheelProps<T extends WheelValue = WheelValue>
   defaultValue?: T;
   /** Called with each value that crosses the center (during a spin, a tap, or a key press). */
   onChange?: (value: T) => void;
-  /** @deprecated Use `onChange`. */
-  onValueChange?: (value: T) => void;
   /** Called once the wheel settles on a value. */
   onChangeComplete?: (value: T) => void;
   /** Accessible name for the wheel, such as "Hour". */

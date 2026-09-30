@@ -29,7 +29,7 @@ exports[`SegmentedControl - rendering matches snapshot for a filled segmented co
     </Text>
   </View>
   <View
-    aria-labelledby="pb-segmented-label-_r_0_"
+    aria-labelledby="plocks-segmented-label-_r_0_"
     onLayout={[Function]}
     role="radiogroup"
     style={
@@ -397,7 +397,7 @@ exports[`SegmentedControl - rendering matches snapshot for a vertical ghost segm
     </Text>
   </View>
   <View
-    aria-labelledby="pb-segmented-label-_r_1_"
+    aria-labelledby="plocks-segmented-label-_r_1_"
     onLayout={[Function]}
     role="radiogroup"
     style={

@@ -2,11 +2,11 @@ import React from 'react';
 import { Pressable, Text } from 'react-native';
 import { act, fireEvent, render as rtlRender, screen, within } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../../core/theme/PlocksProvider';
 import { AccessibleAnnouncer, AccessibleModal } from '../AccessibleComponents';
 import { ErrorBoundaryFallback, Landmark, LiveRegion, ProgressIndicator, SkipLink } from '../AccessibilityHelpers';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('Accessibility helpers (react-native-web DOM)', () => {
   it('ProgressIndicator exposes a named progressbar with its value', () => {

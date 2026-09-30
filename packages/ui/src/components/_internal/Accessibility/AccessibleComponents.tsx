@@ -82,7 +82,7 @@ export interface AccessibleModalProps {
  */
 export const AccessibleModal: React.FC<AccessibleModalProps> = ({ visible, title, children, onDismiss }) => {
   const containerRef = useRef<View>(null);
-  const titleId = useA11yId(undefined, 'pb-modal-title');
+  const titleId = useA11yId(undefined, 'plocks-modal-title');
   const { id: layerId } = useLayer({
     active: visible,
     modal: true,

@@ -4,7 +4,6 @@ category: usage
 order: 20
 tags: [hovercard, click, trigger]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

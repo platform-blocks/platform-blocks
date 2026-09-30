@@ -2,7 +2,7 @@
 playground: true
 title: LoadingOverlay
 description: Overlay helper that blocks a section with a centered loader while background work completes.
-source: "@platform-blocks/ui"
+source: "@plocks/ui"
 status: "beta"
 category: feedback
 accessibility: "The covered region (the overlay's parent) is marked aria-busy on web while loading; the overlay is an indeterminate role=progressbar named `loadingLabel`, and waits longer than `announceAfter` (1s) are announced to screen readers. It is non-modal: disable the covered controls (as the demo does) when they must not be used."
@@ -10,7 +10,7 @@ variants:
   - name: "basic"
     description: "Dim background content with a centered loader using overlay and loader props."
 dependencies:
-  - "@platform-blocks/core"
+  - "@plocks/core"
 related:
   - "Overlay"
   - "Loader"
@@ -39,4 +39,4 @@ props:
     description: "Announce `loadingLabel` when loading lasts longer than this many ms (default 1000); `false` never announces."
 ---
 
-`LoadingOverlay` composits the core `Overlay` and `Loader` primitives to create a convenient helper for blocking interactions with a visual indicator during asynchronous operations. Render it inside a relatively positioned container, toggle `visible` during asynchronous work, and customize appearance by passing `overlayProps` or `loaderProps`.
+LoadingOverlay covers content with a loading indicator while work is in progress.

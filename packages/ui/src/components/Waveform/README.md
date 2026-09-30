@@ -17,7 +17,7 @@ An advanced, interactive audio waveform visualization component for React Native
 ## Basic Usage
 
 ```tsx
-import { Waveform } from '@platform-blocks/ui';
+import { Waveform } from '@plocks/ui';
 
 // Simple waveform
 <Waveform
@@ -214,15 +214,6 @@ The component includes comprehensive error handling:
 - **Web**: Full support with keyboard events
 - **React Native**: Touch events only (no keyboard support)
 - **SVG**: Uses react-native-svg for cross-platform compatibility
-
-## Migration from Basic Version
-
-If upgrading from a basic waveform component:
-
-1. **Interactive**: Add `interactive={true}` and `onSeek` handler
-2. **Performance**: Add `maxVisibleBars` for large datasets
-3. **Progress**: Use `progress` and `progressColor` props
-4. **Responsive**: Add `fullWidth={true}` for responsive layouts
 
 ## Related Components
 

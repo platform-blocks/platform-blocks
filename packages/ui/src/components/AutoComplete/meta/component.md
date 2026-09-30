@@ -15,8 +15,8 @@ props:
   label: Label (ReactNode) rendered above the field and linked to the input
   description: Text shown beneath the label, linked to the input
   required: Marks the field required (announced; asterisk)
-  freeSolo: Enter commits the typed text as a new option (`allowCustomValue` is a deprecated alias)
-  useModal: Force the top-pinned sheet (true) or the anchored dropdown (false); `usePortal` is deprecated
+  freeSolo: Enter commits the typed text as a new option
+  useModal: Force the centered dialog (true) or the anchored dropdown (false)
   onEnter: Called on Enter when it doesn't select an option or commit a free-form value
   placeholder: Placeholder text
   helperText: Helper text shown beneath the input
@@ -30,6 +30,4 @@ props:
   startSectionProps: View props applied to the input's selection-area wrapper (chip area + text input)
   endSectionProps: View props applied to the wrapper around the clear button
 ---
-The AutoComplete component provides search functionality with suggestions, supporting single/multi-select, async data loading, and rich content display.
-
-Accessibility: an editable combobox (`role="combobox"`, `aria-autocomplete="list"`). Focus stays in the text input; ArrowUp/ArrowDown move the active option (exposed with `aria-activedescendant`), Enter selects it, Escape closes the list. Options are `role="option"` with `aria-selected`; grouped data renders labelled `role="group"` sections. The `ref` is a FieldHandle (`focus`, `blur`, `clear`).
+Provide search functionality with suggestions, supporting single/multi-select, async data loading, and rich content display.

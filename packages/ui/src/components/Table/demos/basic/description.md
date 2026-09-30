@@ -1,10 +1,9 @@
 ---
-title: Data Prop
+title: Basics
 category: usage
 order: 10
 tags: [table]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

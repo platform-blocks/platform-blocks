@@ -4,7 +4,6 @@ category: usage
 order: 30
 tags: [fw, weights, typography]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

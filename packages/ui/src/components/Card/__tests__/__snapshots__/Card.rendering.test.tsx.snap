@@ -46,7 +46,7 @@ exports[`Card - rendering matches snapshot for filled card with vertical stack 1
     Project Alpha
   </Text>
   <Text>
-    Craft delightful experiences with Platform Blocks components.
+    Craft delightful experiences with plocks components.
   </Text>
 </View>
 `;

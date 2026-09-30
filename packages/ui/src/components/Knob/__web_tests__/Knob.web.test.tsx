@@ -1,10 +1,10 @@
 import React from 'react';
 import { fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { Knob } from '../Knob';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('Knob (react-native-web DOM)', () => {
   it('is a focusable slider named by its label, with aria-value*', () => {
@@ -54,9 +54,9 @@ describe('Knob (react-native-web DOM)', () => {
     expect(knob.getAttribute('aria-valuemax')).toBeNull();
 
     rerender(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <Knob accessibilityLabel="Jog" behavior="endless" defaultValue={10} disabled />
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     expect(screen.getByRole('slider').getAttribute('tabindex')).toBe('-1');
     expect(screen.getByRole('slider').getAttribute('aria-disabled')).toBe('true');

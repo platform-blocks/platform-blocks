@@ -5,7 +5,6 @@ order: 66
 tags: [fs, td, italic, underline, strikethrough, typography]
 highlightLines: []
 status: stable
-since: 1.2.0
 hidden: false
 ---
 

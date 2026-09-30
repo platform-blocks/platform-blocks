@@ -1,4 +1,4 @@
-import { SparklineChart } from '@platform-blocks/charts';
+import { SparklineChart } from '@plocks/charts';
 
 import { DAILY_SIGNUPS } from './data';
 

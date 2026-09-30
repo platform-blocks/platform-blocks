@@ -671,8 +671,5 @@ export const Gauge = withStatics(GaugeRoot, {
   Center: GaugeCenter,
 });
 
-/** @deprecated `Gauge` itself now carries the compound parts. */
-export const GaugeWithCompound = Gauge;
-
 export * from './types';
 export * from './utils';

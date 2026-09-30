@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { I18nManager, Modal, Pressable, StyleSheet, View } from 'react-native';
 import type { StyleProp, ViewProps, ViewStyle } from 'react-native';
 
-import { OverlayProvider, useOverlay } from './OverlayProvider';
+import { OverlayProvider, useOverlayApi, useOverlays } from './OverlayProvider';
 import type { OverlayConfig } from './OverlayProvider';
 import { useTheme } from '../theme/ThemeProvider';
 import { getZIndex } from '../theme/zIndices';
@@ -51,7 +51,8 @@ type MeasurableNode = {
  * (Android back) goes to the layer stack.
  */
 export function OverlayRenderer({ style, hosted = false }: OverlayRendererProps = {}) {
-  const { overlays, closeOverlay } = useOverlay();
+  const overlays = useOverlays();
+  const { closeOverlay } = useOverlayApi();
 
   // Native: overlay coordinates are page coordinates (from `measure`), but the
   // renderer's views are laid out inside its parent. A zero-interaction probe
@@ -146,9 +147,9 @@ function OverlayContent({ overlay, closeOverlay, frame, style }: OverlayContentP
   const contentRef = useRef<View>(null);
 
   const layerOptions = overlay.layer;
-  const closeOnEscape = layerOptions?.closeOnEscape ?? overlay.closeOnEscape !== false;
+  const closeOnEscape = layerOptions?.closeOnEscape ?? true;
   const closeOnOutsidePress =
-    layerOptions?.closeOnOutsidePress ?? (overlay.closeOnClickOutside !== false && overlay.trigger !== 'hover');
+    layerOptions?.closeOnOutsidePress ?? overlay.trigger !== 'hover';
   const modal = layerOptions?.modal ?? false;
 
   const dismiss = (reason: LayerDismissReason) => {
@@ -173,7 +174,7 @@ function OverlayContent({ overlay, closeOverlay, frame, style }: OverlayContentP
     closeOnOutsidePress,
     modal,
     trapFocus: layerOptions?.trapFocus ?? modal,
-    // Legacy overlays (no `layer` options) manage focus themselves.
+    // The owner manages focus unless it opts into layer focus handling.
     autoFocus: layerOptions?.autoFocus ?? false,
     initialFocus: layerOptions?.initialFocus,
     initialFocusRef: layerOptions?.initialFocusRef,
@@ -235,6 +236,25 @@ function OverlayContent({ overlay, closeOverlay, frame, style }: OverlayContentP
         height: '100%',
       }
     : FILL;
+
+  // A viewport layer: the content fills the host and positions itself, and
+  // the layer is click-through wherever the content's own children aren't.
+  if (overlay.fill) {
+    return (
+      <View style={[containerStyle, pointerEventsStyles.boxNone, style]}>
+        <View
+          ref={contentRef}
+          style={[FILL, { zIndex }, pointerEventsStyles.boxNone]}
+          id={overlay.floatingId}
+          nativeID={overlay.floatingId}
+          role={overlay.role as ViewProps['role']}
+          aria-label={overlay.ariaLabel}
+        >
+          <LayerScope id={layerId}>{overlay.content}</LayerScope>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[containerStyle, pointerEventsStyles.boxNone, style]}>

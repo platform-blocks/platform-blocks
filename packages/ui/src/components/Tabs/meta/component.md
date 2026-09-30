@@ -1,7 +1,7 @@
 ---
 title: Tabs
 description: A tab navigation component for organizing content into switchable sections with support for multiple variants and orientations.
-source: "@platform-blocks/ui"
+source: "@plocks/ui"
 status: "stable"
 category: navigation
 playground: true
@@ -20,7 +20,7 @@ variants:
   - name: "animated"
     description: "Smooth transitions and animations between tab content"
 dependencies:
-  - "@platform-blocks/core"
+  - "@plocks/core"
 related:
   - "Navigation"
   - "Menu"
@@ -40,10 +40,10 @@ props:
     description: "Initially active tab key when uncontrolled"
   - name: "value"
     type: "string"
-    description: "Controlled active tab key (replaces the deprecated `activeTab`)"
+    description: "Controlled active tab key"
   - name: "onChange"
     type: "(key: string) => void"
-    description: "Callback when the active tab changes (replaces the deprecated `onTabChange`)"
+    description: "Callback when the active tab changes"
   - name: "activationMode"
     type: "'automatic' | 'manual'"
     description: "Whether arrow keys select the focused tab immediately or only move focus (Enter/Space selects)"

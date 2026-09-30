@@ -1,0 +1,52 @@
+<!doctype html>
+<!-- The 1200×630 social card. brand/build.mjs inserts the dark lockup and screenshots it. -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@500&family=Unbounded:wght@600&display=block" />
+    <style>
+      html, body { margin: 0; }
+      .card {
+        position: relative;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        background: #18161D;
+        color: #F4F4F1;
+        font-family: 'Figtree', system-ui, sans-serif;
+      }
+      .lockup { position: absolute; left: 88px; top: 80px; height: 100px; }
+      .lockup svg { height: 100%; width: auto; display: block; }
+      .headline {
+        position: absolute; left: 88px; top: 250px; margin: 0; width: 620px;
+        font-family: 'Unbounded', 'Arial Black', sans-serif; font-weight: 600;
+        font-size: 60px; line-height: 1.08; letter-spacing: -0.03em;
+      }
+      .body {
+        position: absolute; left: 88px; top: 420px; margin: 0; width: 560px;
+        font-size: 30px; line-height: 1.35; color: #A6A3AE;
+      }
+      .url {
+        position: absolute; left: 88px; bottom: 72px; margin: 0;
+        font-size: 26px; font-weight: 500; color: #FFC21A; letter-spacing: 0.01em;
+      }
+      /* The mark, large and cropped off the right edge. */
+      .mark { position: absolute; right: -40px; top: 60px; width: 360px; height: 556px; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="lockup">{{LOCKUP}}</div>
+      <p class="headline">UI that snaps together.</p>
+      <p class="body">React Native components for iOS, Android and the web.</p>
+      <p class="url">plocks.dev</p>
+      <svg class="mark" viewBox="0 0 44 68" aria-hidden="true">
+        <rect x="0" y="0" width="20" height="20" rx="5" fill="#EF4035" />
+        <rect x="24" y="0" width="20" height="20" rx="5" fill="#EF4035" />
+        <rect x="0" y="24" width="20" height="20" rx="5" fill="#2F6FEB" />
+        <rect x="24" y="24" width="20" height="20" rx="5" fill="#2F6FEB" />
+        <rect x="0" y="48" width="20" height="20" rx="5" fill="#FFC21A" />
+      </svg>
+    </div>
+  </body>
+</html>

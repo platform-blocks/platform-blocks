@@ -5,7 +5,6 @@ order: 65
 tags: [tree, async, loading]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -1,4 +1,4 @@
-import { HeatmapChart } from '@platform-blocks/charts';
+import { HeatmapChart } from '@plocks/charts';
 
 import { DAYS, SESSIONS, UTILIZATION } from './data';
 

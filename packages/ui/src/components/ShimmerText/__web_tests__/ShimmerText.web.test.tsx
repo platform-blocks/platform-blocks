@@ -32,7 +32,7 @@ describe('ShimmerText (web)', () => {
   });
 
   /**
-   * `background-size` and `--pb-shimmer-band` have to agree, because the
+   * `background-size` and `--plocks-shimmer-band` have to agree, because the
    * keyframes derive both sweep endpoints from the custom property.
    */
   it('keeps background-size and the sweep variable in agreement', () => {
@@ -41,7 +41,7 @@ describe('ShimmerText (web)', () => {
 
     const style = textStyle('Live preview');
     expect(style.backgroundSize).toBe('500px 100%');
-    expect(style.getPropertyValue('--pb-shimmer-band')).toBe('500px');
+    expect(style.getPropertyValue('--plocks-shimmer-band')).toBe('500px');
   });
 
   it('runs one uninterrupted CSS animation per cycle', () => {
@@ -50,15 +50,15 @@ describe('ShimmerText (web)', () => {
 
     const style = textStyle('Live preview');
     // repeatDelay is folded into the cycle as a hold, not a separate timer.
-    expect(style.animationName).toBe('pb-shimmer-sweep-hold-20');
+    expect(style.animationName).toBe('plocks-shimmer-sweep-hold-20');
     expect(style.animationDuration).toBe('2500ms');
     expect(style.animationIterationCount).toBe('infinite');
     expect(style.animationDirection).toBe('normal');
     // The keyframes the inline animation names exist in the document.
-    const css = Array.from(document.querySelectorAll('style[data-platform-blocks="shimmer-text"]'))
+    const css = Array.from(document.querySelectorAll('style[data-plocks="shimmer-text"]'))
       .map((el) => Array.from((el as HTMLStyleElement).sheet?.cssRules ?? []).map((r) => r.cssText).join('\n'))
       .join('\n');
-    expect(css).toContain('pb-shimmer-sweep-hold-20');
+    expect(css).toContain('plocks-shimmer-sweep-hold-20');
   });
 
   it('keeps a fractional hold rather than rounding the sweep short', () => {
@@ -68,7 +68,7 @@ describe('ShimmerText (web)', () => {
     // 0.5s of a 2.3s cycle is 21.739...%: whole-percent rounding would cost
     // the sweep several milliseconds every cycle.
     const style = textStyle('Live preview');
-    expect(style.animationName).toBe('pb-shimmer-sweep-hold-21-7');
+    expect(style.animationName).toBe('plocks-shimmer-sweep-hold-21-7');
     expect(style.animationDuration).toBe('2300ms');
   });
 
@@ -77,7 +77,7 @@ describe('ShimmerText (web)', () => {
     measure('shimmer', 200, 24);
 
     const style = textStyle('Live preview');
-    expect(style.animationName).toBe('pb-shimmer-sweep');
+    expect(style.animationName).toBe('plocks-shimmer-sweep');
     expect(style.animationDirection).toBe('reverse');
   });
 

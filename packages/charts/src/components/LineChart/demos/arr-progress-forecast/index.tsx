@@ -1,4 +1,4 @@
-import { LineChart } from '@platform-blocks/charts';
+import { LineChart } from '@plocks/charts';
 
 import { FORECAST_END, FORECAST_START, MONTH_LABELS, SERIES } from './data';
 

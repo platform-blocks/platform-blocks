@@ -5,7 +5,6 @@ order: 60
 tags: [aliases, shorthand, v]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

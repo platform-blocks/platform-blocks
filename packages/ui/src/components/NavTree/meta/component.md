@@ -28,13 +28,6 @@ examples:
   - counts
   - search
   - collapsed
-since: 1.1.0
 ---
 
-A sidebar that nests itself.
-
-Hand it the flat list of routes an app already has — with a category on each — and it groups, orders and renders them as a tree. The branches above the current page open on their own, the row for that page is marked and scrolled to, and which branches are open survives a reload.
-
-Rows carrying an `href` render as real `<a>` elements on web, so cmd-click, middle-click, "copy link address" and crawlers all work; a plain left-click goes to `onNavigate` for client-side routing. Omit `onNavigate` and the rows stay ordinary links the browser follows.
-
-Built on [Tree](/components/Tree), so keyboard navigation, guide lines, filtering and the ARIA `tree`/`treeitem` roles come along with it.
+NavTree turns a flat route list into a collapsible sidebar navigation tree.

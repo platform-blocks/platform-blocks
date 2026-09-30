@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Badge, Block, DataList, Input, Row, Text, useDebouncedValue } from '@platform-blocks/ui';
+import { Badge, Block, DataList, Input, Row, Text, useDebouncedValue } from '@plocks/ui';
 
 const PACKAGES = ['react', 'react native', 'redux', 'rxjs', 'remix', 'rollup'];
 

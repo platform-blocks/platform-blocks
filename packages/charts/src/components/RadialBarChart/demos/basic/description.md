@@ -1,5 +1,5 @@
 ---
-title: Multi-Metric KPIs
+title: Basics
 description: Concentric rings compare progress across several metrics, with tip labels and a center average.
 order: 1
 ---

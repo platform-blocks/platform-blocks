@@ -1,6 +1,6 @@
 /**
  * AutoComplete's mobile presentation (native / small screens): the field opens
- * the shared DropdownSheet pinned to the top, with its own input and list.
+ * the shared centered DropdownSheet, with its own input and list.
  */
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
@@ -103,14 +103,11 @@ describe('AutoComplete — field', () => {
     expect(onChangeText).toHaveBeenCalledWith('');
   });
 
-  it('commits a free-form value on Enter via the deprecated allowCustomValue alias', () => {
+  it('commits a free-form value on Enter with freeSolo', () => {
     const onSelect = jest.fn();
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    render(<AutoComplete data={[]} allowCustomValue value="Kiwi Fruit" onSelect={onSelect} useModal={false} testID="ac" />);
+    render(<AutoComplete data={[]} freeSolo value="Kiwi Fruit" onSelect={onSelect} useModal={false} testID="ac" />);
     fireEvent(screen.getByTestId('ac'), 'keyPress', { nativeEvent: { key: 'Enter' }, preventDefault: jest.fn() });
     expect(onSelect).toHaveBeenCalledWith({ label: 'Kiwi Fruit', value: 'kiwi-fruit' });
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('allowCustomValue'));
-    warn.mockRestore();
   });
 
   it('calls onEnter when Enter commits nothing', () => {

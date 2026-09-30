@@ -42,31 +42,11 @@ export interface HeatmapCellSize {
   height?: number;
 }
 
-/**
- * The shared color scale — `type: 'sequential' | 'diverging' | 'threshold'` — plus a
- * color for empty cells. `domain` replaces `min`/`max`.
- */
-export type HeatmapSharedColorScaleConfig = ColorScaleConfig & {
-  type: 'sequential' | 'diverging' | 'threshold';
+/** Shared chart color scale with a color for empty cells. */
+export type HeatmapColorScaleConfig = ColorScaleConfig & {
   /** Color applied when the cell value is null */
   nullColor?: string;
 };
-
-/** Legacy heatmap scale. Prefer {@link HeatmapSharedColorScaleConfig}. */
-export interface HeatmapColorScaleConfig {
-  /** Strategy used to interpolate colors */
-  type?: 'linear' | 'log' | 'quantize';
-  /** Minimum value represented in the scale */
-  min?: number;
-  /** Maximum value represented in the scale */
-  max?: number;
-  /** Explicit color stops applied to the scale */
-  stops?: HeatmapColorStop[];
-  /** Gradient colors used when stops are not provided */
-  colors?: string[];
-  /** Color applied when the cell value is null */
-  nullColor?: string;
-}
 
 export interface HeatmapHoverHighlightConfig {
   /** Highlight entire row when hovering */
@@ -188,13 +168,8 @@ export interface HeatmapChartProps
     ChartInteractionCallbacks<HeatmapCell> {
   /** Heatmap data points or matrix-style input */
   data: HeatmapCell[] | HeatmapMatrixInput;
-  /** Color scale configuration */
-  /**
-   * Color scale. A shared config (`type: 'sequential' | 'diverging' | 'threshold'`)
-   * or the legacy `linear` / `log` / `quantize` config. Defaults to a single-hue
-   * sequential ramp built from the theme's first palette color.
-   */
-  colorScale?: HeatmapColorScaleConfig | HeatmapSharedColorScaleConfig;
+  /** Shared color scale. Defaults to a single-hue sequential ramp from the theme. */
+  colorScale?: HeatmapColorScaleConfig;
   /** Explicit cell size overrides */
   cellSize?: HeatmapCellSize;
   /** Gap between cells in pixels */

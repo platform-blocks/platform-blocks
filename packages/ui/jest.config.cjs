@@ -16,7 +16,7 @@ module.exports = {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './babel.config.test.cjs' }],
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(?:\\.pnpm/[^/]+/node_modules/)?(react-native|@react-native|expo|@expo|react-native-svg|@platform-blocks|react-native-reanimated|react-native-worklets|react-native-gesture-handler|@react-navigation)/)',
+    'node_modules/(?!(?:\\.pnpm/[^/]+/node_modules/)?(react-native|@react-native|expo|@expo|react-native-svg|@plocks|react-native-reanimated|react-native-worklets|react-native-gesture-handler|@react-navigation)/)',
   ],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.cjs'],
   moduleNameMapper: {

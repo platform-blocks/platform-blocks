@@ -1,4 +1,4 @@
-import { BubbleChart } from '@platform-blocks/charts';
+import { BubbleChart } from '@plocks/charts';
 
 import { Squad, epics, squadPalette } from './data';
 

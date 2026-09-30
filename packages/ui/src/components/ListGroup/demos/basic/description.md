@@ -1,10 +1,9 @@
 ---
-title: Basic Usage
+title: Basics
 category: basics
 order: 10
 tags: [list, items]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

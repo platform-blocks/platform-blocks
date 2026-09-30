@@ -4,7 +4,7 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import { factory } from '../../core/factory/factory';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveSpacing } from '../../core/theme/tokens';
-import { useStyleProps } from '../../core/utils/spacing';
+import { resolveStyleProps, useStyleProps } from '../../core/utils/spacing';
 import { resolveOptionalModule } from '../../utils/optionalModule';
 import { Text } from '../Text';
 import { Loader } from '../Loader';
@@ -55,6 +55,7 @@ export const Masonry = factory<{ props: MasonryProps; ref: View }>((props, ref) 
     optimizeItemArrangement = true,
     renderItem,
     contentContainerStyle,
+    contentProps,
     style,
     testID,
     loading = false,
@@ -76,6 +77,7 @@ export const Masonry = factory<{ props: MasonryProps; ref: View }>((props, ref) 
 
   const theme = useTheme();
   const spacingStyles = useStyleProps(props);
+  const contentStyle = [resolveStyleProps(contentProps ?? {}, theme), contentContainerStyle];
   const resolvedGap = resolveSpacing(theme, gap);
   const gapPx = typeof resolvedGap === 'number' ? resolvedGap : 0;
 
@@ -153,7 +155,7 @@ export const Masonry = factory<{ props: MasonryProps; ref: View }>((props, ref) 
       <View ref={ref} style={[styles.list, rootStyle]} testID={testID}>
         <ScrollView
           scrollEnabled={scrollEnabled}
-          contentContainerStyle={contentContainerStyle}
+          contentContainerStyle={contentStyle}
           refreshControl={refreshControl}
           onScroll={onScroll}
           scrollEventThrottle={scrollEventThrottle}
@@ -182,7 +184,7 @@ export const Masonry = factory<{ props: MasonryProps; ref: View }>((props, ref) 
         numColumns={numColumns}
         key={`masonry-${numColumns}`} // Force re-render when numColumns changes
         // FlashList takes a single style object here, not a style array.
-        contentContainerStyle={StyleSheet.flatten(contentContainerStyle)}
+        contentContainerStyle={StyleSheet.flatten(contentStyle)}
         style={styles.list}
         {...(optimizeItemArrangement ? { getItemType } : null)}
         {...finalFlashListProps}

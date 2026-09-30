@@ -1,4 +1,4 @@
-import { Block, Slider } from '@platform-blocks/ui';
+import { Block, Slider } from '@plocks/ui';
 
 export function Demo() {
   return (

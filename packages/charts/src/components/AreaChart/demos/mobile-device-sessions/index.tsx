@@ -1,4 +1,4 @@
-import { AreaChart } from '@platform-blocks/charts';
+import { AreaChart } from '@plocks/charts';
 
 import { PHASE_LABELS, SESSION_SERIES } from './data';
 

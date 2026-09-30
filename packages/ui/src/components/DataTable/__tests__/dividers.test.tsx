@@ -6,7 +6,7 @@ import TestRenderer from 'react-test-renderer';
 jest.mock('@shopify/flash-list', () => ({ FlashList: () => null }));
 
 import { DataTable } from '../DataTable';
-import { PlatformBlocksThemeProvider } from '../../../core/theme/ThemeProvider';
+import { ThemeScope } from '../../../core/theme/ThemeProvider';
 import { OverlayProvider } from '../../../core/providers/OverlayProvider';
 
 const columns = [
@@ -19,11 +19,11 @@ function renderTable(props: Record<string, unknown> = {}) {
   let tree: TestRenderer.ReactTestRenderer;
   TestRenderer.act(() => {
     tree = TestRenderer.create(
-      <PlatformBlocksThemeProvider>
+      <ThemeScope>
         <OverlayProvider>
           <DataTable columns={columns as any} data={data} {...props} />
         </OverlayProvider>
-      </PlatformBlocksThemeProvider>
+      </ThemeScope>
     );
   });
   return tree!;

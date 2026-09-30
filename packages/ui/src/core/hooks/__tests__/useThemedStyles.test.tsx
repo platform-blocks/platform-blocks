@@ -1,15 +1,15 @@
 import React from 'react';
 import { renderHook } from '@testing-library/react-native';
 
-import { PlatformBlocksThemeProvider } from '../../theme/ThemeProvider';
+import { ThemeScope } from '../../theme/ThemeProvider';
 import { DEFAULT_THEME } from '../../theme/defaultTheme';
-import type { PlatformBlocksTheme } from '../../theme/types';
+import type { PlocksTheme } from '../../theme/types';
 import { createThemedStyles, useThemedStyles } from '../useThemedStyles';
 
 describe('useThemedStyles', () => {
   it('builds once per theme + deps', () => {
     // A plain style table: what's under test is the memoization.
-    const factory = jest.fn((theme: PlatformBlocksTheme) => ({ root: { color: theme.text.primary } }));
+    const factory = jest.fn((theme: PlocksTheme) => ({ root: { color: theme.text.primary } }));
     const { result, rerender } = renderHook(({ gap }: { gap: number }) => useThemedStyles((t) => factory(t), [gap]), {
       initialProps: { gap: 4 },
     });
@@ -23,10 +23,10 @@ describe('useThemedStyles', () => {
   });
 
   it('rebuilds when the theme changes', () => {
-    const factory = jest.fn((theme: PlatformBlocksTheme) => ({ color: theme.text.primary }));
-    let theme: PlatformBlocksTheme = DEFAULT_THEME;
+    const factory = jest.fn((theme: PlocksTheme) => ({ color: theme.text.primary }));
+    let theme: PlocksTheme = DEFAULT_THEME;
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <PlatformBlocksThemeProvider theme={theme}>{children}</PlatformBlocksThemeProvider>
+      <ThemeScope theme={theme}>{children}</ThemeScope>
     );
     const { result, rerender } = renderHook(() => useThemedStyles(factory), { wrapper });
     expect(result.current.color).toBe(DEFAULT_THEME.text.primary);
@@ -39,7 +39,7 @@ describe('useThemedStyles', () => {
 
 describe('createThemedStyles', () => {
   it('caches per theme and per full argument list', () => {
-    const factory = jest.fn((theme: PlatformBlocksTheme, size: string, variant?: string) => ({ size, variant, color: theme.text.primary }));
+    const factory = jest.fn((theme: PlocksTheme, size: string, variant?: string) => ({ size, variant, color: theme.text.primary }));
     const getStyles = createThemedStyles(factory);
 
     const a = getStyles(DEFAULT_THEME, 'md', 'filled');
@@ -58,7 +58,7 @@ describe('createThemedStyles', () => {
   });
 
   it('keeps numbers and numeric strings apart', () => {
-    const getStyles = createThemedStyles((_theme: PlatformBlocksTheme, size: string | number) => ({ size }));
+    const getStyles = createThemedStyles((_theme: PlocksTheme, size: string | number) => ({ size }));
     expect(getStyles(DEFAULT_THEME, 1)).not.toBe(getStyles(DEFAULT_THEME, '1'));
   });
 });

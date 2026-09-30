@@ -47,10 +47,6 @@ describe('resolveTextColor', () => {
     expect(resolveTextColor(T, 'link')).toBe(T.text.link);
   });
 
-  it('treats `dimmed` as an alias for the muted token', () => {
-    expect(resolveTextColor(T, 'dimmed')).toBe(T.text.muted);
-  });
-
   it('lands a bare status palette on the readable shade, not the fill base', () => {
     expect(resolveTextColor(T, 'error')).toBe(T.colors.error[6]);
     expect(resolveTextColor(T, 'success')).toBe(T.colors.success[6]);

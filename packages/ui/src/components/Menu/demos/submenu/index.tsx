@@ -1,11 +1,4 @@
-import {
-  Button,
-  Icon,
-  Menu,
-  MenuDropdown,
-  MenuItem,
-  MenuSub,
-} from '@platform-blocks/ui';
+import { Button, Icon, Menu, MenuDropdown, MenuItem, MenuSub } from '@plocks/ui';
 
 export function Demo() {
   return (

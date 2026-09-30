@@ -8,7 +8,7 @@ import { createThemedStyles } from '../../core/hooks/useThemedStyles';
 import { isWeb, webProps } from '../../core/platform';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { getControlSize, resolveFontSize, stepDown } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
 import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 import { Icon } from '../Icon';
@@ -20,7 +20,7 @@ import type { BreadcrumbItem, BreadcrumbsProps } from './types';
  * `size`, icons match the label, separators sit half a font-size away, and each
  * item keeps a compact-control minimum height as its touch target.
  */
-const getBreadcrumbStyles = createThemedStyles((theme: PlatformBlocksTheme, size: SizeValue) => {
+const getBreadcrumbStyles = createThemedStyles((theme: PlocksTheme, size: SizeValue) => {
   const fontSize = resolveFontSize(theme, size);
   const separatorSpacing = Math.max(4, Math.round(fontSize / 2));
   const minHeight =

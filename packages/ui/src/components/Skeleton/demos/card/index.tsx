@@ -1,4 +1,4 @@
-import { Block, Row, Skeleton, useTheme } from '@platform-blocks/ui';
+import { Block, Row, Skeleton, useTheme } from '@plocks/ui';
 
 export function Demo() {
   const theme = useTheme();

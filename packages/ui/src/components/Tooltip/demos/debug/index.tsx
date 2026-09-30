@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Button, Tooltip } from '@platform-blocks/ui';
+import { Block, Button, Tooltip } from '@plocks/ui';
 
 export function Demo() {
   const [opened, setOpened] = useState(false);

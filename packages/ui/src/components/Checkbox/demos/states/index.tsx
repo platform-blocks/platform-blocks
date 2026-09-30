@@ -1,4 +1,4 @@
-import { Block, Checkbox } from '@platform-blocks/ui';
+import { Block, Checkbox } from '@plocks/ui';
 
 export function Demo() {
   return (

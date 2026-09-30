@@ -6,8 +6,7 @@ import { createThemedStyles } from '../../core/hooks/useThemedStyles';
 import { webStyle } from '../../core/platform/webStyle';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
-import { warnOnce } from '../../core/utils/logger';
+import type { PlocksTheme } from '../../core/theme/types';
 import { resolveStyleProps, extractStyleProps } from '../../core/utils/spacing';
 import { useControllableState } from '../../hooks/useControllableState/useControllableState';
 import { Icon } from '../Icon';
@@ -15,7 +14,7 @@ import { Text } from '../Text';
 import type { FormSectionProps } from './types';
 
 const getSectionStyles = createThemedStyles(
-  (theme: PlatformBlocksTheme, spacing: NonNullable<FormSectionProps['spacing']>) => {
+  (theme: PlocksTheme, spacing: NonNullable<FormSectionProps['spacing']>) => {
     const gap = resolveSpacing(theme, spacing) as number;
     return {
       root: { gap },
@@ -49,22 +48,17 @@ export const FormSection = factory<{ props: FormSectionProps; ref: View }>(
       spacing = 'md',
       collapsible = false,
       expanded,
-      defaultExpanded,
+      defaultExpanded = true,
       onExpandedChange,
-      defaultCollapsed,
       style,
       testID,
     } = otherProps;
-
-    if (defaultCollapsed !== undefined) {
-      warnOnce('FormSection.defaultCollapsed', '[platform-blocks] FormSection: `defaultCollapsed` is deprecated. Use `defaultExpanded`.');
-    }
 
     const theme = useTheme();
     const styles = getSectionStyles(theme, spacing);
     const [isExpanded, setExpanded] = useControllableState<boolean>({
       value: expanded,
-      defaultValue: defaultExpanded ?? (defaultCollapsed === undefined ? true : !defaultCollapsed),
+      defaultValue: defaultExpanded,
       finalValue: true,
       onChange: onExpandedChange,
     });

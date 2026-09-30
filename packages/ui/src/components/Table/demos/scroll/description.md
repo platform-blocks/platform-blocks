@@ -4,7 +4,6 @@ category: layout
 order: 50
 tags: [table, scroll]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -3,7 +3,6 @@ import { Linking, Pressable } from 'react-native';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { Text } from '../Text';
 import { Icon } from '../Icon';
-import { BrandIcon } from '../BrandIcon';
 import { Flex } from '../Flex';
 import type { BlockquoteSourceProps } from './types';
 
@@ -22,7 +21,7 @@ export function BlockquoteSource({
   const content = (
     <Flex
       // Right-aligned attribution keeps its marks on the outer edge, so the
-      // brand icon trails the name instead of leading it.
+      // icon trails the name instead of leading it.
       direction={alignment === 'right' ? 'row-reverse' : 'row'}
       align="center"
       gap="xs"
@@ -30,23 +29,18 @@ export function BlockquoteSource({
         alignSelf: alignment === 'center' ? 'center' : alignment === 'right' ? 'flex-end' : 'flex-start',
       }}
     >
-      {/* Brand Icon */}
-      {source.brand && (
-        <BrandIcon
-          brand={source.brand}
-          size="sm"
-          decorative
-        />
-      )}
-
-      {/* Regular Icon */}
-      {source.icon && !source.brand && (
-        <Icon
-          name={source.icon}
-          size="sm"
-          color={theme.text.muted}
-          decorative
-        />
+      {/* A registry icon by name, or the caller's own node (e.g. a BrandIcon) */}
+      {typeof source.icon === 'string' ? (
+        source.icon !== '' && (
+          <Icon
+            name={source.icon}
+            size="sm"
+            color={theme.text.muted}
+            decorative
+          />
+        )
+      ) : (
+        source.icon
       )}
 
       {/* Source Name */}

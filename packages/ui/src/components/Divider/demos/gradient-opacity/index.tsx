@@ -1,4 +1,4 @@
-import { Block, Divider, Text } from '@platform-blocks/ui';
+import { Block, Divider, Text } from '@plocks/ui';
 
 const OPACITIES = [1, 0.5, 0.25];
 

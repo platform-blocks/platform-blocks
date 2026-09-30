@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Button, TextArea } from '@platform-blocks/ui';
+import { Block, Button, TextArea } from '@plocks/ui';
 
 export function Demo() {
   const [feedback, setFeedback] = useState('');

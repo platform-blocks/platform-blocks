@@ -16,8 +16,6 @@ export interface IconButtonProps
     | 'loadingTitle'
     | 'startSection'
     | 'endSection'
-    | 'startIcon'
-    | 'endIcon'
     | 'labelProps'
     | 'textColor'
   > {

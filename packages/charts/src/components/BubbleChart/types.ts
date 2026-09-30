@@ -84,6 +84,3 @@ export interface BubbleChartProps<T extends Record<string, any> = Record<string,
   /** Y axis configuration (ticks, formatting, labels). */
   yAxis?: ChartAxis;
 }
-
-// Backward compatibility alias
-export type SimpleBubbleChartProps<T extends Record<string, any> = Record<string, any>> = BubbleChartProps<T>;

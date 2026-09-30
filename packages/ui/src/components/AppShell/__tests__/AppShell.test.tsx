@@ -8,7 +8,6 @@ import { createAppShellCss } from '../shellCssVars';
 import { resolveResponsiveValue } from '../hooks/useResponsiveValue';
 import { resetViewportStore } from '../../../core/responsive/viewportStore';
 import { DEFAULT_Z_INDICES } from '../../../core/theme/zIndices';
-import { resetWarnOnce } from '../../../core/utils/logger';
 import { __resetLayerStackForTests } from '../../../core/overlay/layerStack';
 
 // Flip the platform flags per test: native (the default here) is always
@@ -99,7 +98,6 @@ beforeEach(() => {
   handlers = [];
   resetViewportStore();
   __resetLayerStackForTests();
-  resetWarnOnce();
   jest.spyOn(Dimensions, 'get').mockImplementation(() => ({ ...size, scale: 2, fontScale: 1 }));
   jest.spyOn(Dimensions, 'addEventListener').mockImplementation(((_type: string, handler: ChangeHandler) => {
     handlers.push(handler);
@@ -385,17 +383,6 @@ describe('MobileMenu', () => {
     expect(dialog.props['aria-label']).toBe('Menu');
     expect(dialog.props.accessibilityViewIsModal).toBe(true);
     expect(screen.getByText('Menu content')).toBeTruthy();
-  });
-
-  it('accepts the deprecated `visible` prop with a warning', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    render(
-      <MobileMenu visible onClose={jest.fn()} config={{ transitionDuration: 0 }}>
-        <Text>Legacy</Text>
-      </MobileMenu>
-    );
-    expect(screen.getByText('Legacy')).toBeTruthy();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('`visible` is deprecated'));
   });
 
   it('unmounts once closed', () => {

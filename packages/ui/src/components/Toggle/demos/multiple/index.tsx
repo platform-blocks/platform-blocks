@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Text, ToggleButton, ToggleGroup } from '@platform-blocks/ui';
+import { Block, Text, ToggleButton, ToggleGroup } from '@plocks/ui';
 
 export function Demo() {
   const [formats, setFormats] = useState(['bold']);

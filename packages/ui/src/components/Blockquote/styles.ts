@@ -3,7 +3,7 @@ import { StyleSheet, type ViewStyle } from 'react-native';
 import { createThemedStyles } from '../../core/hooks/useThemedStyles';
 import { resolveSurface, surfaceInteractionTint } from '../../core/theme/surfaces';
 import { resolveFontSize, resolveRadius, resolveShadow, resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeToken, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeToken, SizeValue } from '../../core/theme/types';
 
 export type BlockquoteVariant = 'default' | 'testimonial' | 'featured' | 'minimal';
 export type BlockquoteAlignment = 'left' | 'center' | 'right';
@@ -36,7 +36,7 @@ export const QUOTE_ICON_STEP: Record<SizeToken, SizeToken> = {
 
 const QUOTE_LINE_HEIGHT = 1.4;
 
-const px = (theme: PlatformBlocksTheme, value: SizeValue): number => {
+const px = (theme: PlocksTheme, value: SizeValue): number => {
   const resolved = resolveSpacing(theme, value);
   return typeof resolved === 'number' ? resolved : 0;
 };
@@ -50,7 +50,7 @@ const alignItemsFor = (alignment: BlockquoteAlignment): ViewStyle['alignItems'] 
  */
 export const getBlockquoteStyles = createThemedStyles(
   (
-    theme: PlatformBlocksTheme,
+    theme: PlocksTheme,
     variant: BlockquoteVariant,
     size: SizeValue,
     alignment: BlockquoteAlignment,

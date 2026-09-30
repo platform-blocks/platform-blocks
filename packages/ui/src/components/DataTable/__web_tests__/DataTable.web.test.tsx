@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { act, fireEvent, render as rtlRender, screen, within } from '@testing-library/react';
+import { act, fireEvent, render as rtlRender, renderHook, screen, within } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { DataTable } from '../DataTable';
+import { useColumnLayout } from '../hooks/useColumnLayout';
 import type { DataTableColumn, DataTableSort } from '../types';
 
 // FlashList is only used for the `virtual` path.
@@ -27,7 +28,7 @@ const columns: DataTableColumn<Person>[] = [
 
 const getRowId = (row: Person) => row.id;
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('DataTable (react-native-web DOM)', () => {
   it('exposes table semantics with aria-sort on sortable headers', () => {
@@ -227,5 +228,114 @@ describe('DataTable (react-native-web DOM)', () => {
     const [csv, rows] = onExport.mock.calls[0];
     expect(csv).toBe(['Name,Role', 'Linus,Maintainer', 'Grace,Admiral', 'Ada,Engineer'].join('\r\n'));
     expect(rows).toHaveLength(3);
+  });
+
+  it('requires stable row IDs for selection', () => {
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(() => render(
+        <DataTable data={people} columns={columns} selectable searchable={false} />
+      )).toThrow('getRowId is required');
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it('keeps the selection cell aligned and excludes disabled rows from select all', () => {
+    const onSelectionChange = jest.fn();
+    render(
+      <DataTable data={people} columns={columns} getRowId={getRowId} selectable
+        rowFeatureToggle={(row) => ({ selectable: row.id !== 'grace' })}
+        onSelectionChange={onSelectionChange} searchable={false} showColumnVisibilityManager={false} />
+    );
+    const rows = screen.getAllByRole('row');
+    expect(within(rows[2]).getAllByRole('cell')).toHaveLength(3);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select row 2' }));
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all rows' }));
+    expect(onSelectionChange).toHaveBeenLastCalledWith(['ada', 'linus']);
+  });
+
+  it('commits an edit against the same row after sorting changes its position', () => {
+    const onCellEdit = jest.fn();
+    function Editable() {
+      const [sortBy, setSortBy] = useState<DataTableSort[]>([]);
+      return <>
+        <button onClick={() => setSortBy([{ column: 'name', direction: 'desc' }])}>Reverse order</button>
+        <DataTable data={people} columns={[{ ...columns[0], editable: true }, columns[1]]}
+          getRowId={getRowId} editMode onCellEdit={onCellEdit} sortBy={sortBy}
+          searchable={false} showColumnVisibilityManager={false} />
+      </>;
+    }
+    render(<Editable />);
+    fireEvent.click(screen.getByText('Ada'));
+    const editor = screen.getByRole('textbox', { name: 'Edit Name' });
+    fireEvent.change(editor, { target: { value: 'Ada updated' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Reverse order' }));
+    expect(screen.getByRole('textbox', { name: 'Edit Name' })).toBeTruthy();
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Edit Name' }));
+    expect(onCellEdit).toHaveBeenCalledWith(2, 'name', 'Ada updated', 'ada', people[0]);
+  });
+
+  it('uses table semantics when grid navigation is unavailable', () => {
+    const props = { data: people, columns, getRowId, onRowClick: jest.fn(), searchable: false,
+      showColumnVisibilityManager: false };
+    const grouped = render(<DataTable {...props} groupBy="role" />);
+    expect(screen.getByRole('table')).toBeTruthy();
+    expect(screen.queryByRole('grid')).toBeNull();
+    grouped.unmount();
+
+    render(<DataTable {...props} virtual />);
+    expect(screen.getByRole('table')).toBeTruthy();
+    expect(screen.queryByRole('grid')).toBeNull();
+  });
+
+  it('keeps one visible column and can reset the column layout', () => {
+    const { result } = renderHook(() => useColumnLayout({ columns, initialHiddenColumns: ['name', 'role'] }));
+    expect(result.current.visibleColumns).toHaveLength(1);
+    act(() => result.current.setHiddenColumns(['name', 'role']));
+    expect(result.current.visibleColumns).toHaveLength(1);
+    act(() => result.current.resetColumns());
+    expect(result.current.visibleColumns).toHaveLength(2);
+  });
+
+  it('keeps search, table, and pagination within one frame', () => {
+    render(<DataTable data={people} columns={columns} testID="people" searchable
+      pagination={{ page: 1, pageSize: 2, total: 3 }} onPaginationChange={() => {}} />);
+    const frame = screen.getByTestId('people-frame');
+    expect(within(frame).getByRole('textbox', { name: 'Search' })).toBeTruthy();
+    expect(within(frame).getByRole('table')).toBeTruthy();
+    expect(within(frame).getByText('1-2 of 3')).toBeTruthy();
+  });
+
+  it('searches a hidden description column and reaches later pages', () => {
+    const rows = Array.from({ length: 30 }, (_, index) => ({
+      id: `prop${index + 1}`,
+      name: `prop${index + 1}`,
+      description: index === 29 ? 'magic phrase' : 'ordinary',
+    }));
+    const propColumns: DataTableColumn<(typeof rows)[number]>[] = [
+      { key: 'name', header: 'Name', accessor: 'name' },
+      { key: 'description', header: 'Description', accessor: 'description' },
+    ];
+    function Props() {
+      const [searchValue, setSearchValue] = useState('');
+      const [pagination, setPagination] = useState({ page: 1, pageSize: 25, total: rows.length });
+      return <DataTable data={rows} columns={propColumns} getRowId={(row) => row.id}
+        initialHiddenColumns={['description']} showColumnVisibilityManager={false} showColumnMenu={false}
+        searchValue={searchValue} onSearchChange={(value) => {
+          setSearchValue(value);
+          setPagination((current) => ({ ...current, page: 1 }));
+        }} pagination={pagination} onPaginationChange={setPagination} showRowsPerPageControl={false} />;
+    }
+    render(<Props />);
+    expect(screen.queryByRole('button', { name: 'Name options' })).toBeNull();
+    expect(screen.getAllByRole('columnheader')).toHaveLength(1);
+    expect(screen.queryByText('prop26')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    expect(screen.getByText('prop26')).toBeTruthy();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search' }), { target: { value: 'magic phrase' } });
+    expect(screen.getByText('prop30')).toBeTruthy();
+    expect(screen.queryByText('prop26')).toBeNull();
   });
 });

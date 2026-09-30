@@ -19,10 +19,6 @@ export interface ToggleBarOption {
   startSection?: React.ReactNode;
   /** Optional trailing content */
   endSection?: React.ReactNode;
-  /** @deprecated Use `startSection`. */
-  startIcon?: React.ReactNode;
-  /** @deprecated Use `endSection`. */
-  endIcon?: React.ReactNode;
   /** Color for the chip when selected */
   color?: ColorProp;
   /** Override the unselected chip variant */
@@ -126,8 +122,8 @@ export const ToggleBar = factory<{ props: ToggleBarProps; ref: View }>((props, r
           variant={selectedVariant}
           uncheckedVariant={opt.chipVariant || chipVariant}
           color={opt.color || 'primary'}
-          startSection={opt.startSection ?? opt.startIcon}
-          endSection={opt.endSection ?? opt.endIcon}
+          startSection={opt.startSection}
+          endSection={opt.endSection}
           disabled={opt.disabled}
           checked={value.includes(opt.value)}
           onChange={() => handleToggle(opt.value)}

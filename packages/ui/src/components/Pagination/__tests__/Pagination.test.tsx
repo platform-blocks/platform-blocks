@@ -28,16 +28,6 @@ describe('Pagination', () => {
     expect(screen.getByRole('button', { name: 'Page 3', selected: true })).toBeTruthy();
   });
 
-  it('keeps the deprecated `current` alias working', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const onChange = jest.fn();
-    render(<Pagination current={5} total={10} onChange={onChange} />);
-    fireEvent.press(screen.getByLabelText('Next page'));
-    expect(onChange).toHaveBeenCalledWith(6);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('`current` is deprecated'));
-    warn.mockRestore();
-  });
-
   it('disables previous/first on the first page and next/last on the last', () => {
     const { rerender } = render(<Pagination value={1} total={3} />);
     expect(screen.getByRole('button', { name: 'Previous page', disabled: true })).toBeTruthy();

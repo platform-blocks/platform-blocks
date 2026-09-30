@@ -4,7 +4,6 @@ category: platform
 order: 10
 tags: [device, responsive, platform]
 status: beta
-since: 0.4.0
 hidden: false
 ---
 

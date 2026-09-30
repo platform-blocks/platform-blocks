@@ -1,4 +1,4 @@
-import { Block, Chip, Row } from '@platform-blocks/ui';
+import { Block, Chip, Row } from '@plocks/ui';
 
 export function Demo() {
   return (

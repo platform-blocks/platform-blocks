@@ -14,7 +14,6 @@ import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
 import { extractLayoutProps, getLayoutStyles } from '../../core/utils/layout';
 import type {
   KnobProps,
-  KnobBehavior,
   KnobMark,
   KnobValueLabelConfig,
   KnobValueLabelPosition,
@@ -69,26 +68,6 @@ const getGestureDegreeSpan = (isEndless: boolean, sweepAngle: number) => {
   return Math.min(360, Math.max(1, sweepAngle));
 };
 
-/**
- * `variant` used to carry these. It now carries the visual presets, so a behavior value
- * arriving on `variant` is routed to `behavior` and flagged. The two sets are disjoint,
- * which is what makes telling them apart at runtime safe.
- */
-const LEGACY_BEHAVIOR_VARIANTS = new Set<string>(['level', 'stepped', 'endless', 'dual', 'status']);
-
-let hasWarnedLegacyVariant = false;
-const warnLegacyVariant = isDev
-  ? (value: string) => {
-    if (hasWarnedLegacyVariant) return;
-    hasWarnedLegacyVariant = true;
-    devWarn(
-      `[Knob] \`variant="${value}"\` is a behavior, not a visual style — pass it as ` +
-      `\`behavior="${value}"\`. \`variant\` now selects the visual preset ` +
-      '(default | minimal | digital | retro | studio).'
-    );
-  }
-  : () => { };
-
 const KnobBase = factory<{
   props: KnobProps;
   ref: View;
@@ -116,8 +95,8 @@ const KnobBase = factory<{
     marks,
     restrictToMarks: restrictToMarksProp,
     mode: modeProp,
-    behavior: behaviorProp,
-    variant: variantProp,
+    behavior,
+    variant,
     label,
     description,
     labelPosition = 'top',
@@ -137,14 +116,6 @@ const KnobBase = factory<{
   const layoutStyles = useMemo(() => getLayoutStyles(layoutProps), [layoutProps]);
 
   const hasLabelContent = label != null || description != null;
-  const legacyBehaviorFromVariant = LEGACY_BEHAVIOR_VARIANTS.has(variantProp as string)
-    ? (variantProp as unknown as KnobBehavior)
-    : undefined;
-  if (legacyBehaviorFromVariant) {
-    warnLegacyVariant(legacyBehaviorFromVariant);
-  }
-  const variant = legacyBehaviorFromVariant ? undefined : variantProp;
-  const behavior = behaviorProp ?? legacyBehaviorFromVariant;
   const resolvedMode = modeProp ?? (behavior === 'endless' ? 'endless' : 'bounded');
   const resolvedBehavior = behavior ?? (resolvedMode === 'endless' ? 'endless' : 'level');
   const isEndless = resolvedMode === 'endless';

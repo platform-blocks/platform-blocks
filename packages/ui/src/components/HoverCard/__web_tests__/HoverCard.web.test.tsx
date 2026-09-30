@@ -32,7 +32,7 @@ function Profile(props: Partial<React.ComponentProps<typeof HoverCard>>) {
       <HoverCard
         openDelay={0}
         closeDelay={0}
-        target={<Pressable role="link" accessibilityLabel="@platform-blocks"><Text>@platform-blocks</Text></Pressable>}
+        target={<Pressable role="link" accessibilityLabel="@plocks"><Text>@plocks</Text></Pressable>}
         {...props}
       >
         <Text>Cross-platform UI blocks</Text>
@@ -50,7 +50,7 @@ describe('HoverCard (react-native-web DOM)', () => {
 
   it('opens on keyboard focus, wires aria-expanded / aria-controls, and closes on Escape', async () => {
     render(<Profile />);
-    const target = screen.getByRole('link', { name: '@platform-blocks' });
+    const target = screen.getByRole('link', { name: '@plocks' });
     expect(target.getAttribute('aria-expanded')).toBe('false');
 
     act(() => target.focus());
@@ -69,7 +69,7 @@ describe('HoverCard (react-native-web DOM)', () => {
 
   it('opens on pointer hover and stays open while the pointer is on the card', async () => {
     render(<Profile closeDelay={50} />);
-    const target = screen.getByRole('link', { name: '@platform-blocks' });
+    const target = screen.getByRole('link', { name: '@plocks' });
     fireEvent.mouseEnter(target);
     await settle();
     const card = screen.getByRole('dialog');

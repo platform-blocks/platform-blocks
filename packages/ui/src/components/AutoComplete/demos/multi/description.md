@@ -5,7 +5,6 @@ order: 20
 tags: [multi-select, multiple, selection]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -1,14 +1,12 @@
-import React, { createContext, useContext, useMemo, useEffect, useLayoutEffect, useSyncExternalStore } from 'react';
+import React, { createContext, useContext, useMemo, useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
 import { applyColorSchemeMarker, COLOR_SCHEME_STORAGE_KEY, type ColorSchemeMode } from './colorSchemeMarker';
 import { useColorScheme as useSystemColorScheme } from './useColorScheme';
-import { devWarn } from '../utils/logger';
+import { readStored, writeStored } from '../storage/localStorage';
+import { useIsomorphicLayoutEffect } from '../hooks/useIsomorphicLayoutEffect';
 
 // Enhanced theme mode types
 export type { ColorSchemeMode } from './colorSchemeMarker';
-
-const useIsomorphicLayoutEffect =
-  Platform.OS === 'web' && typeof document !== 'undefined' ? useLayoutEffect : useEffect;
 
 export interface ThemeModeConfig {
   /** Initial color scheme mode */
@@ -36,34 +34,23 @@ interface ThemeModeContextValue {
 
 const ThemeModeContext = createContext<ThemeModeContextValue | null>(null);
 
-// Default persistence using localStorage (web only)
+// Default persistence: localStorage on web (guarded; a no-op on native).
 const defaultPersistence = {
   get: (): ColorSchemeMode | null => {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
-    try {
-      const stored = localStorage.getItem(COLOR_SCHEME_STORAGE_KEY);
-      if (stored === 'light' || stored === 'dark' || stored === 'auto') return stored;
-    } catch {
-      devWarn('Failed to access localStorage for theme mode');
-    }
-    return null;
+    const stored = readStored(COLOR_SCHEME_STORAGE_KEY);
+    return stored === 'light' || stored === 'dark' || stored === 'auto' ? stored : null;
   },
   set: (mode: ColorSchemeMode) => {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(COLOR_SCHEME_STORAGE_KEY, mode);
-    } catch {
-      devWarn('Failed to access localStorage for theme mode');
-    }
+    writeStored(COLOR_SCHEME_STORAGE_KEY, mode);
   }
 };
 
 // Default DOM configuration
 const defaultDomConfig = {
   selector: 'html',
-  lightClass: 'platform-blocks-light',
-  darkClass: 'platform-blocks-dark',
-  attribute: 'data-platform-blocks-manual'
+  lightClass: 'plocks-light',
+  darkClass: 'plocks-dark',
+  attribute: 'data-plocks-manual'
 };
 
 const noopSubscribe = () => () => {};
@@ -115,7 +102,7 @@ export function ThemeModeProvider({
   }, [mode, systemColorScheme]);
 
   // Stamp the color-scheme marker on the document (web only) — the same code
-  // path PlatformBlocksProvider and `getColorSchemeScript` use, so the
+  // path PlocksProvider and `getColorSchemeScript` use, so the
   // attribute and the explicit-choice class never disagree. Layout effect:
   // it lands before the browser paints.
   useIsomorphicLayoutEffect(() => {

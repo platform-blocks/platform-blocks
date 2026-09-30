@@ -5,7 +5,6 @@ order: 40
 tags: [datalist, size]
 highlightLines: []
 status: stable
-since: 0.10.1
 hidden: false
 ---
 

@@ -1,10 +1,10 @@
 import React from 'react';
 import { fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { ControlField } from '../ControlField';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('ControlField (react-native-web DOM)', () => {
   it('is one switch named by its label and described by its description', () => {
@@ -41,7 +41,7 @@ describe('ControlField (react-native-web DOM)', () => {
 
   it('wires compound parts to the row', () => {
     render(
-      <ControlField id="news" isInvalid>
+      <ControlField id="news" error>
         <ControlField.Label>Newsletter</ControlField.Label>
         <ControlField.Description>Weekly</ControlField.Description>
         <ControlField.Indicator />

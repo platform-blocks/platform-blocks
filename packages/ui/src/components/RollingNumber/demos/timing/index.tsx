@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Flex, RollingNumber, Text } from '@platform-blocks/ui';
+import { Button, Flex, RollingNumber, Text } from '@plocks/ui';
 
 export function Demo() {
   const [value, setValue] = useState(407219);
@@ -7,12 +7,12 @@ export function Demo() {
   return (
     <Flex direction="column" gap="lg">
       <Flex direction="column" gap="xs">
-        <Text size="xs" c="dimmed">Snappy — 200ms, no stagger</Text>
+        <Text size="xs" c="muted">Snappy — 200ms, no stagger</Text>
         <RollingNumber value={value} transitionDuration={200} size={32} thousandSeparator />
       </Flex>
 
       <Flex direction="column" gap="xs">
-        <Text size="xs" c="dimmed">Odometer — 900ms, 60ms stagger</Text>
+        <Text size="xs" c="muted">Odometer — 900ms, 60ms stagger</Text>
         <RollingNumber
           value={value}
           transitionDuration={900}

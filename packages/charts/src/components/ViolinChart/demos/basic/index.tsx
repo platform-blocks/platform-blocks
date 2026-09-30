@@ -1,4 +1,4 @@
-import { ViolinChart } from '@platform-blocks/charts';
+import { ViolinChart } from '@plocks/charts';
 
 import { SERIES } from './data';
 

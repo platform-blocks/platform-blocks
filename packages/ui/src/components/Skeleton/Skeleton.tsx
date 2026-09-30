@@ -16,7 +16,7 @@ import { a11yProps } from '../../core/accessibility/a11yProps';
 import { useReducedMotion } from '../../core/motion/useReducedMotion';
 import { getControlSize, resolveRadius, resolveSpacing } from '../../core/theme/tokens';
 import type { SizeValue } from '../../core/theme/types';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { extractStyleProps, resolveStyleProps, useStyleProps } from '../../core/utils/spacing';
 import type { SkeletonProps, SkeletonShape, SkeletonFactoryPayload } from './types';
@@ -30,7 +30,7 @@ const toNumber = (value: number | 'auto') => (value === 'auto' ? 0 : value);
 
 /** Default box for a shape, from the theme's control size (`w` / `h` win). */
 function getShapeMetrics(
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   shape: SkeletonShape,
   size: SizeValue
 ): { width: DimensionValue; height: DimensionValue; radius: number } {

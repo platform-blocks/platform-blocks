@@ -24,9 +24,9 @@ const optionalModuleCache = new Map<string, OptionalModuleCacheEntry>();
 
 type OptionalModuleLoader = () => unknown;
 
-// Metro bundler requires static string literals for require; keep all optional modules here.
-// NOTE: Do NOT add react-syntax-highlighter here - it causes Metro to fail on native
-// when the package isn't installed. Instead, pass the loader dynamically from web-only code.
+// Metro bundler requires static string literals for require; keep this package's
+// optional modules here. Other @plocks packages pass their own `loader` (with the
+// same lexical try/catch) so their modules never appear in @plocks/ui's bundle.
 //
 // Every require below sits lexically inside its own try/catch. Metro's
 // `allowOptionalDependencies` (on by default in Expo and RN CLI metro configs)
@@ -41,14 +41,12 @@ const optionalModuleLoaders: Record<string, OptionalModuleLoader> = {
   'expo-haptics': () => { try { return require('expo-haptics'); } catch { return null; } },
   'expo-linear-gradient': () => { try { return require('expo-linear-gradient'); } catch { return null; } },
   'expo-document-picker': () => { try { return require('expo-document-picker'); } catch { return null; } },
-  'react-native-webview': () => { try { return require('react-native-webview'); } catch { return null; } },
-  'expo-audio': () => { try { return require('expo-audio'); } catch { return null; } },
   'react-native-gesture-handler': () => { try { return require('react-native-gesture-handler'); } catch { return null; } },
   'expo-status-bar': () => { try { return require('expo-status-bar'); } catch { return null; } },
   'expo-navigation-bar': () => { try { return require('expo-navigation-bar'); } catch { return null; } },
   '@shopify/flash-list': () => { try { return require('@shopify/flash-list'); } catch { return null; } },
-  'react-native-reanimated-carousel': () => { try { return require('react-native-reanimated-carousel'); } catch { return null; } },
   '@react-native-masked-view/masked-view': () => { try { return require('@react-native-masked-view/masked-view'); } catch { return null; } },
+  '@react-native-async-storage/async-storage': () => { try { return require('@react-native-async-storage/async-storage'); } catch { return null; } },
 };
 
 /**
@@ -83,7 +81,7 @@ export function resolveOptionalModule<T = unknown>(moduleId: string, options: Re
     const message = `Optional module "${moduleId}" is not registered with optionalModuleLoaders.`;
     entry.error = new Error(message);
     if (isDev) {
-      const prefix = Platform.OS === 'web' ? '[platform-blocks]' : '[platform-blocks/native]';
+      const prefix = Platform.OS === 'web' ? '[plocks]' : '[plocks/native]';
       entry.logged = true;
       devWarn(`${prefix} ${devWarning ?? message}`);
     }
@@ -105,7 +103,7 @@ export function resolveOptionalModule<T = unknown>(moduleId: string, options: Re
     entry.error = entry.error ?? new Error(`Optional module "${moduleId}" could not be loaded.`);
     if (isDev && devWarning) {
       entry.logged = true;
-      const prefix = Platform.OS === 'web' ? '[platform-blocks]' : '[platform-blocks/native]';
+      const prefix = Platform.OS === 'web' ? '[plocks]' : '[plocks/native]';
       devWarn(`${prefix} ${devWarning}`);
     }
     return null;

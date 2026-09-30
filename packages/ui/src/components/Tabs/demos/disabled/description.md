@@ -4,7 +4,6 @@ category: behavior
 order: 30
 tags: [tabs, access-control]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

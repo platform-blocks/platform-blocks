@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Flex, Joystick } from '@platform-blocks/ui';
+import { Flex, Joystick } from '@plocks/ui';
 
 export function Demo() {
   const [free, setFree] = useState({ x: 0, y: 0 });

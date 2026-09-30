@@ -2,7 +2,6 @@ import React, { createRef } from 'react';
 import { TextInput } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
-import { resetWarnOnce } from '../../../core/utils/logger';
 import { Search } from '../Search';
 
 const getInput = () => screen.UNSAFE_getByType(TextInput);
@@ -10,7 +9,6 @@ const getInput = () => screen.UNSAFE_getByType(TextInput);
 describe('Search (native)', () => {
   afterEach(() => {
     jest.restoreAllMocks();
-    resetWarnOnce();
   });
 
   it('reports typing through onChangeText and forwards its ref', () => {
@@ -27,15 +25,6 @@ describe('Search (native)', () => {
     render(<Search value="boots" onChangeText={() => {}} />);
     fireEvent.changeText(getInput(), 'shoes');
     expect(getInput().props.value).toBe('boots');
-  });
-
-  it('keeps the deprecated onChange working, with a warning', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const onChange = jest.fn();
-    render(<Search onChange={onChange} />);
-    fireEvent.changeText(getInput(), 'hat');
-    expect(onChange).toHaveBeenCalledWith('hat');
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('`onChange` is deprecated'));
   });
 
   it('debounces onChangeText but shows typing immediately, even when controlled', () => {

@@ -1,4 +1,4 @@
-import { Image } from '@platform-blocks/ui';
+import { Image } from '@plocks/ui';
 
 export function Demo() {
   return (

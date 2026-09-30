@@ -1,4 +1,4 @@
-import { Block, Row, Text, ToggleButton, ToggleGroup } from '@platform-blocks/ui';
+import { Block, Row, Text, ToggleButton, ToggleGroup } from '@plocks/ui';
 
 export function Demo() {
   return (

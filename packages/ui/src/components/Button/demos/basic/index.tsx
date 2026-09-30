@@ -1,4 +1,4 @@
-import { Button } from '@platform-blocks/ui';
+import { Button } from '@plocks/ui';
 
 export function Demo() {
   return <Button title="Launch mission" />;

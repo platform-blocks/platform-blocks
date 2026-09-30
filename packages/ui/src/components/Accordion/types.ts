@@ -5,7 +5,7 @@
 import type { ReactNode } from 'react';
 import type { ViewStyle, TextStyle, StyleProp } from 'react-native';
 import type { ThemeColor } from '../../core/theme/resolveColors';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import type { BaseProps, RadiusValue } from '../../core/types/base';
 import type { TextProps } from '../Text';
 
@@ -172,7 +172,7 @@ export interface AccordionComputedStyles {
 }
 
 export type AccordionStyleResolver = (
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   variant: AccordionVariant | undefined,
   size: SizeValue | undefined,
   color: ThemeColor | undefined,

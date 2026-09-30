@@ -12,6 +12,21 @@ const resources = {
 };
 
 describe('I18nProvider', () => {
+  it('formats relative time when Intl.RelativeTimeFormat is unavailable', () => {
+    const formatter = Intl.RelativeTimeFormat;
+    Object.defineProperty(Intl, 'RelativeTimeFormat', { configurable: true, value: undefined });
+    try {
+      const { result } = renderHook(() => useI18n(), {
+        wrapper: ({ children }: { children: React.ReactNode }) => <I18nProvider>{children}</I18nProvider>,
+      });
+      expect(result.current.formatRelativeTime(-2, 'day')).toBe('2 days ago');
+      expect(result.current.formatRelativeTime(1, 'day', { numeric: 'auto' })).toBe('tomorrow');
+      expect(result.current.formatRelativeTime(3, 'hour', { style: 'narrow' })).toBe('in 3 h');
+    } finally {
+      Object.defineProperty(Intl, 'RelativeTimeFormat', { configurable: true, value: formatter });
+    }
+  });
+
   it('keeps a stable value when the parent re-renders with an inline `initial`', () => {
     const { result, rerender } = renderHook(() => useI18n(), {
       initialProps: { locale: 'en' },

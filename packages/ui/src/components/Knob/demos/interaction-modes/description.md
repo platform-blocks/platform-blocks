@@ -5,7 +5,6 @@ order: 120
 tags: [interaction, gestures, scroll]
 highlightLines: []
 status: experimental
-since: 1.0.0
 hidden: false
 ---
 

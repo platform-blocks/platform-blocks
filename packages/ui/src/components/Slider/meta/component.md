@@ -56,6 +56,4 @@ examples:
   - Slot styling (track / thumb / tick / label overrides + per-tick `style`)
 ---
 
-The Slider component allows users to select a value or range of values by moving a handle along a track. Supports single values, ranges, vertical layouts, and rich customization hooks for the value-label tooltip.
-
-Each thumb is a `role="slider"` control (native: adjustable) with `aria-valuemin/max/now` and a spoken value text from `valueLabel`. It takes keyboard focus on the web — arrows step by `step` (Shift: ×10), PageUp / PageDown by `largeStep`, Home / End to the ends, following the reading direction — and VoiceOver / TalkBack get increment / decrement actions. `restrictToTicks` applies to the keyboard too. A horizontal slider mirrors under RTL.
+Slider lets users select a value or range by moving handles along a track.

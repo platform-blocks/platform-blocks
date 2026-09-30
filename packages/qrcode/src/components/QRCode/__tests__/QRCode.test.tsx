@@ -1,0 +1,242 @@
+import React from 'react';
+import { View, Pressable, StyleSheet } from 'react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
+
+import { QRCode } from '../QRCode';
+
+const mockQRCodeSVG = jest.fn((props: any) => (
+  <View testID="mock-qr-svg" {...props} />
+));
+
+jest.mock('../QRCodeSVG', () => ({
+  QRCodeSVG: (props: any) => mockQRCodeSVG(props),
+}));
+
+const mockCopyButton = jest.fn(({ onCopy }: { onCopy?: () => void }) => (
+  <Pressable testID="mock-copy-button" onPress={onCopy} />
+));
+
+const mockCopy = jest.fn();
+const mockToastShow = jest.fn();
+
+jest.mock('@plocks/ui', () => ({
+  ...jest.requireActual('@plocks/ui'),
+  CopyButton: (props: any) => mockCopyButton(props),
+  useClipboard: () => ({
+    copy: mockCopy,
+  }),
+  useToast: () => ({
+    show: mockToastShow,
+  }),
+}));
+
+describe('QRCode component', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCopy.mockResolvedValue(undefined);
+  });
+
+  it('passes core props to QRCodeSVG', () => {
+    render(
+      <QRCode
+        value="hello-world"
+        size={240}
+        color="#123456"
+        bg="#ffffff"
+        errorCorrectionLevel="H"
+        quietZone={6}
+        testID="qr-test"
+      />
+    );
+
+    expect(mockQRCodeSVG).toHaveBeenCalledWith(
+      expect.objectContaining({
+        value: 'hello-world',
+        size: 240,
+        color: '#123456',
+        bg: '#ffffff',
+        errorCorrectionLevel: 'H',
+        quietZone: 6,
+        testID: 'qr-test-code',
+      })
+    );
+  });
+
+  it('puts testID, spacing, style and the ref on the root view', () => {
+    const ref = React.createRef<View>();
+    const { getByTestId } = render(
+      <QRCode ref={ref} value="root" testID="qr" mt={12} style={{ opacity: 0.5 }} />
+    );
+    const root = getByTestId('qr');
+    expect(ref.current).not.toBeNull();
+    const flat = StyleSheet.flatten(root.props.style);
+    expect(flat.marginTop).toBe(12);
+    expect(flat.opacity).toBe(0.5);
+  });
+
+  it('sizes the root view with the box props; an explicit `w` wins over `fullWidth`', () => {
+    const { getByTestId } = render(<QRCode value="root" testID="qr" fullWidth w={180} h={220} />);
+    expect(StyleSheet.flatten(getByTestId('qr').props.style)).toMatchObject({ width: 180, height: 220 });
+    // …and only there: the code inside keeps its own size.
+    expect(mockQRCodeSVG.mock.lastCall?.[0].w).toBeUndefined();
+  });
+
+  it('paints `bg` on the code, not the root view', () => {
+    const { getByTestId } = render(<QRCode value="root" testID="qr" bg="#fef3c7" />);
+    expect(StyleSheet.flatten(getByTestId('qr').props.style).backgroundColor).toBeUndefined();
+    expect(mockQRCodeSVG.mock.lastCall?.[0].bg).toBe('#fef3c7');
+  });
+
+  it('defaults the accessible name to a summary of the value', () => {
+    render(<QRCode value="https://example.com/tickets" />);
+
+    expect(mockQRCodeSVG).toHaveBeenCalledWith(
+      expect.objectContaining({ accessibilityLabel: 'QR code: https://example.com/tickets' })
+    );
+  });
+
+  it('resolves size tokens to pixel values', () => {
+    render(<QRCode value="tokens" size="sm" />);
+
+    expect(mockQRCodeSVG).toHaveBeenCalledWith(
+      expect.objectContaining({ size: 128 })
+    );
+  });
+
+  it('falls back to the default pixel size when size is omitted', () => {
+    render(<QRCode value="default-size" />);
+
+    expect(mockQRCodeSVG).toHaveBeenCalledWith(
+      expect.objectContaining({ size: 400 })
+    );
+  });
+
+  it('keeps a scanner-friendly black foreground and white background by default', () => {
+    render(<QRCode value="scan-me" />);
+    expect(mockQRCodeSVG.mock.lastCall?.[0]).toEqual(
+      expect.objectContaining({ color: '#000000', bg: undefined })
+    );
+  });
+
+  it('forwards advanced appearance props to QRCodeSVG', () => {
+    const logo = { uri: 'https://logo.png', size: 48, backgroundColor: '#FFF' };
+    const gradient = { type: 'linear' as const, from: '#000', to: '#FFF', rotation: 45 };
+
+    render(
+      <QRCode
+        value="advanced"
+        moduleShape="rounded"
+        cornerRadius={0.5}
+        gradient={gradient}
+        logo={logo}
+        quietZone={2}
+      />
+    );
+
+    expect(mockQRCodeSVG).toHaveBeenCalledWith(
+      expect.objectContaining({
+        moduleShape: 'rounded',
+        cornerRadius: 0.5,
+        gradient,
+        logo,
+        quietZone: 2,
+      })
+    );
+  });
+
+  it('renders copy button when showCopyButton is enabled', () => {
+    const { getByTestId } = render(<QRCode value="copy-me" showCopyButton />);
+
+    expect(getByTestId('mock-copy-button')).toBeTruthy();
+    expect(mockCopyButton).toHaveBeenCalledWith(
+      expect.objectContaining({
+        value: 'copy-me',
+        iconOnly: true,
+        size: 'sm',
+      })
+    );
+  });
+
+  it('invokes consumer onError handler when QRCodeSVG reports an error', () => {
+    const onError = jest.fn();
+    render(<QRCode value="bad" onError={onError} />);
+
+    const passedProps = mockQRCodeSVG.mock.calls[0][0];
+    const error = new Error('encode failed');
+    passedProps.onError?.(error);
+
+    expect(onError).toHaveBeenCalledWith(error);
+  });
+
+  it('copies value and shows toast when pressed with copyOnPress overrides', async () => {
+    const customMessage = 'Custom copy message';
+    const copyValue = 'overridden';
+
+    const { getAllByLabelText } = render(
+      <QRCode
+        value="original"
+        accessibilityLabel="Scan QR"
+        copyOnPress={{ value: copyValue }}
+        copyToastTitle="Copied QR"
+        copyToastMessage={customMessage}
+      />
+    );
+
+    const [pressable] = getAllByLabelText('Scan QR');
+    expect(pressable.props.role).toBe('button');
+    fireEvent.press(pressable);
+
+    await waitFor(() => {
+      expect(mockCopy).toHaveBeenCalledWith(copyValue);
+      expect(mockToastShow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Copied QR',
+          message: customMessage,
+        })
+      );
+    });
+  });
+
+  it('renders label and description as captions', () => {
+    const { getByText } = render(
+      <QRCode value="captioned" label="Scan me" description="Opens the docs" />
+    );
+
+    expect(getByText('Scan me')).toBeTruthy();
+    expect(getByText('Opens the docs')).toBeTruthy();
+  });
+
+  it('uses a string label as the accessibility label when none is given', () => {
+    render(<QRCode value="a11y" label="Scan for tickets" />);
+
+    expect(mockQRCodeSVG).toHaveBeenCalledWith(
+      expect.objectContaining({ accessibilityLabel: 'Scan for tickets' })
+    );
+  });
+
+  it('keeps an explicit accessibilityLabel ahead of the label', () => {
+    render(<QRCode value="a11y" label="Scan for tickets" accessibilityLabel="Event QR" />);
+
+    expect(mockQRCodeSVG).toHaveBeenCalledWith(
+      expect.objectContaining({ accessibilityLabel: 'Event QR' })
+    );
+  });
+
+  it('truncates long values in default copy toast message', async () => {
+    const longValue = 'x'.repeat(80);
+    const { getAllByLabelText } = render(<QRCode value={longValue} copyOnPress />);
+
+    const [pressable] = getAllByLabelText(/^QR code: x+…$/);
+    fireEvent.press(pressable);
+
+    await waitFor(() => {
+      expect(mockCopy).toHaveBeenCalledWith(longValue);
+      expect(mockToastShow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Copied',
+          message: `${longValue.slice(0, 57)}…`,
+        })
+      );
+    });
+  });
+});

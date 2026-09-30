@@ -6,7 +6,7 @@ import TestRenderer from 'react-test-renderer';
 jest.mock('@shopify/flash-list', () => ({ FlashList: () => null }));
 
 import { DataTable } from '../DataTable';
-import { PlatformBlocksThemeProvider } from '../../../core/theme/ThemeProvider';
+import { ThemeScope } from '../../../core/theme/ThemeProvider';
 import { OverlayProvider } from '../../../core/providers/OverlayProvider';
 
 const columns = [{ key: 'name', title: 'Name' }];
@@ -16,11 +16,11 @@ function renderTable(props: Record<string, unknown> = {}) {
   let tree: TestRenderer.ReactTestRenderer;
   TestRenderer.act(() => {
     tree = TestRenderer.create(
-      <PlatformBlocksThemeProvider>
+      <ThemeScope>
         <OverlayProvider>
           <DataTable columns={columns as any} data={data} {...props} />
         </OverlayProvider>
-      </PlatformBlocksThemeProvider>
+      </ThemeScope>
     );
   });
   return tree!;
@@ -34,14 +34,16 @@ function viewStyles(tree: TestRenderer.ReactTestRenderer) {
   });
 }
 
+function tableFrameStyle(tree: TestRenderer.ReactTestRenderer) {
+  return viewStyles(tree).find((style: any) => style.width === '100%' && style.overflow === 'hidden' && style.borderRadius !== undefined);
+}
+
 describe('DataTable outer border', () => {
   it('draws an outer border by default', () => {
-    const styles = viewStyles(renderTable());
-    expect(styles.some((s: any) => s.borderWidth === 1 && s.borderRadius === 8)).toBe(true);
+    expect(tableFrameStyle(renderTable())).toMatchObject({ borderWidth: 1, borderRadius: 8 });
   });
 
   it('can still be turned off', () => {
-    const styles = viewStyles(renderTable({ showOuterBorder: false }));
-    expect(styles.some((s: any) => s.borderWidth === 1 && s.borderRadius === 8)).toBe(false);
+    expect(tableFrameStyle(renderTable({ showOuterBorder: false }))).toMatchObject({ borderWidth: 0, borderRadius: 0 });
   });
 });

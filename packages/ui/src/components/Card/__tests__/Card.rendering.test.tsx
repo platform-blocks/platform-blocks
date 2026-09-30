@@ -15,9 +15,6 @@ const mockTheme = {
     primary: ['#EEF2FF', '#E0E7FF', '#C7D2FE', '#A5B4FC', '#818CF8', '#6366F1', '#4F46E5', '#4338CA'],
   },
   primaryColor: '#6366F1',
-  semantic: {
-    borderSubtle: '#CBD5F5',
-  },
   shadows: {
     xs: '0px 1px 2px rgba(16, 24, 40, 0.1)',
     sm: '0px 1px 3px rgba(16, 24, 40, 0.1)',
@@ -53,7 +50,7 @@ describe('Card - rendering', () => {
     const { toJSON } = render(
       <Card {...({ testID: 'filled-card' } as any)} p="lg" style={{ gap: 8 }}>
         <Text accessibilityRole="header">Project Alpha</Text>
-        <Text>Craft delightful experiences with Platform Blocks components.</Text>
+        <Text>Craft delightful experiences with plocks components.</Text>
       </Card>
     );
 

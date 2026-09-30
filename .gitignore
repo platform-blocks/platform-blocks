@@ -6,9 +6,9 @@ docs/node_modules/
 # Generated LLM documentation (rebuilt by scripts/generate-llms.ts on every
 # build). The llms.txt index is committed like sitemap.xml; the per-page
 # Markdown, the compact llms-small.txt and the full text are not.
-apps/platform-blocks.com/public/llms/
-apps/platform-blocks.com/public/llms-small.txt
-apps/platform-blocks.com/public/llms-full.txt
+apps/docs/public/llms/
+apps/docs/public/llms-small.txt
+apps/docs/public/llms-full.txt
 
 # Build outputs
 ui/lib/

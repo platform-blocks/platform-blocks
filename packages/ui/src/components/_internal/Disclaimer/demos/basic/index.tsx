@@ -1,23 +1,6 @@
 import React, { useState } from 'react';
-import {
-  Block,
-  Button,
-  Card,
-  Input,
-  Select,
-  Switch,
-  Text,
-  ToggleButton,
-  ToggleGroup,
-} from '@platform-blocks/ui';
-import { 
-  Disclaimer,
-  ComponentWithDisclaimer,
-  useDisclaimer,
-  withDisclaimer,
-  extractDisclaimerProps,
-  type DisclaimerSupport
-} from '../..';
+import { Block, Button, Card, Input, Select, Switch, Text, ToggleButton, ToggleGroup } from '@plocks/ui';
+import { Disclaimer, ComponentWithDisclaimer, useDisclaimer, withDisclaimer, extractDisclaimerProps, type DisclaimerSupport } from '../..';
 
 // Example 1: Standalone Disclaimer component
 const StandaloneDisclaimerExample = () => (

@@ -1,4 +1,4 @@
-import { Button, Tooltip } from '@platform-blocks/ui';
+import { Button, Tooltip } from '@plocks/ui';
 
 export function Demo() {
   return (

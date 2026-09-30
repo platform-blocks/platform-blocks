@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, DataList, Knob, Row, Text, useTheme } from '@platform-blocks/ui';
+import { Block, DataList, Knob, Row, Text, useTheme } from '@plocks/ui';
 
 const MODES = [
   {

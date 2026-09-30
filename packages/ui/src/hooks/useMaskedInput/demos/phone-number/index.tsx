@@ -1,4 +1,4 @@
-import { Badge, Block, Input, Text, useMaskedInput } from '@platform-blocks/ui';
+import { Badge, Block, Input, Text, useMaskedInput } from '@plocks/ui';
 
 export function Demo() {
   const { value, unmaskedValue, isComplete, handleChangeText, handleSelectionChange } = useMaskedInput({

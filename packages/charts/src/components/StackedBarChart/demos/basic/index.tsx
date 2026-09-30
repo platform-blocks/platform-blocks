@@ -1,4 +1,4 @@
-import { StackedBarChart } from '@platform-blocks/charts';
+import { StackedBarChart } from '@plocks/charts';
 
 import { SERIES } from './data';
 

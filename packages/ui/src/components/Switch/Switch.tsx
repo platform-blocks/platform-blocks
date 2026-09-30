@@ -20,7 +20,7 @@ import { useDirection } from '../../core/providers/DirectionProvider';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { literalBackgrounds, literalText } from '../../core/theme/cssVariableTheme';
 import { getControlSize, resolveShadow } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import { getLayoutStyles } from '../../core/utils/layout';
 import { useMergedRef } from '../../core/utils/mergeRefs';
 import { useStyleProps } from '../../core/utils/spacing';
@@ -48,7 +48,7 @@ const THUMB_RATIO = 18 / 22;
  * Track height: a fixed ratio of the control-size icon so it follows the theme
  * (md 22). A numeric `size` is the track height itself.
  */
-export const getSwitchTrackHeight = (theme: PlatformBlocksTheme, size: SizeValue | undefined): number =>
+export const getSwitchTrackHeight = (theme: PlocksTheme, size: SizeValue | undefined): number =>
   typeof size === 'number' ? size : Math.round(getControlSize(theme, size).iconSize * 1.375);
 
 interface SwitchGeometry {

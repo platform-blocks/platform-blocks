@@ -1,10 +1,10 @@
 import React from 'react';
 import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { FloatingActions } from '../FloatingActions';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('FloatingActions (react-native-web DOM)', () => {
   const actions = [
@@ -41,5 +41,21 @@ describe('FloatingActions (react-native-web DOM)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Search' }));
     expect(actions[1].onPress).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: 'Search' })).toBeNull();
+  });
+
+  it('adds the Spotlight and GitHub defaults only when their props are set', () => {
+    const { unmount } = render(<FloatingActions />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open actions' }));
+    expect(screen.getByRole('button', { name: 'Toggle theme' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Open spotlight' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open GitHub' })).toBeNull();
+    unmount();
+
+    const onOpenSpotlight = jest.fn();
+    render(<FloatingActions onOpenSpotlight={onOpenSpotlight} githubUrl="https://github.com/acme/app" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open actions' }));
+    expect(screen.getByRole('button', { name: 'Open GitHub' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Open spotlight' }));
+    expect(onOpenSpotlight).toHaveBeenCalledTimes(1);
   });
 });

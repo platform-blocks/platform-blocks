@@ -4,7 +4,6 @@ category: behavior
 order: 40
 tags: [delays, wrapping]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

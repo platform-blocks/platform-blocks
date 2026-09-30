@@ -120,7 +120,7 @@ export function useControllableState<T>({
     wasControlledRef.current = isControlled;
 
     devWarn(
-      `[platform-blocks] A component switched from ${
+      `[plocks] A component switched from ${
         isControlled ? 'uncontrolled to controlled' : 'controlled to uncontrolled'
       }. Decide on one mode for the lifetime of the component: pass \`value\` for controlled, or \`defaultValue\` for uncontrolled.`,
     );

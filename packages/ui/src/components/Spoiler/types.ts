@@ -9,8 +9,6 @@ import type { TextProps } from '../Text';
 export interface SpoilerControlArgs {
   /** Whether the content is currently expanded. */
   expanded: boolean;
-  /** @deprecated Use `expanded`. */
-  opened: boolean;
   toggle: () => void;
   showLabel: string;
   hideLabel: string;
@@ -27,12 +25,6 @@ export interface SpoilerProps extends BaseProps<ViewStyle> {
   defaultExpanded?: boolean;
   /** Called with the requested expanded state whenever the control is pressed. */
   onExpandedChange?: (expanded: boolean) => void;
-  /** @deprecated Use `defaultExpanded` instead. */
-  initiallyOpen?: boolean;
-  /** @deprecated Use `expanded` instead. */
-  opened?: boolean;
-  /** @deprecated Use `onExpandedChange` instead. */
-  onToggle?: (opened: boolean) => void;
   /** Label for show more */
   showLabel?: string;
   /** Label for hide */

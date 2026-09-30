@@ -33,7 +33,7 @@ export interface CopyButtonProps extends BaseProps<ViewStyle> {
   disableToast?: boolean;
   /** Tooltip text, or a full Tooltip config (`{ label, maw, … }`). Icon-only controls default to the label. */
   tooltip?: TooltipPropValue;
-  /** Tooltip position when the string form of `tooltip` is used */
+  /** Where the tooltip opens — including the automatic "Copy" / "Copied" one. An explicit `position` in the object form of `tooltip` wins. */
   tooltipPosition?: 'top' | 'bottom' | 'left' | 'right';
   /** Presentation: a button (default) or a bare icon with no chrome */
   mode?: 'button' | 'icon';

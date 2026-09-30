@@ -46,22 +46,6 @@ describe('Tabs', () => {
     expect(onChange).toHaveBeenCalledWith('properties');
   });
 
-  it('keeps the deprecated activeTab / onTabChange aliases working (canonical props win)', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const onTabChange = jest.fn();
-    const { getAllByRole, getByText, rerender } = render(
-      <Tabs items={createItems()} activeTab="properties" onTabChange={onTabChange} />
-    );
-    expect(getByText('Properties content')).toBeTruthy();
-    fireEvent.press(getAllByRole('tab')[0]);
-    expect(onTabChange).toHaveBeenCalledWith('examples');
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('`activeTab` is deprecated'));
-
-    rerender(<Tabs items={createItems()} value="examples" activeTab="properties" />);
-    expect(getByText('Examples content')).toBeTruthy();
-    warn.mockRestore();
-  });
-
   it('supports defaultValue when uncontrolled', () => {
     const { getByText } = render(
       <Tabs items={createItems()} defaultValue="properties" autoPersist={false} />
@@ -77,7 +61,7 @@ describe('Tabs', () => {
   });
 
   it('invokes onDisabledTabPress instead of onChange for disabled tabs', () => {
-    const onTabChange = jest.fn();
+    const onChange = jest.fn();
     const onDisabled = jest.fn();
     const items = [
       { key: 'examples', label: 'Examples', content: <Text>Examples</Text> },
@@ -85,13 +69,13 @@ describe('Tabs', () => {
     ];
 
     const { getAllByRole } = render(
-      <Tabs items={items} onChange={onTabChange} onDisabledTabPress={onDisabled} />
+      <Tabs items={items} onChange={onChange} onDisabledTabPress={onDisabled} />
     );
 
     const tabs = getAllByRole('tab');
     fireEvent.press(tabs[1]);
 
-    expect(onTabChange).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
     expect(onDisabled).toHaveBeenCalledWith('blocked', expect.objectContaining({ key: 'blocked' }));
   });
 
@@ -129,5 +113,17 @@ describe('Tabs', () => {
     );
     const flat = StyleSheet.flatten((getByText('Examples (6)') as any).props.style) || {};
     expect(flat).toMatchObject({ fontWeight: '700', letterSpacing: 1.5 });
+  });
+
+  it('renders a count beside a navigation-only tab', () => {
+    const { getByText } = render(
+      <Tabs
+        navigationOnly
+        items={[{ key: 'saved', label: 'Saved', subLabel: '3', content: null }]}
+      />
+    );
+
+    expect(getByText('Saved')).toBeTruthy();
+    expect(getByText('3')).toBeTruthy();
   });
 });

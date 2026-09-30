@@ -37,14 +37,6 @@ export interface PasswordStrengthRule extends Omit<ValidationRule, 'type'> {
 /** Visual variant of a field: `default` (surface + border), `filled` (subtle fill, no border), `outline` (border only), `unstyled`. */
 export type InputVariant = FieldVariant;
 
-/**
- * @deprecated Use `TextFieldBaseProps` (text entry) or `FieldBaseProps` (other
- * controls) from `components/_internal/Field/fieldProps`. Kept as an alias of
- * `TextFieldBaseProps` minus `defaultValue`, so wrappers that declare their own
- * typed `defaultValue` (Date, number, ...) keep extending it.
- */
-export type BaseInputProps = Omit<TextFieldBaseProps, 'defaultValue'>;
-
 /** Props forwarded to the underlying `TextInput`, plus the web keyboard events react-native-web exposes. */
 export type ExtendedTextInputProps = Omit<RNTextInputProps, keyof TextFieldBaseProps> & {
   /** Style of the TextInput itself, merged after the field's text style. */
@@ -55,6 +47,12 @@ export type ExtendedTextInputProps = Omit<RNTextInputProps, keyof TextFieldBaseP
 
 /** Props of the shared text-field shell (`TextInputBase`) that Input, NumberInput, PhoneInput and Search render. */
 export interface TextInputBaseProps extends TextFieldBaseProps {
+  /** Flex factor for an input placed beside buttons or icons. */
+  flex?: number;
+  /** Color of the editable text. */
+  inputColor?: string;
+  /** Editable text size in pixels. */
+  inputFontSize?: number;
   /** Id of the TextInput (DOM `id` on web, `nativeID` on native); label/error ids derive from it. Generated when omitted. */
   id?: string;
   /** Force the focused look regardless of real focus. */
@@ -193,4 +191,3 @@ export interface PasswordInputProps extends Omit<InputProps, 'type' | 'secureTex
   /** Password strength validation rules */
   strengthValidation?: PasswordStrengthRule[];
 }
-

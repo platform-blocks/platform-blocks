@@ -32,11 +32,6 @@ export interface PaginationProps extends BaseProps<ViewStyle> {
   /** Initial page when uncontrolled. @default 1 */
   defaultValue?: number;
 
-  /**
-   * @deprecated Use `value` instead.
-   */
-  current?: number;
-
   /** Total number of pages */
   total: number;
 

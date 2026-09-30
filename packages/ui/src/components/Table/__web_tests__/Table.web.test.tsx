@@ -1,10 +1,10 @@
 import React from 'react';
 import { fireEvent, render as rtlRender, screen, within } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { Table } from '../Table';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('Table (react-native-web DOM)', () => {
   it('renders table semantics from `data`, named by its caption', () => {

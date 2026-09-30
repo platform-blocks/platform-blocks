@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, PhoneInput } from '@platform-blocks/ui';
+import { Block, PhoneInput } from '@plocks/ui';
 
 export function Demo() {
   const [usRaw, setUsRaw] = useState('');

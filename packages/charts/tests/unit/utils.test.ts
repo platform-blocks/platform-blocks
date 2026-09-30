@@ -7,8 +7,6 @@ import {
   chartToDataCoordinates,
   dataToChartCoordinates,
   findClosestDataPoint,
-  setDefaultColorScheme,
-  colorSchemes,
   getColorFromScheme,
   formatNumber,
   formatPercentage,
@@ -92,27 +90,9 @@ describe('scales and coordinate helpers', () => {
   });
 });
 
-describe('setDefaultColorScheme', () => {
-  const original = [...colorSchemes.default];
-
-  afterEach(() => {
-    setDefaultColorScheme(original);
-  });
-
-  it('updates the default color scheme without mutating input', () => {
-    const next = ['#111111', '#222222'];
-    const result = setDefaultColorScheme(next);
-
-    expect(result).toEqual(next);
-    expect(colorSchemes.default).toEqual(next);
-    expect(result).not.toBe(next); // clone
-  });
-
-  it('falls back to existing defaults when palette is invalid', () => {
-    const result = setDefaultColorScheme([]);
-    expect(result.length).toBeGreaterThan(0);
-    expect(colorSchemes.default).toEqual(result);
-    expect(getColorFromScheme(1)).toBe(result[1 % result.length]);
+describe('getColorFromScheme', () => {
+  it('wraps past the end of the palette', () => {
+    expect(getColorFromScheme(3, ['#111111', '#222222'])).toBe('#222222');
   });
 });
 

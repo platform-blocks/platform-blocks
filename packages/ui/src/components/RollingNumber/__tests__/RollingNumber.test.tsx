@@ -3,7 +3,7 @@ import { Text as RNText } from 'react-native';
 import { render } from '@testing-library/react-native';
 
 import { RollingNumber } from '../RollingNumber';
-import { formatRollingValue, toRollingCells } from '../formatValue';
+import { formatRollingValue, nextRollPosition, toRollingCells } from '../formatValue';
 
 describe('formatRollingValue', () => {
   it('renders a plain integer unchanged', () => {
@@ -84,6 +84,36 @@ describe('toRollingCells', () => {
   });
 });
 
+describe('nextRollPosition', () => {
+  it('carries 9 → 0 forward when the number goes up', () => {
+    expect(nextRollPosition(9, 0, 1)).toBe(10);
+  });
+
+  it('borrows 0 → 9 backward when the number goes down', () => {
+    expect(nextRollPosition(10, 9, -1)).toBe(9);
+    expect(nextRollPosition(0, 9, -1)).toBe(-1);
+  });
+
+  it('wraps forward past 0 when a digit drops while the number rises', () => {
+    // 139 → 210: the tens column goes 3 → 1 by way of 4…9, 0.
+    expect(nextRollPosition(3, 1, 1)).toBe(11);
+  });
+
+  it('counts on from an already-wrapped position', () => {
+    expect(nextRollPosition(10, 1, 1)).toBe(11);
+    expect(nextRollPosition(-1, 8, -1)).toBe(-2);
+  });
+
+  it('stays put when the digit is unchanged', () => {
+    expect(nextRollPosition(14, 4, 1)).toBe(14);
+    expect(nextRollPosition(14, 4, -1)).toBe(14);
+  });
+
+  it('goes straight to the digit with no direction', () => {
+    expect(nextRollPosition(9, 0, 0)).toBe(0);
+  });
+});
+
 describe('RollingNumber', () => {
   const digitTexts = (api: ReturnType<typeof render>) =>
     api.UNSAFE_getAllByType(RNText).map((node) => node.props.children);
@@ -112,6 +142,15 @@ describe('RollingNumber', () => {
     const texts = digitTexts(api);
     expect(texts).toContain('~');
     expect(texts).toContain('%');
+  });
+
+  it('asks a trend function about each value change, with the previous value', () => {
+    const trend = jest.fn(() => 1);
+    const api = render(<RollingNumber value={19} trend={trend} />);
+    api.rerender(<RollingNumber value={20} trend={trend} />);
+    api.rerender(<RollingNumber value={20} trend={trend} />);
+    expect(trend).toHaveBeenCalledTimes(1);
+    expect(trend).toHaveBeenCalledWith(19, 20);
   });
 
   it('survives a value change without remounting', () => {

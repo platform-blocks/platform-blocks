@@ -77,14 +77,6 @@ export interface TabsProps extends BaseProps<ViewStyle> {
    */
   onChange?: (tabKey: string) => void;
   /**
-   * @deprecated Use `value` instead.
-   */
-  activeTab?: string;
-  /**
-   * @deprecated Use `onChange` instead.
-   */
-  onTabChange?: (tabKey: string) => void;
-  /**
    * Keyboard activation. `'automatic'` selects a tab as soon as arrow keys move
    * focus to it; `'manual'` only moves focus, and Enter/Space selects.
    *

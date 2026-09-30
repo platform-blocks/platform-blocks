@@ -3,7 +3,6 @@ name: Accordion
 title: Accordion
 description: Collapsible content panels for organizing related information with single or multiple expansion modes and visual variants.
 status: stable
-since: 0.4.0
 category: display
 subcategories: [layout, disclosure]
 tags: [collapse, expand, panel, ui, content-grouping]

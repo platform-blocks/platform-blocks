@@ -5,7 +5,6 @@ order: 40
 tags: [dialog, forms, validation]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

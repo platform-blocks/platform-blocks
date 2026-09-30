@@ -14,6 +14,24 @@ describe('Badge', () => {
     expect(styleOf(getByTestId('badge')).height).toBe(20);
   });
 
+  it('scales height and label typography across size tokens', () => {
+    const sizes = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
+    const { getByTestId, getByText } = render(
+      <>{sizes.map((size) => <Badge key={size} size={size} testID={`badge-${size}`}>{size}</Badge>)}</>
+    );
+
+    expect(sizes.map((size) => styleOf(getByTestId(`badge-${size}`)).height)).toEqual([14, 16, 20, 22, 24, 26, 28]);
+    expect(sizes.map((size) => styleOf(getByText(size)).fontSize)).toEqual([8, 10, 12, 14, 16, 18, 22]);
+    expect(sizes.map((size) => styleOf(getByText(size)).lineHeight)).toEqual([10, 12, 14, 17, 19, 22, 26]);
+    expect(sizes.map((size) => styleOf(getByText(size)).letterSpacing)).toEqual([-0.16, -0.2, -0.24, -0.28, -0.32, -0.36, -0.44]);
+  });
+
+  it('uses a numeric size as height and scales its label', () => {
+    const { getByTestId, getByText } = render(<Badge size={32} testID="numeric-badge">Numeric</Badge>);
+    expect(styleOf(getByTestId('numeric-badge')).height).toBe(32);
+    expect(styleOf(getByText('Numeric')).fontSize).toBe(19);
+  });
+
   it('prefers the canonical variant/color over the v/c shorthands', () => {
     const { getByTestId } = render(
       <>

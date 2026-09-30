@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import type { ViewStyle } from 'react-native';
 
 import { isWeb, webStyle } from '../../core/platform';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 
 interface FocusEventLike {
   target?: unknown;
@@ -46,7 +46,7 @@ export interface FocusRing {
  * focus never shows it. Mirrors the global `:focus-visible` ring UniversalCSS
  * injects, but follows the *nearest* theme rather than the root CSS variable.
  */
-export function useFocusRing(theme: PlatformBlocksTheme): FocusRing {
+export function useFocusRing(theme: PlocksTheme): FocusRing {
   const [visible, setVisible] = useState(false);
 
   const onFocus = useCallback((event?: FocusEventLike) => {

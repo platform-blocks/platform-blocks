@@ -1,4 +1,4 @@
-import { Block, Space, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Space, Text, useTheme } from '@plocks/ui';
 
 const EXAMPLES = [
   {

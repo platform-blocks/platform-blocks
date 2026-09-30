@@ -1,4 +1,4 @@
-import { NetworkChart } from '@platform-blocks/charts';
+import { NetworkChart } from '@plocks/charts';
 
 import { LINKS, NODES } from './data';
 

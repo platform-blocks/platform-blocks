@@ -4,7 +4,6 @@ category: appearance
 order: 35
 tags: [accordion, appearance, color]
 status: stable
-since: 0.10.1
 hidden: false
 ---
 

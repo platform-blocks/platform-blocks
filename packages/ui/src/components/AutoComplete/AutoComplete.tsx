@@ -19,7 +19,7 @@ import { getControlSize, resolveSpacing } from '../../core/theme/tokens';
 import type { FieldHandle } from '../../core/types/base';
 import { getLayoutStyles } from '../../core/utils/layout';
 import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
-import { devError, warnOnce } from '../../core/utils/logger';
+import { devError } from '../../core/utils/logger';
 import type { PlacementType } from '../../core/utils/positioning-enhanced';
 import { useStyleProps } from '../../core/utils/spacing';
 import { useControllableState } from '../../hooks/useControllableState';
@@ -47,7 +47,7 @@ const BLUR_CLOSE_DELAY = 150;
 
 const DEFAULT_FALLBACK_PLACEMENTS: PlacementType[] = ['top-start', 'top-end', 'top', 'bottom-start', 'bottom-end', 'bottom'];
 const EMPTY_OPTIONS: AutoCompleteOption[] = [];
-const PB_INPUT_DATASET = { pbInput: 'true' } as const;
+const PLOCKS_INPUT_DATASET = { plocksInput: 'true' } as const;
 
 const preventDefault = (event: { preventDefault(): void }) => event.preventDefault();
 
@@ -136,7 +136,6 @@ const AutoCompleteInner = (props: AutoCompleteProps, ref: React.ForwardedRef<Aut
     renderItem,
     renderValue,
     onSelect,
-    allowCustomValue,
     maxSuggestions = 10,
     showSuggestionsOnFocus = true,
     renderEmptyState,
@@ -154,10 +153,9 @@ const AutoCompleteInner = (props: AutoCompleteProps, ref: React.ForwardedRef<Aut
     selectedValuesContainerStyle,
     selectedValueChipProps,
     refocusAfterSelect,
-    freeSolo: freeSoloProp,
+    freeSolo = false,
     displayProperty = 'label',
     useModal: useModalProp,
-    usePortal: usePortalProp,
     textInputProps,
     placement = 'bottom-start',
     fallbackPlacements = DEFAULT_FALLBACK_PLACEMENTS,
@@ -189,25 +187,14 @@ const AutoCompleteInner = (props: AutoCompleteProps, ref: React.ForwardedRef<Aut
     testID,
   } = props;
 
-  if (allowCustomValue !== undefined) {
-    warnOnce('AutoComplete.allowCustomValue', '[platform-blocks] AutoComplete: `allowCustomValue` is deprecated; use `freeSolo`.');
-  }
-  if (usePortalProp !== undefined) {
-    warnOnce(
-      'AutoComplete.usePortal',
-      '[platform-blocks] AutoComplete: `usePortal` is deprecated; anchored suggestions always render in the overlay layer. Use `useModal` to choose the presentation.'
-    );
-  }
-  const freeSolo = freeSoloProp ?? allowCustomValue ?? false;
-
   const theme = useTheme();
   const keyboardFocus = useKeyboardFocusOptional();
   const spacingStyles = useStyleProps(props);
   const renderDisclaimer = useDisclaimer(disclaimer, disclaimerProps);
-  const { shouldUseModal } = useOverlayMode({ forceModal: useModalProp, forceOverlay: usePortalProp });
+  const { shouldUseModal } = useOverlayMode({ forceModal: useModalProp });
   const useSheet = shouldUseModal;
 
-  const baseId = useA11yId(undefined, 'pb-autocomplete');
+  const baseId = useA11yId(undefined, 'plocks-autocomplete');
   const listId = `${baseId}-listbox`;
   const labelText = getNodeText(label) || undefined;
   const metrics = getControlSize(theme, size);
@@ -879,7 +866,7 @@ const AutoCompleteInner = (props: AutoCompleteProps, ref: React.ForwardedRef<Aut
         // freeSolo commits on Enter and keeps focus for the next tag.
         blurOnSubmit={freeSolo ? false : blurOnSubmit}
         autoFocus={isSheetInput ? autoFocus ?? true : useSheet ? false : autoFocus}
-        dataSet={isWeb ? PB_INPUT_DATASET : undefined}
+        dataSet={isWeb ? PLOCKS_INPUT_DATASET : undefined}
         style={[
           control.input,
           styles.input,
@@ -992,7 +979,7 @@ const AutoCompleteInner = (props: AutoCompleteProps, ref: React.ForwardedRef<Aut
             <DropdownSheet
               opened={opened}
               onClose={closeSheet}
-              placement="top"
+              placement="center"
               title={labelText}
               accessibilityLabel={accessibilityLabel ?? labelText ?? placeholder}
               withCloseButton
@@ -1032,7 +1019,7 @@ const VALUE_OVERLAY: ViewStyle = { justifyContent: 'center' };
  * A text field with a suggestion list: the editable combobox pattern
  * (`aria-autocomplete="list"`, `aria-activedescendant`), local or async data,
  * single / multi / free-form selection. Anchored dropdown on desktop web, a
- * top-pinned sheet on native and small screens.
+ * centered dialog on native and small screens.
  */
 export const AutoComplete = factory<{ props: AutoCompleteProps; ref: AutoCompleteHandle }>(AutoCompleteInner, {
   displayName: 'AutoComplete',

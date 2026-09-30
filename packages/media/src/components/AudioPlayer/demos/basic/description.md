@@ -1,0 +1,9 @@
+---
+title: Basics
+category: basics
+order: 10
+tags: [audio, playback, peaks, expo-audio]
+status: stable
+---
+
+Point `source` at a URL or a bundled clip and pass its `peaks` to draw the real waveform; the player handles loading, play/pause, seeking and progress. Playback requires `expo-audio`; without it the controls render but report a missing-module error.

@@ -7,7 +7,7 @@ import { useViewport } from '../../core/responsive';
 import { breakpointsFromTheme, resolveResponsiveProp } from '../../core/theme/breakpoints';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 import { gridCellCss, gridColumnsCss } from './gridCss';
 import type { GridProps, GridItemProps } from './types';
@@ -22,7 +22,7 @@ export type { GridProps, GridItemProps } from './types';
  * without either of them having to know the viewport.
  */
 const GridRule = ({ name, css }: { name: string; css: string }) => (
-  <style href={`pb-grid-${name}`} precedence="default" dangerouslySetInnerHTML={{ __html: css }} />
+  <style href={`plocks-grid-${name}`} precedence="default" dangerouslySetInnerHTML={{ __html: css }} />
 );
 
 /**
@@ -32,7 +32,7 @@ const GridRule = ({ name, css }: { name: string; css: string }) => (
  */
 const useNativeViewportWidth: () => number = isWeb ? () => 0 : () => useViewport().width;
 
-const spacingValue = (theme: PlatformBlocksTheme, value: SizeValue): number => {
+const spacingValue = (theme: PlocksTheme, value: SizeValue): number => {
   const resolved = resolveSpacing(theme, value);
   return typeof resolved === 'number' ? resolved : 0;
 };
@@ -126,14 +126,14 @@ export const Grid = factory<{ props: GridProps; ref: View }>(
           {...rest}
           ref={ref}
           testID={testID}
-          dataSet={{ pbGrid: track.name }}
+          dataSet={{ plocksGrid: track.name }}
           style={[styles.webGrid, gapStyle, fullWidth && styles.fullWidth, spacingStyle, style]}
         >
           {Array.from(rules, ([name, css]) => (
             <GridRule key={name} name={name} css={css} />
           ))}
           {cells.map(({ key, cell, child }) => (
-            <View key={key} dataSet={{ pbGridCell: cell.name }} style={styles.webCell}>
+            <View key={key} dataSet={{ plocksGridCell: cell.name }} style={styles.webCell}>
               {child}
             </View>
           ))}

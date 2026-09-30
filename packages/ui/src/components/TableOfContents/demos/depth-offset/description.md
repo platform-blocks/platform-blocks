@@ -5,7 +5,6 @@ order: 40
 tags: [indentation]
 highlightLines: []
 status: stable
-since: 0.3.0
 hidden: false
 ---
 

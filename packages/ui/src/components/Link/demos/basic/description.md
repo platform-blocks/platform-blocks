@@ -1,10 +1,9 @@
 ---
-title: Inline Links
+title: Basics
 category: usage
 order: 10
 tags: [link]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

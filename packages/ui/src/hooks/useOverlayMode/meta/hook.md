@@ -4,7 +4,6 @@ category: layout
 order: 70
 tags: [modal, overlay, responsive]
 status: beta
-since: 1.0.0
 hidden: false
 ---
 

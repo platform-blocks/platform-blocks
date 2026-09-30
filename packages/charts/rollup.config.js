@@ -49,19 +49,4 @@ export default [
       }),
     ],
   },
-  {
-    ...commonConfig,
-    output: { file: pkg.main, format: 'cjs', sourcemap: true, exports: 'named' },
-    plugins: [
-      ...commonConfig.plugins,
-      typescript({
-        tsconfig: './tsconfig.cjs.json',
-        declaration: false,
-        declarationMap: false,
-        jsx: 'react-jsx',
-        outDir: './lib/cjs',
-        rootDir: './src',
-      }),
-    ],
-  },
 ];

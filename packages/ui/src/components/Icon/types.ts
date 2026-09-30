@@ -20,36 +20,17 @@ export interface ExternalIconProps {
 
 export type ExternalIconComponent = React.ComponentType<ExternalIconProps>;
 
-/** Props a legacy registry `content` component receives. */
-export interface LegacyIconComponentProps {
-  width?: number;
-  height?: number;
-  color?: string;
-  strokeWidth?: number;
-  stroke?: number;
-}
-
-export interface IconDefinition {
-  /**
-   * SVG path data or React component (legacy hand-drawn icons).
-   * Optional when the icon is provided via `outlined`/`filled` components.
-   */
-  content?: string | React.ComponentType<LegacyIconComponentProps>;
-  /** Component-based outlined icon (e.g. Tabler `IconChevronRight`). */
-  outlined?: ExternalIconComponent;
-  /** Component-based filled icon (e.g. Tabler `IconStarFilled`). */
-  filled?: ExternalIconComponent;
-  /** Default viewBox for the icon */
-  viewBox?: string;
+export type IconDefinition = {
   /** Whether this is a filled or outlined icon */
   variant?: IconVariant;
-  /** Keep stroke visible even when rendered as filled */
-  preserveStrokeOnFill?: boolean;
   /** Human-readable description used in docs and tooling */
   description?: string;
   /** Optional keywords to help search/filter docs */
   keywords?: string[];
-}
+} & (
+  | { outlined: ExternalIconComponent; filled?: ExternalIconComponent }
+  | { outlined?: ExternalIconComponent; filled: ExternalIconComponent }
+);
 
 export type IconRegistry = Record<string, IconDefinition>;
 

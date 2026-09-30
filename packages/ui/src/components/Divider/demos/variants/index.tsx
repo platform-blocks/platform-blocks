@@ -1,4 +1,4 @@
-import { Block, Divider, Text } from '@platform-blocks/ui';
+import { Block, Divider, Text } from '@plocks/ui';
 
 const VARIANTS = ['solid', 'dashed', 'dotted', 'gradient'] as const;
 

@@ -30,7 +30,6 @@ jest.mock('../../../hooks/useOverlayMode', () => ({
     isDesktopExperience: true,
     shouldUseModal: false,
     shouldUseOverlay: true,
-    shouldUsePortal: true,
   }),
 }));
 

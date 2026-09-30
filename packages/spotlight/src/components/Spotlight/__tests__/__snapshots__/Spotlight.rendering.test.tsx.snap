@@ -1,0 +1,717 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Spotlight - rendering matches snapshot for grouped actions in a modal layout 1`] = `
+<View
+  accessibilityLabel="Search"
+  backdrop={true}
+  backdropClosable={true}
+  onClose={[Function]}
+  role="dialog"
+  style={
+    [
+      {
+        "borderRadius": 16,
+        "borderWidth": 1,
+        "overflow": "hidden",
+        "padding": 0,
+      },
+      {
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "#E5E7EB",
+        "elevation": 12,
+        "shadowColor": "rgb(0, 0, 0)",
+        "shadowOffset": {
+          "height": 10,
+          "width": 0,
+        },
+        "shadowOpacity": 0.15,
+        "shadowRadius": 10,
+      },
+      [
+        {
+          "borderRadius": 0,
+          "height": "100%",
+          "maxHeight": "100%",
+          "width": "100%",
+        },
+        {},
+      ],
+    ]
+  }
+  title={null}
+  variant="fullscreen"
+>
+  <View
+    style={
+      [
+        {
+          "display": "flex",
+          "flexDirection": "column",
+          "height": 400,
+        },
+        {
+          "flex": 1,
+        },
+        [
+          {},
+          undefined,
+        ],
+      ]
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "transparent",
+            "borderWidth": 1,
+            "flexShrink": 0,
+            "paddingHorizontal": 20,
+            "paddingVertical": 16,
+          },
+          {
+            "borderColor": "#E5E7EB",
+          },
+          null,
+        ]
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "gap": 12,
+          }
+        }
+      >
+        <View
+          accessibilityRole="image"
+          color="#6E6E73"
+          name="search"
+          size="md"
+        />
+        <TextInput
+          aria-autocomplete="list"
+          aria-expanded={true}
+          onBlur={[Function]}
+          onChangeText={[Function]}
+          onFocus={[Function]}
+          onKeyPress={[Function]}
+          placeholder="Search"
+          placeholderTextColor="#8E8E93"
+          role="combobox"
+          style={
+            [
+              {
+                "backgroundColor": "transparent",
+                "borderRadius": 0,
+                "borderWidth": 0,
+                "flex": 1,
+                "fontSize": 18,
+                "fontWeight": "500",
+                "lineHeight": 30,
+                "marginBottom": 0,
+                "paddingHorizontal": 0,
+                "paddingVertical": 8,
+              },
+              {
+                "color": "#1C1C1E",
+              },
+            ]
+          }
+          value=""
+        />
+        <View
+          accessibilityLabel="Close search"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          hitSlop={12}
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          role="button"
+          style={
+            {
+              "alignItems": "center",
+              "justifyContent": "center",
+              "minHeight": 44,
+              "minWidth": 44,
+            }
+          }
+        >
+          <View
+            accessibilityRole="image"
+            color="#6E6E73"
+            name="x"
+            size="md"
+          />
+        </View>
+      </View>
+    </View>
+    <RCTScrollView
+      id="spotlight-list-_r_0_"
+      onScroll={[Function]}
+      role="list"
+      scrollEventThrottle={16}
+      showsVerticalScrollIndicator={true}
+      style={
+        [
+          {
+            "borderTopWidth": 1,
+            "flex": 1,
+          },
+          {
+            "borderTopColor": "#E5E7EB",
+          },
+          undefined,
+          {
+            "maxHeight": 311,
+          },
+        ]
+      }
+    >
+      <View>
+        <View
+          aria-label="Navigation"
+          role="group"
+          style={
+            [
+              {
+                "marginVertical": 4,
+              },
+              undefined,
+            ]
+          }
+        >
+          <View
+            style={
+              [
+                {
+                  "borderBottomWidth": 1,
+                  "marginBottom": 4,
+                  "paddingHorizontal": 20,
+                  "paddingVertical": 8,
+                },
+                {
+                  "backgroundColor": "rgba(0, 0, 0, 0.03)",
+                  "borderBottomColor": "#E5E7EB",
+                },
+              ]
+            }
+          >
+            <Text
+              aria-hidden={true}
+              textRole="sectionLabel"
+            >
+              Navigation
+            </Text>
+          </View>
+          <View
+            accessibilityState={
+              {
+                "busy": undefined,
+                "checked": undefined,
+                "disabled": false,
+                "expanded": undefined,
+                "selected": false,
+              }
+            }
+            accessibilityValue={
+              {
+                "max": undefined,
+                "min": undefined,
+                "now": undefined,
+                "text": undefined,
+              }
+            }
+            accessible={true}
+            collapsable={false}
+            focusable={true}
+            id="spotlight-list-_r_0_-option-0"
+            onBlur={[Function]}
+            onClick={[Function]}
+            onFocus={[Function]}
+            onLayout={[Function]}
+            onResponderGrant={[Function]}
+            onResponderMove={[Function]}
+            onResponderRelease={[Function]}
+            onResponderTerminate={[Function]}
+            onResponderTerminationRequest={[Function]}
+            onStartShouldSetResponder={[Function]}
+            role="option"
+            style={
+              [
+                {
+                  "backgroundColor": "transparent",
+                  "borderRadius": 8,
+                  "marginHorizontal": 8,
+                  "marginVertical": 1,
+                },
+                false,
+                false,
+                false,
+                false,
+                undefined,
+              ]
+            }
+            tabIndex={-1}
+          >
+            <View
+              align="center"
+              direction="row"
+              style={
+                {
+                  "minHeight": 48,
+                  "paddingHorizontal": 16,
+                  "paddingVertical": 10,
+                }
+              }
+            >
+              <View
+                direction="column"
+                style={
+                  {
+                    "flex": 1,
+                  }
+                }
+              >
+                <Text
+                  style={
+                    {
+                      "fontSize": 15,
+                      "fontWeight": "500",
+                      "lineHeight": 20,
+                    }
+                  }
+                >
+                  Go Home
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View
+            accessibilityState={
+              {
+                "busy": undefined,
+                "checked": undefined,
+                "disabled": false,
+                "expanded": undefined,
+                "selected": false,
+              }
+            }
+            accessibilityValue={
+              {
+                "max": undefined,
+                "min": undefined,
+                "now": undefined,
+                "text": undefined,
+              }
+            }
+            accessible={true}
+            collapsable={false}
+            focusable={true}
+            id="spotlight-list-_r_0_-option-1"
+            onBlur={[Function]}
+            onClick={[Function]}
+            onFocus={[Function]}
+            onLayout={[Function]}
+            onResponderGrant={[Function]}
+            onResponderMove={[Function]}
+            onResponderRelease={[Function]}
+            onResponderTerminate={[Function]}
+            onResponderTerminationRequest={[Function]}
+            onStartShouldSetResponder={[Function]}
+            role="option"
+            style={
+              [
+                {
+                  "backgroundColor": "transparent",
+                  "borderRadius": 8,
+                  "marginHorizontal": 8,
+                  "marginVertical": 1,
+                },
+                false,
+                false,
+                false,
+                false,
+                undefined,
+              ]
+            }
+            tabIndex={-1}
+          >
+            <View
+              align="center"
+              direction="row"
+              style={
+                {
+                  "minHeight": 48,
+                  "paddingHorizontal": 16,
+                  "paddingVertical": 10,
+                }
+              }
+            >
+              <View
+                direction="column"
+                style={
+                  {
+                    "flex": 1,
+                  }
+                }
+              >
+                <Text
+                  style={
+                    {
+                      "fontSize": 15,
+                      "fontWeight": "500",
+                      "lineHeight": 20,
+                    }
+                  }
+                >
+                  View Reports
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": false,
+              "expanded": undefined,
+              "selected": false,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          id="spotlight-list-_r_0_-option-2"
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onLayout={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          role="option"
+          style={
+            [
+              {
+                "backgroundColor": "transparent",
+                "borderRadius": 8,
+                "marginHorizontal": 8,
+                "marginVertical": 1,
+              },
+              false,
+              false,
+              false,
+              false,
+              undefined,
+            ]
+          }
+          tabIndex={-1}
+        >
+          <View
+            align="center"
+            direction="row"
+            style={
+              {
+                "minHeight": 48,
+                "paddingHorizontal": 16,
+                "paddingVertical": 10,
+              }
+            }
+          >
+            <View
+              direction="column"
+              style={
+                {
+                  "flex": 1,
+                }
+              }
+            >
+              <Text
+                style={
+                  {
+                    "fontSize": 15,
+                    "fontWeight": "500",
+                    "lineHeight": 20,
+                  }
+                }
+              >
+                Manage Users
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </RCTScrollView>
+  </View>
+</View>
+`;
+
+exports[`Spotlight - rendering matches snapshot for the empty state when no actions are provided 1`] = `
+<View
+  accessibilityLabel="Search"
+  backdrop={true}
+  backdropClosable={true}
+  onClose={[Function]}
+  role="dialog"
+  style={
+    [
+      {
+        "borderRadius": 16,
+        "borderWidth": 1,
+        "overflow": "hidden",
+        "padding": 0,
+      },
+      {
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "#E5E7EB",
+        "elevation": 12,
+        "shadowColor": "rgb(0, 0, 0)",
+        "shadowOffset": {
+          "height": 10,
+          "width": 0,
+        },
+        "shadowOpacity": 0.15,
+        "shadowRadius": 10,
+      },
+      [
+        {
+          "borderRadius": 0,
+          "height": "100%",
+          "maxHeight": "100%",
+          "width": "100%",
+        },
+        {},
+      ],
+    ]
+  }
+  title={null}
+  variant="fullscreen"
+>
+  <View
+    style={
+      [
+        {
+          "display": "flex",
+          "flexDirection": "column",
+          "height": 400,
+        },
+        {
+          "flex": 1,
+        },
+        [
+          {},
+          undefined,
+        ],
+      ]
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "transparent",
+            "borderWidth": 1,
+            "flexShrink": 0,
+            "paddingHorizontal": 20,
+            "paddingVertical": 16,
+          },
+          {
+            "borderColor": "#E5E7EB",
+          },
+          null,
+        ]
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "gap": 12,
+          }
+        }
+      >
+        <View
+          accessibilityRole="image"
+          color="#6E6E73"
+          name="search"
+          size="md"
+        />
+        <TextInput
+          aria-autocomplete="list"
+          aria-expanded={true}
+          onBlur={[Function]}
+          onChangeText={[Function]}
+          onFocus={[Function]}
+          onKeyPress={[Function]}
+          placeholder="Search"
+          placeholderTextColor="#8E8E93"
+          role="combobox"
+          style={
+            [
+              {
+                "backgroundColor": "transparent",
+                "borderRadius": 0,
+                "borderWidth": 0,
+                "flex": 1,
+                "fontSize": 18,
+                "fontWeight": "500",
+                "lineHeight": 30,
+                "marginBottom": 0,
+                "paddingHorizontal": 0,
+                "paddingVertical": 8,
+              },
+              {
+                "color": "#1C1C1E",
+              },
+            ]
+          }
+          value=""
+        />
+        <View
+          accessibilityLabel="Close search"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          hitSlop={12}
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          role="button"
+          style={
+            {
+              "alignItems": "center",
+              "justifyContent": "center",
+              "minHeight": 44,
+              "minWidth": 44,
+            }
+          }
+        >
+          <View
+            accessibilityRole="image"
+            color="#6E6E73"
+            name="x"
+            size="md"
+          />
+        </View>
+      </View>
+    </View>
+    <RCTScrollView
+      id="spotlight-list-_r_1_"
+      onScroll={[Function]}
+      role="list"
+      scrollEventThrottle={16}
+      showsVerticalScrollIndicator={true}
+      style={
+        [
+          {
+            "borderTopWidth": 1,
+            "flex": 1,
+          },
+          {
+            "borderTopColor": "#E5E7EB",
+          },
+          undefined,
+          {
+            "maxHeight": 311,
+          },
+        ]
+      }
+    >
+      <View>
+        <View
+          style={
+            [
+              {
+                "alignItems": "center",
+                "justifyContent": "center",
+                "padding": 20,
+              },
+              undefined,
+            ]
+          }
+        >
+          <Text
+            c="#6E6E73"
+            role="status"
+            size="md"
+            style={
+              {
+                "fontSize": 15,
+                "opacity": 0.6,
+                "textAlign": "center",
+              }
+            }
+          >
+            Try another keyword
+          </Text>
+        </View>
+      </View>
+    </RCTScrollView>
+  </View>
+</View>
+`;

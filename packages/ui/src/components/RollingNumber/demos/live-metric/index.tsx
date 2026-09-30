@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Flex, RollingNumber, Text } from '@platform-blocks/ui';
+import { Flex, RollingNumber, Text } from '@plocks/ui';
 
 export function Demo() {
   const [requests, setRequests] = useState(84213);
@@ -13,7 +13,7 @@ export function Demo() {
 
   return (
     <Flex direction="column" gap="xs">
-      <Text size="xs" c="dimmed" tt="uppercase">Requests today</Text>
+      <Text size="xs" c="muted" tt="uppercase">Requests today</Text>
       <RollingNumber
         value={requests}
         thousandSeparator

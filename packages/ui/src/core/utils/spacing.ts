@@ -5,7 +5,7 @@ import { DEFAULT_THEME } from '../theme/defaultTheme';
 import { resolveBg } from '../theme/resolveColors';
 import { useTheme } from '../theme/ThemeProvider';
 import { resolveSpacing } from '../theme/tokens';
-import type { DimensionProp, PlatformBlocksTheme, SpacingValue, StyleProps } from '../theme/types';
+import type { DimensionProp, PlocksTheme, SpacingValue, StyleProps } from '../theme/types';
 
 /** Re-export SpacingValue from theme types */
 export type { SpacingValue } from '../theme/types';
@@ -43,7 +43,7 @@ const dimension = (value: DimensionProp): DimensionValue =>
  * @param theme - Theme to resolve tokens against (defaults to `DEFAULT_THEME`);
  *   `useStyleProps` passes the current one.
  */
-export function resolveStyleProps(props: StyleProps, theme?: Partial<PlatformBlocksTheme> | null): ViewStyle {
+export function resolveStyleProps(props: StyleProps, theme?: Partial<PlocksTheme> | null): ViewStyle {
   const resolvedTheme = theme ?? DEFAULT_THEME;
   const resolve = (value: SpacingValue) => resolveSpacing(resolvedTheme, value);
   const styles: ViewStyle = {};
@@ -85,7 +85,7 @@ export function resolveStyleProps(props: StyleProps, theme?: Partial<PlatformBlo
   size('maxHeight', props.mah);
 
   if (props.bg !== undefined && props.bg !== null) {
-    const bg = resolveBg(resolvedTheme as PlatformBlocksTheme, props.bg);
+    const bg = resolveBg(resolvedTheme as PlocksTheme, props.bg);
     if (bg !== undefined) {
       styles.backgroundColor = bg;
       any = true;

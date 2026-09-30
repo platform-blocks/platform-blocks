@@ -1,7 +1,7 @@
 ---
 title: Popover
 description: Layered surface that displays contextual content next to a trigger without blocking the rest of the UI.
-source: "@platform-blocks/ui"
+source: "@plocks/ui"
 status: "beta"
 category: overlay
 playground: true
@@ -14,7 +14,7 @@ variants:
   - name: "controlled"
     description: "Controlled state example with a small invite form"
 dependencies:
-  - "@platform-blocks/core"
+  - "@plocks/core"
 related:
   - "Tooltip"
   - "Menu"

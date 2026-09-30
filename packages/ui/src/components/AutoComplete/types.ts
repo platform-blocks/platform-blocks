@@ -88,9 +88,6 @@ export interface AutoCompleteProps extends Omit<TextFieldBaseProps, 'debounceMs'
     }
   ) => React.ReactNode;
 
-  /** @deprecated Use `freeSolo`. */
-  allowCustomValue?: boolean;
-
   /** Maximum number of suggestions to display (0 = no limit). */
   maxSuggestions?: number;
 
@@ -176,13 +173,6 @@ export interface AutoCompleteProps extends Omit<TextFieldBaseProps, 'debounceMs'
    * (false). Default: sheet on native and small screens, dropdown on desktop web.
    */
   useModal?: boolean;
-
-  /**
-   * @deprecated Anchored suggestions always render in the overlay layer now
-   * (inline only when no OverlayProvider is mounted). `usePortal={true}`
-   * still forces the anchored dropdown, like `useModal={false}`.
-   */
-  usePortal?: boolean;
 
   /** Additional TextInput props */
   textInputProps?: Omit<TextInputProps, 'value' | 'onChangeText' | 'placeholder'>;

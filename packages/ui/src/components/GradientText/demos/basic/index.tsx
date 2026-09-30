@@ -1,4 +1,4 @@
-import { GradientText } from '@platform-blocks/ui';
+import { GradientText } from '@plocks/ui';
 
 export function Demo() {
   return (

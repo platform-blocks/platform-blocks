@@ -12,7 +12,7 @@ module.exports = {
   transformIgnorePatterns: [
     // pnpm stores packages under node_modules/.pnpm/<virtual>/node_modules/<pkg>/,
     // so the allowlist must optionally skip that prefix (mirrors packages/ui).
-    'node_modules/(?!(?:\\.pnpm/[^/]+/node_modules/)?(react-native|@react-native|react-native-svg|@platform-blocks|react-native-reanimated|react-native-gesture-handler|react-native-worklets|@testing-library)/)',
+    'node_modules/(?!(?:\\.pnpm/[^/]+/node_modules/)?(react-native|@react-native|react-native-svg|@plocks|react-native-reanimated|react-native-gesture-handler|react-native-worklets|@testing-library)/)',
   ],
   setupFiles: rnPreset.setupFiles,
   setupFilesAfterEnv: [...(rnPreset.setupFilesAfterEnv || []), '<rootDir>/jest.setup.cjs'],

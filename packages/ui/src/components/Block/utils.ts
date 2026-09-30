@@ -1,10 +1,10 @@
 import type { DimensionValue, ViewStyle } from 'react-native';
 
-import { resolveRadius, resolveShadow, resolveSpacing, type ShadowToken } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import { resolveRadius, resolveShadow, resolveSpacing } from '../../core/theme/tokens';
+import type { PlocksTheme } from '../../core/theme/types';
 import type { BlockStyleProps } from './types';
 
-type ThemeLike = Partial<PlatformBlocksTheme> | null | undefined;
+type ThemeLike = Partial<PlocksTheme> | null | undefined;
 
 /** Radius prop → px, resolved against `theme.radii`. */
 export function blockRadius(radius: BlockStyleProps['radius'], theme?: ThemeLike): number | undefined {
@@ -12,14 +12,10 @@ export function blockRadius(radius: BlockStyleProps['radius'], theme?: ThemeLike
   return resolveRadius(theme, radius);
 }
 
-const SHADOW_LEVELS: readonly ShadowToken[] = ['none', 'xs', 'sm', 'md', 'lg', 'xl'];
-
-/** `shadow` prop (token, or legacy depth 0–5) → the theme's cross-platform shadow style. */
+/** `shadow` token → the theme's cross-platform shadow style. */
 export function blockShadow(shadow: BlockStyleProps['shadow'], theme?: ThemeLike): ViewStyle {
   if (shadow === undefined) return {};
-  const token: ShadowToken =
-    typeof shadow === 'number' ? SHADOW_LEVELS[Math.max(0, Math.min(5, Math.round(shadow)))] : shadow;
-  return resolveShadow(theme, token);
+  return resolveShadow(theme, shadow);
 }
 
 /** Basis / inset prop → a DimensionValue (`'full'` = 100%). */
@@ -54,21 +50,34 @@ function resolveFlexWrap(wrap: BlockStyleProps['wrap']): ViewStyle['flexWrap'] |
  *
  * `start` / `end` are logical insets (mirrored in right-to-left layouts by
  * React Native and react-native-web); `left` / `right` are physical.
- * The second argument used to be an `isRTL` flag and is still accepted as one
- * (ignored) for back-compat.
  */
-export function getBlockStyles(props: BlockStyleProps, theme?: ThemeLike | boolean): ViewStyle {
-  const resolvedTheme = typeof theme === 'object' ? theme : undefined;
+export function getBlockStyles(props: BlockStyleProps, theme?: ThemeLike): ViewStyle {
   const {
     radius,
     borderWidth,
     borderColor,
+    borderTopWidth,
+    borderRightWidth,
+    borderBottomWidth,
+    borderLeftWidth,
+    borderTopColor,
+    borderRightColor,
+    borderBottomColor,
+    borderLeftColor,
+    borderTopLeftRadius,
+    borderTopRightRadius,
+    borderStyle,
+    overflow,
+    aspectRatio,
+    translateY,
+    rotate,
     shadow,
     grow,
     shrink,
     basis,
     direction,
     align,
+    alignSelf,
     justify,
     wrap,
     gap,
@@ -77,6 +86,7 @@ export function getBlockStyles(props: BlockStyleProps, theme?: ThemeLike | boole
     right,
     bottom,
     left,
+    inset,
     start,
     end,
     zIndex,
@@ -85,34 +95,55 @@ export function getBlockStyles(props: BlockStyleProps, theme?: ThemeLike | boole
 
   const style: ViewStyle = {
     // Appearance
-    borderRadius: blockRadius(radius, resolvedTheme),
+    borderRadius: blockRadius(radius, theme),
     borderWidth,
     borderColor,
+    borderTopWidth,
+    borderRightWidth,
+    borderBottomWidth,
+    borderLeftWidth,
+    borderTopColor,
+    borderRightColor,
+    borderBottomColor,
+    borderLeftColor,
+    borderTopLeftRadius,
+    borderTopRightRadius,
+    borderStyle,
+    overflow,
+    aspectRatio,
+    transform: translateY === undefined && rotate === undefined
+      ? undefined
+      : [...(translateY === undefined ? [] : [{ translateY }]), ...(rotate === undefined ? [] : [{ rotate }])],
 
     // Shadow
-    ...blockShadow(shadow, resolvedTheme),
+    ...blockShadow(shadow, theme),
 
     // Flex properties
     ...(flex !== false && { display: 'flex' as const }),
     flexGrow: typeof grow === 'boolean' ? (grow ? 1 : 0) : grow,
+    ...(typeof flex === 'number' && { flex }),
     flexShrink: typeof shrink === 'boolean' ? (shrink ? 1 : 0) : shrink,
     flexBasis: getDimension(basis),
     flexDirection: direction,
     alignItems: align,
+    alignSelf,
     justifyContent: justify,
     flexWrap: resolveFlexWrap(wrap),
-    gap: blockGap(gap, resolvedTheme),
+    gap: blockGap(gap, theme),
 
     // Position
     position,
-    top: getDimension(top),
-    right: getDimension(right),
-    bottom: getDimension(bottom),
-    left: getDimension(left),
+    top: getDimension(top ?? inset),
+    right: getDimension(right ?? inset),
+    bottom: getDimension(bottom ?? inset),
+    left: getDimension(left ?? inset),
     start: getDimension(start),
     end: getDimension(end),
     zIndex,
   };
 
+  if (props.touchAction) {
+    (style as ViewStyle & { touchAction: BlockStyleProps['touchAction'] }).touchAction = props.touchAction;
+  }
   return style;
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text } from 'react-native';
-import { HistogramChart, HistogramBinSummary } from '@platform-blocks/charts';
+import { HistogramChart, HistogramBinSummary } from '@plocks/charts';
 
 import { BREACH_LIMIT, LOAD_TIMES, SLO_TARGET } from './data';
 

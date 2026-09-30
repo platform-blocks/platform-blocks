@@ -21,7 +21,7 @@ jest.mock('@shopify/flash-list', () => ({
 }));
 
 import { DataTable } from '../DataTable';
-import { PlatformBlocksThemeProvider } from '../../../core/theme/ThemeProvider';
+import { ThemeScope } from '../../../core/theme/ThemeProvider';
 import { OverlayProvider } from '../../../core/providers/OverlayProvider';
 import type { DataTableColumn, DataTableRowId } from '../types';
 
@@ -62,9 +62,9 @@ const flat = (style: unknown) =>
 
 function wrap(ui: React.ReactElement) {
   return (
-    <PlatformBlocksThemeProvider>
+    <ThemeScope>
       <OverlayProvider>{ui}</OverlayProvider>
-    </PlatformBlocksThemeProvider>
+    </ThemeScope>
   );
 }
 
@@ -90,6 +90,16 @@ beforeEach(() => {
 });
 
 describe('DataTable row rendering', () => {
+  it('adapts toolbar actions to the table width while keeping search visible', () => {
+    render(wrap(<DataTable data={people} columns={columns} testID="people" exportable
+      onExport={() => {}} showColumnVisibilityManager searchable />));
+    expect(screen.getByLabelText('Search')).toBeTruthy();
+    expect(screen.getByText('Export')).toBeTruthy();
+    fireEvent(screen.getByTestId('people-frame'), 'layout', { nativeEvent: { layout: { width: 480 } } });
+    expect(screen.getByLabelText('Search')).toBeTruthy();
+    expect(screen.getByText('More')).toBeTruthy();
+  });
+
   it('re-renders only the toggled row when selecting', () => {
     render(wrap(<SelectableTable />));
     expect(cellRenders.get('ada')).toBeGreaterThan(0);

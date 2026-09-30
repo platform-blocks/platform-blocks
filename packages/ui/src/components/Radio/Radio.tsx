@@ -22,7 +22,7 @@ import { composite } from '../../core/theme/colorUtils';
 import { literalBackgrounds, literalText } from '../../core/theme/cssVariableTheme';
 import { resolveColorProp } from '../../core/theme/resolveColors';
 import { getControlSize, onColor, resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import { getLayoutStyles } from '../../core/utils/layout';
 import { useMergedRef } from '../../core/utils/mergeRefs';
 import { useStyleProps } from '../../core/utils/spacing';
@@ -52,7 +52,7 @@ const RADIO_SHADES = [6, 5] as const;
 const CARD_TINT_ALPHA = 0.14;
 
 /** Diameter of the radio: a fixed ratio of the control-size icon, so it follows the theme. */
-export const getRadioSize = (theme: PlatformBlocksTheme, size: SizeValue | undefined): number =>
+export const getRadioSize = (theme: PlocksTheme, size: SizeValue | undefined): number =>
   Math.round(getControlSize(theme, size).iconSize * 1.5);
 
 export interface RadioPalette {
@@ -72,7 +72,7 @@ export interface RadioPalette {
  * channels to interpolate.
  */
 export function getRadioPalette(
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   { disabled, error, color }: { disabled: boolean; error: boolean; color?: string }
 ): RadioPalette {
   const text = literalText(theme);
@@ -343,7 +343,7 @@ interface VariantStyles {
 
 /** Static layout of the button-like variants, cached per theme / variant / orientation. */
 const getVariantStyles = createThemedStyles(
-  (theme: PlatformBlocksTheme, variant: RadioGroupVariant, horizontal: boolean): VariantStyles => ({
+  (theme: PlocksTheme, variant: RadioGroupVariant, horizontal: boolean): VariantStyles => ({
     option:
       variant === 'card'
         ? {
@@ -390,7 +390,7 @@ const getVariantStyles = createThemedStyles(
 );
 
 /** Colors of the button-like variants for one accent, cached per theme / color. */
-const getVariantColors = createThemedStyles((theme: PlatformBlocksTheme, color: string) => {
+const getVariantColors = createThemedStyles((theme: PlocksTheme, color: string) => {
   const accent = resolveColorProp(theme, color, { shades: RADIO_SHADES }) ?? theme.colors.primary[6];
   // The wash mixes two colors; on web `backgrounds.surface` is a `var()` reference
   // with no measurable channels, so the math reads the literal.

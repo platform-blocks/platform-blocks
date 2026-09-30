@@ -1,4 +1,4 @@
-import { Block, Text, Waveform } from '@platform-blocks/ui';
+import { Block, Text, Waveform } from '@plocks/ui';
 
 import { QUIET_WAVEFORM_PEAKS, WAVEFORM_DEMO_PEAKS } from '../data';
 

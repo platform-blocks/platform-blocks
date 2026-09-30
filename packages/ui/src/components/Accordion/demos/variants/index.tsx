@@ -1,4 +1,4 @@
-import { Accordion, Block, Text } from '@platform-blocks/ui';
+import { Accordion, Block, Text } from '@plocks/ui';
 import { onboardingSteps } from '../data';
 
 const variants = ['default', 'separated', 'bordered'] as const;

@@ -1,4 +1,4 @@
-import { HeatmapChart } from '@platform-blocks/charts';
+import { HeatmapChart } from '@plocks/charts';
 
 import { PASS_RATES, RELEASES, SUITES } from './data';
 

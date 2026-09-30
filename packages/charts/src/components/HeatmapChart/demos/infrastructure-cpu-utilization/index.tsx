@@ -1,4 +1,4 @@
-import { HeatmapChart } from '@platform-blocks/charts';
+import { HeatmapChart } from '@plocks/charts';
 
 import { CLUSTERS, CPU_UTILIZATION, TIME_BLOCKS } from './data';
 

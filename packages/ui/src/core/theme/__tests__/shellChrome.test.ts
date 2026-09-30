@@ -6,7 +6,7 @@ import {
   shellChromeColors,
   withCssVariableColors,
 } from '../cssVariableTheme';
-import { BUILT_IN_DARK_THEME } from '../PlatformBlocksProvider';
+import { BUILT_IN_DARK_THEME } from '../PlocksProvider';
 import { DEFAULT_THEME } from '../defaultTheme';
 
 /**
@@ -54,13 +54,13 @@ describe('shellChrome', () => {
     const chrome = shellChrome(withCssVariableColors(DEFAULT_THEME as any));
 
     expect(chrome.background).toBe(
-      `var(--platform-blocks-shell-chrome-bg, ${DEFAULT_THEME.colors.gray[0]})`
+      `var(--plocks-shell-chrome-bg, ${DEFAULT_THEME.colors.gray[0]})`
     );
     expect(chrome.border).toBe(
-      `var(--platform-blocks-shell-chrome-border, ${DEFAULT_THEME.colors.gray[1]})`
+      `var(--plocks-shell-chrome-border, ${DEFAULT_THEME.colors.gray[1]})`
     );
     expect(chrome.canvas).toBe(
-      `var(--platform-blocks-shell-canvas-bg, ${DEFAULT_THEME.colors.gray[0]})`
+      `var(--plocks-shell-canvas-bg, ${DEFAULT_THEME.colors.gray[0]})`
     );
   });
 
@@ -103,11 +103,11 @@ describe('createThemeColorVariablesCss', () => {
   const css = createThemeColorVariablesCss(DEFAULT_THEME as any, BUILT_IN_DARK_THEME as any);
 
   const PUBLISHED = [
-    ['--platform-blocks-shell-chrome-bg', 'background'],
-    ['--platform-blocks-shell-chrome-border', 'border'],
-    ['--platform-blocks-shell-canvas-bg', 'canvas'],
-    ['--platform-blocks-shell-chrome-veil', 'veil'],
-    ['--platform-blocks-shell-nav-active-bg', 'navActive'],
+    ['--plocks-shell-chrome-bg', 'background'],
+    ['--plocks-shell-chrome-border', 'border'],
+    ['--plocks-shell-canvas-bg', 'canvas'],
+    ['--plocks-shell-chrome-veil', 'veil'],
+    ['--plocks-shell-nav-active-bg', 'navActive'],
   ] as const;
 
   it.each(PUBLISHED)('defines %s for the light scheme', (name, token) => {
@@ -122,6 +122,6 @@ describe('createThemeColorVariablesCss', () => {
   });
 
   it('leaves the native-only veil out of the stylesheet', () => {
-    expect(css).not.toContain('--platform-blocks-shell-chrome-veil-strong');
+    expect(css).not.toContain('--plocks-shell-chrome-veil-strong');
   });
 });

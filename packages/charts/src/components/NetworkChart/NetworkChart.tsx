@@ -394,7 +394,7 @@ export const NetworkChart: React.FC<NetworkChartProps> = (props) => {
   }, [setPointer]);
 
   // Engine-swap: a focused/hovered node is a single ActiveTarget (element-hover flow),
-  // replacing the legacy registerSeries + nearest-node ChartPopover path.
+  // with nearest-node hit testing.
   const handleNodeFocus = React.useCallback(
     (node: { id: string; name?: string; color: string; x: number; y: number; value?: number }) => {
       const value = typeof node.value === 'number' ? node.value : 0;

@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { fireEvent, render } from '@testing-library/react-native';
 
 import { Card } from '../Card';
-import { DESIGN_TOKENS } from '../../../core/design-tokens';
+import { DEFAULT_SPACING_SCALE } from '../../../core/theme/scales';
 
 const mockTheme = {
   backgrounds: {
@@ -16,9 +16,6 @@ const mockTheme = {
     primary: ['#EEF2FF', '#E0E7FF', '#C7D2FE', '#A5B4FC', '#818CF8', '#6366F1', '#4F46E5', '#4338CA'],
   },
   primaryColor: '#6366F1',
-  semantic: {
-    borderSubtle: '#CBD5F5',
-  },
   shadows: {
     xs: '0px 1px 2px rgba(16, 24, 40, 0.1)',
     sm: '0px 1px 3px rgba(16, 24, 40, 0.1)',
@@ -76,7 +73,7 @@ describe('Card - behavior', () => {
     const styles = StyleSheet.flatten(card.props.style);
 
     expect(styles.backgroundColor).toBe(mockTheme.backgrounds.surface);
-    expect(styles.padding).toBe(DESIGN_TOKENS.spacing.md);
+    expect(styles.padding).toBe(DEFAULT_SPACING_SCALE.md);
     expect(styles.borderRadius).toBe(6);
     expect(styles.position).toBe('relative');
   });
@@ -108,8 +105,8 @@ describe('Card - behavior', () => {
     expect(styles.borderWidth).toBe(1);
     expect(styles.borderColor).toBe(mockTheme.backgrounds.border);
     expect(styles.width).toBe('100%');
-    expect(styles.paddingTop).toBe(DESIGN_TOKENS.spacing.lg);
-    expect(styles.paddingEnd).toBe(DESIGN_TOKENS.spacing.lg);
+    expect(styles.paddingTop).toBe(DEFAULT_SPACING_SCALE.lg);
+    expect(styles.paddingEnd).toBe(DEFAULT_SPACING_SCALE.lg);
   });
 
   it('wraps pressable interactions with pressed and disabled styles', () => {

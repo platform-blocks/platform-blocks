@@ -443,21 +443,6 @@ describe('Button Component - Rendering & Behavior', () => {
       expect(getByText('Previous')).toBeTruthy();
       expect(getByTestId('button')).toBeTruthy();
     });
-
-    it('keeps the deprecated startIcon / endIcon working (with a dev warning)', () => {
-      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-      const { getByTestId } = render(
-        <Button
-          title="Legacy"
-          startIcon={<RNText testID="legacy-start">S</RNText>}
-          endIcon={<RNText testID="legacy-end">E</RNText>}
-        />
-      );
-      expect(getByTestId('legacy-start')).toBeTruthy();
-      expect(getByTestId('legacy-end')).toBeTruthy();
-      expect(warn).toHaveBeenCalledWith(expect.stringContaining('`startIcon` is deprecated'));
-      warn.mockRestore();
-    });
   });
 
   // ============================================================================
@@ -468,18 +453,6 @@ describe('Button Component - Rendering & Behavior', () => {
     it('should accept tooltip prop', () => {
       const { getByTestId } = render(
         <Button title="With Tooltip" tooltip="Click here" testID="button" />
-      );
-      expect(getByTestId('button')).toBeTruthy();
-    });
-
-    it('should accept tooltipPosition prop', () => {
-      const { getByTestId } = render(
-        <Button
-          title="Tooltip"
-          tooltip="Info"
-          tooltipPosition="bottom"
-          testID="button"
-        />
       );
       expect(getByTestId('button')).toBeTruthy();
     });

@@ -14,10 +14,9 @@ import type { ComponentSizeValue } from '../../core/theme/componentSize';
 import { resolveTextColor } from '../../core/theme/resolveColors';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { getControlSize } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import { resolveVariantRoles } from '../../core/theme/variantRoles';
 import type { BaseProps } from '../../core/types/base';
-import { warnOnce } from '../../core/utils/logger';
 import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
 import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
 import type { PassthroughAccessibilityProps } from '../Button/types';
@@ -39,10 +38,6 @@ export interface MenuItemButtonProps
   startSection?: React.ReactNode;
   /** Trailing content (icon, shortcut hint) */
   endSection?: React.ReactNode;
-  /** @deprecated Use `startSection`. */
-  startIcon?: React.ReactNode;
-  /** @deprecated Use `endSection`. */
-  endIcon?: React.ReactNode;
   /** Click handler */
   onPress?: () => void;
   /** Whether the button is disabled */
@@ -61,10 +56,6 @@ export interface MenuItemButtonProps
   rounded?: boolean;
   /** Web-only mouse down handler (e.g. to keep focus in a text input) */
   onMouseDown?: (event: WebMouseEvent) => void;
-  /** @deprecated Use `onHoverIn`. Web-only. */
-  onMouseEnter?: (event: WebMouseEvent) => void;
-  /** @deprecated Use `onHoverOut`. Web-only. */
-  onMouseLeave?: (event: WebMouseEvent) => void;
   /** Semantic color for menu styling */
   color?: MenuItemColor;
   /** Color to apply when hovered */
@@ -100,7 +91,7 @@ type WebPressableState = PressableStateCallbackType & { hovered?: boolean };
  * wash on hover, the `light` wash when active — whose text is chosen by
  * measured contrast, so labels stay readable on light and dark surfaces alike.
  */
-function getTone(theme: PlatformBlocksTheme, tone: MenuItemColor): MenuTone {
+function getTone(theme: PlocksTheme, tone: MenuItemColor): MenuTone {
   if (tone === 'default') {
     // Neutral hover and press are translucent washes, not palette shades: an
     // opaque shade is only correct at one elevation, and these items render on
@@ -131,10 +122,8 @@ export const MenuItemButton = factory<{ props: MenuItemButtonProps; ref: View }>
   const {
     title,
     children,
-    startSection: startSectionProp,
-    endSection: endSectionProp,
-    startIcon,
-    endIcon,
+    startSection,
+    endSection,
     onPress,
     disabled = false,
     active = false,
@@ -147,8 +136,6 @@ export const MenuItemButton = factory<{ props: MenuItemButtonProps; ref: View }>
     onPressIn,
     onPressOut,
     onMouseDown,
-    onMouseEnter,
-    onMouseLeave,
     color,
     hoverColor,
     activeColor,
@@ -159,14 +146,6 @@ export const MenuItemButton = factory<{ props: MenuItemButtonProps; ref: View }>
     labelProps,
     ...rest
   } = otherProps;
-
-  if (startIcon !== undefined) warnOnce('MenuItemButton.startIcon', 'MenuItemButton: `startIcon` is deprecated; use `startSection`.');
-  if (endIcon !== undefined) warnOnce('MenuItemButton.endIcon', 'MenuItemButton: `endIcon` is deprecated; use `endSection`.');
-  if (onMouseEnter || onMouseLeave) {
-    warnOnce('MenuItemButton.onMouseEnter', 'MenuItemButton: `onMouseEnter` / `onMouseLeave` are deprecated; use `onHoverIn` / `onHoverOut`.');
-  }
-  const startSection = startSectionProp ?? startIcon;
-  const endSection = endSectionProp ?? endIcon;
 
   const theme = useTheme();
   const control = getControlSize(theme, size);
@@ -243,7 +222,7 @@ export const MenuItemButton = factory<{ props: MenuItemButtonProps; ref: View }>
       onPressIn={disabled ? undefined : onPressIn}
       onPressOut={disabled ? undefined : onPressOut}
       testID={testID}
-      {...webProps({ onMouseDown, onMouseEnter, onMouseLeave })}
+      {...webProps({ onMouseDown })}
       style={({ pressed, hovered }: WebPressableState) => {
         const effectiveActive = active || pressed;
         return [

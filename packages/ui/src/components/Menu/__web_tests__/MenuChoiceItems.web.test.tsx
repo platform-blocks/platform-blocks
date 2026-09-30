@@ -1,0 +1,20 @@
+import React from 'react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
+import { Button } from '../../Button';
+import { Menu } from '../Menu';
+const originalRect = Element.prototype.getBoundingClientRect;
+beforeAll(() => { Element.prototype.getBoundingClientRect = () => ({ x: 20, y: 40, top: 40, left: 20, right: 220, bottom: 80, width: 200, height: 40, toJSON: () => ({}) }) as DOMRect; });
+afterAll(() => { Element.prototype.getBoundingClientRect = originalRect; });
+it('announces checked menu items and keeps menu open', async () => {
+  render(<PlocksProvider><Menu><Button>Open</Button><Menu.Dropdown><Menu.CheckboxItem>Pin</Menu.CheckboxItem><Menu.RadioGroup defaultValue="a"><Menu.RadioItem value="a">A</Menu.RadioItem><Menu.RadioItem value="b">B</Menu.RadioItem></Menu.RadioGroup></Menu.Dropdown></Menu></PlocksProvider>);
+  fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 150)); });
+  const pin = screen.getByRole('menuitemcheckbox', { name: 'Pin' });
+  expect(pin.getAttribute('aria-checked')).toBe('false');
+  fireEvent.click(pin);
+  expect(pin.getAttribute('aria-checked')).toBe('true');
+  expect(screen.getByRole('menuitemradio', { name: 'A' }).getAttribute('aria-checked')).toBe('true');
+  fireEvent.click(screen.getByRole('menuitemradio', { name: 'B' }));
+  expect(screen.getByRole('menuitemradio', { name: 'B' }).getAttribute('aria-checked')).toBe('true');
+});

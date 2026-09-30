@@ -1,10 +1,9 @@
 ---
-title: Interactive Presets
+title: Basics
 category: usage
 order: 10
 tags: [ring]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

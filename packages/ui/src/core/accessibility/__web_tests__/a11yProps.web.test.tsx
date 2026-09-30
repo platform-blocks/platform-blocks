@@ -3,7 +3,7 @@ import { Platform, Pressable, Text, View } from 'react-native';
 import { render, screen } from '@testing-library/react';
 
 import { a11yProps } from '../a11yProps';
-import { createAccessibilityProps, getAccessibilityValueProps } from '../utils';
+import { getAccessibilityValueProps } from '../utils';
 
 describe('a11yProps (web)', () => {
   it('runs as web', () => {
@@ -66,9 +66,9 @@ describe('a11yProps (web)', () => {
     expect(button.getAttribute('aria-haspopup')).toBe('dialog');
   });
 
-  it('legacy builders publish values the DOM can read', () => {
+  it('value props publish values the DOM can read', () => {
     expect(getAccessibilityValueProps({ now: 3 })).toEqual({ 'aria-valuenow': 3 });
-    render(<View {...createAccessibilityProps({ role: 'progressbar', label: 'Upload', value: { min: 0, max: 10, now: 3 } })} />);
+    render(<View role="progressbar" aria-label="Upload" {...getAccessibilityValueProps({ min: 0, max: 10, now: 3 })} />);
     expect(screen.getByRole('progressbar', { name: 'Upload' }).getAttribute('aria-valuenow')).toBe('3');
   });
 

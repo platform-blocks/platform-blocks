@@ -2,7 +2,7 @@ import React from 'react';
 import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
 import { __resetLayerStackForTests } from '../../../core/overlay/layerStack';
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { ColorPicker } from '../ColorPicker';
 
 // Desktop web: the anchored dropdown (useFloating), not the sheet.
@@ -15,7 +15,6 @@ jest.mock('../../../hooks/useOverlayMode', () => ({
     isDesktopExperience: true,
     shouldUseModal: false,
     shouldUseOverlay: true,
-    shouldUsePortal: true,
   }),
 }));
 
@@ -31,7 +30,7 @@ afterAll(() => {
 });
 beforeEach(() => __resetLayerStackForTests());
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 /** Lets positioning (async measure + re-measure) and focus moves settle. */
 async function settle() {

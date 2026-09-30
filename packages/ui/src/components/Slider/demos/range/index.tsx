@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, RangeSlider } from '@platform-blocks/ui';
+import { Block, RangeSlider } from '@plocks/ui';
 
 export function Demo() {
   const [priceRange, setPriceRange] = useState<[number, number]>([25, 75]);

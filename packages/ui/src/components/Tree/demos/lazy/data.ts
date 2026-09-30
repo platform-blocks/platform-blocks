@@ -1,4 +1,4 @@
-import type { TreeNode } from '@platform-blocks/ui';
+import type { TreeNode } from '@plocks/ui';
 
 /** Roots that advertise children with `hasChildren` but ship none — `loadChildren` fills them in. */
 export const TREE_DATA: TreeNode[] = [

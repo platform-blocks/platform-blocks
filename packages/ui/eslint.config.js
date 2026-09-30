@@ -6,7 +6,7 @@ import reactNative from 'eslint-plugin-react-native';
 import unusedImports from 'eslint-plugin-unused-imports';
 
 /**
- * Lint config for @platform-blocks/ui.
+ * Lint config for @plocks/ui.
  *
  * Errors fail `npm run lint`; `npm run lint:check` (CI) also fails on any
  * warning. The component/hook rules below guard the conventions the library
@@ -38,8 +38,8 @@ const BANNED_BARREL_IMPORTS = [
     up.slice(0, -1),
   ]),
   // The package's own public entry (tsconfig maps it to src/index.ts).
-  '@platform-blocks/ui',
-  'platform-blocks',
+  '@plocks/ui',
+  'plocks',
 ].map((name) => ({ name, message: BARREL_IMPORT_MESSAGE }));
 
 // Rules for all library code. react-native-web 0.21 drops `accessibilityState` /

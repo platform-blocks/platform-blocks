@@ -1,7 +1,7 @@
 ---
 title: Select
 description: A dropdown component for selecting from a list of options with support for disabled states, custom styling, and multi-value selection.
-source: "@platform-blocks/ui"
+source: "@plocks/ui"
 status: "stable"
 category: input
 playground: true
@@ -20,7 +20,7 @@ variants:
   - name: "variants"
     description: "Visual variants for the trigger shell — default, filled, outline, unstyled"
 dependencies:
-  - "@platform-blocks/core"
+  - "@plocks/core"
 related:
   - "Input"
   - "Dropdown"

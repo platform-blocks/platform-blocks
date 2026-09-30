@@ -13,7 +13,6 @@ import { useAdjustable } from '../../core/accessibility/useAdjustable';
 import { factory } from '../../core/factory';
 import { useThemedStyles } from '../../core/hooks/useThemedStyles';
 import { isWeb, webProps } from '../../core/platform';
-import { warnOnce } from '../../core/utils/logger';
 import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 import { useControllableState } from '../../hooks/useControllableState';
 import { useHaptics } from '../../hooks/useHaptics';
@@ -46,7 +45,6 @@ function WheelInner<T extends WheelValue>(props: WheelProps<T>, ref: React.Forwa
     value,
     defaultValue,
     onChange,
-    onValueChange,
     onChangeComplete,
     label,
     h = 200,
@@ -59,10 +57,6 @@ function WheelInner<T extends WheelValue>(props: WheelProps<T>, ref: React.Forwa
   const { otherProps: viewProps } = extractStyleProps(rest);
   const spacingStyles = useStyleProps(props);
 
-  if (onValueChange) {
-    warnOnce('Wheel.onValueChange', '[Wheel] `onValueChange` is deprecated and will be removed; use `onChange` instead.');
-  }
-
   const { selection } = useHaptics({ disabled: disabled || !haptics });
   const listRef = useRef<FlatList<WheelItem<T>>>(null);
   const hasPositionedRef = useRef(false);
@@ -73,8 +67,7 @@ function WheelInner<T extends WheelValue>(props: WheelProps<T>, ref: React.Forwa
     defaultValue: defaultValue ?? items[0]?.value,
     onChange: (next) => {
       if (next === undefined) return;
-      // The canonical handler wins over the deprecated alias.
-      (onChange ?? onValueChange)?.(next);
+      onChange?.(next);
     },
   });
   const selectedIndex = Math.max(0, items.findIndex((item) => item.value === selectedValue));

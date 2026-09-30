@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, TextArea } from '@platform-blocks/ui';
+import { Block, TextArea } from '@plocks/ui';
 
 export function Demo() {
   const [autoResizeValue, setAutoResizeValue] = useState(

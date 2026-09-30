@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Button, Input, Row, Text, useDebouncedCallback } from '@platform-blocks/ui';
+import { Block, Button, Input, Row, Text, useDebouncedCallback } from '@plocks/ui';
 
 export function Demo() {
   const [query, setQuery] = useState('');

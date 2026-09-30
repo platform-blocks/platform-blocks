@@ -88,29 +88,3 @@ describe('Knob behavior prop', () => {
     expect(valueNow({ behavior: 'endless' })).toBe(180);
   });
 });
-
-describe('Knob deprecated variant alias', () => {
-  // `variant` now carries the visual presets; a behavior value arriving there is routed
-  // to `behavior` instead, because the two value sets are disjoint.
-  it('warns once that the prop moved', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => { });
-
-    pressAt({ variant: 'stepped', marks: MARKS }, 160);
-
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('is a behavior, not a visual style'));
-    warn.mockRestore();
-  });
-
-  it('still resolves the behavior it used to', () => {
-    const onChange = pressAt({ variant: 'stepped', marks: MARKS }, 160);
-
-    expect(onChange.mock.calls[0][0]).toBe(50);
-  });
-
-  it('loses to behavior when both are passed', () => {
-    // `stepped` would snap this to 50; `level` must leave it alone.
-    const onChange = pressAt({ behavior: 'level', variant: 'stepped', marks: MARKS }, 160);
-
-    expect(onChange.mock.calls[0][0]).toBeCloseTo(44, 0);
-  });
-});

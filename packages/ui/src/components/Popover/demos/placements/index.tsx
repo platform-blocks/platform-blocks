@@ -1,4 +1,4 @@
-import { Button, Block, Popover, Text } from '@platform-blocks/ui';
+import { Button, Block, Popover, Text } from '@plocks/ui';
 
 const OPTIONS = [
   { label: 'Top', position: 'top' },

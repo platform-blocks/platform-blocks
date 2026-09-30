@@ -1,4 +1,4 @@
-import { Avatar, Icon, Row } from '@platform-blocks/ui';
+import { Avatar, Icon, Row } from '@plocks/ui';
 
 export function Demo() {
   return (

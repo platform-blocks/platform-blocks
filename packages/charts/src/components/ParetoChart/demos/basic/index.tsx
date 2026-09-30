@@ -1,4 +1,4 @@
-import { ParetoChart } from '@platform-blocks/charts';
+import { ParetoChart } from '@plocks/charts';
 
 import { DEFECT_BREAKDOWN } from './data';
 

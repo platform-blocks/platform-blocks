@@ -3,10 +3,10 @@ import { ScrollView, Text } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import { Table, TableTd, TableTh, TableTr } from '../Table';
-import { PlatformBlocksThemeProvider } from '../../../core/theme/ThemeProvider';
+import { ThemeScope } from '../../../core/theme/ThemeProvider';
 import { DEFAULT_THEME } from '../../../core/theme/defaultTheme';
 
-const wrap = (ui: React.ReactElement) => render(<PlatformBlocksThemeProvider>{ui}</PlatformBlocksThemeProvider>);
+const wrap = (ui: React.ReactElement) => render(<ThemeScope>{ui}</ThemeScope>);
 
 const flat = (style: unknown): Record<string, unknown> =>
   [style].flat(Infinity).reduce<Record<string, unknown>>((acc, s) => ({ ...acc, ...((s as object) || {}) }), {});

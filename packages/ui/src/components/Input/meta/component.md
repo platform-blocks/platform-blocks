@@ -3,7 +3,6 @@ displayName: Input
 description: A versatile text input component with support for different types, states, and validation.
 category: input
 status: stable
-since: 1.0.0
 tags: [input, form, text, validation]
 playground: true
 props:
@@ -50,6 +49,4 @@ examples:
   - Sections and slot styling (startSection, endSection, clearable)
 ---
 
-A versatile text input component that provides a consistent interface for text entry across different platforms. The Input component supports various types, validation states, and accessibility features.
-
-Label, description, error and helper text are rendered by the shared field frame: the label names the input, description/error/helper text describe it, errors are announced, and focus draws a 2px ring (from `theme.states.focusRing`) around the field — also while it shows an error. `ref` (and `inputRef`) point at the underlying `TextInput`.
+Input provides a styled text field with labels, validation states, and helper text.

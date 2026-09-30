@@ -5,7 +5,6 @@ category: typography
 subcategory: Typography
 tags: [text, typography, content, display]
 status: stable
-since: 1.0.0
 playground: true
 platform:
   web: true

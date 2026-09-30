@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Button, Checkbox, Input, Popover, Text } from '@platform-blocks/ui';
+import { Block, Button, Checkbox, Input, Popover, Text } from '@plocks/ui';
 
 export function Demo() {
   const [opened, setOpened] = useState(false);

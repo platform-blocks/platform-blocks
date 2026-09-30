@@ -26,15 +26,15 @@ import { DropdownSheet } from '../../../components/_internal/DropdownSheet/Dropd
 import { DARK_THEME } from '../darkTheme';
 import { DEFAULT_THEME } from '../defaultTheme';
 import { DEFAULT_TEXT_ROLES, getTextRole, resolveTextRole } from '../textRoles';
-import { PlatformBlocksThemeProvider } from '../ThemeProvider';
-import type { PlatformBlocksThemeOverride } from '../types';
+import { ThemeScope } from '../ThemeProvider';
+import type { PlocksThemeOverride } from '../types';
 
-const wrap = (ui: React.ReactElement, theme?: PlatformBlocksThemeOverride) =>
-  render(<PlatformBlocksThemeProvider theme={theme}>{ui}</PlatformBlocksThemeProvider>);
+const wrap = (ui: React.ReactElement, theme?: PlocksThemeOverride) =>
+  render(<ThemeScope theme={theme}>{ui}</ThemeScope>);
 
 const styleOf = (el: { props: { style?: unknown } }) => (StyleSheet.flatten(el.props.style as never) ?? {}) as Record<string, unknown>;
 
-const withRoles = (textRoles: PlatformBlocksThemeOverride['textRoles']) => ({ ...DEFAULT_THEME, textRoles });
+const withRoles = (textRoles: PlocksThemeOverride['textRoles']) => ({ ...DEFAULT_THEME, textRoles });
 
 describe('resolveTextRole', () => {
   it.each([
@@ -87,8 +87,8 @@ describe('resolveTextRole', () => {
   });
 
   it('reads the text token at resolve time, so a CSS-variable theme stays live on web', () => {
-    const cssTheme = { ...DEFAULT_THEME, text: { ...DEFAULT_THEME.text, secondary: 'var(--pb-text-secondary)' } };
-    expect(resolveTextRole(cssTheme, 'panelTitle').color).toBe('var(--pb-text-secondary)');
+    const cssTheme = { ...DEFAULT_THEME, text: { ...DEFAULT_THEME.text, secondary: 'var(--plocks-text-secondary)' } };
+    expect(resolveTextRole(cssTheme, 'panelTitle').color).toBe('var(--plocks-text-secondary)');
   });
 });
 
@@ -175,11 +175,11 @@ describe('components read the roles from the theme', () => {
     expect(styleOf(getByText('Notifications'))).toMatchObject({ textTransform: 'uppercase', color: DEFAULT_THEME.text.secondary });
 
     rerender(
-      <PlatformBlocksThemeProvider>
+      <ThemeScope>
         <ControlField.Group title="Notifications" titleProps={{ tt: 'none' }}>
           <ControlField label="Email" />
         </ControlField.Group>
-      </PlatformBlocksThemeProvider>
+      </ThemeScope>
     );
     expect(styleOf(getByText('Notifications')).textTransform).toBe('none');
   });

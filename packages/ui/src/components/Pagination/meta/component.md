@@ -3,11 +3,10 @@ displayName: Pagination
 description: A navigation component for dividing content across multiple pages with customizable controls.
 category: navigation
 status: stable
-since: 1.0.0
 tags: [pagination, navigation, pages, data]
 playground: true
 props:
-  value: The current page number, 1-indexed (controlled; replaces the deprecated `current`)
+  value: The current page number, 1-indexed (controlled)
   defaultValue: Initial page when uncontrolled
   total: Total number of pages available
   onChange: Callback fired with the new page number
@@ -43,6 +42,4 @@ examples:
   - Label customization (labelProps / activeLabelProps)
 ---
 
-Renders a labelled `navigation` landmark: the current page is marked `aria-current="page"`, every control has an accessible name ("Page 3", "Next page"), and the controls share a single tab stop (Arrow keys, Home, End).
-
-A comprehensive pagination component that provides intuitive navigation through large datasets. The component offers flexible configuration options and consistent styling across different use cases.
+Pagination provides controls for moving through pages of content.

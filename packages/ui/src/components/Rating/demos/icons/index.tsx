@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Rating, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Rating, Text, useTheme } from '@plocks/ui';
 
 export function Demo() {
   const theme = useTheme();

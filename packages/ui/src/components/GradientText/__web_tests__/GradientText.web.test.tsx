@@ -25,7 +25,7 @@ describe('GradientText (web)', () => {
       </GradientText>
     );
     const style = screen.getByText('Sweep').style;
-    expect(style.animationName).toMatch(/^pb-gradient-sweep-/);
+    expect(style.animationName).toMatch(/^plocks-gradient-sweep-/);
     expect(style.animationIterationCount).toBe('infinite');
   });
 

@@ -2,13 +2,13 @@ import React from 'react';
 import { View } from 'react-native';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeToken } from '../../core/theme/types';
+import type { PlocksTheme, SizeToken } from '../../core/theme/types';
 import { BlockquoteAuthor } from './BlockquoteAuthor';
 import { BlockquoteSource } from './BlockquoteSource';
 import { BlockquoteMeta } from './BlockquoteMeta';
 import type { BlockquoteAttributionProps } from './types';
 
-const px = (theme: PlatformBlocksTheme, token: SizeToken): number => {
+const px = (theme: PlocksTheme, token: SizeToken): number => {
   const resolved = resolveSpacing(theme, token);
   return typeof resolved === 'number' ? resolved : 0;
 };

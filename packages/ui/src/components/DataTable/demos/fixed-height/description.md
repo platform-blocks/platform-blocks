@@ -5,7 +5,6 @@ order: 70
 tags: [datatable, height, scroll, sticky-header, sticky, pinned, columns]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

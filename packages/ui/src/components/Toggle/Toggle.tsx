@@ -12,7 +12,7 @@ import { resolveAccentColor, resolveTextColor } from '../../core/theme/resolveCo
 import type { SizeValue } from '../../core/theme/sizes';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { getControlSize, onColor, resolveRadius } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import { extractLayoutProps, getLayoutStyles } from '../../core/utils/layout';
 import { warnOnce } from '../../core/utils/logger';
 import { useMergedRef } from '../../core/utils/mergeRefs';
@@ -51,7 +51,7 @@ ToggleItemContext.displayName = 'ToggleItemContext';
 const STANDALONE: ToggleItemPosition = { index: 0, isFirst: true, isLast: true };
 
 interface ToggleStyleParams {
-  theme: PlatformBlocksTheme;
+  theme: PlocksTheme;
   selected: boolean;
   disabled: boolean;
   size: SizeValue;

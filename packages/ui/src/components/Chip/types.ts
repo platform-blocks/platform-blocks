@@ -26,6 +26,8 @@ export interface ChipProps
   color?: ColorProp;
   /** Makes the chip a button. */
   onPress?: () => void;
+  /** Pressed state for a button chip, exposed as `aria-pressed` on web. */
+  pressed?: boolean;
   /**
    * Checked state. Setting `checked`, `defaultChecked` or `onChange` makes the
    * chip selectable: a checkbox (`aria-checked`) that toggles on press.
@@ -45,10 +47,6 @@ export interface ChipProps
   startSection?: React.ReactNode;
   /** Content (usually an icon) after the label. */
   endSection?: React.ReactNode;
-  /** @deprecated Use `startSection`. */
-  startIcon?: React.ReactNode;
-  /** @deprecated Use `endSection`. */
-  endIcon?: React.ReactNode;
   /** Show a remove (×) button that calls this. */
   onRemove?: () => void;
   /** Which side the remove button sits on (`left`/`right` follow the reading direction). */
@@ -60,7 +58,7 @@ export interface ChipProps
   /** Override props applied to the inner label `<Text>` (style, fw, ff, size, c). */
   labelProps?: Omit<TextProps, 'children'>;
   /** Corner radius. @default 'full' */
-  radius?: RadiusValue | 'chip';
+  radius?: RadiusValue;
   /** Drop shadow token. Chips are flat by default. */
   shadow?: ShadowToken;
 }

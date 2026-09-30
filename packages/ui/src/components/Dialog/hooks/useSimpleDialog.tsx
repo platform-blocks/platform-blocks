@@ -25,7 +25,16 @@ function toDialogOptions({ width, height, ...rest }: UseSimpleDialogOptions) {
 }
 
 /**
- * Simple hook for opening dialogs with less boilerplate
+ * Returns one-call dialog helpers — `modal`, `bottomSheet`, `fullScreen` and
+ * `confirm` (each returns the new dialog's id) plus `close(id)` and
+ * `closeAll()` — for opening common dialogs without building a `DialogConfig`;
+ * like `useDialog()` it never throws, but a `DialogProvider` with a
+ * `DialogRenderer` inside must be mounted for anything to show.
+ *
+ * `modal(content, options)`, `bottomSheet(content, options)` and
+ * `fullScreen(content, options)` wrap arbitrary content;
+ * `confirm(message, { onConfirm, onCancel, confirmText, cancelText })` renders
+ * a message with Cancel / Confirm buttons that close the dialog.
  */
 export function useSimpleDialog() {
   const { openDialog, closeDialog, closeAllDialogs } = useDialog();

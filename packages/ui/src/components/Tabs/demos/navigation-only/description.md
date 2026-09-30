@@ -4,7 +4,6 @@ category: layout
 order: 60
 tags: [tabs, navigation]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

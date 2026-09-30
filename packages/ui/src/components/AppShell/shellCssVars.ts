@@ -1,6 +1,6 @@
 import { isWeb } from '../../core/platform/flags';
 import { getBreakpoints, type BreakpointValues } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import type { Breakpoint, ResponsiveSize } from './types';
 import { resolveResponsiveValue } from './hooks/useResponsiveValue';
 
@@ -14,7 +14,7 @@ import { resolveResponsiveValue } from './hooks/useResponsiveValue';
  * number — a hydration mismatch that throws the prerendered tree away.
  *
  * The colors in this library already solved the same problem: they resolve
- * through `var(--platform-blocks-…)` so one `@media` block restyles the static
+ * through `var(--plocks-…)` so one `@media` block restyles the static
  * page before any JavaScript runs (see `core/theme/cssVariableTheme.ts`). This
  * is that trick applied to layout. `createAppShellCss` emits the shell's
  * geometry for every breakpoint as media queries; `AppShell cssGeometry` emits
@@ -31,11 +31,11 @@ import { resolveResponsiveValue } from './hooks/useResponsiveValue';
 /** Custom properties the shell reads. Stable names — apps inline them. */
 export const APP_SHELL_CSS_VARS = {
   /** Header height, and so the top of the content area. */
-  headerHeight: '--pb-shell-header-h',
+  headerHeight: '--plocks-shell-header-h',
   /** Horizontal space reserved for the navbar: 0 where it is a drawer. */
-  navbarWidth: '--pb-shell-navbar-w',
+  navbarWidth: '--plocks-shell-navbar-w',
   /** Bottom of the content area — the footer, or the bottom nav where one replaces it. */
-  contentBottom: '--pb-shell-content-bottom',
+  contentBottom: '--plocks-shell-content-bottom',
 } as const;
 
 export type AppShellCssVar = keyof typeof APP_SHELL_CSS_VARS;
@@ -158,7 +158,7 @@ export interface AppShellCssOptions {
    * The theme the app renders with. Its `breakpoints` place the media queries,
    * so they match the breakpoints the running shell resolves. @default the default theme
    */
-  theme?: Partial<PlatformBlocksTheme>;
+  theme?: Partial<PlocksTheme>;
   /** Per-breakpoint overrides on top of the theme's table (mirror a `BreakpointProvider`). */
   breakpoints?: Partial<BreakpointValues>;
 }
@@ -227,7 +227,7 @@ export const createAppShellCss = (
   const mobileCeiling = minWidth(nextBreakpoint(config.mobileUpTo ?? 'sm'));
   if (config.navbarWidth != null && mobileCeiling > 0) {
     chunks.push(
-      `@media (max-width: ${mobileCeiling - 0.02}px) {\n  [data-pb-shell-navbar] {\n    visibility: hidden;\n  }\n}`
+      `@media (max-width: ${mobileCeiling - 0.02}px) {\n  [data-plocks-shell-navbar] {\n    visibility: hidden;\n  }\n}`
     );
   }
 
@@ -237,8 +237,8 @@ export const createAppShellCss = (
   // thing that knows the viewport before JavaScript does — choosing from it.
   if (mobileCeiling > 0) {
     chunks.push(
-      `@media (max-width: ${mobileCeiling - 0.02}px) {\n  [data-pb-shell-desktop-only] {\n    display: none !important;\n  }\n}`,
-      `@media (min-width: ${mobileCeiling}px) {\n  [data-pb-shell-mobile-only] {\n    display: none !important;\n  }\n}`
+      `@media (max-width: ${mobileCeiling - 0.02}px) {\n  [data-plocks-shell-desktop-only] {\n    display: none !important;\n  }\n}`,
+      `@media (min-width: ${mobileCeiling}px) {\n  [data-plocks-shell-mobile-only] {\n    display: none !important;\n  }\n}`
     );
   }
 
@@ -250,8 +250,8 @@ export const createAppShellCss = (
     // react-native-web writes the shell's logical `start`/`end` insets as
     // `left`/`right` for the current direction — so this is direction-neutral.
     chunks.push(
-      `[data-pb-shell-navbar], [data-pb-shell-main] {\n  transition: width ${transitionDuration}ms ease, left ${transitionDuration}ms ease, right ${transitionDuration}ms ease;\n}`,
-      `@media (prefers-reduced-motion: reduce) {\n  [data-pb-shell-navbar], [data-pb-shell-main] {\n    transition: none;\n  }\n}`
+      `[data-plocks-shell-navbar], [data-plocks-shell-main] {\n  transition: width ${transitionDuration}ms ease, left ${transitionDuration}ms ease, right ${transitionDuration}ms ease;\n}`,
+      `@media (prefers-reduced-motion: reduce) {\n  [data-plocks-shell-navbar], [data-plocks-shell-main] {\n    transition: none;\n  }\n}`
     );
   }
 

@@ -1,5 +1,5 @@
 import { ViewStyle } from 'react-native';
-import { PlatformBlocksTheme } from './theme/types';
+import { PlocksTheme } from './theme/types';
 import { DESIGN_TOKENS } from './design-tokens';
 import { webStyle } from './platform/webStyle';
 
@@ -17,7 +17,7 @@ export interface InteractiveStateConfig {
  * Create consistent focus ring styles
  */
 export function createFocusStyles(
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   visible: boolean = true
 ): ViewStyle {
   if (!visible || typeof window === 'undefined') {
@@ -36,7 +36,7 @@ export function createFocusStyles(
  * Create consistent hover styles
  */
 export function createHoverStyles(
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   baseColor: string,
   active: boolean = true
 ): ViewStyle {
@@ -54,7 +54,7 @@ export function createHoverStyles(
  * Create consistent pressed/active styles
  */
 export function createPressedStyles(
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   active: boolean = true
 ): ViewStyle {
   if (!active) {
@@ -71,7 +71,7 @@ export function createPressedStyles(
  * Create consistent disabled styles
  */
 export function createDisabledStyles(
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   disabled: boolean = false
 ): ViewStyle {
   if (!disabled) {
@@ -90,7 +90,7 @@ export function createDisabledStyles(
  * Create comprehensive interactive styles for any component
  */
 export function createInteractiveStateStyles(
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   state: {
     focused?: boolean;
     hovered?: boolean;

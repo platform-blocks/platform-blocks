@@ -5,7 +5,6 @@ order: 10
 tags: [chip, getting-started]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

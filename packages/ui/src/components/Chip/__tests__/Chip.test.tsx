@@ -41,6 +41,15 @@ describe('Chip', () => {
     expect(getByRole('checkbox', { name: 'Controlled' })).not.toBeChecked();
   });
 
+  it('exposes the pressed state of a button chip', () => {
+    const { getByRole, rerender } = render(<Chip onPress={() => {}} pressed>All</Chip>);
+    const state = () => getByRole('button', { name: 'All' }).props.accessibilityState?.checked;
+    expect(state()).toBe(true);
+
+    rerender(<Chip onPress={() => {}} pressed={false}>All</Chip>);
+    expect(state()).toBe(false);
+  });
+
   it('names the remove button after the chip and gives it a 44pt native target', () => {
     const onRemove = jest.fn();
     const { getByRole } = render(<Chip onRemove={onRemove}>React</Chip>);
@@ -60,13 +69,5 @@ describe('Chip', () => {
     );
     fireEvent.press(getByRole('checkbox', { name: 'Off' }));
     expect(onChange).not.toHaveBeenCalled();
-  });
-
-  it('keeps the deprecated startIcon working', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const { getByText } = render(<Chip startIcon={<React.Fragment>★</React.Fragment>}>Star</Chip>);
-    expect(getByText('Star')).toBeTruthy();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('`startIcon` is deprecated'));
-    warn.mockRestore();
   });
 });

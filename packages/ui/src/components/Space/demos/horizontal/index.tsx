@@ -1,4 +1,4 @@
-import { Block, Button, Row, Space, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Button, Row, Space, Text, useTheme } from '@plocks/ui';
 
 const GROUPS = [
   {

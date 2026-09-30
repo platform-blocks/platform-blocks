@@ -29,7 +29,7 @@ exports[`Slider - rendering matches snapshot for a compact slider with a custom 
     }
   >
     <Text
-      nativeID="pb-_r_2_-label"
+      nativeID="plocks-_r_2_-label"
       selectable={true}
       style={
         [
@@ -237,7 +237,7 @@ exports[`Slider - rendering matches snapshot for a compact slider with a custom 
       aria-valuemin={-20}
       aria-valuenow={12}
       aria-valuetext="12 dB"
-      id="pb-_r_2_"
+      id="plocks-_r_2_"
       onAccessibilityAction={[Function]}
       onBlur={[Function]}
       onFocus={[Function]}
@@ -393,7 +393,7 @@ exports[`Slider - rendering matches snapshot for a horizontal range slider with 
     }
   >
     <Text
-      nativeID="pb-_r_3_-label"
+      nativeID="plocks-_r_3_-label"
       selectable={true}
       style={
         [
@@ -420,7 +420,7 @@ exports[`Slider - rendering matches snapshot for a horizontal range slider with 
   <View
     aria-label="Selection"
     collapsable={false}
-    id="pb-_r_3_"
+    id="plocks-_r_3_"
     onLayout={[Function]}
     onMoveShouldSetResponder={[Function]}
     onMoveShouldSetResponderCapture={[Function]}
@@ -1014,7 +1014,7 @@ exports[`Slider - rendering matches snapshot for a horizontal slider with ticks 
     }
   >
     <Text
-      nativeID="pb-_r_0_-label"
+      nativeID="plocks-_r_0_-label"
       selectable={true}
       style={
         [
@@ -1283,7 +1283,7 @@ exports[`Slider - rendering matches snapshot for a horizontal slider with ticks 
       aria-valuemin={0}
       aria-valuenow={45}
       aria-valuetext="45"
-      id="pb-_r_0_"
+      id="plocks-_r_0_"
       onAccessibilityAction={[Function]}
       onBlur={[Function]}
       onFocus={[Function]}
@@ -1437,7 +1437,7 @@ exports[`Slider - rendering matches snapshot for a vertical range slider layout 
     }
   >
     <Text
-      nativeID="pb-_r_1_-label"
+      nativeID="plocks-_r_1_-label"
       selectable={true}
       style={
         [
@@ -1464,7 +1464,7 @@ exports[`Slider - rendering matches snapshot for a vertical range slider layout 
   <View
     aria-label="Viewport"
     collapsable={false}
-    id="pb-_r_1_"
+    id="plocks-_r_1_"
     onLayout={[Function]}
     onMoveShouldSetResponder={[Function]}
     onMoveShouldSetResponderCapture={[Function]}

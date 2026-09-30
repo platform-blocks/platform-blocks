@@ -42,3 +42,19 @@ export {
   type UseOverlayModeResult,
 } from './useOverlayMode';
 
+export {
+  usePersistedState,
+  type PersistedStateControls,
+  type PersistedStateStorage,
+  type UsePersistedStateOptions,
+  type UsePersistedStateReturn,
+} from './usePersistedState';
+export { useElementSize, type ElementSize, type UseElementSizeReturn } from './useElementSize';
+export { useKeyboardHeight, type UseKeyboardHeightOptions } from './useKeyboardHeight';
+export {
+  usePagination,
+  getPaginationRange,
+  type PaginationRangeItem,
+  type UsePaginationOptions,
+  type UsePaginationReturn,
+} from './usePagination';

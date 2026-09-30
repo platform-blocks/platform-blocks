@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import { StyleSheet, Text as RNText } from 'react-native';
+import * as Reanimated from 'react-native-reanimated';
 
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
@@ -119,6 +120,51 @@ describe('Dialog - behavior', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('uses dialog timing for bottom sheet entry and exit', () => {
+    const timing = jest.spyOn(Reanimated, 'withTiming');
+    try {
+      const { getByTestId } = render(renderDialog({ variant: 'bottomsheet' }));
+      expect(timing).toHaveBeenCalledWith(0, expect.objectContaining({ duration: 300 }));
+
+      timing.mockClear();
+      fireEvent.press(getByTestId('dialog-backdrop', { includeHiddenElements: true }));
+      expect(timing).toHaveBeenCalledWith(expect.any(Number), expect.objectContaining({ duration: 220 }), expect.any(Function));
+    } finally {
+      timing.mockRestore();
+    }
+  });
+
+  it('scales bottom sheet entry and exit with transitionDuration', () => {
+    const timing = jest.spyOn(Reanimated, 'withTiming');
+    try {
+      const { getByTestId } = render(renderDialog({ variant: 'bottomsheet', transitionDuration: 600 }));
+      expect(timing).toHaveBeenCalledWith(0, expect.objectContaining({ duration: 600 }));
+
+      timing.mockClear();
+      fireEvent.press(getByTestId('dialog-backdrop', { includeHiddenElements: true }));
+      expect(timing).toHaveBeenCalledWith(expect.any(Number), expect.objectContaining({ duration: 440 }), expect.any(Function));
+    } finally {
+      timing.mockRestore();
+    }
+  });
+
+  it('skips bottom sheet animation when transitionDuration is zero', () => {
+    const timing = jest.spyOn(Reanimated, 'withTiming');
+    const spring = jest.spyOn(Reanimated, 'withSpring');
+    try {
+      const onClose = jest.fn();
+      const { getByTestId } = render(renderDialog({ variant: 'bottomsheet', transitionDuration: 0, onClose }));
+      fireEvent.press(getByTestId('dialog-backdrop', { includeHiddenElements: true }));
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(timing).not.toHaveBeenCalled();
+      expect(spring).not.toHaveBeenCalled();
+    } finally {
+      timing.mockRestore();
+      spring.mockRestore();
+    }
+  });
+
   it('does not render backdrop pressable when backdropClosable=false', () => {
     const { queryByTestId } = render(renderDialog({ backdropClosable: false }));
     expect(queryByTestId('dialog-backdrop', { includeHiddenElements: true })).toBeNull();
@@ -188,18 +234,6 @@ describe('Dialog - behavior', () => {
     const titleId = getByText('System Settings').props.nativeID;
     expect(titleId).toBeTruthy();
     expect(dialog.props['aria-labelledby']).toBe(titleId);
-  });
-
-  it('`visible` still works as a deprecated alias of `opened`', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const { getByText } = render(
-      <Dialog visible title="Legacy" onClose={jest.fn()}>
-        <RNText>Legacy body</RNText>
-      </Dialog>
-    );
-    expect(getByText('Legacy body')).toBeTruthy();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('`visible` is deprecated'));
-    warn.mockRestore();
   });
 
   describe('layer stack', () => {

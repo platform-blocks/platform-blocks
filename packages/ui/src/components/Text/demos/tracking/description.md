@@ -4,7 +4,6 @@ category: styling
 order: 60
 tags: [lts, tracking, letter-spacing]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

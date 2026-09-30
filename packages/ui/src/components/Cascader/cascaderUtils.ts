@@ -1,0 +1,4 @@
+import type { CascaderOption } from './types';
+export function findPath(data: CascaderOption[], values: readonly string[]): CascaderOption[] { const path: CascaderOption[] = []; let level = data; for (const value of values) { const option = level.find((item) => item.value === value); if (!option) break; path.push(option); level = option.children ?? []; } return path; }
+export function flattenPaths(data: CascaderOption[], prefix: CascaderOption[] = []): CascaderOption[][] { return data.flatMap((option) => { const path = [...prefix, option]; return option.children?.length ? flattenPaths(option.children, path) : [path]; }); }
+export function columnsForPath(data: CascaderOption[], path: readonly string[]): CascaderOption[][] { const columns = [data]; let level = data; for (const value of path) { const option = level.find((item) => item.value === value); if (!option?.children?.length) break; level = option.children; columns.push(level); } return columns; }

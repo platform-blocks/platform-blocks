@@ -1,8 +1,8 @@
 import { announce, clearAnnouncer } from '../announce';
 
-const regions = () => document.querySelector('[data-pb-announcer]');
+const regions = () => document.querySelector('[data-plocks-announcer]');
 const region = (politeness: 'polite' | 'assertive') =>
-  document.querySelector<HTMLElement>(`[data-pb-announcer] [aria-live="${politeness}"]`);
+  document.querySelector<HTMLElement>(`[data-plocks-announcer] [aria-live="${politeness}"]`);
 
 describe('announce (web)', () => {
   beforeEach(() => jest.useFakeTimers());
@@ -18,7 +18,7 @@ describe('announce (web)', () => {
     expect(container).not.toBeNull();
     expect(container?.getAttribute('style')).toContain('position:absolute');
     announce('Again', { politeness: 'assertive' });
-    expect(document.querySelectorAll('[data-pb-announcer]')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-plocks-announcer]')).toHaveLength(1);
     expect(region('polite')?.getAttribute('role')).toBe('status');
     expect(region('assertive')?.getAttribute('role')).toBe('alert');
     expect(region('polite')?.getAttribute('aria-atomic')).toBe('true');

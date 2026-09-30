@@ -15,7 +15,7 @@
  * An agent reads the index, then fetches only the handful of pages it needs.
  *
  * Inputs are the artifacts written by scripts/generate-demos.ts plus the
- * JSX-free content modules under apps/platform-blocks.com/config/. Run
+ * JSX-free content modules under apps/docs/config/. Run
  * `npm run demos:generate` first — without the generated data this emits an
  * index of whatever it can find and warns about the rest.
  */
@@ -24,27 +24,29 @@ import { promises as fs, type Dirent } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { CORE_COMPONENTS, type CoreComponentConfig } from '../apps/platform-blocks.com/config/coreComponents';
-import { FAQ_ITEMS } from '../apps/platform-blocks.com/config/faq';
-import { GITHUB_REPO, NPM_PACKAGE, SITE_URL } from '../apps/platform-blocks.com/config/urls';
-import { LLMS_FULL_URL, LLMS_SKILLS_REPO_URL, LLMS_SMALL_URL } from '../apps/platform-blocks.com/config/llmsDocs';
-import { LLMS_CHOOSING, LLMS_CONVENTIONS } from '../apps/platform-blocks.com/config/llmsGuidance';
+import { CORE_COMPONENTS, type CoreComponentConfig } from '../apps/docs/config/coreComponents';
+import { FAQ_ITEMS } from '../apps/docs/config/faq';
+import { GITHUB_REPO, NPM_PACKAGE, SITE_URL } from '../apps/docs/config/urls';
+import { LLMS_FULL_URL, LLMS_SKILLS_REPO_URL, LLMS_SMALL_URL } from '../apps/docs/config/llmsDocs';
+import { LLMS_CHOOSING, LLMS_CONVENTIONS } from '../apps/docs/config/llmsGuidance';
 import {
   THEMING_INTRO,
   THEMING_SECTIONS,
   THEMING_SUBTITLE,
   THEMING_TITLE,
-} from '../apps/platform-blocks.com/config/theming';
+} from '../apps/docs/config/theming';
 import {
   GETTING_STARTED_PREREQUISITES,
   GETTING_STARTED_STEPS,
   GETTING_STARTED_SUBTITLE,
-} from '../apps/platform-blocks.com/config/gettingStarted';
+} from '../apps/docs/config/gettingStarted';
 import {
   STARTER_TEMPLATES,
+  TEMPLATES_CREATE_COMMAND,
   TEMPLATES_GUIDANCE,
   TEMPLATES_TITLE,
-} from '../apps/platform-blocks.com/config/templates';
+  getTemplateCreateCommand,
+} from '../apps/docs/config/templates';
 import {
   ACCESSIBILITY_EXAMPLE_LEAD,
   ACCESSIBILITY_EXAMPLE_SNIPPET,
@@ -53,11 +55,11 @@ import {
   ACCESSIBILITY_OUTRO,
   ACCESSIBILITY_SECTIONS,
   ACCESSIBILITY_TITLE,
-} from '../apps/platform-blocks.com/config/accessibility';
+} from '../apps/docs/config/accessibility';
 import {
   LOCALIZATION_NOTE_KEYS,
   LOCALIZATION_STEPS,
-} from '../apps/platform-blocks.com/config/localization';
+} from '../apps/docs/config/localization';
 import {
   CONTRIBUTE_INTRO,
   CONTRIBUTE_OUTRO,
@@ -65,13 +67,14 @@ import {
   CONTRIBUTE_SECTIONS,
   CONTRIBUTE_SUBTITLE,
   CONTRIBUTE_TITLE,
-} from '../apps/platform-blocks.com/config/contribute';
+} from '../apps/docs/config/contribute';
 import { iconUsageLines, readIconNames } from './lib/icons';
+import { CHARTS_PACKAGE, UI_PACKAGE, listWorkspacePackages, type WorkspacePackage } from './lib/packages';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
-const docsDir = path.join(repoRoot, 'apps', 'platform-blocks.com');
+const docsDir = path.join(repoRoot, 'apps', 'docs');
 const generatedDir = path.join(docsDir, 'data', 'generated');
 const publicDir = path.join(docsDir, 'public');
 const llmsDir = path.join(publicDir, 'llms');
@@ -100,8 +103,7 @@ interface LlmsPage {
    */
   compact?: string;
   /**
-   * The docs-site routes this page mirrors (`/components/Button`; a chart has
-   * both `/charts/X` and `/components/X`). The web build serves the Markdown at
+   * The docs-site routes this page mirrors (`/ui/Button`, `/charts/BarChart`). The web build serves the Markdown at
    * `<route>.md` too and links it from each page's head.
    */
   routes?: string[];
@@ -416,10 +418,20 @@ async function buildGuidePages(uiVersion: string): Promise<LlmsPage[]> {
       '',
       TEMPLATES_GUIDANCE,
       '',
-      ...STARTER_TEMPLATES.map(t =>
+      '```bash',
+      TEMPLATES_CREATE_COMMAND,
+      '```',
+      '',
+      ...STARTER_TEMPLATES.flatMap(t =>
         t.available
-          ? `- [${t.name}](${t.repo}) — ${t.description} (${t.tags.join(', ')})`
-          : `- ${t.name} (coming soon) — ${t.description} (${t.tags.join(', ')})`
+          ? [
+              `- [${t.name}](${t.repo}) — ${t.description} (${t.tags.join(', ')})`,
+              '',
+              '  ```bash',
+              `  ${getTemplateCreateCommand(t)}`,
+              '  ```',
+            ]
+          : [`- ${t.name} (coming soon) — ${t.description} (${t.tags.join(', ')})`]
       ),
       '',
     ]),
@@ -433,7 +445,7 @@ async function buildGuidePages(uiVersion: string): Promise<LlmsPage[]> {
   pages.push({
     slug: 'guides/accessibility.md',
     title: 'Accessibility',
-    summary: 'How Platform Blocks meets WCAG 2.1 AA for keyboard, screen reader, low-vision, and motion-sensitive users',
+    summary: 'How plocks meets WCAG 2.1 AA for keyboard, screen reader, low-vision, and motion-sensitive users',
     routes: ['/accessibility'],
     body: joinLines([
       `# ${ACCESSIBILITY_TITLE}`,
@@ -506,27 +518,26 @@ async function buildGuidePages(uiVersion: string): Promise<LlmsPage[]> {
  */
 async function buildThemingPage(): Promise<LlmsPage> {
   const themeFiles = [
-    'core/theme/PlatformBlocksProvider.tsx',
+    'core/theme/PlocksProvider.tsx',
     'core/theme/ThemeProvider.tsx',
     'core/theme/ThemeModeProvider.tsx',
     'core/theme/types.ts',
   ];
-  const [providerProps, themeProviderProps, themePair, modeConfig, modeValue, themeShape, ...signatures] = await Promise.all([
-    findDeclaration('PlatformBlocksProviderProps', themeFiles),
-    findDeclaration('PlatformBlocksThemeProviderProps', themeFiles),
-    findDeclaration('PlatformBlocksThemePair', themeFiles),
+  const [providerProps, themePair, modeConfig, modeValue, themeShape, ...signatures] = await Promise.all([
+    findDeclaration('PlocksProviderProps', themeFiles),
+    findDeclaration('PlocksThemePair', themeFiles),
     findDeclaration('ThemeModeConfig', themeFiles),
     findDeclaration('ThemeModeContextValue', themeFiles),
-    findDeclaration('PlatformBlocksTheme', themeFiles),
+    findDeclaration('PlocksTheme', themeFiles),
     findSignature('useTheme', themeFiles),
     findSignature('useThemeMode', themeFiles),
     findSignature('createTheme', ['core/theme/utils.ts']),
   ]);
   const missing = [
-    ['PlatformBlocksProviderProps', providerProps],
-    ['PlatformBlocksThemePair', themePair],
+    ['PlocksProviderProps', providerProps],
+    ['PlocksThemePair', themePair],
     ['ThemeModeConfig', modeConfig],
-    ['PlatformBlocksTheme', themeShape],
+    ['PlocksTheme', themeShape],
   ].filter(([, found]) => !found).map(([name]) => name);
   if (missing.length) console.warn(`⚠️  Theming guide: no declaration found for ${missing.join(', ')}`);
 
@@ -549,13 +560,13 @@ async function buildThemingPage(): Promise<LlmsPage> {
     ]),
     '## Provider props',
     '',
-    '`PlatformBlocksProvider` also mounts the overlay layer, i18n, direction, haptics, reduced motion and a safe-area provider; each has an opt-out below.',
+    '`PlocksProvider` also mounts the overlay layer, i18n, direction, haptics, reduced motion and a safe-area provider; each has an opt-out below.',
     '',
-    providerProps ? codeBlock([providerProps, themeProviderProps].filter(Boolean).join('\n\n'), 'ts') : null,
+    providerProps ? codeBlock(providerProps, 'ts') : null,
     '',
     members.length ? '## Theme object' : null,
     members.length ? '' : null,
-    members.length ? '`useTheme()` returns a `PlatformBlocksTheme` with these top-level groups:' : null,
+    members.length ? '`useTheme()` returns a `PlocksTheme` with these top-level groups:' : null,
     members.length ? '' : null,
     ...members.map(member => `- \`${member.name}\`${member.doc ? ` — ${member.doc}` : ''}`),
     '',
@@ -665,7 +676,7 @@ async function buildSharedPropsPage(): Promise<LlmsPage> {
     'Every component takes the style props — spacing (`m`, `px`, …) and box props (`w`, `h`, `miw`, `maw`, `mih`, `mah`, `bg`, `opacity`) — plus the visibility props and `style` / `testID` (the base group). They apply to the component\'s root. Many also take `radius` and `shadow`. Values are theme tokens or numbers: `p="md"`, `mt={12}`, `w="full"`, `bg="subtle"`. Horizontal spacing (`ml`, `pl`, …) follows the leading and trailing edges, so it flips in right-to-left layouts. Each prop has only its short name — there is no `maxWidth` or `backgroundColor` spelling.',
     '',
     codeBlock(
-      "import { Card, Text } from '@platform-blocks/ui';\n\nexport function Demo() {\n  return (\n    <Card p=\"lg\" mt=\"md\" radius=\"lg\" shadow=\"sm\" w=\"full\" maw={480} bg=\"subtle\">\n      <Text fw={600} c=\"dimmed\">Spacing, size, background, radius and shadow come from the shared style props.</Text>\n    </Card>\n  );\n}",
+      "import { Card, Text } from '@plocks/ui';\n\nexport function Demo() {\n  return (\n    <Card p=\"lg\" mt=\"md\" radius=\"lg\" shadow=\"sm\" w=\"full\" maw={480} bg=\"subtle\">\n      <Text fw={600} c=\"dimmed\">Spacing, size, background, radius and shadow come from the shared style props.</Text>\n    </Card>\n  );\n}",
     ),
     '',
     block([spacing, box, radius, shadow, visibility, base]),
@@ -680,7 +691,7 @@ async function buildSharedPropsPage(): Promise<LlmsPage> {
     '',
     '## Chart props',
     '',
-    'Every chart in `@platform-blocks/charts` accepts the chart group (size, title, legend, tooltip, animation and accessibility options) and the chart event callbacks, on top of its own data props.',
+    'Every chart in `@plocks/charts` accepts the chart group (size, title, legend, tooltip, animation and accessibility options) and the chart event callbacks, on top of its own data props.',
     '',
     block([chart, chartEvents]),
     '',
@@ -790,12 +801,13 @@ function buildFaqPages(): LlmsPage[] {
  * is one, else the opening sentence of its description, else the frontmatter
  * one-liner, else the nav config's blurb — then the sub-components and hooks
  * documented on the same page, so a search for `RadioGroup` or `useToast`
- * lands on the right row.
+ * lands on the right row. `packageNote` leads the row when there is one.
  */
 function componentSummary(
   name: string,
   meta: JSONObject,
   config: CoreComponentConfig | undefined,
+  packageNote?: string,
 ): string | undefined {
   const title = String(meta.title || name);
   const lead =
@@ -803,7 +815,8 @@ function componentSummary(
     ?? toSummary(meta.description, title)
     ?? toSummary(meta.tagline, title)
     ?? config?.description?.replace(/\.$/, '');
-  const summary = lead ? stripSubjectPrefix(lead, title) : undefined;
+  const described = lead ? stripSubjectPrefix(lead, title) : undefined;
+  const summary = packageNote ? [packageNote, described].filter(Boolean).join(' — ') : described;
 
   const subs = Array.isArray(meta.subcomponents) ? (meta.subcomponents as string[]) : [];
   const hooks = Array.isArray(meta.relatedHooks) ? (meta.relatedHooks as string[]) : [];
@@ -848,15 +861,20 @@ async function buildComponentPages(): Promise<{ components: LlmsPage[]; charts: 
     const config = configByName.get(name);
     const componentMeta = meta[name] ?? {};
     const isChart = config?.category === 'charts' || componentMeta.category === 'charts';
+    // Charts are grouped under a heading naming their package. A component from
+    // another add-on package (`@plocks/dates`, …) sits with the rest, so its row
+    // names the package it has to be installed from.
+    const packageName = typeof componentMeta.packageName === 'string' ? componentMeta.packageName : UI_PACKAGE;
+    const packageNote = !isChart && packageName !== UI_PACKAGE ? `\`${packageName}\`` : undefined;
     const page: LlmsPage = {
       slug: `components/${name}.md`,
       // The export name, not the display title ("AreaChart", not "Area Chart"):
       // it is what an agent searches the index for and what it imports.
       title: name,
-      summary: componentSummary(name, componentMeta, config),
+      summary: componentSummary(name, componentMeta, config, packageNote),
       body: markdownIndex[name],
       compact: compactIndex[name],
-      routes: isChart ? [`/charts/${name}`, `/components/${name}`] : [`/components/${name}`],
+      routes: [`/${packageName.replace(/^@plocks\//, '')}/${name}`],
     };
     (isChart ? charts : components).push(page);
   }
@@ -867,35 +885,51 @@ async function buildComponentPages(): Promise<{ components: LlmsPage[]; charts: 
 /**
  * Resolves the file that actually declares a hook.
  *
- * Most hook folders are a barrel: `index.ts` re-exports from a sibling file
- * (`./useHover`) or, for the hotkey family, from another hook's folder
- * (`../useHotkeys`). Follows those one hop at a time until a file declares the
- * hook, so the Definition block is never empty just because of indirection.
+ * Starts at the package barrel (`src/index.ts`) and follows the re-export that
+ * names the hook one hop at a time — through `./hooks`, a hook folder's
+ * `index.ts`, or straight into `core/` for hooks whose docs folder holds only
+ * meta and demos — until a file declares it. So the Definition block and the
+ * Source link point at the implementation, never at a barrel.
  */
-async function resolveHookSource(name: string): Promise<string | null> {
-  const hooksRoot = path.join(uiDir, 'src', 'hooks');
+async function resolveHookSource(name: string): Promise<{ source: string; file: string } | null> {
   const declares = (source: string) =>
     new RegExp(`^export\\s+(?:function|const)\\s+${name}\\b`, 'm').test(source);
 
-  let current = path.join(hooksRoot, name, 'index.ts');
+  const resolveModule = async (from: string, specifier: string): Promise<string | null> => {
+    const base = path.resolve(path.dirname(from), specifier);
+    for (const candidate of [`${base}.ts`, `${base}.tsx`, path.join(base, 'index.ts'), path.join(base, 'index.tsx')]) {
+      if ((await readTextIfExists(candidate)) !== null) return candidate;
+    }
+    return null;
+  };
+
+  // Depth-first: a named re-export of the hook is followed first; `export *`
+  // barrels (core/i18n) are searched only when there is none.
+  const queue = [path.join(uiDir, 'src', 'index.ts')];
   const seen = new Set<string>();
 
-  while (!seen.has(current)) {
+  while (queue.length) {
+    const current = queue.shift()!;
+    if (seen.has(current)) continue;
     seen.add(current);
     const source = await readTextIfExists(current);
-    if (!source) return null;
-    if (declares(source)) return source;
+    if (!source) continue;
+    if (declares(source)) return { source, file: current };
 
     // `export { name, type Foo } from './somewhere';` — follow the one that
     // re-exports this hook.
     const reExport = [...source.matchAll(/export\s*\{([^}]*)\}\s*from\s*'([^']+)'/g)]
       .find(match => match[1].split(',').some(part => part.trim().replace(/^type\s+/, '') === name));
-    if (!reExport) return null;
+    if (reExport) {
+      const next = await resolveModule(current, reExport[2]);
+      if (next) queue.unshift(next);
+      continue;
+    }
 
-    const specifier = path.resolve(path.dirname(current), reExport[2]);
-    current = (await readTextIfExists(`${specifier}.ts`)) !== null
-      ? `${specifier}.ts`
-      : path.join(specifier, 'index.ts');
+    for (const star of source.matchAll(/export\s*\*\s*from\s*'([^']+)'/g)) {
+      const next = await resolveModule(current, star[1]);
+      if (next) queue.push(next);
+    }
   }
 
   return null;
@@ -988,12 +1022,14 @@ async function buildHookPages(): Promise<LlmsPage[]> {
     const meta = hooksMeta[name];
     if (meta.hidden === true) continue;
 
-    const sourcePath = `packages/ui/src/hooks/${name}`;
-    const source = await resolveHookSource(name);
-    const definition = source ? extractHookDefinition(source, name) : null;
+    const resolved = await resolveHookSource(name);
+    const sourcePath = resolved
+      ? path.relative(repoRoot, resolved.file).split(path.sep).join('/')
+      : `packages/ui/src/hooks/${name}`;
+    const definition = resolved ? extractHookDefinition(resolved.source, name) : null;
     if (!definition) missingDefinitions.push(name);
 
-    const importLine = `- Import: \`import { ${name} } from '@platform-blocks/ui';\``;
+    const importLine = `- Import: \`import { ${name} } from '@plocks/ui';\``;
     const metaList: string[] = [importLine];
     if (meta.status && meta.status !== 'stable') metaList.push(`- Status: ${meta.status}`);
     if (Array.isArray(meta.tags) && meta.tags.length) {
@@ -1074,21 +1110,17 @@ function pageUrl(page: LlmsPage): string {
   return `${SITE_URL}/llms/${page.slug}`;
 }
 
-interface Versions {
-  ui: string;
-  charts: string;
-}
-
 /**
  * What every agent needs before any page: the packages and the version these
  * docs describe, the library-wide conventions, and which of two similar
  * components to use. Plain lists with bold labels rather than headings — the
  * llms.txt format reserves headings for the link sections that follow.
  */
-function guidanceLines(versions: Versions): string[] {
+function guidanceLines(packages: WorkspacePackage[]): string[] {
+  const addOns = packages.filter(pkg => pkg.name !== UI_PACKAGE).map(pkg => `\`${pkg.name}\``);
   return [
-    `Install: \`npm install @platform-blocks/ui\` — charts are separate: \`npm install @platform-blocks/charts\``,
-    `Version: generated from the \`${GITHUB_BRANCH}\` branch — \`@platform-blocks/ui\` ${versions.ui}, \`@platform-blocks/charts\` ${versions.charts}. The branch can be ahead of the latest npm release; if an API here is missing from your installed version, check the changelog: ${GITHUB_TREE}/changelog`,
+    `Install: \`npm install ${UI_PACKAGE}\`${addOns.length ? ` — separate packages, installed alongside it: ${addOns.join(', ')}. A component page's Import line names the package it comes from.` : ''}`,
+    `Version: generated from the \`${GITHUB_BRANCH}\` branch — ${packages.map(pkg => `\`${pkg.name}\` ${pkg.version}`).join(', ')}. The branch can be ahead of the latest npm release; if an API here is missing from your installed version, check the changelog: ${GITHUB_TREE}/changelog`,
     `Website: ${SITE_URL} • GitHub: ${GITHUB_REPO} • npm: ${NPM_PACKAGE}`,
     '',
     '**Conventions**',
@@ -1110,27 +1142,27 @@ function approxTokens(text: string): string {
 function buildIndex(
   sections: LlmsSection[],
   counts: Record<string, number>,
-  versions: Versions,
+  packages: WorkspacePackage[],
   sizes: { small: string; full: string },
 ): string {
   const lines: string[] = [
-    '# Platform Blocks',
+    '# plocks',
     '',
     `> A cross-platform React Native UI library — ${counts.components} components, ${counts.charts} charts,`,
     `> and ${counts.hooks} hooks that render natively on iOS and Android and as real DOM on the web,`,
     '> from one themeable component model.',
     '',
-    'This index lists Platform Blocks documentation pages formatted for LLMs.',
+    'This index lists plocks documentation pages formatted for LLMs.',
     'Each link points to a standalone Markdown file under the /llms path; any docs URL',
-    `with \`.md\` appended (${SITE_URL}/components/Button.md) serves the same file.`,
+    `with \`.md\` appended (${SITE_URL}/ui/Button.md) serves the same file.`,
     '',
     'Whole-library files:',
     `- ${LLMS_SMALL_URL} (${sizes.small}) — every component, chart and hook: imports, own props, one example each. Loads the whole API at once.`,
     `- ${LLMS_FULL_URL} (${sizes.full}) — every page in full, nothing truncated. Larger than most context windows; suited to search and embedding.`,
     '',
-    `Agent skills for Claude Code, Cursor and others: ${LLMS_SKILLS_REPO_URL} (\`npx skills add ${LLMS_SKILLS_REPO_URL} --skill platform-blocks-setup\`)`,
+    `Agent skills for Claude Code, Cursor and others: ${LLMS_SKILLS_REPO_URL} (\`npx skills add ${LLMS_SKILLS_REPO_URL} --skill plocks-setup\`)`,
     '',
-    ...guidanceLines(versions),
+    ...guidanceLines(packages),
   ];
 
   for (const section of sections) {
@@ -1148,12 +1180,12 @@ function buildIndex(
 
 function buildFullText(
   sections: LlmsSection[],
-  versions: Versions,
+  packages: WorkspacePackage[],
   variant: 'full' | 'small',
 ): string {
   const parts: string[] = variant === 'full'
     ? [
-      '# Platform Blocks — Complete Documentation',
+      '# plocks — Complete Documentation',
       '',
       'Every documentation page concatenated in full: component and chart pages with',
       'their props, sub-components and every example, hook pages with their type',
@@ -1162,11 +1194,11 @@ function buildFullText(
       `For an index of the same content as individually fetchable pages, use ${SITE_URL}/llms.txt.`,
       `For one file sized to a context window, use ${LLMS_SMALL_URL}.`,
       '',
-      'Every example is a complete module that imports from the published packages (@platform-blocks/ui, @platform-blocks/charts).',
+      `Every example is a complete module that imports from the published packages (${packages.map(pkg => pkg.name).join(', ')}).`,
       '',
     ]
     : [
-      '# Platform Blocks — API Reference (compact)',
+      '# plocks — API Reference (compact)',
       '',
       'Every component, chart and hook in one file: import line, own props with a',
       'one-sentence description, sub-components, and one complete example each.',
@@ -1176,7 +1208,7 @@ function buildFullText(
       `Index of individual pages: ${SITE_URL}/llms.txt • Everything in full: ${LLMS_FULL_URL}`,
       '',
     ];
-  parts.push(...guidanceLines(versions), '='.repeat(80), '');
+  parts.push(...guidanceLines(packages), '='.repeat(80), '');
 
   for (const section of sections) {
     const pages = variant === 'small' ? section.pages.filter(page => page.compact) : section.pages;
@@ -1195,19 +1227,12 @@ function buildFullText(
 
 // ---------------------------------------------------------------------------
 
-async function readVersion(packageDir: string): Promise<string> {
-  const pkg = await readJSONIfExists<{ version?: string }>(path.join(packageDir, 'package.json'));
-  return pkg?.version ?? 'unknown';
-}
-
 async function main(): Promise<void> {
-  const versions: Versions = {
-    ui: await readVersion(uiDir),
-    charts: await readVersion(chartsDir),
-  };
+  const packages = listWorkspacePackages(repoRoot);
+  const uiVersion = packages.find(pkg => pkg.name === UI_PACKAGE)?.version ?? 'unknown';
 
   const [guides, faq, { components, charts }, hooks] = await Promise.all([
-    buildGuidePages(versions.ui),
+    buildGuidePages(uiVersion),
     Promise.resolve(buildFaqPages()),
     buildComponentPages(),
     buildHookPages(),
@@ -1223,7 +1248,7 @@ async function main(): Promise<void> {
   const sections: LlmsSection[] = [
     { heading: 'Guides', pages: guides },
     { heading: 'Components', pages: components },
-    { heading: 'Charts (@platform-blocks/charts)', pages: charts },
+    { heading: `Charts (${CHARTS_PACKAGE})`, pages: charts },
     { heading: 'Hooks', pages: hooks },
     // llms.txt's reserved section: links an agent can skip when context is short.
     { heading: 'Optional', pages: [buildContributingPage(), ...faq] },
@@ -1234,21 +1259,21 @@ async function main(): Promise<void> {
   await fs.mkdir(llmsDir, { recursive: true });
   await writePages(pages);
 
-  const small = buildFullText(sections, versions, 'small');
+  const small = buildFullText(sections, packages, 'small');
   await fs.writeFile(path.join(publicDir, 'llms-small.txt'), small, 'utf8');
 
-  const full = buildFullText(sections, versions, 'full');
+  const full = buildFullText(sections, packages, 'full');
   await fs.writeFile(path.join(publicDir, 'llms-full.txt'), full, 'utf8');
 
   const index = buildIndex(sections, {
     components: components.length,
     charts: charts.length,
     hooks: hooks.length,
-  }, versions, { small: approxTokens(small), full: approxTokens(full) });
+  }, packages, { small: approxTokens(small), full: approxTokens(full) });
   await fs.writeFile(path.join(publicDir, 'llms.txt'), index, 'utf8');
 
   // Route → Markdown map for the web build's post-processing
-  // (apps/platform-blocks.com/scripts/inject-seo-tags.ts), which serves each
+  // (apps/docs/scripts/inject-seo-tags.ts), which serves each
   // page at `<route>.md` and links it from the page's <head>.
   const routes = Object.fromEntries(
     pages.flatMap(page => (page.routes ?? []).map(route => [route, `llms/${page.slug}`])),

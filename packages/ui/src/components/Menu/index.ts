@@ -1,3 +1,4 @@
+export { MenuCheckboxItem, MenuRadioGroup, MenuRadioItem } from './MenuChoiceItems';
 export { Menu, MenuItem, MenuLabel, MenuDivider, MenuDropdown, MenuSub, useMenuContext } from './Menu';
 export { useMenuStyles, getMenuStyles } from './styles';
 export type {
@@ -8,5 +9,8 @@ export type {
   MenuDropdownProps,
   MenuSubProps,
   MenuPosition,
+  MenuCheckboxItemProps,
+  MenuRadioGroupProps,
+  MenuRadioItemProps,
 } from './types';
 export type { MenuStyleOptions } from './styles';

@@ -6,7 +6,6 @@ import { ContextMenu } from '../ContextMenu';
 import { OverlayProvider } from '../../../core/providers/OverlayProvider';
 import { OverlayRenderer } from '../../../core/providers/OverlayRenderer';
 import { __resetLayerStackForTests, handleBackPress } from '../../../core/overlay/layerStack';
-import { resetWarnOnce } from '../../../core/utils/logger';
 import { measureElement } from '../../../core/utils/positioning-enhanced';
 
 jest.mock('../../../core/utils/positioning-enhanced', () => {
@@ -46,7 +45,6 @@ function renderMenu(props: Partial<React.ComponentProps<typeof ContextMenu>> = {
 describe('ContextMenu', () => {
   beforeEach(() => {
     __resetLayerStackForTests();
-    resetWarnOnce();
     mockedMeasure.mockImplementation((ref: any) => {
       const node = ref?.current;
       if (node && typeof node.measure === 'function' && !node._nativeTag && !node.props) {
@@ -92,18 +90,10 @@ describe('ContextMenu', () => {
     expect(getByText('Delete')).toBeTruthy();
   });
 
-  it('`opened` is canonical; `open` still works (deprecated)', async () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const legacy = renderMenu({ open: true });
+  it('opens when controlled with `opened`', async () => {
+    const { getByText } = renderMenu({ opened: true, position: { x: 10, y: 10 } });
     await settle();
-    expect(legacy.getByText('Copy')).toBeTruthy();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('`open` is deprecated'));
-    legacy.unmount();
-    warn.mockRestore();
-
-    const canonical = renderMenu({ opened: true, position: { x: 10, y: 10 } });
-    await settle();
-    expect(canonical.getByText('Copy')).toBeTruthy();
+    expect(getByText('Copy')).toBeTruthy();
   });
 
   it('Android back closes it', async () => {

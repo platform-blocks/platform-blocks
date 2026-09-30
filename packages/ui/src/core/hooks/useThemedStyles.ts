@@ -1,7 +1,7 @@
 import { useMemo, type DependencyList } from 'react';
 
 import { useTheme } from '../theme/ThemeProvider';
-import type { PlatformBlocksTheme } from '../theme/types';
+import type { PlocksTheme } from '../theme/types';
 
 /**
  * Builds a style table from the theme once per theme identity + `deps`, instead
@@ -14,7 +14,7 @@ import type { PlatformBlocksTheme } from '../theme/types';
  * );
  */
 export function useThemedStyles<T>(
-  factory: (theme: PlatformBlocksTheme) => T,
+  factory: (theme: PlocksTheme) => T,
   deps: DependencyList = []
 ): T {
   const theme = useTheme();
@@ -40,11 +40,11 @@ type CacheKey = string | number | boolean | null | undefined;
  * must be primitives: an object argument would be a new key on each call.
  */
 export function createThemedStyles<Args extends CacheKey[], T>(
-  factory: (theme: PlatformBlocksTheme, ...args: Args) => T
-): (theme: PlatformBlocksTheme, ...args: Args) => T {
-  const cache = new WeakMap<PlatformBlocksTheme, Map<string, T>>();
+  factory: (theme: PlocksTheme, ...args: Args) => T
+): (theme: PlocksTheme, ...args: Args) => T {
+  const cache = new WeakMap<PlocksTheme, Map<string, T>>();
 
-  return (theme: PlatformBlocksTheme, ...args: Args): T => {
+  return (theme: PlocksTheme, ...args: Args): T => {
     let byArgs = cache.get(theme);
     if (!byArgs) {
       byArgs = new Map();

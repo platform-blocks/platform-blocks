@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Text, Waveform } from '@platform-blocks/ui';
+import { Block, Text, Waveform } from '@plocks/ui';
 
 import { TRACK_TWO_PEAKS, WAVEFORM_DEMO_PEAKS } from '../data';
 

@@ -1,18 +1,18 @@
 <p align="center">
-  <a href="https://platform-blocks.com/" rel="noopener" target="_blank"><img width="75" height="75" src="https://raw.githubusercontent.com/platform-blocks/platform-blocks/refs/heads/main/apps/platform-blocks.com/assets/favicon.png" alt="Platform Blocks logo"/></a>
+  <a href="https://plocks.dev/" rel="noopener" target="_blank"><img height="64" src="https://raw.githubusercontent.com/platform-blocks/plocks/main/brand/png/mark.png" alt="plocks"/></a>
 </p>
 
-<h1 align="center">@platform-blocks/charts</h1>
+<h1 align="center">@plocks/charts</h1>
 
 <div align="center">
 
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/platform-blocks/platform-blocks/blob/HEAD/LICENSE)
-[![npm](https://img.shields.io/npm/v/@platform-blocks/charts)](https://www.npmjs.com/package/@platform-blocks/charts)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/platform-blocks/plocks/blob/HEAD/LICENSE)
+[![npm](https://img.shields.io/npm/v/@plocks/charts)](https://www.npmjs.com/package/@plocks/charts)
 [![Discord](https://img.shields.io/badge/Chat%20on-Discord-%235865f2)](https://discord.gg/kbHjwzgXbc)
 
 </div>
 
-Data visualization components for React Native and React Native Web. Part of the [Platform Blocks](https://platform-blocks.com/) ecosystem.
+Data visualization components for React Native and React Native Web. Part of the [plocks](https://plocks.dev/) ecosystem.
 
 ## Features
 
@@ -23,12 +23,12 @@ Data visualization components for React Native and React Native Web. Part of the
 - **Accessible** — Screen reader support via the `ChartAccessibility` layer
 - **Themeable** — Full theming via `ChartThemeContext`
 - **Cross-platform** — Works on iOS, Android, and Web
-- **Tree-shakeable** — ESM and CJS builds with no side effects
+- **Tree-shakeable** — ESM build with no side effects
 
 ## Installation
 
 ```bash
-npm install @platform-blocks/charts
+npm install @plocks/charts
 ```
 
 ### Peer dependencies
@@ -46,7 +46,7 @@ Ensure the following are installed in your project:
 ## Quick start
 
 ```tsx
-import { AreaChart } from '@platform-blocks/charts';
+import { AreaChart } from '@plocks/charts';
 
 export function RevenueChart({ data }) {
   return (
@@ -96,7 +96,6 @@ labelled `1,250,000`, and neither wraps or clips.
 | Combo | `ComboChart` |
 | Donut | `DonutChart` |
 | Funnel | `FunnelChart` |
-| Gauge | `GaugeChart` |
 | Grouped Bar | `GroupedBarChart` |
 | Heatmap | `HeatmapChart` |
 | Histogram | `HistogramChart` |
@@ -146,7 +145,7 @@ Set a palette once with `ChartThemeProvider`. A nested provider re-themes only i
 </ChartThemeProvider>
 ```
 
-Every chart reads its palette from the nearest provider. The global `colorSchemes` / `setDefaultColorScheme` are deprecated and no chart reads them.
+Every chart reads its palette from the nearest provider.
 
 Charts that color marks by data take a shared `ColorScaleConfig` (`sequential`, `diverging` or `threshold`). Filled marks take a `ChartFill`, which is a color or a gradient:
 
@@ -158,7 +157,7 @@ Charts that color marks by data take a shared `ColorScaleConfig` (`sequential`, 
 | HeatmapChart | each cell's value | none |
 | LineChart, AreaChart | none | `fillColor` (chart or per series) |
 | StackedAreaChart | none | per-series `fillColor` |
-| PieChart, GaugeChart | none | slice `style.gradient`, range `gradient` |
+| PieChart | none | slice `style.gradient` |
 
 ```tsx
 <HistogramChart
@@ -178,7 +177,7 @@ Charts that color marks by data take a shared `ColorScaleConfig` (`sequential`, 
 When you need multiple charts to share a single tooltip, wrap them in `ChartsProvider` and set `useOwnInteractionProvider={false}` on each chart:
 
 ```tsx
-import { ChartsProvider, BarChart, LineChart } from '@platform-blocks/charts';
+import { ChartsProvider, BarChart, LineChart } from '@plocks/charts';
 
 export function Dashboard() {
   return (
@@ -192,16 +191,16 @@ export function Dashboard() {
 
 ## Documentation
 
-Full documentation, interactive examples, and API reference are available at [platform-blocks.com](https://platform-blocks.com).
+Full documentation, interactive examples, and API reference are available at [plocks.dev](https://plocks.dev).
 
-- [Getting started](https://platform-blocks.com/getting-started)
-- [Charts](https://platform-blocks.com/charts)
-- [llms.txt](https://platform-blocks.com/llms.txt) — Full API reference for LLMs and AI assistants
+- [Getting started](https://plocks.dev/getting-started)
+- [Charts](https://plocks.dev/charts)
+- [llms.txt](https://plocks.dev/llms.txt) — Full API reference for LLMs and AI assistants
 
 ## Contributing
 
-See the [contributing guide](https://github.com/platform-blocks/platform-blocks/blob/main/CONTRIBUTING.md) for setup instructions.
+See the [contributing guide](https://github.com/platform-blocks/plocks/blob/main/CONTRIBUTING.md) for setup instructions.
 
 ## License
 
-[MIT](https://github.com/platform-blocks/platform-blocks/blob/main/LICENSE) © [Josh Stovall](https://github.com/joshstovall)
+[MIT](https://github.com/platform-blocks/plocks/blob/main/LICENSE) © [Josh Stovall](https://github.com/joshstovall)

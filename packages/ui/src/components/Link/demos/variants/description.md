@@ -4,7 +4,6 @@ category: appearance
 order: 40
 tags: [link, appearance]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

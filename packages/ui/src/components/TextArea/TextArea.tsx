@@ -16,7 +16,7 @@ import { getFieldFrameStyles } from '../_internal/Field/fieldFrameStyles';
 import { getTextAreaStyles } from './styles';
 import type { TextAreaProps } from './types';
 
-const PB_INPUT_DATASET = { pbInput: 'true' } as const;
+const PLOCKS_INPUT_DATASET = { plocksInput: 'true' } as const;
 
 /**
  * Multi-line text field. Label, description, error and helper text come from
@@ -190,7 +190,7 @@ export const TextArea = factory<{
                     scrollEnabled={scrollEnabled ?? !autoResize}
                     {...nativeProps}
                     {...restTextInputProps}
-                    {...webProps({ dataSet: PB_INPUT_DATASET })}
+                    {...webProps({ dataSet: PLOCKS_INPUT_DATASET })}
                     editable={editable}
                     style={[
                       frame.input,

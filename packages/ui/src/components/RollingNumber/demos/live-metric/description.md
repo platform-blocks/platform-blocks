@@ -5,7 +5,6 @@ order: 40
 tags: [metric, dashboard, live]
 highlightLines: []
 status: stable
-since: 1.1.0
 hidden: false
 ---
 

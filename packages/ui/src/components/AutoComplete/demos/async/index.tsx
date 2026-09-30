@@ -1,4 +1,4 @@
-import { AutoComplete, Block } from '@platform-blocks/ui';
+import { AutoComplete, Block } from '@plocks/ui';
 
 const languages = [
   { label: 'JavaScript', value: 'javascript' },

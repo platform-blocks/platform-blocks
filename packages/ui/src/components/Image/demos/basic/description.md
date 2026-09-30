@@ -1,5 +1,5 @@
 ---
-title: Basic
+title: Basics
 category: usage
 order: 10
 tags: [basic, dimensions]

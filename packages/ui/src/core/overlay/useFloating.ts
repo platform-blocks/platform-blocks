@@ -200,8 +200,8 @@ export function useFloating(options: UseFloatingOptions): UseFloatingReturn {
     if (!opened || hasOverlayProvider) return;
     warnOnce(
       'useFloating:no-provider',
-      '[platform-blocks] An overlay (Popover, Menu, …) was opened outside an OverlayProvider; it renders inline ' +
-        'without flipping or viewport clamping. Wrap the app in <PlatformBlocksProvider> (or <OverlayProvider> + <OverlayRenderer />).'
+      '[plocks] An overlay (Popover, Menu, …) was opened outside an OverlayProvider; it renders inline ' +
+        'without flipping or viewport clamping. Wrap the app in <PlocksProvider> (or <OverlayProvider> + <OverlayRenderer />).'
     );
   }, [opened, hasOverlayProvider]);
 
@@ -210,7 +210,7 @@ export function useFloating(options: UseFloatingOptions): UseFloatingReturn {
   const isRTL = options.direction ? options.direction === 'rtl' : contextIsRTL;
 
   const generatedId = useId();
-  const floatingId = options.id ?? `pb-floating-${sanitizeId(generatedId)}`;
+  const floatingId = options.id ?? `plocks-floating-${sanitizeId(generatedId)}`;
   const zIndex = options.zIndex ?? getZIndex(theme, layer);
 
   const isPointerTrigger = trigger === 'hover' || trigger === 'focus';

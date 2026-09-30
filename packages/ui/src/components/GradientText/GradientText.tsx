@@ -57,7 +57,7 @@ function sweepKeyframeName(fromPercent: number, toPercent: number, holdRatio: nu
   // Names must be valid CSS identifiers, so encode the (possibly negative,
   // possibly fractional) percentages rather than interpolating them raw.
   const encode = (n: number) => Math.round(n * 100).toString().replace('-', 'n');
-  return `pb-gradient-sweep-${encode(fromPercent)}-${encode(toPercent)}-${encode(holdRatio)}`;
+  return `plocks-gradient-sweep-${encode(fromPercent)}-${encode(toPercent)}-${encode(holdRatio)}`;
 }
 
 /** Insert the rule for {@link sweepKeyframeName} if it isn't already present. */
@@ -66,7 +66,7 @@ function injectSweepKeyframes(name: string, fromPercent: number, toPercent: numb
 
   if (!keyframeStyleEl) {
     keyframeStyleEl = document.createElement('style');
-    keyframeStyleEl.setAttribute('data-platform-blocks', 'gradient-text');
+    keyframeStyleEl.setAttribute('data-plocks', 'gradient-text');
     document.head.appendChild(keyframeStyleEl);
   }
 

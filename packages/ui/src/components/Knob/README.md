@@ -30,8 +30,6 @@ Variants take their colors from the theme and the accent rather than shipping pa
 <Knob variant="retro" appearance={{ ring: { color: '#b45309' } }} />
 ```
 
-`variant` used to carry the behavior values. Passing one there still works and warns in development; rename `variant="stepped"` to `behavior="stepped"`.
-
 ## Tick layers
 
 Configure `appearance.ticks` with one or more layers derived from marks, steps, explicit values, or a fixed count:

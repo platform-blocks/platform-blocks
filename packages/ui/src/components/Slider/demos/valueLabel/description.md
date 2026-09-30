@@ -4,7 +4,6 @@ order: 35
 tags: [tooltip, valueLabel, valueLabelProps, valueLabelPosition, customization]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -4,11 +4,19 @@ import { webStyle } from '../../core/platform';
 import { resolveAccentColor, resolveLineColor } from '../../core/theme/resolveColors';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { onColor, resolveShadow } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import { resolveVariantRoles } from '../../core/theme/variantRoles';
 import { resolveRoleColor } from '../Button/styles';
 import type { KeyCapStyleProps } from './types';
 
+/**
+ * Returns the `{ container, text }` styles of a key cap for the current theme,
+ * given its `metrics`, `variant`, `color` and `pressed` state — the hook form
+ * of `getKeyCapStyles`, for drawing a custom key that matches `KeyCap`.
+ *
+ * The styles are recomputed on every call; memoize on the inputs (or call
+ * `getKeyCapStyles` inside a `useMemo`) in hot render paths.
+ */
 export const useKeyCapStyles = (props: KeyCapStyleProps) => {
   const theme = useTheme();
   return getKeyCapStyles(theme, props);
@@ -19,7 +27,7 @@ export const useKeyCapStyles = (props: KeyCapStyleProps) => {
  * slightly raised key (a heavier bottom edge); the others tint with `color`.
  */
 export const getKeyCapStyles = (
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   { metrics, variant, color, pressed }: KeyCapStyleProps
 ): { container: ViewStyle; text: TextStyle } => {
   const { height, paddingHorizontal, fontSize, minWidth } = metrics;

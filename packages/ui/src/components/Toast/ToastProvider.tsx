@@ -80,9 +80,13 @@ function subscribeToastViewportOffset(listener: (offset: ToastViewportOffset) =>
 }
 
 /**
- * Publish a viewport offset for the toast layer while the calling component is
- * mounted (resets to zero on unmount). Call this from inside the app shell with
- * the header height + safe-area inset so toasts never overlap the shell chrome.
+ * Publishes a viewport offset (`top` / `bottom` / `left` / `right`, in px) for
+ * every toast stack while the calling component is mounted — it works anywhere
+ * in the tree, no provider needed — and clears it on unmount, when the
+ * `ToastProvider`'s static `offset` applies again.
+ *
+ * Call this from inside the app shell with the header height + safe-area inset
+ * so toasts never overlap the shell chrome.
  */
 export function useToastViewportOffset(offset: ToastViewportOffset) {
   const { top = 0, bottom = 0, left = 0, right = 0 } = offset || {};
@@ -100,12 +104,6 @@ export type ToastStackPosition =
   | 'bottom-left'
   | 'bottom-right'
   | 'bottom-center';
-
-/**
- * @deprecated Use `ToastStackPosition`. (Kept because this name is exported
- * from the package; the Toast's own entry-direction type is `ToastDirection`.)
- */
-export type ToastPosition = ToastStackPosition;
 
 export type ToastStackDirection = 'up' | 'down';
 export type ToastQueuePriority = 'fifo' | 'lifo' | 'priority';
@@ -259,6 +257,16 @@ function normalizeToastShortcut(options: ToastShortcut, severity: 'info' | 'succ
   };
 }
 
+/**
+ * Returns the toast API (`show`, `update`, `hide`, `hideAll`, `promise`,
+ * `success` / `error` / `info` / `warning`, …) of the nearest `ToastProvider`;
+ * it never throws — outside a provider it returns the global `toasts` object,
+ * which queues calls until one mounts (use `useOptionalToast()` to get `null`
+ * instead).
+ *
+ * Without a provider it also notifies `onToastsRequested` listeners, so an app
+ * can mount one lazily.
+ */
 export const useToast = () => {
   const api = useContext(ToastApiContext);
 
@@ -272,13 +280,20 @@ export const useToast = () => {
 };
 
 /**
- * The nearest ToastProvider's API, or `null` when none is mounted — for
- * components that show a toast only if the app has somewhere to render it
- * (`useToast()` falls back to the global `toasts` queue instead).
+ * Returns the nearest `ToastProvider`'s toast API, or `null` when none is
+ * mounted — for components that show a toast only if the app has somewhere to
+ * render it (`useToast()` falls back to the global `toasts` queue instead).
  */
 export const useOptionalToast = (): ToastContextValue | null => useContext(ToastApiContext) ?? null;
 
-export const useActiveToast = () => {
+/**
+ * Returns the toasts the nearest `ToastProvider` currently holds (as
+ * `ToastItem`s, including ones mid-exit with `visible: false`) and re-renders
+ * when that list changes — for counters, badges or a custom toast list;
+ * outside a provider it returns a non-reactive snapshot (empty when no
+ * provider is mounted) instead of throwing.
+ */
+export const useActiveToasts = () => {
   const state = useContext(ToastStateContext);
 
   useEffect(() => {
@@ -719,9 +734,11 @@ export const toasts: ToastContextValue = {
   error: (options: ToastShortcut) => toasts.show(normalizeToastShortcut(options, 'error')),
 };
 
-// Hook to get toasts object with actual context
+/**
+ * Returns the same toast API as `useToast()` (an alias): the nearest
+ * `ToastProvider`'s `show` / `update` / `hide` / … methods, or the global
+ * `toasts` queue outside one — never throws.
+ */
 export const useToastApi = () => useToast();
-
-export const useActiveToasts = useActiveToast;
 
 export const onToastsRequested = onToastRequested;

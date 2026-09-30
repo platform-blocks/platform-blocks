@@ -4,7 +4,6 @@ category: content
 order: 25
 tags: [avatars, icon]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

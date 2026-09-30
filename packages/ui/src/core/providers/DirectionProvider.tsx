@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
-import { Platform, I18nManager } from 'react-native';
+import { Platform, I18nManager, View } from 'react-native';
 import { devWarn, devError, warnOnce } from '../utils/logger';
+import { webProps } from '../platform/webProps';
 
 /**
  * Direction type - left-to-right or right-to-left
@@ -100,9 +101,11 @@ const DirectionProviderRoot: React.FC<DirectionProviderProps> = ({
   storageKey = 'app-direction',
   children,
 }) => {
+  const parent = React.useContext(DirectionContext);
+  const isNested = parent !== null;
   // Initialize direction state
   const [direction, setDirectionState] = useState<Direction>(() => {
-    return initialDirection || getInitialDirection();
+    return initialDirection ?? parent?.dir ?? getInitialDirection();
   });
 
   // Load persisted direction on mount
@@ -111,18 +114,18 @@ const DirectionProviderRoot: React.FC<DirectionProviderProps> = ({
       storage.getItem(storageKey).then((stored) => {
         if (stored === 'ltr' || stored === 'rtl') {
           setDirectionState(stored);
-          updatePlatformDirection(stored);
+          if (!isNested) updatePlatformDirection(stored);
         }
       }).catch((error) => {
         devError('[DirectionProvider] Failed to load direction from storage:', error);
       });
     }
-  }, [storage, storageKey]);
+  }, [storage, storageKey, isNested]);
 
   // Sync with platform when direction changes
   useEffect(() => {
-    updatePlatformDirection(direction);
-  }, [direction]);
+    if (!isNested) updatePlatformDirection(direction);
+  }, [direction, isNested]);
 
   /**
    * Set direction and persist if storage is available
@@ -168,7 +171,9 @@ const DirectionProviderRoot: React.FC<DirectionProviderProps> = ({
 
   return (
     <DirectionContext.Provider value={contextValue}>
-      {children}
+      {isNested && Platform.OS === 'web'
+        ? <View {...webProps({ dir: direction })}>{children}</View>
+        : children}
     </DirectionContext.Provider>
   );
 };
@@ -176,17 +181,18 @@ const DirectionProviderRoot: React.FC<DirectionProviderProps> = ({
 /**
  * DirectionProvider Component
  *
- * Provides direction context for the entire app. Manages LTR/RTL state
- * and syncs with platform-specific direction settings.
+ * Provides direction context for an app or section. A top-level provider
+ * syncs with platform direction; a nested provider scopes its web `dir` to
+ * its own subtree and does not change global platform settings.
  *
  * A nested DirectionProvider with neither `initialDirection` nor `storage`
  * inherits its parent's direction (it renders nothing of its own) instead of
- * resetting to the platform default. `PlatformBlocksProvider` mounts one, so an
+ * resetting to the platform default. `PlocksProvider` mounts one, so an
  * app-level provider above it keeps control.
  *
  * @example
  * ```tsx
- * import { DirectionProvider } from '@platform-blocks/ui';
+ * import { DirectionProvider } from '@plocks/ui';
  *
  * function App() {
  *   return (
@@ -210,7 +216,7 @@ DirectionProvider.displayName = 'DirectionProvider';
 const warnOutsideProvider = () =>
   warnOnce(
     'DirectionProvider:setDirection-outside',
-    '[platform-blocks] setDirection/toggleDirection called outside a DirectionProvider; ignored.'
+    '[plocks] setDirection/toggleDirection called outside a DirectionProvider; ignored.'
   );
 
 /** What `useDirection()` returns without a provider: LTR, and setters that do nothing. */
@@ -225,7 +231,7 @@ const DEFAULT_DIRECTION: DirectionContextValue = Object.freeze({
  * Hook to access direction context.
  *
  * Never throws: outside a DirectionProvider (e.g. `direction={false}` on
- * PlatformBlocksProvider) it returns a stable LTR default whose setters are no-ops.
+ * PlocksProvider) it returns a stable LTR default whose setters are no-ops.
  *
  * @example
  * ```tsx
@@ -238,9 +244,6 @@ const DEFAULT_DIRECTION: DirectionContextValue = Object.freeze({
 export const useDirection = (): DirectionContextValue => {
   return React.useContext(DirectionContext) ?? DEFAULT_DIRECTION;
 };
-
-/** Alias of `useDirection` (which no longer throws). Kept for compatibility. */
-export const useDirectionSafe = useDirection;
 
 // Export context for advanced use cases
 export { DirectionContext };

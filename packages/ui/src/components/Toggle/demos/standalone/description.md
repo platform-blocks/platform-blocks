@@ -5,7 +5,6 @@ order: 60
 tags: [toggle, standalone]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

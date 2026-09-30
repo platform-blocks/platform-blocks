@@ -82,7 +82,7 @@ export interface BreakpointProviderProps {
  * Optional override of the breakpoint table for a subtree. The viewport itself
  * is tracked by one module-level store, so this provider no longer owns a
  * listener; without `breakpoints` it is a pass-through.
- * `PlatformBlocksProvider` mounts one automatically.
+ * `PlocksProvider` mounts one automatically.
  */
 function BreakpointProvider({ breakpoints, children }: BreakpointProviderProps) {
   const parent = useContext(BreakpointValuesContext);
@@ -118,7 +118,7 @@ function useBreakpointValues(): BreakpointValues {
  * change. Hydration-safe: the server (and the hydration pass) see a desktop
  * default. Prefer `useBreakpoint()` when only the breakpoint matters.
  */
-function useViewport(): ViewportState {
+export function useViewport(): ViewportState {
   const size = useSyncExternalStore(subscribeViewport, getViewportSnapshot, getServerViewportSnapshot);
   const values = useBreakpointValues();
   return useMemo(
@@ -233,53 +233,16 @@ const createResponsiveCSS = <T>(
   return styles;
 };
 
-/**
- * Helper to get responsive padding/margin values.
- *
- * Note: tokens use this helper's own legacy ladder (md 16, lg 24), NOT the
- * theme's spacing scale — kept unchanged for back-compat.
- * @deprecated resolve the value with `useResponsiveValue` and then `resolveSpacing(theme, value)`.
- */
-const getResponsiveSpacing = (
-  value: ResponsiveValue<number | string>,
-  breakpoint: Breakpoint,
-  multiplier: number = 1
-): number => {
-  const resolved = resolveResponsiveValue(value, breakpoint);
-
-  if (typeof resolved === 'number') {
-    return resolved * multiplier;
-  }
-
-  if (typeof resolved === 'string') {
-    return (LEGACY_RESPONSIVE_SPACING[resolved as keyof typeof LEGACY_RESPONSIVE_SPACING] || 0) * multiplier;
-  }
-
-  return 0;
-};
-
-const LEGACY_RESPONSIVE_SPACING = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  '2xl': 40,
-  '3xl': 48,
-} as const;
-
 // Export all utilities
 export {
   BREAKPOINTS,
   BreakpointProvider,
   useBreakpoint,
   useBreakpointValues,
-  useViewport,
   useIsMobile,
   resolveResponsiveValue,
   useResponsiveValue,
   createResponsiveStyle,
   isResponsiveValue,
   createResponsiveCSS,
-  getResponsiveSpacing,
 };

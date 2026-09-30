@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
 
@@ -10,11 +10,10 @@ import { webProps } from '../../core/platform';
 import { resolveColorProp } from '../../core/theme/resolveColors';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { getControlSize, onColor, stepDown } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
-import { warnOnce } from '../../core/utils/logger';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
 import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
-import { useControllableState } from '../../hooks/useControllableState';
+import { usePagination } from '../../hooks/usePagination';
 import { Button } from '../Button';
 import { Icon } from '../Icon';
 import { Menu, MenuDropdown, MenuItem, MenuLabel } from '../Menu';
@@ -37,7 +36,7 @@ const DEFAULT_A11Y_LABELS: Required<PaginationAccessibilityLabels> = {
  * scale (`md` renders `sm`-height items).
  */
 const getPaginationStyles = createThemedStyles(
-  (theme: PlatformBlocksTheme, size: SizeValue, variant: PaginationVariant, color: string) => {
+  (theme: PlocksTheme, size: SizeValue, variant: PaginationVariant, color: string) => {
     const metrics = getControlSize(theme, stepDown(size));
     const fill = resolveColorProp(theme, color, { shades: [6, 5] }) ?? theme.colors.primary[6];
     const tint = resolveColorProp(theme, color, { shades: [1, 0] }) ?? theme.colors.primary[1];
@@ -98,53 +97,6 @@ const getPaginationStyles = createThemedStyles(
   }
 );
 
-/** Page numbers to render: boundaries, the window around `current`, and ellipses between. */
-function getPageItems(current: number, total: number, siblings: number, boundaries: number): (number | 'ellipsis')[] {
-  const pages: (number | 'ellipsis')[] = [];
-
-  // Always show first boundary pages
-  for (let i = 1; i <= Math.min(boundaries, total); i++) {
-    pages.push(i);
-  }
-
-  // Calculate range around current page
-  const startPage = Math.max(current - siblings, boundaries + 1);
-  const endPage = Math.min(current + siblings, total - boundaries);
-
-  // Add ellipsis if there's a gap between boundaries and current range
-  if (startPage > boundaries + 1) {
-    pages.push('ellipsis');
-  }
-
-  // Add pages around current page
-  for (let i = startPage; i <= endPage; i++) {
-    if (i > boundaries && i <= total - boundaries) {
-      pages.push(i);
-    }
-  }
-
-  // Add ellipsis if there's a gap between current range and last boundaries
-  if (endPage < total - boundaries) {
-    pages.push('ellipsis');
-  }
-
-  // Always show last boundary pages
-  for (let i = Math.max(total - boundaries + 1, boundaries + 1); i <= total; i++) {
-    if (i > boundaries) {
-      pages.push(i);
-    }
-  }
-
-  // Remove duplicate page numbers (ellipses are positional, keep both)
-  const seen = new Set<number>();
-  return pages.filter((page) => {
-    if (page === 'ellipsis') return true;
-    if (seen.has(page)) return false;
-    seen.add(page);
-    return true;
-  });
-}
-
 interface ControlItem {
   /** Stable identity for keys and the roving tab stop. */
   key: string;
@@ -166,9 +118,8 @@ export const Pagination = factory<{
   ref: View;
 }>((props, ref) => {
   const {
-    value: valueProp,
+    value,
     defaultValue,
-    current,
     total,
     siblings = 1,
     boundaries = 1,
@@ -199,10 +150,6 @@ export const Pagination = factory<{
     ...rest
   } = props;
 
-  if (current !== undefined) {
-    warnOnce('Pagination.current', '[platform-blocks] Pagination: `current` is deprecated; use `value`.');
-  }
-
   const theme = useTheme();
   const { styleProps } = extractStyleProps(rest);
   const spacingStyle = useStyleProps(styleProps);
@@ -212,24 +159,14 @@ export const Pagination = factory<{
     [accessibilityLabels]
   );
 
-  const [storedPage, setPage] = useControllableState<number>({
-    value: valueProp !== undefined ? valueProp : current,
+  const { page, range: pages, setPage: goTo } = usePagination({
+    total,
+    value,
     defaultValue,
-    finalValue: 1,
     onChange,
+    siblings,
+    boundaries,
   });
-  const lastPage = Math.max(1, total);
-  const page = Math.min(Math.max(1, storedPage), lastPage);
-
-  const goTo = useCallback(
-    (next: number) => {
-      const clamped = Math.min(Math.max(1, next), lastPage);
-      if (clamped !== page) setPage(clamped);
-    },
-    [lastPage, page, setPage]
-  );
-
-  const pages = getPageItems(page, total, siblings, boundaries);
 
   // Every focusable control, in visual order, for the shared tab stop.
   const controls: ControlItem[] = [];

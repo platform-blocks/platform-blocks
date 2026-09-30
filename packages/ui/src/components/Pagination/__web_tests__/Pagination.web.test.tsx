@@ -1,15 +1,15 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { Pagination } from '../Pagination';
 import type { PaginationProps } from '../types';
 
 function renderPagination(props: Partial<PaginationProps> = {}) {
   return render(
-    <PlatformBlocksProvider>
+    <PlocksProvider>
       <Pagination total={10} defaultValue={3} {...props} />
-    </PlatformBlocksProvider>
+    </PlocksProvider>
   );
 }
 

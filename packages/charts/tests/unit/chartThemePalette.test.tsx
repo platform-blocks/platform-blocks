@@ -49,14 +49,10 @@ describe('default accent palette selection', () => {
 });
 
 describe('nested ChartThemeProvider', () => {
-  const { colorSchemes, setDefaultColorScheme } = require('../../src/utils');
   const ThemeProbe: React.FC<{ onRead: (t: ReturnType<typeof useChartTheme>) => void }> = ({ onRead }) => {
     onRead(useChartTheme());
     return <Text testID="theme-probe" />;
   };
-  let original: string[];
-  beforeEach(() => { original = [...colorSchemes.default]; });
-  afterEach(() => { setDefaultColorScheme(original); });
 
   it('inherits the parent theme and overrides only what it is given', () => {
     let inner: ReturnType<typeof useChartTheme> | null = null;
@@ -83,16 +79,5 @@ describe('nested ChartThemeProvider', () => {
     );
     expect(inner!.colors.accentPalette).toEqual(['#aaaaaa', '#bbbbbb']);
     expect(inner!.radius).toBe(8);
-  });
-
-  it('leaves the global default palette to the root provider', () => {
-    render(
-      <ChartThemeProvider hostThemeBridge={{ accentPalette: ['#aaaaaa'] }}>
-        <ChartThemeProvider value={{ colors: { accentPalette: ['#123456'] } }}>
-          <Text>child</Text>
-        </ChartThemeProvider>
-      </ChartThemeProvider>
-    );
-    expect(colorSchemes.default).toEqual(['#aaaaaa']);
   });
 });

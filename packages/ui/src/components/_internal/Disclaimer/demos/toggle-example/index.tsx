@@ -5,15 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  ToggleGroup, 
-  ToggleButton, 
-  ComponentWithDisclaimer,
-  Disclaimer,
-  Text,
-  Block,
-  Icon
-} from '@platform-blocks/ui';
+import { ToggleGroup, ToggleButton, ComponentWithDisclaimer, Disclaimer, Text, Block, Icon } from '@plocks/ui';
 
 export function Demo() {
   const [view, setView] = useState('list');

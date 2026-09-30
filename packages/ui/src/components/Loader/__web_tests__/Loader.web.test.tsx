@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import type { ReducedMotionSetting } from '../../../core/motion/ReducedMotionProvider';
 import { Loader } from '../Loader';
 import type { LoaderProps } from '../types';
@@ -27,9 +27,9 @@ afterAll(() => {
 
 function renderLoader(props: LoaderProps = {}, reducedMotion?: ReducedMotionSetting) {
   return render(
-    <PlatformBlocksProvider reducedMotion={reducedMotion}>
+    <PlocksProvider reducedMotion={reducedMotion}>
       <Loader testID="loader" {...props} />
-    </PlatformBlocksProvider>
+    </PlocksProvider>
   );
 }
 

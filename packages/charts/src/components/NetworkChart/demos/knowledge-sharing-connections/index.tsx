@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Text } from 'react-native';
-import { NetworkChart } from '@platform-blocks/charts';
+import { NetworkChart } from '@plocks/charts';
 
 import { MENTORSHIPS, TEAMS } from './data';
 

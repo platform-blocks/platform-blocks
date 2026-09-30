@@ -2,10 +2,10 @@ import React, { createRef } from 'react';
 import { fireEvent, render as rtlRender, screen } from '@testing-library/react';
 import type { TextInput } from 'react-native';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { PhoneInput } from '../PhoneInput';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('PhoneInput (react-native-web DOM)', () => {
   it('is named by its visible label and formats as you type', () => {

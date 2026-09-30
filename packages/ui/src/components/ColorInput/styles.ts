@@ -4,7 +4,7 @@ import type { TextStyle, ViewStyle } from 'react-native';
 import { createThemedStyles } from '../../core/hooks/useThemedStyles';
 import { webStyle } from '../../core/platform/webStyle';
 import { getControlSize, resolveRadius } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import { getDropdownSurfaceStyle } from '../Select/fieldControlStyles';
 
 /** ColorInput-specific measurements, all derived from the theme's control size. */
@@ -23,7 +23,7 @@ export interface ColorInputMetrics {
   toggleSize: number;
 }
 
-export function getColorInputMetrics(theme: PlatformBlocksTheme, size: SizeValue): ColorInputMetrics {
+export function getColorInputMetrics(theme: PlocksTheme, size: SizeValue): ColorInputMetrics {
   const control = getControlSize(theme, size);
   return {
     gap: control.gap,
@@ -39,7 +39,7 @@ export function getColorInputMetrics(theme: PlatformBlocksTheme, size: SizeValue
 }
 
 /** Style table for ColorInput's own parts, cached per theme + size. */
-export const getColorInputStyles = createThemedStyles((theme: PlatformBlocksTheme, size: SizeValue) => {
+export const getColorInputStyles = createThemedStyles((theme: PlocksTheme, size: SizeValue) => {
   const metrics = getColorInputMetrics(theme, size);
 
   const preview: ViewStyle = {

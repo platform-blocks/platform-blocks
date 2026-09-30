@@ -1,16 +1,16 @@
-import { Button, Row } from '@platform-blocks/ui';
+import { Button, Row } from '@plocks/ui';
 
 export function Demo() {
   return (
     <Row gap="md" wrap="wrap">
       <Button tooltip="Save your current work.">Save</Button>
-      <Button tooltip="Permanently delete this item." tooltipPosition="bottom">
+      <Button tooltip={{ label: 'Permanently delete this item.', position: 'bottom' }}>
         Delete
       </Button>
-      <Button tooltip="Download the file to your device." tooltipPosition="left">
+      <Button tooltip={{ label: 'Download the file to your device.', position: 'left' }}>
         Download
       </Button>
-      <Button tooltip="Get help and support resources." tooltipPosition="right">
+      <Button tooltip={{ label: 'Get help and support resources.', position: 'right' }}>
         Help
       </Button>
     </Row>

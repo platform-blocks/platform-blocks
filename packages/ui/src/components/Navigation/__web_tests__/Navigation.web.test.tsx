@@ -3,7 +3,7 @@ import { Pressable, Text } from 'react-native';
 import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
 import { __resetLayerStackForTests } from '../../../core/overlay/layerStack';
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { createDrawerNavigator } from '../DrawerNavigator';
 import { NavigationContainer } from '../NavigationContainer';
 import { createStackNavigator } from '../StackNavigator';
@@ -12,7 +12,7 @@ import type { LinkingOptions, NavigationScreenProps } from '../types';
 // Reduced motion makes the drawer open / close instantly, so the DOM can be
 // asserted right after each step.
 const render = (ui: React.ReactElement) =>
-  rtlRender(<PlatformBlocksProvider reducedMotion>{ui}</PlatformBlocksProvider>);
+  rtlRender(<PlocksProvider reducedMotion>{ui}</PlocksProvider>);
 
 beforeEach(() => __resetLayerStackForTests());
 

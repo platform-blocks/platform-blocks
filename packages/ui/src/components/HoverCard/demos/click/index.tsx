@@ -1,4 +1,4 @@
-import { Block, Button, HoverCard, Text } from '@platform-blocks/ui';
+import { Block, Button, HoverCard, Text } from '@plocks/ui';
 
 export function Demo() {
   return (

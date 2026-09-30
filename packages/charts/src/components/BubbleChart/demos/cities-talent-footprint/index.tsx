@@ -1,4 +1,4 @@
-import { BubbleChart } from '@platform-blocks/charts';
+import { BubbleChart } from '@plocks/charts';
 
 import { Region, cities, regionPalette } from './data';
 

@@ -27,5 +27,7 @@ export type {
   FloatingRenderOptions,
 } from './useFloating';
 export { OverlayHost } from './OverlayHost';
+export { ViewportPortal } from './ViewportPortal';
+export type { ViewportPortalProps } from './ViewportPortal';
 export type { OverlayHostProps } from './OverlayHost';
 export { resolvePlacementForDirection } from './placement';

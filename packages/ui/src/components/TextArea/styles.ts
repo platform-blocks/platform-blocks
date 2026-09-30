@@ -1,13 +1,13 @@
 import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 import { createThemedStyles } from '../../core/hooks/useThemedStyles';
 import { getControlSize, resolveFontSize, resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 
 /**
  * TextArea-specific styles on top of the shared field frame. `rowHeight` is
  * the line height one `rows` step adds. Cached per theme + size.
  */
-export const getTextAreaStyles = createThemedStyles((theme: PlatformBlocksTheme, size: SizeValue) => {
+export const getTextAreaStyles = createThemedStyles((theme: PlocksTheme, size: SizeValue) => {
   const metrics = getControlSize(theme, size);
   const rowHeight = Math.round(metrics.fontSize * 1.7);
   const inset = resolveSpacing(theme, 'xs') as number;

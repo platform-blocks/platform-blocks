@@ -1,4 +1,4 @@
-import { Block, Text, Timeline } from '@platform-blocks/ui';
+import { Block, Text, Timeline } from '@plocks/ui';
 
 const phases = ['Start', 'Plan', 'Build'];
 

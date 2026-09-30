@@ -5,7 +5,7 @@ import { isWeb } from '../../../core/platform';
 import { webStyle } from '../../../core/platform/webStyle';
 import { getComponentDefaultRadius } from '../../../core/theme/radius';
 import { getControlSize, resolveRadius, resolveSpacing } from '../../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../../core/theme/types';
 import type { RadiusValue } from '../../../core/types/base';
 import type { FieldVariant } from './fieldProps';
 
@@ -13,12 +13,12 @@ import type { FieldVariant } from './fieldProps';
 export const FIELD_FOCUS_RING_WIDTH = 2;
 
 /** Font size of a field's label for a control `size` (one step under the control's own text). */
-export function getFieldLabelFontSize(theme: PlatformBlocksTheme, size: SizeValue | undefined): number {
+export function getFieldLabelFontSize(theme: PlocksTheme, size: SizeValue | undefined): number {
   return Math.max(10, Math.round(getControlSize(theme, size).fontSize * 0.9));
 }
 
 /** The color every field focus ring uses. */
-export function getFieldFocusRingColor(theme: PlatformBlocksTheme): string {
+export function getFieldFocusRingColor(theme: PlocksTheme): string {
   return theme.states?.focusRing ?? theme.colors.primary[5];
 }
 
@@ -42,7 +42,7 @@ export function getFieldFocusRingColor(theme: PlatformBlocksTheme): string {
  */
 export const getFieldFrameStyles = createThemedStyles(
   (
-    theme: PlatformBlocksTheme,
+    theme: PlocksTheme,
     size: SizeValue,
     variant: FieldVariant,
     radius: RadiusValue | undefined,
@@ -116,7 +116,7 @@ export const getFieldFrameStyles = createThemedStyles(
       borderWidth: 0,
       backgroundColor: 'transparent',
       // The frame draws focus; UniversalCSS also drops the raw outline for
-      // `data-pb-input` elements, this covers apps without the provider.
+      // `data-plocks-input` elements, this covers apps without the provider.
       ...webStyle({ outlineStyle: 'none', outlineWidth: 0, boxShadow: 'none', boxSizing: 'border-box' }),
     };
 

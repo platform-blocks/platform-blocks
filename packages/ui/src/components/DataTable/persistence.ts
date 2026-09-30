@@ -1,6 +1,12 @@
 import { useEffect, useRef } from 'react';
 
-import { hasDOM } from '../../core/platform/flags';
+import {
+  STORED_WRITE_DELAY_MS,
+  flushStoredJSON,
+  readStoredJSON,
+  scheduleStoredJSON,
+  writeStoredJSON,
+} from '../../core/storage/localStorage';
 
 /**
  * View-preference persistence for DataTable (column widths, hidden / pinned
@@ -11,49 +17,21 @@ import { hasDOM } from '../../core/platform/flags';
 
 const storageKey = (id: string, suffix: string) => `datatable:${id}:${suffix}`;
 
-function getStorage(): Storage | null {
-  if (!hasDOM) return null;
-  try {
-    return globalThis.localStorage ?? null;
-  } catch {
-    return null;
-  }
-}
-
 /** Read a persisted preference, or `fallback` when there is none. */
 export function readPref<V>(id: string | undefined, suffix: string, fallback: V): V {
   if (!id) return fallback;
-  const storage = getStorage();
-  if (!storage) return fallback;
-  try {
-    const raw = storage.getItem(storageKey(id, suffix));
-    if (raw) return JSON.parse(raw) as V;
-  } catch {
-    /* storage unavailable or corrupt entry */
-  }
-  return fallback;
+  const stored = readStoredJSON(storageKey(id, suffix));
+  return stored === undefined ? fallback : (stored as V);
 }
 
 /** Write a preference immediately. */
 export function writePref(id: string | undefined, suffix: string, value: unknown): void {
   if (!id) return;
-  const storage = getStorage();
-  if (!storage) return;
-  try {
-    storage.setItem(storageKey(id, suffix), JSON.stringify(value));
-  } catch {
-    /* storage unavailable / quota exceeded */
-  }
+  writeStoredJSON(storageKey(id, suffix), value);
 }
 
 /** Default debounce for preference writes. */
-export const PERSIST_DELAY_MS = 250;
-
-interface PersistState {
-  mounted: boolean;
-  timer: ReturnType<typeof setTimeout> | null;
-  pending: { id: string; value: unknown } | null;
-}
+export const PERSIST_DELAY_MS = STORED_WRITE_DELAY_MS;
 
 /**
  * Persists `value` whenever it changes, debounced: a burst of updates (every
@@ -63,33 +41,19 @@ interface PersistState {
  * write is flushed on unmount.
  */
 export function usePersistedPref(id: string | undefined, suffix: string, value: unknown, delay = PERSIST_DELAY_MS): void {
-  // One mutable record (not several refs) so the unmount cleanup can read it safely.
-  const state = useRef<PersistState>({ mounted: false, timer: null, pending: null }).current;
+  const key = id ? storageKey(id, suffix) : null;
+  const mountedRef = useRef(false);
 
   useEffect(() => {
-    if (!state.mounted) {
-      state.mounted = true;
+    if (!mountedRef.current) {
+      mountedRef.current = true;
       return;
     }
-    if (!id) return;
-    state.pending = { id, value };
-    if (state.timer) clearTimeout(state.timer);
-    state.timer = setTimeout(() => {
-      state.timer = null;
-      const pending = state.pending;
-      state.pending = null;
-      if (pending) writePref(pending.id, suffix, pending.value);
-    }, delay);
-  }, [id, suffix, value, delay, state]);
+    if (key) scheduleStoredJSON(key, value, delay);
+  }, [key, value, delay]);
 
-  useEffect(
-    () => () => {
-      if (state.timer) clearTimeout(state.timer);
-      state.timer = null;
-      const pending = state.pending;
-      state.pending = null;
-      if (pending) writePref(pending.id, suffix, pending.value);
-    },
-    [suffix, state]
-  );
+  useEffect(() => {
+    if (!key) return undefined;
+    return () => flushStoredJSON(key);
+  }, [key]);
 }

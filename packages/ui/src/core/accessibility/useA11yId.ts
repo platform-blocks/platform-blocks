@@ -5,7 +5,7 @@ import React, { useId } from 'react';
  * version) into something valid as a DOM id, a CSS selector and a native
  * `nativeID`: only `[A-Za-z0-9_-]`, prefixed so it never starts with a digit.
  */
-export function sanitizeId(raw: string, prefix: string = 'pb'): string {
+export function sanitizeId(raw: string, prefix: string = 'plocks'): string {
   const cleaned = raw.replace(/[^A-Za-z0-9_-]/g, '');
   return `${prefix}-${cleaned}`;
 }
@@ -15,9 +15,9 @@ export function sanitizeId(raw: string, prefix: string = 'pb'): string {
  * sanitized `useId()`.
  *
  * @example
- * const id = useA11yId(props.id); // 'pb-r0' or props.id
+ * const id = useA11yId(props.id); // 'plocks-r0' or props.id
  */
-export function useA11yId(explicitId?: string, prefix: string = 'pb'): string {
+export function useA11yId(explicitId?: string, prefix: string = 'plocks'): string {
   const generated = useId();
   return explicitId || sanitizeId(generated, prefix);
 }

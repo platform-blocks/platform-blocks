@@ -1,4 +1,4 @@
-import type { PlatformBlocksTheme } from './types';
+import type { PlocksTheme } from './types';
 import { adjustHexColor, withAlpha, readableTextOn, composite, pickReadable, relativeLuminance, contrastRatio } from './colorUtils';
 import { literalBackgrounds } from './cssVariableTheme';
 
@@ -46,7 +46,7 @@ const PERCEPTIBLE_STEP = 1.1;
  * their own theme — take the nearest candidate that's genuinely darker, and fall
  * back to darkening the surface directly if a theme offers nothing below it.
  */
-const pickRecessed = (theme: PlatformBlocksTheme, surface: string): string => {
+const pickRecessed = (theme: PlocksTheme, surface: string): string => {
   const surfaceLum = relativeLuminance(surface);
   // Choose against the literal colors — `var(--x)` has no luminance — but return
   // whatever `theme.backgrounds` renders for the winner, so the fill still tracks
@@ -78,7 +78,7 @@ const pickRecessed = (theme: PlatformBlocksTheme, surface: string): string => {
  * fixed palette index, so it stays legible on any theme a consumer supplies.
  */
 export const resolveVariantRoles = (
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   { variant = 'filled', color = 'primary', gradientStops }: ResolveVariantOptions = {}
 ): VariantRoles => {
   const isDark = theme.colorScheme === 'dark';
@@ -170,7 +170,7 @@ export const resolveVariantRoles = (
  * its stops here so Button, Badge, Chip, and Card stay visually identical.
  */
 export const resolveGradientStops = (
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   color: string = 'primary',
 ): [string, string] => {
   if ((CORE_COLORS as readonly string[]).includes(color)) {

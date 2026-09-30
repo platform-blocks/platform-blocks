@@ -1,13 +1,13 @@
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { Breadcrumbs } from '../Breadcrumbs';
 import type { BreadcrumbsProps } from '../types';
 
 function renderBreadcrumbs(props: Partial<BreadcrumbsProps> = {}) {
   return render(
-    <PlatformBlocksProvider>
+    <PlocksProvider>
       <Breadcrumbs
         items={[
           { label: 'Home', href: '/' },
@@ -16,7 +16,7 @@ function renderBreadcrumbs(props: Partial<BreadcrumbsProps> = {}) {
         ]}
         {...props}
       />
-    </PlatformBlocksProvider>
+    </PlocksProvider>
   );
 }
 
@@ -49,9 +49,9 @@ describe('Breadcrumbs (react-native-web DOM)', () => {
   it('fires onPress for a trail item', () => {
     const onPress = jest.fn();
     render(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <Breadcrumbs items={[{ label: 'Home', onPress }, { label: 'Here' }]} />
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     fireEvent.click(screen.getByRole('link', { name: 'Home' }));
     expect(onPress).toHaveBeenCalledTimes(1);

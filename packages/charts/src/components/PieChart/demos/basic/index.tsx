@@ -1,4 +1,4 @@
-import { PieChart } from '@platform-blocks/charts';
+import { PieChart } from '@plocks/charts';
 
 import { TRAFFIC_SOURCES } from './data';
 

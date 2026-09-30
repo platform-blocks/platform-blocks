@@ -4,7 +4,6 @@ category: appearance
 order: 45
 tags: [timeline, appearance]
 status: stable
-since: 1.0.0
 hidden: false
 highlightLines: []
 ---

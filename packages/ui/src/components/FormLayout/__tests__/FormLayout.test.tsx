@@ -46,15 +46,13 @@ describe('FormLayout (native)', () => {
     expect(screen.getByRole('button', { expanded: false })).toBeTruthy();
   });
 
-  it('keeps the deprecated defaultCollapsed working', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  it('starts collapsed with defaultExpanded={false}', () => {
     render(
-      <FormSection title="Advanced" collapsible defaultCollapsed>
+      <FormSection title="Advanced" collapsible defaultExpanded={false}>
         <Text>Hidden fields</Text>
       </FormSection>
     );
     expect(screen.queryByText('Hidden fields')).toBeNull();
-    warn.mockRestore();
   });
 
   it('lays out a row group in columns', () => {

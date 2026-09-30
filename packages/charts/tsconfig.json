@@ -20,10 +20,10 @@
     "jsx": "react-jsx",
     "baseUrl": "./src",
     "paths": {
-      "@platform-blocks/charts": [
+      "@plocks/charts": [
         "./index.ts"
       ],
-      "@platform-blocks/charts/*": [
+      "@plocks/charts/*": [
         "./*"
       ]
     }

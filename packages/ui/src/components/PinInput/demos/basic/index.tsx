@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PinInput } from '@platform-blocks/ui';
+import { PinInput } from '@plocks/ui';
 
 export function Demo() {
   const [value, setValue] = useState('');

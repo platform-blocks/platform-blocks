@@ -16,10 +16,7 @@ const externalPackages = [
   'react/jsx-dev-runtime',
 ];
 
-// Subpaths of an external package are external too. Without this, deep imports
-// like '@tabler/icons-react-native/IconBell' (see Icon/icons/tabler.ts) would
-// miss the exact-name match and get inlined into lib/ — the opposite of why
-// they are deep imports.
+// Subpaths of an external package are external too.
 const external = (id) =>
   externalPackages.some((name) => id === name || id.startsWith(`${name}/`));
 
@@ -44,9 +41,8 @@ const external = (id) =>
 // Verified with a fixture (foo.ts + foo.web.ts imported as './foo'): both
 // builds emit foo.js and foo.web.js, and importers reference './foo'.
 //
-// The single-file snack build (see `entries`) can't carry variants — they're
-// inlined as the base file — so keep platform-split modules out of snack.ts's
-// graph, or give Snack its own handling.
+// The separate @plocks/ui-snack build inlines the base implementation of
+// platform-split modules. Its entry must remain usable on Expo Snack.
 // ---------------------------------------------------------------------------
 const PLATFORM_FILE = /\.(web|native|ios|android)\.(tsx?|jsx?)$/;
 const SKIP_DIRS = new Set(['__tests__', '__web_tests__', '__mocks__', '__test-utils__', 'demos', '__examples__']);
@@ -87,20 +83,6 @@ function platformImports() {
   };
 }
 
-/**
- * `"type": "module"` in package.json makes Node treat every .js under lib/ as
- * ESM. The CJS build needs its own package.json to be `require()`-able (and
- * for its .d.ts files to be read as CommonJS declarations).
- */
-function commonjsPackageJson() {
-  return {
-    name: 'commonjs-package-json',
-    generateBundle() {
-      this.emitFile({ type: 'asset', fileName: 'package.json', source: '{\n  "type": "commonjs"\n}\n' });
-    },
-  };
-}
-
 const commonConfig = {
   external,
   plugins: [
@@ -119,7 +101,7 @@ const commonConfig = {
 };
 
 // The main entry preserves the source module graph so consumers can deep-import
-// a single component (`@platform-blocks/ui/Button`) and pull only its subtree.
+// a single component (`@plocks/ui/Button`) and pull only its subtree.
 // Metro does almost no tree-shaking, so a single 2 MB bundle would otherwise
 // land in every app that imports one button.
 const preserved = { preserveModules: true, preserveModulesRoot: 'src' };
@@ -134,63 +116,31 @@ const componentEntries = readdirSync('src/components', { withFileTypes: true })
 
 const mainInputs = ['src/index.ts', ...componentEntries, ...platformFiles];
 
-// `snack` is the trimmed surface consumed by @platform-blocks/ui/snack — it
-// stays a single file because Snack loads it directly. See src/snack.ts.
-const entries = [
-  { input: mainInputs, esmDir: './lib/esm', cjsDir: './lib/cjs' },
-  { input: 'src/snack.ts', esm: './lib/esm/snack.js', cjs: './lib/cjs/snack.js' },
-];
-
 // No source maps. Maps that embed sourcesContent made up ~63% of the tarball;
 // maps without it point at ../../src, which isn't published, and a
 // `//# sourceMappingURL` comment whose .map file isn't shipped makes
 // source-map-loader (webpack, CRA, Next) warn on every file.
 const sourcemapOptions = { sourcemap: false };
 
-export default entries.flatMap(({ input, esm, cjs, esmDir, cjsDir }) => [
-  // ESM build
-  {
-    ...commonConfig,
-    input,
-    output: {
-      ...(esmDir ? { dir: esmDir, ...preserved } : { file: esm, inlineDynamicImports: true }),
-      format: 'esm',
-      ...sourcemapOptions,
-    },
-    plugins: [
-      ...commonConfig.plugins,
-      typescript({
-        tsconfig: './tsconfig.esm.json',
-        declaration: false,
-        declarationMap: false,
-        jsx: 'react-jsx',
-        outDir: './lib/esm',
-        rootDir: './src',
-      }),
-      ...(esmDir ? [platformImports()] : []),
-    ],
+export default {
+  ...commonConfig,
+  input: mainInputs,
+  output: {
+    dir: './lib/esm',
+    ...preserved,
+    format: 'esm',
+    ...sourcemapOptions,
   },
-  // CJS build
-  {
-    ...commonConfig,
-    input,
-    output: {
-      ...(cjsDir ? { dir: cjsDir, ...preserved } : { file: cjs, inlineDynamicImports: true }),
-      format: 'cjs',
-      exports: 'named',
-      ...sourcemapOptions,
-    },
-    plugins: [
-      ...commonConfig.plugins,
-      typescript({
-        tsconfig: './tsconfig.cjs.json',
-        declaration: false,
-        declarationMap: false,
-        jsx: 'react-jsx',
-        outDir: './lib/cjs',
-        rootDir: './src',
-      }),
-      ...(cjsDir ? [platformImports(), commonjsPackageJson()] : []),
-    ],
-  },
-]);
+  plugins: [
+    ...commonConfig.plugins,
+    typescript({
+      tsconfig: './tsconfig.esm.json',
+      declaration: false,
+      declarationMap: false,
+      jsx: 'react-jsx',
+      outDir: './lib/esm',
+      rootDir: './src',
+    }),
+    platformImports(),
+  ],
+};

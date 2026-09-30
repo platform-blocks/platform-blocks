@@ -32,7 +32,6 @@ import { a11yProps } from '../../core/accessibility/a11yProps';
 import { useA11yId } from '../../core/accessibility/useA11yId';
 import { useMergedRef } from '../../core/utils/mergeRefs';
 import { useStyleProps } from '../../core/utils/spacing';
-import { warnOnce } from '../../core/utils/logger';
 import type { DialogFactoryPayload, DialogFocusable, DialogProps } from './types';
 
 /** Baseline the built-in Dialog timings are authored against. */
@@ -49,8 +48,7 @@ interface DomLikeEvent {
 
 function DialogBase(props: DialogProps, ref: Ref<View>) {
   const {
-    opened: openedProp,
-    visible,
+    opened = false,
     variant = 'modal',
     title,
     accessibilityLabel,
@@ -74,11 +72,6 @@ function DialogBase(props: DialogProps, ref: Ref<View>) {
     testID,
     ...spacingProps
   } = props;
-
-  if (visible !== undefined) {
-    warnOnce('Dialog.visible', '[platform-blocks] Dialog `visible` is deprecated; use `opened`.');
-  }
-  const opened = openedProp ?? visible ?? false;
 
   const theme = useTheme();
   const insets = useContext(SafeAreaInsetsContext) ?? ZERO_INSETS;
@@ -148,7 +141,7 @@ function DialogBase(props: DialogProps, ref: Ref<View>) {
         if (finished) runOnJS(invokeOnClose)();
       });
     } else if (variant === 'bottomsheet') {
-      slideAnim.value = withSpring(screenHeight, { damping: 25, stiffness: 400, mass: 0.8 }, (finished) => {
+      slideAnim.value = withTiming(screenHeight, { duration: ms(220), easing: Easing.in(Easing.cubic) }, (finished) => {
         'worklet';
         if (finished) runOnJS(invokeOnClose)();
       });
@@ -216,22 +209,32 @@ function DialogBase(props: DialogProps, ref: Ref<View>) {
         (dragDistance > 80 && velocity > 0.2);
 
       if (shouldDismiss && dragDistance > 0) {
-        const dismissDuration = Math.max(200, 400 - velocity * 150);
+        const dismissDuration = ms(Math.max(120, 220 - Math.max(0, velocity) * 60));
         closingRef.current = true;
-        slideAnim.value = withTiming(screenHeight, { duration: dismissDuration, easing: Easing.out(Easing.quad) }, (finished) => {
-          'worklet';
-          if (finished) runOnJS(invokeOnClose)();
-        });
-        backdropOpacity.value = withTiming(0, { duration: dismissDuration, easing: Easing.out(Easing.quad) });
+        if (instantMotion) {
+          slideAnim.value = screenHeight;
+          backdropOpacity.value = 0;
+          invokeOnClose();
+        } else {
+          slideAnim.value = withTiming(screenHeight, { duration: dismissDuration, easing: Easing.in(Easing.cubic) }, (finished) => {
+            'worklet';
+            if (finished) runOnJS(invokeOnClose)();
+          });
+          backdropOpacity.value = withTiming(0, { duration: dismissDuration, easing: Easing.in(Easing.cubic) });
+        }
       } else {
-        slideAnim.value = withSpring(0, { damping: 25, stiffness: 280, mass: 0.7, overshootClamping: true });
+        slideAnim.value = instantMotion
+          ? 0
+          : withSpring(0, { damping: 25, stiffness: 280, mass: 0.7, overshootClamping: true });
       }
     },
     onPanResponderTerminate: () => {
       if (!swipeEnabled) return;
-      slideAnim.value = withSpring(0, { damping: 25, stiffness: 280, mass: 0.7, overshootClamping: true });
+      slideAnim.value = instantMotion
+        ? 0
+        : withSpring(0, { damping: 25, stiffness: 280, mass: 0.7, overshootClamping: true });
     },
-  }), [swipeEnabled, screenHeight, slideAnim, backdropOpacity, invokeOnClose]);
+  }), [swipeEnabled, screenHeight, slideAnim, backdropOpacity, invokeOnClose, instantMotion, ms]);
 
   // --- enter / reset ---------------------------------------------------------------------
   useEffect(() => {
@@ -247,9 +250,8 @@ function DialogBase(props: DialogProps, ref: Ref<View>) {
       if (variant === 'modal') {
         scaleAnim.value = withSpring(1, { damping: 18, stiffness: 250, mass: 0.9 });
       } else if (variant === 'bottomsheet') {
-        // Critically damped: no overshoot.
         slideAnim.value = screenHeight;
-        slideAnim.value = withSpring(0, { damping: 30, stiffness: 200, mass: 1.2, overshootClamping: true });
+        slideAnim.value = withTiming(0, { duration: ms(300), easing: Easing.out(Easing.cubic) });
       }
     } else {
       backdropOpacity.value = 0;

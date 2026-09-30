@@ -1,9 +1,10 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef } from 'react';
+import { useId, useMemo, useRef } from 'react';
 import { Platform } from 'react-native';
 
 import { cssVariablesRule, literalBackgrounds, literalText, themeCssVariables } from './cssVariableTheme';
 import { useTheme } from './ThemeProvider';
-import { PlatformBlocksTheme } from './types';
+import { PlocksTheme } from './types';
+import { useIsomorphicLayoutEffect } from '../hooks/useIsomorphicLayoutEffect';
 
 interface CSSVariablesProps {
   /** CSS selector where variables should be applied */
@@ -15,9 +16,6 @@ interface CSSVariablesProps {
   withBodyColors?: boolean;
 }
 
-const useIsomorphicLayoutEffect =
-  Platform.OS === 'web' && typeof document !== 'undefined' ? useLayoutEffect : useEffect;
-
 const targetsDocument = (selector: string) => selector === ':root' || selector === 'html' || selector === 'body';
 
 /**
@@ -27,7 +25,7 @@ const targetsDocument = (selector: string) => selector === ':root' || selector =
  * `::selection`, and — for the document — the body's background and text.
  */
 export function createCSSVariablesStylesheet(
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   selector: string = ':root',
   withBodyColors: boolean = targetsDocument(selector)
 ): string {
@@ -57,7 +55,7 @@ export function createCSSVariablesStylesheet(
 /**
  * Injects the theme's CSS variables (web only; renders nothing).
  *
- * Each instance owns its own `<style data-platform-blocks-variables>` tag,
+ * Each instance owns its own `<style data-plocks-variables>` tag,
  * updated in place when the theme changes and removed only on unmount — so
  * nested providers never delete each other's tags. The tag is written in a
  * layout effect, before the browser paints.
@@ -78,7 +76,7 @@ export function CSSVariables({ selector = ':root', withBodyColors }: CSSVariable
     let element = styleRef.current;
     if (!element || !element.isConnected) {
       element = document.createElement('style');
-      element.setAttribute('data-platform-blocks-variables', instanceId);
+      element.setAttribute('data-plocks-variables', instanceId);
       document.head.appendChild(element);
       styleRef.current = element;
     }

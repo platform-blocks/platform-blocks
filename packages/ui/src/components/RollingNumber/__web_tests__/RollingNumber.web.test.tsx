@@ -1,11 +1,11 @@
 import React from 'react';
 import { render as rtlRender, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { RollingNumber } from '../RollingNumber';
 
 const render = (ui: React.ReactElement) =>
-  rtlRender(<PlatformBlocksProvider reducedMotion={false}>{ui}</PlatformBlocksProvider>);
+  rtlRender(<PlocksProvider reducedMotion={false}>{ui}</PlocksProvider>);
 
 /** The text assistive technology gets: everything outside aria-hidden subtrees. */
 function accessibleText(element: HTMLElement): string {
@@ -27,9 +27,9 @@ describe('RollingNumber (react-native-web DOM)', () => {
 
     // A new value is readable at once — never an in-between frame of the roll.
     rerender(
-      <PlatformBlocksProvider reducedMotion={false}>
+      <PlocksProvider reducedMotion={false}>
         <RollingNumber testID="n" value={1250} prefix="$" decimalScale={2} fixedDecimalScale thousandSeparator />
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     expect(accessibleText(screen.getByTestId('n'))).toBe('$1,250.00');
   });

@@ -4,7 +4,6 @@ order: 15
 tags: [variants, filled, outline, unstyled]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

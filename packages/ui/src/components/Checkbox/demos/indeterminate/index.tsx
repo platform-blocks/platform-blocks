@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Checkbox } from '@platform-blocks/ui';
+import { Block, Checkbox } from '@plocks/ui';
 
 const ITEMS = [
   { id: 1, label: 'Email notifications' },

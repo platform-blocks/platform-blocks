@@ -29,10 +29,6 @@ export interface BadgeProps
   startSection?: React.ReactNode;
   /** Content (usually an icon) after the label. */
   endSection?: React.ReactNode;
-  /** @deprecated Use `startSection`. */
-  startIcon?: React.ReactNode;
-  /** @deprecated Use `endSection`. */
-  endIcon?: React.ReactNode;
   /** Show a remove (×) button that calls this. */
   onRemove?: () => void;
   /** Which side the remove button sits on (`left`/`right` follow the reading direction). */
@@ -43,8 +39,8 @@ export interface BadgeProps
   textStyle?: StyleProp<TextStyle>;
   /** Override props applied to the inner label `<Text>` (style, fw, ff, size, c). */
   labelProps?: Omit<TextProps, 'children'>;
-  /** Corner radius. @default 'md' */
-  radius?: RadiusValue | 'chip';
+  /** Corner radius. @default 'full' */
+  radius?: RadiusValue;
   /** Drop shadow token. Badges are flat by default. */
   shadow?: ShadowToken;
 }

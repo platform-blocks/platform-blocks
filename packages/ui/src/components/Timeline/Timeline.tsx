@@ -6,7 +6,7 @@ import { factory, withStatics } from '../../core/factory';
 import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { getControlSize } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 import type { TimelineContextValue, TimelineItemProps, TimelineProps, TimelineSizeMetrics } from './types';
 
@@ -23,7 +23,7 @@ const useTimelineContext = () => {
  * 60% of the control height, labels one step above the control font. A numeric
  * `size` is the title font size (px), scaled off the `md` proportions.
  */
-function getTimelineMetrics(theme: PlatformBlocksTheme, size: SizeValue): TimelineSizeMetrics {
+function getTimelineMetrics(theme: PlocksTheme, size: SizeValue): TimelineSizeMetrics {
   const fromControl = (token: SizeValue): TimelineSizeMetrics => {
     const control = getControlSize(theme, token);
     const bulletSize = Math.round(control.height * 0.6);

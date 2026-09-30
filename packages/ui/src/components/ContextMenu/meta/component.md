@@ -14,7 +14,7 @@ props:
     description: "Render prop for the trigger; spread `triggerProps` onto it"
   - name: opened / defaultOpened
     type: boolean
-    description: "Controlled / initial open state (`open` is a deprecated alias of `opened`)"
+    description: "Controlled / initial open state"
   - name: position
     type: "{ x: number; y: number }"
     description: "Controlled position"
@@ -31,4 +31,5 @@ props:
     description: "Menu max height before the items scroll (not the root's)"
     default: 280
 ---
-The ContextMenu component provides a context-sensitive menu that appears on right-click (web) or long-press (mobile) with customizable actions. It shares Menu's surface and keyboard behaviour, stays inside the viewport, and closes on Escape, Android back or a press outside.
+
+ContextMenu shows actions for a target on right-click or long-press.

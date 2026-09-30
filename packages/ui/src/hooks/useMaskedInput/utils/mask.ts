@@ -109,7 +109,7 @@ export function createMask(definition: MaskDefinition) {
     );
     if (ambiguous !== -1) {
       devWarn(
-        `[platform-blocks] createMask: the mask "${mask}" uses "${pattern[ambiguous].char}" at position ${ambiguous} as a literal, but that character also matches one of its own slots. Input at that position is ambiguous — move fixed separators of this kind outside the mask.`
+        `[plocks] createMask: the mask "${mask}" uses "${pattern[ambiguous].char}" at position ${ambiguous} as a literal, but that character also matches one of its own slots. Input at that position is ambiguous — move fixed separators of this kind outside the mask.`
       );
     }
   }

@@ -1,4 +1,4 @@
-import { FunnelChart, formatCompactNumber } from '@platform-blocks/charts';
+import { FunnelChart, formatCompactNumber } from '@plocks/charts';
 
 import { INCIDENT_RESPONSE, IncidentMeta } from './data';
 

@@ -5,7 +5,6 @@ order: 61
 tags: [checked, filter, toggle]
 highlightLines: []
 status: stable
-since: 1.1.0
 hidden: false
 ---
 

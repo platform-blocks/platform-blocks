@@ -16,7 +16,6 @@ export { FunnelChart } from './components/FunnelChart';
 export { StackedBarChart } from './components/StackedBarChart';
 export { GroupedBarChart } from './components/GroupedBarChart';
 export { RadialBarChart } from './components/RadialBarChart';
-export { GaugeChart } from './components/GaugeChart';
 export { SparklineChart } from './components/SparklineChart';
 export { HistogramChart } from './components/HistogramChart';
 export { ComboChart } from './components/ComboChart';

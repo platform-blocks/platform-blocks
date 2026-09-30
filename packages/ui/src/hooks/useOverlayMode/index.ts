@@ -24,8 +24,6 @@ export interface UseOverlayModeResult {
   shouldUseModal: boolean;
   /** Prefer anchored overlays/portals (desktop web) */
   shouldUseOverlay: boolean;
-  /** Alias for shouldUseOverlay for popover/portal driven surfaces */
-  shouldUsePortal: boolean;
 }
 
 /**
@@ -50,7 +48,6 @@ export function useOverlayMode(options: UseOverlayModeOptions = {}): UseOverlayM
       isDesktopExperience: !resolvedModal,
       shouldUseModal: resolvedModal,
       shouldUseOverlay: resolvedOverlay,
-      shouldUsePortal: resolvedOverlay,
     };
   }, [deviceInfo, forceModal, forceOverlay]);
 }

@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import { render } from '@testing-library/react-native';
 
 import { DEFAULT_THEME } from '../../../core/theme/defaultTheme';
-import type { PlatformBlocksTheme } from '../../../core/theme/types';
+import type { PlocksTheme } from '../../../core/theme/types';
 import { Radio, RadioGroup, getRadioPalette } from '../Radio';
 
 /**
@@ -16,10 +16,10 @@ const literalText = { ...DEFAULT_THEME.text };
 const literalBackgrounds = { ...DEFAULT_THEME.backgrounds };
 const asVar = <T extends Record<string, string | undefined>>(values: T, prefix: string): T =>
   Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [key, value ? `var(--platform-blocks-${prefix}-${key}, ${value})` : value])
+    Object.entries(values).map(([key, value]) => [key, value ? `var(--plocks-${prefix}-${key}, ${value})` : value])
   ) as T;
 
-const mockCssVarTheme: PlatformBlocksTheme = {
+const mockCssVarTheme: PlocksTheme = {
   ...DEFAULT_THEME,
   text: asVar(literalText, 'text'),
   backgrounds: asVar(literalBackgrounds, 'bg'),

@@ -1,6 +1,6 @@
-import type { AccessibilityActionInfo, AccessibilityRole, AccessibilityState } from 'react-native';
+import type { AccessibilityRole } from 'react-native';
 import { ACCESSIBILITY_LABELS } from './constants';
-import { a11yProps, roleFromAccessibilityRole, type A11yProps, type A11yValue } from './a11yProps';
+import { a11yProps, type A11yProps, type A11yValue } from './a11yProps';
 
 /**
  * Generate accessible label with context
@@ -52,55 +52,6 @@ export type AccessibilityValue = A11yValue;
 export const getAccessibilityValueProps = (value?: AccessibilityValue): A11yProps => {
   if (!value) return {};
   return a11yProps({ value });
-};
-
-export type CreateAccessibilityPropsOptions = {
-  role?: AccessibilityRole;
-  label?: string;
-  hint?: string;
-  state?: AccessibilityState;
-  value?: AccessibilityValue;
-  actions?: ReadonlyArray<AccessibilityActionInfo>;
-  disabled?: boolean;
-  selected?: boolean;
-};
-
-export type CreatedAccessibilityProps = A11yProps & {
-  accessible: true;
-  /** Only for legacy roles with no ARIA equivalent (`text`, `keyboardkey`). */
-  accessibilityRole?: AccessibilityRole;
-};
-
-/**
- * Legacy builder kept for compatibility; prefer `a11yProps`. Emits `role` +
- * `aria-*` (valid on both platforms) instead of `accessibilityState` /
- * `accessibilityValue`, which react-native-web drops.
- */
-export const createAccessibilityProps = (options: CreateAccessibilityPropsOptions): CreatedAccessibilityProps => {
-  const { role, label, hint, state, value, actions, disabled, selected } = options;
-  const ariaRole = roleFromAccessibilityRole(role);
-  const checked = state?.checked;
-
-  const props: CreatedAccessibilityProps = {
-    ...a11yProps({
-      role: ariaRole,
-      label,
-      hint,
-      value,
-      actions,
-      disabled: disabled || state?.disabled,
-      // The top-level `selected` flag historically defaulted to false and was
-      // passed as `false` by non-selectable controls (Button); only a real
-      // selection is emitted, since `aria-selected` is invalid on those roles.
-      selected: selected ? true : state?.selected,
-      checked: checked === null ? undefined : checked,
-      expanded: state?.expanded,
-      busy: state?.busy,
-    }),
-    accessible: true,
-  };
-  if (role && !ariaRole) props.accessibilityRole = role;
-  return props;
 };
 
 /**

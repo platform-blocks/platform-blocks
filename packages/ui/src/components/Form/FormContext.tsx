@@ -12,6 +12,12 @@ import type {
 const FormContext = createContext<FormContextValue | null>(null);
 FormContext.displayName = 'FormContext';
 
+/**
+ * Returns the enclosing `Form`'s state and actions (`values`, `errors`,
+ * `touched`, `isSubmitting`, `isValid`, `setFieldValue`, `getFieldProps`,
+ * `submitForm`, `resetForm`, …) for custom fields and buttons, and throws
+ * outside a `Form` — use `useOptionalFormContext()` for a non-throwing read.
+ */
 export const useFormContext = (): FormContextValue => {
   const context = useContext(FormContext);
   if (!context) {
@@ -20,6 +26,11 @@ export const useFormContext = (): FormContextValue => {
   return context;
 };
 
+/**
+ * Returns the enclosing `Form`'s state and actions, or `null` outside one —
+ * the non-throwing variant of `useFormContext()`, for inputs that bind to a
+ * `Form` when there is one and work standalone otherwise.
+ */
 export const useOptionalFormContext = (): FormContextValue | null => {
   return useContext(FormContext);
 };
@@ -44,7 +55,7 @@ export const FormFieldContextProvider = FormFieldContext.Provider;
 export const useFormFieldContext = (): FormFieldContextValue | null => useContext(FormFieldContext);
 
 /** Id given to a field's `Form.Label` (web DOM id / native nativeID). */
-export const formLabelId = (name: string) => `pb-form-${name.replace(/[^A-Za-z0-9_-]/g, '_')}-label`;
+export const formLabelId = (name: string) => `plocks-form-${name.replace(/[^A-Za-z0-9_-]/g, '_')}-label`;
 
 interface FormProviderProps {
   initialValues?: FormValues;

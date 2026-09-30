@@ -1,5 +1,5 @@
-import { Card, Masonry, Text } from '@platform-blocks/ui';
-import type { MasonryItem } from '@platform-blocks/ui';
+import { Card, Masonry, Text } from '@plocks/ui';
+import type { MasonryItem } from '@plocks/ui';
 
 export function Demo() {
   const masonryItems: MasonryItem[] = [

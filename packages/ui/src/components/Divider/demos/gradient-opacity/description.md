@@ -4,7 +4,6 @@ order: 25
 tags: [gradient, opacity, customization, variants]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -1,11 +1,10 @@
 ---
-title: Basic Usage
+title: Basics
 category: basics
 order: 10
 tags: [peaks, progress]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -1,4 +1,4 @@
-import { Block, Indicator, Row, Text } from '@platform-blocks/ui';
+import { Block, Indicator, Row, Text } from '@plocks/ui';
 
 const PLACEMENTS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const;
 

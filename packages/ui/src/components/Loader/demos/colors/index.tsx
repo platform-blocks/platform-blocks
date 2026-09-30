@@ -1,4 +1,4 @@
-import { Block, Loader, Row, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Loader, Row, Text, useTheme } from '@plocks/ui';
 
 interface LoaderSwatch {
   label: string;

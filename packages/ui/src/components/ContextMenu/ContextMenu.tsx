@@ -9,7 +9,6 @@ import { useMenuStyles } from '../Menu/styles';
 import { factory } from '../../core/factory';
 import { useStyleProps } from '../../core/utils/spacing';
 import { useMergedRef } from '../../core/utils/mergeRefs';
-import { warnOnce } from '../../core/utils/logger';
 import { isWeb } from '../../core/platform';
 import type { WebKeyboardEvent, WebMouseEvent } from '../../core/platform';
 import { useFloating } from '../../core/overlay/useFloating';
@@ -52,7 +51,6 @@ function ContextMenuBase(props: ContextMenuProps, ref: Ref<View>) {
     onClose,
     opened: openedProp,
     defaultOpened = false,
-    open: legacyOpen,
     position: controlledPosition,
     style,
     testID,
@@ -60,14 +58,11 @@ function ContextMenuBase(props: ContextMenuProps, ref: Ref<View>) {
     ...spacingProps
   } = props;
 
-  if (legacyOpen !== undefined) {
-    warnOnce('ContextMenu.open', '[platform-blocks] ContextMenu `open` is deprecated; use `opened`.');
-  }
   const spacingStyles = useStyleProps(spacingProps);
   const menuStyles = useMenuStyles();
 
   const [opened, setOpened] = useControllableState<boolean>({
-    value: openedProp ?? legacyOpen,
+    value: openedProp,
     defaultValue: defaultOpened,
     finalValue: false,
   });

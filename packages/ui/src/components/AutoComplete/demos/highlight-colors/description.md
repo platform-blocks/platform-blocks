@@ -5,7 +5,6 @@ order: 70
 tags: [highlight, palette, theme]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

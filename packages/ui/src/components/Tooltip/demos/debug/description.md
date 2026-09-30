@@ -4,7 +4,6 @@ category: internal
 order: 999
 tags: [debug, development, portal, testing]
 status: stable
-since: 1.0.0
 hidden: true
 ---
 

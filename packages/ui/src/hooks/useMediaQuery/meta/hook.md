@@ -4,7 +4,6 @@ category: platform
 order: 20
 tags: [media-query, responsive, dimensions]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

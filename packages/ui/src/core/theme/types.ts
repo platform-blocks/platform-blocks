@@ -194,10 +194,10 @@ export interface ThemeBackgrounds {
   scrim: string;
 }
 
-/** Background roles added after 1.x — optional in overrides, filled from the built-in theme of the same scheme. */
+/** Background roles — optional in overrides, filled from the built-in theme of the same scheme. */
 export type ThemeBackgroundRole = keyof ThemeBackgrounds;
 
-export interface PlatformBlocksTheme {
+export interface PlocksTheme {
   /** Primary color used for buttons, links, etc. */
   primaryColor: string;
 
@@ -257,8 +257,8 @@ export interface PlatformBlocksTheme {
    * literal; `literalText` / `literalBackgrounds` handle both cases.
    */
   literalColors?: {
-    text: PlatformBlocksTheme['text'];
-    backgrounds: PlatformBlocksTheme['backgrounds'];
+    text: PlocksTheme['text'];
+    backgrounds: PlocksTheme['backgrounds'];
     surfaces?: SurfaceScale;
   };
 
@@ -373,36 +373,11 @@ export interface PlatformBlocksTheme {
     };
   };
 
-  /**
-   * Semantic color aliases.
-   *
-   * @deprecated Derived from `backgrounds` / `states` / `colors` (see
-   * `deriveSemanticColors`) and kept only for back-compat. Read
-   * `theme.backgrounds.borderStrong` (borderDefault), `theme.backgrounds.border`
-   * (borderSubtle), `theme.backgrounds.elevated` (surfaceElevated),
-   * `theme.backgrounds.surface` (surfaceCard), `theme.states.focusRing`
-   * (focusRing) and `theme.colors.primary[5]` (accent) instead.
-   */
-  semantic: {
-    /** Accent color (primary[5]) */
-    accent: string;
-    /** Default border color (= backgrounds.borderStrong) */
-    borderDefault: string;
-    /** Subtle border color (= backgrounds.border) */
-    borderSubtle: string;
-    /** Elevated surface color (= backgrounds.elevated) */
-    surfaceElevated: string;
-    /** Card surface color (= backgrounds.surface) */
-    surfaceCard: string;
-    /** Focus outline color (= states.focusRing) */
-    focusRing: string;
-  };
-
   /** Component default props and styles (override point) */
   components: Record<string, ComponentTokenOverride>;
 
-  /** Any additional custom theme properties (see `PlatformBlocksThemeOther`) */
-  other: PlatformBlocksThemeOther;
+  /** Any additional custom theme properties (see `PlocksThemeOther`) */
+  other: PlocksThemeOther;
 }
 
 /**
@@ -410,43 +385,40 @@ export interface PlatformBlocksTheme {
  * it to type your keys:
  *
  * ```ts
- * declare module '@platform-blocks/ui' {
- *   interface PlatformBlocksThemeOther {
+ * declare module '@plocks/ui' {
+ *   interface PlocksThemeOther {
  *     brandGradient: string[];
  *   }
  * }
  * ```
  */
-export interface PlatformBlocksThemeOther {
+export interface PlocksThemeOther {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- app-owned extension bag read directly by consumers (`theme.other.brand` as a style value); `unknown` would force a cast at every read. Augment the interface for precise types.
   [key: string]: any;
 }
 
 /**
- * A partial theme: every top-level key is optional, and the groups added after
- * 1.x (`backgrounds` roles, `controlSizes`, `zIndices`) are partial too, so
- * existing custom themes keep type-checking. Missing values are filled from the
- * built-in theme of the same color scheme by `mergeTheme` / `normalizeTheme`.
+ * A partial theme: every top-level key is optional, and `backgrounds` roles,
+ * `controlSizes` and `zIndices` are partial too. Missing values are filled from
+ * the built-in theme of the same color scheme by `mergeTheme` / `normalizeTheme`.
  */
-export type PlatformBlocksThemeOverride = Partial<
-  Omit<PlatformBlocksTheme, 'backgrounds' | 'controlSizes' | 'zIndices' | 'fontFamilyMono' | 'semantic'>
+export type PlocksThemeOverride = Partial<
+  Omit<PlocksTheme, 'backgrounds' | 'controlSizes' | 'zIndices' | 'fontFamilyMono'>
 > & {
   backgrounds?: Partial<ThemeBackgrounds>;
   controlSizes?: Partial<Record<SizeToken, Partial<ControlSizeMetrics>>>;
   zIndices?: Partial<ZIndices>;
   fontFamilyMono?: string;
-  /** @deprecated see `PlatformBlocksTheme['semantic']` */
-  semantic?: Partial<PlatformBlocksTheme['semantic']>;
 };
 
 /**
- * Separate overrides for each color scheme, accepted by `PlatformBlocksProvider`'s
+ * Separate overrides for each color scheme, accepted by `PlocksProvider`'s
  * `theme` prop so a custom theme keeps light/dark switching. Each side is merged
  * onto the built-in theme of that scheme; a missing side uses the built-in theme.
  */
-export interface PlatformBlocksThemePair {
-  light?: PlatformBlocksThemeOverride;
-  dark?: PlatformBlocksThemeOverride;
+export interface PlocksThemePair {
+  light?: PlocksThemeOverride;
+  dark?: PlocksThemeOverride;
 }
 
 // Generic token override shape for any component

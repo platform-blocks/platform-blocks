@@ -2,7 +2,7 @@ import React from 'react';
 import { renderHook } from '@testing-library/react-native';
 
 import { DEFAULT_THEME } from '../../theme/defaultTheme';
-import { PlatformBlocksThemeProvider } from '../../theme/ThemeProvider';
+import { ThemeScope } from '../../theme/ThemeProvider';
 import { mergeTheme } from '../../theme/utils';
 import { extractStyleProps, resolveStyleProps, useStyleProps } from '../spacing';
 
@@ -97,7 +97,7 @@ describe('useStyleProps', () => {
   it('resolves against the current theme and memoizes on values', () => {
     const theme = mergeTheme(DEFAULT_THEME, { spacing: { ...DEFAULT_THEME.spacing, lg: '40px' } });
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <PlatformBlocksThemeProvider theme={theme}>{children}</PlatformBlocksThemeProvider>
+      <ThemeScope theme={theme}>{children}</ThemeScope>
     );
     const { result, rerender } = renderHook(({ pl }: { pl: 'lg' | 'sm' }) => useStyleProps({ pl }), {
       wrapper,

@@ -45,7 +45,7 @@ const NATIVE_MIN_TARGET = 44;
 const SHOW_SWATCHES = 'Show color swatches';
 const HIDE_SWATCHES = 'Hide color swatches';
 const DEFAULT_SHEET_TITLE = 'Choose a color';
-const PB_INPUT_DATASET = { pbInput: 'true' } as const;
+const PLOCKS_INPUT_DATASET = { plocksInput: 'true' } as const;
 
 const hasContent = (node: React.ReactNode) =>
   node !== undefined && node !== null && node !== false && node !== true && node !== '';
@@ -370,7 +370,7 @@ export const ColorInput = factory<{ props: ColorInputProps; ref: FieldHandle }>(
                 underlineColorAndroid="transparent"
                 maxLength={7}
                 editable={!disabled && !readOnly}
-                {...webProps({ dataSet: PB_INPUT_DATASET })}
+                {...webProps({ dataSet: PLOCKS_INPUT_DATASET })}
                 style={[controlStyles.input, styles.hexInput]}
                 testID={testID ? `${testID}-input` : undefined}
               />

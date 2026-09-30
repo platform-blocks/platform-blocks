@@ -8,7 +8,6 @@ import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveSpacing } from '../../core/theme/tokens';
 import type { VisibilityProps } from '../../core/types/base';
 import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
-import { warnOnce } from '../../core/utils/logger';
 import { resolveOptionalModule } from '../../utils/optionalModule';
 import { Pagination } from '../Pagination';
 import { Table } from '../Table';
@@ -90,6 +89,7 @@ const NO_BULK_ACTIONS: NonNullable<DataTableProps['bulkActions']> = [];
 const DEFAULT_PAGE_SIZES = [10, 25, 50, 100];
 /** Default viewport height of a virtualized table (the list must be bounded to virtualize). */
 const DEFAULT_VIRTUAL_HEIGHT = 420;
+const COMPACT_TOOLBAR_WIDTH = 700;
 
 function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<View>) {
   const {
@@ -113,6 +113,7 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
     paginationProps,
     manualPagination = false,
     selectable = false,
+    showColumnMenu = true,
     selectedRows: controlledSelectedRows,
     onSelectionChange,
     getRowId = defaultGetRowId,
@@ -128,8 +129,7 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
     virtual = false,
     style,
     testID,
-    hoverHighlight: hoverHighlightProp,
-    enhancedHover,
+    hoverHighlight = true,
     hoverColor,
     headerBackgroundColor,
     enhancedLoading = true,
@@ -182,10 +182,9 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
     ...rest
   } = props;
 
-  if (enhancedHover !== undefined) {
-    warnOnce('DataTable.enhancedHover', 'DataTable: `enhancedHover` is deprecated. Use `hoverHighlight`.');
+  if ((selectable || !!expandableRowRender || editMode) && !props.getRowId) {
+    throw new Error('DataTable: getRowId is required for selection, expandable rows, and edit mode.');
   }
-  const hoverHighlight = hoverHighlightProp ?? enhancedHover ?? true;
 
   const { styleProps } = extractStyleProps(rest);
   const theme = useTheme();
@@ -233,10 +232,16 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
   const { fullRows, processedData, totalFiltered, groups, flatRows } = tableData;
 
   const allRowIds = useMemo(() => processedData.map((row, index) => getRowId(row, index)), [processedData, getRowId]);
+  const selectableRowIds = useMemo(
+    () => selectable
+      ? processedData.flatMap((row, index) => rowFeatureToggle?.(row, index)?.selectable === false ? [] : [allRowIds[index]])
+      : [],
+    [processedData, allRowIds, rowFeatureToggle, selectable]
+  );
 
   // Row selection with shift-click range selection; persists across pages.
   const selection = useRowSelection({
-    allRowIds,
+    allRowIds: selectableRowIds,
     selectedRows: controlledSelectedRows,
     onSelectionChange,
     persistAcrossPagination: true,
@@ -252,7 +257,7 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
   const handleSort = useLatestCallback((columnKey: string) => onSortChange?.(nextSort(sortBy, columnKey)));
 
   // --- Editing / activation ----------------------------------------------------
-  const editing = useCellEditing({ columns, onCellEdit });
+  const editing = useCellEditing({ columns, onCellEdit, rows: flatRows, getRowId });
   const { editingCell, editValue } = editing;
 
   // Press / Enter / Space on a body cell: edit it in edit mode, else fire the row click.
@@ -260,15 +265,20 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
     const row = flatRows[rowIndex];
     if (row === undefined) return;
     const column = columns.find((col) => col.key === columnKey);
-    if (editMode && column?.editable) editing.beginEdit(rowIndex, columnKey, getValue(row, column.accessor));
+    if (editMode && column?.editable && rowFeatureToggle?.(row, rowIndex)?.editable !== false) {
+      editing.beginEdit(getRowId(row, rowIndex), columnKey, getValue(row, column.accessor));
+    }
     else onRowClick?.(row, rowIndex);
   });
 
   // --- Accessibility & keyboard grid navigation -------------------------------
-  // An interactive table (row click / edit mode) is an ARIA grid (treegrid with
-  // expandable rows) with roving-tabindex cell navigation; otherwise it is a
-  // plain table. Rows are 1-indexed with the header (and filter) rows first.
+  // Ungrouped, non-virtual interactive tables use a roving-focus ARIA grid.
+  // Grouped and virtual tables keep table semantics with buttons in their cells.
+  // Rows are 1-indexed with the header (and filter) rows first.
   const interactive = !!onRowClick || editMode;
+  // Grouped and virtual tables expose each activation as an ordinary button;
+  // neither mode can promise roving focus across every rendered data cell.
+  const grid = interactive && !virtual && !groupingActive;
   const headerRowCount = showColumnFilters ? 2 : 1;
   const helperColsBefore = (selectable ? 1 : 0) + (expandableRowRender ? 1 : 0);
   const totalColCount = helperColsBefore + visibleColumns.length + (rowActions ? 1 : 0);
@@ -278,7 +288,7 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
   const gridDomId = id ? `datatable-${id}` : `datatable-${reactId.replace(/:/g, '')}`;
 
   const nav = useGridNavigation({
-    enabled: isWeb && interactive && !virtual && !groupingActive,
+    enabled: isWeb && grid,
     rowCount: flatRows.length,
     columnCount: visibleColumns.length,
     onActivate: (row, col) => {
@@ -338,6 +348,11 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
 
   // --- Filter controls ---------------------------------------------------------
   const [openFilterColumn, setOpenFilterColumn] = useState<string | null>(null);
+  const [toolbarCompact, setToolbarCompact] = useState(false);
+  const onFrameLayout = useCallback((event: { nativeEvent: { layout: { width: number } } }) => {
+    const compact = event.nativeEvent.layout.width < COMPACT_TOOLBAR_WIDTH;
+    setToolbarCompact((previous) => previous === compact ? previous : compact);
+  }, []);
   const handleFilterOpenChange = useCallback((columnKey: string, opened: boolean) => {
     setOpenFilterColumn((current) => (opened ? columnKey : current === columnKey ? null : current));
   }, []);
@@ -401,11 +416,12 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
       cellTextProps,
       columnDividerStyle,
       getStickyCellStyle: sticky.getStickyCellStyle,
-      grid: interactive,
+      grid,
       interactiveCells: interactive,
       helperColsBefore,
       totalColCount,
       firstRowAriaIndex: pageOffset + headerRowCount + 1,
+      reportRowIndex: !groupingActive,
       rowNumberOffset: pageOffset,
       navEnabled: nav.enabled,
       getCellRef: nav.getCellRef,
@@ -438,11 +454,13 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
       cellTextProps,
       columnDividerStyle,
       sticky.getStickyCellStyle,
+      grid,
       interactive,
       helperColsBefore,
       totalColCount,
       pageOffset,
       headerRowCount,
+      groupingActive,
       nav.enabled,
       nav.getCellRef,
       nav.onCellKeyDown,
@@ -466,7 +484,7 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
       hasActions: !!rowActions,
       actionsColumnWidth,
       helperColsBefore,
-      grid: interactive,
+      grid,
       columnDividerStyle,
       sticky,
       getColumnFilter,
@@ -480,7 +498,7 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
       rowActions,
       actionsColumnWidth,
       helperColsBefore,
-      interactive,
+      grid,
       columnDividerStyle,
       sticky,
       getColumnFilter,
@@ -493,7 +511,7 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
 
   const renderRow = useCallback(
     (row: T, rowIndex: number, key: React.Key, rowId: DataTableRowId = getRowId(row, rowIndex)) => {
-      const isEditingRow = editingCell?.row === rowIndex;
+      const isEditingRow = editingCell?.rowId === rowId;
       return (
         <DataTableRow<T>
           key={key}
@@ -522,9 +540,9 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
       hasActions: !!rowActions,
       actionsColumnWidth,
       columnDividerStyle,
-      grid: interactive,
+      grid,
     }),
-    [colors, density, visibleColumns, selectable, expandableRowRender, rowActions, actionsColumnWidth, columnDividerStyle, interactive]
+    [colors, density, visibleColumns, selectable, expandableRowRender, rowActions, actionsColumnWidth, columnDividerStyle, grid]
   );
 
   const bodyRows = useMemo(() => {
@@ -591,7 +609,6 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
   const resolvedHeight = frameHeight ?? (virtual ? DEFAULT_VIRTUAL_HEIGHT : undefined);
   const borderWidth = showOuterBorder ? outerBorderWidth : 0;
   const frameStyle: ViewStyle = {
-    height: resolvedHeight,
     borderWidth,
     borderColor: colors.outerBorder,
     borderRadius: showOuterBorder ? 8 : 0,
@@ -627,10 +644,13 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
 
   const gridA11y = {
     id: isWeb ? gridDomId : undefined,
-    role: interactive ? (expandableRowRender ? ('treegrid' as const) : ('grid' as const)) : ('table' as const),
+    role: grid ? (expandableRowRender ? ('treegrid' as const) : ('grid' as const)) : ('table' as const),
     'aria-label': ariaLabel,
     'aria-busy': loading || undefined,
-    ...(isWeb ? { 'aria-rowcount': totalFiltered + headerRowCount, 'aria-colcount': totalColCount } : null),
+    ...(isWeb ? {
+      ...(groupingActive ? null : { 'aria-rowcount': totalFiltered + headerRowCount }),
+      'aria-colcount': totalColCount,
+    } : null),
   };
 
   const rootStyle = [styles.root, fullWidth ? styles.fullWidth : null, resolveStyleProps(styleProps, theme), style];
@@ -638,6 +658,7 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
   const toolbar = (
     <DataTableToolbar<T>
       colors={colors}
+      compact={toolbarCompact}
       data={data}
       columns={columns}
       selectedRows={selection.selectedRows}
@@ -658,25 +679,60 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
       showColumnVisibilityManager={showColumnVisibilityManager}
       hiddenSet={layout.hiddenSet}
       setHiddenColumns={layout.setHiddenColumns}
+      onResetColumns={layout.resetColumns}
     />
   );
+
+  const paginationFooter = pagination && onPaginationChange && !groupingActive ? (
+    <View
+      style={[
+        styles.paginationBar,
+        {
+          paddingHorizontal: resolveSpacing(theme, 'md'),
+          paddingVertical: resolveSpacing(theme, 'md'),
+          borderTopColor: colors.hairline,
+        },
+      ]}
+    >
+      <Pagination
+        value={pagination.page}
+        total={Math.max(1, Math.ceil(totalFiltered / pagination.pageSize))}
+        onChange={(page) => onPaginationChange({ ...pagination, page })}
+        showTotal
+        totalItems={totalFiltered}
+        pageSize={pagination.pageSize}
+        showSizeChanger={showRowsPerPageControl}
+        pageSizeOptions={rowsPerPageOptions}
+        onPageSizeChange={(size) => {
+          if (size === pagination.pageSize) return;
+          onPaginationChange({ ...pagination, page: 1, pageSize: size });
+        }}
+        {...paginationProps}
+      />
+    </View>
+  ) : null;
 
   if (loading) {
     return (
       <View ref={ref} testID={testID} style={rootStyle} aria-busy>
-        {toolbar}
-        <Table {...sectionProps} role="table">
-          <DataTableSkeleton<T>
-            colors={colors}
-            columns={visibleColumns}
-            columnWidths={columnWidths}
-            selectable={selectable}
-            expandable={!!expandableRowRender}
-            rowCount={pagination?.pageSize || 5}
-            hoverHighlight={hoverHighlight}
-            enhanced={enhancedLoading}
-          />
-        </Table>
+        <View style={[styles.frame, frameStyle]} onLayout={onFrameLayout} testID={testID ? `${testID}-frame` : undefined}>
+          {toolbar}
+          <View style={{ height: resolvedHeight }}>
+            <Table {...sectionProps} role="table">
+              <DataTableSkeleton<T>
+                colors={colors}
+                columns={visibleColumns}
+                columnWidths={columnWidths}
+                selectable={selectable}
+                expandable={!!expandableRowRender}
+                rowCount={pagination?.pageSize || 5}
+                hoverHighlight={hoverHighlight}
+                enhanced={enhancedLoading}
+              />
+            </Table>
+          </View>
+          {paginationFooter}
+        </View>
       </View>
     );
   }
@@ -684,8 +740,13 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
   if (error) {
     return (
       <View ref={ref} testID={testID} style={rootStyle}>
-        {toolbar}
-        <DataTableError message={error} />
+        <View style={[styles.frame, frameStyle]} onLayout={onFrameLayout} testID={testID ? `${testID}-frame` : undefined}>
+          {toolbar}
+          <View style={{ height: resolvedHeight }}>
+            <DataTableError message={error} />
+          </View>
+          {paginationFooter}
+        </View>
       </View>
     );
   }
@@ -707,6 +768,7 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
         reorder={reorder}
         moveColumn={layout.moveColumn}
         enableColumnResizing={enableColumnResizing}
+        showColumnMenu={showColumnMenu}
         resize={resize}
         headerTextProps={headerTextProps}
         selection={selection}
@@ -733,80 +795,50 @@ function DataTableInner<T>(props: DataTableProps<T>, ref: React.ForwardedRef<Vie
 
   return (
     <View ref={ref} testID={testID} style={rootStyle}>
-      {toolbar}
+      <View style={[styles.frame, frameStyle]} onLayout={onFrameLayout} testID={testID ? `${testID}-frame` : undefined}>
+        {toolbar}
+        <View style={{ height: resolvedHeight }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={isWeb} contentContainerStyle={scrollContentStyle}>
+            {/* minWidth floors the table at its comfortable width so columns
+                don't squeeze (the ScrollView scrolls instead); flexGrow lets it
+                stretch to fill wider containers when fullWidth. */}
+            <View style={[{ minWidth: scrollMinWidth }, fullWidth ? styles.grow : null]} {...gridA11y}>
+              {/* Header is its own <Table> so it stays pinned above the body. */}
+              {headerSection}
 
-      <View style={[styles.frame, frameStyle]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={isWeb} contentContainerStyle={scrollContentStyle}>
-          {/* minWidth floors the table at its comfortable width so columns
-              don't squeeze (the ScrollView scrolls instead); flexGrow lets it
-              stretch to fill wider containers when fullWidth. */}
-          <View style={[{ minWidth: scrollMinWidth }, fullWidth ? styles.grow : null]} {...gridA11y}>
-            {/* Header is its own <Table> so it stays pinned above the body. */}
-            {headerSection}
+              {processedData.length === 0 ? (
+                emptyBody
+              ) : virtual && FlashList ? (
+                <View style={styles.fill} testID={testID ? `${testID}-virtual-viewport` : undefined}>
+                  <FlashList
+                    data={processedData}
+                    keyExtractor={keyExtractor}
+                    renderItem={renderVirtualItem}
+                    estimatedItemSize={
+                      expandableRowRender ? ESTIMATED_ROW_HEIGHT[density] + 120 : ESTIMATED_ROW_HEIGHT[density]
+                    }
+                    extraData={rowShared}
+                    contentContainerStyle={styles.flashContent}
+                    showsVerticalScrollIndicator={isWeb}
+                  />
+                </View>
+              ) : bodyScrollsVertically ? (
+                <ScrollView style={styles.fill} showsVerticalScrollIndicator={isWeb}>
+                  <Table {...sectionProps}>
+                    {virtual ? processedData.map((row, i) => renderRow(row, i, String(allRowIds[i]), allRowIds[i])) : bodyRows}
+                  </Table>
+                </ScrollView>
+              ) : (
+                <Table {...sectionProps}>{bodyRows}</Table>
+              )}
 
-            {processedData.length === 0 ? (
-              emptyBody
-            ) : virtual && FlashList ? (
-              <View style={styles.fill} testID={testID ? `${testID}-virtual-viewport` : undefined}>
-                <FlashList
-                  data={processedData}
-                  keyExtractor={keyExtractor}
-                  renderItem={renderVirtualItem}
-                  estimatedItemSize={
-                    expandableRowRender ? ESTIMATED_ROW_HEIGHT[density] + 120 : ESTIMATED_ROW_HEIGHT[density]
-                  }
-                  extraData={rowShared}
-                  contentContainerStyle={styles.flashContent}
-                  showsVerticalScrollIndicator={isWeb}
-                />
-              </View>
-            ) : bodyScrollsVertically ? (
-              <ScrollView style={styles.fill} showsVerticalScrollIndicator={isWeb}>
-                <Table {...sectionProps}>
-                  {virtual ? processedData.map((row, i) => renderRow(row, i, String(allRowIds[i]), allRowIds[i])) : bodyRows}
-                </Table>
-              </ScrollView>
-            ) : (
-              <Table {...sectionProps}>{bodyRows}</Table>
-            )}
-
-            {/* Grand-total footer row (renders below the body, aligned to columns). */}
-            {footerRow && processedData.length > 0 && <Table {...sectionProps}>{footerRow}</Table>}
-          </View>
-        </ScrollView>
-      </View>
-
-      {/* Pagination footer — fully delegated to the Pagination component.
-          Hidden while grouping, which renders every group across all pages. */}
-      {pagination && onPaginationChange && !groupingActive && (
-        <View
-          style={[
-            styles.paginationBar,
-            {
-              marginTop: resolveSpacing(theme, 'xl'),
-              paddingTop: resolveSpacing(theme, 'md'),
-              borderTopColor: colors.hairline,
-            },
-          ]}
-        >
-          <Pagination
-            value={pagination.page}
-            total={Math.max(1, Math.ceil(totalFiltered / pagination.pageSize))}
-            onChange={(page) => onPaginationChange({ ...pagination, page })}
-            showTotal
-            totalItems={totalFiltered}
-            pageSize={pagination.pageSize}
-            showSizeChanger={showRowsPerPageControl}
-            pageSizeOptions={rowsPerPageOptions}
-            onPageSizeChange={(size) => {
-              if (size === pagination.pageSize) return;
-              // Reset to the first page for clarity when page size changes.
-              onPaginationChange({ ...pagination, page: 1, pageSize: size });
-            }}
-            {...paginationProps}
-          />
+              {/* Grand-total footer row (renders below the body, aligned to columns). */}
+              {footerRow && processedData.length > 0 && <Table {...sectionProps}>{footerRow}</Table>}
+            </View>
+          </ScrollView>
         </View>
-      )}
+        {paginationFooter}
+      </View>
     </View>
   );
 }

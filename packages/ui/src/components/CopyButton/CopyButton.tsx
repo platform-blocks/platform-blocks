@@ -10,6 +10,7 @@ import { useTheme } from '../../core/theme/ThemeProvider';
 import { getControlSize } from '../../core/theme/tokens';
 import { useClipboard } from '../../hooks/useClipboard';
 import { Button } from '../Button/Button';
+import { resolveTooltipProps } from '../Tooltip/resolveTooltipProps';
 import { Icon } from '../Icon/Icon';
 import { IconButton } from '../IconButton/IconButton';
 import { useOptionalToast } from '../Toast/ToastProvider';
@@ -113,8 +114,7 @@ export const CopyButton = factory<{ props: CopyButtonProps; ref: View }>(
           size={size}
           variant={buttonVariant}
           style={style}
-          tooltip={tooltip}
-          tooltipPosition={tooltipPosition}
+          tooltip={resolveTooltipProps(tooltip, { position: tooltipPosition })}
           startSection={<Icon name={iconGlyph} size={getControlSize(theme, size).iconSize} color={iconTint} />}
         >
           {accessibleLabel}
@@ -132,8 +132,7 @@ export const CopyButton = factory<{ props: CopyButtonProps; ref: View }>(
         icon={iconGlyph}
         iconColor={iconTint ?? (mode === 'icon' ? theme.text.primary : undefined)}
         accessibilityLabel={accessibleLabel}
-        tooltip={tooltip ?? accessibleLabel}
-        tooltipPosition={tooltipPosition}
+        tooltip={resolveTooltipProps(tooltip ?? accessibleLabel, { position: tooltipPosition })}
         style={style}
       />
     );

@@ -4,7 +4,7 @@ import type { StyleProp, TextStyle } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
 
 import { literalText } from '../../../core/theme/cssVariableTheme';
-import type { PlatformBlocksTheme } from '../../../core/theme/types';
+import type { PlocksTheme } from '../../../core/theme/types';
 import { Icon } from '../../Icon';
 import { Text } from '../../Text';
 import type { KnobAppearance, KnobMark, KnobTickLayer } from '../types';
@@ -58,7 +58,7 @@ export type TickLayersProps = {
   layoutState: LayoutState;
   ringRadius: number;
   ringThickness: number;
-  theme: PlatformBlocksTheme;
+  theme: PlocksTheme;
   boundedRatio: number;
   size: number;
   thumbSize: number;

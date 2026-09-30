@@ -3,7 +3,7 @@ import { View, type StyleProp, type ViewProps, type ViewStyle } from 'react-nati
 
 import { createThemedStyles } from '../../core/hooks/useThemedStyles';
 import { getControlSize, resolveShadow } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
 import { Card } from '../Card';
 import { Text } from '../Text';
@@ -47,7 +47,7 @@ export const getVariantThumbSizeMultiplier = (variant: SliderVariant = 'default'
  * `thumbSize` / `trackSize` props win.
  */
 export const getSliderMetrics = (
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   size: SizeValue | undefined,
   variant: SliderVariant,
   thumbSizeProp?: number,
@@ -64,7 +64,7 @@ type VariantTrackStyle = { inactive: ViewStyle; active: ViewStyle; trackHeightMu
 /** Per-variant track chrome, cached per theme / variant / state / colors. */
 const getVariantTrackStyle = createThemedStyles(
   (
-    theme: PlatformBlocksTheme,
+    theme: PlocksTheme,
     variant: SliderVariant,
     disabled: boolean,
     trackColor: string,
@@ -115,7 +115,7 @@ const getVariantTrackStyle = createThemedStyles(
 
 /** Per-variant thumb chrome, cached per theme / variant / state / color. */
 const getVariantThumbStyle = createThemedStyles(
-  (theme: PlatformBlocksTheme, variant: SliderVariant, disabled: boolean, thumbColor: string): ViewStyle => {
+  (theme: PlocksTheme, variant: SliderVariant, disabled: boolean, thumbColor: string): ViewStyle => {
     // The ring around a solid thumb matches the surface it sits on.
     const ring = theme.backgrounds.surface;
     switch (variant) {

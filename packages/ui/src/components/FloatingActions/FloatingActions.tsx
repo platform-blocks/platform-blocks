@@ -16,7 +16,6 @@ import { useMergedRef } from '../../core/utils/mergeRefs';
 import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
 import { useDisclosure } from '../../hooks/useDisclosure';
 import { Icon } from '../Icon/Icon';
-import { directSpotlight } from '../Spotlight';
 import { pointerEventsStyles } from '../../core/platform/pointerEvents';
 
 export interface FloatingActionItem {
@@ -33,7 +32,7 @@ export interface FloatingActionItem {
 }
 
 export interface FloatingActionsProps extends BaseProps<ViewStyle> {
-  /** Custom actions. If not provided, defaults to spotlight, theme toggle, and GitHub */
+  /** Custom actions. If not provided, defaults to a theme toggle, plus Spotlight and GitHub when `onOpenSpotlight` / `githubUrl` are set */
   actions?: FloatingActionItem[];
   /** Called when the speed dial opens */
   onOpen?: () => void;
@@ -43,19 +42,18 @@ export interface FloatingActionsProps extends BaseProps<ViewStyle> {
   disableOutsideClose?: boolean;
   /** Radius (in px) of the arc the actions are laid out along. @default 88 */
   arcRadius?: number;
-  /** @deprecated Use `arcRadius` (this is the layout arc, not a corner radius). */
-  radius?: number;
   /** Button color: palette token, `'primary.6'` shade syntax, or CSS color. @default 'primary' */
   color?: ColorProp;
+  /** Opens Spotlight; the default Spotlight action is only shown when this is set */
+  onOpenSpotlight?: () => void;
   /** Handler to toggle theme (if omitted, the Theme action still shows but will be a no-op) */
   onToggleTheme?: () => void;
-  /** GitHub URL for the default GitHub action */
+  /** Repository URL for the default GitHub action; the action is only shown when this is set */
   githubUrl?: string;
   /** Accessible names of the main button. @default { open: 'Open actions', close: 'Close actions' } */
   toggleLabels?: { open: string; close: string };
 }
 
-const DEFAULT_GITHUB_URL = 'https://github.com/platform-blocks/platform-blocks';
 const DEFAULT_TOGGLE_LABELS = { open: 'Open actions', close: 'Close actions' };
 const EDGE_OFFSET = 24;
 const CENTERED: ViewStyle = { alignItems: 'center', justifyContent: 'center' };
@@ -75,27 +73,22 @@ export const FloatingActions = factory<{ props: FloatingActionsProps; ref: View 
     onOpen,
     onClose,
     disableOutsideClose = false,
-    arcRadius: arcRadiusProp,
-    radius: legacyRadius,
+    arcRadius = 88,
     color = 'primary',
     style,
     onToggleTheme,
-    githubUrl = DEFAULT_GITHUB_URL,
+    onOpenSpotlight,
+    githubUrl,
     toggleLabels = DEFAULT_TOGGLE_LABELS,
     testID,
     ...rest
   } = props;
 
-  if (legacyRadius !== undefined) {
-    warnOnce('FloatingActions.radius', 'FloatingActions: `radius` is deprecated; use `arcRadius`.');
-  }
-  const arcRadius = arcRadiusProp ?? legacyRadius ?? 88;
-
   const theme = useTheme();
   const themeMode = useOptionalThemeMode();
   const mode = themeMode?.mode;
   const { styleProps } = extractStyleProps(rest);
-  const actionsId = useA11yId(undefined, 'pb-floating-actions');
+  const actionsId = useA11yId(undefined, 'plocks-floating-actions');
 
   const containerRef = useRef<View>(null);
   const mergedContainerRef = useMergedRef<View>(containerRef, ref);
@@ -122,27 +115,30 @@ export const FloatingActions = factory<{ props: FloatingActionsProps; ref: View 
     [close]
   );
 
-  const defaultActions = useMemo<FloatingActionItem[]>(
-    () => [
-      { key: 'spotlight', icon: 'search', onPress: () => directSpotlight.open(), accessibilityLabel: 'Open spotlight' },
-      {
+  const defaultActions = useMemo<FloatingActionItem[]>(() => {
+    const items: FloatingActionItem[] = [];
+    if (onOpenSpotlight) {
+      items.push({ key: 'spotlight', icon: 'search', onPress: onOpenSpotlight, accessibilityLabel: 'Open spotlight' });
+    }
+    items.push({
         key: 'theme',
         getIcon: () => (mode === 'light' ? 'sun' : mode === 'dark' ? 'moon' : 'contrast'),
         onPress: () => onToggleTheme?.(),
         accessibilityLabel: 'Toggle theme',
         accessibilityHint: 'Toggles the color theme',
-      },
-      {
+    });
+    if (githubUrl) {
+      items.push({
         key: 'github',
         icon: 'info',
         onPress: () => {
           Linking.openURL(githubUrl).catch((error) => devError('FloatingActions: failed to open URL', githubUrl, error));
         },
         accessibilityLabel: 'Open GitHub',
-      },
-    ],
-    [mode, onToggleTheme, githubUrl]
-  );
+      });
+    }
+    return items;
+  }, [mode, onToggleTheme, onOpenSpotlight, githubUrl]);
 
   const resolvedActions = actions && actions.length > 0 ? actions : defaultActions;
 

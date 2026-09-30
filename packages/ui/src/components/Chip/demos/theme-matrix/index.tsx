@@ -1,5 +1,5 @@
-import { Block, Card, Chip, DARK_THEME, DEFAULT_THEME, PlatformBlocksThemeProvider, Row, Text } from '@platform-blocks/ui';
-import type { ChipProps } from '@platform-blocks/ui';
+import { Block, Card, Chip, DARK_THEME, DEFAULT_THEME, PlocksProvider, Row, Text } from '@plocks/ui';
+import type { ChipProps } from '@plocks/ui';
 
 const VARIANTS: NonNullable<ChipProps['variant']>[] = ['filled', 'outline', 'light', 'subtle', 'gradient'];
 
@@ -48,7 +48,7 @@ function Matrix() {
 
 function Panel({ theme, title }: { theme: typeof DEFAULT_THEME; title: string }) {
   return (
-    <PlatformBlocksThemeProvider theme={theme} inherit={false}>
+    <PlocksProvider theme={theme} inherit={false}>
       <Card
         withBorder
         padding="lg"
@@ -60,7 +60,7 @@ function Panel({ theme, title }: { theme: typeof DEFAULT_THEME; title: string })
           <Matrix />
         </Block>
       </Card>
-    </PlatformBlocksThemeProvider>
+    </PlocksProvider>
   );
 }
 

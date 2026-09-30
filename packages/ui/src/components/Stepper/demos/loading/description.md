@@ -4,7 +4,6 @@ category: feedback
 order: 50
 tags: [stepper, feedback]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

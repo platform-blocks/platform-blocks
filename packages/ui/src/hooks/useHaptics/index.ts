@@ -25,9 +25,9 @@ export interface UseHapticsOptions {
 }
 
 export interface UseHapticsReturn {
-  /** Light impact when press starts */
+  /** Medium impact when press starts */
   impactPressIn: () => void;
-  /** A second impact on release (slightly heavier) */
+  /** Light impact on release */
   impactPressOut: () => void;
   /** Convenience for success events (e.g., toast show) */
   notifySuccess: () => void;
@@ -53,7 +53,7 @@ export function useHaptics(opts: UseHapticsOptions = {}): UseHapticsReturn {
   if (!hapticsSettings) {
     warnOnce(
       'useHaptics.noProvider',
-      '[platform-blocks] useHaptics called without <HapticsProvider>; falling back to defaults.'
+      '[plocks] useHaptics called without <HapticsProvider>; falling back to defaults.'
     );
   }
 

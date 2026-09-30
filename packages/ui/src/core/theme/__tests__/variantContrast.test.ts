@@ -14,9 +14,9 @@ import { DEFAULT_THEME } from '../defaultTheme';
 import { DARK_THEME } from '../darkTheme';
 import { contrastRatio, composite, relativeLuminance } from '../colorUtils';
 import { resolveVariantRoles, type VariantRole } from '../variantRoles';
-import type { PlatformBlocksTheme } from '../types';
+import type { PlocksTheme } from '../types';
 
-const THEMES: Array<[string, PlatformBlocksTheme]> = [
+const THEMES: Array<[string, PlocksTheme]> = [
   ['light', DEFAULT_THEME],
   ['dark', DARK_THEME],
 ];
@@ -38,7 +38,7 @@ const tintAlpha = (variant: string, isDark: boolean): number => {
   return 0;
 };
 
-const strongOf = (theme: PlatformBlocksTheme, color: string): string => {
+const strongOf = (theme: PlocksTheme, color: string): string => {
   const isCustom = !CORE_COLORS.includes(color as any);
   if (isCustom) return color;
   const palette = (theme.colors as any)[color] ?? theme.colors.primary;

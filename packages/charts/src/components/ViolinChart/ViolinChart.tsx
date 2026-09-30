@@ -128,8 +128,6 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
   grid,
   statsMarkers,
   valueBands,
-  showLegend = false,
-  legendPosition = 'bottom',
   legend,
   onSeriesFocus,
   onSeriesBlur,
@@ -170,16 +168,6 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
     return { ...measured, top: Math.max(measured.top, topReserve) };
   }, [series, isHorizontal, yAxis?.title, xAxis?.title, yAxis?.show, xAxis?.show,
       yAxis?.showLabels, xAxis?.showLabels, width, height, topReserve, theme.numberFormat]);
-  const resolvedLegend = React.useMemo(() => {
-    if (legend) return legend;
-    if (!showLegend) return undefined;
-    return {
-      show: true,
-      position: legendPosition,
-      align: 'center' as const,
-    };
-  }, [legend, showLegend, legendPosition]);
-
   // Grown so the plot clears the title and legend overlays.
   const legendLabels = React.useMemo(
     () => series.map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
@@ -190,12 +178,12 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
       withChartBandPadding(basePadding, {
         title,
         subtitle,
-        legendItems: resolvedLegend?.show ? legendLabels : undefined,
-        legendPosition: resolvedLegend?.position,
-        legendFontSize: (resolvedLegend as { fontSize?: number } | undefined)?.fontSize,
+        legendItems: legend?.show ? legendLabels : undefined,
+        legendPosition: legend?.position,
+        legendFontSize: legend?.fontSize,
         containerWidth: width,
       }),
-    [basePadding.left, basePadding.top, title, subtitle, resolvedLegend?.show, resolvedLegend?.position, legendLabels, width]
+    [basePadding.left, basePadding.top, title, subtitle, legend?.show, legend?.position, legend?.fontSize, legendLabels, width]
   );
   const plotWidth = Math.max(0, width - padding.left - padding.right);
   const plotHeight = Math.max(0, height - padding.top - padding.bottom);
@@ -547,15 +535,15 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
     >
       {(title || subtitle) && <ChartTitle title={title} subtitle={subtitle} />}
 
-      {resolvedLegend?.show && (
+      {legend?.show && (
         <ChartLegend
           items={densData.map((v) => ({
             label: v.name,
             color: v.color,
             visible: v.visible,
           }))}
-          position={resolvedLegend.position}
-          align={resolvedLegend.align}
+          position={legend.position}
+          align={legend.align}
         />
       )}
 

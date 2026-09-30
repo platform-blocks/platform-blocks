@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { ViewStyle, StyleProp, ScrollViewProps } from 'react-native';
 
 import type { BaseProps } from '../../core/types/base';
-import type { SizeValue } from '../../core/theme/types';
+import type { SizeValue, StyleProps } from '../../core/theme/types';
 
 // @shopify/flash-list is an optional peer, so the public types below describe
 // the parts of its API that Masonry forwards structurally instead of importing
@@ -49,6 +49,8 @@ export interface MasonryProps extends BaseProps<ViewStyle> {
   renderItem?: (item: MasonryItem, index: number) => ReactNode;
   /** Content container style */
   contentContainerStyle?: StyleProp<ViewStyle>;
+  /** Named spacing and sizing props for the scrollable content. */
+  contentProps?: StyleProps;
   /** Loading state */
   loading?: boolean;
   /** Empty state content */

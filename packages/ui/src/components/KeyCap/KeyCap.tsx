@@ -9,7 +9,7 @@ import { hasDOM, isWeb } from '../../core/platform';
 import { isComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { getControlSize, resolveRadius, stepDown } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import { extractLayoutProps, getLayoutStyles } from '../../core/utils/layout';
 import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
 import { getKeyCapStyles } from './styles';
@@ -53,7 +53,7 @@ const hasModifiers = (event: ModifierState, required: readonly KeyCapModifier[])
  * same size (`stepDown`), scaled down a little more — a key cap is an inline
  * glyph, not a control. A numeric `size` is the height in px.
  */
-function getKeyCapMetrics(theme: PlatformBlocksTheme, size: ComponentSizeValue): KeyCapMetrics {
+function getKeyCapMetrics(theme: PlocksTheme, size: ComponentSizeValue): KeyCapMetrics {
   if (typeof size === 'number') {
     const control = getControlSize(theme, size);
     return {

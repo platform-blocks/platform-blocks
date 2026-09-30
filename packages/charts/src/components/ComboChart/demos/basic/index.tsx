@@ -1,4 +1,4 @@
-import { ComboChart } from '@platform-blocks/charts';
+import { ComboChart } from '@plocks/charts';
 
 import { LAYERS } from './data';
 

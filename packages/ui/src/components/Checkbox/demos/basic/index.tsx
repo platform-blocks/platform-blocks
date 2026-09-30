@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Checkbox } from '@platform-blocks/ui';
+import { Block, Checkbox } from '@plocks/ui';
 
 export function Demo() {
   const [checked, setChecked] = useState(false);

@@ -12,7 +12,7 @@ import { isWeb } from '../../core/platform';
 import { useDirection } from '../../core/providers/DirectionProvider';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveAccentColor } from '../../core/theme/resolveColors';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import { getLayoutStyles } from '../../core/utils/layout';
 import { warnOnce } from '../../core/utils/logger';
 import { useMergedRef } from '../../core/utils/mergeRefs';
@@ -58,7 +58,7 @@ type SliderColorProps = Pick<
 >;
 
 /** Slot colors: each override takes the same vocabulary as `color`. */
-const resolveSliderColors = (theme: PlatformBlocksTheme, colors: SliderColorProps) => {
+const resolveSliderColors = (theme: PlocksTheme, colors: SliderColorProps) => {
   const slot = (value?: string) => resolveAccentColor(theme, value);
   const accent = slot(colors.color) ?? theme.colors.primary[5];
   const activeTrack = slot(colors.activeTrackColor) ?? accent;

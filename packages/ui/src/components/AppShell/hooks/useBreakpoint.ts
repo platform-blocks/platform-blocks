@@ -2,7 +2,7 @@ import { useBreakpoint as useResponsiveBreakpoint } from '../../../core/responsi
 import type { Breakpoint } from '../types';
 
 /**
- * The current breakpoint name, from the theme's breakpoint table
+ * Returns the current breakpoint name, from the theme's breakpoint table
  * (`theme.breakpoints`, or a `BreakpointProvider` override): `base` below
  * `xs` (480), then `xs`, `sm` (576), `md` (768), `lg` (992), `xl` (1200).
  *

@@ -9,6 +9,16 @@ export const AppShellContext = createContext<AppShellContextValue | undefined>(u
 export const AppShellApiContext = createContext<AppShellApi | undefined>(undefined);
 export const AppShellLayoutContext = createContext<AppShellLayoutValue | undefined>(undefined);
 
+/**
+ * Returns the full state of the enclosing `AppShell` — resolved section sizes,
+ * navbar open/collapsed/rail flags, the current `breakpoint` and `isMobile`,
+ * and the `openNavbar` / `closeNavbar` / `toggleNavbar` controls — and throws
+ * when called outside an `AppShell`.
+ *
+ * It re-renders on every shell change; components that only need the navbar
+ * controls or the section sizes should use `useAppShellApi()` or
+ * `useAppShellLayout()` instead.
+ */
 export const useAppShell = (): AppShellContextValue => {
   const context = useContext(AppShellContext);
   if (!context) {
@@ -17,12 +27,24 @@ export const useAppShell = (): AppShellContextValue => {
   return context;
 };
 
+/**
+ * Returns just the enclosing `AppShell`'s navbar controls (`openNavbar`,
+ * `closeNavbar`, `toggleNavbar`) — for menu buttons and links that drive the
+ * navbar without re-rendering on layout changes — and throws when called
+ * outside an `AppShell`.
+ */
 export const useAppShellApi = (): AppShellApi => {
   const api = useContext(AppShellApiContext);
   if (!api) throw new Error('useAppShellApi must be used within an AppShell component');
   return api;
 };
 
+/**
+ * Returns just the enclosing `AppShell`'s resolved section sizes
+ * (`headerHeight`, `navbarWidth`, `asideWidth`, `footerHeight`,
+ * `bottomNavHeight`) — for content that has to position itself around the
+ * shell chrome — and throws when called outside an `AppShell`.
+ */
 export const useAppShellLayout = (): AppShellLayoutValue => {
   const layout = useContext(AppShellLayoutContext);
   if (!layout) throw new Error('useAppShellLayout must be used within an AppShell component');
@@ -88,7 +110,12 @@ export const useAppShellInternal = (): AppShellInternalValue | undefined => useC
 const NavbarHoverContext = createContext(false);
 const NavbarHoverHandlersContext = createContext<UseHoverHandlers | undefined>(undefined);
 
-/** `true` while the pointer is over the navbar rail (desktop web, `expandOnHover`). */
+/**
+ * Returns `true` while the pointer is over the `AppShell` navbar rail (web,
+ * with `navbar.expandOnHover` on) and `false` otherwise, including outside an
+ * `AppShell` — for navbar content that should show its labels only while the
+ * collapsed rail is hover-expanded.
+ */
 export const useNavbarHover = (): boolean => useContext(NavbarHoverContext);
 
 /** @internal Hover handlers the navbar rail spreads onto its root. */

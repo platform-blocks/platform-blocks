@@ -1,8 +1,8 @@
 import { StyleSheet } from 'react-native';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
-import { createRadiusStyles } from '../../core/theme/radius';
+import type { PlocksTheme } from '../../core/theme/types';
 import { createShadowStyles } from '../../core/theme/shadow';
 import { resolveSurface } from '../../core/theme/surfaces';
+import { resolveRadius } from '../../core/theme/tokens';
 import type { RadiusValue } from '../../core/theme/radius';
 import type { ShadowValue } from '../../core/theme/shadow';
 
@@ -12,8 +12,7 @@ interface CreateStylesParams {
   arrowSize: number;
 }
 
-export const createPopoverStyles = (theme: PlatformBlocksTheme) => (params: CreateStylesParams) => {
-  const radiusStyles = createRadiusStyles(params.radius);
+export const createPopoverStyles = (theme: PlocksTheme) => (params: CreateStylesParams) => {
   const shadowStyles = createShadowStyles(params.shadow, theme, 'popover');
   // Level 2 — floating over content, same step as menus and select dropdowns,
   // so the two never disagree about what "a thing on top of the page" looks like.
@@ -31,7 +30,7 @@ export const createPopoverStyles = (theme: PlatformBlocksTheme) => (params: Crea
       borderColor: surface.border,
       borderWidth: 1,
       color: theme.text.primary,
-      ...radiusStyles,
+      borderRadius: resolveRadius(theme, params.radius),
       overflow: 'hidden',
       minWidth: 0,
     },

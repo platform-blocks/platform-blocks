@@ -1,10 +1,9 @@
 ---
-title: Basic Usage
+title: Basics
 category: usage
 order: 10
 tags: [hovercard, hover, preview]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

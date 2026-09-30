@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
-import { Block, Knob, Row, Text } from '@platform-blocks/ui';
-import type { KnobVariant } from '@platform-blocks/ui';
+import { Block, Knob, Row, Text } from '@plocks/ui';
+import type { KnobVariant } from '@plocks/ui';
 
 const VARIANTS: { variant: KnobVariant; blurb: string }[] = [
   { variant: 'default', blurb: 'Stock dial' },

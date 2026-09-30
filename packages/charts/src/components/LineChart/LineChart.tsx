@@ -490,12 +490,13 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
   // Build a lightweight signature of the data (series id + length)
   const chartSeriesData = React.useMemo(() => {
     return decimatedSeries.map((seriesItem, seriesIndex) => {
+      const seriesColor = seriesItem.color || (decimatedSeries.length === 1 && lineColor) || getColorFromScheme(seriesIndex, defaultScheme);
       const ctxVis = interaction?.series.find(sr => sr.id === (seriesItem.id ?? seriesIndex))?.visible;
       if (ctxVis === false) {
         return {
           ...seriesItem,
           chartPoints: [],
-          color: seriesItem.color || getColorFromScheme(seriesIndex, defaultScheme),
+          color: seriesColor,
           visible: false,
           areaFill: seriesItem.areaFill,
           fillColor: seriesItem.fillColor,
@@ -519,7 +520,7 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
       return {
         ...seriesItem,
         chartPoints,
-        color: seriesItem.color || getColorFromScheme(seriesIndex, defaultScheme),
+        color: seriesColor,
         visible: visibleFlag,
         areaFill: seriesItem.areaFill,
         fillColor: seriesItem.fillColor,
@@ -527,7 +528,7 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
         smooth: seriesItem.smooth,
       };
     });
-  }, [decimatedSeries, interaction?.series, plotWidth, plotHeight, xDomain, yDomain, defaultScheme]);
+  }, [decimatedSeries, interaction?.series, plotWidth, plotHeight, xDomain, yDomain, defaultScheme, lineColor]);
   const filledSeriesIndices = React.useMemo(() => {
     return chartSeriesData.reduce<number[]>((indices, seriesData, seriesIndex) => {
       const fillPreference = seriesData.areaFill;

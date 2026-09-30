@@ -189,7 +189,7 @@ export const AppShellNavbar = factory<{ props: AppShellNavbarProps; ref: View }>
           testID={testID}
           role="navigation"
           aria-label={accessibilityLabel}
-          {...webProps({ dataSet: cssGeometry ? { pbShellNavbar: 'true' } : undefined })}
+          {...webProps({ dataSet: cssGeometry ? { plocksShellNavbar: 'true' } : undefined })}
           {...(isWeb && navbarExpandOnHover ? hoverHandlers : undefined)}
           style={[
             {

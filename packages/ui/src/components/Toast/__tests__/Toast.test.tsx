@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { View, Text } from 'react-native';
-import type { ToastProps, ToastVariant, ToastSeverity, ToastPosition, ToastAnimationType } from '../types';
+import type { ToastProps, ToastVariant, ToastSeverity, ToastDirection, ToastAnimationType } from '../types';
 import type { ThemeColor } from '../../../core/theme/resolveColors';
 
 // Mock imports
@@ -94,7 +94,7 @@ describe('Toast Component - Type Safety & Props Validation', () => {
     });
 
     it('should accept all valid position values', () => {
-      const positions: ToastPosition[] = ['top', 'bottom', 'left', 'right'];
+      const positions: ToastDirection[] = ['top', 'bottom', 'left', 'right'];
       
       positions.forEach(position => {
         const props: ToastProps = {

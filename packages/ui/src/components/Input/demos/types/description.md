@@ -5,7 +5,6 @@ order: 30
 tags: [types, email, password, number, tel]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -19,7 +19,7 @@ import { useFieldControlStyles } from './fieldControlStyles';
 import { pointerEventsStyles } from '../../core/platform/pointerEvents';
 
 /** Marks the trigger as a library field control, so the global outline yields to the frame's ring. */
-const PB_INPUT_DATASET = { pbInput: 'true' } as const;
+const PLOCKS_INPUT_DATASET = { plocksInput: 'true' } as const;
 
 /** Props for the pressable trigger: ARIA, web key handling, focus callbacks. */
 export type PickerTriggerElementProps = Omit<PressableProps, 'style' | 'children' | 'onPress' | 'disabled'>;
@@ -122,7 +122,7 @@ export function PickerTrigger({
         disabled={disabled}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        dataSet={isWeb ? PB_INPUT_DATASET : undefined}
+        dataSet={isWeb ? PLOCKS_INPUT_DATASET : undefined}
         testID={testID}
         style={[
           styles.frame,

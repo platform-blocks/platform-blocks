@@ -1,4 +1,4 @@
-import { Block, Form } from '@platform-blocks/ui';
+import { Block, Form } from '@plocks/ui';
 
 export function Demo() {
   return (

@@ -35,6 +35,10 @@ export interface OptionRowProps {
   virtualFocus?: boolean;
   /** Always reserve the check slot (multi-select lists), so rows don't shift. */
   reserveCheckSpace?: boolean;
+  /** Hide the selection check mark. @default true */
+  showCheckIcon?: boolean;
+  /** Position of the selection check mark. @default 'start' */
+  checkIconPosition?: 'start' | 'end';
   testID?: string;
   style?: StyleProp<ViewStyle>;
 }
@@ -59,6 +63,8 @@ export const OptionRow = memo(function OptionRow({
   size = 'md',
   virtualFocus = true,
   reserveCheckSpace = false,
+  showCheckIcon = true,
+  checkIconPosition = 'start',
   testID,
   style,
 }: OptionRowProps) {
@@ -101,7 +107,7 @@ export const OptionRow = memo(function OptionRow({
         style,
       ]}
     >
-      {selected || reserveCheckSpace ? (
+      {checkIconPosition === 'start' && showCheckIcon && (selected || reserveCheckSpace) ? (
         <View style={{ width: checkSize, height: checkSize, alignItems: 'center', justifyContent: 'center' }}>
           {selected ? <Icon name="check" size={checkSize} color={theme.colors.primary[5]} decorative /> : null}
         </View>
@@ -135,6 +141,11 @@ export const OptionRow = memo(function OptionRow({
           </Text>
         ) : null}
       </View>
+      {checkIconPosition === 'end' && showCheckIcon && (selected || reserveCheckSpace) ? (
+        <View style={{ width: checkSize, height: checkSize, alignItems: 'center', justifyContent: 'center' }}>
+          {selected ? <Icon name="check" size={checkSize} color={theme.colors.primary[5]} decorative /> : null}
+        </View>
+      ) : null}
     </Pressable>
   );
 });

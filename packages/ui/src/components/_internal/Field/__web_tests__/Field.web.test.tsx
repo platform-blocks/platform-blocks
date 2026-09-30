@@ -2,11 +2,11 @@ import React from 'react';
 import { TextInput } from 'react-native';
 import { render as rtlRender, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../../core/theme/PlocksProvider';
 import { Field } from '../Field';
 
 // The library Text (used for the label) needs the provider's i18n context.
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('Field (react-native-web DOM)', () => {
   it('names the control by its label (asterisk hidden) and describes it', () => {
@@ -54,7 +54,7 @@ describe('Field (react-native-web DOM)', () => {
       </Field>
     );
     const input = screen.getByRole('textbox', { name: 'City' });
-    expect(input.id).toMatch(/^pb-/);
+    expect(input.id).toMatch(/^plocks-/);
     expect(input.getAttribute('aria-labelledby')).toBe(`${input.id}-label`);
   });
 });

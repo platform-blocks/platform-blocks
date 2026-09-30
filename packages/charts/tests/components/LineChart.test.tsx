@@ -89,3 +89,37 @@ describe('LineChart area fill', () => {
     expect(r.UNSAFE_queryAllByProps({ gradientUnits: 'userSpaceOnUse' }).length).toBeGreaterThan(0);
   });
 });
+
+describe('LineChart line color', () => {
+  const data = [{ x: 0, y: 1 }, { x: 1, y: 3 }];
+
+  it('uses lineColor for single-series data', () => {
+    const chart = render(
+      <ChartThemeProvider>
+        <LineChart data={data} lineColor="#123456" w={400} h={300} disableAnimations />
+      </ChartThemeProvider>
+    );
+
+    expect(chart.UNSAFE_queryAllByProps({ stroke: '#123456' }).length).toBeGreaterThan(0);
+  });
+
+  it('keeps explicit series colors when lineColor is set', () => {
+    const chart = render(
+      <ChartThemeProvider>
+        <LineChart series={[{ data, color: '#abcdef' }]} lineColor="#123456" w={400} h={300} disableAnimations />
+      </ChartThemeProvider>
+    );
+
+    expect(chart.UNSAFE_queryAllByProps({ stroke: '#abcdef' }).length).toBeGreaterThan(0);
+  });
+
+  it('uses lineColor for an uncolored single series', () => {
+    const chart = render(
+      <ChartThemeProvider>
+        <LineChart series={[{ data }]} lineColor="#123456" w={400} h={300} disableAnimations />
+      </ChartThemeProvider>
+    );
+
+    expect(chart.UNSAFE_queryAllByProps({ stroke: '#123456' }).length).toBeGreaterThan(0);
+  });
+});

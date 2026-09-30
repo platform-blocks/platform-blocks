@@ -6,7 +6,6 @@ subcategory: Selection Controls
 tags: [input, segmentation, toggle, selection]
 status: beta
 playground: true
-since: 1.0.0
 platform:
   web: true
   ios: true
@@ -25,4 +24,4 @@ examples:
   states: Different states
 ---
 
-Segmented controls present a small set of exclusive options. The indicator animates between segments with support for horizontal and vertical layouts, optional auto contrast for filled variants, and reduced motion awareness for accessibility.
+SegmentedControl lets users choose one option from a small set of segments.

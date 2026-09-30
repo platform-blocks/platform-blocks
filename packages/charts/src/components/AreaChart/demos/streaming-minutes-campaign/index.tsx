@@ -1,4 +1,4 @@
-import { AreaChart } from '@platform-blocks/charts';
+import { AreaChart } from '@plocks/charts';
 
 import { STREAMING_SERIES, WEEK_TOTALS, formatWeek } from './data';
 

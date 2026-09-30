@@ -68,16 +68,4 @@ describe('MenuItemButton press feedback', () => {
       unmount();
     }
   });
-
-  it('keeps the deprecated startIcon / endIcon working', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const { getByText } = render(
-      <MenuItemButton startIcon={<React.Fragment>S</React.Fragment>} endSection="E">
-        Item
-      </MenuItemButton>
-    );
-    expect(getByText('Item')).toBeTruthy();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('`startIcon` is deprecated'));
-    warn.mockRestore();
-  });
 });

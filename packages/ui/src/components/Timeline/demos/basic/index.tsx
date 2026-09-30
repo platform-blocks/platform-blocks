@@ -1,4 +1,4 @@
-import { Text, Timeline } from '@platform-blocks/ui';
+import { Text, Timeline } from '@plocks/ui';
 
 const events = [
   {

@@ -75,19 +75,6 @@ export interface ControlFieldProps extends BaseProps {
   accessibilityHint?: string;
   /** Base id: the row gets it, the label/description/error get `${id}-label` etc. */
   id?: string;
-
-  /** @deprecated Use `checked`. */
-  isSelected?: boolean;
-  /** @deprecated Use `defaultChecked`. */
-  defaultSelected?: boolean;
-  /** @deprecated Use `onChange`. */
-  onSelectedChange?: (selected: boolean) => void;
-  /** @deprecated Use `disabled`. */
-  isDisabled?: boolean;
-  /** @deprecated Use `required`. */
-  isRequired?: boolean;
-  /** @deprecated Use `error` (pass `true` to mark the field invalid without a message). */
-  isInvalid?: boolean;
 }
 
 /** Ids of the parts the row references (aria-labelledby / aria-describedby). */
@@ -113,17 +100,6 @@ export interface ControlFieldContextValue {
   ids: ControlFieldIds;
   /** Compound parts report themselves so the row can reference them. */
   registerPart: (part: ControlFieldPart, present: boolean) => void;
-
-  /** @deprecated Use `checked`. */
-  isSelected: boolean;
-  /** @deprecated Use `onChange`. */
-  onSelectedChange: (selected: boolean) => void;
-  /** @deprecated Use `disabled`. */
-  isDisabled: boolean;
-  /** @deprecated Use `invalid`. */
-  isInvalid: boolean;
-  /** @deprecated Use `required`. */
-  isRequired: boolean;
 }
 
 export interface ControlFieldGroupContextValue {

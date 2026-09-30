@@ -4,7 +4,6 @@ category: keyboard
 order: 50
 tags: [keyboard, spotlight]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

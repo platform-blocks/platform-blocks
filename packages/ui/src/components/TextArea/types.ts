@@ -1,5 +1,4 @@
 import type { TextInputProps as RNTextInputProps } from 'react-native';
-import type { SizeValue } from '../../core/theme/types';
 import type { TextFieldBaseProps } from '../_internal/Field/fieldProps';
 import type { ExtendedTextInputProps } from '../Input/types';
 
@@ -80,15 +79,4 @@ export interface TextAreaProps extends Omit<TextFieldBaseProps, 'onEnter' | 'deb
 
   /** Whether the text scrolls inside the field (defaults to `!autoResize`). */
   scrollEnabled?: boolean;
-}
-
-/** @deprecated Internal style inputs of the old TextArea style factory; kept for type compatibility. */
-export interface TextAreaStyleProps {
-  size: SizeValue;
-  focused?: boolean;
-  disabled?: boolean;
-  error?: boolean;
-  rows?: number;
-  resize?: 'none' | 'vertical' | 'horizontal' | 'both';
-  h?: number;
 }

@@ -1,4 +1,5 @@
-import { Block, Blockquote, Text } from '@platform-blocks/ui';
+import { Block, Blockquote, Text } from '@plocks/ui';
+import { BrandIcon } from '@plocks/brands';
 
 export function Demo() {
   return (
@@ -54,7 +55,7 @@ export function Demo() {
           variant="minimal"
           quoteIconPosition="none"
           author={{ name: '@username' }}
-          source={{ name: 'X (Twitter)', brand: 'x' }}
+          source={{ name: 'X (Twitter)', icon: <BrandIcon brand="x" size="sm" /> }}
           date="2 hours ago"
         >
           Just discovered this amazing new feature! 🚀

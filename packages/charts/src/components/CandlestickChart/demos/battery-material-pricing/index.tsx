@@ -1,4 +1,4 @@
-import { CandlestickChart } from '@platform-blocks/charts';
+import { CandlestickChart } from '@plocks/charts';
 
 import { LITHIUM_SERIES, NICKEL_SERIES, negotiationMarkers } from './data';
 

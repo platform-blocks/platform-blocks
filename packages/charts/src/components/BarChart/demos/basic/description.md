@@ -1,11 +1,10 @@
 ---
-title: BarChart Basic
+title: Basics
 category: charts
 order: 10
 tags: [basic, getting-started]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

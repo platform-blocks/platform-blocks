@@ -50,10 +50,10 @@ describe('webProps', () => {
   it('returns the defined web-only props on web', () => {
     const web = loadFor('web');
     const onKeyDown = jest.fn();
-    expect(web.webProps({ onKeyDown, tabIndex: 0, dataSet: { pbInput: 'true' }, id: undefined })).toEqual({
+    expect(web.webProps({ onKeyDown, tabIndex: 0, dataSet: { plocksInput: 'true' }, id: undefined })).toEqual({
       onKeyDown,
       tabIndex: 0,
-      dataSet: { pbInput: 'true' },
+      dataSet: { plocksInput: 'true' },
     });
   });
 

@@ -74,7 +74,7 @@ function useOverlayApiOrNull(): ReturnType<typeof useOverlayApi> | null {
 /**
  * Hook for managing dropdown positioning and overlay lifecycle.
  * 
- * This hook combines usePopoverPositioning with useOverlay to provide a complete
+ * This hook combines usePopoverPositioning with the overlay API to provide a complete
  * dropdown solution that handles:
  * - Intelligent positioning with viewport constraints
  * - Automatic flipping and shifting
@@ -118,8 +118,8 @@ export function useDropdownPositioning<TAnchor = View, TPopover = View>(
   if (isOpen && !overlayApi) {
     warnOnce(
       'useDropdownPositioning:no-provider',
-      '[platform-blocks] A dropdown was rendered outside an OverlayProvider, so it cannot open as an overlay. ' +
-        'Wrap the app in <PlatformBlocksProvider> (or <OverlayProvider> + <OverlayRenderer />).'
+      '[plocks] A dropdown was rendered outside an OverlayProvider, so it cannot open as an overlay. ' +
+        'Wrap the app in <PlocksProvider> (or <OverlayProvider> + <OverlayRenderer />).'
     );
   }
   const openOverlay = overlayApi?.openOverlay;
@@ -193,8 +193,10 @@ export function useDropdownPositioning<TAnchor = View, TPopover = View>(
       width,
       maxHeight,
       strategy: overrides.strategy ?? 'fixed',
-      closeOnClickOutside,
-      closeOnEscape,
+      layer: {
+        closeOnOutsidePress: closeOnClickOutside && overrides.trigger !== 'hover',
+        closeOnEscape,
+      },
       floatingId,
       role,
       parentLayerId,

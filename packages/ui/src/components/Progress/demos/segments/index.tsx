@@ -1,4 +1,4 @@
-import { Block, ColorSwatch, Progress, Row, Text } from '@platform-blocks/ui';
+import { Block, ColorSwatch, Progress, Row, Text } from '@plocks/ui';
 
 const USAGE = [
   { label: 'Documents', value: 32, color: '#4c6ef5' },

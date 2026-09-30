@@ -1,4 +1,4 @@
-import type { PlatformBlocksTheme, ThemeBackgrounds } from './types';
+import type { PlocksTheme, ThemeBackgrounds } from './types';
 import { DEFAULT_FONT_FAMILY_MONO } from './defaultTheme';
 import {
   DEFAULT_BREAKPOINT_VALUES,
@@ -10,7 +10,6 @@ import {
   DEFAULT_SPACING_SCALE,
   toPxScale,
 } from './scales';
-import { deriveSemanticColors } from './semanticColors';
 import { DEFAULT_Z_INDICES } from './zIndices';
 
 const DARK_BACKGROUNDS: ThemeBackgrounds = {
@@ -34,7 +33,7 @@ const DARK_BACKGROUNDS: ThemeBackgrounds = {
   scrim: DEFAULT_SCRIM_COLORS.dark,
 };
 
-const DARK_STATES: NonNullable<PlatformBlocksTheme['states']> = {
+const DARK_STATES: NonNullable<PlocksTheme['states']> = {
   focusRing: 'rgba(59,130,246,0.55)',
   textSelection: 'rgba(10, 132, 255, 0.25)', // Primary blue for selection
   highlightText: '#60A5FA', // primary[4] - bright blue for good contrast on dark
@@ -57,7 +56,7 @@ const DARK_PRIMARY = [
   '#BFDBFE',
 ];
 
-export const DARK_THEME: PlatformBlocksTheme = {
+export const DARK_THEME: PlocksTheme = {
   primaryColor: '#2563EB',
   colorScheme: 'dark',
 
@@ -255,13 +254,6 @@ export const DARK_THEME: PlatformBlocksTheme = {
       slow: '400ms'
     }
   },
-
-  // Deprecated aliases, derived so they can never drift from the roles above.
-  semantic: deriveSemanticColors({
-    colors: { primary: DARK_PRIMARY },
-    backgrounds: DARK_BACKGROUNDS,
-    states: DARK_STATES,
-  }),
 
   components: {},
   other: {

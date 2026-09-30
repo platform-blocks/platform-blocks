@@ -1,4 +1,4 @@
-import { Block, PinInput } from '@platform-blocks/ui';
+import { Block, PinInput } from '@plocks/ui';
 
 const SIZES = ['xs', 'sm', 'md', 'lg'] as const;
 

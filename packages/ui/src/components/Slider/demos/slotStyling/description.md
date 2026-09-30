@@ -4,7 +4,6 @@ order: 38
 tags: [trackStyle, activeTrackStyle, thumbStyle, tickStyle, slot-props, customization]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

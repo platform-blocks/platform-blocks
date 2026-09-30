@@ -1,10 +1,10 @@
 import React from 'react';
 import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { FileInput } from '../FileInput';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 /** Answers the next file dialog (a transient <input type="file">) with `files`. */
 function answerNextFileDialog(files: File[]) {
@@ -46,7 +46,7 @@ describe('FileInput (react-native-web DOM)', () => {
     const picker = click.mock.contexts[0] as HTMLInputElement;
     expect(picker.type).toBe('file');
     expect(picker.accept).toBe('.txt');
-    expect(document.querySelector('[data-pb-file-picker]')).toBeNull();
+    expect(document.querySelector('[data-plocks-file-picker]')).toBeNull();
     expect(screen.getByText('notes.txt')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Remove notes.txt' })).toBeTruthy();
     expect(onFilesChange).toHaveBeenCalledWith([expect.objectContaining({ name: 'notes.txt', status: 'pending' })]);

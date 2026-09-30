@@ -4,7 +4,6 @@ category: behavior
 order: 20
 tags: [accordion, controlled]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

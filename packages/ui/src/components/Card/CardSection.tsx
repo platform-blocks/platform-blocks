@@ -4,11 +4,11 @@ import { View, type ViewStyle } from 'react-native';
 import { factory } from '../../core/factory/factory';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import { CardContext } from './CardContext';
 import type { CardSectionProps } from './types';
 
-const resolvePad = (theme: PlatformBlocksTheme, value: SizeValue | undefined): number | undefined => {
+const resolvePad = (theme: PlocksTheme, value: SizeValue | undefined): number | undefined => {
   if (value === undefined) return undefined;
   if (typeof value === 'number') return value;
   const resolved = resolveSpacing(theme, value);

@@ -59,6 +59,7 @@ export interface RowSharedProps<T> {
   totalColCount: number;
   /** aria-rowindex of the first body row. */
   firstRowAriaIndex: number;
+  reportRowIndex: boolean;
   /** Row number offset for "Select row n" labels (rows on previous pages). */
   rowNumberOffset: number;
   navEnabled: boolean;
@@ -121,7 +122,7 @@ function DataTableRowInner<T>({
   } = shared;
 
   const features = shared.rowFeatureToggle?.(row, rowIndex) || EMPTY_FEATURES;
-  const rowSelectable = features.selectable !== undefined ? features.selectable : selectable;
+  const rowSelectable = selectable && features.selectable !== false;
   const isStripe = striped && rowIndex % 2 === 1;
   const totalColumns = (selectable ? 1 : 0) + (expandableRowRender ? 1 : 0) + columns.length + (rowActions ? 1 : 0);
   const cellRole = grid ? 'gridcell' : 'cell';
@@ -146,7 +147,7 @@ function DataTableRowInner<T>({
           }}
           autoFocus
           aria-label={typeof column.header === 'string' ? `Edit ${column.header}` : undefined}
-          dataSet={{ pbInput: 'true' }}
+          dataSet={{ plocksInput: 'true' }}
           style={[
             styles.editor,
             {
@@ -192,7 +193,7 @@ function DataTableRowInner<T>({
         hoverColor={colors.hoverBg}
         bg={selected ? undefined : isStripe ? colors.stripeBg : 'transparent'}
         {...a11yProps({ role: 'row', selected: grid && rowSelectable ? selected : undefined })}
-        {...(isWeb ? { 'aria-rowindex': shared.firstRowAriaIndex + rowIndex } : null)}
+        {...(isWeb && shared.reportRowIndex ? { 'aria-rowindex': shared.firstRowAriaIndex + rowIndex } : null)}
         style={[
           {
             borderStartWidth: shared.enhancedSelection ? 2 : 0,
@@ -204,7 +205,7 @@ function DataTableRowInner<T>({
           sideBorderStyle('bottom', shared.rowBorderStyle),
         ]}
       >
-        {rowSelectable && (
+        {selectable && (
           <TableTd
             {...a11yProps({ role: cellRole })}
             {...(isWeb ? { 'aria-colindex': 1 } : null)}
@@ -213,7 +214,10 @@ function DataTableRowInner<T>({
             <Checkbox
               size="sm"
               checked={selected}
-              onChange={() => shared.onToggleRow(rowId)}
+              disabled={!rowSelectable}
+              onChange={() => {
+                if (rowSelectable) shared.onToggleRow(rowId);
+              }}
               accessibilityLabel={`Select row ${shared.rowNumberOffset + rowIndex + 1}`}
             />
           </TableTd>
@@ -272,6 +276,23 @@ function DataTableRowInner<T>({
             return (
               <View key={column.key} {...cellA11y} style={cellStyle}>
                 {content}
+              </View>
+            );
+          }
+
+          if (!grid) {
+            return (
+              <View key={column.key} {...cellA11y} style={cellStyle}>
+                <Pressable
+                  onPress={() => shared.onActivateCell(rowIndex, column.key)}
+                  {...a11yProps({
+                    role: 'button',
+                    label: `${typeof column.header === 'string' ? column.header : 'Cell'}, row ${shared.rowNumberOffset + rowIndex + 1}: ${formatValue(getValue(row, column.accessor), column.dataType)}`,
+                  })}
+                  style={styles.pressableCell}
+                >
+                  {content}
+                </Pressable>
               </View>
             );
           }
@@ -413,6 +434,9 @@ const styles = StyleSheet.create({
   },
   noBottomBorder: {
     borderBottomWidth: 0,
+  },
+  pressableCell: {
+    flex: 1,
   },
   tabularNums: {
     fontVariant: ['tabular-nums'],

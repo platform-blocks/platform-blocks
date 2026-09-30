@@ -1,4 +1,4 @@
-import { PieChart, type PieChartDataPoint } from '@platform-blocks/charts';
+import { PieChart, type PieChartDataPoint } from '@plocks/charts';
 
 import { BROWSER_USAGE } from './data';
 

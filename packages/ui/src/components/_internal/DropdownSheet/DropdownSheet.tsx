@@ -1,10 +1,10 @@
-import React, { useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import React, { useContext, useMemo, useRef, useSyncExternalStore } from 'react';
 import type { ReactNode, RefObject } from 'react';
-import { Keyboard, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import type { DimensionValue, StyleProp, ViewStyle } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
-import { useKeyboardManagerOptional } from '../../../core/providers/KeyboardManagerProvider';
+import { useKeyboardHeight } from '../../../hooks/useKeyboardHeight';
 import { useTheme } from '../../../core/theme/ThemeProvider';
 import { resolveSurface } from '../../../core/theme/surfaces';
 import { resolveTextRole } from '../../../core/theme/textRoles';
@@ -14,7 +14,7 @@ import {
   getViewportSnapshot,
   subscribeViewport,
 } from '../../../core/responsive/viewportStore';
-import { isIOS, isWeb } from '../../../core/platform';
+import { isWeb } from '../../../core/platform';
 import { handleModalRequestClose } from '../../../core/overlay/layerStack';
 import { LayerScope, useLayer } from '../../../core/overlay/useLayer';
 import { OverlayHost } from '../../../core/overlay/OverlayHost';
@@ -39,9 +39,8 @@ export interface DropdownSheetProps {
   accessibilityLabel?: string;
   /**
    * Where the card sits:
-   * - `'center'` — a dialog card (Select, ColorInput, ColorPicker);
-   * - `'top'` — pinned under the status bar, for content with a text input,
-   *   so the on-screen keyboard never covers it (AutoComplete);
+   * - `'center'` — a dialog card for mobile pickers and selects;
+   * - `'top'` — pinned under the status bar for content that needs a top anchor;
    * - `'bottom'` — a bottom sheet (full width, slides up).
    * @default 'center'
    */
@@ -81,29 +80,6 @@ const FILL: ViewStyle = { position: 'absolute', top: 0, left: 0, right: 0, botto
 const FILL_FLEX: ViewStyle = { flex: 1 };
 const DEFAULT_MAX_WIDTH = 400;
 const MIN_HEIGHT = 180;
-
-/** Keyboard height on native: from KeyboardManagerProvider when mounted, else our own listener. */
-function useKeyboardInset(enabled: boolean): number {
-  const manager = useKeyboardManagerOptional();
-  const [height, setHeight] = useState(0);
-
-  useEffect(() => {
-    if (!enabled || isWeb || manager) return undefined;
-    const show = Keyboard.addListener(isIOS ? 'keyboardWillShow' : 'keyboardDidShow', (event) => {
-      setHeight(event?.endCoordinates?.height ?? 0);
-    });
-    const hide = Keyboard.addListener(isIOS ? 'keyboardWillHide' : 'keyboardDidHide', () => setHeight(0));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, [enabled, manager]);
-
-  // Web: the viewport height already excludes the keyboard (visualViewport).
-  if (!enabled || isWeb) return 0;
-  if (manager) return manager.isKeyboardVisible ? manager.keyboardHeight : 0;
-  return height;
-}
 
 /**
  * Internal: the shared small-screen / native presentation of a dropdown — a
@@ -149,7 +125,8 @@ export function DropdownSheet(props: DropdownSheetProps) {
   const sheetRef = useRef<View>(null);
   const insets = useContext(SafeAreaInsetsContext);
   const viewport = useSyncExternalStore(subscribeViewport, getViewportSnapshot, getServerViewportSnapshot);
-  const keyboardInset = useKeyboardInset(opened && avoidKeyboard);
+  // Native only; the web sheet doesn't inset for the keyboard.
+  const keyboardInset = useKeyboardHeight({ enabled: opened && avoidKeyboard && !isWeb });
 
   const { id: layerId } = useLayer({
     active: opened,

@@ -4,7 +4,6 @@ category: layout
 order: 60
 tags: [table, columns]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

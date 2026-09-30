@@ -1,4 +1,4 @@
-import { HistogramChart } from '@platform-blocks/charts';
+import { HistogramChart } from '@plocks/charts';
 
 import { CONTRACT_LENGTHS, median } from './data';
 

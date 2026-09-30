@@ -21,7 +21,7 @@ import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { getControlSize, onColor, resolveRadius } from '../../core/theme/tokens';
 import type { SizeValue } from '../../core/theme/types';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import { getLayoutStyles } from '../../core/utils/layout';
 import { useMergedRef } from '../../core/utils/mergeRefs';
 import { useStyleProps } from '../../core/utils/spacing';
@@ -49,7 +49,7 @@ const MIN_TARGET_NATIVE = 44;
 const MARK_SPRING = { stiffness: 809, damping: 16, mass: 1 };
 
 /** Box edge length: a fixed ratio of the control-size icon, so it scales with the theme. */
-export const getCheckboxBoxSize = (theme: PlatformBlocksTheme, size: SizeValue | undefined): number =>
+export const getCheckboxBoxSize = (theme: PlocksTheme, size: SizeValue | undefined): number =>
   Math.round(getControlSize(theme, size).iconSize * 1.5);
 
 type Glyph = 'check' | 'minus';

@@ -5,7 +5,6 @@ order: 80
 tags: [tree, performance, virtualization]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

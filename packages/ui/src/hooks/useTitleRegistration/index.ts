@@ -6,7 +6,7 @@ import { useTitleRegistryOptional, type TitleItem } from './contexts/TitleRegist
 export interface UseTitleRegistrationOptions {
   /** Text content of the title */
   text: string;
-  /** Order for sorting titles, lower numbers appear first */
+  /** Heading level (1–6); titles appear in page order */
   order: number;
   /** Optional ID, if not provided it will be generated from text */
   id?: string;

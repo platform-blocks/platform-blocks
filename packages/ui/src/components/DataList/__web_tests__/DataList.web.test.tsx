@@ -1,10 +1,10 @@
 import React from 'react';
 import { render as rtlRender, screen, within } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { DataList } from '../DataList';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('DataList (react-native-web DOM)', () => {
   it('marks up label/value pairs as a list of terms and definitions', () => {

@@ -28,6 +28,7 @@ import {
   type ComponentSizeValue,
 } from '../../core/theme/componentSize';
 import { devWarn, warnOnce } from '../../core/utils/logger';
+import { useElementSize } from '../../hooks/useElementSize';
 
 /** `m:ss` / `h:mm:ss`. */
 export function formatWaveformTime(seconds: number): string {
@@ -156,7 +157,7 @@ export const Waveform = factory<{ props: WaveformProps; ref: View }>((props, ref
   const containerRef = useRef<View>(null);
   // Layout measurement keeps its own handle; the consumer's ref is composed in.
   const mergedContainerRef = useMergedRef<View>(containerRef, ref);
-  const [containerWidth, setContainerWidth] = useState(0);
+  const { width: containerWidth, onLayout: measureLayout } = useElementSize();
   const [isDragging, setIsDragging] = useState(false);
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState<number | null>(null);
@@ -298,9 +299,9 @@ export const Waveform = factory<{ props: WaveformProps; ref: View }>((props, ref
   }, [fullWidth, actualWaveformWidth, h, w]);
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
-    setContainerWidth(event.nativeEvent.layout.width);
+    measureLayout(event);
     onLayoutProp?.(event);
-  }, [onLayoutProp]);
+  }, [measureLayout, onLayoutProp]);
 
   const calculatePosition = useCallback((locationX: number) => {
     let position: number;
@@ -374,7 +375,7 @@ export const Waveform = factory<{ props: WaveformProps; ref: View }>((props, ref
     }
   }, [interactive, isDragging, isSelecting, selectionStart, calculatePosition, onDragEnd, onSelectionChange]);
 
-  // Legacy single press handler for backward compatibility
+  // Seek to the pressed position when interaction is enabled.
   const handlePress = useCallback((event: GestureResponderEvent) => {
     if (!interactive || !onSeek) return;
 

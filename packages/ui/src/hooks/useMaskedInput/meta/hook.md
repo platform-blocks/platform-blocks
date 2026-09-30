@@ -4,7 +4,6 @@ category: forms
 order: 90
 tags: [forms, masking]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

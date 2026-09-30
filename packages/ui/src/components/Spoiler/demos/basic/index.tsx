@@ -1,4 +1,4 @@
-import { Block, Spoiler, Text } from '@platform-blocks/ui';
+import { Block, Spoiler, Text } from '@plocks/ui';
 
 const paragraphs = [
   'Spoilers collapse long sections of copy while keeping the content accessible to screen readers and keyboard users.',

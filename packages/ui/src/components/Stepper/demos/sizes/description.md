@@ -4,7 +4,6 @@ category: appearance
 order: 60
 tags: [stepper, sizing]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { TextInput } from 'react-native';
 
-import { Block, Button, Input, Row, useDialog } from '@platform-blocks/ui';
+import { Block, Button, Input, Row, useDialog } from '@plocks/ui';
 
 export function Demo() {
   const { openDialog, closeDialog } = useDialog();

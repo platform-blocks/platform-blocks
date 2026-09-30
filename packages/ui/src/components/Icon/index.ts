@@ -8,5 +8,4 @@ export type {
   IconRegistry,
   ExternalIconProps,
   ExternalIconComponent,
-  LegacyIconComponentProps,
 } from './types';

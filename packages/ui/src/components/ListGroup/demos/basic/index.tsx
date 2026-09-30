@@ -1,4 +1,4 @@
-import { ListGroup, ListGroupItem } from '@platform-blocks/ui';
+import { ListGroup, ListGroupItem } from '@plocks/ui';
 
 export function Demo() {
   return (

@@ -1,4 +1,4 @@
-import { SegmentedControl } from '@platform-blocks/ui';
+import { SegmentedControl } from '@plocks/ui';
 
 const frameworks = [
   { label: 'React', value: 'react' },

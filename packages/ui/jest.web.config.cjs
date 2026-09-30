@@ -31,7 +31,7 @@ module.exports = {
     ],
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(?:\\.pnpm/[^/]+/node_modules/)?(react-native|@react-native|react-native-web|expo|@expo|react-native-svg|@platform-blocks|react-native-reanimated|react-native-worklets|react-native-gesture-handler|react-native-safe-area-context|@tabler)/)',
+    'node_modules/(?!(?:\\.pnpm/[^/]+/node_modules/)?(react-native|@react-native|react-native-web|expo|@expo|react-native-svg|@plocks|react-native-reanimated|react-native-worklets|react-native-gesture-handler|react-native-safe-area-context|@tabler)/)',
   ],
   setupFilesAfterEnv: ['<rootDir>/jest.web.setup.cjs'],
   globals: {

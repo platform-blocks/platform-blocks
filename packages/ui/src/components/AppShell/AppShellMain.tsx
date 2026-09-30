@@ -149,7 +149,7 @@ export const AppShellMain = factory<{ props: AppShellMainProps; ref: View }>(
           testID={testID}
           id={id}
           role={role}
-          {...webProps({ dataSet: cssGeometry ? { pbShellMain: 'true' } : undefined })}
+          {...webProps({ dataSet: cssGeometry ? { plocksShellMain: 'true' } : undefined })}
           style={[
             {
               position: 'absolute',

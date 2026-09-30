@@ -1,4 +1,4 @@
-import { NumberInput } from '@platform-blocks/ui';
+import { NumberInput } from '@plocks/ui';
 
 export function Demo() {
   return (

@@ -1,4 +1,4 @@
-import { Block, TableOfContents } from '@platform-blocks/ui';
+import { Block, TableOfContents } from '@plocks/ui';
 
 const INITIAL_ITEMS = [
   { id: 'overview', value: 'Overview', depth: 1 },

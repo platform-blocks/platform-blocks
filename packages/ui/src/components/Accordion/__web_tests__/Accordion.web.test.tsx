@@ -2,7 +2,7 @@ import React from 'react';
 import { Text } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { Accordion } from '../Accordion';
 
 const ITEMS = [
@@ -14,9 +14,9 @@ const ITEMS = [
 describe('Accordion (react-native-web DOM)', () => {
   it('headers are buttons wired to labelled regions via aria-expanded / aria-controls', () => {
     render(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <Accordion items={ITEMS} autoPersist={false} transitionDuration={0} />
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     const header = screen.getByRole('button', { name: 'Shipping' });
     expect(header.getAttribute('aria-expanded')).toBe('false');
@@ -32,9 +32,9 @@ describe('Accordion (react-native-web DOM)', () => {
   it('marks disabled headers aria-disabled and ignores presses', () => {
     const onExpandedChange = jest.fn();
     render(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <Accordion items={ITEMS} autoPersist={false} onExpandedChange={onExpandedChange} />
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     const warranty = screen.getByRole('button', { name: 'Warranty' });
     expect(warranty.getAttribute('aria-disabled')).toBe('true');

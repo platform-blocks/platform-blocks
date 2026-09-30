@@ -4,7 +4,6 @@ category: interaction
 order: 40
 tags: [checkboxes, indeterminate]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

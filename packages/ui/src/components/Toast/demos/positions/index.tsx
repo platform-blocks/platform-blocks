@@ -1,4 +1,4 @@
-import { Button, Row, useToast } from '@platform-blocks/ui';
+import { Button, Row, useToast } from '@plocks/ui';
 
 const toastPositions = [
   'top-left',

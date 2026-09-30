@@ -1,4 +1,4 @@
-import { Block, CopyButton, Row, Text } from '@platform-blocks/ui';
+import { Block, CopyButton, Row, Text } from '@plocks/ui';
 
 const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
 
@@ -7,7 +7,7 @@ export function Demo() {
     <Row align="center" gap="lg" wrap="wrap">
       {SIZES.map((size) => (
         <Block key={size} align="center">
-          <CopyButton size={size} value="@platform-blocks/ui" />
+          <CopyButton size={size} value="@plocks/ui" />
           <Text variant="small">{size}</Text>
         </Block>
       ))}

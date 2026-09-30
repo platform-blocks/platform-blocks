@@ -4,7 +4,6 @@ category: usage
 order: 40
 tags: [modifiers, shortcuts, combinations]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

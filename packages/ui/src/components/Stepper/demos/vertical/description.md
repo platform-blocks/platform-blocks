@@ -4,7 +4,6 @@ category: layout
 order: 40
 tags: [stepper, layout]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

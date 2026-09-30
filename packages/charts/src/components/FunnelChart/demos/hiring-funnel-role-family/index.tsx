@@ -1,4 +1,4 @@
-import { FunnelChart, formatCompactNumber } from '@platform-blocks/charts';
+import { FunnelChart, formatCompactNumber } from '@plocks/charts';
 
 import { HIRING_SERIES, HiringMeta, STEP_LOOKUP } from './data';
 

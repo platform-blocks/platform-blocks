@@ -5,7 +5,6 @@ order: 25
 tags: [thumb, onIcon, offIcon, label]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

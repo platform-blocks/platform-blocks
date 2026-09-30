@@ -1,10 +1,10 @@
 import type React from 'react';
-import type { AccessibilityRole, AccessibilityState, ViewProps, ViewStyle } from 'react-native';
+import type { ViewProps, ViewStyle } from 'react-native';
 
 import type { WebMouseEvent } from '../../core/platform/webProps';
 import type { BorderRadiusProps } from '../../core/theme/radius';
 import type { ShadowProps } from '../../core/theme/shadow';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import type { BaseProps } from '../../core/types/base';
 import type { LayoutProps } from '../../core/utils/layout';
 
@@ -38,6 +38,16 @@ export interface CardProps
   borderColor?: string;
   /** Custom border width in px. Defaults to 1 when `withBorder` or `borderColor` is set. */
   borderWidth?: number;
+  /** Layout of a card in a flex row or positioned board. */
+  flex?: number;
+  shrink?: number;
+  position?: ViewStyle['position'];
+  top?: ViewStyle['top'];
+  left?: ViewStyle['left'];
+  zIndex?: number;
+  borderTopWidth?: number;
+  borderTopColor?: string;
+  borderStyle?: ViewStyle['borderStyle'];
   /**
    * Clip children to the card's radius. Turn this on when a `Card.Section`
    * carries full-bleed content (image, code surface) that would otherwise
@@ -56,19 +66,6 @@ export interface CardProps
   disabled?: boolean;
   /** Web-only: context-menu (right-click) handler. */
   onContextMenu?: (event: WebMouseEvent) => void;
-  /**
-   * @deprecated Use `role` (ARIA role). Mapped to `role` when it has an ARIA
-   * equivalent. Pressable cards default to `role="button"`; use `'link'` when
-   * the card navigates.
-   */
-  accessibilityRole?: AccessibilityRole;
-  /**
-   * @deprecated Use `aria-checked` / `aria-selected` / `aria-expanded` /
-   * `aria-busy` / `disabled` — react-native-web ignores accessibilityState.
-   * Still mapped to those props. Selectable roles (`radio`, `checkbox`) need a
-   * checked state or screen readers read every option as unselected.
-   */
-  accessibilityState?: AccessibilityState;
 }
 
 /**
@@ -104,4 +101,4 @@ export interface CardSectionProps extends Omit<ViewProps, 'style' | 'children'> 
   _isLast?: boolean;
 }
 
-export type { PlatformBlocksTheme };
+export type { PlocksTheme };

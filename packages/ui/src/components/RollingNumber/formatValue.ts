@@ -124,3 +124,16 @@ export const toRollingCells = (
     };
   });
 };
+
+/**
+ * The integer position a digit column moves to so it shows `digit`, travelling
+ * in `direction` (`1` forward, `-1` backward, `0` straight to the digit).
+ * Positions are unbounded — a column counting up from 9 goes to 10, not back to
+ * 0 — and the strip renders them modulo 10.
+ */
+export const nextRollPosition = (from: number, digit: number, direction: number): number => {
+  const current = ((from % 10) + 10) % 10;
+  if (direction > 0) return from + ((digit - current + 10) % 10);
+  if (direction < 0) return from - ((current - digit + 10) % 10);
+  return from + (digit - current);
+};

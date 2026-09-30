@@ -1,5 +1,5 @@
 ---
-title: Basic
+title: Basics
 category: basics
 order: 10
 tags: [icon, name]

@@ -1,10 +1,6 @@
 /**
- * Places the declaration files tsc emitted into lib/.types next to both builds:
+ * Places the declaration files tsc emitted into lib/.types next to the build:
  *
- *   lib/cjs/**\/*.d.ts  as emitted. lib/cjs/package.json ({"type":"commonjs"},
- *                      written by the rollup build) makes TypeScript read them
- *                      as CommonJS declarations, where extensionless relative
- *                      specifiers ('./Button') resolve.
  *   lib/esm/**\/*.d.ts  with every relative specifier made fully specified
  *                      ('./Button' -> './Button/index.js'). The package is
  *                      "type": "module", so these are ES module declarations,
@@ -12,26 +8,26 @@
  *                      extensionless specifier there doesn't resolve — every
  *                      re-exported type silently becomes `any`.
  *
- * Each package.json "exports" condition points its "types" at the declaration
- * file beside the JavaScript it resolves to.
+ * Packages still publishing CJS get a second, extensionless declaration tree
+ * beside lib/cjs. The ESM-only UI package gets only lib/esm declarations.
  *
- *   node scripts/emit-types.mjs   (run by `npm run build:types`)
+ *   node scripts/emit-types.mjs [packageRoot]   (run by `npm run build:types`;
+ *   the split @plocks packages pass their own root)
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
 import { dirname, join, relative, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const root = process.argv[2]
+  ? resolve(process.argv[2])
+  : resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const typesDir = join(root, 'lib', '.types');
 const esmDir = join(root, 'lib', 'esm');
 const cjsDir = join(root, 'lib', 'cjs');
+const hasCjs = existsSync(join(cjsDir, 'package.json'));
 
 if (!existsSync(typesDir)) {
   console.error(`emit-types: ${relative(root, typesDir)} not found — run tsc first (npm run build:types).`);
-  process.exit(1);
-}
-if (!existsSync(join(cjsDir, 'package.json'))) {
-  console.error('emit-types: lib/cjs/package.json not found — run the rollup build first (npm run build).');
   process.exit(1);
 }
 
@@ -62,15 +58,15 @@ for (const file of files) {
     `${quote}${fullySpecify(specifier, file)}${quote}`
   );
 
-  for (const [outDir, content] of [
-    [cjsDir, source],
-    [esmDir, esmSource],
-  ]) {
-    const out = join(outDir, rel);
-    mkdirSync(dirname(out), { recursive: true });
-    writeFileSync(out, content);
+  const out = join(esmDir, rel);
+  mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, esmSource);
+  if (hasCjs) {
+    const cjsOut = join(cjsDir, rel);
+    mkdirSync(dirname(cjsOut), { recursive: true });
+    writeFileSync(cjsOut, source);
   }
 }
 
 rmSync(typesDir, { recursive: true, force: true });
-console.log(`emit-types: wrote ${files.length} declaration files to lib/esm and lib/cjs`);
+console.log(`emit-types: wrote ${files.length} declaration files to lib/esm${hasCjs ? ' and lib/cjs' : ''}`);

@@ -1,4 +1,4 @@
-import { Flex, Icon, Text } from '@platform-blocks/ui';
+import { Flex, Icon, Text } from '@plocks/ui';
 
 const strokeVariants = [
   { label: 'Thin (0.75)', value: 0.75 },

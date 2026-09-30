@@ -1,4 +1,4 @@
-import { HistogramChart } from '@platform-blocks/charts';
+import { HistogramChart } from '@plocks/charts';
 
 import { DELIVERY_MINUTES } from './data';
 

@@ -1,4 +1,4 @@
-import { RidgeChart } from '@platform-blocks/charts';
+import { RidgeChart } from '@plocks/charts';
 
 import { SERIES, formatDays } from './data';
 

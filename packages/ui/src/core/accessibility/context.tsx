@@ -37,7 +37,7 @@ const getEmptyAnnouncements = () => EMPTY_ANNOUNCEMENTS;
 /**
  * Accessibility services for a subtree: focus tracking, the announcement log,
  * and a reduced-motion override. The hooks in this module all work without it;
- * `PlatformBlocksProvider` mounts one. Its context value is stable, so mounting
+ * `PlocksProvider` mounts one. Its context value is stable, so mounting
  * it costs no re-renders.
  */
 export const AccessibilityProvider: React.FC<AccessibilityProviderProps> = ({
@@ -130,8 +130,8 @@ function useAccessibilityValue(internals: AccessibilityInternals | null): Access
 }
 
 /**
- * Everything at once (legacy). Subscribes to every slice, so the component
- * re-renders on any focus change or announcement — prefer the specific hooks
+ * Combined accessibility state. Subscribes to every slice, so the component
+ * re-renders on any focus change or announcement. Prefer the specific hooks
  * (`useReducedMotion`, `useScreenReader`, `useAnnouncer`, `useFocus`).
  */
 export const useAccessibility = (): AccessibilityContextValue => {

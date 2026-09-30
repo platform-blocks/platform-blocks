@@ -1,4 +1,4 @@
-import { Button, Menu, MenuDropdown, MenuItem, Row } from '@platform-blocks/ui';
+import { Button, Menu, MenuDropdown, MenuItem, Row } from '@plocks/ui';
 
 const POSITIONS = [
   { label: 'Bottom start', position: 'bottom-start' },

@@ -1,4 +1,4 @@
-import { Card, ContextMenu, Text } from '@platform-blocks/ui';
+import { Card, ContextMenu, Text } from '@plocks/ui';
 
 const ITEMS = [
   { id: 'copy', label: 'Copy' },

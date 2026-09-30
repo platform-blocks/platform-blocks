@@ -1,11 +1,10 @@
 ---
-title: Vertical spacing
+title: Basics
 description: Compare token-based and numeric vertical gaps between stacked content blocks.
 tags: [spacing, layout]
 category: basics
 order: 10
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

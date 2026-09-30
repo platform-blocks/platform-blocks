@@ -4,7 +4,6 @@ category: theming
 order: 60
 tags: [prefix, underline, afterline]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

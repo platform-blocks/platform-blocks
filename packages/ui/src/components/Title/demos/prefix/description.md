@@ -4,7 +4,6 @@ category: theming
 order: 30
 tags: [prefix, decoration]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

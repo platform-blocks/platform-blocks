@@ -5,7 +5,6 @@ order: 40
 tags: [pagination, page-size, total]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

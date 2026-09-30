@@ -1,7 +1,7 @@
-import { Block, Chip, Table } from '@platform-blocks/ui';
+import { Block, Chip, Table } from '@plocks/ui';
 
 const rows = [
-  { name: 'platform-blocks', stack: 'RN / Expo', status: 'stable', stars: 4210 },
+  { name: 'plocks', stack: 'RN / Expo', status: 'stable', stars: 4210 },
   { name: 'ignite', stack: 'RN', status: 'active', stars: 9230 },
   { name: 'tamagui', stack: 'RN / Web', status: 'active', stars: 16000 },
   { name: 'nativewind', stack: 'RN', status: 'active', stars: 7600 },

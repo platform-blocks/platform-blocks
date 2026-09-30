@@ -4,7 +4,6 @@ category: layout
 order: 30
 tags: [popover, position]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

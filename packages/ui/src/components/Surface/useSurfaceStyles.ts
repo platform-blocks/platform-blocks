@@ -12,7 +12,7 @@ import {
 import { clampSurfaceLevel, resolveSurface } from '../../core/theme/surfaces';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveRadius, resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue, SurfaceLevel, SurfaceToken } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue, SurfaceLevel, SurfaceToken } from '../../core/theme/types';
 
 import { SurfaceContext } from './SurfaceContext';
 
@@ -53,7 +53,7 @@ export interface UseSurfaceStylesResult {
   shadowStyle: ViewStyle;
 }
 
-const resolvePadding = (theme: PlatformBlocksTheme, padding: SizeValue | undefined): number | undefined => {
+const resolvePadding = (theme: PlocksTheme, padding: SizeValue | undefined): number | undefined => {
   if (padding === undefined) return undefined;
   if (typeof padding === 'number') return padding;
   const resolved = resolveSpacing(theme, padding);

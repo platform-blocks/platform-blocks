@@ -5,7 +5,6 @@ order: 65
 tags: [tt, text-transform, uppercase, case, typography]
 highlightLines: []
 status: stable
-since: 1.2.0
 hidden: false
 ---
 

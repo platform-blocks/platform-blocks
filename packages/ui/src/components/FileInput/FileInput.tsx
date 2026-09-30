@@ -10,7 +10,7 @@ import { isWeb } from '../../core/platform';
 import { webStyle } from '../../core/platform/webStyle';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { getControlSize, onColor, resolveFontSize, resolveRadius, resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import type { RadiusValue } from '../../core/types/base';
 import { getLayoutStyles, extractLayoutProps } from '../../core/utils/layout';
 import { devWarn } from '../../core/utils/logger';
@@ -88,7 +88,7 @@ export function validateFileAgainst(
 const generateFileId = () => Math.random().toString(36).substring(2) + Date.now().toString(36);
 
 const getFileInputStyles = createThemedStyles(
-  (theme: PlatformBlocksTheme, size: SizeValue, radius: RadiusValue | undefined, dragOver: boolean) => {
+  (theme: PlocksTheme, size: SizeValue, radius: RadiusValue | undefined, dragOver: boolean) => {
     const metrics = getControlSize(theme, size);
     const onPrimary = theme.text.onPrimary ?? onColor(theme, theme.colors.primary[5]);
     const space = (token: 'xs' | 'sm' | 'md' | '3xl') => resolveSpacing(theme, token) as number;

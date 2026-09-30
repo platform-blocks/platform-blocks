@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { ToggleButton } from '@platform-blocks/ui';
+import { ToggleButton } from '@plocks/ui';
 
 export function Demo() {
   const [selected, setSelected] = useState(false);

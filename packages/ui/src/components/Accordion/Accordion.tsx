@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import { View } from 'react-native';
-// TODO: Expose Accordion.Root, Accordion.Item future-proofing a compound API while keeping current wrapper for backward compatibility.
 
 import { useA11yId } from '../../core/accessibility/useA11yId';
 import { factory } from '../../core/factory';
@@ -16,7 +15,7 @@ import { AccordionItemComponent } from './AccordionItem';
 import { buildAccentStyles, getAccordionStyles, type AccordionAccentStyles } from './styles';
 import type { AccordionProps, AccordionRef } from './types';
 
-const PERSIST_STORE_KEY = '__PLATFORM_BLOCKS_ACCORDION_PERSIST__';
+const PERSIST_STORE_KEY = '__PLOCKS_ACCORDION_PERSIST__';
 type PersistGlobal = typeof globalThis & { [PERSIST_STORE_KEY]?: Map<string, string[]> };
 
 /** Process-wide store for uncontrolled accordions' expanded keys (see `autoPersist`). */
@@ -69,7 +68,7 @@ export const Accordion = factory<{ props: AccordionProps; ref: AccordionRef }>((
   const resolvedRadius = radius !== undefined ? resolveRadius(theme, radius) : undefined;
 
   // Deterministic, SSR-safe id prefix for the header/panel aria wiring.
-  const idPrefix = useA11yId(undefined, 'pb-accordion');
+  const idPrefix = useA11yId(undefined, 'plocks-accordion');
 
   // Auto key generation when uncontrolled and no persistKey
   const autoKeyRef = useRef<string | null>(null);

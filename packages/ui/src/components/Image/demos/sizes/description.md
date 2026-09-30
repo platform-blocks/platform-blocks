@@ -5,7 +5,6 @@ order: 20
 tags: [size, layout]
 highlightLines: []
 status: stable
-since: 0.3.0
 hidden: false
 ---
 

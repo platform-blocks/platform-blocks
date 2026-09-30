@@ -1,4 +1,4 @@
-import { ChartThemeProvider, HistogramChart } from '@platform-blocks/charts';
+import { ChartThemeProvider, HistogramChart } from '@plocks/charts';
 
 import { BASKET_TOTALS, BRAND_PALETTE } from './data';
 

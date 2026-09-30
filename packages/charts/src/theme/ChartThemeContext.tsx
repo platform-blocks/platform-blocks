@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useMemo, useRef } from 'react';
-import { setDefaultColorScheme, resolveNumberFormatter, type NumberFormat } from '../utils';
+import React, { createContext, useContext, useMemo } from 'react';
+import { resolveNumberFormatter, type NumberFormat } from '../utils';
 import { paletteDefaultDark, paletteDefaultLight } from '../colors';
 
 /**
@@ -110,7 +110,6 @@ export const ChartThemeProvider: React.FC<{ value?: ChartThemeOverrides; hostThe
   const parentTheme = useContext(ChartThemeCtx);
   const nested = useContext(ChartThemeNestedCtx);
   const base = nested ? parentTheme : defaultTheme;
-  const paletteRef = useRef<string | null>(null);
   // A host that supplies a dark surface but no palette of its own gets the dark-surface
   // default, not the light one — the light steps wash out to ~2:1 against a dark
   // background. An explicit accentPalette always wins. A nested provider keeps its
@@ -144,14 +143,6 @@ export const ChartThemeProvider: React.FC<{ value?: ChartThemeOverrides; hostThe
     : defaultTheme.colors.accentPalette;
   // Charts index straight into the palette, so an empty one falls back to the default.
   merged.colors.accentPalette = palette;
-  const paletteKey = palette.join('|');
-  // Only the root provider writes the global default palette (read by charts that
-  // have not moved to `theme.colors.accentPalette` yet). A nested provider writing
-  // it would repaint every chart outside its subtree.
-  if (!nested && paletteRef.current !== paletteKey) {
-    paletteRef.current = paletteKey;
-    setDefaultColorScheme([...palette]);
-  }
   return (
     <ChartThemeNestedCtx.Provider value>
       <ChartThemeCtx.Provider value={merged}>{children}</ChartThemeCtx.Provider>

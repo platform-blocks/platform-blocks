@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Knob } from '@platform-blocks/ui';
+import { Knob } from '@plocks/ui';
 
 export function Demo() {
   const [value, setValue] = useState(90);

@@ -1,10 +1,10 @@
 import React from 'react';
 import { fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { Switch } from '../Switch';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('Switch (react-native-web DOM)', () => {
   it('exposes role="switch" with aria-checked and the label as its name', () => {
@@ -43,9 +43,9 @@ describe('Switch (react-native-web DOM)', () => {
     expect(screen.getByRole('switch').getAttribute('aria-describedby')).toBe('sync-helper');
 
     rerender(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <Switch id="sync" label="Sync" helperText="Uses mobile data" error="Sync failed" />
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     const control = screen.getByRole('switch');
     expect(control.getAttribute('aria-describedby')).toBe('sync-error');

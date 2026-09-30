@@ -3,7 +3,7 @@ import type { StyleProp, ViewStyle } from 'react-native';
 
 import type { AdjustableProps } from '../../core/accessibility/useAdjustable';
 import type { ThemeColor } from '../../core/theme/resolveColors';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import type { FieldBaseProps } from '../_internal/Field/fieldProps';
 import type { TextProps } from '../Text';
 
@@ -170,7 +170,7 @@ export interface RangeSliderProps extends SliderBaseProps {
 /** Internal component props (SliderCore). */
 export interface SliderTrackProps {
   disabled: boolean;
-  theme: PlatformBlocksTheme;
+  theme: PlocksTheme;
   orientation: 'horizontal' | 'vertical';
   /** Length of the active segment (px). */
   activeLength?: number;
@@ -188,7 +188,7 @@ export interface SliderTrackProps {
 export interface SliderTicksProps {
   ticks: Array<SliderTick & { position: number; isActive: boolean }>;
   disabled: boolean;
-  theme: PlatformBlocksTheme;
+  theme: PlocksTheme;
   orientation: 'horizontal' | 'vertical';
   keyPrefix?: string;
   trackHeight: number;
@@ -203,7 +203,7 @@ export interface SliderTicksProps {
 export interface SliderThumbProps {
   position: number;
   disabled: boolean;
-  theme: PlatformBlocksTheme;
+  theme: PlocksTheme;
   orientation: 'horizontal' | 'vertical';
   isDragging: boolean;
   /** Draw over the sibling thumb (the one being dragged). */

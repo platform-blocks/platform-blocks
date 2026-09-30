@@ -8,7 +8,6 @@ import { factory, withStatics } from '../../core/factory';
 import { useThemedStyles } from '../../core/hooks/useThemedStyles';
 import { isNative, webProps } from '../../core/platform';
 import { getControlSize } from '../../core/theme/tokens';
-import { warnOnce } from '../../core/utils/logger';
 import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
 import { useStyleProps } from '../../core/utils/spacing';
 import { useControllableState } from '../../hooks/useControllableState';
@@ -147,28 +146,13 @@ const ControlFieldError = React.forwardRef<RNText, ControlFieldErrorProps>(({ ch
 });
 ControlFieldError.displayName = 'ControlField.Error';
 
-const DEPRECATED_PROPS = [
-  ['isSelected', 'checked'],
-  ['defaultSelected', 'defaultChecked'],
-  ['onSelectedChange', 'onChange'],
-  ['isDisabled', 'disabled'],
-  ['isRequired', 'required'],
-  ['isInvalid', 'error'],
-] as const;
-
 const ControlFieldBase = factory<{ props: ControlFieldProps; ref: View }>((props, ref) => {
   const {
     checked,
-    isSelected,
-    defaultChecked,
-    defaultSelected,
+    defaultChecked = false,
     onChange,
-    onSelectedChange,
-    disabled,
-    isDisabled,
-    required,
-    isRequired,
-    isInvalid,
+    disabled = false,
+    required = false,
     variant = 'switch',
     label,
     description,
@@ -187,36 +171,24 @@ const ControlFieldBase = factory<{ props: ControlFieldProps; ref: View }>((props
     id,
   } = props;
 
-  for (const [legacy, canonical] of DEPRECATED_PROPS) {
-    if (props[legacy] !== undefined) {
-      warnOnce(
-        `ControlField.${legacy}`,
-        `[ControlField] \`${legacy}\` is deprecated and will be removed; use \`${canonical}\` instead.`
-      );
-    }
-  }
-
   const group = useControlFieldGroup();
   const size = sizeProp ?? group?.size ?? 'md';
   const spacingStyles = useStyleProps(props);
 
-  // Canonical props win over their deprecated aliases.
-  const resolvedDisabled = disabled ?? isDisabled ?? false;
-  const resolvedRequired = required ?? isRequired ?? false;
-  const invalid = isInvalid ?? (error === true || hasContent(error));
+  const invalid = error === true || hasContent(error);
   const errorMessage = invalid && hasContent(error) ? error : undefined;
 
   const [isChecked, setChecked] = useControllableState<boolean>({
-    value: checked ?? isSelected,
-    defaultValue: defaultChecked ?? defaultSelected ?? false,
+    value: checked,
+    defaultValue: defaultChecked,
     finalValue: false,
-    onChange: onChange ?? onSelectedChange,
+    onChange,
   });
 
   const toggle = useCallback(() => {
-    if (resolvedDisabled) return;
+    if (disabled) return;
     setChecked((previous) => !previous);
-  }, [resolvedDisabled, setChecked]);
+  }, [disabled, setChecked]);
 
   // Space toggles the row; react-native-web's Pressable only presses on Enter
   // for non-button roles.
@@ -238,8 +210,8 @@ const ControlFieldBase = factory<{ props: ControlFieldProps; ref: View }>((props
     description: compound ? undefined : description,
     error: compound ? undefined : errorMessage,
     invalid,
-    required: resolvedRequired,
-    disabled: resolvedDisabled,
+    required,
+    disabled,
     accessibilityLabel,
     accessibilityHint,
   });
@@ -256,31 +228,26 @@ const ControlFieldBase = factory<{ props: ControlFieldProps; ref: View }>((props
 
   const setSelected = useCallback(
     (next: boolean) => {
-      if (resolvedDisabled) return;
+      if (disabled) return;
       setChecked(next);
     },
-    [resolvedDisabled, setChecked]
+    [disabled, setChecked]
   );
 
   const ctx = useMemo<ControlFieldContextValue>(
     () => ({
       checked: isChecked,
       onChange: setSelected,
-      disabled: resolvedDisabled,
+      disabled,
       invalid,
-      required: resolvedRequired,
+      required,
       size,
       color,
       variant,
       ids: { control: ids.control, label: ids.label, description: ids.description, error: ids.error },
       registerPart,
-      isSelected: isChecked,
-      onSelectedChange: setSelected,
-      isDisabled: resolvedDisabled,
-      isInvalid: invalid,
-      isRequired: resolvedRequired,
     }),
-    [isChecked, setSelected, resolvedDisabled, invalid, resolvedRequired, size, color, variant, ids, registerPart]
+    [isChecked, setSelected, disabled, invalid, required, size, color, variant, ids, registerPart]
   );
 
   const styles = useThemedStyles(
@@ -322,9 +289,9 @@ const ControlFieldBase = factory<{ props: ControlFieldProps; ref: View }>((props
         {hasContent(label) ? (
           <FieldHeader
             label={label}
-            required={resolvedRequired}
+            required={required}
             withAsterisk
-            disabled={resolvedDisabled}
+            disabled={disabled}
             error={invalid}
             size={size}
             marginBottom={0}
@@ -372,14 +339,14 @@ const ControlFieldBase = factory<{ props: ControlFieldProps; ref: View }>((props
         <Pressable
           ref={ref}
           onPress={toggle}
-          disabled={resolvedDisabled}
+          disabled={disabled}
           testID={testID}
           hitSlop={4}
           {...a11y.controlProps}
           {...compoundLinks}
           {...a11yProps({ role: ROLE_FOR[variant], checked: isChecked })}
-          {...webProps({ onKeyDown: resolvedDisabled ? undefined : handleKeyDown })}
-          style={[styles.row, resolvedDisabled && styles.rowDisabled, style]}
+          {...webProps({ onKeyDown: disabled ? undefined : handleKeyDown })}
+          style={[styles.row, disabled && styles.rowDisabled, style]}
         >
           {rowContent}
         </Pressable>

@@ -5,7 +5,6 @@ order: 60
 tags: [segments, legend, storage]
 highlightLines: []
 status: stable
-since: 0.10.2
 hidden: false
 ---
 

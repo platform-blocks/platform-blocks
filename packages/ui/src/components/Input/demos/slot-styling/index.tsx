@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Icon, Input, Text } from '@platform-blocks/ui';
+import { Block, Icon, Input, Text } from '@plocks/ui';
 
 export function Demo() {
   const [workspace, setWorkspace] = useState('');

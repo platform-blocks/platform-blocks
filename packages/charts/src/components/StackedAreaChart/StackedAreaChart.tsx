@@ -409,7 +409,7 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
   // the layer's upper edge (y1). Registering all layers lets the shared engine
   // resolve the nearest point on hover and produce a multi-series slice tooltip
   // (every layer's value at the hovered x). Legend visibility is driven separately
-  // via updateSeriesVisibility (upsert), so no legacy registerSeries is needed.
+  // via updateSeriesVisibility (upsert).
   const hitSeries: HitSeries[] = useMemo(() => layers.map((layer, index) => ({
     id: layer.id,
     name: layer.name || `Series ${index + 1}`,

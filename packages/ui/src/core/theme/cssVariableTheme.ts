@@ -1,17 +1,17 @@
 import { Platform } from 'react-native';
 
-import type { PlatformBlocksTheme, SurfaceLevel, SurfaceScale } from './types';
+import type { PlocksTheme, SurfaceLevel, SurfaceScale } from './types';
 
 /**
- * The ONE CSS-variable generator and naming scheme (prefix `--platform-blocks-`):
+ * The ONE CSS-variable generator and naming scheme (prefix `--plocks-`):
  *
- * - palettes     `--platform-blocks-palette-<name>-<i>`
- * - text         `--platform-blocks-text-<token>`      (kebab-case: `text-on-primary`)
- * - backgrounds  `--platform-blocks-bg-<token>`        (`bg-base` … `bg-border`, `bg-border-strong`, `bg-hover`, …)
- * - surfaces     `--platform-blocks-surface-<level>-background|border`
- * - states       `--platform-blocks-focus-ring`, `-text-selection`, `-highlight-text`, `-highlight-background`
- * - shell chrome `--platform-blocks-shell-*`
- * - scales       `--platform-blocks-font-size-*`, `-spacing-*`, `-radius-*`, `-shadow-*`,
+ * - palettes     `--plocks-palette-<name>-<i>`
+ * - text         `--plocks-text-<token>`      (kebab-case: `text-on-primary`)
+ * - backgrounds  `--plocks-bg-<token>`        (`bg-base` … `bg-border`, `bg-border-strong`, `bg-hover`, …)
+ * - surfaces     `--plocks-surface-<level>-background|border`
+ * - states       `--plocks-focus-ring`, `-text-selection`, `-highlight-text`, `-highlight-background`
+ * - shell chrome `--plocks-shell-*`
+ * - scales       `--plocks-font-size-*`, `-spacing-*`, `-radius-*`, `-shadow-*`,
  *                `-breakpoint-*`, `-z-<layer>`, `-control-height-<size>`
  *
  * `themeColorVariables` is the scheme-dependent subset (used per scheme by
@@ -29,7 +29,7 @@ import type { PlatformBlocksTheme, SurfaceLevel, SurfaceScale } from './types';
  * the markup until React takes over, which trades a wrong-theme flash for a
  * blank screen and loses both races on a slow connection.
  *
- * Emitting `var(--platform-blocks-…, <hex>)` instead lets the cascade answer the
+ * Emitting `var(--plocks-…, <hex>)` instead lets the cascade answer the
  * question the prerender could not: one `@media (prefers-color-scheme: dark)`
  * block restyles the whole static page before any JavaScript runs. The literal
  * stays in the `var()` fallback, so markup renders identically in apps that
@@ -58,22 +58,22 @@ const BACKGROUND_TOKENS = [
   'scrim',
 ] as const;
 const STATE_VAR_NAMES = {
-  focusRing: '--platform-blocks-focus-ring',
-  textSelection: '--platform-blocks-text-selection',
-  highlightText: '--platform-blocks-highlight-text',
-  highlightBackground: '--platform-blocks-highlight-background',
+  focusRing: '--plocks-focus-ring',
+  textSelection: '--plocks-text-selection',
+  highlightText: '--plocks-highlight-text',
+  highlightBackground: '--plocks-highlight-background',
 } as const;
 const SURFACE_LEVELS: readonly SurfaceLevel[] = [0, 1, 2, 3];
 const SURFACE_PARTS = ['background', 'border'] as const;
 
 const kebab = (value: string) => value.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 
-const backgroundVarName = (token: (typeof BACKGROUND_TOKENS)[number]) => `--platform-blocks-bg-${kebab(token)}`;
+const backgroundVarName = (token: (typeof BACKGROUND_TOKENS)[number]) => `--plocks-bg-${kebab(token)}`;
 
-const textVarName = (token: (typeof TEXT_TOKENS)[number]) => `--platform-blocks-text-${kebab(token)}`;
+const textVarName = (token: (typeof TEXT_TOKENS)[number]) => `--plocks-text-${kebab(token)}`;
 
 const surfaceVarName = (level: SurfaceLevel, part: (typeof SURFACE_PARTS)[number]) =>
-  `--platform-blocks-surface-${level}-${part}`;
+  `--plocks-surface-${level}-${part}`;
 
 /**
  * The app shell's chrome, which the palette rewrite above cannot reach.
@@ -108,11 +108,11 @@ export type ShellChromeColors = Record<ShellChromeToken, string>;
  * selector can ever read.
  */
 const SHELL_CHROME_VAR_NAMES: Partial<Record<ShellChromeToken, string>> = {
-  background: '--platform-blocks-shell-chrome-bg',
-  border: '--platform-blocks-shell-chrome-border',
-  canvas: '--platform-blocks-shell-canvas-bg',
-  veil: '--platform-blocks-shell-chrome-veil',
-  navActive: '--platform-blocks-shell-nav-active-bg',
+  background: '--plocks-shell-chrome-bg',
+  border: '--plocks-shell-chrome-border',
+  canvas: '--plocks-shell-canvas-bg',
+  veil: '--plocks-shell-chrome-veil',
+  navActive: '--plocks-shell-nav-active-bg',
 };
 
 const reference = (name: string, fallback: string) => `var(${name}, ${fallback})`;
@@ -126,7 +126,7 @@ const reference = (name: string, fallback: string) => `var(${name}, ${fallback})
  * is `gray[0]` in both. Kept here rather than in the component because the
  * stylesheet and the running shell have to agree on them.
  */
-export const shellChromeColors = (theme: PlatformBlocksTheme): ShellChromeColors => {
+export const shellChromeColors = (theme: PlocksTheme): ShellChromeColors => {
   const gray = theme.colors?.gray ?? [];
   const primary = theme.colors?.primary ?? [];
   const dark = theme.colorScheme === 'dark';
@@ -149,7 +149,7 @@ export const shellChromeColors = (theme: PlatformBlocksTheme): ShellChromeColors
  * An app that has not opted into CSS-variable colors keeps literals, and so
  * does native, where `var()` means nothing.
  */
-export const shellChrome = (theme: PlatformBlocksTheme): ShellChromeColors => {
+export const shellChrome = (theme: PlocksTheme): ShellChromeColors => {
   const literal = shellChromeColors(theme);
   if (Platform.OS !== 'web' || !theme.literalColors) return literal;
 
@@ -166,7 +166,7 @@ export const shellChrome = (theme: PlatformBlocksTheme): ShellChromeColors => {
  * colors — see `literalText` & co.). Feed one theme in per scheme to build the
  * light and dark blocks.
  */
-export const themeColorVariables = (theme: PlatformBlocksTheme): Record<string, string> => {
+export const themeColorVariables = (theme: PlocksTheme): Record<string, string> => {
   const variables: Record<string, string> = {};
   const text = literalText(theme);
   const backgrounds = literalBackgrounds(theme);
@@ -200,7 +200,7 @@ export const themeColorVariables = (theme: PlatformBlocksTheme): Record<string, 
   // literal shades, so the browser can resolve the active scheme before hydration.
   Object.entries(theme.colors ?? {}).forEach(([palette, shades]) => {
     shades.forEach((value, index) => {
-      variables[`--platform-blocks-palette-${palette}-${index}`] = value;
+      variables[`--plocks-palette-${palette}-${index}`] = value;
     });
   });
 
@@ -222,7 +222,7 @@ const scaleVariables = (
   if (!scale) return;
   for (const [key, value] of Object.entries(scale)) {
     if (value === undefined || value === null) continue;
-    out[`--platform-blocks-${prefix}-${key}`] = typeof value === 'number' ? `${value}${unit}` : String(value);
+    out[`--plocks-${prefix}-${key}`] = typeof value === 'number' ? `${value}${unit}` : String(value);
   }
 };
 
@@ -231,13 +231,13 @@ const scaleVariables = (
  * (`themeColorVariables`) plus fonts, scales, z-indices and control heights.
  * This is what `CSSVariables` injects.
  */
-export const themeCssVariables = (theme: PlatformBlocksTheme): Record<string, string> => {
+export const themeCssVariables = (theme: PlocksTheme): Record<string, string> => {
   const variables: Record<string, string> = {
-    '--platform-blocks-color-scheme': theme.colorScheme,
-    '--platform-blocks-primary-color': theme.primaryColor,
+    '--plocks-color-scheme': theme.colorScheme,
+    '--plocks-primary-color': theme.primaryColor,
   };
-  if (theme.fontFamily) variables['--platform-blocks-font-family'] = theme.fontFamily;
-  if (theme.fontFamilyMono) variables['--platform-blocks-font-family-mono'] = theme.fontFamilyMono;
+  if (theme.fontFamily) variables['--plocks-font-family'] = theme.fontFamily;
+  if (theme.fontFamilyMono) variables['--plocks-font-family-mono'] = theme.fontFamilyMono;
 
   Object.assign(variables, themeColorVariables(theme));
 
@@ -249,7 +249,7 @@ export const themeCssVariables = (theme: PlatformBlocksTheme): Record<string, st
   scaleVariables('z', theme.zIndices as unknown as Record<string, number> | undefined, variables);
   if (theme.controlSizes) {
     for (const [size, metrics] of Object.entries(theme.controlSizes)) {
-      if (metrics?.height !== undefined) variables[`--platform-blocks-control-height-${size}`] = `${metrics.height}px`;
+      if (metrics?.height !== undefined) variables[`--plocks-control-height-${size}`] = `${metrics.height}px`;
     }
   }
   return variables;
@@ -281,13 +281,13 @@ export interface ThemeColorVariablesCssOptions {
  * of a statically rendered app — before first paint, and without waiting on JS.
  */
 export const createThemeColorVariablesCss = (
-  lightTheme: PlatformBlocksTheme,
-  darkTheme: PlatformBlocksTheme,
+  lightTheme: PlocksTheme,
+  darkTheme: PlocksTheme,
   options: ThemeColorVariablesCssOptions = {},
 ): string => {
   const {
-    lightClass = 'platform-blocks-light',
-    darkClass = 'platform-blocks-dark',
+    lightClass = 'plocks-light',
+    darkClass = 'plocks-dark',
     selector = ':root',
   } = options;
 
@@ -316,7 +316,7 @@ export const createThemeColorVariablesCss = (
  * A no-op off the web, where CSS variables do not exist. Calling it twice is
  * also a no-op — the already-rewritten theme is returned untouched.
  */
-export const withCssVariableColors = <T extends PlatformBlocksTheme>(theme: T): T => {
+export const withCssVariableColors = <T extends PlocksTheme>(theme: T): T => {
   if (Platform.OS !== 'web' || theme.literalColors) return theme;
 
   const text = { ...theme.text };
@@ -363,19 +363,19 @@ export const withCssVariableColors = <T extends PlatformBlocksTheme>(theme: T): 
 };
 
 /** Text tokens as literal colors — safe to measure, and safe outside CSS. */
-export const literalText = (theme: PlatformBlocksTheme): PlatformBlocksTheme['text'] =>
+export const literalText = (theme: PlocksTheme): PlocksTheme['text'] =>
   theme.literalColors?.text ?? theme.text;
 
 /** Background tokens as literal colors — safe to measure, and safe outside CSS. */
-export const literalBackgrounds = (theme: PlatformBlocksTheme): PlatformBlocksTheme['backgrounds'] =>
+export const literalBackgrounds = (theme: PlocksTheme): PlocksTheme['backgrounds'] =>
   theme.literalColors?.backgrounds ?? theme.backgrounds;
 
 /** Surface tokens as literal colors — safe to measure, and safe outside CSS. */
-export const literalSurfaces = (theme: PlatformBlocksTheme): SurfaceScale | undefined =>
+export const literalSurfaces = (theme: PlocksTheme): SurfaceScale | undefined =>
   theme.literalColors?.surfaces ?? theme.surfaces;
 
 /** Return a scheme-aware CSS color when a rendered color comes from a theme palette. */
-export const themeColorForFirstPaint = (theme: PlatformBlocksTheme, value: string | undefined): string | undefined => {
+export const themeColorForFirstPaint = (theme: PlocksTheme, value: string | undefined): string | undefined => {
   if (Platform.OS !== 'web' || !value || value === 'transparent') return value;
 
   const rgba = value.match(/^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)$/i);
@@ -388,7 +388,7 @@ export const themeColorForFirstPaint = (theme: PlatformBlocksTheme, value: strin
       return [0, 2, 4].every((offset, channel) => parseInt(hex.slice(offset, offset + 2), 16) === rgb?.[channel]);
     });
     if (index >= 0) {
-      const reference = `var(--platform-blocks-palette-${palette}-${index}, ${shades[index]})`;
+      const reference = `var(--plocks-palette-${palette}-${index}, ${shades[index]})`;
       return rgba
         ? `color-mix(in srgb, ${reference} ${Number(rgba[4]) * 100}%, transparent)`
         : reference;

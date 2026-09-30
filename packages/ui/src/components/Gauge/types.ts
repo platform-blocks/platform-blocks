@@ -3,13 +3,6 @@ import type { TextStyle, ViewStyle } from 'react-native';
 import type { BaseProps } from '../../core/types/base';
 import type { ColorValue } from '../../core/theme/types';
 
-/**
- * Shared props of the Gauge parts: spacing, visibility, a typed `style` for the
- * part's root element, and `testID`.
- * @deprecated Use `BaseProps` from the package root.
- */
-export type BaseComponentProps<S = ViewStyle> = BaseProps<S>;
-
 /** Easing of the needle animation. Unknown strings fall back to `'ease-out'`. */
 export type GaugeEasing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out';
 

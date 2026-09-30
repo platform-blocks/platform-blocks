@@ -1,4 +1,4 @@
-import { Button, useToast } from '@platform-blocks/ui';
+import { Button, useToast } from '@plocks/ui';
 
 export function Demo() {
   const toast = useToast();

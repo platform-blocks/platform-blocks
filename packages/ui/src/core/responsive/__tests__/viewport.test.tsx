@@ -2,7 +2,7 @@ import React from 'react';
 import { act, renderHook } from '@testing-library/react-native';
 import { Dimensions } from 'react-native';
 
-import { PlatformBlocksThemeProvider } from '../../theme/ThemeProvider';
+import { ThemeScope } from '../../theme/ThemeProvider';
 import { mergeTheme } from '../../theme/utils';
 import { DEFAULT_THEME } from '../../theme/defaultTheme';
 import {
@@ -119,7 +119,7 @@ describe('useViewport / useBreakpoint', () => {
   it('reads breakpoints from the theme', () => {
     const theme = mergeTheme(DEFAULT_THEME, { breakpoints: { ...DEFAULT_THEME.breakpoints, md: '900px' } });
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <PlatformBlocksThemeProvider theme={theme}>{children}</PlatformBlocksThemeProvider>
+      <ThemeScope theme={theme}>{children}</ThemeScope>
     );
     const { result } = renderHook(() => useBreakpoint(), { wrapper });
     expect(result.current).toBe('sm');

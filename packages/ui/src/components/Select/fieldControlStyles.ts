@@ -5,7 +5,7 @@ import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveSurface } from '../../core/theme/surfaces';
 import { getControlSize, resolveRadius, resolveShadow } from '../../core/theme/tokens';
 import type { ControlSizeMetrics } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import type { RadiusValue } from '../../core/types/base';
 import { getFieldFrameStyles } from '../_internal/Field/fieldFrameStyles';
 import type { FieldVariant } from '../_internal/Field/fieldProps';
@@ -48,7 +48,7 @@ export interface FieldControlStyles {
 }
 
 export function getFieldControlStyles(
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   { size = 'md', radius, variant = 'default', focused = false, invalid = false, disabled = false }: FieldControlStyleOptions
 ): FieldControlStyles {
   const metrics = getControlSize(theme, size);
@@ -90,7 +90,7 @@ export function useFieldControlStyles(options: FieldControlStyleOptions): FieldC
  * the group's anchored dropdowns: fill, hairline border, radius and shadow, all
  * from theme tokens.
  */
-export function getDropdownSurfaceStyle(theme: PlatformBlocksTheme): ViewStyle {
+export function getDropdownSurfaceStyle(theme: PlocksTheme): ViewStyle {
   const surface = resolveSurface(theme, 2);
   return {
     backgroundColor: surface.background,

@@ -1,4 +1,4 @@
-import { Block, Stepper } from '@platform-blocks/ui';
+import { Block, Stepper } from '@plocks/ui';
 
 export function Demo() {
   return (

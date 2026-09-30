@@ -1,11 +1,10 @@
 ---
-title: Basic
+title: Basics
 category: basics
 order: 10
 tags: [basic, phone, input]
 highlightLines: []
 status: experimental
-since: 1.0.0
 hidden: false
 ---
 

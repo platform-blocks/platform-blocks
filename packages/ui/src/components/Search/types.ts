@@ -10,8 +10,6 @@ export interface SearchProps extends BaseProps<ViewStyle> {
   defaultValue?: string;
   /** Called with the query as the user types (after `debounce` ms when set). */
   onChangeText?: (value: string) => void;
-  /** @deprecated Use `onChangeText`. */
-  onChange?: (value: string) => void;
   /** Called with the query on Enter, and with `''` when cleared. */
   onSubmit?: (value: string) => void;
   placeholder?: string;
@@ -30,9 +28,9 @@ export interface SearchProps extends BaseProps<ViewStyle> {
   /** Accessible name of the field (or the button in `buttonMode`). Default `'Search'`. */
   accessibilityLabel?: string;
   disabled?: boolean;
-  /** When true, renders as a button that opens the spotlight instead of a typeable input */
+  /** When true, renders as a button (e.g. a Spotlight launcher) instead of a typeable input */
   buttonMode?: boolean;
-  /** Callback when search button is pressed (only used in buttonMode) */
+  /** Called when the button is pressed (buttonMode only) */
   onPress?: () => void;
   /** Component to render on the right side (useful for button mode to show shortcuts like CMD+K) */
   rightComponent?: React.ReactNode;

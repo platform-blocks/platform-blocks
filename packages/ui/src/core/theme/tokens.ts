@@ -27,19 +27,19 @@ import {
   type ScaleKey,
 } from './scales';
 import { resolveShadow as resolveShadowStyle, type ShadowToken } from './shadow';
-import type { PlatformBlocksTheme, SizeToken, SizeValue, SpacingValue } from './types';
+import type { PlocksTheme, SizeToken, SizeValue, SpacingValue } from './types';
 
 export type { ControlSizeMetrics } from './scales';
 export type { ShadowToken } from './shadow';
 
-/** A radius prop: size token, px number, `'none'` or `'full'` (legacy `'chip'` = full). */
-export type RadiusInput = SizeToken | 'none' | 'full' | 'chip' | number;
+/** A radius prop: size token, px number, `'none'` or `'full'`. */
+export type RadiusInput = SizeToken | 'none' | 'full' | number;
 
 /** Resolved breakpoint table in px. */
 export type BreakpointValues = Record<BreakpointKey, number>;
 
 /** Anything with (some of) the theme's scales — resolvers accept partial themes. */
-type ThemeLike = Partial<PlatformBlocksTheme> | null | undefined;
+type ThemeLike = Partial<PlocksTheme> | null | undefined;
 
 const FULL_RADIUS = 9999;
 
@@ -100,11 +100,11 @@ export function resolveSpacing(theme: ThemeLike, value: SpacingValue): number | 
   return parsePx(value) ?? 0;
 }
 
-/** Radius → px. `'none'` → 0, `'full'` / `'chip'` → 9999, tokens read `theme.radii`, `undefined` → md. */
+/** Radius → px. `'none'` → 0, `'full'` → 9999, tokens read `theme.radii`, `undefined` → md. */
 export function resolveRadius(theme: ThemeLike, value: RadiusInput | undefined): number {
   if (typeof value === 'number') return value;
   if (value === 'none') return 0;
-  if (value === 'full' || value === 'chip') return FULL_RADIUS;
+  if (value === 'full') return FULL_RADIUS;
   const scale = parsedScale(theme?.radii, DEFAULT_RADIUS_SCALE as Record<ScaleKey, number>);
   return scale[(value ?? 'md') as ScaleKey] ?? scale.md;
 }
@@ -217,7 +217,7 @@ export function stepDown(size: SizeValue | undefined): SizeValue {
  * current theme's shadows (the dark theme has its own). `'none'` → `{}`.
  */
 export function resolveShadow(theme: ThemeLike, token: ShadowToken | undefined): ViewStyle {
-  return resolveShadowStyle(theme as Pick<PlatformBlocksTheme, 'shadows'>, token);
+  return resolveShadowStyle(theme as Pick<PlocksTheme, 'shadows'>, token);
 }
 
 // ---------------------------------------------------------------------------
@@ -276,14 +276,14 @@ function withOpacity(color: string, opacity: number): string {
 /**
  * The modal backdrop color (`theme.backgrounds.scrim`). With `opacity`, the
  * scrim's color at that alpha instead of its own — for components that expose
- * an opacity prop (Overlay, Gallery) or animate the strength. Partial themes
+ * an opacity prop (Overlay, Lightbox) or animate the strength. Partial themes
  * fall back to the built-in scrim of their scheme.
  */
 export function resolveScrim(theme: ThemeLike, opacity?: number): string {
   const fallback = DEFAULT_SCRIM_COLORS[theme?.colorScheme === 'dark' ? 'dark' : 'light'];
   const token = theme?.backgrounds?.scrim ?? fallback;
   if (opacity == null || Number.isNaN(opacity)) return token;
-  const literal = theme?.backgrounds ? literalBackgrounds(theme as PlatformBlocksTheme)?.scrim : undefined;
+  const literal = theme?.backgrounds ? literalBackgrounds(theme as PlocksTheme)?.scrim : undefined;
   return withOpacity(literal ?? token, opacity);
 }
 
@@ -295,8 +295,8 @@ export function resolveScrim(theme: ThemeLike, opacity?: number): string {
  * Translucent fills are measured composited over `backgrounds.surface`.
  */
 export function onColor(theme: ThemeLike, bg: string, minContrast: number = 4.5): string {
-  const text = theme?.text ? literalText(theme as PlatformBlocksTheme) : undefined;
-  const backgrounds = theme?.backgrounds ? literalBackgrounds(theme as PlatformBlocksTheme) : undefined;
+  const text = theme?.text ? literalText(theme as PlocksTheme) : undefined;
+  const backgrounds = theme?.backgrounds ? literalBackgrounds(theme as PlocksTheme) : undefined;
   const candidates = [text?.onPrimary, text?.primary, '#FFFFFF', '#111827'].filter(
     (c): c is string => typeof c === 'string' && normalizeHex(c) !== null
   );

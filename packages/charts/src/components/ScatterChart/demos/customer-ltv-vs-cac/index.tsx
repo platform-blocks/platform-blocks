@@ -1,4 +1,4 @@
-import { ScatterChart } from '@platform-blocks/charts';
+import { ScatterChart } from '@plocks/charts';
 
 import { QUADRANTS, SERIES } from './data';
 

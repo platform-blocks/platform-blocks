@@ -27,7 +27,7 @@ function advance(ms: number, step = 250) {
 }
 
 function liveRegion(politeness: 'polite' | 'assertive'): HTMLElement | null {
-  return document.querySelector(`[data-pb-announcer] [aria-live="${politeness}"]`);
+  return document.querySelector(`[data-plocks-announcer] [aria-live="${politeness}"]`);
 }
 
 function Trigger({ options }: { options: Parameters<ReturnType<typeof useToast>['show']>[0] }) {

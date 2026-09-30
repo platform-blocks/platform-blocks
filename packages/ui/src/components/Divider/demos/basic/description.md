@@ -1,11 +1,10 @@
 ---
-title: Basic Usage
+title: Basics
 category: basics
 order: 10
 tags: [solid, dashed]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Rating } from '@platform-blocks/ui';
+import { Block, Rating } from '@plocks/ui';
 
 export function Demo() {
   const [interactiveValue, setInteractiveValue] = useState<number>(4);

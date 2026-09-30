@@ -1,4 +1,4 @@
-import { Badge, Block, Button, Dialog, Row, Text, useDisclosure } from '@platform-blocks/ui';
+import { Badge, Block, Button, Dialog, Row, Text, useDisclosure } from '@plocks/ui';
 
 export function Demo() {
   const [opened, { open, close, toggle }] = useDisclosure(false, {

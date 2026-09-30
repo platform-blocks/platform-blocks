@@ -1,4 +1,4 @@
-import { Block, Card, Text } from '@platform-blocks/ui';
+import { Block, Card, Text } from '@plocks/ui';
 
 const VARIANTS = ['filled', 'outline', 'elevated', 'subtle', 'ghost', 'gradient'] as const;
 

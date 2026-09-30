@@ -1,4 +1,4 @@
-import { HistogramChart } from '@platform-blocks/charts';
+import { HistogramChart } from '@plocks/charts';
 
 import { BATTERY_VOLTAGES, REPLACEMENT_THRESHOLD, TARGET_VOLTAGE } from './data';
 

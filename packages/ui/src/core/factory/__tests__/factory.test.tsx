@@ -3,7 +3,7 @@ import { act, render, renderHook } from '@testing-library/react-native';
 import { Dimensions, Text, View } from 'react-native';
 
 import { DEFAULT_THEME } from '../../theme/defaultTheme';
-import { PlatformBlocksThemeProvider } from '../../theme/ThemeProvider';
+import { ThemeScope } from '../../theme/ThemeProvider';
 import { getBuiltInTheme } from '../../theme/utils';
 import { resetViewportStore } from '../../responsive/viewportStore';
 import { factory, withStatics } from '../factory';
@@ -51,7 +51,7 @@ const Box = factory<{ props: BoxProps; ref: View }>((props, ref) => {
 
 const dark = getBuiltInTheme('dark');
 const inScheme = (scheme: 'light' | 'dark', node: React.ReactElement) => (
-  <PlatformBlocksThemeProvider theme={scheme === 'dark' ? dark : DEFAULT_THEME}>{node}</PlatformBlocksThemeProvider>
+  <ThemeScope theme={scheme === 'dark' ? dark : DEFAULT_THEME}>{node}</ThemeScope>
 );
 
 describe('factory visibility props', () => {

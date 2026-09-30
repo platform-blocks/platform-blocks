@@ -1,4 +1,4 @@
-import { Block, Icon, Ring, Row, Text } from '@platform-blocks/ui';
+import { Block, Icon, Ring, Row, Text } from '@plocks/ui';
 
 export function Demo() {
   return (

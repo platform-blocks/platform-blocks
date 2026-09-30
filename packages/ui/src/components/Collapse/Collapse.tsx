@@ -40,7 +40,7 @@ function resolveEasing(easing: CollapseProps['easing'], timing: CollapseTiming):
   if (worklet) return easing;
   warnOnce(
     'Collapse.easing.worklet',
-    '[platform-blocks] Collapse: `easing` must be a Reanimated worklet on iOS/Android ' +
+    '[plocks] Collapse: `easing` must be a Reanimated worklet on iOS/Android ' +
       '(e.g. `Easing.bezier(...)` from react-native-reanimated). Falling back to the `timing` preset.'
   );
   return preset;

@@ -1,4 +1,4 @@
-import { Block, Button, Text, useDialog, type DialogConfig } from '@platform-blocks/ui';
+import { Block, Button, Text, useDialog, type DialogConfig } from '@plocks/ui';
 
 export function Demo() {
   const { openDialog } = useDialog();

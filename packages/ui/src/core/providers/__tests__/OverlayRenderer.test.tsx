@@ -99,9 +99,9 @@ describe('OverlayRenderer', () => {
     expect(onDialogEscape).toHaveBeenCalledTimes(1);
   });
 
-  it('closes legacy overlays on Android back, but not hover overlays that opted out of Escape', async () => {
+  it('closes overlays on Android back, but skips hover overlays that opted out of Escape', async () => {
     const onClose = jest.fn();
-    const tooltip = baseConfig({ trigger: 'hover', closeOnEscape: false, closeOnClickOutside: false });
+    const tooltip = baseConfig({ trigger: 'hover', layer: { closeOnEscape: false, closeOnOutsidePress: false } });
     const menu = baseConfig({ onClose });
     const screen = render(
       <OverlayProvider>

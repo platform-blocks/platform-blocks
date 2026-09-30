@@ -1,4 +1,5 @@
 import { AccessibilityInfo } from 'react-native';
+import { isWeb } from '../platform/flags';
 
 /**
  * Small external stores behind the accessibility hooks. They let the hooks work
@@ -24,6 +25,9 @@ function setScreenReader(next: boolean) {
 }
 
 function startScreenReader() {
+  // Browsers do not expose whether assistive technology is running. RNW's
+  // isScreenReaderEnabled() stub reports true for every visitor.
+  if (isWeb) return;
   let active = true;
   // Guarded: the accessors are absent or stubbed in some test renderers.
   const pending = AccessibilityInfo.isScreenReaderEnabled?.();
@@ -51,7 +55,7 @@ export function subscribeScreenReader(listener: Listener): () => void {
   };
 }
 
-export const getScreenReaderSnapshot = (): boolean => screenReaderEnabled;
+export const getScreenReaderSnapshot = (): boolean => isWeb ? false : screenReaderEnabled;
 export const getScreenReaderServerSnapshot = (): boolean => false;
 
 // ---------------------------------------------------------------------------
@@ -108,7 +112,7 @@ export function createFocusStore(): FocusStore {
 export const defaultFocusStore: FocusStore = createFocusStore();
 
 // ---------------------------------------------------------------------------
-// Announcement log (legacy `useAccessibility().announcements`)
+// Announcement log for `useAccessibility().announcements`.
 // ---------------------------------------------------------------------------
 
 export interface AnnouncementLog {

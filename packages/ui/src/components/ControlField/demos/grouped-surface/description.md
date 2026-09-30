@@ -4,7 +4,6 @@ category: composition
 order: 40
 tags: [control-field, group, surface, settings, dividers]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

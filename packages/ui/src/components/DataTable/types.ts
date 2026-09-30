@@ -207,6 +207,8 @@ export interface DataTableProps<T = DataTableValue> extends BaseProps<ViewStyle>
   paginationProps?: Omit<PaginationProps, 'value' | 'defaultValue' | 'current' | 'total' | 'onChange'>;
   /** Enable row selection */
   selectable?: boolean;
+  /** Show the per-column options menu in each header. */
+  showColumnMenu?: boolean;
   /**
    * Selected row identifiers (controlled). Leave undefined to let the table
    * manage selection itself; `onSelectionChange` fires in both modes.
@@ -214,7 +216,7 @@ export interface DataTableProps<T = DataTableValue> extends BaseProps<ViewStyle>
   selectedRows?: DataTableRowId[];
   /** Selection change handler */
   onSelectionChange?: (selected: DataTableRowId[]) => void;
-  /** Function to extract a stable id for each row */
+  /** Stable row ID; required for selection, expansion, and edit mode. */
   getRowId?: (row: T, index: number) => DataTableRowId;
   /**
    * Row activation handler: fires when a body cell is pressed / clicked, or
@@ -226,8 +228,8 @@ export interface DataTableProps<T = DataTableValue> extends BaseProps<ViewStyle>
   editMode?: boolean;
   /** Edit mode toggle callback */
   onEditModeChange?: (editMode: boolean) => void;
-  /** Commit cell edit */
-  onCellEdit?: (rowIndex: number, columnKey: string, newValue: DataTableValue) => void;
+  /** Commit cell edit. The index is the current visible index; rowId and row identify the record. */
+  onCellEdit?: (rowIndex: number, columnKey: string, newValue: DataTableValue, rowId: DataTableRowId, row: T) => void;
   /** Bulk action definitions */
   bulkActions?: DataTableBulkAction<T>[];
   /** Visual table variant */
@@ -278,8 +280,6 @@ export interface DataTableProps<T = DataTableValue> extends BaseProps<ViewStyle>
    * default. `false` shows `emptyMessage` as a plain row.
    */
   enhancedEmptyState?: boolean;
-  /** @deprecated Use `hoverHighlight`. */
-  enhancedHover?: boolean;
   /** Row hover fill. Defaults to `theme.backgrounds.hover`. */
   hoverColor?: string;
   /**

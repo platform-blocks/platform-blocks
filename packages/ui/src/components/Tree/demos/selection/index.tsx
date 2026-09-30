@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Text, Tree } from '@platform-blocks/ui';
+import { Block, Text, Tree } from '@plocks/ui';
 
 import { TREE_DATA } from './data';
 

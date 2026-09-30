@@ -1,5 +1,5 @@
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { Block, Button, Waveform } from '@platform-blocks/ui';
+import { Block, Button, Waveform } from '@plocks/ui';
 
 import { MELODY_PEAKS } from '../data';
 

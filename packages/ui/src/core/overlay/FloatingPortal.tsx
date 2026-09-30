@@ -1,17 +1,15 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import type { MutableRefObject, ReactNode, RefObject } from 'react';
 import { View } from 'react-native';
 import type { ViewStyle } from 'react-native';
 
 import { useOptionalOverlayApi } from '../providers/OverlayProvider';
 import type { OverlayConfig, OverlayLayerOptions } from '../providers/OverlayProvider';
-import { hasDOM, isNative } from '../platform';
 import type { PlacementType, PositionResult } from '../utils/positioning-enhanced';
 import type { LayerDismissReason } from './layerStack';
 import { LayerScope, useLayer } from './useLayer';
 import { pointerEventsStyles } from '../platform/pointerEvents';
-
-const useIsomorphicLayoutEffect = hasDOM || isNative ? useLayoutEffect : useEffect;
+import { useIsomorphicLayoutEffect } from '../hooks/useIsomorphicLayoutEffect';
 
 
 /** Why a floating element asked to close. `'closed-externally'`: something else closed its overlay (e.g. `closeAllOverlays`). */
@@ -95,8 +93,6 @@ export function FloatingPortal({ state, content, renderOptions }: FloatingPortal
       zIndex: state.zIndex,
       strategy: state.strategy,
       trigger: state.trigger,
-      closeOnEscape: state.layer.closeOnEscape,
-      closeOnClickOutside: state.layer.closeOnOutsidePress,
       layer: state.layer,
       parentLayerId: state.parentLayerId,
       onDismissRequest: state.onDismissRequest,

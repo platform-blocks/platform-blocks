@@ -1,4 +1,4 @@
-import { Block, Card, Flex, Text, useTheme, type FlexProps } from '@platform-blocks/ui';
+import { Block, Card, Flex, Text, useTheme, type FlexProps } from '@plocks/ui';
 
 const JUSTIFY_OPTIONS: Array<{ label: string; value: NonNullable<FlexProps['justify']> }> = [
   { label: 'Start', value: 'flex-start' },

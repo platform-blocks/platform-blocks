@@ -1,5 +1,5 @@
-import { Block, Card, Flex, Text, Title } from '@platform-blocks/ui';
-import { SparklineChart } from '@platform-blocks/charts';
+import { Block, Card, Flex, Text, Title } from '@plocks/ui';
+import { SparklineChart } from '@plocks/charts';
 
 import { SURFACE_SERIES } from './data';
 
@@ -20,7 +20,7 @@ export function Demo() {
     <Card padding="lg" radius="lg">
       <Block mb="md">
         <Title order={5} text="Daily Active Users" />
-        <Text size="sm" c="dimmed">Trailing two weeks, by platform</Text>
+        <Text size="sm" c="muted">Trailing two weeks, by platform</Text>
       </Block>
 
       <Flex direction="row" wrap="wrap" gap="md">
@@ -29,7 +29,7 @@ export function Demo() {
           return (
             <Block key={series.id} style={{ width: 200 }}>
               <Text size="sm" fw="semibold">{series.title}</Text>
-              <Text size="xs" c="dimmed">
+              <Text size="xs" c="muted">
                 {latest.toLocaleString()} · {getDeltaLabel(series.data)}
               </Text>
               <SparklineChart

@@ -32,7 +32,7 @@ export type { TextInputBaseProps } from './types';
 const hasContent = (node: React.ReactNode) =>
   node !== undefined && node !== null && node !== false && node !== '';
 
-const PB_INPUT_DATASET = { pbInput: 'true' } as const;
+const PLOCKS_INPUT_DATASET = { plocksInput: 'true' } as const;
 
 /**
  * The shared text-field shell: label / description / error / helper text come
@@ -57,6 +57,9 @@ export const TextInputBase = factory<{
 
   const {
     id,
+    flex,
+    inputColor,
+    inputFontSize,
     value,
     defaultValue,
     onChangeText,
@@ -193,6 +196,7 @@ export const TextInputBase = factory<{
   }, [styleProps.w, styleProps.maw, style]);
   const rootStyle = [
     rootStyles.root,
+    flex !== undefined ? { flex, width: 'auto' as const, minWidth: 0 } : null,
     explicitlySized ? rootStyles.unfloored : null,
     // `fullWidth` first, so an explicit `w` (in `spacingStyles`) wins.
     layoutStyles,
@@ -232,9 +236,9 @@ export const TextInputBase = factory<{
             testID={testID}
             secureTextEntry={secure}
             {...restTextInputProps}
-            {...webProps({ dataSet: PB_INPUT_DATASET })}
+            {...webProps({ dataSet: PLOCKS_INPUT_DATASET })}
             editable={editable}
-            style={[frame.input, textInputStyle]}
+            style={[frame.input, inputColor ? { color: inputColor } : null, inputFontSize !== undefined ? { fontSize: inputFontSize } : null, textInputStyle]}
           />
         </View>
 

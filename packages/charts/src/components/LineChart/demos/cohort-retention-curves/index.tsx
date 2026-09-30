@@ -1,4 +1,4 @@
-import { LineChart } from '@platform-blocks/charts';
+import { LineChart } from '@plocks/charts';
 
 import { MILESTONES, SERIES, TARGET_RETENTION } from './data';
 

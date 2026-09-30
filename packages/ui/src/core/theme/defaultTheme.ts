@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-import type { PlatformBlocksTheme, ThemeBackgrounds } from './types';
+import type { PlocksTheme, ThemeBackgrounds } from './types';
 import { DESIGN_TOKENS } from '../design-tokens';
 import {
   DEFAULT_BREAKPOINT_VALUES,
@@ -12,7 +12,6 @@ import {
   DEFAULT_SPACING_SCALE,
   toPxScale,
 } from './scales';
-import { deriveSemanticColors } from './semanticColors';
 import { DEFAULT_Z_INDICES } from './zIndices';
 
 /** Platform-correct monospace stack, shared by the light and dark themes. */
@@ -45,7 +44,7 @@ const LIGHT_BACKGROUNDS: ThemeBackgrounds = {
   scrim: DEFAULT_SCRIM_COLORS.light,
 };
 
-const LIGHT_STATES: NonNullable<PlatformBlocksTheme['states']> = {
+const LIGHT_STATES: NonNullable<PlocksTheme['states']> = {
   focusRing: 'rgba(59,130,246,0.45)',
   textSelection: 'rgba(251, 191, 36, 0.3)', // Semi-transparent highlight[5]
   highlightText: '#B45309', // highlight[8] for good contrast
@@ -68,7 +67,7 @@ const LIGHT_PRIMARY = [
   '#172554',
 ];
 
-export const DEFAULT_THEME: PlatformBlocksTheme = {
+export const DEFAULT_THEME: PlocksTheme = {
   primaryColor: '#2563EB',
   colorScheme: 'light',
 
@@ -262,13 +261,6 @@ export const DEFAULT_THEME: PlatformBlocksTheme = {
       slow: '400ms'
     }
   },
-
-  // Deprecated aliases, derived so they can never drift from the roles above.
-  semantic: deriveSemanticColors({
-    colors: { primary: LIGHT_PRIMARY },
-    backgrounds: LIGHT_BACKGROUNDS,
-    states: LIGHT_STATES,
-  }),
 
   components: {},
   other: {

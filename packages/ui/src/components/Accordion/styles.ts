@@ -4,7 +4,7 @@ import { createThemedStyles } from '../../core/hooks/useThemedStyles';
 import { withAlpha } from '../../core/theme/colorUtils';
 import { resolveAccentColor, resolveColorProp } from '../../core/theme/resolveColors';
 import { resolveFontSize, resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import type { AccordionComputedStyles, AccordionProps, AccordionVariant } from './types';
 
 /**
@@ -12,7 +12,7 @@ import type { AccordionComputedStyles, AccordionProps, AccordionVariant } from '
  * `color` prop. Shade 5 is the base brand color in both light and dark themes;
  * shade 6 stays readable as text on either background.
  */
-export const resolveAccent = (theme: PlatformBlocksTheme, color: AccordionProps['color']) => {
+export const resolveAccent = (theme: PlocksTheme, color: AccordionProps['color']) => {
   // Two resolutions rather than a palette array, so `primary.6` shade syntax and
   // raw CSS colors work. A raw color has no ramp, so it comes back as itself for both.
   const main = resolveAccentColor(theme, color) ?? theme.text.secondary;
@@ -41,7 +41,7 @@ export interface AccordionAccentStyles {
  * tint or surface fill. A brand accent is opt-in via the `color` prop.
  */
 export const buildAccentStyles = createThemedStyles(
-  (theme: PlatformBlocksTheme, color: string | undefined): AccordionAccentStyles => {
+  (theme: PlocksTheme, color: string | undefined): AccordionAccentStyles => {
     if (!color) {
       return {
         activeHeaderText: { fontWeight: '600', color: theme.text.primary },
@@ -66,7 +66,7 @@ interface VariantTokens {
 }
 
 // Variant token maps. A numeric `radius` (px) replaces the variant's default corners.
-type VariantTokenFn = (theme: PlatformBlocksTheme, radius: number | undefined) => VariantTokens;
+type VariantTokenFn = (theme: PlocksTheme, radius: number | undefined) => VariantTokens;
 
 // Extract color/variant composition to allow theme overrides later.
 export const accordionVariants: Record<AccordionVariant, VariantTokenFn> = {
@@ -129,7 +129,7 @@ export type AccordionStyles = AccordionComputedStyles & {
 /** The style table for one (theme, variant, size, color, radius, density) combination, cached per theme. */
 export const getAccordionStyles = createThemedStyles(
   (
-    theme: PlatformBlocksTheme,
+    theme: PlocksTheme,
     variant: AccordionVariant,
     size: SizeValue,
     color: string | undefined,

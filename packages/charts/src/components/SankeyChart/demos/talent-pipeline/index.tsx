@@ -1,4 +1,4 @@
-import { SankeyChart } from '@platform-blocks/charts';
+import { SankeyChart } from '@plocks/charts';
 
 import { LINKS, NODES } from './data';
 

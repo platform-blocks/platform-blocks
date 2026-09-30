@@ -64,7 +64,7 @@ jest.mock('../../Collapse', () => {
 
 describe('Accordion - rendering', () => {
   beforeEach(() => {
-    delete (globalThis as any).__PLATFORM_BLOCKS_ACCORDION_PERSIST__;
+    delete (globalThis as any).__PLOCKS_ACCORDION_PERSIST__;
   });
 
   const baseItems = [

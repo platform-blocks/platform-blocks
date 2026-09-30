@@ -2,7 +2,7 @@ import { StyleSheet, type ViewStyle } from 'react-native';
 import { createThemedStyles } from '../../core/hooks/useThemedStyles';
 import { isWeb } from '../../core/platform';
 import { resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 
 /**
  * Width floor for a field on wide screens. Fields dropped into a shrinking
@@ -27,7 +27,7 @@ export const inputMinWidthFloor = (): ViewStyle =>
  * Root (outer) style of a text field: full width, the desktop width floor and
  * the gap below the field. Cached per theme + `isMobile`.
  */
-export const getInputRootStyles = createThemedStyles((theme: PlatformBlocksTheme, isMobile: boolean) =>
+export const getInputRootStyles = createThemedStyles((theme: PlocksTheme, isMobile: boolean) =>
   StyleSheet.create({
     root: {
       marginBottom: resolveSpacing(theme, 'sm') as number,

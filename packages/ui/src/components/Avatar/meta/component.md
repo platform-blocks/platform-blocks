@@ -27,4 +27,4 @@ examples:
   - status
   - text-customization
 ---
-The Avatar component displays user profile images, initials, or icons. Supports different sizes, colors, and can be grouped together in an AvatarGroup. Each text slot — initials, label, description — accepts the full Text-prop API via `fallbackProps` / `labelProps` / `descriptionProps`.
+Displays user profile images, initials, or icons.

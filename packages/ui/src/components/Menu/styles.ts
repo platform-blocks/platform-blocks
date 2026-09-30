@@ -60,7 +60,14 @@ export const getMenuStyles = createThemedStyles((theme, radius: RadiusValue, sha
   };
 });
 
-/** Hook form of {@link getMenuStyles} for the current theme (also used by Select). */
+/**
+ * Returns the current theme's menu surface styles (`dropdown`, `item`,
+ * `itemHovered`, `label`, `divider`, … plus the raw level-2 `surfaceToken`) —
+ * for a custom dropdown or list that should match `Menu`.
+ *
+ * `radius` and `shadow` both default to `md`; the result is cached per theme,
+ * radius and shadow. Hook form of {@link getMenuStyles} (also used by Select).
+ */
 export function useMenuStyles(options: MenuStyleOptions = {}) {
   const theme = useTheme();
   return getMenuStyles(theme, options.radius ?? 'md', options.shadow ?? 'md');

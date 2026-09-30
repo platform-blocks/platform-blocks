@@ -11,12 +11,12 @@ import { shellChrome } from '../../core/theme/cssVariableTheme';
 import { resolveSurface } from '../../core/theme/surfaces';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { onColor, resolveShadow, type ShadowToken } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import { getZIndex } from '../../core/theme/zIndices';
 import { useStyleProps } from '../../core/utils/spacing';
 import { Text } from '../Text';
 import { useAppShellInternal } from './AppShellContext';
-import type { AppShellBottomNavProps, BottomAppBarItem } from './types';
+import type { BottomAppBarProps, BottomAppBarItem } from './types';
 
 const ROW: ViewStyle = {
   flexDirection: 'row',
@@ -46,8 +46,8 @@ const elevationToShadow = (elevation: number): ShadowToken => {
 };
 
 const getVariantStyles = (
-  variant: AppShellBottomNavProps['variant'],
-  theme: PlatformBlocksTheme,
+  variant: BottomAppBarProps['variant'],
+  theme: PlocksTheme,
   elevation: number | undefined
 ): ViewStyle | ViewStyle[] => {
   const chrome = shellChrome(theme);
@@ -70,7 +70,7 @@ const getVariantStyles = (
   }
 };
 
-const ItemBadge: React.FC<{ count?: number; theme: PlatformBlocksTheme }> = ({ count, theme }) => {
+const ItemBadge: React.FC<{ count?: number; theme: PlocksTheme }> = ({ count, theme }) => {
   if (!count || count < 0) return null;
   const limited = count > 99 ? '99+' : String(count);
   const background = theme.colors.error[5];
@@ -102,7 +102,7 @@ interface NavItemProps {
   item: BottomAppBarItem;
   active: boolean;
   showLabel: boolean;
-  theme: PlatformBlocksTheme;
+  theme: PlocksTheme;
   onSelect: (item: BottomAppBarItem) => void;
 }
 
@@ -138,7 +138,7 @@ const NavItem = React.memo(function NavItem({ item, active, showLabel, theme, on
  * A ready-made bottom navigation bar — a `navigation` landmark of items with
  * icons, labels and badges; the active item is marked `aria-current="page"`.
  */
-export const BottomAppBar = factory<{ props: AppShellBottomNavProps; ref: View }>(
+export const BottomAppBar = factory<{ props: BottomAppBarProps; ref: View }>(
   function BottomAppBar(props, ref) {
     const {
       children,

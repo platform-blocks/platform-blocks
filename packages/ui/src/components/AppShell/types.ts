@@ -174,7 +174,7 @@ export interface AppShellProps extends BaseProps<ViewStyle> {
   /** Items for a mobile bottom navigation bar when autoLayout is enabled */
   bottomNavItems?: BottomAppBarItem[];
   /** Additional props forwarded to BottomAppBar in autoLayout mode (items overridden by bottomNavItems) */
-  bottomNavProps?: Partial<AppShellBottomNavProps>;
+  bottomNavProps?: Partial<BottomAppBarProps>;
   mobileMenu?: MobileMenuConfig;
   /**
    * Take the shell's geometry from CSS custom properties rather than from the
@@ -263,7 +263,7 @@ export interface AppShellContextValue {
   /** Effective transition length in ms (`0` while reduced motion is on). */
   transitionDuration: number;
   /**
-   * Emit the shell's geometry as `var(--pb-shell-*)` references instead of
+   * Emit the shell's geometry as `var(--plocks-shell-*)` references instead of
    * resolved numbers. See `shellCssVars.ts`; web only, and only correct when
    * the app inlines the matching stylesheet.
    */
@@ -328,8 +328,15 @@ export interface BottomAppBarItem {
 }
 
 export interface AppShellBottomNavProps extends BaseProps<ViewStyle> {
-  /** Provide custom children (legacy). If `items` provided, children are ignored. */
+  /** Content pinned to the bottom edge of the shell. */
   children?: React.ReactNode;
+  withBorder?: boolean;
+  zIndex?: number;
+  /** Accessible name of the navigation landmark. */
+  accessibilityLabel?: string;
+}
+
+export interface BottomAppBarProps extends AppShellBottomNavProps {
   /** Structured items definition for standard navigation bar */
   items?: BottomAppBarItem[];
   /** Currently active item key */
@@ -344,10 +351,6 @@ export interface AppShellBottomNavProps extends BaseProps<ViewStyle> {
   elevation?: number;
   /** Optional floating action button rendered centered & elevated */
   fab?: React.ReactNode;
-  withBorder?: boolean;
-  zIndex?: number;
-  /** Accessible name of the bar's `navigation` landmark (BottomAppBar). */
-  accessibilityLabel?: string;
 }
 
 export interface AppShellMainProps extends BaseProps<ViewStyle> {
@@ -384,8 +387,6 @@ export interface AppShellSectionProps extends BaseProps<ViewStyle> {
 export interface MobileMenuProps extends BaseProps<ViewStyle> {
   /** Whether the menu is open. */
   opened?: boolean;
-  /** @deprecated Use `opened` instead. */
-  visible?: boolean;
   /** Called when the menu asks to close (backdrop press, Escape, Android back). */
   onClose: () => void;
   children?: React.ReactNode;

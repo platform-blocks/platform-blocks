@@ -5,7 +5,6 @@ order: 20
 tags: [size, color, state]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -1,16 +1,16 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import type { ReducedMotionSetting } from '../../../core/motion/ReducedMotionProvider';
 import { Skeleton } from '../Skeleton';
 import type { SkeletonProps } from '../types';
 
 function renderSkeleton(props: SkeletonProps = {}, reducedMotion?: ReducedMotionSetting) {
   return render(
-    <PlatformBlocksProvider reducedMotion={reducedMotion}>
+    <PlocksProvider reducedMotion={reducedMotion}>
       <Skeleton testID="skeleton" {...props} />
-    </PlatformBlocksProvider>
+    </PlocksProvider>
   );
 }
 

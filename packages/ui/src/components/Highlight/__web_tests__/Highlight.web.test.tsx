@@ -2,10 +2,10 @@ import React from 'react';
 import { render as rtlRender, screen } from '@testing-library/react';
 
 import { DEFAULT_THEME } from '../../../core/theme/defaultTheme';
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { Highlight } from '../Highlight';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 /** jsdom normalizes colors to `rgb(r, g, b)`. */
 const hexToRgb = (hex: string) => {
@@ -33,7 +33,7 @@ describe('Highlight (react-native-web DOM)', () => {
   it('matches case-sensitively and several values, longest first', () => {
     const { container } = render(
       <Highlight highlight={['block', 'blocks']} caseSensitive>
-        Platform Blocks ships blocks and a block.
+        plocks ships blocks and a block.
       </Highlight>
     );
     const marks = Array.from(container.querySelectorAll('mark')).map((mark) => mark.textContent);

@@ -4,7 +4,6 @@ category: appearance
 order: 35
 tags: [stepper, color]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

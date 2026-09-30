@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { Block, Indicator, Row } from '@platform-blocks/ui';
+import { Block, Indicator, Row } from '@plocks/ui';
 
 const Anchor = ({ children }: { children?: React.ReactNode }) => (
   <Block w={48} h={48} radius="full" bg="subtle" position="relative" align="center" justify="center">

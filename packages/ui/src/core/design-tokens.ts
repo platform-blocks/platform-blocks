@@ -1,20 +1,12 @@
 import { SizeValue } from './theme/types';
-import {
-  DEFAULT_CONTROL_SIZES,
-  DEFAULT_LIGHT_SHADOWS,
-  DEFAULT_RADIUS_SCALE,
-  DEFAULT_SPACING_SCALE,
-} from './theme/scales';
+import { DEFAULT_CONTROL_SIZES } from './theme/scales';
 
 /**
- * Static design tokens.
- *
- * The spacing, radius, shadow and control-height numbers here are the default
- * theme's own (both are built from `core/theme/scales.ts`), so there is one set
- * of numbers. They are static, though — they never follow a custom theme or the
- * dark scheme. Components resolve tokens against the current theme through
- * `core/theme/tokens.ts` (`resolveSpacing`, `resolveRadius`, `getControlSize`,
- * `resolveShadow`, …); reading `DESIGN_TOKENS` from a component is deprecated.
+ * Static design tokens: motion, interaction, opacity and a few component
+ * constants. Spacing, radii, shadows and type sizes live on the theme and are
+ * resolved through `core/theme/tokens.ts` (`resolveSpacing`, `resolveRadius`,
+ * `resolveShadow`, `resolveFontSize`, …), so they follow custom themes and the
+ * dark scheme.
  */
 
 /**
@@ -33,63 +25,6 @@ export const MOTION_TOKENS = {
     easeOut: 'ease-out',
     easeInOut: 'ease-in-out',
     spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-  },
-} as const;
-
-/**
- * Shadow tokens for depth and elevation — the light theme's `shadows`.
- * @deprecated use `resolveShadow(theme, token)`, which follows the dark theme too.
- */
-export const SHADOW_TOKENS = DEFAULT_LIGHT_SHADOWS;
-
-/**
- * Border radius tokens — the default theme's `radii` plus `none` / `full`.
- * @deprecated use `resolveRadius(theme, value)`.
- */
-export const RADIUS_TOKENS = {
-  none: 0,
-  ...DEFAULT_RADIUS_SCALE,
-  full: 9999,
-} as const;
-
-/**
- * Spacing tokens — the default theme's `spacing`.
- * @deprecated use `resolveSpacing(theme, value)`.
- */
-export const SPACING_TOKENS = DEFAULT_SPACING_SCALE;
-
-/**
- * Typography tokens.
- *
- * NOTE: this font-size ladder (md 16) is one step larger than the theme's
- * `fontSizes` (md 14) — it is kept as-is because the components that still read
- * it would visibly change size. They migrate to `resolveFontSize(theme, size)`.
- * @deprecated use `resolveFontSize` / `resolveLineHeight`.
- */
-export const TYPOGRAPHY_TOKENS = {
-  fontSize: {
-    xs: 12,
-    sm: 14,
-    md: 16,
-    lg: 18,
-    xl: 20,
-    '2xl': 24,
-    '3xl': 30,
-  },
-  lineHeight: {
-    xs: 16,
-    sm: 20,
-    md: 24,
-    lg: 28,
-    xl: 32,
-    '2xl': 36,
-    '3xl': 42,
-  },
-  fontWeight: {
-    normal: '400',
-    medium: '500',
-    semibold: '600',
-    bold: '700',
   },
 } as const;
 
@@ -179,10 +114,6 @@ export function getToken<T extends keyof typeof DESIGN_TOKENS, K extends keyof t
  */
 export const DESIGN_TOKENS = {
   motion: MOTION_TOKENS,
-  shadow: SHADOW_TOKENS,
-  radius: RADIUS_TOKENS,
-  spacing: SPACING_TOKENS,
-  typography: TYPOGRAPHY_TOKENS,
   interactive: INTERACTIVE_TOKENS,
   opacity: OPACITY_TOKENS,
   component: COMPONENT_TOKENS,

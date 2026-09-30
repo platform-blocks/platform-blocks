@@ -22,6 +22,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          path: plocks
+
+      - name: Checkout example apps
+        uses: actions/checkout@v4
+        with:
+          repository: platform-blocks/examples
+          path: examples
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -29,16 +36,24 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: |
-            package-lock.json
-            apps/platform-blocks.com/package-lock.json
+            plocks/package-lock.json
+            examples/package-lock.json
 
-      - name: Install dependencies (docs)
+      - name: Install dependencies
         run: npm ci
-        working-directory: apps/platform-blocks.com
+        working-directory: plocks
 
-      - name: Build Expo web bundle
-        run: npm run build-web
-        working-directory: apps/platform-blocks.com
+      - name: Build plocks UI
+        run: npm run ui:build
+        working-directory: plocks
+
+      - name: Install example app dependencies
+        run: npm ci
+        working-directory: examples
+
+      - name: Build docs and live demos
+        run: npm run build-web-with-demos
+        working-directory: plocks/apps/docs
         env:
           EXPO_NO_TELEMETRY: "1"
           EXPO_PUBLIC_WEB_APP_ROOT: "/"
@@ -54,6 +69,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
-          publish_dir: apps/platform-blocks.com/dist
+          publish_dir: plocks/apps/docs/dist
           force_orphan: true
-          cname: platform-blocks.com
+          cname: plocks.dev

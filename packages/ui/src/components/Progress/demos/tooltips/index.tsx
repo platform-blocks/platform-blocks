@@ -1,4 +1,4 @@
-import { Block, Progress } from '@platform-blocks/ui';
+import { Block, Progress } from '@plocks/ui';
 
 const SECTIONS = [
   { label: 'Documents', value: 34, color: 'primary' as const },

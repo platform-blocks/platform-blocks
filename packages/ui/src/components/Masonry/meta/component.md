@@ -2,7 +2,7 @@
 playground: true
 title: Masonry
 description: A masonry layout component that arranges items in columns with varying heights, creating a Pinterest-style layout using FlashList for optimal performance.
-source: "@platform-blocks/ui"
+source: "@plocks/ui"
 status: "stable"
 category: layout
 accessibility: "Semantic layout structure with proper focus management and screen reader support for grid navigation"
@@ -17,7 +17,7 @@ variants:
     description: "Masonry layout with loading states and empty content handling"
 dependencies:
   - "@shopify/flash-list"
-  - "@platform-blocks/core"
+  - "@plocks/core"
 related:
   - "Grid"
   - "Flex"
@@ -64,4 +64,4 @@ props:
     description: "Test identifier for testing frameworks"
 ---
 
-Masonry provides an efficient way to create Pinterest-style layouts where items are arranged in columns with varying heights. Built on FlashList for optimal performance with large datasets, it automatically handles item positioning and provides smooth scrolling even with hundreds of items. The component supports dynamic heights through the heightRatio property on items, custom renderers, and responsive column counts. Perfect for image galleries, card layouts, or any scenario where you need an organic, space-efficient arrangement of content.
+Masonry arranges items of varying heights in responsive columns.

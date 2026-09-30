@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { Block, Knob } from '@platform-blocks/ui';
+import { Block, Knob } from '@plocks/ui';
 
 export function Demo() {
   const [cutoff, setCutoff] = useState(3200);

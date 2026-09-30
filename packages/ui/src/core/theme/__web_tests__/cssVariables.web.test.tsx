@@ -12,16 +12,16 @@ import {
 } from '../cssVariableTheme';
 import { DARK_THEME } from '../darkTheme';
 import { DEFAULT_THEME } from '../defaultTheme';
-import { BUILT_IN_DARK_THEME, PlatformBlocksProvider } from '../PlatformBlocksProvider';
+import { BUILT_IN_DARK_THEME, PlocksProvider } from '../PlocksProvider';
 import { useTheme } from '../ThemeProvider';
 import { generateUniversalCSS } from '../../utils/UniversalCSS';
 
 const html = () => document.documentElement;
-const variableTags = () => Array.from(document.head.querySelectorAll('style[data-platform-blocks-variables]'));
+const variableTags = () => Array.from(document.head.querySelectorAll('style[data-plocks-variables]'));
 
 function resetDocument() {
   document.head.innerHTML = '';
-  html().removeAttribute('data-platform-blocks-color-scheme');
+  html().removeAttribute('data-plocks-color-scheme');
   html().className = '';
   html().style.colorScheme = '';
   window.localStorage.clear();
@@ -36,38 +36,38 @@ describe('CSS variable generator', () => {
 
   it('uses one naming scheme, including the new background roles', () => {
     const vars = themeCssVariables(DEFAULT_THEME);
-    expect(vars['--platform-blocks-palette-primary-5']).toBe(DEFAULT_THEME.colors.primary[5]);
-    expect(vars['--platform-blocks-text-on-primary']).toBe(DEFAULT_THEME.text.onPrimary);
-    expect(vars['--platform-blocks-bg-base']).toBe(DEFAULT_THEME.backgrounds.base);
-    expect(vars['--platform-blocks-bg-border']).toBe(DEFAULT_THEME.backgrounds.border);
-    expect(vars['--platform-blocks-bg-border-strong']).toBe(DEFAULT_THEME.backgrounds.borderStrong);
-    expect(vars['--platform-blocks-bg-hover']).toBe(DEFAULT_THEME.backgrounds.hover);
-    expect(vars['--platform-blocks-bg-mark']).toBe(DEFAULT_THEME.backgrounds.mark);
-    expect(vars['--platform-blocks-bg-scrim']).toBe(DEFAULT_THEME.backgrounds.scrim);
-    expect(vars['--platform-blocks-surface-2-background']).toBe(DEFAULT_THEME.surfaces?.[2].background);
-    expect(vars['--platform-blocks-z-modal']).toBe('1400');
-    expect(vars['--platform-blocks-control-height-md']).toBe('40px');
-    expect(Object.keys(vars).some((name) => name.startsWith('--platform-blocks-color-primary'))).toBe(false);
+    expect(vars['--plocks-palette-primary-5']).toBe(DEFAULT_THEME.colors.primary[5]);
+    expect(vars['--plocks-text-on-primary']).toBe(DEFAULT_THEME.text.onPrimary);
+    expect(vars['--plocks-bg-base']).toBe(DEFAULT_THEME.backgrounds.base);
+    expect(vars['--plocks-bg-border']).toBe(DEFAULT_THEME.backgrounds.border);
+    expect(vars['--plocks-bg-border-strong']).toBe(DEFAULT_THEME.backgrounds.borderStrong);
+    expect(vars['--plocks-bg-hover']).toBe(DEFAULT_THEME.backgrounds.hover);
+    expect(vars['--plocks-bg-mark']).toBe(DEFAULT_THEME.backgrounds.mark);
+    expect(vars['--plocks-bg-scrim']).toBe(DEFAULT_THEME.backgrounds.scrim);
+    expect(vars['--plocks-surface-2-background']).toBe(DEFAULT_THEME.surfaces?.[2].background);
+    expect(vars['--plocks-z-modal']).toBe('1400');
+    expect(vars['--plocks-control-height-md']).toBe('40px');
+    expect(Object.keys(vars).some((name) => name.startsWith('--plocks-color-primary'))).toBe(false);
   });
 
   it('emits the focus ring in both schemes', () => {
-    expect(themeColorVariables(DEFAULT_THEME)['--platform-blocks-focus-ring']).toBe(DEFAULT_THEME.states?.focusRing);
-    expect(themeColorVariables(BUILT_IN_DARK_THEME)['--platform-blocks-focus-ring']).toBe(DARK_THEME.states?.focusRing);
+    expect(themeColorVariables(DEFAULT_THEME)['--plocks-focus-ring']).toBe(DEFAULT_THEME.states?.focusRing);
+    expect(themeColorVariables(BUILT_IN_DARK_THEME)['--plocks-focus-ring']).toBe(DARK_THEME.states?.focusRing);
     const css = createThemeColorVariablesCss(DEFAULT_THEME, BUILT_IN_DARK_THEME);
-    expect(css).toContain(`--platform-blocks-focus-ring: ${DARK_THEME.states?.focusRing}`);
+    expect(css).toContain(`--plocks-focus-ring: ${DARK_THEME.states?.focusRing}`);
   });
 
   it('reads literal colors — no self-referencing var() cycles', () => {
     const rewritten = withCssVariableColors(DEFAULT_THEME);
-    expect(rewritten.backgrounds.base).toMatch(/^var\(--platform-blocks-bg-base,/);
+    expect(rewritten.backgrounds.base).toMatch(/^var\(--plocks-bg-base,/);
     const vars = themeCssVariables(rewritten);
     Object.entries(vars).forEach(([name, value]) => {
       expect(value).not.toContain(`var(${name}`);
     });
-    expect(vars['--platform-blocks-bg-base']).toBe(DEFAULT_THEME.backgrounds.base);
+    expect(vars['--plocks-bg-base']).toBe(DEFAULT_THEME.backgrounds.base);
     const stylesheet = createCSSVariablesStylesheet(rewritten);
     expect(stylesheet).toContain(`body {\n  background-color: ${DEFAULT_THEME.backgrounds.base};`);
-    expect(stylesheet).not.toMatch(/--platform-blocks-bg-base: var\(/);
+    expect(stylesheet).not.toMatch(/--plocks-bg-base: var\(/);
   });
 
   it('paints the body from the theme, not hard-coded colors', () => {
@@ -78,47 +78,47 @@ describe('CSS variable generator', () => {
   });
 });
 
-describe('PlatformBlocksProvider on web', () => {
+describe('PlocksProvider on web', () => {
   it('injects variables, marks <html> and paints body before paint', () => {
     render(
-      <PlatformBlocksProvider colorSchemeMode="dark">
+      <PlocksProvider colorSchemeMode="dark">
         <Text>hi</Text>
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
-    expect(html().getAttribute('data-platform-blocks-color-scheme')).toBe('dark');
-    expect(html().classList.contains('platform-blocks-dark')).toBe(true);
+    expect(html().getAttribute('data-plocks-color-scheme')).toBe('dark');
+    expect(html().classList.contains('plocks-dark')).toBe(true);
     const tags = variableTags();
     expect(tags).toHaveLength(1);
-    expect(tags[0].textContent).toContain(`--platform-blocks-bg-base: ${DARK_THEME.backgrounds.base}`);
+    expect(tags[0].textContent).toContain(`--plocks-bg-base: ${DARK_THEME.backgrounds.base}`);
     expect(tags[0].textContent).toContain(`color: ${DARK_THEME.text.primary}`);
   });
 
   it('stamps no explicit-choice class in auto mode', () => {
     render(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <Text>hi</Text>
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
-    expect(html().getAttribute('data-platform-blocks-color-scheme')).toBe('light');
-    expect(html().classList.contains('platform-blocks-light')).toBe(false);
-    expect(html().classList.contains('platform-blocks-dark')).toBe(false);
+    expect(html().getAttribute('data-plocks-color-scheme')).toBe('light');
+    expect(html().classList.contains('plocks-light')).toBe(false);
+    expect(html().classList.contains('plocks-dark')).toBe(false);
   });
 
   it('nested providers neither override the root marker nor delete its style tag', () => {
     const view = render(
-      <PlatformBlocksProvider colorSchemeMode="light">
-        <PlatformBlocksProvider colorSchemeMode="dark" cssVariablesSelector="#inner">
+      <PlocksProvider colorSchemeMode="light">
+        <PlocksProvider colorSchemeMode="dark" cssVariablesSelector="#inner">
           <Text>inner</Text>
-        </PlatformBlocksProvider>
-      </PlatformBlocksProvider>
+        </PlocksProvider>
+      </PlocksProvider>
     );
-    expect(html().getAttribute('data-platform-blocks-color-scheme')).toBe('light');
+    expect(html().getAttribute('data-plocks-color-scheme')).toBe('light');
     expect(variableTags()).toHaveLength(2);
 
     view.rerender(
-      <PlatformBlocksProvider colorSchemeMode="light">
+      <PlocksProvider colorSchemeMode="light">
         <Text>no inner</Text>
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     const remaining = variableTags();
     expect(remaining).toHaveLength(1);
@@ -130,15 +130,15 @@ describe('PlatformBlocksProvider on web', () => {
 
   it('a nested provider on :root does not rewrite the page variables', () => {
     render(
-      <PlatformBlocksProvider colorSchemeMode="light">
-        <PlatformBlocksProvider colorSchemeMode="dark">
+      <PlocksProvider colorSchemeMode="light">
+        <PlocksProvider colorSchemeMode="dark">
           <Text>inner</Text>
-        </PlatformBlocksProvider>
-      </PlatformBlocksProvider>
+        </PlocksProvider>
+      </PlocksProvider>
     );
     const tags = variableTags();
     expect(tags).toHaveLength(1);
-    expect(tags[0].textContent).toContain(`--platform-blocks-bg-base: ${DEFAULT_THEME.backgrounds.base}`);
+    expect(tags[0].textContent).toContain(`--plocks-bg-base: ${DEFAULT_THEME.backgrounds.base}`);
   });
 
   it('keeps light/dark switching for a { light, dark } theme pair and partial overrides', () => {
@@ -150,40 +150,40 @@ describe('PlatformBlocksProvider on web', () => {
     };
     const pair = { light: { primaryColor: '#111111' }, dark: { primaryColor: '#EEEEEE' } };
     const view = render(
-      <PlatformBlocksProvider theme={pair} colorSchemeMode="dark">
+      <PlocksProvider theme={pair} colorSchemeMode="dark">
         <Probe />
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     expect(seen[seen.length - 1]).toBe(`dark:#EEEEEE:${DARK_THEME.backgrounds.base}`);
 
     view.rerender(
-      <PlatformBlocksProvider theme={pair} colorSchemeMode="light">
+      <PlocksProvider theme={pair} colorSchemeMode="light">
         <Probe />
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     expect(seen[seen.length - 1]).toBe(`light:#111111:${DEFAULT_THEME.backgrounds.base}`);
 
     const partial = { primaryColor: '#ABCDEF' };
     view.rerender(
-      <PlatformBlocksProvider theme={partial} colorSchemeMode="dark">
+      <PlocksProvider theme={partial} colorSchemeMode="dark">
         <Probe />
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     expect(seen[seen.length - 1]).toBe(`dark:#ABCDEF:${DARK_THEME.backgrounds.base}`);
   });
 
   it('injects a focus ring and no global outline:none', () => {
     render(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <Text>hi</Text>
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
-    const css = document.getElementById('platform-blocks-universal-css')?.textContent ?? '';
+    const css = document.getElementById('plocks-universal-css')?.textContent ?? '';
     expect(css).toContain(':focus-visible');
-    expect(css).toContain('var(--platform-blocks-focus-ring');
-    expect(css).toContain(':where([data-pb-input]):focus');
+    expect(css).toContain('var(--plocks-focus-ring');
+    expect(css).toContain(':where([data-plocks-input]):focus');
     expect(css).not.toMatch(/outline:\s*none\s*!important/);
-    expect(generateUniversalCSS()).toContain('@media (min-width: 768px)');
+    expect(generateUniversalCSS()).not.toContain('@media');
   });
 });
 
@@ -195,10 +195,10 @@ describe('getColorSchemeScript', () => {
   };
 
   it('marks a stored explicit choice with the attribute and class', () => {
-    window.localStorage.setItem('platform-blocks-theme-mode', 'dark');
+    window.localStorage.setItem('plocks-theme-mode', 'dark');
     run();
-    expect(html().getAttribute('data-platform-blocks-color-scheme')).toBe('dark');
-    expect(html().classList.contains('platform-blocks-dark')).toBe(true);
+    expect(html().getAttribute('data-plocks-color-scheme')).toBe('dark');
+    expect(html().classList.contains('plocks-dark')).toBe(true);
     expect(html().style.colorScheme).toBe('dark');
   });
 
@@ -207,7 +207,7 @@ describe('getColorSchemeScript', () => {
     window.matchMedia = ((query: string) => ({ ...original(query), matches: query.includes('dark') })) as typeof window.matchMedia;
     try {
       run();
-      expect(html().getAttribute('data-platform-blocks-color-scheme')).toBe('dark');
+      expect(html().getAttribute('data-plocks-color-scheme')).toBe('dark');
       expect(html().className).toBe('');
     } finally {
       window.matchMedia = original;
@@ -216,7 +216,7 @@ describe('getColorSchemeScript', () => {
 
   it('honours custom storage key, default mode and class names', () => {
     run({ storageKey: 'my-key', defaultMode: 'light', lightClass: 'is-light', modeAttribute: 'data-manual' });
-    expect(html().getAttribute('data-platform-blocks-color-scheme')).toBe('light');
+    expect(html().getAttribute('data-plocks-color-scheme')).toBe('light');
     expect(html().classList.contains('is-light')).toBe(true);
     expect(html().getAttribute('data-manual')).toBe('light');
   });

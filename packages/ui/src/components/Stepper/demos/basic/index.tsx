@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Button, Row, Stepper } from '@platform-blocks/ui';
+import { Block, Button, Row, Stepper } from '@plocks/ui';
 
 export function Demo() {
   const [active, setActive] = useState(1);

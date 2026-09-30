@@ -3,7 +3,6 @@ export { ReducedMotionProvider } from './ReducedMotionProvider';
 export type {
   ReducedMotionProviderProps,
   ReducedMotionSetting,
-  ReducedMotionContextValue,
 } from './ReducedMotionProvider';
 export { useTransitionDuration } from './useTransitionDuration';
 export {

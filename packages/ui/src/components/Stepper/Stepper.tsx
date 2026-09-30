@@ -10,7 +10,7 @@ import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { resolveSurface } from '../../core/theme/surfaces';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { getControlSize, onColor } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
 import { useMergedRef } from '../../core/utils/mergeRefs';
 import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
@@ -47,7 +47,7 @@ const MIN_STEPPER_METRICS = {
 const lineWidthForIcon = (iconSize: number) => Math.max(MIN_STEPPER_METRICS.lineWidth, Math.round(iconSize / 16));
 
 /** Stepper proportions, derived from the shared control-size scale (a numeric `size` is a control height). */
-function getStepperMetrics(theme: PlatformBlocksTheme, size: SizeValue): StepperMetrics {
+function getStepperMetrics(theme: PlocksTheme, size: SizeValue): StepperMetrics {
   const control = getControlSize(theme, size);
   const fontSize = Math.max(MIN_STEPPER_METRICS.fontSize, control.fontSize);
   const descriptionFontSize = Math.max(

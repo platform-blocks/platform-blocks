@@ -68,8 +68,11 @@ export interface TreeStateResult {
 }
 
 /**
- * Expansion, lazy loading, filtering and the flattened row model behind
- * `Tree`. The returned object is memoized, and `toggleNode` / `setNodeExpanded`
+ * Returns the headless state behind `Tree` — expansion (controlled or not),
+ * lazy-loaded children, filter matches and the flattened visible `rows` — for
+ * building a custom tree or outline view over the same `TreeNode` data.
+ *
+ * The returned object is memoized, and `toggleNode` / `setNodeExpanded`
  * / `setExpanded` keep one identity for the life of the component, so they can
  * sit in dependency arrays and be handed to memoized rows without re-rendering
  * every row on each expansion.

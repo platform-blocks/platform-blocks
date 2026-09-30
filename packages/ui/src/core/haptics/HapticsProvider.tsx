@@ -18,18 +18,35 @@ export interface HapticsProviderProps {
 const HapticsProviderRoot: React.FC<HapticsProviderProps> = ({ children, defaultEnabled = true }) => {
   const [enabled, setEnabled] = React.useState(defaultEnabled);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const enabledRef = React.useRef(defaultEnabled);
+  const restoreRef = React.useRef(defaultEnabled);
+
+  const updateEnabled = React.useCallback((next: boolean) => {
+    enabledRef.current = next;
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+      restoreRef.current = next;
+    }
+    setEnabled(next);
+  }, []);
 
   const temporarilyDisable = React.useCallback((ms: number) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    else restoreRef.current = enabledRef.current;
     setEnabled(false);
-    timeoutRef.current = setTimeout(() => setEnabled(true), ms);
+    timeoutRef.current = setTimeout(() => {
+      timeoutRef.current = null;
+      enabledRef.current = restoreRef.current;
+      setEnabled(restoreRef.current);
+    }, ms);
   }, []);
 
   React.useEffect(() => () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }, []);
 
   const value = React.useMemo<HapticsContextValue>(
-    () => ({ enabled, setEnabled, temporarilyDisable }),
-    [enabled, temporarilyDisable]
+    () => ({ enabled, setEnabled: updateEnabled, temporarilyDisable }),
+    [enabled, updateEnabled, temporarilyDisable]
   );
 
   return (
@@ -42,7 +59,7 @@ const HapticsProviderRoot: React.FC<HapticsProviderProps> = ({ children, default
 /**
  * App-wide haptics switch. A nested HapticsProvider without `defaultEnabled`
  * shares its parent's state instead of starting a separate one, so an app-level
- * provider above `PlatformBlocksProvider` (which mounts one) stays in control.
+ * provider above `PlocksProvider` (which mounts one) stays in control.
  */
 export const HapticsProvider: React.FC<HapticsProviderProps> = (props) => {
   const parent = React.useContext(HapticsContext);

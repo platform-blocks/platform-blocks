@@ -1,4 +1,4 @@
-export { OverlayProvider, useOverlay, useOverlayApi, useOptionalOverlayApi, useOverlays } from './OverlayProvider';
+export { OverlayProvider, useOverlayApi, useOptionalOverlayApi, useOverlays } from './OverlayProvider';
 export { OverlayRenderer } from './OverlayRenderer';
 export type { OverlayConfig } from './OverlayProvider';
 
@@ -6,7 +6,6 @@ export type { OverlayConfig } from './OverlayProvider';
 export { 
   DirectionProvider, 
   useDirection, 
-  useDirectionSafe,
   DirectionContext 
 } from './DirectionProvider';
 export type { 

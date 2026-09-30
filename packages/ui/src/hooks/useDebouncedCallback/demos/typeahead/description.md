@@ -4,7 +4,6 @@ category: basics
 order: 10
 tags: [debounce, callback, typeahead]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

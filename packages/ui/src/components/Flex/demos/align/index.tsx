@@ -1,4 +1,4 @@
-import { Block, Card, Flex, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Card, Flex, Text, useTheme } from '@plocks/ui';
 
 const ALIGNMENTS = ['flex-start', 'center', 'flex-end', 'stretch', 'baseline'] as const;
 

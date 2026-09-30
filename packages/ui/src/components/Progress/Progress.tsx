@@ -357,7 +357,7 @@ interface FieldA11yInput {
  * work); native has no id references, so it gets their text.
  */
 function useProgressFieldA11y({ ariaLabel, label, description, error }: FieldA11yInput) {
-  const baseId = useA11yId(undefined, 'pb-progress');
+  const baseId = useA11yId(undefined, 'plocks-progress');
   const hasLabel = Boolean(label);
   const hasDescription = Boolean(description) && !error;
   const hasError = Boolean(error);
@@ -591,7 +591,6 @@ function ProgressSectionBase(props: ProgressSectionProps, ref: React.Ref<View>) 
     transitionDuration,
     radius,
     tooltip,
-    tooltipPosition = 'top',
     style,
     'aria-label': ariaLabel,
     'aria-valuetext': ariaValueText,
@@ -634,7 +633,7 @@ function ProgressSectionBase(props: ProgressSectionProps, ref: React.Ref<View>) 
     </ProgressFillContext.Provider>
   );
 
-  const tooltipConfig = resolveTooltipProps(tooltip, { position: tooltipPosition });
+  const tooltipConfig = resolveTooltipProps(tooltip);
   const tooltipText = getTooltipText(tooltip);
 
   const accessibility = a11yProps({

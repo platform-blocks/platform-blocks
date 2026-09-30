@@ -5,7 +5,6 @@ order: 15
 tags: [variants, radio, radiogroup, segmented, chip, card]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

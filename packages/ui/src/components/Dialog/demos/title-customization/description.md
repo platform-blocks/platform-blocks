@@ -4,7 +4,6 @@ order: 50
 tags: [titleProps, customization, slot-props]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

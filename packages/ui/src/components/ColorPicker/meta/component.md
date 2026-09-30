@@ -40,9 +40,4 @@ examples:
   - basic
 ---
 
-ColorPicker is a lightweight alternative to ColorInput for cases where a full hex input and field chrome are unnecessary. It renders a single color preview button that opens a compact palette of preset swatches — an anchored dropdown on desktop web, a sheet on native and small screens.
-
-## Accessibility
-
-- The trigger is a button named after the current color (or `accessibilityLabel`) and reports `aria-expanded`.
-- The palette is a `radiogroup` of `radio` swatches; on web it has one tab stop, arrow keys move in two dimensions, and Enter or Space picks a swatch. Escape closes the palette and returns focus to the trigger.
+ColorPicker opens a compact palette for choosing a preset color.

@@ -2,7 +2,7 @@
 playground: true
 title: Overlay
 description: Dim or highlight areas of the interface with configurable color, opacity, gradients, and blur.
-source: "@platform-blocks/ui"
+source: "@plocks/ui"
 status: "beta"
 category: overlay
 accessibility: "Non-interactive layer; ensure interactive overlays include appropriate focus management and keyboard escape affordances."
@@ -10,7 +10,7 @@ variants:
   - name: "basic"
     description: "Default overlay with optional blur, gradients, and centered content."
 dependencies:
-  - "@platform-blocks/core"
+  - "@plocks/core"
 related:
   - "Dialog"
   - "Tooltip"
@@ -51,4 +51,4 @@ props:
     description: "Optional content rendered inside the overlay."
 ---
 
-The Overlay component provides a utility for dimming background content or drawing focus to foreground elements. It supports theme-aware colors, configurable opacity, gradients, and blur to achieve anything from subtle scrims to dramatic glassmorphism. Because Overlay is non-interactive by default, pair it with focus traps or dismiss controls when building dialogs, sheets, or other blocking surfaces.
+Overlay dims or blurs content behind a foreground element.

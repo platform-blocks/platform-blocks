@@ -9,7 +9,6 @@ import { webStyle } from '../../core/platform/webStyle';
 import { getComponentDefaultRadius } from '../../core/theme/radius';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { getControlSize, resolveRadius, resolveSpacing } from '../../core/theme/tokens';
-import { warnOnce } from '../../core/utils/logger';
 import { useMergedRef } from '../../core/utils/mergeRefs';
 import { resolveStyleProps, extractStyleProps } from '../../core/utils/spacing';
 import { useControllableState } from '../../hooks/useControllableState/useControllableState';
@@ -17,7 +16,6 @@ import { Icon } from '../Icon';
 import { Input } from '../Input/Input';
 import type { ExtendedTextInputProps } from '../Input/types';
 import { Space } from '../Space';
-import { spotlight } from '../Spotlight';
 import { useSurfaceStyles } from '../Surface/useSurfaceStyles';
 import { Text } from '../Text';
 import type { SearchProps } from './types';
@@ -27,7 +25,7 @@ const SEARCHBOX_PROPS: ExtendedTextInputProps = a11yProps({ role: 'searchbox' })
 /**
  * Search field with a leading search icon, a clear button, an optional loading
  * indicator and debounced `onChangeText`. `buttonMode` renders a button that
- * opens Spotlight instead. `ref` points at the TextInput.
+ * calls `onPress` instead. `ref` points at the TextInput.
  */
 export const Search = factory<{ props: SearchProps; ref: TextInput }>(
   (props, ref) => {
@@ -36,7 +34,6 @@ export const Search = factory<{ props: SearchProps; ref: TextInput }>(
       value,
       defaultValue,
       onChangeText,
-      onChange,
       onSubmit,
       placeholder = 'Search...',
       size = 'sm',
@@ -58,10 +55,6 @@ export const Search = factory<{ props: SearchProps; ref: TextInput }>(
       onPress,
     } = otherProps;
 
-    if (onChange && !onChangeText) {
-      warnOnce('Search.onChange', '[platform-blocks] Search: `onChange` is deprecated. Use `onChangeText`.');
-    }
-
     const theme = useTheme();
     const triggerSurface = useSurfaceStyles({ raised: true, withBorder: true, shadow: 'none' });
     const spacingStyles = resolveStyleProps(styleProps, theme);
@@ -80,7 +73,7 @@ export const Search = factory<{ props: SearchProps; ref: TextInput }>(
     const shownQuery = pendingText ?? query;
 
     const emitChange = useLatestCallback((next: string) => {
-      (onChangeText ?? onChange)?.(next);
+      onChangeText?.(next);
     });
 
     const cancelPending = useCallback(() => {
@@ -160,12 +153,7 @@ export const Search = factory<{ props: SearchProps; ref: TextInput }>(
     }
 
     const handleButtonPress = useCallback(() => {
-      if (onPress) {
-        onPress();
-      } else {
-        // Default behavior: open spotlight
-        spotlight.open();
-      }
+      onPress?.();
     }, [onPress]);
 
     if (buttonMode) {

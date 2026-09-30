@@ -4,7 +4,6 @@ category: appearance
 order: 30
 tags: [stepper, icons]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

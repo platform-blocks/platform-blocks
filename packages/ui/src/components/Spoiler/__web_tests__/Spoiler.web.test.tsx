@@ -2,7 +2,7 @@ import React from 'react';
 import { Text } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { Spoiler } from '../Spoiler';
 
 /** jsdom has no layout: hand every onLayout listener a measured height. */
@@ -21,11 +21,11 @@ describe('Spoiler (react-native-web DOM)', () => {
   it('the toggle is a button with aria-expanded and aria-controls pointing at the content', () => {
     const onExpandedChange = jest.fn();
     render(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <Spoiler mah={100} transitionDuration={0} onExpandedChange={onExpandedChange}>
           <Text>Long content</Text>
         </Spoiler>
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     layoutAll(400);
 
@@ -44,11 +44,11 @@ describe('Spoiler (react-native-web DOM)', () => {
 
   it('renders no toggle when the content fits', () => {
     render(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <Spoiler mah={100}>
           <Text>Short</Text>
         </Spoiler>
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     layoutAll(40);
     expect(screen.queryByRole('button')).toBeNull();
@@ -56,11 +56,11 @@ describe('Spoiler (react-native-web DOM)', () => {
 
   it('marks a disabled toggle aria-disabled', () => {
     render(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <Spoiler mah={100} disabled>
           <Text>Long content</Text>
         </Spoiler>
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     layoutAll(400);
     expect(screen.getByRole('button', { name: 'Show more' }).getAttribute('aria-disabled')).toBe('true');

@@ -4,7 +4,6 @@ order: 36
 tags: [precision, step, decimal, valueLabel, tooltip]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

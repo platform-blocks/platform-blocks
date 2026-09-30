@@ -5,7 +5,6 @@ order: 45
 tags: [icon, character]
 highlightLines: []
 status: stable
-since: 0.11.0
 hidden: false
 ---
 

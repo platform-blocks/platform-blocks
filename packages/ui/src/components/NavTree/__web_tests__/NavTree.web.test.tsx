@@ -1,11 +1,11 @@
 import React from 'react';
 import { fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { NavTree } from '../NavTree';
 import type { NavTreeItem } from '../types';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 const ITEMS: NavTreeItem<{ badge: number }>[] = [
   { label: 'Getting Started', href: '/getting-started' },
@@ -50,7 +50,7 @@ describe('NavTree (react-native-web DOM)', () => {
   });
 
   it('infers the item payload type from `items` (docs-site usage compiles)', () => {
-    // Mirrors apps/platform-blocks.com: a typed handler and a group decorator.
+    // Mirrors apps/docs: a typed handler and a group decorator.
     const badges: number[] = [];
     const handleNavigate = (item: NavTreeItem<{ badge: number }>) => {
       if (item.data) badges.push(item.data.badge);

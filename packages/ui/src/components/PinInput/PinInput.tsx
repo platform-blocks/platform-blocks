@@ -12,7 +12,6 @@ import { useTheme } from '../../core/theme/ThemeProvider';
 import { getControlSize } from '../../core/theme/tokens';
 import type { FieldHandle } from '../../core/types/base';
 import { getLayoutStyles } from '../../core/utils/layout';
-import { warnOnce } from '../../core/utils/logger';
 import { useStyleProps } from '../../core/utils/spacing';
 import { useControllableState } from '../../hooks/useControllableState';
 import { Disclaimer } from '../_internal/Disclaimer/Disclaimer';
@@ -21,7 +20,7 @@ import { getFieldFrameStyles } from '../_internal/Field/fieldFrameStyles';
 import { useGroupFocus } from '../Checkbox/useGroupFocus';
 import type { PinInputProps } from './types';
 
-const PB_INPUT_DATASET = { pbInput: 'true' } as const;
+const PLOCKS_INPUT_DATASET = { plocksInput: 'true' } as const;
 
 /**
  * A code / PIN entry: one single-character cell per position, with automatic
@@ -50,7 +49,6 @@ export const PinInput = factory<{ props: PinInputProps; ref: FieldHandle }>((pro
     error,
     size = 'md',
     radius,
-    borderRadius,
     variant = 'default',
     textInputProps,
     label,
@@ -82,10 +80,6 @@ export const PinInput = factory<{ props: PinInputProps; ref: FieldHandle }>((pro
     disclaimer,
     disclaimerProps,
   } = props;
-
-  if (borderRadius !== undefined) {
-    warnOnce('PinInput.borderRadius', '[PinInput] `borderRadius` is deprecated and will be removed; use `radius` instead.');
-  }
 
   const theme = useTheme();
   const spacingStyles = useStyleProps(props);
@@ -294,7 +288,7 @@ export const PinInput = factory<{ props: PinInputProps; ref: FieldHandle }>((pro
       <View id={groupId} role="group" aria-labelledby={labelledBy} style={styles.row}>
         {digits.map((digit, index) => {
           const focused = focusedIndex === index;
-          const frame = getFieldFrameStyles(theme, size, variant, radius ?? borderRadius, invalid, focused, disabled);
+          const frame = getFieldFrameStyles(theme, size, variant, radius, invalid, focused, disabled);
           return (
             <View key={index} style={[frame.frame, styles.cell]}>
               {focused && !disabled ? <View style={frame.focusRing} /> : null}
@@ -304,7 +298,7 @@ export const PinInput = factory<{ props: PinInputProps; ref: FieldHandle }>((pro
                 }}
                 {...cellWiring}
                 {...a11yProps({ label: cellLabel(index) })}
-                {...webProps({ dataSet: PB_INPUT_DATASET })}
+                {...webProps({ dataSet: PLOCKS_INPUT_DATASET })}
                 testID={testID ? `${testID}-cell-${index}` : undefined}
                 style={[frame.input, styles.input]}
                 value={mask && digit ? maskChar : digit}

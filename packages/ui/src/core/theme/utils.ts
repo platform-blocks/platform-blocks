@@ -1,12 +1,11 @@
 import { DARK_THEME } from './darkTheme';
 import { DEFAULT_FONT_FAMILY_MONO, DEFAULT_THEME } from './defaultTheme';
 import { DEFAULT_CONTROL_SIZES, SCALE_KEYS, type ControlSizes } from './scales';
-import { deriveSemanticColors } from './semanticColors';
 import { parsePx } from './tokens';
 import type {
-  PlatformBlocksTheme,
-  PlatformBlocksThemeOverride,
-  PlatformBlocksThemePair,
+  PlocksTheme,
+  PlocksThemeOverride,
+  PlocksThemePair,
   ThemeBackgrounds,
 } from './types';
 import { DEFAULT_Z_INDICES } from './zIndices';
@@ -15,37 +14,32 @@ import { DEFAULT_Z_INDICES } from './zIndices';
  * The built-in theme for each scheme. `DARK_THEME` is complete, but spreading
  * `DEFAULT_THEME` first keeps anything it doesn't define (e.g. `designTokens`).
  */
-const BUILT_IN_THEMES: Record<'light' | 'dark', PlatformBlocksTheme> = {
+const BUILT_IN_THEMES: Record<'light' | 'dark', PlocksTheme> = {
   light: DEFAULT_THEME,
   dark: { ...DEFAULT_THEME, ...DARK_THEME, colorScheme: 'dark' },
 };
 
 /** The built-in (library default) theme for a color scheme. */
-export function getBuiltInTheme(scheme: 'light' | 'dark'): PlatformBlocksTheme {
+export function getBuiltInTheme(scheme: 'light' | 'dark'): PlocksTheme {
   return BUILT_IN_THEMES[scheme];
 }
 
 /**
  * Deep merges a theme override with a base theme.
  *
- * Arrays (palettes) are replaced, not merged. The deprecated `semantic` aliases
- * are re-derived from the merged roles unless the override sets them, and
- * control-size font sizes follow an overridden `fontSizes` scale unless the
- * override also sets `controlSizes`.
+ * Arrays (palettes) are replaced, not merged, and control-size font sizes
+ * follow an overridden `fontSizes` scale unless the override also sets
+ * `controlSizes`.
  */
 export function mergeTheme(
-  defaultTheme: PlatformBlocksTheme,
-  themeOverride?: PlatformBlocksThemeOverride
-): PlatformBlocksTheme {
+  defaultTheme: PlocksTheme,
+  themeOverride?: PlocksThemeOverride
+): PlocksTheme {
   if (!themeOverride) {
     return defaultTheme;
   }
 
   const merged = deepMerge(defaultTheme, themeOverride);
-
-  if (!themeOverride.semantic) {
-    merged.semantic = deriveSemanticColors(merged);
-  }
 
   if (themeOverride.fontSizes && !themeOverride.controlSizes) {
     merged.controlSizes = controlSizesForFontSizes(merged.controlSizes, merged.fontSizes);
@@ -57,7 +51,7 @@ export function mergeTheme(
 /** Re-points each control size's `fontSize` at the matching entry of `fontSizes`. */
 function controlSizesForFontSizes(
   controlSizes: ControlSizes | undefined,
-  fontSizes: PlatformBlocksTheme['fontSizes']
+  fontSizes: PlocksTheme['fontSizes']
 ): ControlSizes {
   const base = controlSizes ?? DEFAULT_CONTROL_SIZES;
   const out = {} as ControlSizes;
@@ -102,18 +96,18 @@ const NEW_BACKGROUND_ROLES: (keyof ThemeBackgrounds)[] = [
   'scrim',
 ];
 
-const normalizedCache = new WeakMap<object, PlatformBlocksTheme>();
+const normalizedCache = new WeakMap<object, PlocksTheme>();
 
 /**
- * Fills the theme fields added after 1.x on a theme that predates them — a
- * complete custom theme object handed to a provider, say. Missing
- * `controlSizes`, `zIndices`, `fontFamilyMono`, background roles and
- * `semantic` come from the built-in theme of the same color scheme.
+ * Fills the groups a hand-written theme object tends to leave out — a complete
+ * custom theme handed to a provider, say. Missing `controlSizes`, `zIndices`,
+ * `fontFamilyMono` and background roles come from the built-in theme of the
+ * same color scheme.
  *
  * Returns the input itself when nothing is missing, and a cached object per
  * input otherwise, so the result is referentially stable.
  */
-export function normalizeTheme(theme: PlatformBlocksTheme): PlatformBlocksTheme {
+export function normalizeTheme(theme: PlocksTheme): PlocksTheme {
   if (!theme || typeof theme !== 'object') return theme;
   const cached = normalizedCache.get(theme);
   if (cached) return cached;
@@ -125,7 +119,6 @@ export function normalizeTheme(theme: PlatformBlocksTheme): PlatformBlocksTheme 
     !theme.controlSizes ||
     !theme.zIndices ||
     !theme.fontFamilyMono ||
-    !theme.semantic ||
     missingRoles.length > 0;
 
   if (!needsFill) {
@@ -134,13 +127,12 @@ export function normalizeTheme(theme: PlatformBlocksTheme): PlatformBlocksTheme 
   }
 
   const filledBackgrounds = { ...builtIn.backgrounds, ...(backgrounds ?? {}) } as ThemeBackgrounds;
-  const normalized: PlatformBlocksTheme = {
+  const normalized: PlocksTheme = {
     ...theme,
     backgrounds: filledBackgrounds,
     controlSizes: theme.controlSizes ?? builtIn.controlSizes ?? DEFAULT_CONTROL_SIZES,
     zIndices: { ...DEFAULT_Z_INDICES, ...(theme.zIndices ?? {}) },
     fontFamilyMono: theme.fontFamilyMono ?? builtIn.fontFamilyMono ?? DEFAULT_FONT_FAMILY_MONO,
-    semantic: theme.semantic ?? deriveSemanticColors({ ...theme, backgrounds: filledBackgrounds }),
   };
   // A theme rewritten to CSS variables keeps its literal twins in step.
   const literalBackgroundsIn = theme.literalColors?.backgrounds as Partial<ThemeBackgrounds> | undefined;
@@ -155,7 +147,7 @@ export function normalizeTheme(theme: PlatformBlocksTheme): PlatformBlocksTheme 
 }
 
 /** True for `{ light?, dark? }` theme pairs (as opposed to a single theme override). */
-export function isThemePair(value: unknown): value is PlatformBlocksThemePair {
+export function isThemePair(value: unknown): value is PlocksThemePair {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Record<string, unknown>;
   if ('colors' in candidate || 'colorScheme' in candidate || 'primaryColor' in candidate) return false;
@@ -164,7 +156,7 @@ export function isThemePair(value: unknown): value is PlatformBlocksThemePair {
   return Object.keys(candidate).every((key) => key === 'light' || key === 'dark');
 }
 
-const schemeThemeCache = new WeakMap<object, Partial<Record<'light' | 'dark', PlatformBlocksTheme>>>();
+const schemeThemeCache = new WeakMap<object, Partial<Record<'light' | 'dark', PlocksTheme>>>();
 
 /**
  * The complete theme for `scheme` given a provider's `theme` prop:
@@ -179,9 +171,9 @@ const schemeThemeCache = new WeakMap<object, Partial<Record<'light' | 'dark', Pl
  * Results are cached per input object and scheme (stable identity).
  */
 export function resolveThemeForScheme(
-  theme: PlatformBlocksThemeOverride | PlatformBlocksThemePair | undefined | null,
+  theme: PlocksThemeOverride | PlocksThemePair | undefined | null,
   scheme: 'light' | 'dark'
-): PlatformBlocksTheme {
+): PlocksTheme {
   if (!theme) return getBuiltInTheme(scheme);
 
   let perInput = schemeThemeCache.get(theme);
@@ -192,12 +184,12 @@ export function resolveThemeForScheme(
   const cached = perInput[scheme];
   if (cached) return cached;
 
-  let resolved: PlatformBlocksTheme;
+  let resolved: PlocksTheme;
   if (isThemePair(theme)) {
     const side = theme[scheme];
     resolved = side ? mergeOnto(scheme, side) : getBuiltInTheme(scheme);
   } else {
-    const override = theme as PlatformBlocksThemeOverride;
+    const override = theme as PlocksThemeOverride;
     const pinned = override.colorScheme === 'dark' || override.colorScheme === 'light' ? override.colorScheme : scheme;
     resolved = mergeOnto(pinned, override);
   }
@@ -205,7 +197,7 @@ export function resolveThemeForScheme(
   return resolved;
 }
 
-function mergeOnto(scheme: 'light' | 'dark', override: PlatformBlocksThemeOverride): PlatformBlocksTheme {
+function mergeOnto(scheme: 'light' | 'dark', override: PlocksThemeOverride): PlocksTheme {
   const merged = mergeTheme(getBuiltInTheme(scheme), override);
   if (!override.colorScheme) merged.colorScheme = scheme;
   return normalizeTheme(merged);
@@ -214,6 +206,6 @@ function mergeOnto(scheme: 'light' | 'dark', override: PlatformBlocksThemeOverri
 /**
  * Creates a theme object with proper type checking
  */
-export function createTheme(themeOverride: PlatformBlocksThemeOverride): PlatformBlocksThemeOverride {
+export function createTheme(themeOverride: PlocksThemeOverride): PlocksThemeOverride {
   return themeOverride;
 }

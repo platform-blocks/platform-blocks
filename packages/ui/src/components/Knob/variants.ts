@@ -1,5 +1,5 @@
 import { literalBackgrounds, literalText } from '../../core/theme/cssVariableTheme';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import type { KnobAppearance, KnobVariant } from './types';
 
 /**
@@ -12,7 +12,7 @@ import type { KnobAppearance, KnobVariant } from './types';
  * so any single property can still be overridden without opting out of the variant.
  */
 export type KnobVariantContext = {
-  theme: PlatformBlocksTheme;
+  theme: PlocksTheme;
   /** Resolved diameter in pixels — every metric below scales off it. */
   size: number;
   /** The already-resolved highlight color for this knob. */
@@ -26,7 +26,7 @@ const scale = (size: number, ratio: number, min: number) => Math.max(min, Math.r
  * The neutral chrome the presets draw with — semantic roles, read as literals
  * because they end up as SVG strokes (on web the tokens are `var()` references).
  */
-const chrome = (theme: PlatformBlocksTheme) => {
+const chrome = (theme: PlocksTheme) => {
   const text = literalText(theme);
   const lines = literalBackgrounds(theme);
   return {

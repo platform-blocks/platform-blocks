@@ -2,10 +2,10 @@ import React from 'react';
 import { Text } from 'react-native';
 import { fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { Button } from '../Button';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('Button (react-native-web DOM)', () => {
   it('is a button named by its text, including nested text children', () => {
@@ -46,16 +46,14 @@ describe('Button (react-native-web DOM)', () => {
     expect(screen.getByRole('tab', { name: 'Overview' }).getAttribute('aria-selected')).toBe('true');
   });
 
-  it('renders startSection / endSection (and the deprecated aliases)', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  it('renders startSection / endSection', () => {
     render(
       <>
         <Button title="Next" endSection={<Text testID="end">→</Text>} />
-        <Button title="Back" startIcon={<Text testID="legacy">←</Text>} />
+        <Button title="Back" startSection={<Text testID="start">←</Text>} />
       </>
     );
     expect(screen.getByTestId('end')).toBeTruthy();
-    expect(screen.getByTestId('legacy')).toBeTruthy();
-    warn.mockRestore();
+    expect(screen.getByTestId('start')).toBeTruthy();
   });
 });

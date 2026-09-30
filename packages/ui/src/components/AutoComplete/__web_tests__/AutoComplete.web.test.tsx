@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
 import { __resetLayerStackForTests } from '../../../core/overlay/layerStack';
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { AutoComplete } from '../AutoComplete';
 import type { AutoCompleteOption, AutoCompleteProps } from '../types';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 // jsdom has no layout; give every element a box so the positioner can place
 // the dropdown (an unmeasurable anchor keeps it closed).

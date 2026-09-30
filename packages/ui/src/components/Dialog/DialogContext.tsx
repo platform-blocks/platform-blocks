@@ -188,7 +188,16 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Back-compat: full object (re-renders on dialog list changes)
+/**
+ * Returns the nearest `DialogProvider`'s full dialog API — the open `dialogs`
+ * list plus `openDialog`, `closeDialog`, `removeDialog` and `closeAllDialogs` —
+ * and never throws: outside a provider it returns a global bridge that queues
+ * calls until one mounts.
+ *
+ * Kept for back-compat; it re-renders whenever the dialog list changes, so a
+ * component that only opens or closes dialogs should use `useDialogApi()`, and
+ * one that only reads the list `useDialogs()`.
+ */
 export function useDialog(): DialogContextValue {
   const api = useContext(DialogApiContext);
   const dialogs = useContext(DialogsStateContext);
@@ -204,6 +213,12 @@ export function useDialog(): DialogContextValue {
   return value ?? dialogBridge;
 }
 
+/**
+ * Returns just the dialog actions (`openDialog`, `closeDialog`, `removeDialog`,
+ * `closeAllDialogs`) of the nearest `DialogProvider` without subscribing to the
+ * dialog list, so opening a dialog doesn't re-render the caller; outside a
+ * provider it returns a bridge that queues calls until one mounts.
+ */
 export function useDialogApi() {
   const api = useContext(DialogApiContext);
   useEffect(() => {
@@ -214,6 +229,13 @@ export function useDialogApi() {
   return api ?? dialogApiBridge;
 }
 
+/**
+ * Returns the nearest `DialogProvider`'s open dialogs (`DialogConfig[]`, in
+ * the order they were opened) and re-renders when the list changes — for
+ * custom dialog renderers and "is anything open?" checks; outside a provider
+ * it returns a non-reactive snapshot (empty when none is mounted) instead of
+ * throwing.
+ */
 export function useDialogs() {
   const dialogs = useContext(DialogsStateContext);
   useEffect(() => {

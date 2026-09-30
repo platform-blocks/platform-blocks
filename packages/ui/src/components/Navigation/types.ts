@@ -84,12 +84,7 @@ export interface DrawerNavigatorProps extends NavigatorProps {
   drawerAccessibilityLabel?: string;
 }
 
-export interface StackOptions extends NavigationOptions {
-  /** @deprecated Not implemented — every screen presents as a card. Accepted for React Navigation parity. */
-  presentation?: 'modal' | 'card';
-  /** @deprecated Not implemented — there is no swipe-back gesture. Accepted for React Navigation parity. */
-  gestureEnabled?: boolean;
-}
+export type StackOptions = NavigationOptions;
 
 export interface StackScreenProps extends Omit<ScreenProps, 'options'> {
   options?: StackOptions | ((props: { route: Route }) => StackOptions);
@@ -112,8 +107,6 @@ export type LinkingScreenConfig = string | { path?: string; screens?: Record<str
 
 /** Basic URL ↔ route mapping for web (a subset of React Navigation's `linking`). */
 export interface LinkingOptions {
-  /** Accepted for React Navigation parity; only the path is matched. */
-  prefixes?: string[];
   config?: {
     screens?: Record<string, LinkingScreenConfig>;
   };
@@ -123,11 +116,6 @@ export interface NavigationContainerProps extends BaseProps<ViewStyle> {
   children: ReactNode;
   initialState?: NavigationState;
   onStateChange?: (state: NavigationState) => void;
-  /**
-   * @deprecated Ignored. Accepted so React Navigation-style call sites type-check;
-   * the navigators read the platform-blocks theme.
-   */
-  theme?: unknown;
   /** Web: sync the current route with the URL (push on navigate, follow back/forward). */
   linking?: LinkingOptions;
 }

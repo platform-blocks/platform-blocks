@@ -1,0 +1,46 @@
+{
+  "name": "create-plocks",
+  "version": "0.1.0",
+  "description": "Start a new plocks app from a template: npm create plocks@latest",
+  "type": "module",
+  "bin": {
+    "create-plocks": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "start": "node dist/index.js"
+  },
+  "keywords": [
+    "plocks",
+    "react-native",
+    "expo",
+    "create",
+    "template",
+    "starter"
+  ],
+  "author": "Josh Stovall",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/platform-blocks/plocks.git",
+    "directory": "packages/create-plocks"
+  },
+  "bugs": {
+    "url": "https://github.com/platform-blocks/plocks/issues"
+  },
+  "homepage": "https://plocks.dev",
+  "devDependencies": {
+    "@clack/prompts": "^1.8.1",
+    "picocolors": "^1.1.1",
+    "tar": "^7.5.22"
+  }
+}

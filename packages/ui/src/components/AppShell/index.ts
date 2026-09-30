@@ -85,6 +85,7 @@ export type {
   AppShellMainProps,
   AppShellSectionProps,
   AppShellBottomNavProps,
+  BottomAppBarProps,
   BottomAppBarItem,
   MobileMenuProps,
   StatusBarManagerProps,

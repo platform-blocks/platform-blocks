@@ -2,7 +2,6 @@ export { Input } from './Input';
 export { PasswordInput } from './PasswordInput';
 export { TextInputBase } from './InputBase';
 export type {
-  BaseInputProps,
   ExtendedTextInputProps,
   InputProps,
   InputVariant,

@@ -1,11 +1,10 @@
 ---
-title: Basic Usage
+title: Basics
 category: basics
 order: 10
 tags: [datalist]
 highlightLines: []
 status: stable
-since: 0.10.1
 hidden: false
 ---
 

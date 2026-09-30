@@ -11,6 +11,26 @@ import {
 } from '../KeyboardManagerProvider';
 
 describe('HapticsProvider', () => {
+  it('restores the previous setting and respects changes during a temporary disable', () => {
+    jest.useFakeTimers();
+    try {
+      const wrapper = ({ children }: { children: React.ReactNode }) => <HapticsProvider defaultEnabled={false}>{children}</HapticsProvider>;
+      const { result } = renderHook(() => useHapticsSettings(), { wrapper });
+      act(() => result.current.temporarilyDisable(100));
+      act(() => jest.advanceTimersByTime(100));
+      expect(result.current.enabled).toBe(false);
+
+      act(() => result.current.setEnabled(true));
+      act(() => result.current.temporarilyDisable(100));
+      expect(result.current.enabled).toBe(false);
+      act(() => result.current.setEnabled(false));
+      act(() => jest.advanceTimersByTime(100));
+      expect(result.current.enabled).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('memoizes its value', () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => <HapticsProvider>{children}</HapticsProvider>;
     const { result, rerender } = renderHook(() => useHapticsSettings(), { wrapper });

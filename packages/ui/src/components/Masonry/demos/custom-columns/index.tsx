@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Block, Button, Card, Masonry, Row, Text } from '@platform-blocks/ui';
-import type { MasonryItem } from '@platform-blocks/ui';
+import { Block, Button, Card, Masonry, Row, Text } from '@plocks/ui';
+import type { MasonryItem } from '@plocks/ui';
 
 const COLUMN_OPTIONS = [1, 2, 3, 4];
 

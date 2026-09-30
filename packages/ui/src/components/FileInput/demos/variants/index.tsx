@@ -1,4 +1,4 @@
-import { Block, FileInput } from '@platform-blocks/ui';
+import { Block, FileInput } from '@plocks/ui';
 
 const sizes = [
   { label: 'Small', size: 'sm' as const },

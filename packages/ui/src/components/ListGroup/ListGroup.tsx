@@ -4,7 +4,7 @@ import { View, Pressable, StyleSheet, type ViewStyle } from 'react-native';
 import { Text } from '../Text';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveFontSize, resolveRadius } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import { resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
 import type {
   ListGroupProps,
@@ -41,7 +41,7 @@ const DEFAULT_LIST_GROUP_METRICS: ListGroupMetrics = LIST_GROUP_SIZE_SCALE.md ??
   textSize: 'md',
 };
 
-function resolveListGroupMetrics(theme: PlatformBlocksTheme, value: ComponentSizeValue | undefined): ListGroupMetrics {
+function resolveListGroupMetrics(theme: PlocksTheme, value: ComponentSizeValue | undefined): ListGroupMetrics {
   const resolved = resolveComponentSize(value, LIST_GROUP_SIZE_SCALE, {
     allowedSizes: LIST_GROUP_ALLOWED_SIZES,
     fallback: 'md',
@@ -50,7 +50,7 @@ function resolveListGroupMetrics(theme: PlatformBlocksTheme, value: ComponentSiz
 }
 
 // A numeric size is a font size; padding and gaps scale from the md row.
-function calculateNumericMetrics(theme: PlatformBlocksTheme, fontSize: number): ListGroupMetrics {
+function calculateNumericMetrics(theme: PlocksTheme, fontSize: number): ListGroupMetrics {
   const scale = fontSize / (resolveFontSize(theme, 'md') || 14);
   const scaleAndClamp = (measurement: number, minimum: number) => Math.max(minimum, Math.round(measurement * scale));
 

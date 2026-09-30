@@ -1,4 +1,4 @@
-import type { NetworkLink, NetworkNode } from '@platform-blocks/charts';
+import type { NetworkLink, NetworkNode } from '@plocks/charts';
 
 export const suppliers = (
   [

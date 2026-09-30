@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Chip, Row } from '@platform-blocks/ui';
+import { Chip, Row } from '@plocks/ui';
 
 export function Demo() {
   const [tags, setTags] = useState(['Soccer', 'Basketball', 'Tennis']);

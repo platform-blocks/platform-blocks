@@ -73,10 +73,4 @@ examples:
   - swatches
 ---
 
-The ColorInput component lets people type a hex color or pick one from a palette of preset swatches. The hex input is labelled by the field label; the palette opens as an anchored dropdown on desktop web and as a sheet on native and small screens.
-
-## Accessibility
-
-- The swatch toggle is a labelled button ("Show color swatches" / "Hide color swatches") that reports `aria-expanded` and controls the palette dialog.
-- The palette is a `radiogroup` ("Color swatches") of `radio` swatches named by their hex value (or `swatchLabels`). On web it has a single tab stop; arrow keys, Home and End move between swatches, and Enter or Space picks one.
-- The ref is a field handle: `focus()`, `blur()` and `clear()`.
+ColorInput combines a hex field with a palette of preset colors.

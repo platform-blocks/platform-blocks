@@ -5,8 +5,11 @@
  */
 import fs from 'fs';
 import path from 'path';
+import ts from 'typescript';
 
-import { CORE_COMPONENTS } from '../apps/platform-blocks.com/config/coreComponents';
+import { CHART_DOCS } from '../apps/docs/config/charts';
+import { CORE_COMPONENTS } from '../apps/docs/config/coreComponents';
+import { UI_PACKAGE, listWorkspacePackages, packageContaining } from './lib/packages';
 
 // Optional zod import for component meta validation
 let z: any; try { z = require('zod'); } catch { z = null; }
@@ -16,20 +19,19 @@ const ComponentMetaSchema = z?.object?.({
   title: z.string(),
   description: z.string(),
   status: z.string().optional(),
-  since: z.string().optional(),
   category: z.string().optional(),
 }) || { safeParse: () => ({ success: true }) };
 
 interface DemoMeta { id: string; component: string; demo: string; title: string; order: number; hidden?: boolean; }
 
 const ROOT = path.resolve(__dirname, '..');
-const OUTPUT_DIR = path.join(ROOT, 'apps', 'platform-blocks.com', 'data', 'generated');
+const OUTPUT_DIR = path.join(ROOT, 'apps', 'docs', 'data', 'generated');
 const FILE = path.join(OUTPUT_DIR, 'demos.json');
+const WORKSPACE_PACKAGES = listWorkspacePackages(ROOT);
 /** Where generate-demos looks for `<Owner>/demos` folders. */
 const DEMO_ROOTS = [
-  path.join(ROOT, 'packages', 'ui', 'src', 'components'),
+  ...WORKSPACE_PACKAGES.map(pkg => pkg.components),
   path.join(ROOT, 'packages', 'ui', 'src', 'hooks'),
-  path.join(ROOT, 'packages', 'charts', 'src', 'components'),
 ];
 
 function fail(msg: string): never { console.error(`✖ ${msg}`); process.exit(1); }
@@ -55,8 +57,95 @@ function main() {
     }
   }
   validateCategories(componentsMeta);
+  validatePackageImports(componentsMeta, demos);
   validateDemoSources();
   console.log(`✔ validate-demos: ${demos.length} demos OK (${Object.keys(componentsMeta).length} components meta)`);
+}
+
+/** Keep the package shown in docs aligned with the source folder and demos. */
+function validatePackageImports(componentsMeta: Record<string, any>, demos: DemoMeta[]): void {
+  const problems: string[] = [];
+  const knownPackages = new Set(WORKSPACE_PACKAGES.map(pkg => pkg.name));
+  const runtimeMetaFile = path.join(OUTPUT_DIR, 'components-meta.json');
+  if (!fs.existsSync(runtimeMetaFile)) fail('components-meta.json not found. Run generate-demos first.');
+  const runtimeMeta = JSON.parse(fs.readFileSync(runtimeMetaFile, 'utf8')) as Record<string, any>;
+
+  for (const [component, meta] of Object.entries(componentsMeta)) {
+    const packageName = meta?.packageName;
+    const sourcePath = meta?.sourcePath;
+    if (!packageName || !knownPackages.has(packageName)) {
+      problems.push(`${component}: unknown or missing packageName "${packageName ?? '(none)'}"`);
+    }
+    if (!sourcePath || !fs.existsSync(path.resolve(ROOT, sourcePath))) {
+      problems.push(`${component}: missing source directory "${sourcePath ?? '(none)'}"`);
+    } else {
+      const sourcePackage = packageContaining(WORKSPACE_PACKAGES, path.resolve(ROOT, sourcePath));
+      if (sourcePackage?.name !== packageName) {
+        problems.push(`${component}: packageName "${packageName}" disagrees with sourcePath "${sourcePath}"`);
+      }
+    }
+    if (runtimeMeta[component]?.packageName !== packageName) {
+      problems.push(`${component}: demos.json and components-meta.json disagree on packageName`);
+    }
+  }
+  for (const chart of CHART_DOCS) {
+    if (componentsMeta[chart.slug]?.packageName !== chart.packageName) {
+      problems.push(`${chart.slug}: chart docs packageName "${chart.packageName}" disagrees with generated component metadata`);
+    }
+  }
+
+  const codeByComponent = new Map<string, Record<string, { code?: string; files?: { name: string; code: string }[] }>>();
+  for (const demo of demos) {
+    const packageName = componentsMeta[demo.component]?.packageName;
+    if (!packageName) {
+      problems.push(`${demo.id}: no documented package for ${demo.component}`);
+      continue;
+    }
+    let codeMap = codeByComponent.get(demo.component);
+    if (!codeMap) {
+      const file = path.join(OUTPUT_DIR, `demo-code-${demo.component}.json`);
+      if (!fs.existsSync(file)) {
+        problems.push(`${demo.component}: missing demo code shard`);
+        continue;
+      }
+      codeMap = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, { code?: string; files?: { name: string; code: string }[] }>;
+      codeByComponent.set(demo.component, codeMap);
+    }
+    const entry = codeMap?.[demo.id];
+    if (!entry) {
+      problems.push(`${demo.id}: missing generated demo code`);
+      continue;
+    }
+    const sources = entry.files?.length ? entry.files : [{ name: 'index.tsx', code: entry.code ?? '' }];
+    const ownerImports: string[] = [];
+    for (const source of sources) {
+      const parsed = ts.createSourceFile(source.name, source.code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+      for (const statement of parsed.statements) {
+        if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
+        const importedPackage = statement.moduleSpecifier.text;
+        const workspaceImport = [...knownPackages].find(name =>
+          importedPackage === name || importedPackage.startsWith(`${name}/`)
+        );
+        if (importedPackage.startsWith('@plocks/') && !workspaceImport) {
+          problems.push(`${demo.id}: imports unknown package "${importedPackage}"`);
+        }
+        const bindings = statement.importClause?.namedBindings;
+        if (bindings && ts.isNamedImports(bindings) && bindings.elements.some(element =>
+          (element.propertyName ?? element.name).text === demo.component
+        )) {
+          ownerImports.push(workspaceImport ?? importedPackage);
+        }
+      }
+    }
+    if (ownerImports.some(importedPackage => importedPackage !== packageName)) {
+      problems.push(`${demo.id}: imports ${demo.component} from ${ownerImports.join(', ')}; expected ${packageName}`);
+    }
+    if (packageName !== UI_PACKAGE && ownerImports.length === 0) {
+      problems.push(`${demo.id}: does not import ${demo.component} from ${packageName}`);
+    }
+  }
+
+  if (problems.length) fail(`Component package mismatches (${problems.length}):\n  - ${problems.join('\n  - ')}`);
 }
 
 /**

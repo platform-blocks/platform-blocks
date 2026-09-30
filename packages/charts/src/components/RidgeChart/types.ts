@@ -15,8 +15,6 @@ export interface RidgeTooltipContext {
   probability: number;
   /** Raw probability density function value */
   pdf: number;
-  /** Alias for normalized density (kept for backward compatibility) */
-  normalizedDensity: number;
   index: number;
   seriesIndex: number;
   series: {

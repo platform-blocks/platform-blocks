@@ -5,7 +5,6 @@ order: 70
 tags: [segmented-control, states, disabled, readonly]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

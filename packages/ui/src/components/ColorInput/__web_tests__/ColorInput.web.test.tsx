@@ -2,7 +2,7 @@ import React from 'react';
 import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
 import { __resetLayerStackForTests } from '../../../core/overlay/layerStack';
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { ColorInput } from '../ColorInput';
 
 // Desktop web (anchored dropdown) unless a test flips it to the sheet.
@@ -16,7 +16,6 @@ jest.mock('../../../hooks/useOverlayMode', () => ({
     isDesktopExperience: !mockUseSheet,
     shouldUseModal: mockUseSheet,
     shouldUseOverlay: !mockUseSheet,
-    shouldUsePortal: !mockUseSheet,
   }),
 }));
 
@@ -35,7 +34,7 @@ beforeEach(() => {
   __resetLayerStackForTests();
 });
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 async function settle() {
   await act(async () => {
@@ -62,7 +61,7 @@ describe('ColorInput (react-native-web DOM)', () => {
     expect(input.getAttribute('aria-invalid')).toBe('true');
     expect(input.getAttribute('aria-required')).toBe('true');
     // The frame draws the focus ring, so the raw outline is opted out.
-    expect(input.getAttribute('data-pb-input')).toBe('true');
+    expect(input.getAttribute('data-plocks-input')).toBe('true');
 
     const alert = screen.getByRole('alert');
     expect(alert.id).toBe(`${input.id}-error`);

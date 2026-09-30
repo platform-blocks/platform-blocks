@@ -1,4 +1,4 @@
-import { CopyButton } from '@platform-blocks/ui';
+import { CopyButton } from '@plocks/ui';
 
 const longToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.long.payload.value.with.many.sections.and.characters.for.demo.purposes.only';
 

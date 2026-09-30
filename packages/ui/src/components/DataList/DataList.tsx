@@ -12,7 +12,7 @@ import type {
 import { factory, withStatics } from '../../core/factory/factory';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveFontSize, resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import { clampComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
 import { resolveStyleProps, extractStyleProps } from '../../core/utils/spacing';
 import { Text } from '../Text';
@@ -42,7 +42,7 @@ const metricsFor = (fontSize: number, gap: number): DataListSizeMetrics => ({
  * and the item gap its spacing token of the same name. A numeric size is a font
  * size; its gaps scale from the `md` ratio.
  */
-const resolveDataListMetrics = (theme: PlatformBlocksTheme, value: ComponentSizeValue): DataListSizeMetrics => {
+const resolveDataListMetrics = (theme: PlocksTheme, value: ComponentSizeValue): DataListSizeMetrics => {
   if (typeof value === 'number') {
     const base = metricsFor(resolveFontSize(theme, 'md'), toNumber(resolveSpacing(theme, 'md')));
     const ratio = value / base.fontSize;

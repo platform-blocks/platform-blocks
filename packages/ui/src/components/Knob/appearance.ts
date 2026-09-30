@@ -1,5 +1,5 @@
 import { literalBackgrounds, literalText } from '../../core/theme/cssVariableTheme';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import type {
   KnobAppearance,
   KnobVariant,
@@ -81,7 +81,7 @@ export interface ResolveAppearanceOptions {
   appearance?: KnobAppearance;
   /** Visual preset merged *under* `appearance`. */
   variant?: KnobVariant;
-  theme: PlatformBlocksTheme;
+  theme: PlocksTheme;
   behavior: KnobBehavior;
   disabled: boolean;
   size: number;
@@ -90,7 +90,7 @@ export interface ResolveAppearanceOptions {
 }
 
 const pickAccentColor = (
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   behavior: KnobBehavior,
   accentColor?: string
 ) => {

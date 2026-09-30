@@ -46,7 +46,7 @@ exports[`Accordion - rendering matches snapshot for default accordion with icons
       accessible={true}
       collapsable={false}
       focusable={true}
-      id="pb-accordion-_r_0_-header-one"
+      id="plocks-accordion-_r_0_-header-one"
       onBlur={[Function]}
       onClick={[Function]}
       onFocus={[Function]}
@@ -155,8 +155,8 @@ exports[`Accordion - rendering matches snapshot for default accordion with icons
       </View>
     </View>
     <View
-      aria-labelledby="pb-accordion-_r_0_-header-one"
-      id="pb-accordion-_r_0_-panel-one"
+      aria-labelledby="plocks-accordion-_r_0_-header-one"
+      id="plocks-accordion-_r_0_-panel-one"
       role="region"
       style={
         [
@@ -225,7 +225,7 @@ exports[`Accordion - rendering matches snapshot for default accordion with icons
       accessible={true}
       collapsable={false}
       focusable={true}
-      id="pb-accordion-_r_0_-header-two"
+      id="plocks-accordion-_r_0_-header-two"
       onBlur={[Function]}
       onClick={[Function]}
       onFocus={[Function]}
@@ -331,8 +331,8 @@ exports[`Accordion - rendering matches snapshot for default accordion with icons
       </View>
     </View>
     <View
-      aria-labelledby="pb-accordion-_r_0_-header-two"
-      id="pb-accordion-_r_0_-panel-two"
+      aria-labelledby="plocks-accordion-_r_0_-header-two"
+      id="plocks-accordion-_r_0_-panel-two"
       role="region"
       style={
         [
@@ -381,7 +381,7 @@ exports[`Accordion - rendering matches snapshot for default accordion with icons
       accessible={true}
       collapsable={false}
       focusable={true}
-      id="pb-accordion-_r_0_-header-three"
+      id="plocks-accordion-_r_0_-header-three"
       onBlur={[Function]}
       onClick={[Function]}
       onFocus={[Function]}
@@ -468,8 +468,8 @@ exports[`Accordion - rendering matches snapshot for default accordion with icons
       </View>
     </View>
     <View
-      aria-labelledby="pb-accordion-_r_0_-header-three"
-      id="pb-accordion-_r_0_-panel-three"
+      aria-labelledby="plocks-accordion-_r_0_-header-three"
+      id="plocks-accordion-_r_0_-panel-three"
       role="region"
       style={
         [
@@ -540,7 +540,7 @@ exports[`Accordion - rendering matches snapshot for separated compact accordion 
         accessible={true}
         collapsable={false}
         focusable={true}
-        id="pb-accordion-_r_1_-header-one"
+        id="plocks-accordion-_r_1_-header-one"
         onBlur={[Function]}
         onClick={[Function]}
         onFocus={[Function]}
@@ -617,8 +617,8 @@ exports[`Accordion - rendering matches snapshot for separated compact accordion 
         </View>
       </View>
       <View
-        aria-labelledby="pb-accordion-_r_1_-header-one"
-        id="pb-accordion-_r_1_-panel-one"
+        aria-labelledby="plocks-accordion-_r_1_-header-one"
+        id="plocks-accordion-_r_1_-panel-one"
         role="region"
         style={
           [
@@ -667,7 +667,7 @@ exports[`Accordion - rendering matches snapshot for separated compact accordion 
         accessible={true}
         collapsable={false}
         focusable={true}
-        id="pb-accordion-_r_1_-header-two"
+        id="plocks-accordion-_r_1_-header-two"
         onBlur={[Function]}
         onClick={[Function]}
         onFocus={[Function]}
@@ -747,8 +747,8 @@ exports[`Accordion - rendering matches snapshot for separated compact accordion 
         </View>
       </View>
       <View
-        aria-labelledby="pb-accordion-_r_1_-header-two"
-        id="pb-accordion-_r_1_-panel-two"
+        aria-labelledby="plocks-accordion-_r_1_-header-two"
+        id="plocks-accordion-_r_1_-panel-two"
         role="region"
         style={
           [
@@ -819,7 +819,7 @@ exports[`Accordion - rendering matches snapshot for separated compact accordion 
         accessible={true}
         collapsable={false}
         focusable={true}
-        id="pb-accordion-_r_1_-header-three"
+        id="plocks-accordion-_r_1_-header-three"
         onBlur={[Function]}
         onClick={[Function]}
         onFocus={[Function]}
@@ -880,8 +880,8 @@ exports[`Accordion - rendering matches snapshot for separated compact accordion 
         </View>
       </View>
       <View
-        aria-labelledby="pb-accordion-_r_1_-header-three"
-        id="pb-accordion-_r_1_-panel-three"
+        aria-labelledby="plocks-accordion-_r_1_-header-three"
+        id="plocks-accordion-_r_1_-panel-three"
         role="region"
         style={
           [

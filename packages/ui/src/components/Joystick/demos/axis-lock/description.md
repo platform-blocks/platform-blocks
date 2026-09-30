@@ -5,7 +5,6 @@ order: 40
 tags: [lockAxis, single-axis, pan]
 highlightLines: []
 status: stable
-since: 1.1.0
 hidden: false
 ---
 

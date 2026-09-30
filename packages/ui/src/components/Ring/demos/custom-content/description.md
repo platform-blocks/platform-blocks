@@ -4,7 +4,6 @@ category: customization
 order: 30
 tags: [ring]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

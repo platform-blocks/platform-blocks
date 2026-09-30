@@ -1,10 +1,10 @@
 import React from 'react';
 import { fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { RangeSlider, Slider } from '../Slider';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('Slider (react-native-web DOM)', () => {
   it('exposes a focusable slider thumb named by the label, with aria-value*', () => {
@@ -61,9 +61,9 @@ describe('Slider (react-native-web DOM)', () => {
     expect(thumb.getAttribute('aria-describedby')).toBe('s-error');
 
     rerender(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <Slider id="s" label="Speed" disabled />
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     expect(screen.getByRole('slider').getAttribute('aria-disabled')).toBe('true');
     expect(screen.getByRole('slider').getAttribute('tabindex')).toBe('-1');

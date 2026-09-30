@@ -1,0 +1,63 @@
+import React from 'react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
+import { Cascader } from '../Cascader';
+const originalRect = Element.prototype.getBoundingClientRect;
+beforeAll(() => { Element.prototype.getBoundingClientRect = () => ({ x: 20, y: 40, top: 40, left: 20, right: 220, bottom: 80, width: 200, height: 40, toJSON: () => ({}) }) as DOMRect; });
+afterAll(() => { Element.prototype.getBoundingClientRect = originalRect; });
+it('selects a complete path', async () => {
+  const onChange = jest.fn();
+  render(<PlocksProvider><Cascader label="Location" data={[{ value: 'europe', label: 'Europe', children: [{ value: 'france', label: 'France', children: [{ value: 'paris', label: 'Paris' }] }] }]} onChange={onChange} /></PlocksProvider>);
+  fireEvent.click(screen.getByRole('combobox', { name: 'Location' }));
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 150)); });
+  fireEvent.click(screen.getByRole('option', { name: 'Europe' }));
+  fireEvent.click(screen.getByRole('option', { name: 'France' }));
+  fireEvent.click(screen.getByRole('option', { name: 'Paris' }));
+  expect(onChange).toHaveBeenCalledWith(['europe', 'france', 'paris'], expect.any(Array));
+});
+it('opens with the keyboard, skips disabled choices, and enters child levels', async () => {
+  const onChange = jest.fn();
+  render(<PlocksProvider><Cascader label="Location" data={[{ value: 'blocked', label: 'Blocked', disabled: true }, { value: 'europe', label: 'Europe', children: [{ value: 'blocked-city', label: 'Blocked city', disabled: true }, { value: 'paris', label: 'Paris' }] }]} onChange={onChange} /></PlocksProvider>);
+  const trigger = screen.getByRole('combobox', { name: 'Location' });
+  fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 150)); });
+  expect(trigger.getAttribute('aria-expanded')).toBe('true');
+  expect(document.getElementById(trigger.getAttribute('aria-controls')!)).toBeTruthy();
+  expect(trigger.getAttribute('aria-activedescendant')).toBe(screen.getByRole('option', { name: 'Europe' }).id);
+  fireEvent.keyDown(trigger, { key: 'ArrowRight' });
+  expect(screen.getByRole('option', { name: 'Paris' })).toBeTruthy();
+  expect(trigger.getAttribute('aria-activedescendant')).toBe(screen.getByRole('option', { name: 'Paris' }).id);
+  fireEvent.keyDown(trigger, { key: 'Enter' });
+  expect(onChange).toHaveBeenCalledWith(['europe', 'paris'], expect.any(Array));
+  expect(trigger.textContent).toContain('Paris');
+});
+it('excludes paths through disabled ancestors in flat mode', async () => {
+  render(<PlocksProvider><Cascader label="Location" withColumns={false} data={[{ value: 'blocked', label: 'Blocked', disabled: true, children: [{ value: 'hidden', label: 'Hidden' }] }, { value: 'open', label: 'Open' }]} /></PlocksProvider>);
+  fireEvent.click(screen.getByRole('combobox', { name: 'Location' }));
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 150)); });
+  expect(screen.queryByRole('option', { name: /Hidden/ })).toBeNull();
+  expect(screen.getByRole('option', { name: 'Open' })).toBeTruthy();
+});
+it('opens on focus when requested and dismisses with Escape', async () => {
+  render(<PlocksProvider><Cascader label="Location" data={[{ value: 'paris', label: 'Paris' }]} openOnFocus /></PlocksProvider>);
+  const trigger = screen.getByRole('combobox', { name: 'Location' });
+  act(() => trigger.focus());
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 150)); });
+  expect(trigger.getAttribute('aria-expanded')).toBe('true');
+  fireEvent.keyDown(trigger, { key: 'Escape' });
+  expect(trigger.getAttribute('aria-expanded')).toBe('false');
+});
+it('tracks controlled value changes and reverses branch keys in RTL', async () => {
+  const data = [{ value: 'europe', label: 'Europe', children: [{ value: 'paris', label: 'Paris' }] }, { value: 'asia', label: 'Asia' }];
+  const onChange = jest.fn();
+  const view = render(<PlocksProvider direction={{ initialDirection: 'rtl' }}><Cascader label="Location" value={['asia']} data={data} onChange={onChange} /></PlocksProvider>);
+  view.rerender(<PlocksProvider direction={{ initialDirection: 'rtl' }}><Cascader label="Location" value={['europe', 'paris']} data={data} onChange={onChange} /></PlocksProvider>);
+  const trigger = screen.getByRole('combobox', { name: 'Location' });
+  expect(trigger.textContent).toContain('Paris');
+  fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 150)); });
+  fireEvent.keyDown(trigger, { key: 'ArrowLeft' });
+  expect(trigger.getAttribute('aria-activedescendant')).toBe(screen.getByRole('option', { name: 'Paris' }).id);
+  fireEvent.keyDown(trigger, { key: 'Enter' });
+  expect(onChange).toHaveBeenCalledWith(null, []);
+});

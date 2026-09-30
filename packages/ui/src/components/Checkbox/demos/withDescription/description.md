@@ -4,7 +4,6 @@ category: usage
 order: 50
 tags: [checkboxes, helper-text]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

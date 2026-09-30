@@ -1,4 +1,4 @@
-export type { PlatformBlocksTheme, PlatformBlocksThemeOverride } from './types';
+export type { PlocksTheme, PlocksThemeOverride } from './types';
 export type { SurfaceLevel, SurfaceScale, SurfaceToken, SurfaceShadowToken } from './types';
 export {
   resolveSurface,
@@ -21,7 +21,7 @@ export {
   isThemePair,
 } from './utils';
 export type {
-  PlatformBlocksThemePair,
+  PlocksThemePair,
   ThemeBackgrounds,
   ThemeBackgroundRole,
   ControlSizes,
@@ -44,7 +44,6 @@ export {
 } from './tokens';
 export type { BreakpointValues, BreakpointKey, RadiusInput } from './tokens';
 export { DEFAULT_Z_INDICES, getZIndex } from './zIndices';
-export { deriveSemanticColors } from './semanticColors';
 export {
   applyColorSchemeMarker,
   getColorSchemeScript,
@@ -55,12 +54,7 @@ export {
 } from './colorSchemeMarker';
 export type { ColorSchemeMarkerOptions, ColorSchemeScriptOptions } from './colorSchemeMarker';
 export { breakpointsFromTheme } from './breakpoints';
-export {
-  PlatformBlocksThemeProvider,
-  useTheme,
-  useOptionalTheme,
-  useSafePlatformBlocksTheme
-} from './ThemeProvider';
+export { ThemeScope, useTheme, useOptionalTheme } from './ThemeProvider';
 export { CSSVariables, createCSSVariablesStylesheet } from './CSSVariables';
 export { useColorScheme } from './useColorScheme';
 export {
@@ -74,7 +68,7 @@ export type { ColorScope, ResolveColorOptions, ThemeColor, ThemeColorToken } fro
 export { semanticIcons } from './semanticIcons';
 export type { SemanticIconRole } from './semanticIcons';
 export type { ColorScheme } from './useColorScheme';
-export type { PlatformBlocksThemeProviderProps } from './ThemeProvider';
+export type { ThemeScopeProps } from './ThemeProvider';
 export * from './colorUtils';
 export * from './variantRoles';
 export * from './sizes';

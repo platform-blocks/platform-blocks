@@ -1,4 +1,4 @@
-import { Link } from '@platform-blocks/ui';
+import { Link } from '@plocks/ui';
 
 export function Demo() {
   return (

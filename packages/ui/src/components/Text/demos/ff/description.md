@@ -5,7 +5,6 @@ order: 35
 tags: [font, ff, typography]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

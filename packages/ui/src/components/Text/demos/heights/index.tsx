@@ -1,4 +1,4 @@
-import { Block, Text } from '@platform-blocks/ui';
+import { Block, Text } from '@plocks/ui';
 
 const LINE_HEIGHTS = [1.2, 1.5, 1.8, 2, 24];
 

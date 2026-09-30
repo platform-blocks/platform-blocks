@@ -5,7 +5,7 @@ import type { LayoutProps } from '../../core/utils/layout';
 import type { SizeValue } from '../../core/theme/types';
 import type { ThemeColor } from '../../core/theme/resolveColors';
 import type { WebMouseEvent } from '../../core/platform/webProps';
-import type { TooltipPropValue, TooltipProps } from '../Tooltip';
+import type { TooltipPropValue } from '../Tooltip';
 import type { TextProps } from '../Text';
 
 
@@ -114,8 +114,6 @@ export interface ProgressSectionProps extends BaseProps<ViewStyle>, ProgressInte
    * `tooltip={{ label: 'Documents — 35%', position: 'bottom' }}`.
    */
   tooltip?: TooltipPropValue;
-  /** Tooltip position when the string form of `tooltip` is used */
-  tooltipPosition?: TooltipProps['position'];
   /** Accessible name. Defaults to the tooltip text. */
   'aria-label'?: string;
   /** Spoken value text. Defaults to the percentage. */

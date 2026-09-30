@@ -68,6 +68,7 @@ interface HeaderCellProps<T> {
   isFirst: boolean;
   isLast: boolean;
   enableColumnResizing: boolean;
+  showColumnMenu: boolean;
   resize: ColumnResizeHandlers<T>;
   headerTextProps?: Omit<TextProps, 'children'>;
 }
@@ -91,6 +92,7 @@ function HeaderCell<T>({
   isFirst,
   isLast,
   enableColumnResizing,
+  showColumnMenu,
   resize,
   headerTextProps,
 }: HeaderCellProps<T>) {
@@ -226,7 +228,7 @@ function HeaderCell<T>({
               </Popover.Dropdown>
             </Popover>
           )}
-          <Menu position="bottom-end" offset={4}>
+          {showColumnMenu && <Menu position="bottom-end" offset={4}>
             <MenuDropdown>
               <MenuLabel>{label ?? 'Column'}</MenuLabel>
               <MenuItem
@@ -310,7 +312,7 @@ function HeaderCell<T>({
             >
               <Icon name="dots" variant="filled" size={16} color={colors.icon} decorative />
             </Pressable>
-          </Menu>
+          </Menu>}
         </View>
       </View>
 

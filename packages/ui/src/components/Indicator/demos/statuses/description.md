@@ -5,7 +5,6 @@ order: 40
 tags: [presence, status]
 highlightLines: []
 status: stable
-since: 0.4.0
 hidden: false
 ---
 

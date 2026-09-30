@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, SegmentedControl, Text } from '@platform-blocks/ui';
+import { Block, SegmentedControl, Text } from '@plocks/ui';
 
 export function Demo() {
   const [value, setValue] = useState('React');

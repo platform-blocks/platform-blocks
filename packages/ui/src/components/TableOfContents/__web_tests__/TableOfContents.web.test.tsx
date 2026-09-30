@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { TableOfContents } from '../TableOfContents';
 
 // Real headings for the scroll spy to collect.
@@ -26,9 +26,9 @@ async function flush() {
 describe('TableOfContents (react-native-web DOM)', () => {
   it('is a labelled navigation of links; the current one has aria-current="location"', async () => {
     render(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <TableOfContents container="article" />
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     await flush();
 
@@ -44,23 +44,23 @@ describe('TableOfContents (react-native-web DOM)', () => {
   it('reports active changes once per change, even with an inline callback', async () => {
     const calls: Array<string | null> = [];
     const { rerender } = render(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <TableOfContents container="article" onActiveChange={(id) => calls.push(id)} />
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     await flush();
     expect(calls).toEqual([null]);
 
     // New callback identity on every render must not re-fire.
     rerender(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <TableOfContents container="article" onActiveChange={(id) => calls.push(id)} />
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     rerender(
-      <PlatformBlocksProvider>
+      <PlocksProvider>
         <TableOfContents container="article" onActiveChange={(id) => calls.push(id)} />
-      </PlatformBlocksProvider>
+      </PlocksProvider>
     );
     expect(calls).toEqual([null]);
 

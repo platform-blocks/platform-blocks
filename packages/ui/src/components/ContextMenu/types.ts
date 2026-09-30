@@ -58,8 +58,6 @@ export interface ContextMenuProps extends BaseProps {
   opened?: boolean;
   /** Initial open state when uncontrolled. @default false */
   defaultOpened?: boolean;
-  /** @deprecated Use `opened`. */
-  open?: boolean;
   /** Controlled position (web: viewport coordinates; native: page coordinates). */
   position?: { x: number; y: number };
   /** Accessible name of the menu. @default 'Context menu' */

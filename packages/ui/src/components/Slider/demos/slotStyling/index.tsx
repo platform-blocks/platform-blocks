@@ -1,4 +1,4 @@
-import { Block, Slider, RangeSlider, Text } from '@platform-blocks/ui';
+import { Block, Slider, RangeSlider, Text } from '@plocks/ui';
 
 const milestoneTicks = [
   { value: 0, label: '0' },

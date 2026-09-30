@@ -4,7 +4,7 @@ import { act, renderHook } from '@testing-library/react-native';
 // jest.setup.cjs replaces this module with a stub for component tests; test the real one.
 jest.unmock('../DirectionProvider');
 
-import { DirectionProvider, useDirection, useDirectionSafe } from '../DirectionProvider';
+import { DirectionProvider, useDirection } from '../DirectionProvider';
 
 describe('useDirection', () => {
   it('returns a stable LTR default without a provider instead of throwing', () => {
@@ -17,10 +17,6 @@ describe('useDirection', () => {
     expect(result.current).toBe(first);
     expect(() => first.setDirection('rtl')).not.toThrow();
     warn.mockRestore();
-  });
-
-  it('keeps useDirectionSafe as an alias', () => {
-    expect(useDirectionSafe).toBe(useDirection);
   });
 
   it('memoizes the provider value', () => {

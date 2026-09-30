@@ -5,7 +5,6 @@ tags: [spacing, layout]
 category: layout
 order: 20
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -36,7 +36,6 @@ export interface AnimatedHeatmapCellProps {
     width: number;
     height: number;
     color: string;
-    normalizedValue: number; // 0-1 value for animation
     displayValue?: string;
   };
   isHovered?: boolean;

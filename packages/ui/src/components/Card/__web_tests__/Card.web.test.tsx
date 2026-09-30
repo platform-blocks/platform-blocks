@@ -37,16 +37,14 @@ describe('Card (web)', () => {
     expect(screen.getByRole('button', { name: 'Unavailable' }).getAttribute('aria-disabled')).toBe('true');
   });
 
-  it('maps deprecated accessibilityRole / accessibilityState to role and aria-*', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  it('forwards role and aria-* to a pressable card', () => {
     render(
-      <Card onPress={() => {}} accessibilityRole="radio" accessibilityState={{ checked: true }} aria-label="Plan A">
+      <Card onPress={() => {}} role="radio" aria-checked aria-label="Plan A">
         <Text>Plan A</Text>
       </Card>
     );
     const radio = screen.getByRole('radio', { name: 'Plan A' });
     expect(radio.getAttribute('aria-checked')).toBe('true');
-    warn.mockRestore();
   });
 
   it('uses an explicit role and forwards its ref', () => {

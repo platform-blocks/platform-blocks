@@ -4,7 +4,6 @@ category: layout
 order: 70
 tags: [tabs, orientation]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

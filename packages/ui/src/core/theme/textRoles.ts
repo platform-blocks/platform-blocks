@@ -2,7 +2,7 @@ import type { TextStyle } from 'react-native';
 
 import { resolveTextColor } from './resolveColors';
 import { resolveFontSize, resolveLineHeight } from './tokens';
-import type { PlatformBlocksTheme, TextRoleName, TextRoleStyle } from './types';
+import type { PlocksTheme, TextRoleName, TextRoleStyle } from './types';
 
 /**
  * The built-in text roles. Both step back from the items they label —
@@ -36,7 +36,7 @@ function assignDefined(target: TextRoleStyle, source: TextRoleStyle | undefined)
  * An unknown role with nothing in the theme resolves to `{}`.
  */
 export function getTextRole(
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   role: TextRoleName | (string & {}),
   context?: TextRoleStyle
 ): TextRoleStyle {
@@ -58,7 +58,7 @@ export function getTextRole(
  * <RNText style={[resolveTextRole(theme, 'panelTitle'), styles.title]}>Sport</RNText>
  */
 export function resolveTextRole(
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   role: TextRoleName | (string & {}),
   context?: TextRoleStyle
 ): TextStyle {

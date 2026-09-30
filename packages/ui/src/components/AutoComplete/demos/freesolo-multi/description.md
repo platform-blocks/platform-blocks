@@ -5,7 +5,6 @@ order: 45
 tags: [freesolo, multi-select, custom, tags]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

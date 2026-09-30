@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, type Role } from 'react-native';
+import { Pressable, View, type Role } from 'react-native';
 
 import { roleFromAccessibilityRole } from '../../core/accessibility/a11yProps';
 import { factory } from '../../core/factory/factory';
@@ -12,12 +12,29 @@ const BLOCK_STYLE_PROP_KEYS: Array<keyof BlockStyleProps> = [
   'radius',
   'borderWidth',
   'borderColor',
+  'borderTopWidth',
+  'borderRightWidth',
+  'borderBottomWidth',
+  'borderLeftWidth',
+  'borderTopColor',
+  'borderRightColor',
+  'borderBottomColor',
+  'borderLeftColor',
+  'borderTopLeftRadius',
+  'borderTopRightRadius',
+  'borderStyle',
+  'overflow',
+  'aspectRatio',
+  'touchAction',
+  'translateY',
+  'rotate',
   'shadow',
   'grow',
   'shrink',
   'basis',
   'direction',
   'align',
+  'alignSelf',
   'justify',
   'wrap',
   'gap',
@@ -26,6 +43,7 @@ const BLOCK_STYLE_PROP_KEYS: Array<keyof BlockStyleProps> = [
   'right',
   'bottom',
   'left',
+  'inset',
   'start',
   'end',
   'zIndex',
@@ -101,6 +119,11 @@ export const Block = factory<{ props: BlockProps; ref: View }>((props, ref) => {
     fullWidth,
     role,
     accessibilityRole,
+    onPress,
+    onLongPress,
+    onPressIn,
+    onPressOut,
+    disabled,
     ...restProps
   } = otherProps;
 
@@ -137,6 +160,15 @@ export const Block = factory<{ props: BlockProps; ref: View }>((props, ref) => {
   };
 
   // HTML tag names render a View on every platform (react-native-web decides the element from `role`).
+  if (component === View && (onPress || onLongPress || onPressIn || onPressOut)) {
+    return (
+      <Pressable ref={ref} style={finalStyle} {...a11y} {...forwardedProps}
+        onPress={onPress} onLongPress={onLongPress} onPressIn={onPressIn}
+        onPressOut={onPressOut} disabled={disabled}>
+        {children}
+      </Pressable>
+    );
+  }
   if (component === View || typeof component === 'string') {
     return (
       <View ref={ref} style={finalStyle} {...a11y} {...forwardedProps}>
@@ -148,7 +180,8 @@ export const Block = factory<{ props: BlockProps; ref: View }>((props, ref) => {
   // A consumer-supplied component: its prop types are its own business.
   const Component = component as React.ComponentType<Record<string, unknown> & { ref?: React.Ref<View> }>;
   return (
-    <Component ref={ref} style={finalStyle} className={className} {...a11y} {...forwardedProps}>
+    <Component ref={ref} style={finalStyle} className={className} {...a11y} {...forwardedProps}
+      onPress={onPress} onLongPress={onLongPress} onPressIn={onPressIn} onPressOut={onPressOut} disabled={disabled}>
       {children}
     </Component>
   );

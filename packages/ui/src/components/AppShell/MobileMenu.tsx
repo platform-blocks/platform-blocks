@@ -15,7 +15,6 @@ import { webStyle } from '../../core/platform/webStyle';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveRadius, resolveScrim, resolveShadow } from '../../core/theme/tokens';
 import { getZIndex } from '../../core/theme/zIndices';
-import { warnOnce } from '../../core/utils/logger';
 import { useMergedRef } from '../../core/utils/mergeRefs';
 import { useStyleProps } from '../../core/utils/spacing';
 import { FILL, selectViewportHeight, spacingPx, useViewportSelector } from './shellUtils';
@@ -38,8 +37,7 @@ const FLEX_1: ViewStyle = { flex: 1 };
 export const MobileMenu = factory<{ props: MobileMenuProps; ref: View }>(
   function MobileMenu(props, ref) {
     const {
-      opened: openedProp,
-      visible,
+      opened = false,
       onClose,
       children,
       config,
@@ -47,11 +45,6 @@ export const MobileMenu = factory<{ props: MobileMenuProps; ref: View }>(
       style,
       testID,
     } = props;
-
-    if (visible !== undefined) {
-      warnOnce('MobileMenu.visible', '[platform-blocks] MobileMenu: `visible` is deprecated; use `opened`.');
-    }
-    const opened = openedProp ?? visible ?? false;
 
     const theme = useTheme();
     const spacingStyles = useStyleProps(props);

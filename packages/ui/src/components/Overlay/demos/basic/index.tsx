@@ -1,5 +1,5 @@
 import { ImageBackground, StyleSheet } from 'react-native';
-import { Block, Overlay, Text } from '@platform-blocks/ui';
+import { Block, Overlay, Text } from '@plocks/ui';
 
 export function Demo() {
   return (

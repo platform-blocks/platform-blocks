@@ -7,7 +7,7 @@ import type { SizeValue } from '../../core/theme/sizes';
 import type { BaseProps, ColorProp, PassthroughAccessibilityProps } from '../../core/types/base';
 import type { LayoutProps } from '../../core/utils/layout';
 import type { TextProps } from '../Text';
-import type { TooltipProps, TooltipPropValue } from '../Tooltip';
+import type { TooltipPropValue } from '../Tooltip';
 
 export type ButtonVariant =
   | 'default'
@@ -98,10 +98,6 @@ export interface ButtonProps
   startSection?: React.ReactNode;
   /** Content (usually an icon) after the label. */
   endSection?: React.ReactNode;
-  /** @deprecated Use `startSection`. */
-  startIcon?: React.ReactNode;
-  /** @deprecated Use `endSection`. */
-  endIcon?: React.ReactNode;
   /**
    * Tooltip shown on hover/focus — wraps the button in a `Tooltip`.
    * Pass a string for the common case, or a config object to tune the tooltip:
@@ -110,8 +106,6 @@ export interface ButtonProps
    * also the button's accessible name.
    */
   tooltip?: TooltipPropValue;
-  /** Tooltip position when the string form of `tooltip` is used */
-  tooltipPosition?: TooltipProps['position'];
   /**
    * Length of the press / pulse / hover transitions in ms. `0` applies each
    * state instantly (no scale animation). Always 0 under reduced motion.

@@ -10,7 +10,6 @@ import { resolveAccentColor } from '../../core/theme/resolveColors';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { getControlSize, resolveRadius, resolveShadow, stepDown } from '../../core/theme/tokens';
 import { resolveGradientStops, resolveVariantRoles } from '../../core/theme/variantRoles';
-import { warnOnce } from '../../core/utils/logger';
 import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
 import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
 import { useControllableState } from '../../hooks/useControllableState';
@@ -43,6 +42,7 @@ const CONTENT_STYLE: ViewStyle = {
  * control of the same `size` (`getControlSize(theme, stepDown(size))`).
  *
  * - `onPress` makes it a button.
+ * - `pressed` exposes the selected state of a button chip to assistive technology.
  * - `checked` / `defaultChecked` / `onChange` make it selectable: a checkbox
  *   (`aria-checked`) that toggles on press, drawn in `variant` when checked and
  *   `uncheckedVariant` (default `outline`) when not.
@@ -56,15 +56,14 @@ export const Chip = factory<{ props: ChipProps; ref: View }>((props, ref) => {
     uncheckedVariant = 'outline',
     color = 'primary',
     onPress,
+    pressed,
     checked: checkedProp,
     defaultChecked,
     onChange,
     dot = false,
     dotColor,
-    startSection: startSectionProp,
-    endSection: endSectionProp,
-    startIcon,
-    endIcon,
+    startSection,
+    endSection,
     onRemove,
     removePosition = 'right',
     removeButtonLabel,
@@ -77,11 +76,6 @@ export const Chip = factory<{ props: ChipProps; ref: View }>((props, ref) => {
     testID,
     ...rest
   } = props;
-
-  if (startIcon !== undefined) warnOnce('Chip.startIcon', 'Chip: `startIcon` is deprecated; use `startSection`.');
-  if (endIcon !== undefined) warnOnce('Chip.endIcon', 'Chip: `endIcon` is deprecated; use `endSection`.');
-  const startSection = startSectionProp ?? startIcon;
-  const endSection = endSectionProp ?? endIcon;
 
   const theme = useTheme();
   const { styleProps, otherProps: a11yRest } = extractStyleProps(rest);
@@ -186,6 +180,7 @@ export const Chip = factory<{ props: ChipProps; ref: View }>((props, ref) => {
         ...a11yProps({
           role: selectable ? 'checkbox' : 'button',
           checked: selectable ? checked : undefined,
+          pressed: selectable ? undefined : pressed,
           disabled,
         }),
         ...webProps({ onKeyDown: selectable ? handleKeyDown : undefined }),

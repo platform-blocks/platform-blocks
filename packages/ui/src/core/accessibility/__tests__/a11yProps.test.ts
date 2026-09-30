@@ -5,7 +5,7 @@
 import { Platform } from 'react-native';
 
 import { a11yProps, joinIdRefs, roleFromAccessibilityRole } from '../a11yProps';
-import { createAccessibilityProps, getAccessibilityValueProps } from '../utils';
+import { getAccessibilityValueProps } from '../utils';
 
 describe('a11yProps (native)', () => {
   it('runs as native', () => {
@@ -116,38 +116,6 @@ describe('legacy builders', () => {
     expect(getAccessibilityValueProps({ now: 0 })['aria-valuenow']).toBe(0);
     expect(getAccessibilityValueProps({ text: 'On' })).toEqual({ 'aria-valuetext': 'On' });
     expect(getAccessibilityValueProps(undefined)).toEqual({});
-  });
-
-  it('createAccessibilityProps emits role + aria-* and stays accessible', () => {
-    const props = createAccessibilityProps({
-      role: 'button',
-      label: 'Save',
-      hint: 'Saves the form',
-      disabled: true,
-      selected: false,
-    });
-    expect(props).toEqual({
-      accessible: true,
-      role: 'button',
-      'aria-label': 'Save',
-      'aria-disabled': true,
-      accessibilityHint: 'Saves the form',
-    });
-  });
-
-  it('createAccessibilityProps maps state and legacy-only roles', () => {
-    const props = createAccessibilityProps({
-      role: 'text',
-      state: { checked: true, expanded: false },
-      value: { now: 3 },
-    });
-    expect(props).toEqual({
-      accessible: true,
-      accessibilityRole: 'text',
-      'aria-checked': true,
-      'aria-expanded': false,
-      'aria-valuenow': 3,
-    });
   });
 
   it('makes leaf value/image roles one accessibility element on native', () => {

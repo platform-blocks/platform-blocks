@@ -1,4 +1,4 @@
-import { Block, Spoiler, Text } from '@platform-blocks/ui';
+import { Block, Spoiler, Text } from '@plocks/ui';
 import { Image, Platform, View } from 'react-native';
 
 const paragraphs = [

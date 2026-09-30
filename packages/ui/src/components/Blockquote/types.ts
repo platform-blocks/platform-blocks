@@ -3,7 +3,6 @@ import type { ImageSourcePropType, ViewProps, ViewStyle } from 'react-native';
 
 import type { SizeValue } from '../../core/theme/types';
 import type { BaseProps } from '../../core/types/base';
-import type { BrandName } from '../BrandIcon/brands';
 
 export interface BlockquoteAuthor {
   name: string;
@@ -29,8 +28,11 @@ export interface BlockquoteRating {
 
 export interface BlockquoteSource {
   name: string;
-  brand?: BrandName;
-  icon?: string;
+  /**
+   * Icon registry name, or any node — e.g. a logo from `@plocks/brands`:
+   * `icon: <BrandIcon brand="x" size="sm" />`.
+   */
+  icon?: string | React.ReactNode;
   logo?: string;
   url?: string;
 }

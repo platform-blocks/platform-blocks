@@ -6,7 +6,6 @@ subcategory: Form Controls
 tags: [input, form, selection, choice]
 status: stable
 playground: true
-since: 1.0.0
 platform:
   web: true
   ios: true
@@ -27,6 +26,4 @@ examples:
   forms: Integration with form controls
 ---
 
-Radio buttons allow users to select a single option from a group of mutually exclusive choices.
-
-`RadioGroup` works controlled (`value` + `onChange`) or uncontrolled (`defaultValue`).
+Radio lets users select one option from a group of choices.

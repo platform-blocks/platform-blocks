@@ -4,7 +4,6 @@ category: styling
 order: 20
 tags: [ring]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -4,7 +4,6 @@ category: typography
 order: 30
 tags: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

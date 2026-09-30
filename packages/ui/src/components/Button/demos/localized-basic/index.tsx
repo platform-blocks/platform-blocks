@@ -1,4 +1,4 @@
-import { Button, Flex, Select, useI18n } from '@platform-blocks/ui';
+import { Button, Flex, Select, useI18n } from '@plocks/ui';
 
 const LOCALES = [
   { label: 'English', value: 'en' },

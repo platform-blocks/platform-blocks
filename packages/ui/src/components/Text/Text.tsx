@@ -18,7 +18,7 @@ import { resolveTextColor } from '../../core/theme/resolveColors';
 import { getTextRole } from '../../core/theme/textRoles';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveFontSize, resolveLineHeight } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeValue, TextRoleName, TextRoleStyle } from '../../core/theme/types';
+import type { PlocksTheme, SizeValue, TextRoleName, TextRoleStyle } from '../../core/theme/types';
 import type { BaseProps } from '../../core/types/base';
 import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 
@@ -72,8 +72,7 @@ export interface TextProps
   size?: SizeValue;
   /**
    * Text color. Accepts a `theme.text` role (`'primary'`, `'secondary'`,
-   * `'muted'`, `'disabled'`, `'link'`), `'dimmed'` for the muted token, a
-   * palette name (`'success'` → its readable shade), `'primary.6'` shade
+   * `'muted'`, `'disabled'`, `'link'`), a palette name (`'success'` → its readable shade), `'primary.6'` shade
    * syntax, or any CSS color string.
    */
   c?: string;
@@ -96,6 +95,14 @@ export interface TextProps
   td?: TextStyle['textDecorationLine'];
   /** Custom font family (overrides theme font) */
   ff?: string;
+  /** Flex factor when text shares a row with controls. */
+  flex?: number;
+  shrink?: number;
+  position?: 'relative' | 'absolute';
+  top?: TextStyle['top'];
+  right?: TextStyle['right'];
+  bottom?: TextStyle['bottom'];
+  left?: TextStyle['left'];
   /** Element to render on web (defaults to `variant`); also decides heading semantics. */
   as?: HTMLTextVariant;
   /** Whether text is selectable (default: true) */
@@ -219,7 +226,7 @@ interface TextStyleInput {
 }
 
 /** The typography style for one prop combination. Pure; memoized by the caller. */
-function buildTextStyle(theme: PlatformBlocksTheme, input: TextStyleInput): TextStyle {
+function buildTextStyle(theme: PlocksTheme, input: TextStyleInput): TextStyle {
   const { variant, role, weight, align, fontFamily, lineHeight } = input;
   // Explicit props win over the text role, which wins over the variant.
   const size = input.size ?? role?.fontSize;
@@ -315,7 +322,7 @@ function toWebStyle(rnStyles: unknown): Record<string, string | number> {
 }
 
 // HTML host tags that are valid *inline* children of a <p>. Anything else
-// (div, section, RN/platform-blocks components that render a View, …) forces
+// (div, section, RN/plocks components that render a View, …) forces
 // the enclosing Text to render as a <div> instead of a <p>.
 const INLINE_HOST_TAGS: ReadonlySet<string> = new Set([
   'span', 'b', 'i', 'em', 'strong', 'code', 'a', 'img', 'br', 'sub', 'sup',
@@ -393,6 +400,13 @@ export const Text = factory<{ props: TextProps; ref: RNText }>(
       td,
       style,
       ff,
+      flex,
+      shrink,
+      position,
+      top,
+      right,
+      bottom,
+      left,
       as,
       selectable = true,
       onPress,
@@ -435,6 +449,15 @@ export const Text = factory<{ props: TextProps; ref: RNText }>(
       [theme, variant, roleStyle, size, fw, ta, resolvedColor, ff, lh, lts, tt, fs, td]
     );
     const spacingStyle = useStyleProps(styleProps);
+    const positionStyle: TextStyle = {};
+    if (flex !== undefined) positionStyle.flex = flex;
+    if (shrink !== undefined) positionStyle.flexShrink = shrink;
+    if (position !== undefined) positionStyle.position = position;
+    if (top !== undefined) positionStyle.top = top;
+    if (right !== undefined) positionStyle.right = right;
+    if (bottom !== undefined) positionStyle.bottom = bottom;
+    if (left !== undefined) positionStyle.left = left;
+    const positionStyles = Object.keys(positionStyle).length ? [positionStyle] : [];
 
     const content = tx && t ? t(tx, txParams) : value !== undefined && value !== null ? value : children;
 
@@ -462,7 +485,7 @@ export const Text = factory<{ props: TextProps; ref: RNText }>(
         // Reset browser margins on headings/paragraphs first, so margins from
         // style props or `style` still apply.
         ...(isBlockTag ? { margin: 0 } : null),
-        ...toWebStyle([textStyle, spacingStyle, style]),
+        ...toWebStyle([textStyle, spacingStyle, ...positionStyles, style]),
         // Inline by default unless the caller controls display / white-space.
         ...(hasDisplayOverride ? null : { display: 'inline' }),
       };
@@ -487,7 +510,7 @@ export const Text = factory<{ props: TextProps; ref: RNText }>(
         consumerRole ?? (onPress && !isHeading ? 'button' : undefined);
 
       const domProps: Record<string, unknown> = {
-        className: 'platform-blocks-text',
+        className: 'plocks-text',
         style: webStyle,
       };
       // Only attach when a consumer actually forwarded one — an explicit
@@ -556,7 +579,7 @@ export const Text = factory<{ props: TextProps; ref: RNText }>(
         role={nativeRole}
         // A legacy role without an ARIA equivalent (`text`, `keyboardkey`) stays as-is.
         accessibilityRole={consumerRole ? undefined : accessibilityRole}
-        style={[textStyle, spacingStyle, style]}
+        style={[textStyle, spacingStyle, ...positionStyles, style]}
         selectable={selectable}
         onPress={onPress}
         disabled={disabled}

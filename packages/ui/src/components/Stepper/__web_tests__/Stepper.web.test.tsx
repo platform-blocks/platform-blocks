@@ -1,18 +1,18 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { Stepper } from '../Stepper';
 
 function renderStepper(props: Partial<React.ComponentProps<typeof Stepper>> = {}) {
   return render(
-    <PlatformBlocksProvider>
+    <PlocksProvider>
       <Stepper active={1} aria-label="Checkout" {...props}>
         <Stepper.Step label="Cart" />
         <Stepper.Step label="Shipping" />
         <Stepper.Step label="Payment" />
       </Stepper>
-    </PlatformBlocksProvider>
+    </PlocksProvider>
   );
 }
 

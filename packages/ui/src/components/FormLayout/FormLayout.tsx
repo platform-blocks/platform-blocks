@@ -4,12 +4,12 @@ import { factory } from '../../core/factory/factory';
 import { createThemedStyles } from '../../core/hooks/useThemedStyles';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveRadius, resolveShadow, resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import type { PlocksTheme } from '../../core/theme/types';
 import { resolveStyleProps, extractStyleProps } from '../../core/utils/spacing';
 import type { FormLayoutProps } from './types';
 
 const getLayoutStyles = createThemedStyles(
-  (theme: PlatformBlocksTheme, variant: NonNullable<FormLayoutProps['variant']>, spacing: NonNullable<FormLayoutProps['spacing']>) => {
+  (theme: PlocksTheme, variant: NonNullable<FormLayoutProps['variant']>, spacing: NonNullable<FormLayoutProps['spacing']>) => {
     const gap = resolveSpacing(theme, spacing) as number;
     const padding = resolveSpacing(theme, 'xl') as number;
     const base = { width: '100%' as const, alignSelf: 'center' as const, gap };

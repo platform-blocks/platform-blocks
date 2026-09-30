@@ -24,8 +24,6 @@ export interface FormSectionProps extends BaseProps<ViewStyle> {
   defaultExpanded?: boolean;
   /** Called when the header toggles the section. */
   onExpandedChange?: (expanded: boolean) => void;
-  /** @deprecated Use `defaultExpanded={false}`. */
-  defaultCollapsed?: boolean;
 }
 
 export interface FormGroupProps extends BaseProps<ViewStyle> {

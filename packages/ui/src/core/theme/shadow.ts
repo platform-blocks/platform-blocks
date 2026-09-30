@@ -1,4 +1,4 @@
-// Shadow system for Platform Blocks.
+// Shadow system for plocks.
 //
 // Theme shadows are authored once, as CSS `box-shadow` strings. The web renders
 // them verbatim; native has no box-shadow, so the string is parsed and the most
@@ -10,7 +10,7 @@
 import { Platform, type ViewStyle } from 'react-native';
 
 import { SizeValue } from './sizes';
-import type { PlatformBlocksTheme, SurfaceShadowToken } from './types';
+import type { PlocksTheme, SurfaceShadowToken } from './types';
 
 export type ShadowValue =
   | SizeValue
@@ -227,7 +227,7 @@ const resolvedShadowCache = new WeakMap<object, Map<string, ViewStyle>>();
  * safe to use in memo deps.
  */
 export function resolveShadow(
-  theme: Pick<PlatformBlocksTheme, 'shadows'> | null | undefined,
+  theme: Pick<PlocksTheme, 'shadows'> | null | undefined,
   token: ShadowToken | undefined
 ): ViewStyle {
   if (!token || token === 'none') return EMPTY_STYLE;
@@ -248,12 +248,12 @@ export function resolveShadow(
 /**
  * Get shadow value from shadow token
  * @param value - Shadow value (string token or 'none')
- * @param theme - PlatformBlocks theme object
+ * @param theme - the theme
  * @returns Resolved shadow string or undefined for none
  */
 export function getShadowValue(
   value: ShadowValue | undefined,
-  theme: PlatformBlocksTheme
+  theme: PlocksTheme
 ): string | undefined {
   // No shadow
   if (value === 'none' || value === undefined) {
@@ -308,7 +308,7 @@ export function getComponentDefaultShadow(
  */
 export function createShadowStyles(
   shadow: ShadowValue | undefined,
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   componentType?: keyof typeof COMPONENT_SHADOW_DEFAULTS
 ): ViewStyle {
   // Use component default if no shadow specified
@@ -325,7 +325,7 @@ export function createShadowStyles(
  */
 export function useShadowStyles(
   shadow: ShadowValue | undefined,
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   componentType?: keyof typeof COMPONENT_SHADOW_DEFAULTS
 ) {
   return createShadowStyles(shadow, theme, componentType);

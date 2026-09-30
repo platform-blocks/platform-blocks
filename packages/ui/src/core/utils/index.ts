@@ -1,6 +1,6 @@
 // CSS unit / CSS-variable helpers live in ./units so modules that need only
 // `px` or `rem` can import them without pulling in this whole barrel.
-export { rem, px, getSize, getFontSize, getRadius, getShadow, getColor } from './units';
+export { rem, px, getSize, getColor } from './units';
 
 // Export spacing utilities
 export { BoxProps, DimensionProp, SpacingProps, StyleProps, resolveStyleProps, extractStyleProps, useStyleProps } from './spacing';
@@ -10,21 +10,6 @@ export { BoxProps, DimensionProp, SpacingProps, StyleProps, resolveStyleProps, e
 export { mergeSlotProps } from './mergeSlotProps';
 
 export { mergeRefs, useMergedRef } from './mergeRefs';
-
-// Export universal props system
-export { 
-  UniversalProps, 
-  ResponsiveProps, 
-  UniversalSystemProps, 
-  getUniversalClasses, 
-  extractUniversalProps, 
-  shouldHideComponent,
-  shouldHideForBreakpoint,
-  useUniversalStyles
-} from './universal';
-
-// Export universal props utilities
-export { withUniversalProps, useUniversalProps } from './withUniversalProps';
 
 // Export layout utilities
 export { LayoutProps, getLayoutStyles, extractLayoutProps } from './layout';

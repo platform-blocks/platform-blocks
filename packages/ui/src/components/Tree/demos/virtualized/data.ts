@@ -1,4 +1,4 @@
-import type { TreeNode } from '@platform-blocks/ui';
+import type { TreeNode } from '@plocks/ui';
 
 const DEPARTMENTS = ['Engineering', 'Design', 'Sales', 'Support', 'Finance', 'Legal'];
 

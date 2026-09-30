@@ -31,6 +31,7 @@ import { resolveLinearGradient } from '../../utils/optionalDependencies';
 import { defaultExportOf, resolveOptionalModule } from '../../utils/optionalModule';
 import { Text } from '../Text/Text';
 import type { ShimmerTextProps } from './types';
+import { useElementSize } from '../../hooks/useElementSize';
 
 /**
  * ShimmerText
@@ -55,7 +56,7 @@ import type { ShimmerTextProps } from './types';
  * Web: one CSS animation over `background-position` on a `background-clip:
  * text` element. Nothing runs on the JS thread per frame and the compositor
  * owns the timeline, so the sweep cannot drift or stutter under load. The
- * keyframes are static and read the band width from the `--pb-shimmer-band`
+ * keyframes are static and read the band width from the `--plocks-shimmer-band`
  * custom property, so a resize retunes the geometry by changing one inline
  * value — without restarting the running animation.
  *
@@ -66,7 +67,7 @@ import type { ShimmerTextProps } from './types';
  *
  * `background-position` percentages resolve against
  * `positioningArea - backgroundImage`, so `100%` *is* `boxWidth - bandWidth`
- * and `calc(100% + var(--pb-shimmer-band))` is exactly `boxWidth`: the band's
+ * and `calc(100% + var(--plocks-shimmer-band))` is exactly `boxWidth`: the band's
  * leading edge sits on the box's far edge. That holds for any band width, which
  * means a stale or slightly-off measurement can only make the highlight a bit
  * wider or narrower — it can never desynchronise the loop.
@@ -127,14 +128,14 @@ const WEB_CONTAINER_STYLE = webStyle({ display: 'inline-block' });
 
 /**
  * Web-only CSS the sweep needs beyond `WebStyle`: background geometry and the
- * `--pb-shimmer-band` custom property the keyframes read.
+ * `--plocks-shimmer-band` custom property the keyframes read.
  */
 interface ShimmerWebStyle extends WebStyle {
   backgroundColor?: string;
   backgroundRepeat?: 'no-repeat';
   backgroundSize?: string;
   backgroundPosition?: string;
-  '--pb-shimmer-band'?: string;
+  '--plocks-shimmer-band'?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -142,9 +143,9 @@ interface ShimmerWebStyle extends WebStyle {
 // ---------------------------------------------------------------------------
 
 /** Band fully clear of the leading edge. */
-const SWEEP_START = 'calc(0px - var(--pb-shimmer-band)) 0';
+const SWEEP_START = 'calc(0px - var(--plocks-shimmer-band)) 0';
 /** Band fully clear of the trailing edge — see the note on exact endpoints. */
-const SWEEP_END = 'calc(100% + var(--pb-shimmer-band)) 0';
+const SWEEP_END = 'calc(100% + var(--plocks-shimmer-band)) 0';
 
 const injectedSweeps = new Set<string>();
 let sweepStyleElement: HTMLStyleElement | null = null;
@@ -160,8 +161,8 @@ const HOLD_PRECISION = 10;
 
 const sweepAnimationName = (holdTenths: number) =>
   holdTenths > 0
-    ? `pb-shimmer-sweep-hold-${String(holdTenths / HOLD_PRECISION).replace('.', '-')}`
-    : 'pb-shimmer-sweep';
+    ? `plocks-shimmer-sweep-hold-${String(holdTenths / HOLD_PRECISION).replace('.', '-')}`
+    : 'plocks-shimmer-sweep';
 
 function ensureSweepKeyframes(holdTenths: number) {
   if (!hasDOM) return;
@@ -171,7 +172,7 @@ function ensureSweepKeyframes(holdTenths: number) {
 
   if (!sweepStyleElement) {
     sweepStyleElement = document.createElement('style');
-    sweepStyleElement.setAttribute('data-platform-blocks', 'shimmer-text');
+    sweepStyleElement.setAttribute('data-plocks', 'shimmer-text');
     document.head.appendChild(sweepStyleElement);
   }
 
@@ -305,7 +306,8 @@ export const ShimmerText = factory<{ props: ShimmerTextProps; ref: View }>((prop
   const prefersReducedMotion = useReducedMotion();
   const containerRef = useRef<View>(null);
   const mergedRef = useMergedRef(containerRef, ref);
-  const [layout, setLayout] = useState({ width: 0, height: 0 });
+  const layout = useElementSize();
+  const measureLayout = layout.onLayout;
 
   // `startOnView` defers the first sweep until the text is on screen. Without
   // an observer to gate on (native, SSR, older browsers) the text animates
@@ -334,10 +336,9 @@ export const ShimmerText = factory<{ props: ShimmerTextProps; ref: View }>((prop
   }, [canObserve, seen, inViewMargin]);
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
-    const { width, height } = event.nativeEvent.layout;
-    setLayout((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
+    measureLayout(event);
     externalOnLayout?.(event);
-  }, [externalOnLayout]);
+  }, [measureLayout, externalOnLayout]);
 
   // --- geometry & timing (identical on both platforms) ---------------------
 
@@ -408,7 +409,7 @@ export const ShimmerText = factory<{ props: ShimmerTextProps; ref: View }>((prop
       backgroundRepeat: 'no-repeat',
       backgroundSize: `${bandWidth}px 100%`,
       backgroundPosition: isRtl ? SWEEP_END : SWEEP_START,
-      '--pb-shimmer-band': `${bandWidth}px`,
+      '--plocks-shimmer-band': `${bandWidth}px`,
       WebkitBackgroundClip: 'text',
       backgroundClip: 'text',
       WebkitTextFillColor: 'transparent',
@@ -455,7 +456,7 @@ export const ShimmerText = factory<{ props: ShimmerTextProps; ref: View }>((prop
 
   // Geometry lives in shared values so a resize retunes the sweep in place
   // rather than restarting the animation — the native mirror of updating
-  // `--pb-shimmer-band` on web.
+  // `--plocks-shimmer-band` on web.
   useEffect(() => {
     if (layout.width <= 0) return;
     startX.value = isRtl ? layout.width : -bandWidth;

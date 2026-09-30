@@ -1,4 +1,4 @@
-import { Badge, Row } from '@platform-blocks/ui'
+import { Badge, Row } from '@plocks/ui'
 
 export function Demo() {
   return (

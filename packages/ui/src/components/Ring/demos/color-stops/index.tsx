@@ -1,4 +1,4 @@
-import { Ring, Row } from '@platform-blocks/ui';
+import { Ring, Row } from '@plocks/ui';
 
 const colorStops = [
   { value: 0, color: '#f87171' },

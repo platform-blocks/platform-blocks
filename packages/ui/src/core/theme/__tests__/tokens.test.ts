@@ -1,9 +1,8 @@
 import { DARK_THEME } from '../darkTheme';
 import { DEFAULT_THEME } from '../defaultTheme';
-import { DESIGN_TOKENS, RADIUS_TOKENS } from '../../design-tokens';
+import { DESIGN_TOKENS } from '../../design-tokens';
 import { RADIUS_SCALE } from '../radius';
 import { DEFAULT_CONTROL_SIZES } from '../scales';
-import { SIZE_SCALES, getHeight } from '../sizes';
 import {
   getBreakpoints,
   getControlSize,
@@ -19,7 +18,7 @@ import {
 } from '../tokens';
 import { contrastRatio } from '../colorUtils';
 import { getBuiltInTheme, mergeTheme, normalizeTheme, resolveThemeForScheme } from '../utils';
-import type { PlatformBlocksTheme } from '../types';
+import type { PlocksTheme } from '../types';
 
 describe('parsePx', () => {
   it('parses px, rem and unitless strings and passes numbers through', () => {
@@ -48,17 +47,16 @@ describe('scale resolvers', () => {
   });
 
   it('falls back to the default numbers for partial themes', () => {
-    expect(resolveSpacing({} as Partial<PlatformBlocksTheme>, 'lg')).toBe(16);
+    expect(resolveSpacing({} as Partial<PlocksTheme>, 'lg')).toBe(16);
     expect(resolveRadius(null, 'lg')).toBe(8);
     expect(resolveFontSize(undefined, 'md')).toBe(14);
   });
 
-  it('resolves radii, including none / full / chip', () => {
+  it('resolves radii, including none / full', () => {
     expect(resolveRadius(DEFAULT_THEME, 'md')).toBe(6);
     expect(resolveRadius(DEFAULT_THEME, '3xl')).toBe(20);
     expect(resolveRadius(DEFAULT_THEME, 'none')).toBe(0);
     expect(resolveRadius(DEFAULT_THEME, 'full')).toBe(9999);
-    expect(resolveRadius(DEFAULT_THEME, 'chip')).toBe(9999);
     expect(resolveRadius(DEFAULT_THEME, 5)).toBe(5);
     expect(resolveRadius(DEFAULT_THEME, undefined)).toBe(6);
   });
@@ -128,12 +126,8 @@ describe('getControlSize', () => {
 });
 
 describe('one set of numbers', () => {
-  it('derives the legacy tables from the default theme', () => {
-    expect(SIZE_SCALES.height).toEqual({ xs: 28, sm: 32, md: 40, lg: 44, xl: 48, '2xl': 52, '3xl': 56 });
-    expect(getHeight('md')).toBe(40);
-    expect(RADIUS_TOKENS['3xl']).toBe(20);
+  it('derives the static tables from the default theme', () => {
     expect(RADIUS_SCALE['3xl']).toBe(20);
-    expect(DESIGN_TOKENS.spacing.md).toBe(resolveSpacing(DEFAULT_THEME, 'md'));
     expect(DESIGN_TOKENS.interactive.height.md).toBe(DEFAULT_CONTROL_SIZES.md.height);
   });
 });
@@ -161,17 +155,6 @@ describe('theme shape', () => {
     expect(contrastRatio(DARK_THEME.text.primary, DARK_THEME.backgrounds.mark)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('derives the deprecated semantic aliases from the roles', () => {
-    for (const theme of [DEFAULT_THEME, DARK_THEME]) {
-      expect(theme.semantic.borderDefault).toBe(theme.backgrounds.borderStrong);
-      expect(theme.semantic.borderSubtle).toBe(theme.backgrounds.border);
-      expect(theme.semantic.surfaceElevated).toBe(theme.backgrounds.elevated);
-      expect(theme.semantic.focusRing).toBe(theme.states?.focusRing);
-    }
-    const merged = mergeTheme(DEFAULT_THEME, { backgrounds: { border: '#123456' } });
-    expect(merged.semantic.borderSubtle).toBe('#123456');
-  });
-
   it('has z-indices, control sizes and a monospace family on both themes', () => {
     expect(DEFAULT_THEME.zIndices.modal).toBe(1400);
     expect(DARK_THEME.zIndices.tooltip).toBe(1700);
@@ -180,27 +163,27 @@ describe('theme shape', () => {
   });
 
   it('fills post-1.x fields on complete themes that predate them', () => {
-    const legacy = { ...DARK_THEME } as Partial<PlatformBlocksTheme>;
+    const legacy = { ...DARK_THEME } as Partial<PlocksTheme>;
     delete legacy.controlSizes;
     delete legacy.zIndices;
     delete legacy.fontFamilyMono;
-    const legacyBackgrounds = { ...DARK_THEME.backgrounds } as Partial<PlatformBlocksTheme['backgrounds']>;
+    const legacyBackgrounds = { ...DARK_THEME.backgrounds } as Partial<PlocksTheme['backgrounds']>;
     delete legacyBackgrounds.hover;
-    legacy.backgrounds = legacyBackgrounds as PlatformBlocksTheme['backgrounds'];
+    legacy.backgrounds = legacyBackgrounds as PlocksTheme['backgrounds'];
 
-    const normalized = normalizeTheme(legacy as PlatformBlocksTheme);
+    const normalized = normalizeTheme(legacy as PlocksTheme);
     expect(normalized.controlSizes).toBeDefined();
     expect(normalized.zIndices.modal).toBe(1400);
     expect(normalized.backgrounds.hover).toBe(DARK_THEME.backgrounds.hover);
-    expect(normalizeTheme(legacy as PlatformBlocksTheme)).toBe(normalized);
+    expect(normalizeTheme(legacy as PlocksTheme)).toBe(normalized);
     expect(normalizeTheme(DEFAULT_THEME)).toBe(DEFAULT_THEME);
   });
 
   it('fills backgrounds.scrim from the built-in theme of the same scheme', () => {
-    const withoutScrim = (theme: PlatformBlocksTheme) => {
-      const backgrounds = { ...theme.backgrounds } as Partial<PlatformBlocksTheme['backgrounds']>;
+    const withoutScrim = (theme: PlocksTheme) => {
+      const backgrounds = { ...theme.backgrounds } as Partial<PlocksTheme['backgrounds']>;
       delete backgrounds.scrim;
-      return { ...theme, backgrounds } as PlatformBlocksTheme;
+      return { ...theme, backgrounds } as PlocksTheme;
     };
     expect(normalizeTheme(withoutScrim(DARK_THEME)).backgrounds.scrim).toBe(DARK_THEME.backgrounds.scrim);
     expect(normalizeTheme(withoutScrim(DEFAULT_THEME)).backgrounds.scrim).toBe(DEFAULT_THEME.backgrounds.scrim);
@@ -223,9 +206,9 @@ describe('resolveScrim', () => {
   it('reads the literal color behind a CSS-variable theme', () => {
     const cssVarTheme = {
       ...DEFAULT_THEME,
-      backgrounds: { ...DEFAULT_THEME.backgrounds, scrim: 'var(--platform-blocks-bg-scrim, rgba(15, 23, 42, 0.45))' },
+      backgrounds: { ...DEFAULT_THEME.backgrounds, scrim: 'var(--plocks-bg-scrim, rgba(15, 23, 42, 0.45))' },
       literalColors: { text: DEFAULT_THEME.text, backgrounds: DEFAULT_THEME.backgrounds },
-    } as PlatformBlocksTheme;
+    } as PlocksTheme;
     expect(resolveScrim(cssVarTheme)).toBe(cssVarTheme.backgrounds.scrim);
     expect(resolveScrim(cssVarTheme, 0.2)).toBe('rgba(15, 23, 42, 0.2)');
   });
@@ -278,6 +261,6 @@ describe('onColor', () => {
 
   it('measures translucent and var() fills', () => {
     expect(onColor(DEFAULT_THEME, 'rgba(0, 0, 0, 0.04)')).toBe(DEFAULT_THEME.text.primary);
-    expect(onColor(DEFAULT_THEME, 'var(--platform-blocks-bg-selected, #1E3A8A)')).toBe('#FFFFFF');
+    expect(onColor(DEFAULT_THEME, 'var(--plocks-bg-selected, #1E3A8A)')).toBe('#FFFFFF');
   });
 });

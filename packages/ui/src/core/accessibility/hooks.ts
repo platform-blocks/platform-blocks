@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'r
 import { AccessibilityInfo, findNodeHandle } from 'react-native';
 import type { View } from 'react-native';
 
-import { useReducedMotion as useReducedMotionPreference } from '../motion/useReducedMotion';
 import { isIOS, isAndroid, isWeb } from '../platform';
 import { devWarn } from '../utils/logger';
 import { useAnnounce, useFocusStore, useScreenReaderEnabled } from './context';
@@ -84,28 +83,6 @@ export const useAnnouncer = () => {
   );
 
   return { announce, screenReaderEnabled };
-};
-
-/**
- * Reduced-motion helpers on top of the single `useReducedMotion()` source
- * (core/motion). Works without a provider.
- */
-export const useReducedMotion = () => {
-  const prefersReducedMotion = useReducedMotionPreference();
-
-  const getDuration = useCallback(
-    (normalDuration: number) => (prefersReducedMotion ? 0 : normalDuration),
-    [prefersReducedMotion]
-  );
-  const getScale = useCallback(
-    (normalScale: number) => (prefersReducedMotion ? 1 : normalScale),
-    [prefersReducedMotion]
-  );
-
-  return useMemo(
-    () => ({ prefersReducedMotion, getDuration, getScale }),
-    [prefersReducedMotion, getDuration, getScale]
-  );
 };
 
 /** Screen reader state. Works without a provider. */

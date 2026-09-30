@@ -48,8 +48,6 @@ export interface PinInputProps extends FieldBaseProps {
   oneTimeCode?: boolean;
   /** Gap between cells (px). Default 8. */
   spacing?: number;
-  /** @deprecated Use `radius`. */
-  borderRadius?: number;
 
   /** Extra TextInput props for every cell. */
   textInputProps?: Omit<

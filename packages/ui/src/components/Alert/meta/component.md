@@ -22,9 +22,5 @@ examples:
   - variants
   - interactive
 ---
-The Alert component displays important messages to users with different severity levels, variants, and optional actions like dismissal. Title and body each accept full `<Text>` props via `titleProps` / `bodyProps`.
 
-## Accessibility
-
-- `severity="error"` / `"warning"` (or, without a severity, `color="error"` / `"warning"`) render `role="alert"`: urgent, announced when the alert appears. On native, where live regions are unreliable, urgent alerts are announced on mount. Every other alert is a polite `role="status"`. The `variant` never changes urgency.
-- The dismiss button is a `button` named "Close" (override with `closeButtonLabel`) with a 24px (web) / 44pt (native) touch target.
+Alert displays prominent messages with severity styles and optional actions.

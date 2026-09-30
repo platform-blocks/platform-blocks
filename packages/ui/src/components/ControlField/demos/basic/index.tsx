@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ControlField } from '@platform-blocks/ui';
+import { ControlField } from '@plocks/ui';
 
 export function Demo() {
   const [enabled, setEnabled] = useState(true);

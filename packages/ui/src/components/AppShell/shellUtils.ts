@@ -7,7 +7,7 @@ import type { EasingFunction, EasingFunctionFactory } from 'react-native-reanima
 import { isWeb } from '../../core/platform/flags';
 import { webStyle } from '../../core/platform/webStyle';
 import { resolveSpacing } from '../../core/theme/tokens';
-import type { PlatformBlocksTheme, SizeToken } from '../../core/theme/types';
+import type { PlocksTheme, SizeToken } from '../../core/theme/types';
 import { useDirection } from '../../core/providers/DirectionProvider';
 import {
   getServerViewportSnapshot,
@@ -19,7 +19,7 @@ import {
 export const FILL: ViewStyle = { position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 };
 
 /** A spacing token in px (`'auto'` → 0). */
-export const spacingPx = (theme: PlatformBlocksTheme, token: SizeToken): number => {
+export const spacingPx = (theme: PlocksTheme, token: SizeToken): number => {
   const value = resolveSpacing(theme, token);
   return typeof value === 'number' ? value : 0;
 };

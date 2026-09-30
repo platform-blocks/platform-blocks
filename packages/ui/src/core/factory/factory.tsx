@@ -42,10 +42,10 @@ export interface ComponentWithProps<Props = UnknownProps, RefType = unknown> {
    */
   withProps: <T extends Partial<Props>>(
     fixedProps: T
-  ) => PlatformBlocksComponent<{ props: WithFixedProps<Props, T>; ref: RefType }>;
+  ) => PlocksComponent<{ props: WithFixedProps<Props, T>; ref: RefType }>;
 }
 
-export interface PlatformBlocksComponent<Payload extends FactoryPayload>
+export interface PlocksComponent<Payload extends FactoryPayload>
   extends React.ForwardRefExoticComponent<
       React.PropsWithoutRef<Payload['props'] & VisibilityProps> & React.RefAttributes<Payload['ref']>
     >,
@@ -56,11 +56,11 @@ export interface PlatformBlocksComponent<Payload extends FactoryPayload>
 }
 
 /** What `factory` returns: the component plus any statics its payload declares. */
-export type FactoryComponent<Payload extends FactoryPayload> = PlatformBlocksComponent<Payload> &
+export type FactoryComponent<Payload extends FactoryPayload> = PlocksComponent<Payload> &
   FactoryStatics<Payload>;
 
 /**
- * Factory function for creating PlatformBlocks components
+ * Factory function for creating plocks components
  */
 export interface FactoryOptions<Payload extends FactoryPayload> {
   /**
@@ -122,7 +122,7 @@ function withoutVisibility(props: Record<string, unknown>): Record<string, unkno
  * gate is inserted above it); a hidden component is unmounted anyway.
  */
 function createVisibilityRoot(Inner: AnyForwardRef, name: string | undefined): AnyForwardRef {
-  const Root = forwardRef<unknown, Record<string, unknown>>(function PlatformBlocksRoot(props, ref) {
+  const Root = forwardRef<unknown, Record<string, unknown>>(function PlocksRoot(props, ref) {
     const rest = withoutVisibility(props);
     if (!hasVisibilityProps(props)) {
       return <Inner {...rest} ref={ref} />;
@@ -184,7 +184,7 @@ export function factory<Payload extends FactoryPayload>(
     Inner.displayName = displayName;
   }
   const inferredName = displayName || ui.displayName || ui.name || undefined;
-  const name = inferredName || 'PlatformBlocksComponent';
+  const name = inferredName || 'PlocksComponent';
 
   const Root = createVisibilityRoot(Inner, inferredName);
 

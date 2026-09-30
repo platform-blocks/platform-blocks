@@ -1,4 +1,4 @@
-import { Block, Progress } from '@platform-blocks/ui';
+import { Block, Progress } from '@plocks/ui';
 
 export function Demo() {
   return (

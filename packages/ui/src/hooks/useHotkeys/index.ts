@@ -93,13 +93,8 @@ function matchesHotkey(
  * Handlers are always the latest ones passed — the listener is attached once
  * and reads the current `hotkeys` on every keypress — so inline handlers never
  * go stale and never cause re-subscription.
- *
- * @param dependencies Deprecated and ignored: kept for call-site compatibility.
  */
-export function useHotkeys(
-  hotkeys: HotkeyItem[],
-  _dependencies?: React.DependencyList
-) {
+export function useHotkeys(hotkeys: HotkeyItem[]) {
   const handleKeyDown = useLatestCallback((event: KeyboardEvent) => {
     // Don't trigger hotkeys when user is typing in input fields
     const target = event.target as HTMLElement | null;
@@ -290,10 +285,7 @@ export function useGlobalHotkeys(id: string, hotkey: HotkeyItem, enabled: boolea
 export { useEscapeKey } from '../useEscapeKey/useEscapeKey';
 
 export function useToggleColorScheme(handler: () => void, enabled = true) {
-  useHotkeys(
-    enabled ? [['ctrl+j', handler]] : [],
-    [handler, enabled]
-  );
+  useHotkeys(enabled ? [['ctrl+j', handler]] : []);
 }
 
 export function useSpotlightToggle(handler: () => void, enabled = true) {

@@ -4,7 +4,6 @@ category: appearance
 order: 30
 tags: [table, borders]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

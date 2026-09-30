@@ -2,10 +2,10 @@ import React from 'react';
 import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
 import { clearAnnouncer } from '../../../core/accessibility/announce';
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { CopyButton } from '../CopyButton';
 
-const render = (ui: React.ReactElement) => rtlRender(<PlatformBlocksProvider>{ui}</PlatformBlocksProvider>);
+const render = (ui: React.ReactElement) => rtlRender(<PlocksProvider>{ui}</PlocksProvider>);
 
 describe('CopyButton (react-native-web DOM)', () => {
   const writeText = jest.fn(() => Promise.resolve());
@@ -24,21 +24,21 @@ describe('CopyButton (react-native-web DOM)', () => {
   it('is a button named "Copy" that copies, calls onCopy and announces "Copied"', async () => {
     const onCopy = jest.fn();
     const ref = React.createRef<unknown>();
-    render(<CopyButton ref={ref as never} value="npm i @platform-blocks/ui" onCopy={onCopy} disableToast />);
+    render(<CopyButton ref={ref as never} value="npm i @plocks/ui" onCopy={onCopy} disableToast />);
     expect(ref.current).toBeTruthy();
 
     const button = screen.getByRole('button', { name: 'Copy' });
     await act(async () => {
       fireEvent.click(button);
     });
-    expect(writeText).toHaveBeenCalledWith('npm i @platform-blocks/ui');
-    expect(onCopy).toHaveBeenCalledWith('npm i @platform-blocks/ui');
+    expect(writeText).toHaveBeenCalledWith('npm i @plocks/ui');
+    expect(onCopy).toHaveBeenCalledWith('npm i @plocks/ui');
     expect(screen.getByRole('button', { name: 'Copied' })).toBeTruthy();
 
     act(() => {
       jest.advanceTimersByTime(100);
     });
-    const live = document.querySelector('[data-pb-announcer] [aria-live="polite"]');
+    const live = document.querySelector('[data-plocks-announcer] [aria-live="polite"]');
     expect(live?.textContent).toBe('Copied');
   });
 

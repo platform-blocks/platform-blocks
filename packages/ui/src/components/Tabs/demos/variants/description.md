@@ -4,7 +4,6 @@ category: styling
 order: 80
 tags: [tabs, variants]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

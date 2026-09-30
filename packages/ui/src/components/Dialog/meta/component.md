@@ -8,7 +8,7 @@ tags: [modal, dialog, overlay, sheet]
 playground: true
 accessibility: "role=dialog with aria-modal, named by its title (aria-labelledby) or accessibilityLabel. A modal layer: focus moves in on open, Tab is trapped, Escape / Android back close only the topmost overlay, and focus returns to the opener. The close button is labelled 'Close dialog'. Popovers, selects and menus opened inside render in the dialog's own overlay host, above it."
 props:
-  opened: Whether the dialog is shown (`visible` is a deprecated alias)
+  opened: Whether the dialog is shown
   variant: 'modal' | 'bottomsheet' | 'fullscreen'
   title: Optional title rendered in the header
   closable: Show the close button + handle escape/back gestures

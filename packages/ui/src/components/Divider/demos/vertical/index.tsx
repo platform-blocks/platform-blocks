@@ -1,4 +1,4 @@
-import { Block, Divider, Text } from '@platform-blocks/ui';
+import { Block, Divider, Text } from '@plocks/ui';
 
 export function Demo() {
   return (

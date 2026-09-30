@@ -1,4 +1,4 @@
-import { Avatar, AvatarGroup } from '@platform-blocks/ui';
+import { Avatar, AvatarGroup } from '@plocks/ui';
 
 const TEAM = [
   { id: 1, name: 'Sarah Johnson', initials: 'SJ', color: '#FF6B6B' },

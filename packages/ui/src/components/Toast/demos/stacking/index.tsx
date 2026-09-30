@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 
-import { Block, Button, useToast } from '@platform-blocks/ui';
+import { Block, Button, useToast } from '@plocks/ui';
 
 export function Demo() {
   const toast = useToast();

@@ -1,4 +1,4 @@
-import type { DonutChartDataPoint } from '@platform-blocks/charts';
+import type { DonutChartDataPoint } from '@plocks/charts';
 
 export const DEPARTMENT_ALLOCATIONS: DonutChartDataPoint[] = [
   { label: 'Product & Engineering', value: 42 },

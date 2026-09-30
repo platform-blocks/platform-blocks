@@ -4,7 +4,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 
 import { AppShell, useAppShellApi } from '../AppShell';
-import { PlatformBlocksProvider } from '../../../core/theme/PlatformBlocksProvider';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
 import { resetViewportStore } from '../../../core/responsive/viewportStore';
 import { __resetLayerStackForTests } from '../../../core/overlay/layerStack';
 
@@ -33,7 +33,7 @@ type ShellProps = Partial<React.ComponentProps<typeof AppShell>>;
 
 function Shell({ direction, ...props }: ShellProps & { direction?: 'ltr' | 'rtl' }) {
   return (
-    <PlatformBlocksProvider direction={direction ? { initialDirection: direction } : undefined}>
+    <PlocksProvider direction={direction ? { initialDirection: direction } : undefined}>
       <AppShell
         withSafeArea={false}
         header={{ height: 60 }}
@@ -61,7 +61,7 @@ function Shell({ direction, ...props }: ShellProps & { direction?: 'ltr' | 'rtl'
           <Text>Footer</Text>
         </AppShell.Footer>
       </AppShell>
-    </PlatformBlocksProvider>
+    </PlocksProvider>
   );
 }
 
@@ -141,9 +141,9 @@ describe('AppShell (react-native-web DOM)', () => {
   it('emits CSS-variable geometry under cssGeometry', () => {
     render(<Shell cssGeometry />);
     const main = screen.getByTestId('main');
-    expect(main.getAttribute('data-pb-shell-main')).toBe('true');
-    expect(main.style.left).toContain('var(--pb-shell-navbar-w');
-    expect(screen.getByRole('navigation', { name: 'Main' }).getAttribute('data-pb-shell-navbar')).toBe('true');
+    expect(main.getAttribute('data-plocks-shell-main')).toBe('true');
+    expect(main.style.left).toContain('var(--plocks-shell-navbar-w');
+    expect(screen.getByRole('navigation', { name: 'Main' }).getAttribute('data-plocks-shell-navbar')).toBe('true');
   });
 
   it('prerenders the desktop layout regardless of the client width (hydration-safe)', () => {

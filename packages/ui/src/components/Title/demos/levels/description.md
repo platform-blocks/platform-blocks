@@ -4,7 +4,6 @@ category: usage
 order: 20
 tags: [headings, semantics]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

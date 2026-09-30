@@ -4,7 +4,6 @@ category: usage
 order: 50
 tags: [lh, line-height, spacing]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

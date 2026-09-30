@@ -1,4 +1,4 @@
-import { Block, Surface, Text } from '@platform-blocks/ui';
+import { Block, Surface, Text } from '@plocks/ui';
 
 export function Demo() {
   return (
