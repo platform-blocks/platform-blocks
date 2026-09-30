@@ -1,14 +1,15 @@
 import React from 'react';
-import { ViewStyle, StyleProp } from 'react-native';
-import { SpacingProps } from '../../core/utils';
-import { BorderRadiusProps } from '../../core/theme/radius';
+import type { ViewStyle, StyleProp } from 'react-native';
+import type { BorderRadiusProps } from '../../core/theme/radius';
+import type { BaseProps } from '../../core/types/base';
 import type { ThemeColor } from '../../core/theme/resolveColors';
 import type { ComponentSizeValue } from '../../core/theme/componentSize';
 import type { TextProps } from '../Text';
 
 export type ToastVariant = 'light' | 'filled' | 'outline';
 export type ToastSeverity = 'info' | 'success' | 'warning' | 'error';
-export type ToastPosition = 'top' | 'bottom' | 'left' | 'right';
+/** Edge a toast travels from when it enters (derived from its stack's screen position). */
+export type ToastDirection = 'top' | 'bottom' | 'left' | 'right';
 export type ToastAnimationType = 'slide' | 'fade' | 'bounce' | 'scale';
 
 /** Metrics a single `size` token resolves to. */
@@ -53,7 +54,8 @@ export interface ToastAnimationConfig {
     stiffness?: number;
     mass?: number;
   };
-  easing?: any; // Easing function
+  /** Easing function (a reanimated `Easing`). */
+  easing?: (value: number) => number;
 }
 
 export interface ToastSwipeConfig {
@@ -63,7 +65,7 @@ export interface ToastSwipeConfig {
   velocityThreshold?: number;
 }
 
-export interface ToastProps extends SpacingProps, BorderRadiusProps {
+export interface ToastProps extends BaseProps, BorderRadiusProps {
   /** Toast variant */
   variant?: ToastVariant;
   /**
@@ -119,8 +121,8 @@ export interface ToastProps extends SpacingProps, BorderRadiusProps {
    * @default false
    */
   paused?: boolean;
-  /** Position of the toast for animation direction */
-  position?: ToastPosition;
+  /** Edge the toast enters from (animation direction) */
+  position?: ToastDirection;
   /** Container style */
   style?: StyleProp<ViewStyle>;
   /** Test ID for testing */
@@ -129,8 +131,6 @@ export interface ToastProps extends SpacingProps, BorderRadiusProps {
   actions?: ToastAction[];
   /** Whether toast can be dismissed by tapping */
   dismissOnTap?: boolean;
-  /** Maximum width for toast */
-  maxWidth?: number;
   /** Persist toast until manually dismissed */
   persistent?: boolean;
   /** Keep toast mounted in the tree when hidden */
@@ -148,7 +148,7 @@ export interface ToastProps extends SpacingProps, BorderRadiusProps {
    * @default false
    */
   selectable?: boolean;
-  /** Override props applied to the title `<Text>` (style, weight, ff, size, color). */
+  /** Override props applied to the title `<Text>` (style, fw, ff, size, c). */
   titleProps?: Omit<TextProps, 'children'>;
   /** Override props applied to the body `<Text>` (the `children` content). */
   bodyProps?: Omit<TextProps, 'children'>;

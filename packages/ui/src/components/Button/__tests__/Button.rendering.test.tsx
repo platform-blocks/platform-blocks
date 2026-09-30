@@ -7,8 +7,9 @@
 
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Text as RNText } from 'react-native';
 import { Button } from '../Button';
+import { IconButton } from '../../IconButton';
 
 // Mock the heavy dependencies
 jest.mock('../../../hooks/useHaptics', () => ({
@@ -28,20 +29,11 @@ jest.mock('../../../hooks/useHaptics', () => ({
   }),
 }));
 
-jest.mock('../../../core/accessibility/hooks', () => ({
-  useFocus: () => ({
-    ref: { current: null },
-    focus: jest.fn(),
-    isFocused: false,
-  }),
-  useReducedMotion: () => ({
-    getDuration: (duration: number) => duration,
-    shouldReduceMotion: false,
-  }),
-  useAnnouncer: () => ({
-    announce: jest.fn(),
-  }),
-}));
+/** Flattened style of a Pressable (its style may be a state function). */
+const pressableStyleOf = (element: any) =>
+  StyleSheet.flatten(
+    typeof element.props.style === 'function' ? element.props.style({ pressed: false }) : element.props.style
+  );
 
 describe('Button Component - Rendering & Behavior', () => {
   
@@ -247,18 +239,13 @@ describe('Button Component - Rendering & Behavior', () => {
         <Button title="Disabled" disabled testID="button" />
       );
       
-      const button = getByTestId('button');
-      // Check accessibility state instead of internal disabled prop
-      expect(button.props.accessibilityState?.disabled).toBe(true);
+      expect(getByTestId('button')).toBeDisabled();
     });
 
-    it('should have accessibilityState.disabled', () => {
-      const { getByTestId } = render(
-        <Button title="Disabled" disabled testID="button" />
-      );
-      
-      const button = getByTestId('button');
-      expect(button.props.accessibilityState?.disabled).toBe(true);
+    it('is announced as a disabled button', () => {
+      const { getByRole } = render(<Button title="Disabled" disabled />);
+
+      expect(getByRole('button', { name: 'Disabled', disabled: true })).toBeTruthy();
     });
   });
 
@@ -300,7 +287,7 @@ describe('Button Component - Rendering & Behavior', () => {
       );
       
       const button = getByTestId('button');
-      expect(button.props.accessibilityRole).toBe('button');
+      expect(button.props.role).toBe('button');
     });
 
     it('should accept custom accessibilityLabel', () => {
@@ -377,8 +364,8 @@ describe('Button Component - Rendering & Behavior', () => {
       );
       
       const button = getByTestId('button');
-      // Check accessibility state for disabled
-      expect(button.props.accessibilityState?.disabled).toBe(true);
+      expect(button).toBeDisabled();
+      expect(button).toBeBusy();
       
       // Should not call onPress
       fireEvent.press(button);
@@ -439,20 +426,20 @@ describe('Button Component - Rendering & Behavior', () => {
       expect(getByTestId('button')).toBeTruthy();
     });
 
-    it('should accept startIcon with title', () => {
+    it('should accept startSection with title', () => {
       const { getByText, getByTestId } = render(
-        <Button title="Next" startIcon={<></>} testID="button" />
+        <Button title="Next" startSection={<></>} testID="button" />
       );
-      
+
       expect(getByText('Next')).toBeTruthy();
       expect(getByTestId('button')).toBeTruthy();
     });
 
-    it('should accept endIcon with title', () => {
+    it('should accept endSection with title', () => {
       const { getByText, getByTestId } = render(
-        <Button title="Previous" endIcon={<></>} testID="button" />
+        <Button title="Previous" endSection={<></>} testID="button" />
       );
-      
+
       expect(getByText('Previous')).toBeTruthy();
       expect(getByTestId('button')).toBeTruthy();
     });
@@ -466,18 +453,6 @@ describe('Button Component - Rendering & Behavior', () => {
     it('should accept tooltip prop', () => {
       const { getByTestId } = render(
         <Button title="With Tooltip" tooltip="Click here" testID="button" />
-      );
-      expect(getByTestId('button')).toBeTruthy();
-    });
-
-    it('should accept tooltipPosition prop', () => {
-      const { getByTestId } = render(
-        <Button
-          title="Tooltip"
-          tooltip="Info"
-          tooltipPosition="bottom"
-          testID="button"
-        />
       );
       expect(getByTestId('button')).toBeTruthy();
     });
@@ -558,6 +533,87 @@ describe('Button Component - Rendering & Behavior', () => {
       expect(wrapperStyle(toJSON()).alignSelf).toBe('center');
       // …and not left behind on the Pressable, where it would do nothing
       expect(pressableStyle(getByTestId('button')).alignSelf).toBeUndefined();
+    });
+
+    it('sizes the width on the wrapper and the height and fill on the Pressable', () => {
+      const { getByTestId, toJSON } = render(
+        <Button title="Sized" w={240} maw={300} h={60} bg="#ff0000" m="md" testID="button" />
+      );
+      const wrapper = wrapperStyle(toJSON());
+      const pressable = pressableStyle(getByTestId('button'));
+
+      expect(wrapper).toMatchObject({ width: 240, maxWidth: 300 });
+      expect(wrapper.marginTop).toBeDefined();
+      expect(pressable).toMatchObject({ height: 60, backgroundColor: '#ff0000' });
+      // Each value lands once.
+      expect(pressable.width).toBeUndefined();
+      expect(pressable.maxWidth).toBeUndefined();
+      expect(wrapper.height).toBeUndefined();
+      expect(wrapper.backgroundColor).toBeUndefined();
+    });
+
+    it('lets an explicit `w` win over `fullWidth`', () => {
+      const { toJSON } = render(<Button title="Both" fullWidth w={200} />);
+      expect(wrapperStyle(toJSON()).width).toBe(200);
+    });
+  });
+
+  // ============================================================================
+  // ACCESSIBLE NAME / SIZING CONTRACT
+  // ============================================================================
+
+  describe('Accessible name', () => {
+    it('derives the name from nested text children instead of a generic literal', () => {
+      const { getByTestId } = render(
+        <Button testID="button">
+          <RNText>Save changes</RNText>
+        </Button>
+      );
+      expect(getByTestId('button')).toHaveAccessibleName('Save changes');
+    });
+
+    it('leaves the name unset when the content has no text', () => {
+      const { getByTestId } = render(
+        <Button testID="button">
+          <></>
+        </Button>
+      );
+      expect(getByTestId('button')).not.toHaveAccessibleName();
+    });
+
+    it('names an icon-only button by its tooltip', () => {
+      const { getByRole } = render(<Button icon={<RNText>*</RNText>} tooltip="Settings" />);
+      expect(getByRole('button', { name: 'Settings' })).toBeTruthy();
+    });
+
+    it('does not report a stray selected state', () => {
+      const { getByRole } = render(<Button title="Plain" />);
+      expect(getByRole('button', { name: 'Plain' })).not.toBeSelected();
+    });
+  });
+
+  describe('Sizing', () => {
+    it('renders radius="full" as a true pill at every size', () => {
+      for (const size of ['xs', 'sm', 'md', 'lg', 'xl'] as const) {
+        const { getByTestId, unmount } = render(<Button title="Pill" radius="full" size={size} testID="button" />);
+        const style = pressableStyleOf(getByTestId('button'));
+        expect(style.borderRadius).toBeGreaterThanOrEqual((style.height as number) / 2);
+        unmount();
+      }
+    });
+
+    it('is exactly as tall as an IconButton of the same size', () => {
+      for (const size of ['xs', 'sm', 'md', 'lg', 'xl'] as const) {
+        const button = render(<Button title="Text" size={size} testID="button" />);
+        const icon = render(<IconButton icon="heart" accessibilityLabel="Like" size={size} testID="icon" />);
+        const buttonStyle = pressableStyleOf(button.getByTestId('button'));
+        const iconStyle = pressableStyleOf(icon.getByTestId('icon'));
+        expect(iconStyle.height).toBe(buttonStyle.height);
+        expect(iconStyle.width).toBe(buttonStyle.height);
+        button.unmount();
+        icon.unmount();
+      }
+      expect(pressableStyleOf(render(<Button title="md" testID="md" />).getByTestId('md')).height).toBe(40);
     });
   });
 });

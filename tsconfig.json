@@ -2,16 +2,40 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "paths": {
-      "@platform-blocks/ui": [
+      "@plocks/ui": [
         "./packages/ui/src/index.ts"
       ],
-      "@platform-blocks/ui/*": [
+      "@plocks/ui/*": [
         "./packages/ui/src/*"
       ],
-      "@platform-blocks/charts": [
+      "@plocks/charts": [
         "./packages/charts/src/index.ts"
       ],
-      "@platform-blocks/charts/*": [
+      "@plocks/dates": [
+        "./packages/dates/src/index.ts"
+      ],
+      "@plocks/code": [
+        "./packages/code/src/index.ts"
+      ],
+      "@plocks/media": [
+        "./packages/media/src/index.ts"
+      ],
+      "@plocks/carousel": [
+        "./packages/carousel/src/index.ts"
+      ],
+      "@plocks/spotlight": [
+        "./packages/spotlight/src/index.ts"
+      ],
+      "@plocks/brands": [
+        "./packages/brands/src/index.ts"
+      ],
+      "@plocks/qrcode": [
+        "./packages/qrcode/src/index.ts"
+      ],
+      "@plocks/emoji-picker": [
+        "./packages/emoji-picker/src/index.ts"
+      ],
+      "@plocks/charts/*": [
         "./packages/charts/src/*"
       ]
     }

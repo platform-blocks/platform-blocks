@@ -1,9 +1,11 @@
-import { useCallback, useRef, useState, useEffect } from 'react';
-import { createMask, MaskDefinition, MaskResult } from './utils/mask';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { createMask, type Mask, type MaskDefinition, type MaskResult } from './utils/mask';
 
 export interface UseMaskedInputOptions {
-  /** The mask definition */
-  mask: MaskDefinition | ReturnType<typeof createMask>;
+  /** The mask definition, or a mask built with `createMask`. Read once, on mount. */
+  mask: MaskDefinition | Mask;
   /** Initial value */
   initialValue?: string;
   /** Callback when value changes */
@@ -33,106 +35,87 @@ export interface UseMaskedInputReturn {
   setUnmaskedValue: (unmaskedValue: string) => void;
 }
 
+const isMask = (mask: MaskDefinition | Mask): mask is Mask => 'applyMask' in mask;
+
+const toState = (result: MaskResult): MaskResult => ({
+  value: result.value,
+  unmaskedValue: result.unmaskedValue,
+  isComplete: result.isComplete,
+  cursorPosition: result.cursorPosition,
+});
+
+const sameResult = (a: MaskResult, b: MaskResult) =>
+  a.value === b.value &&
+  a.unmaskedValue === b.unmaskedValue &&
+  a.isComplete === b.isComplete &&
+  a.cursorPosition === b.cursorPosition;
+
+/**
+ * Formats text input against a mask (phone numbers, dates, card numbers, …).
+ * `onValueChange` / `onUnmaskedValueChange` fire after the unmasked value
+ * changes (they may be inline functions). The returned object keeps its
+ * identity until the value changes; the handlers are stable.
+ *
+ * @example
+ * const { value, handleChangeText } = useMaskedInput({ mask: { mask: '(000) 000-0000' } });
+ * <Input value={value} onChangeText={handleChangeText} />
+ */
 export function useMaskedInput(options: UseMaskedInputOptions): UseMaskedInputReturn {
-  const { mask: maskDefinition, initialValue = '', onValueChange, onUnmaskedValueChange } = options;
-  
-  // Create mask function if needed
-  const maskRef = useRef(
-    typeof maskDefinition === 'function' || 'applyMask' in maskDefinition 
-      ? maskDefinition 
-      : createMask(maskDefinition)
-  );
-  const mask = maskRef.current;
+  const { mask: maskOption, initialValue = '', onValueChange, onUnmaskedValueChange } = options;
 
-  // Initialize state
-  const initialResult = mask.applyMask(initialValue);
-  const [state, setState] = useState({
-    value: initialResult.value,
-    unmaskedValue: initialResult.unmaskedValue,
-    isComplete: initialResult.isComplete,
-    cursorPosition: initialResult.cursorPosition,
-    previousValue: initialResult.value
-  });
-
+  const [mask] = useState<Mask>(() => (isMask(maskOption) ? maskOption : createMask(maskOption)));
+  const [state, setState] = useState<MaskResult>(() => toState(mask.applyMask(initialValue)));
   const selectionRef = useRef({ start: 0, end: 0 });
 
-  const updateState = useCallback((newResult: MaskResult) => {
-    setState(prevState => {
-      if (
-        prevState.value === newResult.value &&
-        prevState.unmaskedValue === newResult.unmaskedValue &&
-        prevState.isComplete === newResult.isComplete &&
-        prevState.cursorPosition === newResult.cursorPosition
-      ) {
-        return prevState;
-      }
+  const emitValueChange = useLatestCallback(onValueChange);
+  const emitUnmaskedValueChange = useLatestCallback(onUnmaskedValueChange);
 
-      return {
-        value: newResult.value,
-        unmaskedValue: newResult.unmaskedValue,
-        isComplete: newResult.isComplete,
-        cursorPosition: newResult.cursorPosition,
-        previousValue: prevState.value
-      };
-    });
+  const commit = useCallback((next: MaskResult) => {
+    setState((previous) => (sameResult(previous, next) ? previous : toState(next)));
   }, []);
 
-  // Handle callbacks in useEffect to avoid calling them during render
+  // Report changes after commit rather than during render.
   const prevUnmaskedValueRef = useRef(state.unmaskedValue);
   useEffect(() => {
-    if (state.unmaskedValue !== prevUnmaskedValueRef.current) {
-      prevUnmaskedValueRef.current = state.unmaskedValue;
-      const result = {
-        value: state.value,
-        unmaskedValue: state.unmaskedValue,
-        isComplete: state.isComplete,
-        cursorPosition: state.cursorPosition
-      };
-      onValueChange?.(result);
-      onUnmaskedValueChange?.(state.unmaskedValue, result);
-    }
-  }, [state.value, state.unmaskedValue, state.isComplete, state.cursorPosition, onValueChange, onUnmaskedValueChange]);
+    if (state.unmaskedValue === prevUnmaskedValueRef.current) return;
+    prevUnmaskedValueRef.current = state.unmaskedValue;
+    emitValueChange(state);
+    emitUnmaskedValueChange(state.unmaskedValue, state);
+  }, [state, emitValueChange, emitUnmaskedValueChange]);
 
-  const handleChangeText = useCallback((text: string) => {
-    // `state.value` — not `state.previousValue` — is what the field is currently
-    // showing, and it is what `processInput` has to diff against to tell an
-    // edited separator from an edited payload character.
-    const result = mask.processInput(
-      text,
-      state.value,
-      selectionRef.current.start
-    );
-    updateState(result);
-  }, [mask, state.value, updateState]);
+  const handleChangeText = useCallback(
+    (text: string) => {
+      const selectionStart = selectionRef.current.start;
+      // Diff against what the field is currently showing, so an edited
+      // separator can be told apart from an edited payload character.
+      setState((previous) => {
+        const next = mask.processInput(text, previous.value, selectionStart);
+        return sameResult(previous, next) ? previous : toState(next);
+      });
+    },
+    [mask]
+  );
 
   const handleSelectionChange = useCallback((selection: { start: number; end: number }) => {
     selectionRef.current = selection;
   }, []);
 
-  const reset = useCallback(() => {
-    const result = mask.applyMask(initialValue);
-    updateState(result);
-  }, [mask, initialValue, updateState]);
+  const reset = useCallback(() => commit(mask.applyMask(initialValue)), [commit, mask, initialValue]);
+  const setValue = useCallback((value: string) => commit(mask.applyMask(value)), [commit, mask]);
+  const setUnmaskedValue = useCallback((unmaskedValue: string) => commit(mask.applyMask(unmaskedValue)), [commit, mask]);
 
-  const setValue = useCallback((value: string) => {
-    const result = mask.applyMask(value);
-    updateState(result);
-  }, [mask, updateState]);
-
-  const setUnmaskedValue = useCallback((unmaskedValue: string) => {
-    const result = mask.applyMask(unmaskedValue);
-    updateState(result);
-  }, [mask, updateState]);
-
-  return {
-    value: state.value,
-    unmaskedValue: state.unmaskedValue,
-    isComplete: state.isComplete,
-    handleChangeText,
-    handleSelectionChange,
-    cursorPosition: state.cursorPosition,
-    reset,
-    setValue,
-    setUnmaskedValue
-  };
+  return useMemo(
+    () => ({
+      value: state.value,
+      unmaskedValue: state.unmaskedValue,
+      isComplete: state.isComplete,
+      cursorPosition: state.cursorPosition,
+      handleChangeText,
+      handleSelectionChange,
+      reset,
+      setValue,
+      setUnmaskedValue,
+    }),
+    [state, handleChangeText, handleSelectionChange, reset, setValue, setUnmaskedValue]
+  );
 }

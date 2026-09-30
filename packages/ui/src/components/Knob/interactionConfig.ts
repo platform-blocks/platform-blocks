@@ -29,10 +29,8 @@ export const DEFAULT_INTERACTION_MODES: KnobInteractionMode[] = [
 export const normalizeInteractionConfig = (
   appearanceInteraction?: KnobInteractionConfig
 ): NormalizedInteractionConfig => {
-  const config = appearanceInteraction ?? {};
-  const providedModes = Array.isArray((config as any)?.modes)
-    ? ((config as any).modes as KnobInteractionMode[])
-    : undefined;
+  const config: KnobInteractionConfig = appearanceInteraction ?? {};
+  const providedModes = Array.isArray(config.modes) ? config.modes : undefined;
   const normalizedModes = (providedModes && providedModes.length > 0
     ? providedModes
     : DEFAULT_INTERACTION_MODES
@@ -42,15 +40,15 @@ export const normalizeInteractionConfig = (
     uniqueModes.push(...DEFAULT_INTERACTION_MODES);
   }
 
-  const slideRatioRaw = (config as any)?.slideRatio;
-  const slideDominanceRaw = (config as any)?.slideDominanceRatio;
-  const lockThresholdRaw = (config as any)?.lockThresholdPx;
-  const varianceRaw = (config as any)?.variancePx;
-  const scrollConfig = (config as any)?.scroll ?? {};
-  const spinStopAtLimits = Boolean((config as any)?.spinStopAtLimits);
-  const spinDeadZoneRaw = (config as any)?.spinDeadZoneDegrees;
-  const slideHysteresisRaw = (config as any)?.slideHysteresisPx;
-  const tapDeadRadiusRaw = (config as any)?.tapDeadRadiusRatio;
+  const slideRatioRaw = config.slideRatio;
+  const slideDominanceRaw = config.slideDominanceRatio;
+  const lockThresholdRaw = config.lockThresholdPx;
+  const varianceRaw = config.variancePx;
+  const scrollConfig = config.scroll ?? {};
+  const spinStopAtLimits = Boolean(config.spinStopAtLimits);
+  const spinDeadZoneRaw = config.spinDeadZoneDegrees;
+  const slideHysteresisRaw = config.slideHysteresisPx;
+  const tapDeadRadiusRaw = config.tapDeadRadiusRatio;
 
   const scrollEnabled =
     scrollConfig.enabled !== undefined ? !!scrollConfig.enabled : uniqueModes.includes('scroll');
@@ -83,13 +81,9 @@ export const normalizeInteractionConfig = (
       typeof spinDeadZoneRaw === 'number' && Number.isFinite(spinDeadZoneRaw)
         ? Math.max(0, spinDeadZoneRaw)
         : 0.8,
-    spinPrecisionRadius: (config as any)?.spinPrecisionRadius,
-    respectStartSide:
-      (config as any)?.respectStartSide === undefined
-        ? true
-        : Boolean((config as any)?.respectStartSide),
-    tapToSet:
-      (config as any)?.tapToSet === undefined ? true : Boolean((config as any)?.tapToSet),
+    spinPrecisionRadius: config.spinPrecisionRadius,
+    respectStartSide: config.respectStartSide === undefined ? true : Boolean(config.respectStartSide),
+    tapToSet: config.tapToSet === undefined ? true : Boolean(config.tapToSet),
     tapDeadRadiusRatio:
       typeof tapDeadRadiusRaw === 'number' && Number.isFinite(tapDeadRadiusRaw)
         ? clampNumber(tapDeadRadiusRaw, 0, 1)
@@ -106,6 +100,6 @@ export const normalizeInteractionConfig = (
           ? true
           : Boolean(scrollConfig.preventPageScroll),
     },
-    onModeChange: (config as any)?.onModeChange,
+    onModeChange: config.onModeChange,
   };
 };

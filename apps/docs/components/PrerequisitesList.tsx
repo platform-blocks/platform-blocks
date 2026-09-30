@@ -1,0 +1,61 @@
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { DataList, Link, Text, useTheme } from '@plocks/ui';
+import { BrandIcon } from '@plocks/brands';
+import { GETTING_STARTED_PREREQUISITES } from '../config/gettingStarted';
+
+/**
+ * Prerequisites for the Getting Started page, rendered with the same
+ * label / logo / link geometry as ComponentResourceLinks so the two reference
+ * tables on the site read as one pattern.
+ */
+export const PrerequisitesList: React.FC = () => {
+  const theme = useTheme();
+  const textColor = theme.text?.primary;
+
+  return (
+    <DataList orientation="horizontal" size="sm" labelWidth={110}>
+      {GETTING_STARTED_PREREQUISITES.map(({ label, brand, version, href, note }) => (
+        <DataList.Item key={label}>
+          <DataList.ItemLabel>{label}</DataList.ItemLabel>
+          <View style={styles.value}>
+            <View style={styles.icon}>
+              <BrandIcon brand={brand} size="sm" />
+            </View>
+            <Link
+              href={href}
+              target="_blank"
+              variant="hover-underline"
+              size="sm"
+              c={textColor}
+            >
+              {version}
+            </Link>
+            {/* <Text variant="small" c="secondary">
+              {note}
+            </Text> */}
+          </View>
+        </DataList.Item>
+      ))}
+    </DataList>
+  );
+};
+
+const styles = StyleSheet.create({
+  value: {
+    flex: 1,
+    flexShrink: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 8,
+    rowGap: 2,
+    flexWrap: 'wrap',
+  },
+  // Fixed box so the link text lines up across rows regardless of glyph width.
+  icon: {
+    width: 16,
+    alignItems: 'center',
+  },
+});
+
+export default PrerequisitesList;

@@ -1,15 +1,8 @@
 import { useState } from 'react';
-import { PinInput } from '@platform-blocks/ui';
+import { PinInput } from '@plocks/ui';
 
 export function Demo() {
   const [value, setValue] = useState('');
 
-  return (
-    <PinInput
-      value={value}
-      onChange={setValue}
-      label="PIN code"
-      keyboardFocusId="pin-demo-basic"
-    />
-  );
+  return <PinInput value={value} onChange={setValue} label="PIN code" />;
 }

@@ -1,4 +1,4 @@
-import type { DonutChartDataPoint } from '@platform-blocks/charts';
+import type { DonutChartDataPoint } from '@plocks/charts';
 
 export const POWER_BY_SUBSYSTEM: DonutChartDataPoint[] = [
   { label: 'Compute clusters', value: 37 },

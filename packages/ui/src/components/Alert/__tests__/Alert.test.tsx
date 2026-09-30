@@ -2,6 +2,9 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 
 import { Alert } from '../Alert';
+import { announce } from '../../../core/accessibility/announce';
+
+jest.mock('../../../core/accessibility/announce', () => ({ announce: jest.fn() }));
 
 const mockIconSpy = jest.fn();
 
@@ -48,8 +51,43 @@ describe('Alert', () => {
       <Alert title="Heads up" withCloseButton onClose={handleClose} />
     );
 
-    fireEvent.press(getByLabelText('Close alert'));
+    fireEvent.press(getByLabelText('Close'));
     expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives the close button a button role and a 44pt native target', () => {
+    const { getByLabelText } = render(<Alert title="Heads up" withCloseButton />);
+    const close = getByLabelText('Close');
+    expect(close.props.role).toBe('button');
+    const style = require('react-native').StyleSheet.flatten(close.props.style);
+    expect(style.minWidth).toBeGreaterThanOrEqual(44);
+    expect(style.minHeight).toBeGreaterThanOrEqual(44);
+  });
+
+  it('is an urgent alert for error/warning, a polite status otherwise', () => {
+    const { getByTestId, rerender } = render(<Alert severity="error" title="Failed" testID="a" />);
+    expect(getByTestId('a').props.role).toBe('alert');
+
+    rerender(<Alert color="warning" title="Careful" testID="a" />);
+    expect(getByTestId('a').props.role).toBe('alert');
+
+    rerender(<Alert severity="success" title="Saved" testID="a" />);
+    expect(getByTestId('a').props.role).toBe('status');
+
+    rerender(<Alert title="Note" testID="a" />);
+    expect(getByTestId('a').props.role).toBe('status');
+    expect(getByTestId('a').props.accessibilityRole).toBeUndefined();
+  });
+
+  it('announces urgent alerts on native when they appear', () => {
+    const mockAnnounce = announce as jest.Mock;
+    mockAnnounce.mockClear();
+    render(<Alert severity="error" title="Payment failed">Card declined</Alert>);
+    expect(mockAnnounce).toHaveBeenCalledWith('Payment failed. Card declined', { politeness: 'assertive' });
+
+    mockAnnounce.mockClear();
+    render(<Alert severity="info" title="FYI" />);
+    expect(mockAnnounce).not.toHaveBeenCalled();
   });
 
   it('applies custom accessibility label for close button', () => {

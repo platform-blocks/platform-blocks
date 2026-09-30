@@ -1,0 +1,26 @@
+import { Block, Text } from '@plocks/ui';
+import { Carousel } from '@plocks/carousel';
+
+const slides = ['#DC2626', '#2563EB', '#0F766E'];
+
+export function Demo() {
+  return (
+    <Carousel
+      orientation="vertical"
+      h={280}
+      loop
+      autoPlay
+      autoPlayInterval={4500}
+      showArrows
+      showDots
+    >
+      {slides.map((bg, index) => (
+        <Block key={bg} bg={bg} radius="lg" h="full" align="center" justify="center">
+          <Text variant="h3" c="white">
+            Slide {index + 1}
+          </Text>
+        </Block>
+      ))}
+    </Carousel>
+  );
+}

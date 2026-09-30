@@ -1,56 +1,27 @@
-import { Block, Tabs, Text } from '@platform-blocks/ui';
+import { Block, Tabs, Text } from '@plocks/ui';
 
 const ITEMS = [
   {
-    key: 'home',
-    label: 'Home',
-    content: (
-      <Block>
-        <Text weight="medium">Welcome back</Text>
-        <Text color="muted">
-          Animated transitions ease between dashboard sections and reinforce context shifts.
-        </Text>
-      </Block>
-    )
+    key: 'overview',
+    label: 'Overview',
+    content: <Text>High-level summary and entry point.</Text>
   },
   {
-    key: 'analytics',
-    label: 'Analytics',
-    content: (
-      <Block>
-        <Text weight="medium">Analytics overview</Text>
-        <Text color="muted">
-          Surface key charts and KPIs while the motion guides attention to new content.
-        </Text>
-      </Block>
-    )
+    key: 'details',
+    label: 'Details',
+    content: <Text>Deeper dive into metrics and configuration.</Text>
   },
   {
     key: 'settings',
     label: 'Settings',
-    content: (
-      <Block>
-        <Text weight="medium">Account settings</Text>
-        <Text color="muted">
-          Manage notifications, billing, and other preferences without abrupt content swaps.
-        </Text>
-      </Block>
-    )
+    content: <Text>Manage workspace preferences.</Text>
   }
 ];
 
 export function Demo() {
   return (
-    <Block>
-      <Tabs
-        variant="line"
-        animated
-        animationDuration={250}
-        items={ITEMS}
-      />
-      <Text variant="small" color="muted">
-        Enable `animated` to add motion and use `animationDuration` to moderate the easing speed.
-      </Text>
+    <Block fullWidth>
+      <Tabs animated animationDuration={500} items={ITEMS} />
     </Block>
   );
 }

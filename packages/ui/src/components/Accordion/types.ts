@@ -4,11 +4,9 @@
 
 import type { ReactNode } from 'react';
 import type { ViewStyle, TextStyle, StyleProp } from 'react-native';
-import type { SizeValue } from '../../core/theme/sizes';
-import type { BorderRadiusProps } from '../../core/theme/radius';
 import type { ThemeColor } from '../../core/theme/resolveColors';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
-import type { SpacingProps } from '../../core/utils';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
+import type { BaseProps, RadiusValue } from '../../core/types/base';
 import type { TextProps } from '../Text';
 
 /**
@@ -51,7 +49,7 @@ export type AccordionVariant = 'default' | 'separated' | 'bordered';
  * Supports controlled & uncontrolled usage patterns, single or multi expansion modes,
  * density & variant styling, and optional persistence between remounts.
  */
-export interface AccordionProps extends SpacingProps, BorderRadiusProps {
+export interface AccordionProps extends BaseProps<ViewStyle> {
   /**
    * Ordered list of items to render. The `key` for each item must be unique.
    */
@@ -113,9 +111,10 @@ export interface AccordionProps extends SpacingProps, BorderRadiusProps {
    */
   density?: 'comfortable' | 'compact' | 'spacious';
   /**
-   * Root container style override.
+   * Corner radius of the `separated` items / `bordered` frame: a radius token,
+   * px number, `'none'` or `'full'`.
    */
-  style?: StyleProp<ViewStyle>;
+  radius?: RadiusValue;
   /**
    * Header row style override applied to each item.
    */
@@ -129,7 +128,7 @@ export interface AccordionProps extends SpacingProps, BorderRadiusProps {
    */
   headerTextStyle?: StyleProp<TextStyle>;
   /**
-   * Override props applied to each item's header `<Text>` (style, weight, ff, size, color).
+   * Override props applied to each item's header `<Text>` (style, fw, ff, size, c).
    * Applies to every item in the accordion.
    */
   titleProps?: Omit<TextProps, 'children'>;
@@ -173,11 +172,12 @@ export interface AccordionComputedStyles {
 }
 
 export type AccordionStyleResolver = (
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   variant: AccordionVariant | undefined,
   size: SizeValue | undefined,
   color: ThemeColor | undefined,
-  radiusStyles?: any
+  /** Resolved corner radius in px. */
+  radius?: number
 ) => AccordionComputedStyles;
 
 // Event detail for future onItemToggle callback (non-breaking placeholder)

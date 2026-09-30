@@ -14,7 +14,6 @@ import { useChartTheme } from '../../theme/ChartThemeContext';
 import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
-import { colorSchemes, getColorFromScheme } from '../../utils';
 import { linearScale } from '../../utils/scales';
 import { AnimatedSparkline } from './AnimatedSparkline';
 import { useSparklineGeometry } from './useSparklineGeometry';
@@ -44,8 +43,8 @@ export const SparklineChart: React.FC<SparklineChartProps> = (props) => {
     id: idProp,
     name,
     data,
-    width = 120,
-    height = 48,
+    w: width = 120,
+    h: height = 48,
     color,
     fill = true,
     fillOpacity = 0.3,
@@ -67,8 +66,7 @@ export const SparklineChart: React.FC<SparklineChartProps> = (props) => {
   } = props;
 
   const theme = useChartTheme();
-  const accentColor = theme.colors.accentPalette?.[0] ?? colorSchemes.default[0];
-  const strokeColor = color ?? accentColor ?? getColorFromScheme(0);
+  const strokeColor = color ?? theme.colors.accentPalette[0];
   const finalFillOpacity = Math.max(0, Math.min(1, fillOpacity));
   const thresholdsList = Array.isArray(thresholds) ? thresholds : [];
   const bandsList = Array.isArray(bands) ? bands : [];

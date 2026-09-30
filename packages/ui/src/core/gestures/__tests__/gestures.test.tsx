@@ -84,7 +84,7 @@ describe('getGestureSurfaceStyle', () => {
   it('behaves like ordinary content when the control is disabled', () => {
     (Platform as any).OS = 'web';
     const style = getGestureSurfaceStyle({ axis: 'both', enabled: false });
-    expect(style.touchAction).toBeUndefined();
+    expect((style as Record<string, unknown>).touchAction).toBeUndefined();
     expect((style as any).userSelect).toBeUndefined();
   });
 

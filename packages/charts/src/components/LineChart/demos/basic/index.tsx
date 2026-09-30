@@ -1,13 +1,13 @@
-import { LineChart } from '@platform-blocks/charts';
+import { LineChart } from '@plocks/charts';
 
 import { SERIES } from './data';
 
 export function Demo() {
   return (
     <LineChart
-      title="Monthly active customers"
-      subtitle="FY25"
-      height={320}
+      // title="Monthly active customers"
+      // subtitle="FY25"
+      h={320}
       series={SERIES}
       xAxis={{
         show: true,

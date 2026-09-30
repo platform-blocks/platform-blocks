@@ -1,4 +1,4 @@
-import { PieChart, type PieChartDataPoint } from '@platform-blocks/charts';
+import { PieChart, type PieChartDataPoint } from '@plocks/charts';
 
 import { OPERATING_EXPENSES, TOTAL_EXPENSE } from './data';
 
@@ -12,8 +12,8 @@ export function Demo() {
     <PieChart
       title="Operating expense mix"
       subtitle="FY25 year-to-date"
-      maxWidth={520}
-      height={440}
+      maw={520}
+      h={440}
       data={OPERATING_EXPENSES}
       innerRadius={90}
       outerRadius={160}

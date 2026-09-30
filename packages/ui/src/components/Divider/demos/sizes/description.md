@@ -1,1 +1,1 @@
-Demonstrates how the `size` prop accepts both numeric values and spacing tokens so you can dial in subtle, comfortable, or bold divider weights in horizontal and vertical layouts.
+Demonstrates how the `size` prop accepts both numeric values and spacing tokens so you can dial in subtle, comfortable, or bold divider weights.

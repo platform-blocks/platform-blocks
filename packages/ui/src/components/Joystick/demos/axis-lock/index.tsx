@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Flex, Joystick, Text } from '@platform-blocks/ui';
+import { Flex, Joystick, Text } from '@plocks/ui';
 
 export function Demo() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -17,7 +17,7 @@ export function Demo() {
         value={pan}
         onChange={setPan}
       />
-      <Text size="sm" c="dimmed">{position}</Text>
+      <Text size="sm" c="muted">{position}</Text>
     </Flex>
   );
 }

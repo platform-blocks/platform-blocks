@@ -1,4 +1,4 @@
-import { RidgeChart } from '@platform-blocks/charts';
+import { RidgeChart } from '@plocks/charts';
 
 import { SERIES, formatDays } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <RidgeChart
       title="Shipping time distribution by carrier"
       subtitle="Parcel delivery performance across recent quarters"
-      height={420}
+      h={420}
       series={SERIES}
       samples={110}
       bandwidth={0.45}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Button, RadioGroup, Text } from '@platform-blocks/ui';
+import { Block, Button, RadioGroup, Text } from '@plocks/ui';
 
 const PLANS = [
   {
@@ -66,7 +66,7 @@ export function Demo() {
       <Button onPress={handleSubmit}>Confirm subscription</Button>
 
       {confirmation && (
-        <Text variant="small" color="success">
+        <Text variant="small" c="success">
           {confirmation}
         </Text>
       )}

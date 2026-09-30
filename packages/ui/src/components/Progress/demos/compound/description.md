@@ -5,7 +5,6 @@ order: 40
 tags: [compound, sections, label]
 highlightLines: []
 status: stable
-since: 0.10.2
 hidden: false
 ---
 

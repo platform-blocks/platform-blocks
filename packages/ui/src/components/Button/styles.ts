@@ -1,17 +1,22 @@
-import { Platform, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
-import { CORE_COLORS, resolveVariantRoles, type VariantRole, type VariantRoles } from '../../core/theme/variantRoles';
-import { getFontSize, getSpacing, type SizeValue } from '../../core/theme/sizes';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import { isNative, isWeb, webStyle } from '../../core/platform';
 import { resolveAccentColor } from '../../core/theme/resolveColors';
-import { DESIGN_TOKENS, getUnifiedComponentSize } from '../../core/unified-styles';
-import type { ButtonProps } from './types';
+import type { SizeValue } from '../../core/theme/sizes';
+import { getControlSize } from '../../core/theme/tokens';
+import type { PlocksTheme } from '../../core/theme/types';
+import { CORE_COLORS, resolveVariantRoles, type VariantRole, type VariantRoles } from '../../core/theme/variantRoles';
+import type { ButtonVariant } from './types';
+
+/** Opacity of a disabled / loading button. */
+const DISABLED_OPACITY = 0.5;
+const LOADING_OPACITY = 0.8;
 
 /**
- * Button variants that carry a color. Everything else (secondary, ghost, link,
- * none) is neutral by design and keeps its bespoke styling.
+ * Button variants that carry a color. Everything else (default, secondary,
+ * ghost, link, none) is neutral by design and keeps its bespoke styling.
  */
-const CANONICAL_VARIANTS: Record<string, VariantRole | undefined> = {
+const CANONICAL_VARIANTS: Partial<Record<ButtonVariant, VariantRole>> = {
   filled: 'filled',
   light: 'light',
   subtle: 'subtle',
@@ -20,24 +25,30 @@ const CANONICAL_VARIANTS: Record<string, VariantRole | undefined> = {
 };
 
 /** Maps a Button variant onto the shared color-bearing variant model. */
-export const getCanonicalVariant = (variant: string | undefined): VariantRole | undefined =>
+export const getCanonicalVariant = (variant: ButtonVariant | undefined): VariantRole | undefined =>
   variant ? CANONICAL_VARIANTS[variant] : undefined;
 
 export interface ButtonStyleParams {
-  theme: PlatformBlocksTheme;
-  variant: ButtonProps['variant'];
+  theme: PlocksTheme;
+  variant: ButtonVariant;
   size: SizeValue;
   disabled: boolean;
   loading: boolean;
-  radiusStyles: Record<string, unknown>;
-  shadowStyles: Record<string, unknown>;
+  /** Resolved corner radius in px. */
+  borderRadius: number;
+  /** Resolved `shadow` style (`resolveShadow`), `{}` for none. */
+  shadowStyle: ViewStyle;
   /** Resolved fill/border/text for the color-bearing variants; `null` for neutral ones. */
   roles: VariantRoles | null;
   isIconButton: boolean;
+  /** Reduced motion: no CSS color transition on web. */
+  reducedMotion: boolean;
 }
 
 /**
  * Visual style for the Button's Pressable — box metrics, fill, border, radius.
+ * Metrics come from `getControlSize`, the one control-size table, so a Button
+ * lines up with an Input / Select / IconButton of the same size.
  *
  * @note `fullWidth` and flex are deliberately NOT handled here. The Pressable
  * sits two Views deep, so width/flex on it cannot grow the button inside a flex
@@ -46,98 +57,81 @@ export interface ButtonStyleParams {
  */
 export const getButtonStyles = ({
   theme,
-  variant = 'default',
-  size = 'md',
-  disabled = false,
-  loading = false,
-  radiusStyles,
-  shadowStyles,
+  variant,
+  size,
+  disabled,
+  loading,
+  borderRadius,
+  shadowStyle,
   roles,
-  isIconButton = false,
-}: ButtonStyleParams): any => {
-  const sizeConfig = getUnifiedComponentSize(size as any);
-  const horizontalSpacing = isIconButton ? 0 : sizeConfig.padding;
+  isIconButton,
+  reducedMotion,
+}: ButtonStyleParams): ViewStyle => {
+  const control = getControlSize(theme, size);
 
-  const baseStyles = {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    height: sizeConfig.height,
-    minHeight: sizeConfig.height,
-    minWidth: sizeConfig.height,
+  const base: ViewStyle = {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: control.height,
+    minHeight: control.height,
+    minWidth: control.height,
     // Icon buttons are square; everything else pads horizontally.
-    ...(isIconButton ? { width: sizeConfig.height } : { paddingHorizontal: horizontalSpacing }),
-    paddingVertical: Math.round(sizeConfig.padding * 0.25),
+    ...(isIconButton ? { width: control.height } : { paddingHorizontal: control.paddingX }),
+    paddingVertical: Math.round(control.paddingX * 0.25),
     borderWidth: 1,
-    opacity: disabled ? DESIGN_TOKENS.opacity.disabled : loading ? DESIGN_TOKENS.opacity.pressed : 1,
-    ...radiusStyles,
-    // `Platform.OS`, not `typeof window`: both are true in a browser, but a static
-    // render happens in Node — where the second one flips and the server drops a
-    // property the client then adds. React calls that a hydration mismatch and
-    // answers it by rebuilding the tree, which is the first thing its own error
-    // message warns about.
-    ...(Platform.OS === 'web' && {
-      transition: `all ${DESIGN_TOKENS.motion.duration.fast}ms ${DESIGN_TOKENS.motion.easing.easeOut}`,
+    borderRadius,
+    opacity: disabled ? DISABLED_OPACITY : loading ? LOADING_OPACITY : 1,
+    ...webStyle({
+      transitionProperty: 'background-color, border-color, opacity',
+      transitionDuration: reducedMotion ? '0ms' : theme.motion?.duration?.fast ?? '150ms',
+      transitionTimingFunction: theme.motion?.easing?.easeOut ?? 'ease-out',
     }),
   };
 
-  // Color-bearing variants resolve fill + border through the shared, theme-independent
-  // variant model. Buttons are flat unless the consumer opts in via `shadow`.
+  // Color-bearing variants resolve fill + border through the shared variant
+  // model. Buttons are flat unless the consumer opts in via `shadow`.
   if (roles) {
-    return { ...baseStyles, backgroundColor: roles.fill, borderColor: roles.border, ...shadowStyles };
+    return { ...base, backgroundColor: roles.fill, borderColor: roles.border, ...shadowStyle };
   }
 
-  const isDark = theme.colorScheme === 'dark';
   switch (variant) {
     case 'default':
-      // A neutral chrome fill plus a hairline, so it reads as a button
+      // A neutral recessed fill plus a visible border, so it reads as a button
       // without claiming the accent color.
-      // Dark mode sits one step above the page background, which is what makes
-      // it look raised. Light mode takes the recessed gray instead and leaves
-      // the surface white to `secondary`, so the selected/emphasised state is
-      // the one that pops off a light page.
       return {
-        ...baseStyles,
-        backgroundColor: isDark
-          ? theme.backgrounds?.surface ?? '#1C1C1F'
-          : theme.colors.gray[1],
-        // A touch stronger than `backgrounds.border` (a separator hairline) so the
-        // button's edge is unmistakable against the surface it sits on.
-        borderColor: isDark ? theme.colors.gray[3] : theme.colors.gray[2],
-        ...shadowStyles,
+        ...base,
+        backgroundColor: theme.backgrounds.subtle,
+        borderColor: theme.backgrounds.borderStrong,
+        ...shadowStyle,
       };
     case 'secondary':
+      // The raised surface — the inverse of `default`.
       return {
-        ...baseStyles,
-        // gray[1] equals the surface in dark mode, so lift the fill a step there.
-        // In light mode this is the white surface — the inverse of `default`.
-        backgroundColor: isDark
-          ? theme.colors.gray[3]
-          : theme.backgrounds?.surface ?? '#FFFFFF',
-        borderColor: isDark ? theme.colors.gray[4] : theme.colors.gray[3],
-        ...shadowStyles,
+        ...base,
+        backgroundColor: theme.backgrounds.elevated,
+        borderColor: theme.backgrounds.borderStrong,
+        ...shadowStyle,
       };
     case 'link':
       return {
-        ...baseStyles,
+        ...base,
         backgroundColor: 'transparent',
         borderColor: 'transparent',
-        textDecorationLine: 'underline' as const,
         paddingHorizontal: 0,
         paddingVertical: 0,
       };
     case 'none':
       return {
-        ...baseStyles,
+        ...base,
         backgroundColor: 'transparent',
         borderColor: 'transparent',
-        height: 'auto' as const,
-        paddingHorizontal: 0,
-        paddingVertical: 0,
+        // An icon-only `none` button keeps its square hit area; a text one hugs its label.
+        ...(isIconButton ? null : { height: 'auto', minHeight: undefined, paddingHorizontal: 0, paddingVertical: 0 }),
       };
     case 'ghost':
     default:
-      return { ...baseStyles, backgroundColor: 'transparent', borderColor: 'transparent' };
+      return { ...base, backgroundColor: 'transparent', borderColor: 'transparent' };
   }
 };
 
@@ -146,15 +140,15 @@ export const getButtonStyles = ({
  * as tokens (the shared resolver does its own palette lookup); `palette.shade`
  * and raw CSS colors are pre-resolved to a concrete value.
  */
-export const resolveRoleColor = (theme: PlatformBlocksTheme, token?: string): string => {
+export const resolveRoleColor = (theme: PlocksTheme, token?: string): string => {
   if (!token) return 'primary';
   if ((CORE_COLORS as readonly string[]).includes(token)) return token;
   return resolveAccentColor(theme, token) ?? token;
 };
 
 export interface ButtonTextColorParams {
-  theme: PlatformBlocksTheme;
-  variant: ButtonProps['variant'];
+  theme: PlocksTheme;
+  variant: ButtonVariant;
   roles: VariantRoles | null;
   /** Explicit `textColor` prop, if any — always wins. */
   textColorProp?: string;
@@ -177,17 +171,16 @@ export const resolveButtonTextColor = ({
   if (roles) return roles.text;
 
   switch (variant) {
-    case 'default':
-      // Neutral chrome: normal body text.
-      return theme.text.primary;
     case 'secondary':
-      return theme.colors.gray[7];
+      return theme.text.secondary;
     case 'ghost':
-      return hasExplicitColor ? accentText : theme.colors.gray[7];
+      return hasExplicitColor ? accentText : theme.text.secondary;
     case 'link':
-      return hasExplicitColor ? accentText : theme.colors.primary[5];
+      return hasExplicitColor ? accentText : theme.text.link;
     case 'none':
-      return 'currentColor';
+      // Unstyled: inherit on web; native has no color inheritance.
+      return isWeb ? 'currentColor' : theme.text.primary;
+    case 'default':
     default:
       return theme.text.primary;
   }
@@ -195,10 +188,10 @@ export const resolveButtonTextColor = ({
 
 /**
  * Fill/border/text for a color-bearing variant. Returns `null` for the neutral
- * variants (secondary, ghost, link, none), which keep their bespoke styling.
+ * variants (default, secondary, ghost, link, none), which keep their bespoke styling.
  */
 export const resolveButtonRoles = (
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   canonicalVariant: VariantRole | undefined,
   roleColor: string,
   gradientStops: [string, string],
@@ -207,63 +200,66 @@ export const resolveButtonRoles = (
     ? resolveVariantRoles(theme, { variant: canonicalVariant, color: roleColor, gradientStops })
     : null;
 
+const PRESSED_STYLE_SOFT: ViewStyle = { opacity: 0.6 };
+const PRESSED_STYLE: ViewStyle = { opacity: 0.9 };
+const NATIVE_PRESS_NUDGE: ViewStyle = { transform: [{ translateY: 1 }] };
+
 /**
  * Extra feedback layered on top of the press scale: a dip in opacity, plus a
  * 1px nudge downward on native (where it reads as a physical press).
  */
-export const getButtonPressedStyle = (variant: ButtonProps['variant']) => ({
-  opacity: variant === 'ghost' || variant === 'none' ? 0.6 : 0.9,
-  ...(Platform.OS !== 'web' ? { transform: [{ translateY: 1 }] } : {}),
-});
+export const getButtonPressedStyle = (variant: ButtonVariant): StyleProp<ViewStyle> => [
+  variant === 'ghost' || variant === 'none' ? PRESSED_STYLE_SOFT : PRESSED_STYLE,
+  isNative ? NATIVE_PRESS_NUDGE : null,
+];
 
 /** Accent text color used by ghost/link when the consumer requests a tint. */
-export const resolveAccentTextColor = (theme: PlatformBlocksTheme, roleColor: string): string =>
+export const resolveAccentTextColor = (theme: PlocksTheme, roleColor: string): string =>
   resolveVariantRoles(theme, { variant: 'outline', color: roleColor }).text;
 
-/** Gap between the label and any start/end icon. */
-export const getButtonIconSpacing = (size: SizeValue): number => getSpacing(size) / 2;
+/** Gap between the label and any start/end section. */
+export const getButtonIconSpacing = (theme: PlocksTheme, size: SizeValue): number =>
+  getControlSize(theme, size).gap;
 
 /** Base label style, before `labelProps` is merged over it. */
-export const getButtonLabelStyle = (size: SizeValue) => ({
-  lineHeight: getFontSize(size) * 1.3,
-  textAlignVertical: 'center' as const,
+export const getButtonLabelStyle = (theme: PlocksTheme, size: SizeValue, variant: ButtonVariant): TextStyle => ({
+  lineHeight: Math.round(getControlSize(theme, size).fontSize * 1.3),
+  textAlignVertical: 'center',
+  ...(variant === 'link' ? { textDecorationLine: 'underline' } : null),
 });
 
 export interface ButtonLayoutSplit {
-  /** Width-family layout + hoisted flex — belongs on the outer wrapper. */
-  outer: Record<string, unknown>;
-  /** Height-family layout — belongs on the Pressable. */
-  pressableLayout: Record<string, unknown>;
+  /** Spacing, width-family and opacity style props + hoisted flex — belongs on the outer wrapper. */
+  outer: ViewStyle;
+  /** Height-family style props and `bg` — belong on the Pressable. */
+  pressableLayout: ViewStyle;
   /** Consumer `style` minus the flex props hoisted to the wrapper. */
-  pressableStyle: Record<string, unknown>;
+  pressableStyle: ViewStyle;
 }
 
 /**
- * Splits layout between the Button's outer wrapper and its inner Pressable.
+ * Splits the root style between the Button's outer wrapper and its inner Pressable.
  *
  * The Pressable is nested two Views deep, so width/flex applied to it can't
- * size the button within a flex row. Width-family layout (`fullWidth`/`w`/
- * `maxW`/`minW`), `alignSelf`, and any flex props in the consumer's `style` go
- * to the outer wrapper; height-family layout and all visual style stay on the
- * Pressable.
+ * size the button within a flex row. Spacing, width-family (`fullWidth`/`w`/
+ * `maw`/`miw`) and `opacity`, `alignSelf`, and any flex props in the
+ * consumer's `style` go to the outer wrapper; height-family (`h`/`mah`/`mih`),
+ * `bg` and all other visual style stay on the Pressable, the visible button.
+ * `style` may be an array (it is flattened, not spread).
  */
 export const splitButtonLayoutStyles = (
-  layoutStyles: Record<string, unknown>,
+  rootStyles: ViewStyle,
   style: StyleProp<ViewStyle>,
 ): ButtonLayoutSplit => {
-  const {
-    width: layoutWidth,
-    maxWidth: layoutMaxWidth,
-    minWidth: layoutMinWidth,
-    ...pressableLayout
-  } = layoutStyles;
+  const { height, minHeight, maxHeight, backgroundColor, ...outer } = rootStyles;
 
-  const outer: Record<string, unknown> = {};
-  if (layoutWidth !== undefined) outer.width = layoutWidth;
-  if (layoutMaxWidth !== undefined) outer.maxWidth = layoutMaxWidth;
-  if (layoutMinWidth !== undefined) outer.minWidth = layoutMinWidth;
+  const pressableLayout: ViewStyle = {};
+  if (height !== undefined) pressableLayout.height = height;
+  if (minHeight !== undefined) pressableLayout.minHeight = minHeight;
+  if (maxHeight !== undefined) pressableLayout.maxHeight = maxHeight;
+  if (backgroundColor !== undefined) pressableLayout.backgroundColor = backgroundColor;
 
-  const flatStyle = (StyleSheet.flatten(style) || {}) as Record<string, unknown>;
+  const flatStyle: ViewStyle = StyleSheet.flatten(style) || {};
   const {
     flex: styleFlex,
     flexGrow: styleFlexGrow,
@@ -284,6 +280,9 @@ export const splitButtonLayoutStyles = (
   return { outer, pressableLayout, pressableStyle };
 };
 
+const FILL_STYLE: ViewStyle = { alignItems: 'stretch' };
+const HUG_STYLE: ViewStyle = { alignItems: 'flex-start' };
+
 /**
  * Cross-axis sizing for the Button's outer wrapper.
  *
@@ -294,12 +293,11 @@ export const splitButtonLayoutStyles = (
  * than being overridden. Anything that asks the button to fill — `fullWidth`,
  * an explicit width, or a flex value — switches back to `stretch`.
  */
-export const getButtonFillStyle = (outer: Record<string, unknown>) => {
+export const getButtonFillStyle = (outer: ViewStyle): ViewStyle => {
   const fills =
     outer.width !== undefined ||
     outer.flex !== undefined ||
     outer.flexGrow !== undefined ||
     outer.flexBasis !== undefined;
-
-  return { alignItems: fills ? ('stretch' as const) : ('flex-start' as const) };
+  return fills ? FILL_STYLE : HUG_STYLE;
 };

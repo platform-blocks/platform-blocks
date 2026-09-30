@@ -4,9 +4,10 @@ import { render } from '@testing-library/react-native';
 
 import { Indicator } from '../Indicator';
 import type { IndicatorProps } from '../types';
-import { COMPONENT_SIZES } from '../../../core/theme';
+import { resolveFontSize } from '../../../core/theme/tokens';
 
 const mockTheme = {
+  backgrounds: { surface: '#FFFFFF' },
   colors: {
     success: ['#E6F4EA', '#C1EAC5', '#A3D9A5', '#7BC47F', '#57AE5B', '#3F9142', '#2F8132', '#207227'],
     surface: ['#FFFFFF', '#F5F5F5'],
@@ -16,8 +17,8 @@ const mockTheme = {
   },
 };
 
-jest.mock('../../../core/theme', () => {
-  const actual = jest.requireActual('../../../core/theme');
+jest.mock('../../../core/theme/ThemeProvider', () => {
+  const actual = jest.requireActual('../../../core/theme/ThemeProvider');
   return {
     ...actual,
     useTheme: () => mockTheme,
@@ -29,10 +30,10 @@ describe('Indicator - behavior', () => {
     const { UNSAFE_getByType } = render(<Indicator />);
 
     const styles = StyleSheet.flatten(UNSAFE_getByType(View).props.style);
-    expect(styles.width).toBe(COMPONENT_SIZES.badge.sm);
-    expect(styles.height).toBe(COMPONENT_SIZES.badge.sm);
+    expect(styles.width).toBe(resolveFontSize(undefined, 'sm'));
+    expect(styles.height).toBe(resolveFontSize(undefined, 'sm'));
     expect(styles.backgroundColor).toBe(mockTheme.colors.success[5]);
-    expect(styles.borderColor).toBe(mockTheme.colors.surface[0]);
+    expect(styles.borderColor).toBe(mockTheme.backgrounds.surface);
     expect(styles.borderWidth).toBe(1);
     // Indicators render flat — the ring, not a drop shadow, separates them from
     // whatever they sit on.
@@ -61,19 +62,20 @@ describe('Indicator - behavior', () => {
     expect(styles.borderColor).toBe('#101828');
     expect(styles.borderWidth).toBe(3);
     expect(styles.top).toBe(-6);
-    expect(styles.left).toBe(-6);
+    expect(styles.start).toBe(-6);
     expect(styles.opacity).toBe(0.4);
     expect(getByText('!')).toBeTruthy();
   });
 
+  // left/right map to the logical start/end sides, so placements mirror under RTL.
   const placementCases: Array<[
     NonNullable<IndicatorProps['placement']>,
-    Partial<Record<'top' | 'right' | 'bottom' | 'left', number>>
+    Partial<Record<'top' | 'end' | 'bottom' | 'start', number>>
   ]> = [
-    ['top-left', { top: -8, left: -8 }],
-    ['top-right', { top: -8, right: -8 }],
-    ['bottom-left', { bottom: -8, left: -8 }],
-    ['bottom-right', { bottom: -8, right: -8 }],
+    ['top-left', { top: -8, start: -8 }],
+    ['top-right', { top: -8, end: -8 }],
+    ['bottom-left', { bottom: -8, start: -8 }],
+    ['bottom-right', { bottom: -8, end: -8 }],
   ];
 
   it.each(placementCases)('positions indicator at %s corner', (placement, expected) => {
@@ -83,9 +85,9 @@ describe('Indicator - behavior', () => {
 
     const styles = StyleSheet.flatten(UNSAFE_getByType(View).props.style);
     expect(styles.top).toBe(expected.top);
-    expect(styles.right).toBe(expected.right);
+    expect(styles.end).toBe(expected.end);
     expect(styles.bottom).toBe(expected.bottom);
-    expect(styles.left).toBe(expected.left);
+    expect(styles.start).toBe(expected.start);
   });
 
   it('renders nothing when invisible is true', () => {

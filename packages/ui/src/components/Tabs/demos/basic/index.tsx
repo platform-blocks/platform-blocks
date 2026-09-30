@@ -1,4 +1,4 @@
-import { Block, Tabs, Text } from '@platform-blocks/ui';
+import { Block, Tabs, Text } from '@plocks/ui';
 
 const ITEMS = [
   {
@@ -20,11 +20,8 @@ const ITEMS = [
 
 export function Demo() {
   return (
-    <Block>
+    <Block fullWidth>
       <Tabs items={ITEMS} />
-      <Text variant="small" color="muted">
-        Tabs render inline content directly below the active trigger by default.
-      </Text>
     </Block>
   );
 }

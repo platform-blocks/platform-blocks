@@ -1,4 +1,4 @@
-import { ParetoChart } from '@platform-blocks/charts';
+import { ParetoChart } from '@plocks/charts';
 
 import { ACCOUNT_REVENUE } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <ParetoChart
       title="Annual revenue concentration"
       subtitle="Top enterprise accounts"
-      height={460}
+      h={460}
       data={ACCOUNT_REVENUE}
       valueSeriesLabel="ARR"
       cumulativeSeriesLabel="Cumulative revenue"

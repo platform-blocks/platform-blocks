@@ -1,9 +1,12 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 
-import { OverlayProvider } from '../../../core/providers/OverlayProvider';
-import { getFontSize } from '../../../core/theme/sizes';
+import { mockPositioning, WithOverlays } from './testHarness';
+import { DEFAULT_THEME } from '../../../core/theme/defaultTheme';
+import { getControlSize } from '../../../core/theme/tokens';
 import { AutoComplete } from '../AutoComplete';
+
+jest.mock('../../../core/hooks/usePopoverPositioning', () => mockPositioning());
 
 const data = [
   { label: 'Apple', value: 'apple' },
@@ -17,16 +20,9 @@ const data = [
  */
 const openSuggestions = (size: 'sm' | 'md' | 'lg') => {
   const utils = render(
-    <OverlayProvider>
-      <AutoComplete
-        data={data}
-        size={size}
-        showSuggestionsOnFocus
-        useModal={false}
-        usePortal={false}
-        testID="ac-input"
-      />
-    </OverlayProvider>
+    <WithOverlays>
+      <AutoComplete data={data} size={size} showSuggestionsOnFocus useModal={false} testID="ac-input" />
+    </WithOverlays>
   );
   // Focus with an empty query opens the full list synchronously; typing would
   // route through the debounced search instead.
@@ -44,7 +40,7 @@ const fontSizeOf = (node: any): number | undefined => {
 describe('AutoComplete suggestion sizing', () => {
   it.each(['sm', 'md', 'lg'] as const)('renders %s suggestions at the field font size', (size) => {
     const { getByText } = openSuggestions(size);
-    expect(fontSizeOf(getByText('Apple'))).toBe(getFontSize(size));
+    expect(fontSizeOf(getByText('Apple'))).toBe(getControlSize(DEFAULT_THEME, size).fontSize);
   });
 
   it('scales suggestions with the field rather than pinning them', () => {

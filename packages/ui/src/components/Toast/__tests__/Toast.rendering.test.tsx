@@ -7,46 +7,6 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Text, View, StyleSheet } from 'react-native';
 
-// Mock Reanimated BEFORE any imports that use it
-jest.mock('react-native-reanimated', () => {
-  const View = require('react-native').View;
-  return {
-    __esModule: true,
-    default: {
-      View,
-      Text: View,
-      ScrollView: View,
-      createAnimatedComponent: (Component: any) => Component,
-    },
-    // Stable across renders, like the real hook — a fresh object each render
-    // would make every effect that lists a shared value re-run.
-    useSharedValue: (initial: any) => require('react').useRef({ value: initial }).current,
-    useAnimatedStyle: (cb: any) => cb(),
-    withTiming: (value: any) => value,
-    withSpring: (value: any) => value,
-    withRepeat: (value: any) => value,
-    withSequence: (...values: any[]) => values[0],
-    cancelAnimation: () => {},
-    interpolate: (value: any, inputRange: any, outputRange: any) => outputRange[0],
-    Easing: {
-      linear: (t: number) => t,
-      ease: (t: number) => t,
-      quad: (t: number) => t,
-      cubic: (t: number) => t,
-      back: (s: number) => (t: number) => t,
-      elastic: (bounciness: number) => (t: number) => t,
-      bounce: (t: number) => t,
-      bezier: () => (t: number) => t,
-      inOut: (easing: any) => (t: number) => t,
-      out: (easing: any) => (t: number) => t,
-      in: (easing: any) => (t: number) => t,
-    },
-    runOnJS: (fn: any) => fn,
-    runOnUI: (fn: any) => fn,
-  };
-});
-
-// Now import Toast after mocks are set up
 import { Toast } from '../Toast';
 
 // Mock Icon component
@@ -122,7 +82,7 @@ describe('Toast Component - Rendering & Behavior', () => {
         <Toast
           title="Slot title"
           visible
-          titleProps={{ weight: '700', style: { letterSpacing: 1.5 } }}
+          titleProps={{ fw: '700', style: { letterSpacing: 1.5 } }}
         />
       );
       const flat = StyleSheet.flatten((getByText('Slot title') as any).props.style) || {};

@@ -1,10 +1,17 @@
 import React from 'react';
 import { View } from 'react-native';
-import { useTheme } from '../../core/theme';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveSpacing } from '../../core/theme/tokens';
+import type { PlocksTheme, SizeToken } from '../../core/theme/types';
 import { BlockquoteAuthor } from './BlockquoteAuthor';
 import { BlockquoteSource } from './BlockquoteSource';
 import { BlockquoteMeta } from './BlockquoteMeta';
 import type { BlockquoteAttributionProps } from './types';
+
+const px = (theme: PlocksTheme, token: SizeToken): number => {
+  const resolved = resolveSpacing(theme, token);
+  return typeof resolved === 'number' ? resolved : 0;
+};
 
 export function BlockquoteAttribution({
   author,
@@ -31,8 +38,8 @@ export function BlockquoteAttribution({
     // Full width so the block can actually park against the edge it aligns to —
     // a shrink-to-fit container makes `alignItems` a no-op.
     width: '100%' as const,
-    marginTop: parseInt(theme.spacing.md),
-    gap: parseInt(theme.spacing.xs),
+    marginTop: px(theme, 'md'),
+    gap: px(theme, 'xs'),
     alignItems: alignment === 'center' ? 'center' as const : alignment === 'right' ? 'flex-end' as const : 'flex-start' as const,
   };
 
@@ -46,7 +53,7 @@ export function BlockquoteAttribution({
   const creditsBlock = hasCredits ? (
     <View
       style={{
-        gap: parseInt(theme.spacing.xs),
+        gap: px(theme, 'xs'),
         flexShrink: 1,
         alignItems: creditsAlignment === 'center'
           ? 'center'
@@ -81,11 +88,11 @@ export function BlockquoteAttribution({
       <View
         style={{
           width: '100%',
-          marginTop: parseInt(theme.spacing.md),
+          marginTop: px(theme, 'md'),
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'flex-end',
-          gap: parseInt(theme.spacing.md),
+          gap: px(theme, 'md'),
         }}
       >
         {alignment === 'right'

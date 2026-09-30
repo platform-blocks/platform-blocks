@@ -15,9 +15,6 @@ const mockTheme = {
     primary: ['#EEF2FF', '#E0E7FF', '#C7D2FE', '#A5B4FC', '#818CF8', '#6366F1', '#4F46E5', '#4338CA'],
   },
   primaryColor: '#6366F1',
-  semantic: {
-    borderSubtle: '#CBD5F5',
-  },
   shadows: {
     xs: '0px 1px 2px rgba(16, 24, 40, 0.1)',
     sm: '0px 1px 3px rgba(16, 24, 40, 0.1)',
@@ -27,8 +24,8 @@ const mockTheme = {
   },
 };
 
-jest.mock('../../../core/theme', () => {
-  const actual = jest.requireActual('../../../core/theme');
+jest.mock('../../../core/theme/ThemeProvider', () => {
+  const actual = jest.requireActual('../../../core/theme/ThemeProvider');
   return {
     ...actual,
     useTheme: () => mockTheme,
@@ -53,7 +50,7 @@ describe('Card - rendering', () => {
     const { toJSON } = render(
       <Card {...({ testID: 'filled-card' } as any)} p="lg" style={{ gap: 8 }}>
         <Text accessibilityRole="header">Project Alpha</Text>
-        <Text>Craft delightful experiences with Platform Blocks components.</Text>
+        <Text>Craft delightful experiences with plocks components.</Text>
       </Card>
     );
 
@@ -102,16 +99,16 @@ describe('Card - rendering', () => {
     // First section escapes top + horizontal padding
     const first = getByTestId('section-first');
     const firstStyle = flatten(first);
-    expect(firstStyle.marginLeft).toBe(-20);
-    expect(firstStyle.marginRight).toBe(-20);
+    expect(firstStyle.marginStart).toBe(-20);
+    expect(firstStyle.marginEnd).toBe(-20);
     expect(firstStyle.marginTop).toBe(-20);
     expect(firstStyle.marginBottom).toBe(0);
 
     // Last section escapes bottom + horizontal, and has a top divider (withBorder + not first)
     const last = getByTestId('section-last');
     const lastStyle = flatten(last);
-    expect(lastStyle.marginLeft).toBe(-20);
-    expect(lastStyle.marginRight).toBe(-20);
+    expect(lastStyle.marginStart).toBe(-20);
+    expect(lastStyle.marginEnd).toBe(-20);
     expect(lastStyle.marginTop).toBe(0);
     expect(lastStyle.marginBottom).toBe(-20);
     expect(lastStyle.borderTopWidth).toBe(1);
@@ -136,8 +133,8 @@ describe('Card - rendering', () => {
       </Card>
     );
     const mid = flatten(getByTestId('s2'));
-    expect(mid.marginLeft).toBe(-16);
-    expect(mid.marginRight).toBe(-16);
+    expect(mid.marginStart).toBe(-16);
+    expect(mid.marginEnd).toBe(-16);
     expect(mid.marginTop).toBe(0);
     expect(mid.marginBottom).toBe(0);
   });

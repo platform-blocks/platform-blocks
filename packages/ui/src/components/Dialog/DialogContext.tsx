@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo, useEffect } from 'react';
 import { DialogConfig, DialogContextValue } from './types';
+import { devError } from '../../core/utils/logger';
 
 // Split contexts for API vs state to minimize re-renders
 const DialogApiContext = createContext<Pick<DialogContextValue, 'openDialog' | 'closeDialog' | 'removeDialog' | 'closeAllDialogs'> | null>(null);
@@ -24,9 +25,7 @@ function flushPendingDialogOperations() {
     try {
       operation?.(dialogApiRef);
     } catch (error) {
-      if (__DEV__) {
-        console.error('[dialog] queued operation failed', error);
-      }
+      devError('[dialog] queued operation failed', error);
     }
   }
 }
@@ -94,9 +93,7 @@ function notifyDialogListeners() {
     try {
       listener();
     } catch (error) {
-      if (__DEV__) {
-        console.error('[dialog] listener error', error);
-      }
+      devError('[dialog] listener error', error);
     }
   });
 }
@@ -116,7 +113,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const [dialogs, setDialogs] = useState<DialogConfig[]>([]);
 
   const openDialog = useCallback((config: Omit<DialogConfig, 'id'> & { id?: string }) => {
-    const id = config.id ?? Math.random().toString(36).substr(2, 9);
+    const id = config.id ?? Math.random().toString(36).slice(2, 11);
     const dialogConfig: DialogConfig = {
       id,
       closable: true,
@@ -191,7 +188,16 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Back-compat: full object (re-renders on dialog list changes)
+/**
+ * Returns the nearest `DialogProvider`'s full dialog API — the open `dialogs`
+ * list plus `openDialog`, `closeDialog`, `removeDialog` and `closeAllDialogs` —
+ * and never throws: outside a provider it returns a global bridge that queues
+ * calls until one mounts.
+ *
+ * Kept for back-compat; it re-renders whenever the dialog list changes, so a
+ * component that only opens or closes dialogs should use `useDialogApi()`, and
+ * one that only reads the list `useDialogs()`.
+ */
 export function useDialog(): DialogContextValue {
   const api = useContext(DialogApiContext);
   const dialogs = useContext(DialogsStateContext);
@@ -200,12 +206,19 @@ export function useDialog(): DialogContextValue {
       notifyDialogListeners();
     }
   }, [api, dialogs]);
-  if (api && dialogs) {
-    return { dialogs, ...api } as DialogContextValue;
-  }
-  return dialogBridge;
+  const value = useMemo<DialogContextValue | null>(
+    () => (api && dialogs ? { dialogs, ...api } : null),
+    [api, dialogs]
+  );
+  return value ?? dialogBridge;
 }
 
+/**
+ * Returns just the dialog actions (`openDialog`, `closeDialog`, `removeDialog`,
+ * `closeAllDialogs`) of the nearest `DialogProvider` without subscribing to the
+ * dialog list, so opening a dialog doesn't re-render the caller; outside a
+ * provider it returns a bridge that queues calls until one mounts.
+ */
 export function useDialogApi() {
   const api = useContext(DialogApiContext);
   useEffect(() => {
@@ -216,6 +229,13 @@ export function useDialogApi() {
   return api ?? dialogApiBridge;
 }
 
+/**
+ * Returns the nearest `DialogProvider`'s open dialogs (`DialogConfig[]`, in
+ * the order they were opened) and re-renders when the list changes — for
+ * custom dialog renderers and "is anything open?" checks; outside a provider
+ * it returns a non-reactive snapshot (empty when none is mounted) instead of
+ * throwing.
+ */
 export function useDialogs() {
   const dialogs = useContext(DialogsStateContext);
   useEffect(() => {

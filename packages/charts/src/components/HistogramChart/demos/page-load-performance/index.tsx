@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { View, Text } from 'react-native';
-import { HistogramChart, HistogramBinSummary } from '@platform-blocks/charts';
+import { HistogramChart, HistogramBinSummary } from '@plocks/charts';
 
-import { AVERAGE_LOAD, LOAD_TIMES, SLO_TARGET } from './data';
+import { BREACH_LIMIT, LOAD_TIMES, SLO_TARGET } from './data';
 
 export function Demo() {
   const [focusedBin, setFocusedBin] = useState<HistogramBinSummary | null>(null);
@@ -11,30 +11,28 @@ export function Demo() {
   <View>
       <HistogramChart
         title="Page load time distribution"
-        subtitle="Week after performance optimization rollout"
-        height={340}
+        subtitle="Bins colored by SLO status"
+        h={340}
         data={LOAD_TIMES}
         bins={14}
-        binMethod="fd"
-        showDensity
-        densityThickness={3}
-        barOpacity={0.78}
-        densityColor="#12B886"
-        rangeHighlights={[{ id: 'slo-window', start: 0, end: SLO_TARGET, color: '#38BDF8', opacity: 0.12 }]}
+        density={false}
+        showDensity={false}
+        barOpacity={0.9}
+        colorScale={{
+          type: 'threshold',
+          by: 'x',
+          thresholds: [SLO_TARGET, BREACH_LIMIT],
+          colors: ['#0ca30c', '#fab219', '#d03b3b'],
+          labels: ['Within SLO', 'At risk', 'Breaching'],
+        }}
+        legend={{ show: true }}
         annotations={[
           {
             id: 'slo-target',
             shape: 'vertical-line',
             x: SLO_TARGET,
-            color: '#0EA5E9',
+            color: '#71717A',
             label: 'SLO 2.5s',
-          },
-          {
-            id: 'avg-load',
-            shape: 'vertical-line',
-            x: Number(AVERAGE_LOAD.toFixed(2)),
-            color: '#F97316',
-            label: `Avg ${AVERAGE_LOAD.toFixed(2)}s`,
           },
         ]}
         xAxis={{
@@ -42,15 +40,14 @@ export function Demo() {
           labelFormatter: (value) => `${value.toFixed(1)}s`,
         }}
         yAxis={{
-          title: 'Probability density',
-          labelFormatter: (value) => value.toFixed(2),
+          title: 'Page views',
         }}
         grid={{ show: true }}
         tooltip={{
           show: true,
           formatter: (bin) => `${bin.count} page views between ${bin.start.toFixed(1)}–${bin.end.toFixed(1)}s`,
         }}
-        valueFormatter={(count, bin) => `${count} views · pdf ${bin.density.toFixed(3)}`}
+        valueFormatter={(count) => `${count} views`}
         onBinFocus={(summary) => setFocusedBin(summary)}
         onBinBlur={() => setFocusedBin(null)}
       />

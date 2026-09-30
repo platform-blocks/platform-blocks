@@ -1,15 +1,8 @@
 import React from 'react';
 import { renderHook } from '@testing-library/react-native';
 import { ChartThemeProvider, useChartTheme } from '../../src/theme/ChartThemeContext';
-import { setDefaultColorScheme, colorSchemes } from '../../src/utils';
 
 describe('ChartThemeProvider', () => {
-  const originalPalette = [...colorSchemes.default];
-
-  afterEach(() => {
-    setDefaultColorScheme(originalPalette);
-  });
-
   it('merges theme overrides with defaults', () => {
     const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
       <ChartThemeProvider
@@ -57,6 +50,6 @@ describe('ChartThemeProvider', () => {
 
     expect(result.current.colors.textPrimary).toBe('#111111');
     expect(result.current.colors.background).toBe('#0f172a');
-    expect(colorSchemes.default).toEqual(hostTheme.colors.primary);
+    expect(result.current.colors.accentPalette).toEqual(hostTheme.colors.primary);
   });
 });

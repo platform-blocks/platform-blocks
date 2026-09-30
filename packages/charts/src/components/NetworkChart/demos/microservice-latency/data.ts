@@ -1,4 +1,4 @@
-import type { NetworkLink, NetworkNode } from '@platform-blocks/charts';
+import type { NetworkLink, NetworkNode } from '@plocks/charts';
 
 export const SERVICES: NetworkNode[] = [
   { id: 'api-gateway', name: 'API Gateway', group: 'edge', value: 420 },

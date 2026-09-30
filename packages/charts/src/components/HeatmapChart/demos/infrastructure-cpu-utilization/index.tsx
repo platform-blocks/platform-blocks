@@ -1,4 +1,4 @@
-import { HeatmapChart } from '@platform-blocks/charts';
+import { HeatmapChart } from '@plocks/charts';
 
 import { CLUSTERS, CPU_UTILIZATION, TIME_BLOCKS } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <HeatmapChart
       title="Infrastructure CPU utilization"
       subtitle="Average utilization (%) across compute clusters"
-      height={360}
+      h={360}
       data={{ rows: CLUSTERS, cols: TIME_BLOCKS, values: CPU_UTILIZATION }}
       cellSize={{ width: 90, height: 44 }}
       gap={6}

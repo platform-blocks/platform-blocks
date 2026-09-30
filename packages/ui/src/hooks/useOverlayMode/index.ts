@@ -1,7 +1,8 @@
-import { Platform } from 'react-native';
 import { useMemo } from 'react';
 
+import { isWeb } from '../../core/platform/flags';
 import { useDeviceInfo } from '../useDeviceInfo';
+import type { DeviceInfo } from '../useDeviceInfo/types';
 
 export interface UseOverlayModeOptions {
   /** Force modal presentation regardless of platform */
@@ -12,7 +13,7 @@ export interface UseOverlayModeOptions {
 
 export interface UseOverlayModeResult {
   /** Raw device info reference (forwarded for convenience) */
-  deviceInfo: ReturnType<typeof useDeviceInfo>;
+  deviceInfo: DeviceInfo;
   /** True when running on React Native Web */
   isWeb: boolean;
   /** Consolidated mobile experience flag (native or narrow web) */
@@ -23,22 +24,19 @@ export interface UseOverlayModeResult {
   shouldUseModal: boolean;
   /** Prefer anchored overlays/portals (desktop web) */
   shouldUseOverlay: boolean;
-  /** Alias for shouldUseOverlay for popover/portal driven surfaces */
-  shouldUsePortal: boolean;
 }
 
 /**
  * Normalises how components decide between fullscreen modals and anchored overlays
- * by combining platform + device heuristics from useDeviceInfo.
+ * by combining platform + device heuristics from useDeviceInfo. The result keeps
+ * its identity until the device info or the options change.
  */
 export function useOverlayMode(options: UseOverlayModeOptions = {}): UseOverlayModeResult {
   const { forceModal, forceOverlay } = options;
   const deviceInfo = useDeviceInfo();
-  const isWeb = Platform.OS === 'web';
 
-  const value = useMemo(() => {
-    const helpers = deviceInfo.helpers || {};
-    const detectedMobile = typeof helpers.isMobile === 'boolean' ? helpers.isMobile : !isWeb;
+  return useMemo<UseOverlayModeResult>(() => {
+    const detectedMobile = deviceInfo.helpers?.isMobile ?? !isWeb;
 
     const resolvedModal = forceOverlay ? false : (forceModal ?? detectedMobile);
     const resolvedOverlay = forceModal ? false : (forceOverlay ?? (isWeb && !resolvedModal));
@@ -50,11 +48,8 @@ export function useOverlayMode(options: UseOverlayModeOptions = {}): UseOverlayM
       isDesktopExperience: !resolvedModal,
       shouldUseModal: resolvedModal,
       shouldUseOverlay: resolvedOverlay,
-      shouldUsePortal: resolvedOverlay,
-    } as UseOverlayModeResult;
-  }, [deviceInfo, forceModal, forceOverlay, isWeb]);
-
-  return value;
+    };
+  }, [deviceInfo, forceModal, forceOverlay]);
 }
 
 export default useOverlayMode;

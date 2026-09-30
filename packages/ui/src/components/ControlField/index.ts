@@ -5,6 +5,8 @@ export type {
   ControlFieldProps,
   ControlFieldVariant,
   ControlFieldContextValue,
+  ControlFieldIds,
+  ControlFieldPart,
   ControlFieldGroupProps,
   ControlFieldLabelProps,
   ControlFieldDescriptionProps,

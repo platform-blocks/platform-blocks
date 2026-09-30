@@ -1,229 +1,226 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Pressable, ScrollView, Platform, Dimensions } from 'react-native';
-// NOTE: Direct imports to avoid circular barrel dependency
-import { Text } from '../Text';
-import { Card } from '../Card';
-import { useOptionalOverlayApi } from '../../core/providers/OverlayProvider';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import type { Ref } from 'react';
+import { View } from 'react-native';
+import type { AccessibilityActionEvent, AccessibilityActionInfo, GestureResponderEvent } from 'react-native';
+
+import { MenuItem, MenuList } from '../Menu/Menu';
+import type { MenuContextValue } from '../Menu/Menu';
+import { useMenuStyles } from '../Menu/styles';
+import { factory } from '../../core/factory';
+import { useStyleProps } from '../../core/utils/spacing';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { isWeb } from '../../core/platform';
+import type { WebKeyboardEvent, WebMouseEvent } from '../../core/platform';
+import { useFloating } from '../../core/overlay/useFloating';
+import { createPointAnchor } from '../../core/overlay/pointAnchor';
+import { resolveDOMElement } from '../../core/overlay/focus';
+import { measureElement } from '../../core/utils/positioning-enhanced';
 import { useControllableState } from '../../hooks/useControllableState';
-import type { ContextMenuItem, ContextMenuProps } from './types';
-export type { ContextMenuItem, ContextMenuProps } from './types';
+import type { ContextMenuFactoryPayload, ContextMenuItem, ContextMenuProps, ContextMenuTriggerProps } from './types';
 
-interface Coords { x: number; y: number }
+export type { ContextMenuItem, ContextMenuProps, ContextMenuTriggerProps } from './types';
 
-// Rough estimate used only to keep the menu inside the viewport; the real size is
-// laid out by the content itself once rendered.
-const ESTIMATED_WIDTH = 200;
-const ROW_HEIGHT = 32;
-const VIEWPORT_PADDING = 8;
+const OPEN_MENU_ACTION = 'openContextMenu';
+const ACCESSIBILITY_ACTIONS: ReadonlyArray<AccessibilityActionInfo> = [
+  // Double-tap-and-hold in VoiceOver / TalkBack.
+  { name: 'longpress', label: 'Open menu' },
+  // Listed in the actions rotor / menu.
+  { name: OPEN_MENU_ACTION, label: 'Open menu' },
+];
 
-export const ContextMenu = React.forwardRef<View, ContextMenuProps>(({
-  children,
-  items,
-  closeOnSelect = true,
-  longPressDelay = 350,
-  maxHeight = 280,
-  onOpen,
-  onClose,
-  open: controlledOpen,
-  position: controlledPosition,
-  style,
-}, ref) => {
-  const [actualOpen, setOpen] = useControllableState<boolean>({
-    value: controlledOpen,
-    defaultValue: false,
+interface Point {
+  x: number;
+  y: number;
+}
+
+/**
+ * A menu of actions opened at the pointer: right-click (web), long-press
+ * (native), Shift+F10 / the ContextMenu key (web keyboard) or a screen-reader
+ * action. Renders through the shared overlay primitives (flip / shift to stay
+ * on screen, Escape / back / outside press, focus moved in and restored) with
+ * the same keyboard-navigable menu as `Menu`.
+ */
+function ContextMenuBase(props: ContextMenuProps, ref: Ref<View>) {
+  const {
+    children,
+    items,
+    closeOnSelect = true,
+    longPressDelay = 350,
+    mah: maxHeight = 280,
+    onOpen,
+    onClose,
+    opened: openedProp,
+    defaultOpened = false,
+    position: controlledPosition,
+    style,
+    testID,
+    'aria-label': ariaLabel = 'Context menu',
+    ...spacingProps
+  } = props;
+
+  const spacingStyles = useStyleProps(spacingProps);
+  const menuStyles = useMenuStyles();
+
+  const [opened, setOpened] = useControllableState<boolean>({
+    value: openedProp,
+    defaultValue: defaultOpened,
+    finalValue: false,
   });
-  const [coords, setCoords] = useState<Coords>({ x: 0, y: 0 });
-  const longPressTimer = useRef<any>(null);
-
-  // When an OverlayProvider is available (the default via PlatformBlocksProvider),
-  // the menu is portaled through the app-level OverlayRenderer so it escapes any
-  // `overflow: hidden` ancestor and is positioned in viewport coordinates. Without
-  // a provider (e.g. isolated tests) we fall back to inline absolute rendering.
-  const overlayApi = useOptionalOverlayApi();
-  const usePortal = overlayApi !== null;
-  const overlayIdRef = useRef<string | null>(null);
-
-  const effectivePos = controlledPosition ?? coords;
-
-  // Clamp a raw pointer position so the menu stays on screen.
-  const clampToViewport = useCallback((x: number, y: number): Coords => {
-    const { width: winW, height: winH } = Dimensions.get('window');
-    const estHeight = Math.min(maxHeight, items.length * ROW_HEIGHT + 8);
-    let nextX = x;
-    let nextY = y;
-    if (nextX + ESTIMATED_WIDTH > winW - VIEWPORT_PADDING) {
-      nextX = Math.max(VIEWPORT_PADDING, winW - ESTIMATED_WIDTH - VIEWPORT_PADDING);
-    }
-    if (nextY + estHeight > winH - VIEWPORT_PADDING) {
-      nextY = Math.max(VIEWPORT_PADDING, winH - estHeight - VIEWPORT_PADDING);
-    }
-    return { x: nextX, y: nextY };
-  }, [items.length, maxHeight]);
-
-  const openAt = useCallback((x: number, y: number) => {
-    setCoords(clampToViewport(x, y));
-    if (!actualOpen) {
-      setOpen(true);
-      onOpen?.();
-    }
-  }, [actualOpen, setOpen, onOpen, clampToViewport]);
-
-  const handleOverlayClosed = useCallback(() => {
-    overlayIdRef.current = null;
-    setOpen(false);
-    onClose?.();
-  }, [setOpen, onClose]);
-
-  const handleSelect = useCallback((item: ContextMenuItem) => {
-    item.onSelect?.();
-    if (!closeOnSelect) return;
-    if (usePortal) {
-      if (overlayIdRef.current) overlayApi!.closeOverlay(overlayIdRef.current);
-    } else {
-      setOpen(false);
-      if (actualOpen) onClose?.();
-    }
-  }, [closeOnSelect, usePortal, overlayApi, setOpen, actualOpen, onClose]);
-
-  // The menu surface, shared by the portal and inline-fallback paths.
-  const renderMenu = useCallback(() => (
-    <Card shadow="md" style={{ paddingVertical: 4, minWidth: 160 }}>
-      <ScrollView style={{ maxHeight }} showsVerticalScrollIndicator={false}>
-        {items.map(item => (
-          <Pressable
-            key={item.id}
-            disabled={item.disabled}
-            onPress={() => handleSelect(item)}
-            style={({ pressed }) => ({
-              opacity: item.disabled ? 0.4 : 1,
-              backgroundColor: pressed ? 'rgba(0,0,0,0.06)' : 'transparent',
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-            })}
-          >
-            {item.icon && <View style={{ width: 16, alignItems: 'center' }}>{item.icon}</View>}
-            <Text size="xs" color={item.danger ? 'error' : 'gray'} style={{ fontWeight: 500 }}>{item.label}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-    </Card>
-  ), [items, maxHeight, handleSelect]);
-
-  // Sync the portaled overlay to the open state + pointer position.
+  const openedRef = useRef(opened);
   useEffect(() => {
-    if (!usePortal) return;
-    if (actualOpen) {
-      const config = {
-        content: renderMenu(),
-        anchor: { x: effectivePos.x, y: effectivePos.y, width: 0, height: 0 },
-        placement: 'bottom-start' as const,
-        trigger: 'contextmenu' as const,
-        closeOnClickOutside: true,
-        closeOnEscape: true,
-        onClose: handleOverlayClosed,
-      };
-      if (overlayIdRef.current) {
-        overlayApi!.updateOverlay(overlayIdRef.current, config);
-      } else {
-        overlayIdRef.current = overlayApi!.openOverlay(config);
-      }
-    } else if (overlayIdRef.current) {
-      overlayApi!.closeOverlay(overlayIdRef.current);
-      overlayIdRef.current = null;
-    }
-  }, [usePortal, actualOpen, effectivePos.x, effectivePos.y, renderMenu, handleOverlayClosed]);
+    openedRef.current = opened;
+  });
 
-  // Close any open overlay on unmount.
+  const rootRef = useRef<View>(null);
+  const hasPointAnchorRef = useRef(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => {
-    if (overlayIdRef.current) overlayApi?.closeOverlay(overlayIdRef.current);
-  }, [overlayApi]);
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  }, []);
 
   const close = useCallback(() => {
-    if (usePortal) {
-      if (overlayIdRef.current) overlayApi!.closeOverlay(overlayIdRef.current);
-    } else {
-      setOpen(false);
-      if (actualOpen) onClose?.();
-    }
-  }, [usePortal, overlayApi, setOpen, actualOpen, onClose]);
+    if (!openedRef.current) return;
+    openedRef.current = false;
+    setOpened(false);
+    onClose?.();
+  }, [setOpened, onClose]);
 
-  // Inline-fallback only: close on click outside / scroll (web).
+  const floating = useFloating({
+    opened: opened && items.length > 0,
+    onDismiss: close,
+    placement: 'bottom-start',
+    offset: 0,
+    trigger: 'contextmenu',
+    role: 'menu',
+    autoFocus: false,
+    restoreFocus: true,
+    desiredHeight: Math.min(maxHeight, items.length * 34 + 10),
+  });
+  const { refs, update: updatePosition } = floating;
+
+  // Until a point is known (controlled `opened` without `position`), anchor to the wrapper.
+  const setWrapperAnchor = useCallback((node: unknown) => {
+    if (node && !hasPointAnchorRef.current) refs.setReference(node);
+  }, [refs]);
+  const mergedRef = useMergedRef<View>(ref, rootRef, setWrapperAnchor);
+
+  // A controlled position is the anchor whenever it is given.
+  const controlledX = controlledPosition?.x;
+  const controlledY = controlledPosition?.y;
   useEffect(() => {
-    if (usePortal) return;
-    if (Platform.OS !== 'web') return;
-    if (!actualOpen) return;
-    const handle = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest && target.closest('[data-context-menu]')) return;
-      close();
-    };
-    document.addEventListener('mousedown', handle);
-    document.addEventListener('scroll', close, true);
-    window.addEventListener('resize', close);
-    return () => {
-      document.removeEventListener('mousedown', handle);
-      document.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
-    };
-  }, [usePortal, actualOpen, close]);
+    if (controlledX === undefined || controlledY === undefined) return;
+    hasPointAnchorRef.current = true;
+    refs.setReference(createPointAnchor({ x: controlledX, y: controlledY }));
+    if (openedRef.current) void updatePosition();
+  }, [controlledX, controlledY, refs, updatePosition]);
 
-  const extractCoords = (e: any): Coords => {
-    const ne = e?.nativeEvent ?? e;
-    if (Platform.OS === 'web') {
-      // Viewport coordinates — the overlay uses `position: fixed` on web.
-      return { x: ne?.clientX ?? e?.clientX ?? 0, y: ne?.clientY ?? e?.clientY ?? 0 };
+  const openAt = useCallback((point: Point) => {
+    if (controlledX === undefined || controlledY === undefined) {
+      hasPointAnchorRef.current = true;
+      refs.setReference(createPointAnchor(point));
     }
-    return { x: ne?.pageX ?? ne?.locationX ?? 0, y: ne?.pageY ?? ne?.locationY ?? 0 };
-  };
+    if (openedRef.current) {
+      void updatePosition();
+      return;
+    }
+    openedRef.current = true;
+    setOpened(true);
+    onOpen?.();
+  }, [controlledX, controlledY, refs, updatePosition, setOpened, onOpen]);
 
-  const triggerProps = {
-    onContextMenu: (e: any) => {
-      e.preventDefault?.();
-      const { x, y } = extractCoords(e);
-      openAt(x, y);
-    },
-    onPressIn: (e: any) => {
-      if (Platform.OS === 'web') return; // rely on contextmenu for web
-      if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current);
+  /** Keyboard / assistive tech: open at the element's bottom-start corner. */
+  const openAtNode = useCallback((node: unknown) => {
+    void measureElement({ current: node ?? rootRef.current }).then((rect) => {
+      openAt({ x: rect.x, y: rect.y + rect.height });
+    });
+  }, [openAt]);
+
+  const triggerProps = useMemo<ContextMenuTriggerProps>(() => ({
+    onContextMenu: (event: WebMouseEvent) => {
+      event.preventDefault();
+      const x = event.clientX ?? 0;
+      const y = event.clientY ?? 0;
+      // The keyboard ContextMenu key fires this event without pointer coordinates.
+      if (x === 0 && y === 0) {
+        openAtNode(resolveDOMElement(event.currentTarget) ?? rootRef.current);
+        return;
       }
-      const { x, y } = extractCoords(e);
+      openAt({ x, y });
+    },
+    onPressIn: (event: GestureResponderEvent) => {
+      if (isWeb) return; // the contextmenu event covers web
+      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+      const { pageX, pageY } = event.nativeEvent;
       longPressTimer.current = setTimeout(() => {
-        openAt(x, y);
+        longPressTimer.current = null;
+        openAt({ x: pageX, y: pageY });
       }, longPressDelay);
     },
     onPressOut: () => {
       if (longPressTimer.current) {
         clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
       }
-    }
-  };
+    },
+    ...(isWeb
+      ? {
+          onKeyDown: (event: WebKeyboardEvent) => {
+            if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
+              event.preventDefault();
+              openAtNode(resolveDOMElement(event.currentTarget) ?? rootRef.current);
+            }
+          },
+          'aria-haspopup': 'menu' as const,
+        }
+      : null),
+    accessibilityActions: ACCESSIBILITY_ACTIONS,
+    onAccessibilityAction: (event: AccessibilityActionEvent) => {
+      const action = event.nativeEvent.actionName;
+      if (action === 'longpress' || action === OPEN_MENU_ACTION) openAtNode(rootRef.current);
+    },
+  }), [openAt, openAtNode, longPressDelay]);
+
+  const contextValue = useMemo<MenuContextValue>(() => ({ closeMenu: close, opened }), [close, opened]);
+  const resolvedMaxHeight = typeof floating.position?.maxHeight === 'number'
+    ? Math.min(maxHeight, floating.position.maxHeight)
+    : maxHeight;
+
+  const content = (
+    <MenuList
+      floating={floating}
+      contextValue={contextValue}
+      style={[menuStyles.dropdown, { minWidth: 160 }]}
+      maxHeight={resolvedMaxHeight}
+      scrollable
+      initialFocus="first"
+      focusRequest={0}
+      onTabOut={close}
+      label={ariaLabel}
+      testID={testID ? `${testID}-menu` : undefined}
+    >
+      {items.map((item: ContextMenuItem) => (
+        <MenuItem
+          key={item.id}
+          disabled={item.disabled}
+          color={item.danger ? 'error' : 'default'}
+          startSection={item.icon}
+          closeMenuOnClick={closeOnSelect}
+          onPress={item.onSelect}
+        >
+          {item.label}
+        </MenuItem>
+      ))}
+    </MenuList>
+  );
 
   return (
-    <View ref={ref} style={style}>
+    <View ref={mergedRef} style={[spacingStyles, style]} testID={testID}>
       {children(triggerProps)}
-      {!usePortal && actualOpen && (
-        <View
-          style={{
-            position: 'absolute',
-            top: effectivePos.y,
-            left: effectivePos.x,
-            zIndex: 1000,
-            maxHeight,
-            minWidth: 160,
-          }}
-          data-context-menu
-        >
-          {renderMenu()}
-        </View>
-      )}
+      {floating.renderFloating(content)}
     </View>
   );
-});
+}
 
-ContextMenu.displayName = 'ContextMenu';
+export const ContextMenu = factory<ContextMenuFactoryPayload>(ContextMenuBase, { displayName: 'ContextMenu' });
 
 export default ContextMenu;

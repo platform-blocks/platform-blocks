@@ -1,4 +1,4 @@
-import { Block, Progress, Text } from '@platform-blocks/ui';
+import { Block, Progress } from '@plocks/ui';
 
 const SECTIONS = [
   { label: 'Documents', value: 34, color: 'primary' as const },
@@ -8,17 +8,17 @@ const SECTIONS = [
 
 export function Demo() {
   return (
-      <Progress.Root size="xl">
+    <Block fullWidth>
+      <Progress.Root>
         {SECTIONS.map((section) => (
           <Progress.Section
             key={section.label}
             value={section.value}
             color={section.color}
             tooltip={`${section.label} — ${section.value}%`}
-          >
-            <Progress.Label>{section.value}%</Progress.Label>
-          </Progress.Section>
+          />
         ))}
       </Progress.Root>
+    </Block>
   );
 }

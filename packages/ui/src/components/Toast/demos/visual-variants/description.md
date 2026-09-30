@@ -5,7 +5,6 @@ order: 25
 tags: [toast, variant, styling, filled, outline, light]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

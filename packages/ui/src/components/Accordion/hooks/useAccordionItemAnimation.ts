@@ -10,7 +10,7 @@ export interface UseAccordionItemAnimationOptions {
    * state change instantly (no chevron spin, no height animation).
    */
   transitionDuration?: number;
-  /** Honors the user's OS/browser reduced-motion preference. */
+  /** Honors the user's OS/browser reduced-motion preference (`useReducedMotion()` from core/motion). */
   reducedMotion?: boolean;
 }
 
@@ -21,7 +21,7 @@ export interface AccordionCollapseConfig {
 }
 
 export interface UseAccordionItemAnimationResult {
-  animatedChevronStyle: any;
+  animatedChevronStyle: ReturnType<typeof useAnimatedStyle>;
   CollapseConfig: AccordionCollapseConfig;
 }
 

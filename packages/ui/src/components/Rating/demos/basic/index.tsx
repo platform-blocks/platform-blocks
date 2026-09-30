@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Rating, Text } from '@platform-blocks/ui';
+import { Block, Rating, Text } from '@plocks/ui';
 
 export function Demo() {
   const [score, setScore] = useState<number>(3);
@@ -12,7 +12,7 @@ export function Demo() {
         size="lg"
         label="Rate the broadcast quality"
       />
-      <Text variant="small" color="muted">
+      <Text variant="small" c="muted">
         Current score: {score} out of 5.
       </Text>
     </Block>

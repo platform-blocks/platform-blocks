@@ -1,51 +1,90 @@
-import React, { useEffect, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { factory } from '../../core/factory/factory';
+import { createThemedStyles } from '../../core/hooks/useThemedStyles';
+import { isIOS } from '../../core/platform/flags';
 import { useTheme } from '../../core/theme/ThemeProvider';
-import { Icon } from '../Icon';
+import { resolveFontSize, resolveShadow } from '../../core/theme/tokens';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
+import { Icon } from '../Icon/Icon';
 
 import { useNavigation } from './NavigationContext';
-import type { StackNavigatorProps, StackScreenProps, StackOptions, Route } from './types';
+import { resolveScreenOptions, useInitialRoute, useScreens } from './screens';
+import type { Route, StackNavigatorProps, StackOptions, StackScreenProps } from './types';
 
 export interface StackNavigatorConfig {
   Navigator: React.ComponentType<StackNavigatorProps>;
   Screen: React.ComponentType<StackScreenProps>;
 }
 
-function StackNavigator({ children, initialRouteName, screenOptions }: StackNavigatorProps) {
+// Built once per theme. Named `styles` so the unused-styles lint rule can
+// match it with the `styles.x` reads below.
+const getStyles = createThemedStyles((theme) => {
+  const styles = StyleSheet.create({
+    backButton: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      minHeight: 44,
+      minWidth: 44,
+      paddingEnd: 8,
+    },
+    backTitle: {
+      color: theme.text.link,
+      fontSize: resolveFontSize(theme, 'md'),
+      marginStart: 4,
+    },
+    container: {
+      flex: 1,
+    },
+    content: {
+      flex: 1,
+    },
+    header: {
+      alignItems: 'center',
+      backgroundColor: theme.backgrounds.surface,
+      borderBottomColor: theme.backgrounds.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      flexDirection: 'row',
+      // iOS draws under the status bar; leave room for it.
+      height: isIOS ? 88 : 56,
+      paddingHorizontal: 16,
+      paddingTop: isIOS ? 44 : 0,
+      ...resolveShadow(theme, 'xs'),
+    },
+    headerCenter: {
+      alignItems: 'center',
+      flex: 2,
+    },
+    headerLeft: {
+      alignItems: 'center',
+      flex: 1,
+      flexDirection: 'row',
+    },
+    headerRight: {
+      alignItems: 'flex-end',
+      flex: 1,
+    },
+    headerTitle: {
+      color: theme.text.primary,
+      fontSize: resolveFontSize(theme, 'lg'),
+      fontWeight: '600',
+    },
+  });
+  return styles;
+});
+
+const StackNavigator = factory<{ props: StackNavigatorProps; ref: View }>((props, ref) => {
+  const { styleProps, otherProps } = extractStyleProps(props);
+  const { children, initialRouteName, screenOptions, style, testID } = otherProps;
+  const spacing = useStyleProps(styleProps);
   const navigation = useNavigation();
   const theme = useTheme();
+  const styles = getStyles(theme);
+  const screens = useScreens<StackOptions>(children);
 
-  // Extract screens from children
-  const screens = useMemo(() => {
-    const screenElements: Array<{ name: string; component: React.ComponentType<any>; options?: any; initialParams?: any }> = [];
-
-    React.Children.forEach(children, (child) => {
-      if (React.isValidElement(child)) {
-        const childProps = child.props as any;
-        if (childProps.name) {
-          screenElements.push({
-            name: childProps.name,
-            component: childProps.component,
-            options: childProps.options,
-            initialParams: childProps.initialParams
-          });
-        }
-      }
-    });
-
-    return screenElements;
-  }, [children]);
-
-  // Initialize navigation state with screens
-  useEffect(() => {
-    if (screens.length > 0 && navigation.state.routes.length === 0) {
-      const initialRoute = initialRouteName || screens[0].name;
-      const route = screens.find(s => s.name === initialRoute) || screens[0];
-
-      navigation.navigate(route.name, route.initialParams);
-    }
-  }, [screens, navigation, initialRouteName]);
+  useInitialRoute(navigation, screens, initialRouteName);
 
   const currentRoute = navigation.state.routes[navigation.state.index];
   const currentScreen = screens.find(s => s.name === currentRoute?.name);
@@ -55,14 +94,10 @@ function StackNavigator({ children, initialRouteName, screenOptions }: StackNavi
   }
 
   const Component = currentScreen.component;
-  const options = typeof currentScreen.options === 'function'
-    ? currentScreen.options({ route: currentRoute })
-    : currentScreen.options || {};
-
-  const mergedOptions = { ...screenOptions, ...options };
+  const mergedOptions = resolveScreenOptions(screenOptions, currentScreen.options, currentRoute);
 
   return (
-    <View style={styles.container}>
+    <View ref={ref} testID={testID} style={[styles.container, spacing, style]}>
       {mergedOptions.headerShown !== false && (
         <StackHeader
           route={currentRoute}
@@ -76,7 +111,7 @@ function StackNavigator({ children, initialRouteName, screenOptions }: StackNavi
       </View>
     </View>
   );
-}
+}, { displayName: 'StackNavigator', memo: false });
 
 interface StackHeaderProps {
   route: Route;
@@ -87,27 +122,33 @@ interface StackHeaderProps {
 
 function StackHeader({ route, options, canGoBack, onGoBack }: StackHeaderProps) {
   const theme = useTheme();
+  const styles = getStyles(theme);
 
   const title = options.headerTitle || options.title || route.name;
 
   return (
-    <View style={[styles.header, { backgroundColor: theme.colors.gray[0], borderBottomColor: theme.colors.gray[3] }]}>
+    <View style={styles.header}>
       <View style={styles.headerLeft}>
         {canGoBack && (
-          <TouchableOpacity onPress={onGoBack} style={styles.backButton}>
-            <Icon name="chevron-left" size="md" color={theme.colors.primary[6]} />
-            {Platform.OS === 'ios' && options.headerBackTitle && (
-              <Text style={[styles.backTitle, { color: theme.colors.primary[6] }]}>
-                {options.headerBackTitle}
-              </Text>
+          <Pressable
+            onPress={onGoBack}
+            style={styles.backButton}
+            {...a11yProps({
+              role: 'button',
+              label: options.headerBackTitle ? `Back, ${options.headerBackTitle}` : 'Go back',
+            })}
+          >
+            <Icon name="chevron-left" size="md" color={theme.text.link} decorative />
+            {isIOS && options.headerBackTitle && (
+              <Text style={styles.backTitle}>{options.headerBackTitle}</Text>
             )}
-          </TouchableOpacity>
+          </Pressable>
         )}
         {options.headerLeft && options.headerLeft()}
       </View>
 
       <View style={styles.headerCenter}>
-        <Text style={[styles.headerTitle, { color: theme.text.primary }]} numberOfLines={1}>
+        <Text style={styles.headerTitle} numberOfLines={1} {...a11yProps({ role: 'heading', level: 1 })}>
           {title}
         </Text>
       </View>
@@ -119,60 +160,17 @@ function StackHeader({ route, options, canGoBack, onGoBack }: StackHeaderProps) 
   );
 }
 
-function StackScreen({ name, component, options, initialParams }: StackScreenProps) {
-  // This component is used for type definition and props passing
-  // The actual rendering is handled by StackNavigator
+/**
+ * Declares a screen for the stack. Renders nothing itself: the navigator reads
+ * its props and renders the active screen.
+ */
+function StackScreen(_props: StackScreenProps): null {
   return null;
 }
-
-const styles = StyleSheet.create({
-  backButton: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    paddingRight: 8
-  },
-  backTitle: {
-    fontSize: 16,
-    marginLeft: 4
-  },
-  container: {
-    flex: 1
-  },
-  content: {
-    flex: 1
-  },
-  header: {
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    boxShadow: '0 2px 2px rgba(0, 0, 0, 0.1)',
-    elevation: 4,
-    flexDirection: 'row',
-    height: Platform.OS === 'ios' ? 88 : 56,
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 44 : 0
-  },
-  headerCenter: {
-    alignItems: 'center',
-    flex: 2
-  },
-  headerLeft: {
-    alignItems: 'center',
-    flex: 1,
-    flexDirection: 'row'
-  },
-  headerRight: {
-    alignItems: 'flex-end',
-    flex: 1
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600'
-  }
-});
 
 export function createStackNavigator<ParamList = Record<string, object | undefined>>(): StackNavigatorConfig {
   return {
     Navigator: StackNavigator,
-    Screen: StackScreen as React.ComponentType<StackScreenProps>
+    Screen: StackScreen,
   };
 }

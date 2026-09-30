@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Tabs, Text } from '@platform-blocks/ui';
+import { Block, Tabs, Text } from '@plocks/ui';
 
 const ITEMS = [
   {
@@ -24,9 +24,9 @@ export function Demo() {
   const activeLabel = ITEMS.find((item) => item.key === activeTab)?.label ?? activeTab;
 
   return (
-    <Block>
-      <Tabs activeTab={activeTab} onTabChange={setActiveTab} items={ITEMS} />
-      <Text variant="small" color="muted">
+    <Block fullWidth>
+      <Tabs value={activeTab} onChange={setActiveTab} items={ITEMS} />
+      <Text variant="small" c="muted">
         Active tab: {activeLabel}
       </Text>
     </Block>

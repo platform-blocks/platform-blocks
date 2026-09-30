@@ -1,4 +1,4 @@
-import { LineChart } from '@platform-blocks/charts';
+import { LineChart } from '@plocks/charts';
 
 import { MILESTONES, SERIES, TARGET_RETENTION } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <LineChart
       title="Cohort Retention Across Milestones"
       subtitle="Weekly retention milestones by signup quarter"
-      height={440}
+      h={440}
       series={SERIES}
       smooth={false}
       showPoints

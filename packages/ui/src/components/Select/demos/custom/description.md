@@ -5,7 +5,6 @@ order: 30
 tags: [render, option, custom]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -106,7 +106,9 @@ const AnimatedMarimekkoSegment: React.FC<{
   }
 
   const animatedProps = useAnimatedProps(() => {
-    const progress = animation.value;
+    // Clamped: after a long mount frame the timing animation's first tick can land
+    // before its start time, and Easing.out(cubic) goes negative for t < 0.
+    const progress = Math.min(1, Math.max(0, animation.value));
     const height = segment.height * progress;
     const y = segment.y + (segment.height - height);
     return {
@@ -177,8 +179,8 @@ export const MarimekkoChart: React.FC<MarimekkoChartProps> = (props) => {
     columnGap = 12,
     segmentBorderRadius = 2,
     categoryLabelFormatter,
-    width = 640,
-    height = 400,
+    w: width = 640,
+    h: height = 400,
     title,
     subtitle,
     animationDuration = DEFAULT_ANIMATION_DURATION,
@@ -193,7 +195,10 @@ export const MarimekkoChart: React.FC<MarimekkoChartProps> = (props) => {
   } = props;
 
   const theme = useChartTheme();
-  const assignColor = useMemo(() => createColorAssigner({ hash: true }), []);
+  const assignColor = useMemo(
+    () => createColorAssigner({ hash: true }, theme.colors.accentPalette),
+    [theme.colors.accentPalette]
+  );
   const interactionConfig = useMemo(() => ({ multiTooltip: true, liveTooltip: true }), []);
 
   const normalizedCategories = useMemo<NormalizedCategory[]>(() => {
@@ -508,7 +513,12 @@ export const MarimekkoChart: React.FC<MarimekkoChartProps> = (props) => {
   }, [normalizedCategories]);
 
   const animationProgress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = React.useRef(false);
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (disabled) {
       animationProgress.value = 1;
       return;
@@ -614,8 +624,8 @@ export const MarimekkoChart: React.FC<MarimekkoChartProps> = (props) => {
 
   return (
     <ChartContainer
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       padding={padding}
       disabled={disabled}
       animationDuration={animationDuration}

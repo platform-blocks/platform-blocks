@@ -1,13 +1,13 @@
-import type { Breakpoint } from '../types';
 import { useBreakpoint as useResponsiveBreakpoint } from '../../../core/responsive';
+import type { Breakpoint } from '../types';
 
-// Central breakpoint values (keep in sync with design tokens if needed)
-export const BREAKPOINT_VALUES = {
-  xs: 0,
-  sm: 576,
-  md: 768,
-  lg: 992,
-  xl: 1200,
-} as const;
-
+/**
+ * Returns the current breakpoint name, from the theme's breakpoint table
+ * (`theme.breakpoints`, or a `BreakpointProvider` override): `base` below
+ * `xs` (480), then `xs`, `sm` (576), `md` (768), `lg` (992), `xl` (1200).
+ *
+ * The shared viewport store behind it is hydration-safe: static rendering and
+ * the hydration pass see the desktop default (`xl`), then the real width.
+ * Re-renders only when the breakpoint changes, not on every resize.
+ */
 export const useBreakpoint = (): Breakpoint => useResponsiveBreakpoint();

@@ -1,4 +1,4 @@
-import { AreaChart } from '@platform-blocks/charts';
+import { AreaChart } from '@plocks/charts';
 
 import { PHASE_LABELS, SESSION_SERIES } from './data';
 
@@ -9,7 +9,7 @@ export function Demo() {
     <AreaChart
       title="Active Sessions During Launch"
       subtitle="Layered by device platform"
-      height={420}
+      h={420}
       series={SESSION_SERIES}
       smooth
       grid={{ show: true, style: 'solid' }}

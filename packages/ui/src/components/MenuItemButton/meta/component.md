@@ -7,7 +7,7 @@ tags: [menu, dropdown, command, item, button]
 playground: true
 props:
   title: Text label (alternative to children)
-  startIcon / endIcon: Slot icons
+  startSection / endSection: Slot content
   onPress: Activation handler
   disabled: Whether the button is disabled
   active: Whether the item is selected
@@ -16,12 +16,12 @@ props:
   size: Component size token
   compact: Compact spacing
   rounded: Fully rounded corners
-  color: Semantic color — 'default' | 'primary' | 'error' | 'success' | 'warning' ('danger' is a deprecated alias for 'error')
+  color: Semantic color — 'default' | 'primary' | 'error' | 'success' | 'warning'
   hoverColor / activeColor: Colors applied on hover / active
   textColor / hoverTextColor / activeTextColor: Text color overrides
-  labelProps: Override props applied to the inner label `<Text>` (style, weight, ff, size, color)
+  labelProps: Override props applied to the inner label `<Text>` (style, fw, ff, size, c)
 examples:
   - basic
 ---
 
-A row button used inside menus and command palettes. The inner label `<Text>` accepts the full Text-prop API via `labelProps` (`ff`, `weight`, `tracking`, `uppercase`, `color`, `style`).
+A row button used inside menus and command palettes. The inner label `<Text>` accepts the full Text-prop API via `labelProps` (`ff`, `fw`, `lts`, `tt`, `c`, `style`).

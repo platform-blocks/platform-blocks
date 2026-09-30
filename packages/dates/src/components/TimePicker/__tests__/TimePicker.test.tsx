@@ -1,0 +1,108 @@
+import React from 'react';
+import { fireEvent, render } from '@testing-library/react-native';
+
+import { TimePicker } from '../TimePicker';
+
+describe('TimePicker - inline panel', () => {
+  it('renders hour and minute columns, and no field chrome', () => {
+    const { getByLabelText, queryByLabelText, queryByText } = render(<TimePicker />);
+
+    // One group named "Time" (not collapsed into one element), one adjustable
+    // wheel per column (named by the column).
+    const group = getByLabelText('Time');
+    expect(group.props.role).toBe('group');
+    expect(group.props.accessible).not.toBe(true);
+    expect(getByLabelText('Hour')).toBeTruthy();
+    expect(getByLabelText('Minute')).toBeTruthy();
+    // The panel is selection-only: no Done button, no seconds unless asked.
+    expect(queryByText('Done')).toBeNull();
+    expect(queryByLabelText('Second')).toBeNull();
+  });
+
+  it('hides the visible column captions from assistive technology (the wheels carry the names)', () => {
+    const { getByText } = render(<TimePicker />);
+    const caption = getByText('Hour', { includeHiddenElements: true });
+    expect(caption.props['aria-hidden']).toBe(true);
+  });
+
+  it('adds the seconds and meridiem columns on request', () => {
+    const { getByLabelText, getByText } = render(<TimePicker withSeconds format={12} />);
+
+    expect(getByLabelText('Second')).toBeTruthy();
+    expect(getByLabelText('Period')).toBeTruthy();
+    expect(getByText('AM')).toBeTruthy();
+    expect(getByText('PM')).toBeTruthy();
+  });
+
+  it('emits the merged value when a column is picked', () => {
+    const onChange = jest.fn();
+    const { getByText } = render(
+      <TimePicker value={{ hours: 10, minutes: 0 }} onChange={onChange} minuteStep={15} />
+    );
+
+    fireEvent.press(getByText('30'));
+
+    expect(onChange).toHaveBeenCalledWith({ hours: 10, minutes: 30 });
+  });
+
+  it('can update a controlled parent without setting state during render', () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const ControlledTimePicker = () => {
+      const [value, setValue] = React.useState({ hours: 10, minutes: 0 });
+      return <TimePicker value={value} onChange={setValue} minuteStep={30} />;
+    };
+
+    const { getByText } = render(<ControlledTimePicker />);
+    fireEvent.press(getByText('30'));
+
+    const emittedRenderWarning = consoleError.mock.calls.some((args) =>
+      args.some((arg) => String(arg).includes('Cannot update a component'))
+    );
+    expect(emittedRenderWarning).toBe(false);
+    consoleError.mockRestore();
+  });
+
+  it('fires onChangeComplete only for the final column', () => {
+    const onChangeComplete = jest.fn();
+    // Distinct steps keep the minute and second labels unambiguous.
+    const { getByText } = render(
+      <TimePicker
+        defaultValue={{ hours: 10, minutes: 0, seconds: 0 }}
+        withSeconds
+        minuteStep={15}
+        secondStep={20}
+        onChangeComplete={onChangeComplete}
+      />
+    );
+
+    // Minutes are not the last column once seconds are shown.
+    fireEvent.press(getByText('45'));
+    expect(onChangeComplete).not.toHaveBeenCalled();
+
+    fireEvent.press(getByText('40'));
+    expect(onChangeComplete).toHaveBeenCalledWith({ hours: 10, minutes: 45, seconds: 40 });
+  });
+
+  it('treats minutes as the final column when seconds are hidden', () => {
+    const onChangeComplete = jest.fn();
+    const { getByText } = render(
+      <TimePicker value={{ hours: 10, minutes: 0 }} minuteStep={30} onChangeComplete={onChangeComplete} />
+    );
+
+    fireEvent.press(getByText('30'));
+
+    expect(onChangeComplete).toHaveBeenCalledWith({ hours: 10, minutes: 30 });
+  });
+
+  it('ignores presses while disabled', () => {
+    const onChange = jest.fn();
+    const { getByText } = render(
+      <TimePicker value={{ hours: 10, minutes: 0 }} minuteStep={30} onChange={onChange} disabled />
+    );
+
+    fireEvent.press(getByText('30'));
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+});

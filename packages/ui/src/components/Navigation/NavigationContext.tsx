@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useCallback, useMemo } from 'react';
+import React, { createContext, useCallback, useContext, useMemo } from 'react';
 
-import type { NavigationContext, NavigationState, Route } from './types';
+import type { NavigationContext, NavigationState, Route, RouteParams } from './types';
 
 const NavigationStateContext = createContext<NavigationContext | null>(null);
+NavigationStateContext.displayName = 'NavigationContext';
 
 export function useNavigation(): NavigationContext {
   const context = useContext(NavigationStateContext);
@@ -10,6 +11,11 @@ export function useNavigation(): NavigationContext {
     throw new Error('useNavigation must be used within a NavigationContainer');
   }
   return context;
+}
+
+/** The navigation context, or `null` outside a `NavigationContainer`. */
+export function useOptionalNavigation(): NavigationContext | null {
+  return useContext(NavigationStateContext);
 }
 
 export function useRoute(): Route {
@@ -20,64 +26,61 @@ export function useRoute(): Route {
 interface NavigationProviderProps {
   children: React.ReactNode;
   state: NavigationState;
+  /** Should keep one identity (the container passes a latest-callback), or every consumer re-renders with it. */
   onStateChange: (state: NavigationState) => void;
 }
 
 export function NavigationProvider({ children, state, onStateChange }: NavigationProviderProps) {
-  const navigate = useCallback((name: string, params?: Record<string, any>) => {
+  const navigate = useCallback((name: string, params?: RouteParams) => {
     const existingRouteIndex = state.routes.findIndex(route => route.name === name);
 
     if (existingRouteIndex !== -1) {
       // Navigate to existing route
-      const newState = {
+      onStateChange({
         ...state,
         index: existingRouteIndex,
         routes: state.routes.map((route, index) =>
           index === existingRouteIndex ? { ...route, params: { ...route.params, ...params } } : route
-        )
-      };
-      onStateChange(newState);
-    } else {
-      // Add new route
-      const newRoute: Route = {
-        key: `${name}-${Date.now()}`,
-        name,
-        params
-      };
-      const newState = {
-        ...state,
-        index: state.routes.length,
-        routes: [...state.routes, newRoute]
-      };
-      onStateChange(newState);
+        ),
+      });
+      return;
     }
+
+    // Add new route
+    const newRoute: Route = {
+      key: `${name}-${Date.now()}`,
+      name,
+      params,
+    };
+    onStateChange({
+      ...state,
+      index: state.routes.length,
+      routes: [...state.routes, newRoute],
+    });
   }, [state, onStateChange]);
 
   const goBack = useCallback(() => {
     if (state.index > 0) {
-      const newState = {
+      onStateChange({
         ...state,
         index: state.index - 1,
-        routes: state.routes.slice(0, -1)
-      };
-      onStateChange(newState);
+        routes: state.routes.slice(0, -1),
+      });
     }
   }, [state, onStateChange]);
 
-  const canGoBack = useCallback(() => {
-    return state.index > 0;
-  }, [state.index]);
+  const canGoBack = useCallback(() => state.index > 0, [state.index]);
 
   const reset = useCallback((newState: NavigationState) => {
     onStateChange(newState);
   }, [onStateChange]);
 
-  const contextValue = useMemo(() => ({
+  const contextValue = useMemo<NavigationContext>(() => ({
     state,
     navigate,
     goBack,
     canGoBack,
-    reset
+    reset,
   }), [state, navigate, goBack, canGoBack, reset]);
 
   return (

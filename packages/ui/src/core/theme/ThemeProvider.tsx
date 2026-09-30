@@ -1,56 +1,60 @@
 import React, { createContext, useContext, useMemo } from 'react';
 
 import { DEFAULT_THEME } from './defaultTheme';
-import { PlatformBlocksTheme, PlatformBlocksThemeOverride } from './types';
-import { mergeTheme } from './utils';
+import { PlocksTheme, PlocksThemeOverride } from './types';
+import { mergeTheme, normalizeTheme, resolveThemeForScheme } from './utils';
 
-// Debug flag (only logs when in dev mode AND explicit debug env flag is set)
-const DEBUG = typeof __DEV__ !== 'undefined' && __DEV__ && !!process.env.EXPO_PUBLIC_DEBUG;
-const debugLog = (...args: any[]) => { if (DEBUG) console.log(...args); };
-
-// Full theme context (backwards compatible)
-const PlatformBlocksThemeContext = createContext<PlatformBlocksTheme | null>(null);
+// Full theme context
+const ThemeContext = createContext<PlocksTheme | null>(null);
 
 // Granular sub-contexts — components can subscribe to only the slice they need,
 // avoiding re-renders when unrelated theme properties change.
 
 /** Visual slice: colors, text, backgrounds, interactive states, colorScheme */
 export interface ThemeVisuals {
-  colorScheme: PlatformBlocksTheme['colorScheme'];
-  primaryColor: PlatformBlocksTheme['primaryColor'];
-  colors: PlatformBlocksTheme['colors'];
-  text: PlatformBlocksTheme['text'];
-  backgrounds: PlatformBlocksTheme['backgrounds'];
-  states: PlatformBlocksTheme['states'];
+  colorScheme: PlocksTheme['colorScheme'];
+  primaryColor: PlocksTheme['primaryColor'];
+  colors: PlocksTheme['colors'];
+  text: PlocksTheme['text'];
+  backgrounds: PlocksTheme['backgrounds'];
+  states: PlocksTheme['states'];
 }
 const ThemeVisualsContext = createContext<ThemeVisuals | null>(null);
 
-/** Layout / token slice: font, spacing, radii, shadows, breakpoints */
+/** Layout / token slice: font, spacing, radii, shadows, breakpoints, control sizes, z-indices */
 export interface ThemeLayout {
-  fontFamily: PlatformBlocksTheme['fontFamily'];
-  fontSizes: PlatformBlocksTheme['fontSizes'];
-  spacing: PlatformBlocksTheme['spacing'];
-  radii: PlatformBlocksTheme['radii'];
-  shadows: PlatformBlocksTheme['shadows'];
-  breakpoints: PlatformBlocksTheme['breakpoints'];
-  designTokens: PlatformBlocksTheme['designTokens'];
+  fontFamily: PlocksTheme['fontFamily'];
+  fontFamilyMono: PlocksTheme['fontFamilyMono'];
+  controlSizes: PlocksTheme['controlSizes'];
+  zIndices: PlocksTheme['zIndices'];
+  fontSizes: PlocksTheme['fontSizes'];
+  spacing: PlocksTheme['spacing'];
+  radii: PlocksTheme['radii'];
+  shadows: PlocksTheme['shadows'];
+  breakpoints: PlocksTheme['breakpoints'];
+  designTokens: PlocksTheme['designTokens'];
 }
 const ThemeLayoutContext = createContext<ThemeLayout | null>(null);
 
-export interface PlatformBlocksThemeProviderProps {
+export interface ThemeScopeProps {
   /** Theme override object */
-  theme?: PlatformBlocksThemeOverride;
+  theme?: PlocksThemeOverride;
   /** Whether to inherit theme from parent provider */
   inherit?: boolean;
   /** Children to render */
   children: React.ReactNode;
 }
 
-export function PlatformBlocksThemeProvider({
+/**
+ * Publishes a theme to a subtree. Internal: apps scope a theme by nesting
+ * `PlocksProvider`, which renders this; overlays use it to carry the anchor's
+ * theme into their portal.
+ */
+export function ThemeScope({
   theme,
   inherit = true,
   children
-}: PlatformBlocksThemeProviderProps) {
+}: ThemeScopeProps) {
   const parentTheme = useTheme();
 
   const mergedTheme = useMemo(() => {
@@ -58,20 +62,20 @@ export function PlatformBlocksThemeProvider({
     
     // If no theme override is provided, return the base theme directly (no new object)
     if (!theme) {
-      // debugLog('[PlatformBlocksThemeProvider] No theme override, using base theme directly, colorScheme:', baseTheme.colorScheme);
       return baseTheme;
     }
     
-    // If the theme is a complete theme object (has colorScheme), use it directly
+    // A theme that names its color scheme pins it. A complete theme object is
+    // used as-is (with any missing groups filled in); a partial one is merged
+    // onto the built-in theme of that scheme rather than rendered half-empty.
     if ('colorScheme' in theme && theme.colorScheme) {
-      // debugLog('[PlatformBlocksThemeProvider] Complete theme provided, using directly, colorScheme:', theme.colorScheme);
-      return theme as PlatformBlocksTheme;
+      return isCompleteTheme(theme)
+        ? normalizeTheme(theme as PlocksTheme)
+        : resolveThemeForScheme(theme, theme.colorScheme);
     }
     
     // Only create a new object if we actually have a theme override to merge
-    const result = mergeTheme(baseTheme, theme);
-    // debugLog('[PlatformBlocksThemeProvider] Creating merged theme with override, colorScheme:', result.colorScheme);
-    return result;
+    return normalizeTheme(mergeTheme(baseTheme, theme));
   }, [theme, parentTheme, inherit]);
 
   // Derive stable sub-context values — only create new objects when the
@@ -94,6 +98,9 @@ export function PlatformBlocksThemeProvider({
 
   const layout = useMemo<ThemeLayout>(() => ({
     fontFamily: mergedTheme.fontFamily,
+    fontFamilyMono: mergedTheme.fontFamilyMono,
+    controlSizes: mergedTheme.controlSizes,
+    zIndices: mergedTheme.zIndices,
     fontSizes: mergedTheme.fontSizes,
     spacing: mergedTheme.spacing,
     radii: mergedTheme.radii,
@@ -102,6 +109,9 @@ export function PlatformBlocksThemeProvider({
     designTokens: mergedTheme.designTokens,
   }), [
     mergedTheme.fontFamily,
+    mergedTheme.fontFamilyMono,
+    mergedTheme.controlSizes,
+    mergedTheme.zIndices,
     mergedTheme.fontSizes,
     mergedTheme.spacing,
     mergedTheme.radii,
@@ -110,24 +120,22 @@ export function PlatformBlocksThemeProvider({
     mergedTheme.designTokens,
   ]);
 
-  // debugLog('[PlatformBlocksThemeProvider] Rendering with theme colorScheme:', mergedTheme.colorScheme);
-
   return (
-    <PlatformBlocksThemeContext.Provider value={mergedTheme}>
+    <ThemeContext.Provider value={mergedTheme}>
       <ThemeVisualsContext.Provider value={visuals}>
         <ThemeLayoutContext.Provider value={layout}>
           {children}
         </ThemeLayoutContext.Provider>
       </ThemeVisualsContext.Provider>
-    </PlatformBlocksThemeContext.Provider>
+    </ThemeContext.Provider>
   );
 }
 
 /**
- * Hook to access the current theme (full object — backwards compatible)
+ * The current theme. Outside any provider, the default theme.
  */
-export function useTheme(): PlatformBlocksTheme {
-  const theme = useContext(PlatformBlocksThemeContext);
+export function useTheme(): PlocksTheme {
+  const theme = useContext(ThemeContext);
 
   if (!theme) {
     // Return default theme if no provider is found
@@ -167,6 +175,9 @@ export function useThemeLayout(): ThemeLayout {
     const t = DEFAULT_THEME;
     return {
       fontFamily: t.fontFamily,
+      fontFamilyMono: t.fontFamilyMono,
+      controlSizes: t.controlSizes,
+      zIndices: t.zIndices,
       fontSizes: t.fontSizes,
       spacing: t.spacing,
       radii: t.radii,
@@ -179,9 +190,17 @@ export function useThemeLayout(): ThemeLayout {
 }
 
 /**
- * Hook that safely returns theme or default theme
+ * The nearest provider's theme, or `null` outside any provider. For code that
+ * has to know whether it is nested (the default-theme fallback of `useTheme`
+ * hides that).
  */
-export function useSafePlatformBlocksTheme(): PlatformBlocksTheme {
-  const theme = useContext(PlatformBlocksThemeContext);
-  return theme || DEFAULT_THEME;
+export function useOptionalTheme(): PlocksTheme | null {
+  return useContext(ThemeContext);
+}
+
+/** Whether a theme object carries every core group (as opposed to a partial override). */
+function isCompleteTheme(theme: PlocksThemeOverride): boolean {
+  return Boolean(
+    theme.colors && theme.text && theme.backgrounds && theme.fontSizes && theme.spacing && theme.radii && theme.shadows
+  );
 }

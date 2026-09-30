@@ -1,4 +1,4 @@
-import { Loader, Row } from '@platform-blocks/ui';
+import { Loader, Row } from '@plocks/ui';
 
 export function Demo() {
   return (

@@ -13,21 +13,21 @@ import { isWeb } from '../utils/platform';
  */
 export interface ChartAutoSizeProps {
   /** Explicit width in px. Omit to fill the available width. */
-  width?: number;
+  w?: number;
   /** Explicit height in px. Defaults to the chart's own resting height. */
-  height?: number;
+  h?: number;
   /**
    * Height as a fraction of the resolved width (`width / height`), applied when
    * `height` is omitted. `2` draws a box twice as wide as it is tall.
    */
   aspectRatio?: number;
   /** Upper bound on the resolved width — useful for radial charts in wide columns. */
-  maxWidth?: number;
+  maw?: number;
   /** Lower bound on the resolved width. The chart may then overflow a narrower box. */
-  minWidth?: number;
+  miw?: number;
   /** Bounds applied to a height derived from `aspectRatio`. */
-  maxHeight?: number;
-  minHeight?: number;
+  mah?: number;
+  mih?: number;
 }
 
 export interface ChartAutoSizeDefaults {
@@ -77,7 +77,7 @@ export function useChartAutoSize(
 ): ResolvedChartSize & {
   containerProps: { ref: React.RefObject<View | null>; onLayout: (e: LayoutChangeEvent) => void; style: ViewStyle };
 } {
-  const { width, height, aspectRatio, maxWidth, minWidth, maxHeight, minHeight } = props;
+  const { w: width, h: height, aspectRatio, maw: maxWidth, miw: minWidth, mah: maxHeight, mih: minHeight } = props;
   const ref = useRef<View | null>(null);
   const [available, setAvailable] = useState(0);
   const availableRef = useRef(0);
@@ -157,12 +157,12 @@ export function withChartAutoSize<P extends ChartAutoSizeProps>(
   defaults: ChartAutoSizeDefaults,
 ): React.FC<P> {
   const Wrapped: React.FC<P> = (props) => {
-    const { aspectRatio, maxWidth, minWidth, maxHeight, minHeight, ...rest } = props;
+    const { aspectRatio, maw: maxWidth, miw: minWidth, mah: maxHeight, mih: minHeight, ...rest } = props;
     const { width, height, containerProps } = useChartAutoSize(props, defaults);
 
     return (
       <View {...containerProps}>
-        <Chart {...(rest as P)} width={width} height={height} />
+        <Chart {...(rest as P)} w={width} h={height} />
       </View>
     );
   };

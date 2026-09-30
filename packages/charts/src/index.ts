@@ -16,7 +16,6 @@ export { FunnelChart } from './components/FunnelChart';
 export { StackedBarChart } from './components/StackedBarChart';
 export { GroupedBarChart } from './components/GroupedBarChart';
 export { RadialBarChart } from './components/RadialBarChart';
-export { GaugeChart } from './components/GaugeChart';
 export { SparklineChart } from './components/SparklineChart';
 export { HistogramChart } from './components/HistogramChart';
 export { ComboChart } from './components/ComboChart';
@@ -84,8 +83,10 @@ export type {
 export { ChartGrid } from './core/ChartGrid';
 export { Axis } from './core/Axis';
 export { ChartPlot, ChartLayer } from './core/ChartLayers';
-export { ChartThemeProvider, useChartTheme } from './theme/ChartThemeContext';
-export type { ChartTheme, HostThemeBridge } from './theme/ChartThemeContext';
+export { ChartThemeProvider, useChartTheme, useNumberFormatter } from './theme/ChartThemeContext';
+export type { ChartTheme, ChartThemeOverrides, HostThemeBridge } from './theme/ChartThemeContext';
+export { ChartGradientDef, isChartGradient, fillSwatchColor, angleToGradientPoints, useChartFillId } from './core/ChartFill';
+export type { ChartFill, ChartGradient, ChartGradientStop, ChartGradientDefProps } from './core/ChartFill';
 
 // Hooks
 export { useChartAnimation } from './hooks/useChartAnimation';
@@ -101,6 +102,7 @@ export * from './utils/geometry';
 export * from './types';
 export * from './utils';
 export * from './colors';
+export * from './utils/colorScale';
 // Canonical tick generators live in ./utils/scales; disambiguate the duplicate
 // names still present in ./utils (removed once all charts migrate off them).
 export { generateLogTicks, generateTimeTicks } from './utils/scales';

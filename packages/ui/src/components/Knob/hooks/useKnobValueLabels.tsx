@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View } from 'react-native';
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 
+import type { PlocksTheme } from '../../../core/theme/types';
 import { Text } from '../../Text';
 import type {
   KnobBehavior,
@@ -49,7 +50,7 @@ type UseKnobValueLabelsOptions = {
   min: number;
   max: number;
   displayValue: number;
-  theme: any;
+  theme: PlocksTheme;
   labelColor: string;
   activeMark?: KnobMark | null;
 };
@@ -161,7 +162,7 @@ export const useKnobValueLabels = ({
         return (
           <Text
             size={secondaryFontSize}
-            weight="500"
+            fw="500"
             selectable={false}
             style={[
               styles.valueLabelAffix,
@@ -187,7 +188,7 @@ export const useKnobValueLabels = ({
         return (
           <Text
             size={variantType === 'primary' ? primaryFontSize : secondaryFontSize}
-            weight={variantType === 'primary' ? '600' : '500'}
+            fw={variantType === 'primary' ? '600' : '500'}
             selectable={false}
             style={[
               variantType === 'primary'

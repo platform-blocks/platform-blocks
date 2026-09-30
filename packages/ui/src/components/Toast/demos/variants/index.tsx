@@ -1,4 +1,4 @@
-import { Block, Button, Row, Text, useToast } from '@platform-blocks/ui';
+import { Button, Row, useToast } from '@plocks/ui';
 
 export function Demo() {
   const toast = useToast();
@@ -32,26 +32,19 @@ export function Demo() {
   };
 
   return (
-    <Block>
-      <Text size="xs" color="secondary">
-        Use the severity helpers to render consistent styling for each toast type.
-      </Text>
-      <Row gap="xs" wrap="wrap">
-        <Button onPress={showSuccessToast} variant="filled" color="success">
-          Success
-        </Button>
-        <Button onPress={showWarningToast} variant="filled" color="warning">
-          Warning
-        </Button>
-        <Button onPress={showErrorToast} variant="filled" color="error">
-          Error
-        </Button>
-        <Button onPress={showInfoToast} variant="outline">
-          Info
-        </Button>
-      </Row>
-    </Block>
+    <Row gap="xs" wrap="wrap">
+      <Button onPress={showSuccessToast} variant="filled" color="success">
+        Success
+      </Button>
+      <Button onPress={showWarningToast} variant="filled" color="warning">
+        Warning
+      </Button>
+      <Button onPress={showErrorToast} variant="filled" color="error">
+        Error
+      </Button>
+      <Button onPress={showInfoToast} variant="outline">
+        Info
+      </Button>
+    </Row>
   );
 }
-
-

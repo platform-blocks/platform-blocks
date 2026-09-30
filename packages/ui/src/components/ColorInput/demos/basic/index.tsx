@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, ColorInput, Text } from '@platform-blocks/ui';
+import { Block, ColorInput, Text } from '@plocks/ui';
 
 export function Demo() {
   const [color, setColor] = useState('#FF6B6B');
@@ -14,7 +14,7 @@ export function Demo() {
         clearable
         fullWidth
       />
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         Selected: {color || 'none'}
       </Text>
     </Block>

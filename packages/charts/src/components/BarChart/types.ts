@@ -7,6 +7,8 @@ import type {
   ChartLegend,
   ChartTooltip,
 } from '../../types/base';
+import type { ChartFill } from '../../core/ChartFill';
+import type { ColorScaleConfig } from '../../utils/colorScale';
 
 export interface BarChartDataPoint {
   /** Unique identifier */
@@ -66,6 +68,20 @@ export interface BarChartThreshold {
   position?: 'front' | 'back';
 }
 
+export interface BarColorScaleContext {
+  datum: BarChartDataPoint;
+  series: BarChartSeries;
+  seriesIndex: number;
+  categoryIndex: number;
+}
+
+/**
+ * Per-bar color. A shared scale config reads each bar's value (its domain spans
+ * zero to the data's extremes); a function picks the color itself and can return
+ * undefined to fall through to `barColor`.
+ */
+export type BarColorScale = ColorScaleConfig | ((context: BarColorScaleContext) => string | undefined);
+
 export interface BarChartProps
   extends BaseChartProps,
     ChartInteractionCallbacks<BarChartDataPoint> {
@@ -73,8 +89,8 @@ export interface BarChartProps
   data: BarChartDataPoint[];
   /** Optional multi-series data */
   series?: BarChartSeries[];
-  /** Bar color */
-  barColor?: string;
+  /** Bar fill for a single-series chart — a color or a gradient */
+  barColor?: ChartFill;
   /** Bar spacing (0-1) */
   barSpacing?: number;
   /** Bar border radius */
@@ -101,13 +117,8 @@ export interface BarChartProps
   thresholds?: BarChartThreshold[];
   /** Value label configuration */
   valueLabel?: BarChartValueLabelConfig;
-  /** Custom color scale resolver */
-  colorScale?: (context: {
-    datum: BarChartDataPoint;
-    series: BarChartSeries;
-    seriesIndex: number;
-    categoryIndex: number;
-  }) => string | undefined;
+  /** Color bars by value (shared scale config) or with a function. Outranks `barColor`. */
+  colorScale?: BarColorScale;
   /** Tooltip configuration */
   tooltip?: ChartTooltip<BarChartDataPoint>;
   /** Animation configuration */

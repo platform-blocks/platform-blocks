@@ -4,7 +4,6 @@ category: basics
 order: 20
 tags: [control-field, checkbox, validation]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

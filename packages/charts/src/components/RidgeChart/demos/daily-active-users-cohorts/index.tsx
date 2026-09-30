@@ -1,4 +1,4 @@
-import { RidgeChart } from '@platform-blocks/charts';
+import { RidgeChart } from '@plocks/charts';
 
 import { SERIES, formatThousands } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <RidgeChart
       title="Daily active users across feature cohorts"
       subtitle="Distribution of session counts over the last six months"
-      height={480}
+      h={480}
       series={SERIES}
       samples={128}
       bandwidth={18}

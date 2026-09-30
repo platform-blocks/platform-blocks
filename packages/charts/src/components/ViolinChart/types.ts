@@ -107,10 +107,6 @@ export interface ViolinChartProps extends BaseChartProps {
   statsMarkers?: ViolinStatsMarkersConfig;
   /** Value range highlights rendered across the chart */
   valueBands?: ViolinValueBand[];
-  /** Legacy legend toggle (prefer `legend` prop) */
-  showLegend?: boolean;
-  /** Legacy legend position option */
-  legendPosition?: 'top' | 'bottom';
   /** Legend configuration */
   legend?: ChartLegend;
   /** Series focus callback */

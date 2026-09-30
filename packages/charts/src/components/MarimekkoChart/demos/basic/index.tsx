@@ -1,4 +1,4 @@
-import { MarimekkoChart } from '@platform-blocks/charts';
+import { MarimekkoChart } from '@plocks/charts';
 
 import { PIPELINE_COMPOSITION } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <MarimekkoChart
       title="Pipeline contribution by segment"
       subtitle="Quarter to date"
-      height={440}
+      h={440}
       data={PIPELINE_COMPOSITION}
       columnGap={16}
       legend={{ show: true, position: 'bottom' }}

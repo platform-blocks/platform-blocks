@@ -3,10 +3,8 @@ title: Basics
 category: basics
 order: 10
 tags: [tabs]
-highlightLines: [18-23]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 
-Render the default tabs experience with inline content and a short caption explaining the pattern.
+Pass `items` with a `key`, `label`, and `content` for each tab; the active tab's content renders below the tab list.

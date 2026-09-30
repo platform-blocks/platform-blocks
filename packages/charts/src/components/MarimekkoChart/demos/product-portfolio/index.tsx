@@ -1,4 +1,4 @@
-import { MarimekkoChart } from '@platform-blocks/charts';
+import { MarimekkoChart } from '@plocks/charts';
 
 import { PRODUCT_MIX } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <MarimekkoChart
       title="ARR by product tier and motion"
       subtitle="Current quarter"
-      height={460}
+      h={460}
       data={PRODUCT_MIX}
       segmentBorderRadius={4}
       legend={{ show: true, position: 'right' }}

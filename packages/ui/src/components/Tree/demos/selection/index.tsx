@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Text, Tree } from '@platform-blocks/ui';
+import { Block, Text, Tree } from '@plocks/ui';
 
 import { TREE_DATA } from './data';
 
@@ -17,7 +17,7 @@ export function Demo() {
         expandAll
       />
 
-      <Text size="xs" color="secondary">
+      <Text size="xs" c="secondary">
         {selectedIds.length === 0
           ? 'Click a row, shift-click for a range, or Cmd/Ctrl-click to toggle.'
           : `${selectedIds.length} selected`}

@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
-import { View, ViewProps, PanResponderInstance, LayoutChangeEvent } from 'react-native';
+import { View, type LayoutChangeEvent, type PanResponderInstance, type ViewProps } from 'react-native';
 
-import { getAccessibilityValueProps } from '../../../core/accessibility/utils';
+import type { AdjustableProps } from '../../../core/accessibility/useAdjustable';
 import { getGestureSurfaceStyle } from '../../../core/gestures';
 import { knobStyles as styles } from '../styles';
 import { SurfaceLayers, type SurfaceLayersProps } from './SurfaceLayers';
@@ -17,17 +17,15 @@ export type KnobSurfaceProps = Omit<ViewProps, 'onLayout' | 'children'> & {
   size: number;
   disabled: boolean;
   trackColor: string;
-  accessibilityLabel?: string;
-  accessibilityMin: number;
-  accessibilityMax: number;
-  accessibilityNow: number;
+  /**
+   * The control's accessibility: `role="slider"` (native adjustable), aria-value*,
+   * the name/description wiring, increment/decrement actions, and the web
+   * keyboard handler + tab stop — from `useAdjustable`.
+   */
+  a11y: AdjustableProps;
   setHostRef: (node: View | null) => void;
   panHandlers?: PanResponderInstance['panHandlers'];
   handleLayout?: (event: LayoutChangeEvent) => void;
-  keyboardHandlers?: Partial<ViewProps>;
-  /** Increment/decrement actions so VoiceOver and TalkBack can adjust without a pointer. */
-  accessibilityActions?: ViewProps['accessibilityActions'];
-  onAccessibilityAction?: ViewProps['onAccessibilityAction'];
   surfaceLayersProps: SurfaceLayersProps;
   tickLayersProps: TickLayersProps;
   pointerLayerProps: PointerLayerProps;
@@ -40,23 +38,16 @@ export const KnobSurface: React.FC<KnobSurfaceProps> = ({
   size,
   disabled,
   trackColor,
-  accessibilityLabel,
-  accessibilityMin,
-  accessibilityMax,
-  accessibilityNow,
+  a11y,
   setHostRef,
   panHandlers,
   handleLayout,
-  keyboardHandlers,
-  accessibilityActions,
-  onAccessibilityAction,
   surfaceLayersProps,
   tickLayersProps,
   pointerLayerProps,
   thumbLayerProps,
   centerSlot,
   style,
-  focusable,
   testID,
   onLayout: userOnLayout,
   ...rest
@@ -69,27 +60,13 @@ export const KnobSurface: React.FC<KnobSurfaceProps> = ({
     [handleLayout, userOnLayout]
   );
 
-  const computedFocusable = focusable ?? !disabled;
-  const responderHandlers = panHandlers ?? ({} as PanResponderInstance['panHandlers']);
-
   return (
     <View
       ref={setHostRef}
-      {...responderHandlers}
+      {...panHandlers}
       onLayout={combinedOnLayout}
       accessible
-      accessibilityRole="adjustable"
-      accessibilityLabel={accessibilityLabel ?? 'Knob'}
-      accessibilityState={{ disabled }}
-      {...getAccessibilityValueProps({
-        min: accessibilityMin,
-        max: accessibilityMax,
-        now: accessibilityNow,
-      })}
-      accessibilityActions={accessibilityActions}
-      onAccessibilityAction={onAccessibilityAction}
-      focusable={computedFocusable}
-      {...keyboardHandlers}
+      {...a11y}
       style={[
         styles.knob,
         {

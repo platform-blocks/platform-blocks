@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Pagination, Text } from '@platform-blocks/ui';
+import { Block, Pagination, Text } from '@plocks/ui';
 
 export function Demo() {
   const totalItems = 248;
@@ -12,7 +12,7 @@ export function Demo() {
   return (
     <Block>
       <Pagination
-        current={current}
+        value={current}
         total={total}
         onChange={setCurrent}
         showTotal
@@ -25,7 +25,7 @@ export function Demo() {
           setCurrent(1);
         }}
       />
-      <Text size="xs" color="secondary">
+      <Text size="xs" c="secondary">
         Page {current} of {total} · {pageSize} rows per page
       </Text>
     </Block>

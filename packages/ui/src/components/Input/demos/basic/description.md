@@ -1,11 +1,10 @@
 ---
-title: Basic
+title: Basics
 category: basics
 order: 10
 tags: [basic, input, text]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

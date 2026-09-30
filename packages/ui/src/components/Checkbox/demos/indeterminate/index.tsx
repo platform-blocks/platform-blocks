@@ -1,9 +1,14 @@
 import { useState } from 'react';
-import { Block, Checkbox } from '@platform-blocks/ui';
-import { ITEMS } from './data';
+import { Block, Checkbox } from '@plocks/ui';
+
+const ITEMS = [
+  { id: 1, label: 'Email notifications' },
+  { id: 2, label: 'SMS alerts' },
+  { id: 3, label: 'Push notifications' },
+];
 
 export function Demo() {
-  const [selected, setSelected] = useState<number[]>([]);
+  const [selected, setSelected] = useState<number[]>([1]);
   const allIds = ITEMS.map((item) => item.id);
   const allChecked = selected.length === ITEMS.length;
   const someChecked = selected.length > 0 && !allChecked;
@@ -21,7 +26,7 @@ export function Demo() {
   return (
     <Block>
       <Checkbox
-        label={`Select all (${selected.length}/${ITEMS.length})`}
+        label="Select all"
         checked={allChecked}
         indeterminate={someChecked}
         onChange={toggleAll}

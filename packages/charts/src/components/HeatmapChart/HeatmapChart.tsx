@@ -16,31 +16,17 @@ import { useChartInteractionContext, usePointer } from '../../interaction/ChartI
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { CellGridHitTester } from '../../core/hittest/grid';
 import type { HitSeries, Mark } from '../../core/hittest/types';
-import { getColorFromScheme, colorSchemes, clamp, formatNumber } from '../../utils';
+import { clamp, formatNumber, formatCompactNumber, resolveNumberFormatter } from '../../utils';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { AnimatedHeatmapCell } from './AnimatedHeatmapCell';
 import type { Scale } from '../../utils/scales';
-
-function interpolateColor(a: string, b: string, t: number) {
-  const pa = parseInt(a.slice(1), 16); const pb = parseInt(b.slice(1), 16);
-  const ar = (pa >> 16) & 255, ag = (pa >> 8) & 255, ab = pa & 255;
-  const br = (pb >> 16) & 255, bg = (pb >> 8) & 255, bb = pb & 255;
-  const rr = Math.round(ar + (br - ar) * t);
-  const rg = Math.round(ag + (bg - ag) * t);
-  const rb = Math.round(ab + (bb - ab) * t);
-  return `#${((rr << 16) | (rg << 8) | rb).toString(16).padStart(6, '0')}`;
-}
-
-function buildGradient(colors: string[], t: number) {
-  if (colors.length === 0) return '#ccc';
-  if (colors.length === 1) return colors[0];
-  const seg = 1 / (colors.length - 1);
-  const idx = Math.min(colors.length - 2, Math.floor(t / seg));
-  const localT = (t - idx * seg) / seg;
-  return interpolateColor(colors[idx], colors[idx + 1], localT);
-}
+import {
+  createColorScale,
+  resolveColorScaleColors,
+  type ColorScaleContext,
+} from '../../utils/colorScale';
 
 type ProcessedHeatmapCell = HeatmapCell & {
   chartX: number;
@@ -50,7 +36,6 @@ type ProcessedHeatmapCell = HeatmapCell & {
   width: number;
   height: number;
   color: string;
-  normalizedValue: number;
   displayValue?: string;
   showLabel: boolean;
   index: number;
@@ -92,6 +77,7 @@ function buildPresetFormatter(
       case 'compact-percent':
         return `${formatNumber(overallPercent * 100, decimals)}%${suffix}`;
       case 'compact':
+        return `${formatCompactNumber(value, options?.decimals ?? 1)}${suffix}`;
       default:
         return `${formatNumber(value, decimals)}${suffix}`;
     }
@@ -114,26 +100,33 @@ function resolveValueFormatter(
   return undefined;
 }
 
-function deriveLegendStops(
+// What a heatmap with no colorScale gets: one hue, light → dark.
+const DEFAULT_COLOR_SCALE: HeatmapColorScaleConfig = { type: 'sequential' };
+
+/** Legend stops sampled from a shared scale; threshold bands get hard edges. */
+function deriveSharedLegendStops(
   scale: HeatmapColorScaleConfig,
-  fallbackColors: string[],
+  colorAt: (value: number) => string,
+  bandCount: number,
   min: number,
   max: number
 ): HeatmapColorStop[] {
-  if (scale.stops && scale.stops.length) {
-    return [...scale.stops].sort((a, b) => a.value - b.value);
+  if (scale.type === 'threshold') {
+    const breaks = scale.thresholds?.length
+      ? [...scale.thresholds].sort((a, b) => a - b)
+      : Array.from({ length: bandCount - 1 }, (_, i) => min + ((max - min) * (i + 1)) / bandCount);
+    const edges = [min, ...breaks.filter((b) => b > min && b < max), max];
+    // Each band contributes a stop at both of its ends, so the bar changes color abruptly.
+    return edges.slice(0, -1).flatMap((start, i) => {
+      const end = edges[i + 1];
+      const color = colorAt((start + end) / 2);
+      return [{ value: start, color }, { value: end, color }];
+    });
   }
-  if (fallbackColors.length <= 1) {
-    return [
-      { value: min, color: fallbackColors[0] ?? '#0EA5E9' },
-      { value: max, color: fallbackColors[fallbackColors.length - 1] ?? '#1D4ED8' },
-    ];
-  }
-  const span = fallbackColors.length - 1;
-  return fallbackColors.map((color, index) => {
-    const t = index / span;
-    const value = min + (max - min) * t;
-    return { value, color };
+  const samples = 9;
+  return Array.from({ length: samples }, (_, i) => {
+    const value = min + ((max - min) * i) / (samples - 1);
+    return { value, color: colorAt(value) };
   });
 }
 
@@ -141,8 +134,8 @@ function deriveLegendStops(
 export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
   const {
     data,
-    width = 420,
-    height = 320,
+    w: width = 420,
+    h: height = 320,
     title,
     subtitle,
     colorScale,
@@ -253,21 +246,23 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
     [valueFormatter]
   );
 
-  const scale: HeatmapColorScaleConfig = colorScale ?? {};
-  const minVal = scale.min ?? (cells.length ? Math.min(...cells.map((c) => c.value)) : 0);
-  const maxVal = scale.max ?? (cells.length ? Math.max(...cells.map((c) => c.value)) : 1);
-  const colors = scale.stops?.length
-    ? scale.stops.map((stop) => stop.color)
-    : scale.colors || [
-        getColorFromScheme(0, colorSchemes.default),
-        getColorFromScheme(5, colorSchemes.default),
-      ];
-
-  const sortedStops = React.useMemo(() => {
-    if (!scale.stops || !scale.stops.length) return null;
-    return [...scale.stops].sort((a, b) => a.value - b.value);
-  }, [scale.stops]);
-
+  const scale = colorScale ?? DEFAULT_COLOR_SCALE;
+  const minVal = scale.domain?.[0] ?? (cells.length ? Math.min(...cells.map((c) => c.value)) : 0);
+  const maxVal = scale.domain?.[1] ?? (cells.length ? Math.max(...cells.map((c) => c.value)) : 1);
+  const scaleContext = React.useMemo<ColorScaleContext>(
+    () => ({
+      base: theme.colors.accentPalette[0],
+      background: theme.colors.background,
+      ink: theme.colors.textPrimary,
+      palette: theme.colors.accentPalette,
+    }),
+    [theme.colors.accentPalette, theme.colors.background, theme.colors.textPrimary]
+  );
+  const colors = resolveColorScaleColors(scale, scaleContext);
+  const colorAt = React.useMemo(
+    () => createColorScale(scale, [minVal, maxVal], scaleContext),
+    [colorScale, minVal, maxVal, scaleContext]
+  );
   const nullFill = scale.nullColor ?? 'rgba(148, 163, 184, 0.2)';
 
   // --- Gradient (color-scale) legend --------------------------------------
@@ -296,90 +291,26 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
     if (gradientLegend?.stops && gradientLegend.stops.length) {
       return [...gradientLegend.stops].sort((a, b) => a.value - b.value);
     }
-    return deriveLegendStops(scale, colors, minVal, maxVal);
-    // `scale`/`colors` are derived from `colorScale` each render; depend on the source.
-  }, [gradientLegendEnabled, gradientLegend?.stops, colorScale, colors, minVal, maxVal]);
+    return deriveSharedLegendStops(scale, colorAt, colors.length, minVal, maxVal);
+  }, [gradientLegendEnabled, gradientLegend?.stops, colorScale, colors, minVal, maxVal, colorAt]);
 
   const formatLegendValue = React.useCallback(
     (value: number, percent: number) => {
       if (gradientLegend?.formatter) return gradientLegend.formatter({ value, percent });
       const range = Math.abs(maxVal - minVal);
       const decimals = range > 0 && range < 10 ? 1 : 0;
-      return formatNumber(value, decimals);
+      return resolveNumberFormatter(theme.numberFormat, (v) => formatNumber(v, decimals))(value);
     },
-    [gradientLegend, maxVal, minVal]
+    [gradientLegend, maxVal, minVal, theme.numberFormat]
   );
-
-  const normalizeValue = React.useCallback((value: number) => {
-    if (!Number.isFinite(value)) return 0;
-    if (maxVal === minVal) return 0.5;
-    if (scale.type === 'log') {
-      const safeMin = minVal <= 0 ? 1e-6 : minVal;
-      const safeMax = Math.max(maxVal, safeMin * (1 + 1e-6));
-      const clamped = Math.max(safeMin, Math.min(safeMax, value));
-      const numerator = Math.log(clamped) - Math.log(safeMin);
-      const denominator = Math.log(safeMax) - Math.log(safeMin);
-      if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) {
-        return 0;
-      }
-      return Math.min(1, Math.max(0, numerator / denominator));
-    }
-    const numerator = value - minVal;
-    const denominator = maxVal - minVal;
-    if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) {
-      return 0;
-    }
-    return Math.min(1, Math.max(0, numerator / denominator));
-  }, [maxVal, minVal, scale.type]);
 
   const resolveColor = React.useCallback((value: number | null | undefined) => {
     if (value == null || !Number.isFinite(value)) {
       return nullFill;
     }
 
-    if (sortedStops && sortedStops.length) {
-      if (scale.type === 'quantize') {
-        for (let i = 0; i < sortedStops.length; i += 1) {
-          if (value <= sortedStops[i].value) {
-            return sortedStops[i].color;
-          }
-        }
-        return sortedStops[sortedStops.length - 1].color;
-      }
-
-      let lower = sortedStops[0];
-      let upper = sortedStops[sortedStops.length - 1];
-      for (let i = 0; i < sortedStops.length; i += 1) {
-        const stop = sortedStops[i];
-        if (value === stop.value) {
-          return stop.color;
-        }
-        if (value > stop.value) {
-          lower = stop;
-          continue;
-        }
-        upper = stop;
-        break;
-      }
-
-      if (upper === lower || upper.value === lower.value) {
-        return lower.color;
-      }
-
-      const ratio = (value - lower.value) / (upper.value - lower.value);
-      return interpolateColor(lower.color, upper.color, Math.min(1, Math.max(0, ratio)));
-    }
-
-    if (scale.type === 'quantize' && colors.length > 0) {
-      const binCount = colors.length;
-      const norm = normalizeValue(value);
-      const index = Math.min(binCount - 1, Math.floor(norm * binCount));
-      return colors[index] ?? colors[colors.length - 1];
-    }
-
-    const norm = normalizeValue(value);
-    return buildGradient(colors, norm);
-  }, [colors, normalizeValue, nullFill, scale.type, sortedStops]);
+    return colorAt(value);
+  }, [colorAt, nullFill]);
 
   const formatXTick = React.useCallback((value: number) => {
     if (Number.isNaN(value)) return '';
@@ -599,7 +530,6 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
     return cells.map((cell, index) => {
       const pixelX = cell.x * (cellW + gap);
       const pixelY = cell.y * (cellH + gap);
-      const normalizedValue = normalizeValue(cell.value);
       const color = cell.color ?? resolveColor(cell.value);
       const rowSum = rowTotals[cell.y] ?? 0;
       const columnSum = columnTotals[cell.x] ?? 0;
@@ -632,7 +562,6 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
         width: cellW,
         height: cellH,
         color,
-        normalizedValue,
         displayValue,
         formattedValue,
         rowSum,
@@ -645,7 +574,7 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
         showLabel: shouldShowCellLabel(cell, rowPercent, columnPercent, overallPercent),
       };
     });
-  }, [cells, cellW, cellH, gap, normalizeValue, resolveColor, totals, resolvedFormatter, minVal, maxVal, rowLabels, columnLabels, shouldShowCellLabel]);
+  }, [cells, cellW, cellH, gap, resolveColor, totals, resolvedFormatter, minVal, maxVal, rowLabels, columnLabels, shouldShowCellLabel]);
 
   const totalCells = processedCells.length;
   const animationDisabled = disableAnimation || totalCells > maxAnimatedCells;
@@ -794,8 +723,8 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
   return (
     <ChartContainer
       {...rest}
-      width={boxWidth}
-      height={boxHeight}
+      w={boxWidth}
+      h={boxHeight}
       style={style}
       interactionConfig={{
         multiTooltip,

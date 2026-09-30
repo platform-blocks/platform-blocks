@@ -1,0 +1,217 @@
+name: Packages CI
+
+# Guardrails for the @plocks packages: every PR and every push to main/next
+# typechecks, lints, tests, and builds the packages. The UI job also enforces
+# its coverage floor and checks published type resolution.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - next
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ui-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: packages/ui
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: .
+
+      # `skills:check` is not run here: it needs the sibling platform-blocks/skills
+      # checkout and silently skips without one (it runs in `verify:packages`).
+      - name: Exports map is in sync with src/components
+        run: npm run ui:exports:check
+        working-directory: .
+
+      - name: Built-in glyphs match the pinned Tabler version
+        run: npm run icons:check
+
+      - name: Typecheck (library + tests)
+        run: npm run typecheck
+
+      - name: Lint (errors fail; warnings are ratcheted)
+        run: npm run lint:check
+
+      - name: Unit tests with coverage thresholds
+        run: npm run test:ci
+
+      - name: Web DOM tests (react-native-web + jsdom)
+        run: npm run test:web -- --ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint the package (publint)
+        run: npx publint
+
+      - name: Check published types resolve (arethetypeswrong)
+        run: npx attw --pack . --profile esm-only
+
+      - name: Typecheck Snack package
+        run: npm run typecheck
+        working-directory: packages/ui-snack
+
+      - name: Build Snack package
+        run: npm run build
+        working-directory: packages/ui-snack
+
+      - name: Lint Snack package (publint)
+        run: npx publint
+        working-directory: packages/ui-snack
+
+      - name: Check Snack package types resolve
+        run: npx attw --pack . --profile esm-only
+        working-directory: packages/ui-snack
+
+  packages:
+    # Add-on packages: the same guardrails,
+    # run per package. Their tests and typecheck read @plocks/ui's source; their
+    # build reads its built types, so ui is built first.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [dates, code, media, carousel, spotlight, brands, qrcode, emoji-picker]
+
+    defaults:
+      run:
+        working-directory: packages/${{ matrix.package }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: .
+
+      - name: Typecheck (library + tests)
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint:check
+
+      - name: Unit tests
+        run: npm test -- --ci
+
+      - name: Web DOM tests (react-native-web + jsdom)
+        run: npm run test:web -- --ci
+
+      - name: Build @plocks/ui (its types are this package's build input)
+        run: npm run build
+        working-directory: packages/ui
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint the package (publint)
+        run: npx publint
+
+      - name: Check published types resolve (arethetypeswrong)
+        run: npx attw --pack . --profile esm-only
+
+  charts:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: packages/charts
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: .
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint:check
+
+      - name: Tests
+        run: npm test -- --ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint the package (publint)
+        run: npx publint
+
+  create-plocks:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: packages/create-plocks
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: .
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: The bundle runs
+        run: node dist/index.js --help && node dist/index.js --version
+
+      - name: Lint the package (publint)
+        run: npx publint

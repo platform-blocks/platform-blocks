@@ -5,7 +5,6 @@ order: 80
 tags: [segments, progress, ring, gauge]
 highlightLines: []
 status: experimental
-since: 1.0.0
 hidden: false
 ---
 

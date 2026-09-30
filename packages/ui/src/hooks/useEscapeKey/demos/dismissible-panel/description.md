@@ -4,7 +4,6 @@ category: usage
 order: 10
 tags: [escape, dismiss]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

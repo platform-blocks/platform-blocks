@@ -1,4 +1,4 @@
-import { HeatmapChart } from '@platform-blocks/charts';
+import { HeatmapChart } from '@plocks/charts';
 
 import { CLICK_RATES, DAYS, SEGMENTS } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <HeatmapChart
       title="Email click-through performance"
       subtitle="Daily CTR (%) across audience segments"
-      height={320}
+      h={320}
       data={{ rows: SEGMENTS, cols: DAYS, values: CLICK_RATES }}
       cellSize={{ width: 80, height: 44 }}
       gap={4}

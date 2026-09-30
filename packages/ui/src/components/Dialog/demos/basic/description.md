@@ -1,11 +1,10 @@
 ---
-title: Basic Modal
+title: Basics
 category: basics
 order: 10
 tags: [dialog, modal, actions]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -1,385 +1,327 @@
-import React, { useState, useEffect } from 'react';
-import { View, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { useDebouncedCallback } from '../../hooks/useDebouncedCallback/useDebouncedCallback';
+import { Icon } from '../Icon';
 import { Input } from '../Input';
 import { Select } from '../Select';
-import { Button } from '../Button';
-import { Icon } from '../Icon';
-import { useTheme } from '../../core';
-import { useDebouncedCallback } from '../../hooks';
-import type { DataTableColumn, DataTableFilter, FilterType } from './types';
+import { getValue } from './utils';
+import type { DataTableColumn, DataTableFilter, DataTableValue, FilterType } from './types';
 
-interface AdvancedFilterControlProps<T = any> {
+interface AdvancedFilterControlProps<T> {
   column: DataTableColumn<T>;
   currentFilter?: DataTableFilter;
   onFilterChange: (filter: DataTableFilter | null) => void;
-  data?: T[]; // For auto-generating filter options
+  /** Rows used to auto-generate select options. */
+  data?: T[];
   /** Show the operator selector by default (used in the header filter popover). */
   showOperators?: boolean;
   /** Auto-focus the value input on mount (used when opened from the header filter popover). */
   autoFocus?: boolean;
 }
 
+type Operator = DataTableFilter['operator'];
+
 interface FilterState {
-  operator: DataTableFilter['operator'];
-  value: any;
+  operator: Operator;
+  value: DataTableValue;
 }
 
-export function AdvancedFilterControl<T = any>({
+interface OperatorOption {
+  label: string;
+  value: Operator;
+  icon?: string;
+}
+
+// Default operator for a filter type.
+function getDefaultOperator(filterType?: FilterType): Operator {
+  switch (filterType) {
+    case 'number':
+    case 'date':
+    case 'select':
+    case 'boolean':
+      return 'eq';
+    default:
+      return 'contains';
+  }
+}
+
+const NUMBER_OPERATORS: OperatorOption[] = [
+  { label: 'Equals', value: 'eq', icon: '=' },
+  { label: 'Not equals', value: 'ne', icon: '≠' },
+  { label: 'Greater than', value: 'gt', icon: '>' },
+  { label: 'Greater or equal', value: 'gte', icon: '≥' },
+  { label: 'Less than', value: 'lt', icon: '<' },
+  { label: 'Less or equal', value: 'lte', icon: '≤' },
+];
+
+const DATE_OPERATORS: OperatorOption[] = [
+  { label: 'Equals', value: 'eq', icon: '=' },
+  { label: 'After', value: 'gt', icon: '>' },
+  { label: 'Before', value: 'lt', icon: '<' },
+  { label: 'Contains', value: 'contains', icon: '∋' },
+];
+
+const TEXT_OPERATORS: OperatorOption[] = [
+  { label: 'Contains', value: 'contains', icon: '∋' },
+  { label: 'Equals', value: 'eq', icon: '=' },
+  { label: 'Starts with', value: 'startsWith', icon: 'A→' },
+  { label: 'Ends with', value: 'endsWith', icon: '→Z' },
+  { label: 'Not equals', value: 'ne', icon: '≠' },
+];
+
+const operatorOptions = (options: OperatorOption[]) =>
+  options.map((op) => ({ label: op.icon || op.label, value: op.value }));
+
+const stateFor = (filter: DataTableFilter | undefined, filterType?: FilterType): FilterState =>
+  filter ? { operator: filter.operator, value: filter.value } : { operator: getDefaultOperator(filterType), value: '' };
+
+const NO_ROWS: never[] = [];
+
+/** Filter editor for one column (value input, optional operator picker, clear button). */
+export function AdvancedFilterControl<T>({
   column,
   currentFilter,
   onFilterChange,
-  data = [],
+  data = NO_ROWS,
   showOperators = false,
-  autoFocus = false
+  autoFocus = false,
 }: AdvancedFilterControlProps<T>) {
   const theme = useTheme();
+  const columnName = typeof column.header === 'string' ? column.header : undefined;
 
-  const [filterState, setFilterState] = useState<FilterState>({
-    operator: 'contains',
-    value: currentFilter?.value ?? ''
-  });
-
+  const [filterState, setFilterState] = useState<FilterState>(() => stateFor(currentFilter, column.filterType));
   const [showAdvanced, setShowAdvanced] = useState(showOperators);
 
-  // Update local state when currentFilter changes
-  useEffect(() => {
-    if (currentFilter) {
-      setFilterState({
-        operator: currentFilter.operator,
-        value: currentFilter.value
-      });
-    } else {
-      setFilterState({
-        operator: getDefaultOperator(column.filterType),
-        value: ''
-      });
-    }
-  }, [currentFilter, column.filterType]);
-
-  // Get default operator for filter type
-  function getDefaultOperator(filterType?: FilterType): DataTableFilter['operator'] {
-    switch (filterType) {
-      case 'number':
-      case 'date':
-        return 'eq';
-      case 'select':
-      case 'boolean':
-        return 'eq';
-      default:
-        return 'contains';
-    }
-  }
-
-  // Get available operators for filter type
-  function getAvailableOperators(filterType?: FilterType): Array<{
-    label: string;
-    value: DataTableFilter['operator'];
-    icon?: string;
-  }> {
-    switch (filterType) {
-      case 'number':
-        return [
-          { label: 'Equals', value: 'eq', icon: '=' },
-          { label: 'Not equals', value: 'ne', icon: '≠' },
-          { label: 'Greater than', value: 'gt', icon: '>' },
-          { label: 'Greater or equal', value: 'gte', icon: '≥' },
-          { label: 'Less than', value: 'lt', icon: '<' },
-          { label: 'Less or equal', value: 'lte', icon: '≤' }
-        ];
-      case 'date':
-        return [
-          { label: 'Equals', value: 'eq', icon: '=' },
-          { label: 'After', value: 'gt', icon: '>' },
-          { label: 'Before', value: 'lt', icon: '<' },
-          { label: 'Contains', value: 'contains', icon: '∋' }
-        ];
-      case 'text':
-      default:
-        return [
-          { label: 'Contains', value: 'contains', icon: '∋' },
-          { label: 'Equals', value: 'eq', icon: '=' },
-          { label: 'Starts with', value: 'startsWith', icon: 'A→' },
-          { label: 'Ends with', value: 'endsWith', icon: '→Z' },
-          { label: 'Not equals', value: 'ne', icon: '≠' }
-        ];
-    }
+  // Reset the editor when the applied filter changes from outside.
+  const [syncedFilter, setSyncedFilter] = useState(currentFilter);
+  const [syncedType, setSyncedType] = useState(column.filterType);
+  if (currentFilter !== syncedFilter || column.filterType !== syncedType) {
+    setSyncedFilter(currentFilter);
+    setSyncedType(column.filterType);
+    setFilterState(stateFor(currentFilter, column.filterType));
   }
 
   // Auto-generate select options from data
-  function getAutoOptions(): Array<{ label: string; value: any }> {
-    if (column.filterOptions) {
-      return column.filterOptions;
-    }
-
-    // Extract unique values from data
-    const accessor = column.accessor;
-    const uniqueValues = new Set<any>();
-    
-    data.forEach(row => {
-      let value;
-      if (typeof accessor === 'function') {
-        value = accessor(row);
-      } else {
-        value = row[accessor];
-      }
-      
-      if (value !== null && value !== undefined) {
-        uniqueValues.add(value);
-      }
+  const getAutoOptions = (): Array<{ label: string; value: DataTableValue }> => {
+    if (column.filterOptions) return column.filterOptions;
+    const uniqueValues = new Set<DataTableValue>();
+    data.forEach((row) => {
+      const value = getValue(row, column.accessor);
+      if (value !== null && value !== undefined) uniqueValues.add(value);
     });
-
     return Array.from(uniqueValues)
       .sort()
       .slice(0, 20) // Limit to 20 options
-      .map(value => ({
-        label: String(value),
-        value: value
-      }));
-  }
+      .map((value) => ({ label: String(value), value }));
+  };
 
   // Commit a specific value/operator to the parent. Empty values clear the filter.
-  const commitFilter = (
-    value: any,
-    operator: DataTableFilter['operator']
-  ) => {
+  const commitFilter = (value: DataTableValue, operator: Operator) => {
     if (!value && value !== 0 && value !== false) {
       onFilterChange(null);
       return;
     }
-
-    onFilterChange({
-      column: column.key,
-      operator,
-      value
-    });
+    onFilterChange({ column: column.key, operator, value });
   };
 
   // Auto-apply while the user types, debounced so we don't filter on every keystroke.
   const debouncedCommit = useDebouncedCallback(commitFilter, 300);
 
-  // Clear filter
   const clearFilter = () => {
-    setFilterState({
-      operator: getDefaultOperator(column.filterType),
-      value: ''
-    });
+    setFilterState({ operator: getDefaultOperator(column.filterType), value: '' });
     onFilterChange(null);
   };
 
+  const commitSelect = (value: DataTableValue) => {
+    setFilterState((prev) => ({ ...prev, value }));
+    if (value === '') clearFilter();
+    else onFilterChange({ column: column.key, operator: 'eq', value });
+  };
+
+  const operatorPicker = (options: OperatorOption[], placeholder: string) =>
+    showAdvanced ? (
+      <View style={styles.operator}>
+        <Select
+          size="xs"
+          placeholder={placeholder}
+          accessibilityLabel="Operator"
+          options={operatorOptions(options)}
+          value={filterState.operator}
+          onChange={(value) => {
+            const operator = (value ?? getDefaultOperator(column.filterType)) as Operator;
+            setFilterState((prev) => ({ ...prev, operator }));
+            debouncedCommit.cancel();
+            commitFilter(filterState.value, operator);
+          }}
+        />
+      </View>
+    ) : null;
+
+  const valueLabel = columnName ? `Filter ${columnName}` : 'Filter value';
+
   // Render different filter types
   const renderFilterInput = () => {
-    const commonStyle = {
-      flex: 1,
-      fontSize: 12
-    };
-
     switch (column.filterType) {
-      case 'select': {
-        const options = getAutoOptions();
+      case 'select':
         return (
           <Select
             size="xs"
             placeholder="Select value..."
-            options={[{ label: 'Any', value: '' }, ...options]}
+            accessibilityLabel={valueLabel}
+            options={[{ label: 'Any', value: '' }, ...getAutoOptions()]}
             value={filterState.value}
-            onChange={(value) => {
-              setFilterState(prev => ({ ...prev, value }));
-              if (value === '') {
-                clearFilter();
-              } else {
-                onFilterChange({
-                  column: column.key,
-                  operator: 'eq',
-                  value: value
-                });
-              }
-            }}
+            onChange={commitSelect}
           />
         );
-      }
 
-      case 'boolean': {
+      case 'boolean':
         return (
           <Select
             size="xs"
             placeholder="Any"
+            accessibilityLabel={valueLabel}
             options={[
               { label: 'Any', value: '' },
               { label: 'Yes', value: true },
-              { label: 'No', value: false }
+              { label: 'No', value: false },
             ]}
-            value={filterState.value === '' ? '' : filterState.value}
-            onChange={(value) => {
-              setFilterState(prev => ({ ...prev, value }));
-              if (value === '') {
-                clearFilter();
-              } else {
-                onFilterChange({
-                  column: column.key,
-                  operator: 'eq',
-                  value: value
-                });
-              }
-            }}
+            value={filterState.value}
+            onChange={commitSelect}
           />
         );
-      }
 
-      case 'number': {
+      case 'number':
         return (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            {showAdvanced && (
-              <View style={{ width: 50 }}>
-                <Select
-                  size="xs"
-                  placeholder="="
-                  options={getAvailableOperators('number').map(op => ({
-                    label: op.icon || op.label,
-                    value: op.value
-                  }))}
-                  value={filterState.operator}
-                  onChange={(value) => {
-                    const operator = value as DataTableFilter['operator'];
-                    setFilterState(prev => ({ ...prev, operator }));
-                    debouncedCommit.cancel();
-                    commitFilter(filterState.value, operator);
-                  }}
-                />
-              </View>
-            )}
+          <View style={styles.row}>
+            {operatorPicker(NUMBER_OPERATORS, '=')}
             <Input
               size="xs"
               placeholder={showAdvanced ? 'Value' : '= Value'}
+              accessibilityLabel={valueLabel}
               value={String(filterState.value ?? '')}
               onChangeText={(text) => {
                 const value = text ? parseFloat(text) : '';
-                setFilterState(prev => ({ ...prev, value }));
+                setFilterState((prev) => ({ ...prev, value }));
                 debouncedCommit(value, filterState.operator);
               }}
               onBlur={debouncedCommit.flush}
               keyboardType="numeric"
               autoFocus={autoFocus}
-              style={commonStyle}
+              style={styles.fill}
+              textInputProps={{ style: styles.inputText }}
             />
           </View>
         );
-      }
 
-      case 'date': {
+      case 'date':
         return (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            {showAdvanced && (
-              <View style={{ width: 50 }}>
-                <Select
-                  size="xs"
-                  placeholder="="
-                  options={getAvailableOperators('date').map(op => ({
-                    label: op.icon || op.label,
-                    value: op.value
-                  }))}
-                  value={filterState.operator}
-                  onChange={(value) => {
-                    const operator = value as DataTableFilter['operator'];
-                    setFilterState(prev => ({ ...prev, operator }));
-                    debouncedCommit.cancel();
-                    commitFilter(filterState.value, operator);
-                  }}
-                />
-              </View>
-            )}
+          <View style={styles.row}>
+            {operatorPicker(DATE_OPERATORS, '=')}
             <Input
               size="xs"
               placeholder="YYYY-MM-DD"
+              accessibilityLabel={valueLabel}
               value={String(filterState.value ?? '')}
               onChangeText={(value) => {
-                setFilterState(prev => ({ ...prev, value }));
+                setFilterState((prev) => ({ ...prev, value }));
                 debouncedCommit(value, filterState.operator);
               }}
               onBlur={debouncedCommit.flush}
               autoFocus={autoFocus}
-              style={commonStyle}
+              style={styles.fill}
+              textInputProps={{ style: styles.inputText }}
             />
           </View>
         );
-      }
 
-      default: { // text
+      default:
         return (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            {showAdvanced && (
-              <View style={{ width: 50 }}>
-                <Select
-                  size="xs"
-                  placeholder="∋"
-                  options={getAvailableOperators('text').map(op => ({
-                    label: op.icon || op.label,
-                    value: op.value
-                  }))}
-                  value={filterState.operator}
-                  onChange={(value) => {
-                    const operator = value as DataTableFilter['operator'];
-                    setFilterState(prev => ({ ...prev, operator }));
-                    debouncedCommit.cancel();
-                    commitFilter(filterState.value, operator);
-                  }}
-                />
-              </View>
-            )}
+          <View style={styles.row}>
+            {operatorPicker(TEXT_OPERATORS, '∋')}
             <Input
               size="xs"
               placeholder={showAdvanced ? 'Value' : 'Search...'}
+              accessibilityLabel={valueLabel}
               value={String(filterState.value ?? '')}
               onChangeText={(value) => {
-                setFilterState(prev => ({ ...prev, value }));
+                setFilterState((prev) => ({ ...prev, value }));
                 debouncedCommit(value, filterState.operator);
               }}
               onBlur={debouncedCommit.flush}
               autoFocus={autoFocus}
-              style={commonStyle}
+              style={styles.fill}
+              textInputProps={{ style: styles.inputText }}
             />
           </View>
         );
-      }
     }
   };
 
+  const hasOperators =
+    column.filterType === 'text' || column.filterType === 'number' || column.filterType === 'date';
+
   return (
-    <View style={{ padding: 4, gap: 4 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+    <View style={styles.container}>
+      <View style={styles.row}>
         {renderFilterInput()}
-        
-        {/* Advanced toggle */}
-        {(column.filterType === 'text' || column.filterType === 'number' || column.filterType === 'date') && (
+
+        {hasOperators && (
           <Pressable
             onPress={() => setShowAdvanced(!showAdvanced)}
-            style={{
-              padding: 4,
-              borderRadius: 4,
-              backgroundColor: showAdvanced ? theme.colors.primary[1] : 'transparent',
-            }}
+            {...a11yProps({ role: 'button', label: 'Filter operators', pressed: showAdvanced })}
+            style={[styles.iconButton, { backgroundColor: showAdvanced ? theme.backgrounds.selected : 'transparent' }]}
           >
-            <Icon 
-              name="settings" 
-              size={12} 
-              color={showAdvanced ? theme.colors.primary[6] : theme.colors.gray[6]}
+            <Icon
+              name="settings"
+              size={12}
+              color={showAdvanced ? theme.colors.primary[6] : theme.text.muted}
+              decorative
             />
           </Pressable>
         )}
 
-        {/* Clear filter */}
         {currentFilter && (
           <Pressable
             onPress={clearFilter}
-            style={{
-              padding: 4,
-              borderRadius: 4,
-              backgroundColor: theme.colors.gray[1],
-            }}
+            {...a11yProps({ role: 'button', label: columnName ? `Clear ${columnName} filter` : 'Clear filter' })}
+            style={[styles.iconButton, { backgroundColor: theme.backgrounds.subtle }]}
           >
-            <Icon name="x" size={12} color={theme.colors.gray[6]} />
+            <Icon name="x" size={12} color={theme.text.muted} decorative />
           </Pressable>
         )}
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    gap: 4,
+    padding: 4,
+  },
+  fill: {
+    flex: 1,
+  },
+  iconButton: {
+    alignItems: 'center',
+    borderRadius: 4,
+    justifyContent: 'center',
+    minHeight: 24,
+    minWidth: 24,
+    padding: 4,
+  },
+  inputText: {
+    fontSize: 12,
+  },
+  operator: {
+    width: 50,
+  },
+  row: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 4,
+  },
+});

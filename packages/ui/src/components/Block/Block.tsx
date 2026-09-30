@@ -1,31 +1,40 @@
-import React, { forwardRef } from 'react';
-import { View } from 'react-native';
-import { polymorphicFactory } from '../../core/factory';
-import { extractSpacingProps, getSpacingStyles } from '../../core/utils/spacing';
+import React, { useMemo } from 'react';
+import { Pressable, View, type Role } from 'react-native';
+
+import { roleFromAccessibilityRole } from '../../core/accessibility/a11yProps';
+import { factory } from '../../core/factory/factory';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
+import type { BlockProps, BlockStyleProps } from './types';
 import { getBlockStyles } from './utils';
-import type { BlockFactory, BlockProps, BlockStyleProps } from './types';
-import { useDirection } from '../../core/providers/DirectionProvider';
-import { useTheme } from '../../core/theme';
-import { resolveBg } from '../../core/theme/resolveColors';
 
 const BLOCK_STYLE_PROP_KEYS: Array<keyof BlockStyleProps> = [
-  'bg',
   'radius',
   'borderWidth',
   'borderColor',
+  'borderTopWidth',
+  'borderRightWidth',
+  'borderBottomWidth',
+  'borderLeftWidth',
+  'borderTopColor',
+  'borderRightColor',
+  'borderBottomColor',
+  'borderLeftColor',
+  'borderTopLeftRadius',
+  'borderTopRightRadius',
+  'borderStyle',
+  'overflow',
+  'aspectRatio',
+  'touchAction',
+  'translateY',
+  'rotate',
   'shadow',
-  'opacity',
-  'w',
-  'h',
-  'minW',
-  'minH',
-  'maxW',
-  'maxH',
   'grow',
   'shrink',
   'basis',
   'direction',
   'align',
+  'alignSelf',
   'justify',
   'wrap',
   'gap',
@@ -34,46 +43,45 @@ const BLOCK_STYLE_PROP_KEYS: Array<keyof BlockStyleProps> = [
   'right',
   'bottom',
   'left',
+  'inset',
   'start',
   'end',
   'zIndex',
   'flex',
 ];
 
-const BLOCK_STYLE_PROP_SET = new Set(BLOCK_STYLE_PROP_KEYS);
+const BLOCK_STYLE_PROP_SET: ReadonlySet<string> = new Set(BLOCK_STYLE_PROP_KEYS);
 
 /** Spacing applied between children when no `gap` prop is supplied. */
 const DEFAULT_BLOCK_GAP: BlockStyleProps['gap'] = 'sm';
 
-type BlockStyleKey = keyof BlockStyleProps;
-
-const partitionBlockProps = (source: Record<string, any>) => {
-  const style: Partial<BlockStyleProps> = {};
+const partitionBlockProps = <P extends object>(source: P) => {
+  const style: Record<string, unknown> = {};
   const passthrough: Record<string, unknown> = {};
 
-  Object.entries(source).forEach(([key, value]) => {
-    if (BLOCK_STYLE_PROP_SET.has(key as BlockStyleKey)) {
-      if (value !== undefined) {
-        (style as Record<BlockStyleKey, unknown>)[key as BlockStyleKey] = value;
-      }
-      return;
+  for (const [key, value] of Object.entries(source)) {
+    if (BLOCK_STYLE_PROP_SET.has(key)) {
+      if (value !== undefined) style[key] = value;
+    } else {
+      passthrough[key] = value;
     }
+  }
 
-    passthrough[key] = value;
-  });
-
-  return { style, passthrough };
+  return { style: style as Partial<BlockStyleProps>, passthrough: passthrough as Omit<P, keyof BlockStyleProps> };
 };
+
+/** A stable key for the layout props, so the resolved style is memoized on their values. */
+const layoutKey = (props: Partial<BlockStyleProps>) => JSON.stringify(props);
 
 /**
  * Block - A polymorphic building block component
  * 
  * The Block component serves as a foundational building block that can replace View components
  * throughout the application. It provides a consistent API for styling, spacing, and layout
- * while supporting polymorphic rendering (can render as any HTML element or React component).
+ * while supporting a custom root component via the `component` prop.
  * 
  * Key features:
- * - Polymorphic: Can render as any element via the `component` prop
+ * - Custom root: render a custom component via the `component` prop
  * - Spacing system: Supports margin/padding shorthand props (m, p, mx, py, etc.)
  * - Layout utilities: Flexbox, positioning, dimensions
  * - Theming: Consistent radius, shadow, and color values
@@ -86,9 +94,9 @@ const partitionBlockProps = (source: Record<string, any>) => {
  *   Content
  * </Block>
  * 
- * // As a button
- * <Block component="button" bg="green.500" p="sm" radius="md">
- *   Click me
+ * // With semantics
+ * <Block role="list" gap="xs">
+ *   …
  * </Block>
  * 
  * // Flex layout
@@ -98,90 +106,86 @@ const partitionBlockProps = (source: Record<string, any>) => {
  * </Block>
  * ```
  */
-// Temporary simple implementation to avoid polymorphicFactory issues
-export const Block = forwardRef<any, BlockProps>((props, ref) => {
-  const { isRTL } = useDirection();
+export const Block = factory<{ props: BlockProps; ref: View }>((props, ref) => {
   const theme = useTheme();
-  // Extract spacing props from the rest
-  const { spacingProps, otherProps } = extractSpacingProps(props);
+  const { styleProps, otherProps } = extractStyleProps(props);
 
   const {
     children,
     style,
     component = View,
-    testID,
-    accessibilityLabel,
-    accessible,
-    accessibilityRole,
     className,
     fluid,
     fullWidth,
+    role,
+    accessibilityRole,
+    onPress,
+    onLongPress,
+    onPressIn,
+    onPressOut,
+    disabled,
     ...restProps
   } = otherProps;
 
-  const { style: layoutPropsRaw, passthrough } = partitionBlockProps(restProps as Record<string, any>);
-  const forwardedProps = passthrough as typeof restProps;
+  const { style: layoutPropsRaw, passthrough: forwardedProps } = partitionBlockProps(restProps);
 
-  // Resolve `bg` through the shared theme resolver so palette names + theme
-  // background keys (`'primary'`, `'success'`, `'surface'`, `'subtle'`, …)
-  // work the same way as on `<Card bg=...>`.
-  const layoutProps = layoutPropsRaw.bg
-    ? { ...layoutPropsRaw, bg: resolveBg(theme, layoutPropsRaw.bg) ?? layoutPropsRaw.bg }
-    : layoutPropsRaw;
+  // Layout prop values are primitives: key the memo on their serialized form
+  // (not on the props object, which is new every render).
+  const key = layoutKey(layoutPropsRaw);
+  const blockStyles = useMemo(() => {
+    const layoutProps = JSON.parse(key) as Partial<BlockStyleProps>;
+    return getBlockStyles(
+      {
+        // Block stacks its children, so it carries a default gap. Pass an
+        // explicit `gap` (including `0`) to override it.
+        gap: DEFAULT_BLOCK_GAP,
+        ...layoutProps,
+      },
+      theme
+    );
+  }, [theme, key]);
 
-  const blockStyles = getBlockStyles(
-    {
-      // Block stacks its children, so it carries a default gap. Pass an
-      // explicit `gap` (including `0`) to override it.
-      gap: DEFAULT_BLOCK_GAP,
-      ...layoutProps,
-      ...(fullWidth ? { w: 'full' as BlockStyleProps['w'] } : {}),
-    } as BlockStyleProps,
-    isRTL,
-  );
+  // Style props: spacing plus the box props (`w`, `maw`, `bg` through
+  // `resolveBg`, `opacity`, …). An explicit `w` wins over `fullWidth`.
+  const propStyles = useStyleProps(styleProps);
 
-  // Generate styles from props
-  const spacingStyles = getSpacingStyles(spacingProps);
+  const finalStyle = [blockStyles, fullWidth && FULL_WIDTH_STYLE, propStyles, fluid && FLUID_STYLE, style];
 
-  // Combine all styles
-  const finalStyle = [
-    blockStyles,
-    spacingStyles,
-    fluid && { flex: 1 }, // Apply flex: 1 if fluid prop is true
-    style,
-  ].filter(Boolean);
+  // A legacy `accessibilityRole` with an ARIA equivalent becomes `role`; others
+  // (`text`, `keyboardkey`) are passed through unchanged.
+  const mappedRole = role ?? (roleFromAccessibilityRole(accessibilityRole) as Role | undefined);
+  const a11y = {
+    role: mappedRole,
+    accessibilityRole: mappedRole ? undefined : accessibilityRole,
+  };
 
-  // For React Native, always use View for default or string components
-  if (component === View || component === 'div' || typeof component === 'string') {
+  // HTML tag names render a View on every platform (react-native-web decides the element from `role`).
+  if (component === View && (onPress || onLongPress || onPressIn || onPressOut)) {
     return (
-      <View
-        ref={ref}
-        style={finalStyle}
-        testID={testID}
-        accessibilityLabel={accessibilityLabel}
-        accessible={accessible}
-        {...forwardedProps}
-      >
+      <Pressable ref={ref} style={finalStyle} {...a11y} {...forwardedProps}
+        onPress={onPress} onLongPress={onLongPress} onPressIn={onPressIn}
+        onPressOut={onPressOut} disabled={disabled}>
+        {children}
+      </Pressable>
+    );
+  }
+  if (component === View || typeof component === 'string') {
+    return (
+      <View ref={ref} style={finalStyle} {...a11y} {...forwardedProps}>
         {children}
       </View>
     );
   }
 
-  // For custom components, pass through props
-  const Component = component as React.ElementType;
+  // A consumer-supplied component: its prop types are its own business.
+  const Component = component as React.ComponentType<Record<string, unknown> & { ref?: React.Ref<View> }>;
   return (
-    <Component
-      ref={ref}
-      style={finalStyle}
-      testID={testID}
-      accessibilityLabel={accessibilityLabel}
-      accessible={accessible}
-      className={className}
-      {...forwardedProps}
-    >
+    <Component ref={ref} style={finalStyle} className={className} {...a11y} {...forwardedProps}
+      onPress={onPress} onLongPress={onLongPress} onPressIn={onPressIn} onPressOut={onPressOut} disabled={disabled}>
       {children}
     </Component>
   );
-});
+}, { displayName: 'Block' });
 
-Block.displayName = 'Block';
+const FULL_WIDTH_STYLE = { width: '100%' } as const;
+const FLUID_STYLE = { flex: 1 } as const;

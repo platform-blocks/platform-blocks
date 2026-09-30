@@ -14,8 +14,8 @@ props:
     description: Whether to allow multiple file selection
     default: false
   - name: accept
-    type: string
-    description: File types to accept (MIME types)
+    type: string[]
+    description: File types to accept (MIME types like `image/*`, or extensions like `.pdf`)
   - name: maxSize
     type: number
     description: Maximum file size in bytes
@@ -27,10 +27,10 @@ props:
     description: Whether the input is disabled
     default: false
   - name: label
-    type: string
-    description: Label rendered above the input via the shared FieldHeader
+    type: ReactNode
+    description: Label rendered above the input via the shared Field frame (also names the picker button)
   - name: description
-    type: string
+    type: ReactNode
     description: Helper text rendered between the label and the input
   - name: required
     type: boolean
@@ -48,22 +48,38 @@ props:
     type: "Omit<TextProps, 'children'>"
     description: Override props applied to the description `<Text>`
   - name: helperText
-    type: string
-    description: Additional help text
+    type: ReactNode
+    description: Additional help text (replaced by the error while there is one)
   - name: error
-    type: string
-    description: Error message to display
+    type: ReactNode
+    description: Error message, announced to assistive technology and linked to the picker
   - name: placeholder
     type: string
-    description: Placeholder text for the dropzone
+    description: Picker button text (standard / compact) or the drop zone's prompt (dropzone)
   - name: variant
-    type: string
+    type: "'standard' | 'dropzone' | 'compact'"
     description: Visual variant
-    default: default
-  - name: showPreview
+    default: standard
+  - name: readOnly
     type: boolean
-    description: Whether to show file previews
-    default: true
+    description: Show the selected files but don't allow picking or removing
+    default: false
+  - name: imagePreview
+    type: "{ enabled?, maxWidth?, maxHeight?, quality? }"
+    description: Downscaled image previews in the file list
+  - name: enableDragDrop
+    type: boolean
+    description: Accept files dropped on the drop zone (web)
+    default: true on web
+  - name: onUpload
+    type: "(files, { onProgress }) => Promise<void>"
+    description: Upload newly added valid files; report progress with helpers.onProgress(fileId, percent)
+  - name: onProgress
+    type: "(fileId, progress) => void"
+    description: Upload progress callback
+  - name: uploadSettings
+    type: "{ url, method?, headers?, fieldName?, formData? }"
+    description: Built-in multipart uploader (one request per file) used when there is no onUpload
 examples:
   - basic
   - fileTypes

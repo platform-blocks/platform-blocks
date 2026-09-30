@@ -4,31 +4,26 @@ import { render } from '@testing-library/react-native';
 
 import { SegmentedControl } from '../SegmentedControl';
 
-const mockTheme = {
-  colorScheme: 'light',
+const mockPalette = {
   colors: {
     primary: ['#EFF6FF', '#DBEAFE', '#BFDBFE', '#93C5FD', '#60A5FA', '#3B82F6', '#2563EB', '#1D4ED8'],
     gray: ['#F8FAFC', '#F1F5F9', '#E2E8F0', '#CBD5F5', '#94A3B8', '#64748B'],
     surface: ['#FFFFFF'],
   },
-  text: {
-    primary: '#0F172A',
-    secondary: '#475569',
-    disabled: '#CBD5F5',
-    onPrimary: '#FFFFFF',
-    muted: '#64748B',
-  },
 };
 
-jest.mock('../../../core/theme', () => {
-  const actual = jest.requireActual('../../../core/theme');
+jest.mock('../../../core/theme/ThemeProvider', () => {
+  const actual = jest.requireActual('../../../core/theme/ThemeProvider');
+  const { DEFAULT_THEME } = jest.requireActual('../../../core/theme/defaultTheme');
+  let theme: unknown;
   return {
     ...actual,
-    useTheme: () => mockTheme,
+    // Built lazily: this factory runs before the module-scope palette is initialized.
+    useTheme: () => (theme ??= { ...DEFAULT_THEME, colors: { ...DEFAULT_THEME.colors, ...mockPalette.colors } }),
   };
 });
 
-jest.mock('../../../core/motion/ReducedMotionProvider', () => ({
+jest.mock('../../../core/motion/useReducedMotion', () => ({
   useReducedMotion: () => false,
 }));
 

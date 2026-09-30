@@ -1,0 +1,102 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "strict": true,
+    "jsx": "react-jsx",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "plocks": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "plocks/*": [
+        "../../packages/ui/src/*"
+      ],
+      "@plocks/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@plocks/ui/*": [
+        "../../packages/ui/src/*"
+      ],
+      "@plocks/charts": [
+        "../../packages/charts/src/index.ts"
+      ],
+      "@plocks/charts/*": [
+        "../../packages/charts/src/*"
+      ],
+      "@plocks/dates": [
+        "../../packages/dates/src/index.ts"
+      ],
+      "@plocks/code": [
+        "../../packages/code/src/index.ts"
+      ],
+      "@plocks/media": [
+        "../../packages/media/src/index.ts"
+      ],
+      "@plocks/carousel": [
+        "../../packages/carousel/src/index.ts"
+      ],
+      "@plocks/spotlight": [
+        "../../packages/spotlight/src/index.ts"
+      ],
+      "@plocks/brands": [
+        "../../packages/brands/src/index.ts"
+      ],
+      "@plocks/qrcode": [
+        "../../packages/qrcode/src/index.ts"
+      ],
+      "@plocks/emoji-picker": [
+        "../../packages/emoji-picker/src/index.ts"
+      ],
+      "@plocks/charts-types": [
+        "../../packages/charts/src/types.ts"
+      ]
+    },
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "components/**/*",
+    "screens/**/*",
+    "utils/**/*",
+    "hooks/**/*",
+    "data/**/*",
+    "app/**/*",
+    "index.ts",
+    "index.tsx",
+    "_layout.tsx",
+    "../../packages/ui/src/**/*.ts",
+    "../../packages/ui/src/**/*.tsx",
+    "../../packages/dates/src/**/*.ts",
+    "../../packages/dates/src/**/*.tsx",
+    "../../packages/code/src/**/*.ts",
+    "../../packages/code/src/**/*.tsx",
+    "../../packages/media/src/**/*.ts",
+    "../../packages/media/src/**/*.tsx",
+    "../../packages/carousel/src/**/*.ts",
+    "../../packages/carousel/src/**/*.tsx",
+    "../../packages/spotlight/src/**/*.ts",
+    "../../packages/spotlight/src/**/*.tsx",
+    "../../packages/brands/src/**/*.ts",
+    "../../packages/brands/src/**/*.tsx",
+    "../../packages/qrcode/src/**/*.ts",
+    "../../packages/qrcode/src/**/*.tsx",
+    "../../packages/emoji-picker/src/**/*.ts",
+    "../../packages/emoji-picker/src/**/*.tsx",
+    "../../forms",
+    "config/navigationConfig.ts",
+    "config/docsLayout.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    ".expo",
+    "dist",
+    "build",
+    "examples",
+    "examples/**/*"
+  ]
+}

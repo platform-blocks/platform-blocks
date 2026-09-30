@@ -1,6 +1,7 @@
 import type { FC, ReactNode } from 'react';
 import type { TextStyle, ViewStyle, StyleProp } from 'react-native';
-import type { SpacingProps, LayoutProps } from '../../core/utils';
+import type { BaseProps } from '../../core/types/base';
+import type { LayoutProps } from '../../core/utils/layout';
 import type { ComponentSizeValue } from '../../core/theme/componentSize';
 
 export interface KnobMark {
@@ -323,13 +324,12 @@ export interface KnobAppearance {
   interaction?: KnobInteractionConfig;
 }
 
-export interface KnobProps extends SpacingProps, LayoutProps {
+export interface KnobProps extends BaseProps, LayoutProps {
   /** What kind of control this is: how it behaves and what it reads out. @default 'level' */
   behavior?: KnobBehavior;
   /**
    * Visual style preset. Merged under `appearance`, so single properties stay overridable.
-   * Behavior values (`level`, `stepped`, …) still work here at runtime but are deprecated —
-   * pass them to `behavior` instead. @default 'default'
+   * @default 'default'
    */
   variant?: KnobVariant;
   /** Interaction mode for bounded or endless rotary behavior */

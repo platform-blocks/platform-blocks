@@ -1,88 +1,125 @@
-import React, { useMemo } from 'react';
-import { View, TouchableOpacity } from 'react-native';
-import { Text } from '../Text';
-import { Icon } from '../Icon';
-import { Button } from '../Button';
-import { Menu, MenuItem, MenuLabel, MenuDropdown } from '../Menu';
-import { PaginationProps, type PaginationMetrics } from './types';
+import React, { useMemo, useState } from 'react';
+import { Pressable, View } from 'react-native';
+import type { TextStyle, ViewStyle } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useRovingFocus } from '../../core/accessibility/useRovingFocus';
 import { factory } from '../../core/factory';
-import { useTheme } from '../../core/theme';
-import { useDirection } from '../../core/providers/DirectionProvider';
-import { getSpacingStyles, extractSpacingProps, mergeSlotProps } from '../../core/utils';
-import { resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
-import { getComponentSize } from '../../core/theme/unified-sizing';
+import { createThemedStyles } from '../../core/hooks/useThemedStyles';
+import { webProps } from '../../core/platform';
+import { resolveColorProp } from '../../core/theme/resolveColors';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getControlSize, onColor, stepDown } from '../../core/theme/tokens';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
+import { usePagination } from '../../hooks/usePagination';
+import { Button } from '../Button';
+import { Icon } from '../Icon';
+import { Menu, MenuDropdown, MenuItem, MenuLabel } from '../Menu';
+import { Text } from '../Text';
+import type { PaginationAccessibilityLabels, PaginationProps } from './types';
 
-const PAGINATION_ALLOWED_SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
-const PAGINATION_ALLOWED_SIZES_ARRAY: ComponentSize[] = [...PAGINATION_ALLOWED_SIZES];
+type PaginationVariant = NonNullable<PaginationProps['variant']>;
 
-const MIN_PAGINATION_METRICS = {
-  height: 24,
-  minWidth: 20,
-  paddingHorizontal: 4,
-  fontSize: 10,
-  iconSize: 10,
-  borderRadius: 4,
-} as const;
-
-function createMetricsForToken(size: ComponentSize): PaginationMetrics {
-  const config = getComponentSize(size);
-
-  return {
-    height: config.height,
-    minWidth: Math.max(MIN_PAGINATION_METRICS.minWidth, Math.round(config.height * 0.9)),
-    paddingHorizontal: Math.max(MIN_PAGINATION_METRICS.paddingHorizontal, Math.round(config.padding * 0.8)),
-    fontSize: Math.max(MIN_PAGINATION_METRICS.fontSize, config.fontSize),
-    iconSize: Math.max(MIN_PAGINATION_METRICS.iconSize, config.iconSize),
-    borderRadius: Math.max(MIN_PAGINATION_METRICS.borderRadius, config.borderRadius),
-  };
-}
-
-const PAGINATION_SIZE_SCALE: Partial<Record<ComponentSize, PaginationMetrics>> = {
-  xs: createMetricsForToken('xs'),
-  sm: createMetricsForToken('sm'),
-  md: createMetricsForToken('md'),
-  lg: createMetricsForToken('lg'),
-  xl: createMetricsForToken('xl'),
-  '2xl': createMetricsForToken('2xl'),
-  '3xl': createMetricsForToken('3xl'),
+const DEFAULT_A11Y_LABELS: Required<PaginationAccessibilityLabels> = {
+  root: 'Pagination',
+  first: 'First page',
+  previous: 'Previous page',
+  next: 'Next page',
+  last: 'Last page',
+  page: (page: number) => `Page ${page}`,
 };
 
-const BASE_PAGINATION_METRICS: PaginationMetrics = PAGINATION_SIZE_SCALE.md ?? createMetricsForToken('md');
+/**
+ * Page items are compact controls: one step below `size` on the shared control
+ * scale (`md` renders `sm`-height items).
+ */
+const getPaginationStyles = createThemedStyles(
+  (theme: PlocksTheme, size: SizeValue, variant: PaginationVariant, color: string) => {
+    const metrics = getControlSize(theme, stepDown(size));
+    const fill = resolveColorProp(theme, color, { shades: [6, 5] }) ?? theme.colors.primary[6];
+    const tint = resolveColorProp(theme, color, { shades: [1, 0] }) ?? theme.colors.primary[1];
+    const tintText = resolveColorProp(theme, color, { shades: [7, 6] }) ?? theme.colors.primary[7];
+    // A raw CSS color has no ramp: tint and tint text collapse onto the same
+    // value, so pick a readable text color for it instead.
+    const subtleActiveText = tint === tintText ? onColor(theme, tint) : tintText;
 
-function resolvePaginationMetrics(value: ComponentSizeValue | undefined): PaginationMetrics {
-  const resolved = resolveComponentSize(value, PAGINATION_SIZE_SCALE, {
-    allowedSizes: PAGINATION_ALLOWED_SIZES_ARRAY,
-    fallback: 'md',
-  });
+    const item: ViewStyle = {
+      height: metrics.height,
+      minWidth: metrics.height,
+      paddingHorizontal: Math.round(metrics.paddingX * 0.8),
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: metrics.radius,
+      marginHorizontal: 2,
+      borderWidth: variant === 'outline' ? 1 : 0,
+      borderColor: variant === 'outline' ? theme.backgrounds.borderStrong : undefined,
+      backgroundColor:
+        variant === 'default' ? theme.backgrounds.subtle : 'transparent',
+    };
 
-  if (typeof resolved === 'number') {
-    return calculateNumericMetrics(resolved);
+    const active: ViewStyle =
+      variant === 'subtle'
+        ? { backgroundColor: tint, borderWidth: 0 }
+        : { backgroundColor: fill, borderColor: fill };
+
+    const disabled: ViewStyle = {
+      backgroundColor: variant === 'outline' ? 'transparent' : theme.backgrounds.disabled,
+      opacity: 0.5,
+    };
+
+    return {
+      root: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' } as ViewStyle,
+      item,
+      active,
+      disabled,
+      pressed: { opacity: 0.7 } as ViewStyle,
+      ellipsis: {
+        height: metrics.height,
+        minWidth: metrics.height,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginHorizontal: 2,
+      } as ViewStyle,
+      text: { fontSize: metrics.fontSize, color: theme.text.primary } as TextStyle,
+      activeText: {
+        color: variant === 'subtle' ? subtleActiveText : onColor(theme, fill),
+      } as TextStyle,
+      disabledText: { color: theme.text.disabled } as TextStyle,
+      mutedText: { fontSize: metrics.fontSize, color: theme.text.muted } as TextStyle,
+      totalText: { fontSize: metrics.fontSize, color: theme.text.secondary } as TextStyle,
+      total: { marginEnd: 16 } as ViewStyle,
+      sizeChanger: { marginStart: 12 } as ViewStyle,
+      iconSize: metrics.iconSize,
+      checkColor: fill,
+    };
   }
+);
 
-  return resolved;
+interface ControlItem {
+  /** Stable identity for keys and the roving tab stop. */
+  key: string;
+  page: number;
+  kind: 'first' | 'previous' | 'page' | 'next' | 'last';
+  disabled: boolean;
 }
 
-function calculateNumericMetrics(height: number): PaginationMetrics {
-  const normalizedHeight = Math.max(MIN_PAGINATION_METRICS.height, Math.round(height));
-  const scale = normalizedHeight / BASE_PAGINATION_METRICS.height;
-  const scaleMetric = (base: number, minimum: number) => Math.max(minimum, Math.round(base * scale));
-
-  return {
-    height: normalizedHeight,
-    minWidth: scaleMetric(BASE_PAGINATION_METRICS.minWidth, MIN_PAGINATION_METRICS.minWidth),
-    paddingHorizontal: scaleMetric(BASE_PAGINATION_METRICS.paddingHorizontal, MIN_PAGINATION_METRICS.paddingHorizontal),
-    fontSize: scaleMetric(BASE_PAGINATION_METRICS.fontSize, MIN_PAGINATION_METRICS.fontSize),
-    iconSize: scaleMetric(BASE_PAGINATION_METRICS.iconSize, MIN_PAGINATION_METRICS.iconSize),
-    borderRadius: scaleMetric(BASE_PAGINATION_METRICS.borderRadius, MIN_PAGINATION_METRICS.borderRadius),
-  };
-}
-
+/**
+ * Page navigation: first / previous / page numbers / next / last, with an
+ * optional "X–Y of N" summary and a rows-per-page menu.
+ *
+ * Renders a labelled `navigation` landmark; the current page carries
+ * `aria-current="page"`, every control has an accessible name ("Page 3",
+ * "Next page", …) and the controls share one tab stop (arrow keys, Home/End).
+ */
 export const Pagination = factory<{
   props: PaginationProps;
   ref: View;
 }>((props, ref) => {
   const {
-    current,
+    value,
+    defaultValue,
     total,
     siblings = 1,
     boundaries = 1,
@@ -92,7 +129,8 @@ export const Pagination = factory<{
     color = 'primary',
     showFirst = true,
     showPrevNext = true,
-    labels = {},
+    labels,
+    accessibilityLabels,
     disabled = false,
     style,
     buttonStyle,
@@ -108,248 +146,156 @@ export const Pagination = factory<{
     totalItems,
     labelProps,
     activeLabelProps,
+    testID,
     ...rest
   } = props;
 
   const theme = useTheme();
-  const { isRTL } = useDirection();
-  const { spacingProps, otherProps } = extractSpacingProps(rest);
-  const spacingStyle = getSpacingStyles(spacingProps);
-  const sizeMetrics = useMemo(() => resolvePaginationMetrics(size), [size]);
+  const { styleProps } = extractStyleProps(rest);
+  const spacingStyle = useStyleProps(styleProps);
+  const styles = getPaginationStyles(theme, size, variant, color);
+  const a11yLabels = useMemo(
+    () => ({ ...DEFAULT_A11Y_LABELS, ...accessibilityLabels }),
+    [accessibilityLabels]
+  );
+
+  const { page, range: pages, setPage: goTo } = usePagination({
+    total,
+    value,
+    defaultValue,
+    onChange,
+    siblings,
+    boundaries,
+  });
+
+  // Every focusable control, in visual order, for the shared tab stop.
+  const controls: ControlItem[] = [];
+  if (showFirst) controls.push({ key: 'first', page: 1, kind: 'first', disabled: disabled || page === 1 });
+  if (showPrevNext) controls.push({ key: 'previous', page: page - 1, kind: 'previous', disabled: disabled || page === 1 });
+  for (const item of pages) {
+    if (item !== 'ellipsis') controls.push({ key: `page-${item}`, page: item, kind: 'page', disabled });
+  }
+  if (showPrevNext) controls.push({ key: 'next', page: page + 1, kind: 'next', disabled: disabled || page >= total });
+  if (showFirst) controls.push({ key: 'last', page: total, kind: 'last', disabled: disabled || page >= total });
+
+  // The tab stop follows the focused control by identity (page buttons shift
+  // index as the window moves); when nothing is focused it rests on the
+  // current page.
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+  const focusIndex = focusKey ? controls.findIndex((control) => control.key === focusKey) : -1;
+  const currentIndex = controls.findIndex((control) => control.kind === 'page' && control.page === page);
+  const roving = useRovingFocus({
+    count: controls.length,
+    orientation: 'horizontal',
+    loop: false,
+    activeIndex: focusIndex >= 0 ? focusIndex : Math.max(currentIndex, 0),
+    onActiveChange: (index) => setFocusKey(controls[index]?.key ?? null),
+    isDisabled: (index) => !!controls[index]?.disabled,
+  });
 
   if (hideOnSinglePage && total <= 1) {
     return null;
   }
 
-  // Generate page numbers to display
-  const generatePageNumbers = (): (number | 'ellipsis')[] => {
-    const pages: (number | 'ellipsis')[] = [];
-    
-    // Always show first boundary pages
-    for (let i = 1; i <= Math.min(boundaries, total); i++) {
-      pages.push(i);
-    }
-    
-    // Calculate range around current page
-    const startPage = Math.max(current - siblings, boundaries + 1);
-    const endPage = Math.min(current + siblings, total - boundaries);
-    
-    // Add ellipsis if there's a gap between boundaries and current range
-    if (startPage > boundaries + 1) {
-      pages.push('ellipsis');
-    }
-    
-    // Add pages around current page
-    for (let i = startPage; i <= endPage; i++) {
-      if (i > boundaries && i <= total - boundaries) {
-        pages.push(i);
-      }
-    }
-    
-    // Add ellipsis if there's a gap between current range and last boundaries
-    if (endPage < total - boundaries) {
-      pages.push('ellipsis');
-    }
-    
-    // Always show last boundary pages
-    for (let i = Math.max(total - boundaries + 1, boundaries + 1); i <= total; i++) {
-      if (i > boundaries) {
-        pages.push(i);
-      }
-    }
-    
-    return [...new Set(pages)]; // Remove duplicates
-  };
+  const renderLabel = (content: React.ReactNode, isActive: boolean, isDisabled: boolean) =>
+    typeof content === 'string' || typeof content === 'number' ? (
+      <Text
+        {...mergeSlotProps(
+          mergeSlotProps(
+            {
+              fw: isActive ? ('600' as const) : ('400' as const),
+              style: [
+                styles.text,
+                isActive && styles.activeText,
+                isDisabled && styles.disabledText,
+                textStyle,
+                isActive && activeTextStyle,
+              ],
+            },
+            labelProps
+          ),
+          isActive ? activeLabelProps : undefined
+        )}
+      >
+        {content}
+      </Text>
+    ) : (
+      content
+    );
 
-  const pages = generatePageNumbers();
-
-  // Get button styles based on variant and state
-  const getButtonStyles = (isActive: boolean, isDisabled: boolean) => {
-    const baseStyle = {
-      height: sizeMetrics.height,
-      minWidth: sizeMetrics.minWidth,
-      paddingHorizontal: sizeMetrics.paddingHorizontal,
-      justifyContent: 'center' as const,
-      alignItems: 'center' as const,
-      borderRadius: sizeMetrics.borderRadius,
-      marginHorizontal: 2,
-    };
-
-    const colorScheme = theme.colors[color] || theme.colors.primary;
-
-    if (isDisabled) {
-      return {
-        ...baseStyle,
-        backgroundColor: variant === 'outline' ? 'transparent' : theme.colors.gray[1],
-        borderWidth: variant === 'outline' ? 1 : 0,
-        borderColor: theme.colors.gray[3],
-        opacity: 0.5,
-      };
-    }
-
-    if (isActive) {
-      switch (variant) {
-        case 'outline':
-          return {
-            ...baseStyle,
-            backgroundColor: colorScheme[6],
-            borderWidth: 1,
-            borderColor: colorScheme[6],
-          };
-        case 'subtle':
-          return {
-            ...baseStyle,
-            backgroundColor: colorScheme[1],
-            borderWidth: 0,
-          };
-        default:
-          return {
-            ...baseStyle,
-            backgroundColor: colorScheme[6],
-            borderWidth: 0,
-          };
-      }
-    }
-
-    switch (variant) {
-      case 'outline':
-        return {
-          ...baseStyle,
-          backgroundColor: 'transparent',
-          borderWidth: 1,
-          borderColor: theme.colors.gray[3],
-        };
-      case 'subtle':
-        return {
-          ...baseStyle,
-          backgroundColor: 'transparent',
-          borderWidth: 0,
-        };
-      default:
-        return {
-          ...baseStyle,
-          backgroundColor: theme.colors.gray[1],
-          borderWidth: 0,
-        };
-    }
-  };
-
-  const getTextColor = (isActive: boolean, isDisabled: boolean) => {
-    if (isDisabled) {
-      return theme.text.disabled;
-    }
-    
-    if (isActive) {
-      return variant === 'outline' || variant === 'default' ? 'white' : theme.colors[color][7];
-    }
-    
-    return theme.text.primary;
-  };
-
-  const renderButton = (
-    content: React.ReactNode,
-    onPress: () => void,
-    isActive = false,
-    isDisabled = false,
-    key?: string | number
-  ) => {
-    const buttonStyles = getButtonStyles(isActive, isDisabled);
-    const textColor = getTextColor(isActive, isDisabled);
+  const renderControl = (control: ControlItem, index: number, content: React.ReactNode) => {
+    const isActive = control.kind === 'page' && control.page === page;
+    const itemProps = roving.getItemProps(index);
+    // A visible text label names the control itself; icon defaults get a label.
+    const hasTextLabel = typeof content === 'string' || typeof content === 'number';
+    const label =
+      control.kind === 'page'
+        ? a11yLabels.page(control.page)
+        : hasTextLabel
+          ? undefined
+          : a11yLabels[control.kind];
 
     return (
-      <TouchableOpacity
-        key={key}
-        onPress={onPress}
-        disabled={disabled || isDisabled}
-        style={[
-          buttonStyles,
+      <Pressable
+        key={control.key}
+        {...a11yProps({
+          role: 'button',
+          label,
+          current: isActive ? 'page' : undefined,
+          disabled: control.disabled,
+        })}
+        disabled={control.disabled}
+        ref={itemProps.ref}
+        onFocus={itemProps.onFocus}
+        {...webProps({ tabIndex: itemProps.tabIndex, onKeyDown: itemProps.onKeyDown })}
+        onPress={() => goTo(control.page)}
+        style={({ pressed }) => [
+          styles.item,
+          isActive && styles.active,
+          control.disabled && styles.disabled,
+          pressed && !control.disabled && styles.pressed,
           buttonStyle,
           isActive && activeButtonStyle,
         ]}
-        accessibilityRole="button"
       >
-        {typeof content === 'string' || typeof content === 'number' ? (
-          <Text
-            {...mergeSlotProps(
-              mergeSlotProps(
-                {
-                  weight: isActive ? ('600' as const) : ('400' as const),
-                  style: [
-                    { fontSize: sizeMetrics.fontSize, color: textColor },
-                    textStyle,
-                    isActive && activeTextStyle,
-                  ],
-                },
-                labelProps
-              ),
-              isActive ? activeLabelProps : undefined
-            )}
-          >
-            {content}
-          </Text>
-        ) : (
-          content
-        )}
-      </TouchableOpacity>
+        {renderLabel(content, isActive, control.disabled && control.kind !== 'page')}
+      </Pressable>
     );
   };
 
-  const renderPageButton = (page: number | 'ellipsis', index: number) => {
-    if (page === 'ellipsis') {
-      return (
-        <View
-          key={`ellipsis-${index}`}
-          style={{
-            height: sizeMetrics.height,
-            minWidth: sizeMetrics.minWidth,
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginHorizontal: 2,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: sizeMetrics.fontSize,
-              color: theme.text.muted,
-            }}
-          >
-            ...
-          </Text>
-        </View>
-      );
-    }
+  const iconFor = (kind: ControlItem['kind']) => (
+    // Directional chevrons mirror automatically under RTL (Icon's mirrorInRTL).
+    <Icon name={kind === 'first' || kind === 'previous' ? 'chevron-left' : 'chevron-right'} size={styles.iconSize} />
+  );
 
-    return renderButton(
-      page,
-      () => onChange(page),
-      current === page,
-      false,
-      page
-    );
+  const contentFor = (control: ControlItem): React.ReactNode => {
+    switch (control.kind) {
+      case 'first':
+        return labels?.first || iconFor('first');
+      case 'previous':
+        return labels?.previous || iconFor('previous');
+      case 'next':
+        return labels?.next || iconFor('next');
+      case 'last':
+        return labels?.last || iconFor('last');
+      default:
+        return control.page;
+    }
   };
 
   const renderTotal = () => {
     if (!showTotal || !totalItems) return null;
 
-    const startItem = (current - 1) * pageSize + 1;
-    const endItem = Math.min(current * pageSize, totalItems);
+    const startItem = (page - 1) * pageSize + 1;
+    const endItem = Math.min(page * pageSize, totalItems);
 
     if (typeof showTotal === 'function') {
-      return (
-        <View style={isRTL ? { marginLeft: 16 } : { marginRight: 16 }}>
-          {showTotal(totalItems, [startItem, endItem])}
-        </View>
-      );
+      return <View style={styles.total}>{showTotal(totalItems, [startItem, endItem])}</View>;
     }
 
     return (
-      <View style={isRTL ? { marginLeft: 16 } : { marginRight: 16 }}>
-        <Text
-          style={{
-            fontSize: sizeMetrics.fontSize,
-            color: theme.text.secondary,
-          }}
-        >
+      <View style={styles.total}>
+        <Text style={styles.totalText}>
           {startItem}-{endItem} of {totalItems}
         </Text>
       </View>
@@ -359,13 +305,12 @@ export const Pagination = factory<{
   const renderSizeChanger = () => {
     if (!showSizeChanger || !onPageSizeChange) return null;
 
-    const colorScheme = theme.colors[color] || theme.colors.primary;
-    const buttonSize = (typeof size === 'string' && ['xs', 'sm', 'md', 'lg', 'xl'].includes(size)
-      ? size
-      : 'sm') as 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+    const buttonSize = (
+      typeof size === 'string' && ['xs', 'sm', 'md', 'lg', 'xl'].includes(size) ? size : 'sm'
+    ) as 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
     return (
-      <View style={isRTL ? { marginRight: 12 } : { marginLeft: 12 }}>
+      <View style={styles.sizeChanger}>
         <Menu position="top-end" offset={4}>
           <MenuDropdown>
             <MenuLabel>Rows per page</MenuLabel>
@@ -376,23 +321,19 @@ export const Pagination = factory<{
                   if (opt !== pageSize) onPageSizeChange(opt);
                 }}
                 startSection={
-                  opt === pageSize ? (
-                    <Icon name="check" size={14} color={colorScheme[6]} />
-                  ) : undefined
+                  opt === pageSize ? <Icon name="check" size={14} color={styles.checkColor} /> : undefined
                 }
               >
                 {`${opt} / page`}
               </MenuItem>
             ))}
-            {!pageSizeOptions.includes(pageSize) && (
-              <MenuItem disabled>{`${pageSize} / page`}</MenuItem>
-            )}
+            {!pageSizeOptions.includes(pageSize) && <MenuItem disabled>{`${pageSize} / page`}</MenuItem>}
           </MenuDropdown>
           <Button
             variant="outline"
             size={buttonSize}
             disabled={disabled}
-            endIcon={<Icon name="chevron-down" size={sizeMetrics.iconSize} />}
+            endSection={<Icon name="chevron-down" size={styles.iconSize} />}
           >
             {`${pageSize} / page`}
           </Button>
@@ -401,59 +342,46 @@ export const Pagination = factory<{
     );
   };
 
+  // Controls render in order; ellipses sit between page controls.
+  let controlIndex = 0;
+  const pageNodes: React.ReactNode[] = [];
+  const leadingCount = (showFirst ? 1 : 0) + (showPrevNext ? 1 : 0);
+  const leading = controls.slice(0, leadingCount).map((control) => {
+    const node = renderControl(control, controlIndex, contentFor(control));
+    controlIndex += 1;
+    return node;
+  });
+  pages.forEach((item, i) => {
+    if (item === 'ellipsis') {
+      pageNodes.push(
+        <View key={`ellipsis-${i}`} style={styles.ellipsis} {...a11yProps({ hidden: true })}>
+          <Text style={styles.mutedText}>...</Text>
+        </View>
+      );
+      return;
+    }
+    const control = controls[controlIndex];
+    pageNodes.push(renderControl(control, controlIndex, contentFor(control)));
+    controlIndex += 1;
+  });
+  const trailing = controls.slice(controlIndex).map((control) => {
+    const node = renderControl(control, controlIndex, contentFor(control));
+    controlIndex += 1;
+    return node;
+  });
+
   return (
     <View
       ref={ref}
-      style={[
-        {
-          flexDirection: isRTL ? 'row-reverse' : 'row',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-        },
-        spacingStyle,
-        style,
-      ]}
-      {...otherProps}
+      testID={testID}
+      {...a11yProps({ role: 'navigation', label: a11yLabels.root })}
+      style={[styles.root, spacingStyle, style]}
     >
       {renderTotal()}
-      
-      {showFirst && renderButton(
-        labels.first || <Icon name={isRTL ? 'chevron-right' : 'chevron-left'} size={sizeMetrics.iconSize} />,
-        () => onChange(1),
-        false,
-        current === 1,
-        'first'
-      )}
-
-      {showPrevNext && renderButton(
-        labels.previous || <Icon name={isRTL ? 'chevron-right' : 'chevron-left'} size={sizeMetrics.iconSize} />,
-        () => onChange(current - 1),
-        false,
-        current === 1,
-        'prev'
-      )}
-
-      {pages.map((page, index) => renderPageButton(page, index))}
-
-      {showPrevNext && renderButton(
-        labels.next || <Icon name={isRTL ? 'chevron-left' : 'chevron-right'} size={sizeMetrics.iconSize} />,
-        () => onChange(current + 1),
-        false,
-        current === total,
-        'next'
-      )}
-
-      {showFirst && renderButton(
-        labels.last || <Icon name={isRTL ? 'chevron-left' : 'chevron-right'} size={sizeMetrics.iconSize} />,
-        () => onChange(total),
-        false,
-        current === total,
-        'last'
-      )}
-
+      {leading}
+      {pageNodes}
+      {trailing}
       {renderSizeChanger()}
     </View>
   );
-});
-
-Pagination.displayName = 'Pagination';
+}, { displayName: 'Pagination' });

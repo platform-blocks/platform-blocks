@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, GradientText, Slider } from '@platform-blocks/ui';
+import { Block, GradientText, Slider } from '@plocks/ui';
 
 export function Demo() {
   const [position, setPosition] = useState(0);

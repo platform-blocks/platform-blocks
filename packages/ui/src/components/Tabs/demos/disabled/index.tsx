@@ -1,62 +1,41 @@
 import { useState } from 'react';
-import { Block, Tabs, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Tabs, Text } from '@plocks/ui';
 
-const PANELS = [
+const ITEMS = [
   {
     key: 'overview',
     label: 'Overview',
-    body: 'High-level snapshot of product activity and health.'
+    content: <Text>High-level snapshot of product activity and health.</Text>
   },
   {
     key: 'analytics',
     label: 'Analytics',
-    body: 'Dive into usage metrics, adoption trends, and retention.'
+    content: <Text>Dive into usage metrics, adoption trends, and retention.</Text>
   },
   {
     key: 'billing',
     label: 'Billing',
-    body: 'Billing is temporarily disabled while invoices reconcile.',
+    content: <Text>Billing is temporarily disabled while invoices reconcile.</Text>,
     disabled: true
   },
   {
     key: 'settings',
     label: 'Settings',
-    body: 'Manage workspace preferences and security controls.'
+    content: <Text>Manage workspace preferences and security controls.</Text>
   }
 ];
 
 export function Demo() {
-  const theme = useTheme();
-  const [activeTab, setActiveTab] = useState('overview');
   const [lastAttempt, setLastAttempt] = useState<string | null>(null);
 
   return (
-    <Block>
-      <Tabs
-        activeTab={activeTab}
-        onTabChange={(tab) => {
-          setActiveTab(tab);
-          setLastAttempt(null);
-        }}
-        onDisabledTabPress={(key) => {
-          const label = PANELS.find((panel) => panel.key === key)?.label ?? key;
-          setLastAttempt(`${label} is currently disabled.`);
-        }}
-        variant="line"
-        size="md"
-        items={PANELS.map(({ body, ...panel }) => ({
-          ...panel,
-          content: (
-            <Block bg={theme.backgrounds.surface} borderColor={theme.backgrounds.border} radius="lg" p="md">
-              <Text>{body}</Text>
-            </Block>
-          )
-        }))}
-      />
-      <Text variant="small" color="muted">
-        Disable sensitive tabs while keeping the `onDisabledTabPress` callback to track attempted access.
-        {lastAttempt ? ` ${lastAttempt}` : ''}
-      </Text>
+    <Block fullWidth>
+      <Tabs items={ITEMS} onDisabledTabPress={setLastAttempt} />
+      {lastAttempt && (
+        <Text variant="small" c="muted">
+          Pressed disabled tab: {lastAttempt}
+        </Text>
+      )}
     </Block>
   );
 }

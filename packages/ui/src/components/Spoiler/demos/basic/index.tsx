@@ -1,27 +1,21 @@
-import { Block, Card, Spoiler, Text } from '@platform-blocks/ui';
+import { Block, Spoiler, Text } from '@plocks/ui';
 
 const paragraphs = [
   'Spoilers collapse long sections of copy while keeping the content accessible to screen readers and keyboard users.',
   'Use them for optional detail or secondary information that might distract from a primary task. They expand inline, so the surrounding layout stays stable.',
+  'They suit release notes, FAQ answers, long product descriptions, and legal terms: copy that most readers skim past but that some readers need to see in full before they make a decision.',
 ];
 
 export function Demo() {
   return (
-    <Card p="md">
-      <Block>
-        <Text size="sm" color="secondary">
-          Keep the initial height short to hint that more detail is available without overwhelming the layout.
-        </Text>
-        <Spoiler maxHeight={96}>
-          <Block>
-            {paragraphs.map((paragraph) => (
-              <Text key={paragraph} size="sm">
-                {paragraph}
-              </Text>
-            ))}
-          </Block>
-        </Spoiler>
-      </Block>
-    </Card>
+    <Block fullWidth>
+      <Spoiler mah={96}>
+        <Block>
+          {paragraphs.map((paragraph) => (
+            <Text key={paragraph}>{paragraph}</Text>
+          ))}
+        </Block>
+      </Spoiler>
+    </Block>
   );
 }

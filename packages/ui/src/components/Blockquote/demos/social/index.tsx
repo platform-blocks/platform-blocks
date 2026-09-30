@@ -1,4 +1,5 @@
-import { Block, Blockquote } from '@platform-blocks/ui';
+import { Block, Blockquote } from '@plocks/ui';
+import { BrandIcon } from '@plocks/brands';
 
 export function Demo() {
   return (
@@ -11,8 +12,8 @@ export function Demo() {
         }}
         source={{
           name: 'X (Twitter)',
-          brand: 'x',
-          url: 'https://x.com/platform-blocks',
+          icon: <BrandIcon brand="x" size="sm" />,
+          url: 'https://x.com/plocks_ui',
         }}
         date="3h"
         verified
@@ -29,11 +30,11 @@ export function Demo() {
         }}
         source={{
           name: 'LinkedIn',
-          brand: 'linkedin',
+          icon: <BrandIcon brand="linkedin" size="sm" />,
         }}
         date="1 day ago"
       >
-        Just finished testing the new Platform Blocks UI library. The component quality and developer experience is outstanding!
+        Just finished testing the new plocks UI library. The component quality and developer experience is outstanding!
       </Blockquote>
 
       <Blockquote
@@ -44,7 +45,7 @@ export function Demo() {
         }}
         source={{
           name: 'GitHub',
-          brand: 'github',
+          icon: <BrandIcon brand="github" size="sm" />,
         }}
         rating={{ value: 5, max: 5, showValue: true }}
         verified

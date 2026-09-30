@@ -1,5 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { Platform, AppState, AppStateStatus } from 'react-native';
+import { useEffect } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { hasDOM, isWeb } from '../../core/platform';
 
 export type KeyboardModifiers = {
   /** Whether the Alt key is pressed */
@@ -34,7 +36,7 @@ function parseHotkey(hotkey: string): { modifiers: KeyboardModifiers; key: strin
     switch (modifier) {
       case 'mod':
         // 'mod' maps to cmd on Mac, ctrl on others
-        if (Platform.OS === 'web' && typeof navigator !== 'undefined') {
+        if (isWeb && typeof navigator !== 'undefined') {
           const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
           if (isMac) {
             modifiers.meta = true;
@@ -85,52 +87,54 @@ function matchesHotkey(
 }
 
 // Main useHotkeys hook
-export function useHotkeys(
-  hotkeys: HotkeyItem[],
-  dependencies: React.DependencyList = []
-) {
-  const hotkeyRefs = useRef<HotkeyItem[]>([]);
-  
-  // Update refs when dependencies change
-  useEffect(() => {
-    hotkeyRefs.current = hotkeys;
-  }, dependencies);
+/**
+ * Document-level keyboard shortcuts (web; no-op on native).
+ *
+ * Handlers are always the latest ones passed — the listener is attached once
+ * and reads the current `hotkeys` on every keypress — so inline handlers never
+ * go stale and never cause re-subscription.
+ */
+export function useHotkeys(hotkeys: HotkeyItem[]) {
+  const handleKeyDown = useLatestCallback((event: KeyboardEvent) => {
+    // Don't trigger hotkeys when user is typing in input fields
+    const target = event.target as HTMLElement | null;
+    if (
+      target &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable ||
+        target.contentEditable === 'true')
+    ) {
+      // Exception: allow escape key to work in input fields
+      if (event.key !== 'Escape') {
+        return;
+      }
+    }
+
+    for (const [hotkeyString, handler, customModifiers] of hotkeys) {
+      const { modifiers, key } = parseHotkey(hotkeyString);
+      const finalModifiers = customModifiers || modifiers;
+
+      if (matchesHotkey(event, finalModifiers, key)) {
+        event.preventDefault();
+        event.stopPropagation();
+        handler(event);
+        break; // Only trigger first matching hotkey
+      }
+    }
+  });
 
   useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') {
+    if (!hasDOM) {
       return;
     }
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Don't trigger hotkeys when user is typing in input fields
-      const target = event.target as HTMLElement;
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.contentEditable === 'true'
-      ) {
-        // Exception: allow escape key to work in input fields
-        if (event.key !== 'Escape') {
-          return;
-        }
-      }
-
-      for (const [hotkeyString, handler, customModifiers] of hotkeyRefs.current) {
-        const { modifiers, key } = parseHotkey(hotkeyString);
-        const finalModifiers = customModifiers || modifiers;
-
-        if (matchesHotkey(event, finalModifiers, key)) {
-          event.preventDefault();
-          event.stopPropagation();
-          handler(event);
-          break; // Only trigger first matching hotkey
-        }
-      }
+    const listener = (event: KeyboardEvent) => {
+      handleKeyDown(event);
     };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+    document.addEventListener('keydown', listener);
+    return () => document.removeEventListener('keydown', listener);
+  }, [handleKeyDown]);
 }
 
 // Global hotkey manager
@@ -142,14 +146,14 @@ class GlobalHotkeyManager {
   private visibilityCleanup?: () => void;
 
   constructor() {
-    if (Platform.OS === 'web') {
-      if (typeof document !== 'undefined') {
+    if (isWeb) {
+      if (hasDOM) {
         this.currentAppState = document.hidden ? 'background' : 'active';
         const handleVisibility = () => {
           this.currentAppState = document.hidden ? 'background' : 'active';
           this.syncListening();
         };
-        document.addEventListener('visibilitychange', handleVisibility, { passive: true } as any);
+        document.addEventListener('visibilitychange', handleVisibility, { passive: true });
         this.visibilityCleanup = () => document.removeEventListener('visibilitychange', handleVisibility);
       }
     } else if (typeof AppState?.addEventListener === 'function') {
@@ -187,7 +191,7 @@ class GlobalHotkeyManager {
   }
 
   private syncListening() {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') {
+    if (!hasDOM) {
       return;
     }
 
@@ -229,7 +233,7 @@ class GlobalHotkeyManager {
   };
 
   dispose() {
-    if (Platform.OS === 'web' && typeof document !== 'undefined' && this.isListening) {
+    if (hasDOM && this.isListening) {
       document.removeEventListener('keydown', this.handleKeyDown);
       this.isListening = false;
     }
@@ -239,11 +243,12 @@ class GlobalHotkeyManager {
       this.visibilityCleanup = undefined;
     }
 
-    if (this.appStateSubscription) {
-      if (typeof (this.appStateSubscription as any)?.remove === 'function') {
-        (this.appStateSubscription as any).remove();
-      } else if (typeof this.appStateSubscription === 'function') {
-        (this.appStateSubscription as () => void)();
+    const subscription = this.appStateSubscription;
+    if (subscription) {
+      if (typeof subscription === 'function') {
+        subscription();
+      } else {
+        subscription.remove?.();
       }
       this.appStateSubscription = undefined;
     }
@@ -253,28 +258,36 @@ class GlobalHotkeyManager {
 export const globalHotkeys = new GlobalHotkeyManager();
 
 // Hook for global hotkeys that persist across component unmounts
-export function useGlobalHotkeys(id: string, hotkey: HotkeyItem) {
+/**
+ * Registers a shortcut with the global manager under `id` (one handler per id).
+ * The handler is always the latest one passed; the registration only changes
+ * when the id, key combination, modifiers or `enabled` change.
+ */
+export function useGlobalHotkeys(id: string, hotkey: HotkeyItem, enabled: boolean = true) {
+  const [combo, handler, modifiers, description] = hotkey;
+  const latestHandler = useLatestCallback(handler);
+  const modifiersKey = modifiers ? JSON.stringify(modifiers) : '';
+  const descriptionKey = description ? description.join('\u0000') : '';
+
   useEffect(() => {
-    globalHotkeys.register(id, hotkey);
+    if (!enabled) return undefined;
+    const parsedModifiers: KeyboardModifiers | undefined = modifiersKey ? JSON.parse(modifiersKey) : undefined;
+    const parsedDescription = descriptionKey ? descriptionKey.split('\u0000') : undefined;
+    globalHotkeys.register(id, [combo, (event) => { latestHandler(event); }, parsedModifiers, parsedDescription]);
     return () => globalHotkeys.unregister(id);
-  }, [id, hotkey[0], hotkey[1], hotkey[2], hotkey[3]]);
+  }, [id, combo, modifiersKey, descriptionKey, enabled, latestHandler]);
 }
 
 // Convenience hooks for common patterns
-export function useEscapeKey(handler: () => void, enabled = true) {
-  useHotkeys(
-    enabled ? [['escape', handler]] : [],
-    [handler, enabled]
-  );
-}
+
+// Escape is owned by the overlay layer stack (one listener, topmost layer
+// only); useEscapeKey is a layer, not a hotkey.
+export { useEscapeKey } from '../useEscapeKey/useEscapeKey';
 
 export function useToggleColorScheme(handler: () => void, enabled = true) {
-  useHotkeys(
-    enabled ? [['ctrl+j', handler]] : [],
-    [handler, enabled]
-  );
+  useHotkeys(enabled ? [['ctrl+j', handler]] : []);
 }
 
 export function useSpotlightToggle(handler: () => void, enabled = true) {
-  useGlobalHotkeys('spotlight-toggle', ['mod+k', handler]);
+  useGlobalHotkeys('spotlight-toggle', ['mod+k', handler], enabled);
 }

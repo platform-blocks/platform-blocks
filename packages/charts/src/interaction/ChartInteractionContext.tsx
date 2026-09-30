@@ -56,22 +56,6 @@ export interface InteractionConfig {
 }
 
 /**
- * Individual point within a registered series
- */
-export interface RegisteredSeriesPoint {
-  /** X coordinate in data space */
-  x: number;
-  /** Y coordinate in data space */
-  y: number;
-  /** Optional metadata associated with the point */
-  meta?: any;
-  /** Optional pixel X coordinate (relative to the chart container) */
-  pixelX?: number;
-  /** Optional pixel Y coordinate (relative to the chart container) */
-  pixelY?: number;
-}
-
-/**
  * Data series registered with the interaction provider
  */
 export interface RegisteredSeries {
@@ -81,8 +65,6 @@ export interface RegisteredSeries {
   name?: string;
   /** Color used to render the series */
   color?: string;
-  /** Data points belonging to the series */
-  points: RegisteredSeriesPoint[];
   /** Whether the series is currently visible */
   visible: boolean;
 }
@@ -139,9 +121,8 @@ export interface ChartVolatileState {
 /** Low-frequency ("stable") state — changes rarely (legend toggle, zoom, layout). */
 interface StableState {
   /**
-   * Series registry — now used purely for legend visibility (upserted by
-   * `updateSeriesVisibility`). `points` is vestigial (always `[]`); the legacy
-   * tooltip that consumed it was retired.
+   * Series registry used for legend visibility, upserted by
+   * `updateSeriesVisibility`.
    */
   series: RegisteredSeries[];
   /** Initial and current domains */
@@ -298,7 +279,7 @@ export const ChartInteractionProvider: React.FC<{ config?: InteractionConfig; ch
       if (idx === -1) {
         // Upsert a visibility-only entry so charts can drive legend toggles. Charts read
         // this back via `interaction.series`; `points` is unused (vestigial).
-        return { ...prev, series: [...prev.series, { id, visible, points: [] }] };
+        return { ...prev, series: [...prev.series, { id, visible }] };
       }
       if (prev.series[idx].visible === visible) return prev;
       return { ...prev, series: prev.series.map(s => s.id === id ? { ...s, visible } : s) };

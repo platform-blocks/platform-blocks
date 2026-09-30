@@ -1,0 +1,258 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Skeleton - rendering matches snapshot for avatar and chip placeholders 1`] = `
+<View
+  style={
+    {
+      "flexDirection": "row",
+      "gap": 12,
+    }
+  }
+>
+  <View
+    aria-hidden={true}
+    style={
+      [
+        {
+          "overflow": "hidden",
+        },
+        {
+          "backgroundColor": "#e0e0e0",
+          "borderRadius": 22,
+          "height": 44,
+          "width": 44,
+        },
+        {},
+        undefined,
+      ]
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "bottom": 0,
+            "end": 0,
+            "position": "absolute",
+            "start": 0,
+            "top": 0,
+          },
+          {
+            "borderRadius": 22,
+          },
+          {
+            "backgroundColor": "#cccccc",
+            "opacity": 0.3,
+          },
+        ]
+      }
+    />
+  </View>
+  <View
+    aria-hidden={true}
+    style={
+      [
+        {
+          "overflow": "hidden",
+        },
+        {
+          "backgroundColor": "#e0e0e0",
+          "borderRadius": 20,
+          "height": 40,
+          "width": 140,
+        },
+        {},
+        undefined,
+      ]
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "bottom": 0,
+            "end": 0,
+            "position": "absolute",
+            "start": 0,
+            "top": 0,
+          },
+          {
+            "borderRadius": 20,
+          },
+          {
+            "backgroundColor": "#cccccc",
+            "opacity": 0.3,
+          },
+        ]
+      }
+    />
+  </View>
+  <View
+    aria-hidden={true}
+    style={
+      [
+        {
+          "overflow": "hidden",
+        },
+        {
+          "backgroundColor": "#e0e0e0",
+          "borderRadius": 6,
+          "height": 32,
+          "width": 110,
+        },
+        {},
+        undefined,
+      ]
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "bottom": 0,
+            "end": 0,
+            "position": "absolute",
+            "start": 0,
+            "top": 0,
+          },
+          {
+            "borderRadius": 6,
+          },
+          {
+            "backgroundColor": "#cccccc",
+            "opacity": 0.3,
+          },
+        ]
+      }
+    />
+  </View>
+</View>
+`;
+
+exports[`Skeleton - rendering matches snapshot for stacked text placeholders 1`] = `
+<View>
+  <View
+    aria-hidden={true}
+    style={
+      [
+        {
+          "overflow": "hidden",
+        },
+        {
+          "backgroundColor": "#e0e0e0",
+          "borderRadius": 4,
+          "height": 12,
+          "width": "100%",
+        },
+        {
+          "marginTop": 8,
+        },
+        undefined,
+      ]
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "bottom": 0,
+            "end": 0,
+            "position": "absolute",
+            "start": 0,
+            "top": 0,
+          },
+          {
+            "borderRadius": 4,
+          },
+          {
+            "backgroundColor": "#cccccc",
+            "opacity": 0.3,
+          },
+        ]
+      }
+    />
+  </View>
+  <View
+    aria-hidden={true}
+    style={
+      [
+        {
+          "overflow": "hidden",
+        },
+        {
+          "backgroundColor": "#e0e0e0",
+          "borderRadius": 4,
+          "height": 12,
+          "width": "90%",
+        },
+        {
+          "marginTop": 4,
+        },
+        undefined,
+      ]
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "bottom": 0,
+            "end": 0,
+            "position": "absolute",
+            "start": 0,
+            "top": 0,
+          },
+          {
+            "borderRadius": 4,
+          },
+          {
+            "backgroundColor": "#cccccc",
+            "opacity": 0.3,
+          },
+        ]
+      }
+    />
+  </View>
+  <View
+    aria-hidden={true}
+    style={
+      [
+        {
+          "overflow": "hidden",
+        },
+        {
+          "backgroundColor": "#e0e0e0",
+          "borderRadius": 4,
+          "height": 12,
+          "width": "70%",
+        },
+        {
+          "marginTop": 4,
+        },
+        undefined,
+      ]
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "bottom": 0,
+            "end": 0,
+            "position": "absolute",
+            "start": 0,
+            "top": 0,
+          },
+          {
+            "borderRadius": 4,
+          },
+          {
+            "backgroundColor": "#cccccc",
+            "opacity": 0.3,
+          },
+        ]
+      }
+    />
+  </View>
+</View>
+`;

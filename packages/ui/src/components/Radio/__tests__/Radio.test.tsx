@@ -1,61 +1,12 @@
 import React from 'react';
-import { Text, View } from 'react-native';
-import { render, fireEvent } from '@testing-library/react-native';
+import { View } from 'react-native';
+import { render, fireEvent, configure } from '@testing-library/react-native';
 
 import { Radio, RadioGroup } from '../Radio';
 
-const mockTheme = {
-  colors: {
-    primary: ['#EDF2FF', '#DBE4FF', '#BAC8FF', '#91A7FF', '#748FFC', '#5C7CFA', '#4C6EF5', '#3B5BDB'],
-    secondary: ['#F8F9FA', '#F1F3F5', '#E9ECEF', '#DEE2E6', '#CED4DA', '#ADB5BD', '#868E96', '#495057'],
-    success: ['#EBF8EA', '#C6F6D5', '#9AE6B4', '#68D391', '#48BB78', '#38A169', '#2F855A', '#276749'],
-    warning: ['#FFF9DB', '#FFF3BF', '#FFEC99', '#FFE066', '#FFD43B', '#FCC419', '#FAB005', '#F59F00'],
-    error: ['#FFF5F5', '#FFE3E3', '#FFC9C9', '#FFA8A8', '#FF8787', '#FF6B6B', '#FA5252', '#F03E3E'],
-    gray: ['#F8F9FA', '#F1F3F5', '#E9ECEF', '#DEE2E6', '#CED4DA', '#ADB5BD', '#868E96', '#495057'],
-  },
-  text: {
-    primary: '#111111',
-    secondary: '#555555',
-    disabled: '#9CA3AF',
-  },
-  spacing: {
-    sm: '8',
-    md: '12',
-  },
-};
-
-jest.mock('../../../core/theme', () => {
-  const actual = jest.requireActual('../../../core/theme');
-  return {
-    ...actual,
-    useTheme: () => mockTheme,
-  };
-});
-
-jest.mock('../../../core/providers/DirectionProvider', () => ({
-  useDirection: () => ({ isRTL: false }),
-}));
-
-jest.mock('../../Text', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    Text: ({ children, ...rest }: any) => React.createElement(Text, rest, children),
-  };
-});
-
-jest.mock('../../_internal/FieldHeader', () => {
-  const React = require('react');
-  const { View, Text } = require('react-native');
-  return {
-    FieldHeader: ({ label, description }: any) => (
-      React.createElement(View, null,
-        typeof label === 'string' ? React.createElement(Text, { accessibilityRole: 'text' }, label) : label,
-        description ? React.createElement(Text, { accessibilityRole: 'text' }, description) : null
-      )
-    ),
-  };
-});
+// A radio's visual label is hidden from native screen readers (the control's
+// accessible name carries it), so text queries must include hidden elements.
+configure({ defaultIncludeHiddenElements: true });
 
 const mockIconSpy = jest.fn();
 
@@ -77,9 +28,7 @@ describe('Radio - behavior', () => {
 
   it('fires onChange when the control is pressed', () => {
     const handleChange = jest.fn();
-    const { getByRole } = render(
-      <Radio value="one" label="One" onChange={handleChange} />
-    );
+    const { getByRole } = render(<Radio value="one" label="One" onChange={handleChange} />);
 
     fireEvent.press(getByRole('radio'));
     expect(handleChange).toHaveBeenCalledWith('one');
@@ -87,63 +36,63 @@ describe('Radio - behavior', () => {
 
   it('invokes onChange when the label region is pressed', () => {
     const handleChange = jest.fn();
-    const { getByText } = render(
-      <Radio value="label" label="Notify me" onChange={handleChange} />
-    );
+    const { getByText, getAllByRole } = render(<Radio value="label" label="Notify me" onChange={handleChange} />);
 
     fireEvent.press(getByText('Notify me'));
     expect(handleChange).toHaveBeenCalledWith('label');
+    expect(getAllByRole('radio')).toHaveLength(1);
   });
 
   it('prevents presses when disabled', () => {
     const handleChange = jest.fn();
-    const { getByRole, getByText } = render(
-      <Radio value="off" label="Offline" onChange={handleChange} disabled />
-    );
+    const { getByRole, getByText } = render(<Radio value="off" label="Offline" onChange={handleChange} disabled />);
 
     fireEvent.press(getByRole('radio'));
     fireEvent.press(getByText('Offline'));
     expect(handleChange).not.toHaveBeenCalled();
   });
 
-  it('renders description helper text when no error', () => {
+  it('renders description text', () => {
     const { getByText } = render(
-      <Radio
-        value="help"
-        label="Helpful"
-        description="Small hint"
-        onChange={() => {}}
-      />
+      <Radio value="help" label="Helpful" description="Small hint" onChange={() => {}} />
     );
 
     expect(getByText('Small hint')).toBeTruthy();
   });
 
-  it('renders error helper text when provided', () => {
-    const { getByText } = render(
-      <Radio
-        value="help"
-        label="Helpful"
-        error="Required"
-        onChange={() => {}}
-      />
-    );
+  it('renders error text when provided', () => {
+    const { getByText } = render(<Radio value="help" label="Helpful" error="Required" onChange={() => {}} />);
 
     expect(getByText('Required')).toBeTruthy();
   });
 
-  it('renders supplied icon prop when string provided', () => {
-    const { getByTestId } = render(
-      <Radio value="icon" label="Icon option" icon="star" onChange={() => {}} />
-    );
+  it('renders the icon prop when a registry name is given', () => {
+    const { getByTestId } = render(<Radio value="icon" label="Icon option" icon="star" onChange={() => {}} />);
 
     expect(getByTestId('icon-star')).toBeTruthy();
     expect(mockIconSpy).toHaveBeenCalledWith(expect.objectContaining({ name: 'star' }));
   });
+
+  it('reports its checked state', () => {
+    const { getByRole } = render(<Radio value="a" label="A" checked />);
+    expect(getByRole('radio', { checked: true, name: 'A' })).toBeTruthy();
+  });
+
+  it('applies spacing props to its root', () => {
+    const { toJSON } = render(<Radio value="a" label="A" mb={16} />);
+    const root = toJSON() as { props: { style?: unknown } };
+    expect(require('react-native').StyleSheet.flatten(root.props.style)).toMatchObject({ marginBottom: 16 });
+  });
 });
 
+const findRadiogroup = (api: ReturnType<typeof render>) => {
+  const node = api.UNSAFE_getAllByType(View).find((instance) => instance.props.role === 'radiogroup');
+  if (!node) throw new Error('radiogroup view not found');
+  return node;
+};
+
 describe('RadioGroup - behavior', () => {
-  it('calls onChange with option value', () => {
+  it('calls onChange with the option value', () => {
     const handleChange = jest.fn();
     const { getByTestId } = render(
       <RadioGroup
@@ -159,6 +108,26 @@ describe('RadioGroup - behavior', () => {
 
     fireEvent.press(getByTestId('plan-group-option-1'));
     expect(handleChange).toHaveBeenCalledWith('pro');
+  });
+
+  it('works uncontrolled from defaultValue', () => {
+    const handleChange = jest.fn();
+    const { getAllByRole, getByTestId } = render(
+      <RadioGroup
+        defaultValue="basic"
+        onChange={handleChange}
+        options={[
+          { label: 'Basic', value: 'basic' },
+          { label: 'Pro', value: 'pro' },
+        ]}
+        testID="plan"
+      />
+    );
+
+    expect(getAllByRole('radio', { checked: true })).toHaveLength(1);
+    fireEvent.press(getByTestId('plan-option-1'));
+    expect(handleChange).toHaveBeenCalledWith('pro');
+    expect(getAllByRole('radio')[1].props.accessibilityState.checked).toBe(true);
   });
 
   it('respects disabled options', () => {
@@ -179,8 +148,8 @@ describe('RadioGroup - behavior', () => {
     expect(handleChange).not.toHaveBeenCalled();
   });
 
-  it('exposes radiogroup accessibility role and label when label is string', () => {
-    const { UNSAFE_getAllByType } = render(
+  it('exposes the radiogroup role, named by its label', () => {
+    const api = render(
       <RadioGroup
         label="Choose plan"
         value="basic"
@@ -191,16 +160,11 @@ describe('RadioGroup - behavior', () => {
       />
     );
 
-    const viewNodes = UNSAFE_getAllByType(View);
-    const radiogroup = viewNodes.find(node => node.props.accessibilityRole === 'radiogroup');
-    if (!radiogroup) {
-      throw new Error('radiogroup view not found');
-    }
-    expect(radiogroup.props.accessibilityLabel).toBe('Choose plan');
-    expect(radiogroup.props.accessibilityRole).toBe('radiogroup');
+    const radiogroup = findRadiogroup(api);
+    expect(radiogroup.props.accessibilityLabel ?? radiogroup.props['aria-label']).toBe('Choose plan');
   });
 
-  it('sets checked and disabled accessibility state on child radios', () => {
+  it('sets checked and disabled state on child radios', () => {
     const { getAllByRole } = render(
       <RadioGroup
         value="pro"
@@ -220,12 +184,7 @@ describe('RadioGroup - behavior', () => {
 
   it('renders a visual asterisk for required groups', () => {
     const { getByText } = render(
-      <RadioGroup
-        label="Choose plan"
-        required
-        value="basic"
-        options={[{ label: 'Basic', value: 'basic' }]}
-      />
+      <RadioGroup label="Choose plan" required value="basic" options={[{ label: 'Basic', value: 'basic' }]} />
     );
 
     expect(getByText(/Choose plan/)).toBeTruthy();
@@ -255,6 +214,34 @@ describe('RadioGroup - behavior', () => {
     expect(handleChange).toHaveBeenCalledWith('pro');
   });
 
+  it('keeps moving on repeated arrow presses (focus follows the selection)', () => {
+    const handleChange = jest.fn();
+    const Controlled = () => {
+      const [value, setValue] = React.useState('a');
+      return (
+        <RadioGroup
+          value={value}
+          onChange={(next) => {
+            handleChange(next);
+            setValue(next);
+          }}
+          options={[
+            { label: 'A', value: 'a' },
+            { label: 'B', value: 'b' },
+            { label: 'C', value: 'c' },
+          ]}
+        />
+      );
+    };
+    const { getAllByRole } = render(<Controlled />);
+
+    fireEvent(getAllByRole('radio')[0], 'keyDown', { nativeEvent: { key: 'ArrowDown' } });
+    fireEvent(getAllByRole('radio')[1], 'keyDown', { nativeEvent: { key: 'ArrowDown' } });
+    fireEvent(getAllByRole('radio')[2], 'keyDown', { nativeEvent: { key: 'ArrowDown' } });
+
+    expect(handleChange.mock.calls.map(([value]) => value)).toEqual(['b', 'c', 'a']);
+  });
+
   it('skips disabled options when navigating with arrow keys', () => {
     const handleChange = jest.fn();
     const { getAllByRole } = render(
@@ -274,5 +261,18 @@ describe('RadioGroup - behavior', () => {
     });
 
     expect(handleChange).toHaveBeenCalledWith('enterprise');
+  });
+
+  it('shows helper text and error through the field frame', () => {
+    const { getByText, queryByText, rerender } = render(
+      <RadioGroup label="Plan" helperText="Pick one" options={[{ label: 'Basic', value: 'basic' }]} />
+    );
+    expect(getByText('Pick one')).toBeTruthy();
+
+    rerender(
+      <RadioGroup label="Plan" helperText="Pick one" error="Required" options={[{ label: 'Basic', value: 'basic' }]} />
+    );
+    expect(getByText('Required')).toBeTruthy();
+    expect(queryByText('Pick one')).toBeNull();
   });
 });

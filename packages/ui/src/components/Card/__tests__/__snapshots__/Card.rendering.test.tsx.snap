@@ -1,0 +1,159 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Card - rendering matches snapshot for filled card with vertical stack 1`] = `
+<View
+  style={
+    [
+      {
+        "position": "relative",
+      },
+      {
+        "padding": 12,
+      },
+      undefined,
+      {
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 6,
+      },
+      undefined,
+      {
+        "elevation": 1,
+        "shadowColor": "rgb(16, 24, 40)",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 1,
+      },
+      {
+        "paddingBottom": 16,
+        "paddingEnd": 16,
+        "paddingStart": 16,
+        "paddingTop": 16,
+      },
+      {},
+      {
+        "gap": 8,
+      },
+    ]
+  }
+  testID="filled-card"
+>
+  <Text
+    accessibilityRole="header"
+  >
+    Project Alpha
+  </Text>
+  <Text>
+    Craft delightful experiences with plocks components.
+  </Text>
+</View>
+`;
+
+exports[`Card - rendering matches snapshot for gradient showcase within container 1`] = `
+<View
+  style={
+    {
+      "padding": 24,
+    }
+  }
+>
+  <View
+    style={
+      [
+        {
+          "position": "relative",
+        },
+        {
+          "padding": 12,
+        },
+        undefined,
+        {
+          "backgroundColor": "#6366F1",
+          "borderRadius": 8,
+        },
+        {
+          "overflow": "hidden",
+        },
+        {
+          "elevation": 4,
+          "shadowColor": "rgb(16, 24, 40)",
+          "shadowOffset": {
+            "height": 4,
+            "width": 0,
+          },
+          "shadowOpacity": 0.1,
+          "shadowRadius": 3,
+        },
+        {},
+        {},
+        {
+          "minHeight": 120,
+        },
+      ]
+    }
+    testID="gradient-card"
+  >
+    <View
+      colors={
+        [
+          "#6366F1",
+          "#4338CA",
+        ]
+      }
+      end={
+        {
+          "x": 1,
+          "y": 1,
+        }
+      }
+      pointerEvents="none"
+      start={
+        {
+          "x": 0,
+          "y": 0,
+        }
+      }
+      style={
+        [
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          },
+          {
+            "borderRadius": 8,
+          },
+          {
+            "zIndex": -1,
+          },
+        ]
+      }
+      testID="card-gradient"
+    />
+    <Text
+      accessibilityRole="header"
+      style={
+        {
+          "color": "#FFFFFF",
+          "fontWeight": "600",
+        }
+      }
+    >
+      Inspiration Mode
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#EEF2FF",
+        }
+      }
+    >
+      Blend gradients and shadows for elevated storytelling layouts.
+    </Text>
+  </View>
+</View>
+`;

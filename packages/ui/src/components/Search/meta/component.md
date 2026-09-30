@@ -5,4 +5,5 @@ title: Search
 category: input
 tags: [search, input, filter, debounce]
 ---
-The Search component provides a search input with debouncing, loading states, and customizable clear functionality.
+
+Search provides a text field with debouncing, loading feedback, and a clear control.

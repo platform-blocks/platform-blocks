@@ -1,4 +1,5 @@
-import type { PlatformBlocksTheme } from '../../core/theme/types';
+import { literalBackgrounds, literalText } from '../../core/theme/cssVariableTheme';
+import type { PlocksTheme } from '../../core/theme/types';
 import type { KnobAppearance, KnobVariant } from './types';
 
 /**
@@ -11,7 +12,7 @@ import type { KnobAppearance, KnobVariant } from './types';
  * so any single property can still be overridden without opting out of the variant.
  */
 export type KnobVariantContext = {
-  theme: PlatformBlocksTheme;
+  theme: PlocksTheme;
   /** Resolved diameter in pixels — every metric below scales off it. */
   size: number;
   /** The already-resolved highlight color for this knob. */
@@ -20,6 +21,21 @@ export type KnobVariantContext = {
 };
 
 const scale = (size: number, ratio: number, min: number) => Math.max(min, Math.round(size * ratio));
+
+/**
+ * The neutral chrome the presets draw with — semantic roles, read as literals
+ * because they end up as SVG strokes (on web the tokens are `var()` references).
+ */
+const chrome = (theme: PlocksTheme) => {
+  const text = literalText(theme);
+  const lines = literalBackgrounds(theme);
+  return {
+    track: lines.borderStrong ?? lines.border,
+    strongLine: text.disabled,
+    muted: text.muted,
+    body: text.secondary,
+  };
+};
 
 /** Segments in the `digital` collar — a 7-bit ladder, dense enough to read as continuous. */
 const DIGITAL_SEGMENT_COUNT = 128;
@@ -36,8 +52,8 @@ const VARIANT_BUILDERS: Record<Exclude<KnobVariant, 'default'>, KnobVariantBuild
     fill: { color: 'transparent' },
     ring: {
       thickness: scale(size, 0.022, 2),
-      color: theme.colors.gray[2],
-      trailColor: theme.colors.gray[2],
+      color: chrome(theme).track,
+      trailColor: chrome(theme).track,
       cap: 'round',
     },
     progress: { mode: 'contiguous', color: accentColor, roundedCaps: true },
@@ -55,8 +71,8 @@ const VARIANT_BUILDERS: Record<Exclude<KnobVariant, 'default'>, KnobVariantBuild
     fill: { color: 'transparent' },
     ring: {
       thickness: scale(size, 0.06, 4),
-      color: theme.colors.gray[2],
-      trailColor: theme.colors.gray[2],
+      color: chrome(theme).track,
+      trailColor: chrome(theme).track,
       cap: 'butt',
     },
     progress: { mode: 'contiguous', color: accentColor, roundedCaps: false },
@@ -71,7 +87,7 @@ const VARIANT_BUILDERS: Record<Exclude<KnobVariant, 'default'>, KnobVariantBuild
       length: scale(size, 0.05, 4),
       width: 1,
       color: accentColor,
-      inactiveColor: theme.colors.gray[2],
+      inactiveColor: chrome(theme).track,
       // Lights everything up to the value, the way a meter fills.
       activeMode: 'fill',
     },
@@ -91,15 +107,15 @@ const VARIANT_BUILDERS: Record<Exclude<KnobVariant, 'default'>, KnobVariantBuild
    */
   retro: ({ theme, size, accentColor }) => ({
     fill: {
-      color: theme.colors.gray[7],
+      color: chrome(theme).body,
       borderWidth: Math.max(2, Math.round(size * 0.015)),
-      borderColor: theme.colors.gray[5],
+      borderColor: chrome(theme).muted,
       radiusOffset: -scale(size, 0.035, 3),
     },
     ring: {
       thickness: scale(size, 0.03, 2),
-      color: theme.colors.gray[4],
-      trailColor: theme.colors.gray[3],
+      color: chrome(theme).muted,
+      trailColor: chrome(theme).strongLine,
       cap: 'round',
     },
     progress: false,
@@ -119,7 +135,7 @@ const VARIANT_BUILDERS: Record<Exclude<KnobVariant, 'default'>, KnobVariantBuild
       width: 2,
       radiusOffset: scale(size, 0.02, 2),
       color: accentColor,
-      inactiveColor: theme.colors.gray[4],
+      inactiveColor: chrome(theme).muted,
       activeMode: 'nearest',
     },
   }),
@@ -132,8 +148,8 @@ const VARIANT_BUILDERS: Record<Exclude<KnobVariant, 'default'>, KnobVariantBuild
     fill: { color: 'transparent' },
     ring: {
       thickness: scale(size, 0.075, 5),
-      color: theme.colors.gray[2],
-      trailColor: theme.colors.gray[2],
+      color: chrome(theme).track,
+      trailColor: chrome(theme).track,
       cap: 'round',
     },
     progress: { mode: 'contiguous', color: accentColor, roundedCaps: true },

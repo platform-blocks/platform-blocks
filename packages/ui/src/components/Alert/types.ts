@@ -1,20 +1,25 @@
-import React from 'react';
-import { View, ViewStyle, StyleProp } from 'react-native';
-import { SpacingProps } from '../../core/utils';
-import { BorderRadiusProps } from '../../core/theme/radius';
+import type React from 'react';
+import type { View, ViewStyle } from 'react-native';
+import type { BaseProps } from '../../core/types/base';
+import type { RadiusValue } from '../../core/theme/radius';
 import type { ThemeColor } from '../../core/theme/resolveColors';
 import type { TextProps } from '../Text';
 
 export type AlertVariant = 'light' | 'filled' | 'outline' | 'subtle';
 export type AlertSeverity = 'info' | 'success' | 'warning' | 'error';
 
-export interface AlertProps extends SpacingProps, BorderRadiusProps {
+export interface AlertProps extends BaseProps<ViewStyle> {
   variant?: AlertVariant;
+  /**
+   * Accent color. Without a `severity`, `error` / `warning` colors also make the
+   * alert urgent (`role="alert"`); every other color is a polite `role="status"`.
+   */
   color?: ThemeColor;
   /**
-   * Severity helper — sets both the color and the default icon
-   * (`info | success | warning | error`). More than a color: prefer it over
-   * `color` when the alert carries a status, so the icon comes with it.
+   * Severity helper — sets the color, the default icon, and the live-region
+   * urgency: `error` / `warning` render `role="alert"` (and are announced on
+   * mount on native), `info` / `success` render `role="status"`. Prefer it over
+   * `color` when the alert carries a status.
    */
   severity?: AlertSeverity;
   title?: string;
@@ -22,11 +27,12 @@ export interface AlertProps extends SpacingProps, BorderRadiusProps {
   icon?: React.ReactNode | string | null | false;
   fullWidth?: boolean;
   withCloseButton?: boolean;
+  /** Accessible name of the close button. @default 'Close' */
   closeButtonLabel?: string;
   onClose?: () => void;
-  style?: StyleProp<ViewStyle>;
-  testID?: string;
-  /** Override props applied to the title `<Text>` (style, weight, ff, size, color). */
+  /** Corner radius: theme radius token, px, `'none'` or `'full'`. @default 'md' */
+  radius?: RadiusValue;
+  /** Override props applied to the title `<Text>` (style, fw, ff, size, c). */
   titleProps?: Omit<TextProps, 'children'>;
   /** Override props applied to the body `<Text>` (the `children` content). */
   bodyProps?: Omit<TextProps, 'children'>;

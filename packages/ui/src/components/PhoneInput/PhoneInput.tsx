@@ -1,11 +1,14 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
-  Platform,
   Pressable,
   type NativeSyntheticEvent,
   type TextInput,
   type TextInputSelectionChangeEventData
 } from 'react-native';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { getNodeText } from '../../core/accessibility/useA11yId';
+import { factory } from '../../core/factory/factory';
+import { isWeb } from '../../core/platform';
 import {
   PhoneChangeMeta,
   PhoneCountryCode,
@@ -18,7 +21,7 @@ import { Text } from '../Text';
 import { Icon } from '../Icon';
 import { Menu, MenuDropdown, MenuItem } from '../Menu';
 import { createMask, type Mask } from '../../hooks/useMaskedInput/utils/mask';
-import { useControllableState } from '../../hooks/useControllableState';
+import { useControllableState } from '../../hooks/useControllableState/useControllableState';
 
 /**
  * Built-in country presets.
@@ -184,7 +187,14 @@ function toE164(national: string, format: PhoneFormat): string {
   return `+${onlyDigits(format.countryCode)}${significant}`;
 }
 
-export const PhoneInput = React.forwardRef<TextInput, PhoneInputProps>((props, ref) => {
+const defaultCountryPickerLabel = (countryName: string) => `Country: ${countryName}. Change country`;
+
+/**
+ * Phone number field that masks the national number for the selected country,
+ * shows the dial code (optionally as a country picker) and reports digits,
+ * formatted text and E.164 on change. `ref` points at the TextInput.
+ */
+export const PhoneInput = factory<{ props: PhoneInputProps; ref: TextInput }>((props, ref) => {
   const {
     value,
     defaultValue,
@@ -201,6 +211,7 @@ export const PhoneInput = React.forwardRef<TextInput, PhoneInputProps>((props, r
     endSection,
     size = 'md',
     textInputProps,
+    countryPickerLabel = defaultCountryPickerLabel,
     ...base
   } = props;
 
@@ -243,7 +254,8 @@ export const PhoneInput = React.forwardRef<TextInput, PhoneInputProps>((props, r
     value: normalizeExternal(value),
     defaultValue: normalizeExternal(defaultValue),
     finalValue: '',
-    onChange: onChange as ((value: string, ...payload: any[]) => void) | undefined
+    // setNationalDigits(digits, formatted, meta) forwards both payload arguments.
+    onChange: onChange as ((value: string, ...payload: unknown[]) => void) | undefined
   });
 
   /**
@@ -370,7 +382,7 @@ export const PhoneInput = React.forwardRef<TextInput, PhoneInputProps>((props, r
   const dialCodeLabel = useMemo(() => {
     if (!dialCodeText) return null;
     return (
-      <Text size="sm" weight="semibold" color="secondary">
+      <Text size="sm" fw="semibold" c="secondary">
         {dialCodeText}
       </Text>
     );
@@ -382,12 +394,16 @@ export const PhoneInput = React.forwardRef<TextInput, PhoneInputProps>((props, r
     return (
       <Menu position="bottom-start" offset={4}>
         <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Country: ${currentFormat.name}. Change country`}
+          {...a11yProps({
+            role: 'button',
+            label: countryPickerLabel(currentFormat.name),
+            hasPopup: 'menu',
+            disabled: base.disabled,
+          })}
           disabled={base.disabled}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 24 }}
         >
-          <Text size="sm" weight="semibold" color="secondary">
+          <Text size="sm" fw="semibold" c="secondary">
             {dialCodeText || currentFormat.name}
           </Text>
           <Icon name="chevron-down" size={12} />
@@ -410,7 +426,8 @@ export const PhoneInput = React.forwardRef<TextInput, PhoneInputProps>((props, r
     dialCodeText,
     currentFormat,
     base.disabled,
-    handleCountrySelect
+    handleCountrySelect,
+    countryPickerLabel
   ]);
 
   const startSectionContent = useMemo(() => {
@@ -426,6 +443,12 @@ export const PhoneInput = React.forwardRef<TextInput, PhoneInputProps>((props, r
     );
   }, [countryPicker, startSection]);
 
+  // Without a visible label, name the field by what it is; with one, the label names it.
+  const hasLabel = getNodeText(base.label) !== '';
+  const fallbackAccessibilityLabel = dialCodeText
+    ? `Phone number, ${currentFormat.name}, country code ${dialCodeText}`
+    : `Phone number, ${currentFormat.name}`;
+
   return (
     <TextInputBase
       ref={ref}
@@ -433,26 +456,20 @@ export const PhoneInput = React.forwardRef<TextInput, PhoneInputProps>((props, r
       value={displayValue}
       onChangeText={handleChangeText}
       placeholder={effectivePlaceholder}
-      size={size as any}
+      size={size}
       startSection={startSectionContent}
       endSection={endSection}
       textInputProps={{
         keyboardType: 'phone-pad',
         autoComplete: 'tel',
         textContentType: 'telephoneNumber',
-        ...(Platform.OS === 'web' ? { inputMode: 'tel' as const } : null),
+        ...(isWeb ? { inputMode: 'tel' as const } : null),
         ...textInputProps,
         selection,
         onSelectionChange: handleSelectionChange
       }}
-      accessibilityLabel={
-        base.accessibilityLabel ||
-        (dialCodeText
-          ? `Phone number, ${currentFormat.name}, country code ${dialCodeText}`
-          : `Phone number, ${currentFormat.name}`)
-      }
+      accessibilityLabel={base.accessibilityLabel ?? (hasLabel ? undefined : fallbackAccessibilityLabel)}
     />
   );
-});
+}, { displayName: 'PhoneInput' });
 
-PhoneInput.displayName = 'PhoneInput';

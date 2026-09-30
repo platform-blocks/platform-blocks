@@ -43,7 +43,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, multiTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <ComboChart layers={LAYERS} width={480} height={320} />
+        <ComboChart layers={LAYERS} w={480} h={320} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );

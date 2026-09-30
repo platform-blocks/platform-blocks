@@ -1,57 +1,25 @@
-import { ViewStyle, DimensionValue } from 'react-native';
-import { SizeValue, getSpacing } from '../../core/theme/sizes';
-import { DESIGN_TOKENS } from '../../core/design-tokens';
+import type { DimensionValue, ViewStyle } from 'react-native';
+
+import { resolveRadius, resolveShadow, resolveSpacing } from '../../core/theme/tokens';
+import type { PlocksTheme } from '../../core/theme/types';
 import type { BlockStyleProps } from './types';
 
-/**
- * Maps radius values to numeric pixels
- */
-export function getRadius(radius: BlockStyleProps['radius']): number | undefined {
+type ThemeLike = Partial<PlocksTheme> | null | undefined;
+
+/** Radius prop → px, resolved against `theme.radii`. */
+export function blockRadius(radius: BlockStyleProps['radius'], theme?: ThemeLike): number | undefined {
   if (radius === undefined) return undefined;
-  if (typeof radius === 'number') return radius;
-  
-  const radiusMap = {
-    xs: DESIGN_TOKENS.radius.xs,
-    sm: DESIGN_TOKENS.radius.sm,
-    md: DESIGN_TOKENS.radius.md,
-    lg: DESIGN_TOKENS.radius.lg,
-    xl: DESIGN_TOKENS.radius.xl,
-    full: DESIGN_TOKENS.radius.full,
-  };
-  
-  return radiusMap[radius];
+  return resolveRadius(theme, radius);
 }
 
-/**
- * Maps shadow values to shadow styles
- */
-export function getShadow(shadow: BlockStyleProps['shadow']) {
+/** `shadow` token → the theme's cross-platform shadow style. */
+export function blockShadow(shadow: BlockStyleProps['shadow'], theme?: ThemeLike): ViewStyle {
   if (shadow === undefined) return {};
-  
-  const shadowValue = typeof shadow === 'number' ? shadow : getShadowLevel(shadow);
-  const opacity = 0.1 + (shadowValue * 0.05);
-  
-  return {
-    boxShadow: `0 ${shadowValue}px ${shadowValue * 2}px rgba(0, 0, 0, ${opacity})`,
-    elevation: shadowValue * 2, // Android elevation
-  };
+  return resolveShadow(theme, shadow);
 }
 
-function getShadowLevel(shadow: string): number {
-  const shadowMap = {
-    xs: 1,
-    sm: 2,
-    md: 3,
-    lg: 4,
-    xl: 5,
-  };
-  return shadowMap[shadow as keyof typeof shadowMap] || 0;
-}
-
-/**
- * Maps width/height values to styles
- */
-export function getDimension(value: BlockStyleProps['w']): DimensionValue | undefined {
+/** Basis / inset prop → a DimensionValue (`'full'` = 100%). */
+export function getDimension(value: number | string | undefined): DimensionValue | undefined {
   if (value === undefined) return undefined;
   if (typeof value === 'number') return value;
   if (value === 'auto') return 'auto';
@@ -59,13 +27,12 @@ export function getDimension(value: BlockStyleProps['w']): DimensionValue | unde
   return value as DimensionValue;
 }
 
-/**
- * Maps gap values to numeric spacing
- */
-export function getGap(gap: BlockStyleProps['gap']): number | undefined {
+/** Gap prop → px, resolved against `theme.spacing`. */
+export function blockGap(gap: BlockStyleProps['gap'], theme?: ThemeLike): number | undefined {
   if (gap === undefined) return undefined;
   if (typeof gap === 'number') return gap;
-  return getSpacing(gap as SizeValue);
+  const resolved = resolveSpacing(theme, gap);
+  return typeof resolved === 'number' ? resolved : undefined;
 }
 
 function resolveFlexWrap(wrap: BlockStyleProps['wrap']): ViewStyle['flexWrap'] | undefined {
@@ -77,27 +44,40 @@ function resolveFlexWrap(wrap: BlockStyleProps['wrap']): ViewStyle['flexWrap'] |
 }
 
 /**
- * Converts Block style props to React Native ViewStyle
+ * Converts Block layout props to a React Native style. The box props (`w`,
+ * `bg`, `opacity`, …) are not handled here: they resolve with the spacing
+ * props through `useStyleProps`.
+ *
+ * `start` / `end` are logical insets (mirrored in right-to-left layouts by
+ * React Native and react-native-web); `left` / `right` are physical.
  */
-export function getBlockStyles(props: BlockStyleProps, isRTL: boolean = false): ViewStyle {
+export function getBlockStyles(props: BlockStyleProps, theme?: ThemeLike): ViewStyle {
   const {
-    bg,
     radius,
     borderWidth,
     borderColor,
+    borderTopWidth,
+    borderRightWidth,
+    borderBottomWidth,
+    borderLeftWidth,
+    borderTopColor,
+    borderRightColor,
+    borderBottomColor,
+    borderLeftColor,
+    borderTopLeftRadius,
+    borderTopRightRadius,
+    borderStyle,
+    overflow,
+    aspectRatio,
+    translateY,
+    rotate,
     shadow,
-    opacity,
-    w,
-    h,
-    minW,
-    minH,
-    maxW,
-    maxH,
     grow,
     shrink,
     basis,
     direction,
     align,
+    alignSelf,
     justify,
     wrap,
     gap,
@@ -106,71 +86,64 @@ export function getBlockStyles(props: BlockStyleProps, isRTL: boolean = false): 
     right,
     bottom,
     left,
+    inset,
     start,
     end,
     zIndex,
     flex,
   } = props;
 
-  // Handle RTL-aware positioning
-  // Priority: start/end > left/right (start/end are logical properties)
-  let resolvedLeft = left;
-  let resolvedRight = right;
-  
-  if (start !== undefined || end !== undefined) {
-    // start/end take precedence
-    if (isRTL) {
-      resolvedRight = start !== undefined ? start : resolvedRight;
-      resolvedLeft = end !== undefined ? end : resolvedLeft;
-    } else {
-      resolvedLeft = start !== undefined ? start : resolvedLeft;
-      resolvedRight = end !== undefined ? end : resolvedRight;
-    }
-  } else if (isRTL && (left !== undefined || right !== undefined)) {
-    // Swap left and right in RTL if start/end not provided
-    const temp = resolvedLeft;
-    resolvedLeft = resolvedRight;
-    resolvedRight = temp;
-  }
-
-  return {
-    // Background & appearance
-    backgroundColor: bg,
-    borderRadius: getRadius(radius),
+  const style: ViewStyle = {
+    // Appearance
+    borderRadius: blockRadius(radius, theme),
     borderWidth,
     borderColor,
-    opacity,
-    
+    borderTopWidth,
+    borderRightWidth,
+    borderBottomWidth,
+    borderLeftWidth,
+    borderTopColor,
+    borderRightColor,
+    borderBottomColor,
+    borderLeftColor,
+    borderTopLeftRadius,
+    borderTopRightRadius,
+    borderStyle,
+    overflow,
+    aspectRatio,
+    transform: translateY === undefined && rotate === undefined
+      ? undefined
+      : [...(translateY === undefined ? [] : [{ translateY }]), ...(rotate === undefined ? [] : [{ rotate }])],
+
     // Shadow
-    ...getShadow(shadow),
-    
-    // Dimensions
-    width: getDimension(w),
-    height: getDimension(h),
-    minWidth: getDimension(minW),
-    minHeight: getDimension(minH),
-    maxWidth: getDimension(maxW),
-    maxHeight: getDimension(maxH),
-    
+    ...blockShadow(shadow, theme),
+
     // Flex properties
-    ...(flex !== false && {
-      display: 'flex',
-    }),
+    ...(flex !== false && { display: 'flex' as const }),
     flexGrow: typeof grow === 'boolean' ? (grow ? 1 : 0) : grow,
+    ...(typeof flex === 'number' && { flex }),
     flexShrink: typeof shrink === 'boolean' ? (shrink ? 1 : 0) : shrink,
     flexBasis: getDimension(basis),
     flexDirection: direction,
     alignItems: align,
+    alignSelf,
     justifyContent: justify,
-  flexWrap: resolveFlexWrap(wrap),
-    gap: getGap(gap),
-    
-    // Position (RTL-aware)
+    flexWrap: resolveFlexWrap(wrap),
+    gap: blockGap(gap, theme),
+
+    // Position
     position,
-    top: getDimension(top),
-    right: getDimension(resolvedRight),
-    bottom: getDimension(bottom),
-    left: getDimension(resolvedLeft),
+    top: getDimension(top ?? inset),
+    right: getDimension(right ?? inset),
+    bottom: getDimension(bottom ?? inset),
+    left: getDimension(left ?? inset),
+    start: getDimension(start),
+    end: getDimension(end),
     zIndex,
   };
+
+  if (props.touchAction) {
+    (style as ViewStyle & { touchAction: BlockStyleProps['touchAction'] }).touchAction = props.touchAction;
+  }
+  return style;
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Knob } from '@platform-blocks/ui';
+import { Block, Knob } from '@plocks/ui';
 
 const ZONES = [
   { value: 60, color: '#22c55e' },
@@ -12,7 +12,7 @@ export function Demo() {
 
   return (
     <Block align="center">
-      <Knob
+      <Knob accessibilityLabel="Load"
         value={load}
         onChange={setLoad}
         variant="minimal"

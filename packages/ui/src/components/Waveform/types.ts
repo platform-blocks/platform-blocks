@@ -1,9 +1,8 @@
-import React from 'react';
-import { ViewStyle } from 'react-native';
-import { SizeValue, ColorValue, SpacingProps } from '../../core/theme/types';
-import type { ComponentSizeValue } from '../../core/theme/componentSize';
+import type { ViewProps, ViewStyle } from 'react-native';
 
-import type { ViewProps } from 'react-native';
+import type { BaseProps } from '../../core/types/base';
+import type { SizeValue } from '../../core/theme/types';
+import type { ComponentSizeValue } from '../../core/theme/componentSize';
 
 /** Metrics a single `size` token resolves to. */
 export interface WaveformSizeMetrics {
@@ -21,12 +20,16 @@ export interface WaveformSizeMetrics {
   labelFontSize: number;
 }
 
-export interface WaveformProps extends Omit<ViewProps, 'children'> {
+/**
+ * Waveform props. Extra React Native `View` props (`onLayout`, `pointerEvents`,
+ * web `onKeyDown`, ...) pass through to the root view.
+ */
+export interface WaveformProps extends BaseProps<ViewStyle>, Omit<ViewProps, 'children' | 'style' | 'testID'> {
   /** Array of peak values (normalized between -1 and 1) */
   peaks: number[];
-  /** Width of the waveform */
+  /** Width in px; it sets the drawing's geometry. Use `fullWidth` to fill the parent. @default 300 */
   w?: number;
-  /** Height of the waveform */
+  /** Height in px (the drawing's geometry). Defaults to the `size` token's height. */
   h?: number;
   /** Color of the waveform */
   color?: string;
@@ -53,9 +56,13 @@ export interface WaveformProps extends Omit<ViewProps, 'children'> {
   progress?: number;
   /** Color for the progress indicator */
   progressColor?: string;
-  /** Whether the waveform is interactive (clickable for seeking) */
+  /**
+   * Whether the waveform is interactive. With `onSeek` it becomes a seek
+   * slider: pointer press/drag, arrow keys (5 s steps when `duration` is set,
+   * else 1%), PageUp/PageDown, Home/End, and screen-reader adjust actions.
+   */
   interactive?: boolean;
-  /** Callback fired when user clicks/seeks to a position */
+  /** Callback fired when user clicks/seeks to a position (0-1) */
   onSeek?: (position: number) => void;
   /** Callback fired when user starts dragging */
   onDragStart?: (position: number) => void;
@@ -63,9 +70,12 @@ export interface WaveformProps extends Omit<ViewProps, 'children'> {
   onDrag?: (position: number) => void;
   /** Callback fired when user ends dragging */
   onDragEnd?: (position: number) => void;
-  /** Accessibility label for the waveform */
+  /**
+   * Accessible name. Interactive waveforms are announced as a slider (default
+   * name "Audio waveform"), others as an image ("Audio waveform visualization").
+   */
   accessibilityLabel?: string;
-  /** Accessibility hint for interactive waveforms */
+  /** Accessibility hint for interactive waveforms (native) */
   accessibilityHint?: string;
   /** Minimum height for bars (prevents invisible bars) */
   minBarHeight?: number;
@@ -85,7 +95,10 @@ export interface WaveformProps extends Omit<ViewProps, 'children'> {
   };
   /** Whether to show time stamps along the waveform */
   showTimeStamps?: boolean;
-  /** Duration in seconds for time stamp calculation */
+  /**
+   * Duration in seconds, for time stamps and for the seek slider's spoken value
+   * ("1:05 of 3:20") and keyboard step.
+   */
   duration?: number;
   /** Time stamp interval in seconds */
   timeStampInterval?: number;
@@ -95,24 +108,19 @@ export interface WaveformProps extends Omit<ViewProps, 'children'> {
   loading?: boolean;
   /** Error message to display */
   error?: string;
-  /** Loading progress (0-1) for progressive loading */
+  /** Loading progress (0-1): fills that share of the loading skeleton's bars */
   loadingProgress?: number;
   
-  // Selection & Zoom
+  // Selection
   /** Selected time range [start, end] in normalized coordinates (0-1) */
   selection?: [number, number];
-  /** Callback when selection changes */
+  /**
+   * Callback when selection changes. When set, Shift+press-and-drag (web)
+   * selects a range instead of seeking.
+   */
   onSelectionChange?: (selection: [number, number]) => void;
-  /** Zoom level (1 = normal, 2 = 2x zoom, etc.) */
-  zoomLevel?: number;
-  /** Zoom center position (0-1) */
-  zoomCenter?: number;
-  /** Callback when zoom changes */
-  onZoomChange?: (zoomLevel: number, center: number) => void;
-  
+
   // Visual Enhancements
-  /** Whether to enable smooth animations */
-  enableAnimations?: boolean;
   /** Whether to show RMS (average) levels alongside peaks */
   showRMS?: boolean;
   /** RMS data array (should match peaks length) */

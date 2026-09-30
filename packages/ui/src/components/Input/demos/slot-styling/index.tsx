@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Icon, Input, Text } from '@platform-blocks/ui';
+import { Block, Icon, Input, Text } from '@plocks/ui';
 
 export function Demo() {
   const [workspace, setWorkspace] = useState('');
@@ -13,7 +13,7 @@ export function Demo() {
         placeholder="my-workspace"
         value={workspace}
         onChangeText={setWorkspace}
-        startSection={<Text ff="monospace" color="muted">https://</Text>}
+        startSection={<Text ff="monospace" c="muted">https://</Text>}
         startSectionProps={{ style: { paddingRight: 8 } }}
       />
 

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <title>plocks</title>
+  <rect width="1024" height="1024" rx="229.07" fill="#18161D"/>
+  <rect x="235.39" y="245.52" width="168.66" height="168.66" rx="42.16" fill="#EF4035"/>
+  <rect x="437.79" y="245.52" width="168.66" height="168.66" rx="42.16" fill="#EF4035"/>
+  <rect x="640.19" y="245.52" width="168.66" height="168.66" rx="42.16" fill="#EF4035"/>
+  <rect x="235.39" y="447.91" width="168.66" height="168.66" rx="42.16" fill="#2F6FEB"/>
+  <rect x="437.79" y="447.91" width="168.66" height="168.66" rx="42.16" fill="#2F6FEB"/>
+  <rect x="640.19" y="447.91" width="168.66" height="168.66" rx="42.16" fill="#2F6FEB"/>
+  <rect x="235.39" y="650.3" width="168.66" height="168.66" rx="42.16" fill="#FFC21A"/>
+</svg>

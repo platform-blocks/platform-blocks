@@ -1,25 +1,14 @@
-import { Block, SegmentedControl } from '@platform-blocks/ui';
+import { Block, SegmentedControl } from '@plocks/ui';
 
-import { accountSections, frameworks, panes, priorities } from '../data';
-
-const palettes = [
-  { key: 'primary', color: 'primary', defaultValue: 'react', data: frameworks },
-  { key: 'success', color: 'success', defaultValue: 'code', data: panes },
-  { key: 'purple', color: 'purple', defaultValue: 'settings', data: accountSections },
-  { key: 'custom', color: '#FF6B6B', defaultValue: 'medium', data: priorities },
-];
+const data = ['React', 'Angular', 'Vue'];
 
 export function Demo() {
   return (
     <Block>
-      {palettes.map((palette) => (
-        <SegmentedControl
-          key={palette.key}
-          defaultValue={palette.defaultValue}
-          color={palette.color}
-          data={palette.data}
-        />
-      ))}
+      <SegmentedControl color="primary" defaultValue="React" data={data} />
+      <SegmentedControl color="success" defaultValue="React" data={data} />
+      <SegmentedControl color="purple" defaultValue="React" data={data} />
+      <SegmentedControl color="#FF6B6B" autoContrast defaultValue="React" data={data} />
     </Block>
   );
 }

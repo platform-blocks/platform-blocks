@@ -1,0 +1,27 @@
+{
+  // Typechecks the unit tests (and the web DOM tests) on top of the library
+  // source. Not used for emitting anything; see `npm run typecheck`.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // Tests run on Node (>=20), so they may use ES2022 APIs such as Array#at.
+    "lib": [
+      "es2022",
+      "dom"
+    ],
+    "declaration": false,
+    "types": [
+      "node",
+      "jest"
+    ]
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "lib",
+    "src/**/demos/**/*",
+    "src/**/__examples__/**/*"
+  ]
+}

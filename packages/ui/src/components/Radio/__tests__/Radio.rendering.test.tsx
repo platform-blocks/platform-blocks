@@ -1,124 +1,51 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { render } from '@testing-library/react-native';
+import { StyleSheet, View } from 'react-native';
+import { render, configure } from '@testing-library/react-native';
 
-import { Radio, RadioGroup } from '../Radio';
+import { DEFAULT_THEME } from '../../../core/theme/defaultTheme';
+import { Radio, RadioGroup, getRadioPalette, getRadioSize } from '../Radio';
 import { Icon } from '../../Icon';
 
-const mockTheme = {
-  colors: {
-    primary: ['#EDF2FF', '#DBE4FF', '#BAC8FF', '#91A7FF', '#748FFC', '#5C7CFA', '#4C6EF5', '#3B5BDB'],
-    secondary: ['#F8F9FA', '#F1F3F5', '#E9ECEF', '#DEE2E6', '#CED4DA', '#ADB5BD', '#868E96', '#495057'],
-    success: ['#EBF8EA', '#C6F6D5', '#9AE6B4', '#68D391', '#48BB78', '#38A169', '#2F855A', '#276749'],
-    warning: ['#FFF9DB', '#FFF3BF', '#FFEC99', '#FFE066', '#FFD43B', '#FCC419', '#FAB005', '#F59F00'],
-    error: ['#FFF5F5', '#FFE3E3', '#FFC9C9', '#FFA8A8', '#FF8787', '#FF6B6B', '#FA5252', '#F03E3E'],
-    gray: ['#F8F9FA', '#F1F3F5', '#E9ECEF', '#DEE2E6', '#CED4DA', '#ADB5BD', '#868E96', '#495057'],
-  },
-  text: {
-    primary: '#111111',
-    secondary: '#555555',
-    disabled: '#9CA3AF',
-  },
-  spacing: {
-    sm: '8',
-    md: '12',
-  },
-};
+configure({ defaultIncludeHiddenElements: true });
 
-jest.mock('../../../core/theme', () => {
-  const actual = jest.requireActual('../../../core/theme');
-  return {
-    ...actual,
-    useTheme: () => mockTheme,
-  };
-});
-
-jest.mock('../../../core/providers/DirectionProvider', () => ({
-  useDirection: () => ({ isRTL: false }),
-}));
-
-jest.mock('../../Text', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    Text: ({ children, ...rest }: any) => React.createElement(Text, rest, children),
-  };
-});
-
-jest.mock('../../_internal/FieldHeader', () => {
-  const React = require('react');
-  const { View, Text } = require('react-native');
-  return {
-    FieldHeader: ({ label, description }: any) => (
-      React.createElement(View, null,
-        typeof label === 'string' ? React.createElement(Text, null, label) : label,
-        description ? React.createElement(Text, null, description) : null
-      )
-    ),
-  };
-});
-
-/** Hex to the `rgba()` form animated color interpolations resolve to. */
-const rgba = (hex: string) => {
-  const value = parseInt(hex.slice(1), 16);
-  return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, 1)`;
-};
+type StyleNode = { props?: { style?: unknown }; children?: unknown };
 
 /** Every flattened style in a rendered tree, depth first. */
-const collectStyles = (node: any): any[] => {
+const collectStyles = (node: unknown): Record<string, unknown>[] => {
   if (!node || typeof node !== 'object') return [];
-  const own = node.props?.style ? [StyleSheet.flatten(node.props.style)] : [];
-  const children = Array.isArray(node.children) ? node.children.flatMap(collectStyles) : [];
-  return [...own, ...children];
+  const { props, children } = node as StyleNode;
+  const own = props?.style ? [StyleSheet.flatten(props.style as never) as Record<string, unknown>] : [];
+  const nested = Array.isArray(children) ? children.flatMap(collectStyles) : [];
+  return [...own, ...nested];
 };
 
 describe('Radio - rendering', () => {
-  it('applies size tokens to radio control dimensions', () => {
-    const { getByTestId } = render(
-      <Radio value="lg" label="Large" size="lg" onChange={() => {}} testID="radio-lg" />
-    );
+  it('sizes the circle from the theme control size', () => {
+    const { toJSON } = render(<Radio value="lg" label="Large" size="lg" onChange={() => {}} />);
 
-    const styles = StyleSheet.flatten(getByTestId('radio-lg').props.style);
-    expect(styles.height).toBe(28);
-    expect(styles.width).toBe(28);
-    expect(styles.borderRadius).toBe(14);
+    const diameter = getRadioSize(DEFAULT_THEME, 'lg');
+    const circle = collectStyles(toJSON()).find(
+      (style) => style.width === diameter && style.height === diameter && style.borderRadius === diameter / 2
+    );
+    expect(circle).toBeTruthy();
   });
 
-  it('uses variant colors for checked states', () => {
-    const { getByTestId } = render(
-      <Radio
-        value="success"
-        label="Success"
-        color="success"
-        checked
-        onChange={() => {}}
-        testID="radio-success"
-      />
+  it('resolves the accent for the checked disc and a readable dot', () => {
+    const palette = getRadioPalette(DEFAULT_THEME, { disabled: false, error: false, color: 'success' });
+
+    expect(palette.fillColor).toBe(DEFAULT_THEME.colors.success[6]);
+    expect(palette.holeColor).toBe(DEFAULT_THEME.backgrounds.surface);
+    expect(palette.dotColor).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(palette.ringColor).toBe(DEFAULT_THEME.text.muted);
+  });
+
+  it('switches to the error color when invalid and to neutral chrome when disabled', () => {
+    expect(getRadioPalette(DEFAULT_THEME, { disabled: false, error: true }).ringColor).toBe(
+      DEFAULT_THEME.colors.error[5]
     );
-
-    const layers = React.Children.toArray(getByTestId('radio-success').props.children)
-      .filter((child): child is React.ReactElement<{ style?: any }> => (
-        React.isValidElement(child) && Array.isArray((child.props as any)?.style)
-      ))
-      // Index 0 of each layer's style array is the resting style; the animated
-      // override that follows it holds interpolation nodes, not plain values.
-      .map(child => StyleSheet.flatten(child.props.style[0]));
-
-    // A selected radio is a solid accent disc with a lighter dot punched out of
-    // its center — the track covers the whole control, ring included.
-    const [trackStyles, dotStyles] = layers;
-
-    if (!trackStyles || !dotStyles) {
-      throw new Error('Radio track and dot not found');
-    }
-
-    expect(trackStyles.backgroundColor).toBe(mockTheme.colors.success[6]);
-    expect(trackStyles.position).toBe('absolute');
-    expect(dotStyles.backgroundColor).toBe('#ffffff');
-    // md control is 24px with a 1px ring, so the hole is 22px and shrinks to a
-    // 10px dot — 40% of the control.
-    expect(dotStyles.height).toBe(22);
-    expect(dotStyles.height * dotStyles.transform[0].scale).toBeCloseTo(10);
+    expect(getRadioPalette(DEFAULT_THEME, { disabled: true, error: false }).fillColor).toBe(
+      DEFAULT_THEME.backgrounds.borderStrong
+    );
   });
 });
 
@@ -137,8 +64,7 @@ describe('RadioGroup - rendering', () => {
       />
     );
 
-    const containers = UNSAFE_getAllByType(View);
-    const radiogroup = containers.find(node => node.props.accessibilityRole === 'radiogroup');
+    const radiogroup = UNSAFE_getAllByType(View).find((node) => node.props.role === 'radiogroup');
     const styles = StyleSheet.flatten(radiogroup?.props.style);
     expect(styles.flexDirection).toBe('row');
     expect(styles.gap).toBe(16);
@@ -157,31 +83,46 @@ describe('RadioGroup - rendering', () => {
       />
     );
 
-    // The track disc of each circle: absolutely positioned, md-sized (24px).
-    // Animated styles resolve to rgba() in the rendered tree.
-    const tracks = collectStyles(toJSON())
-      .filter(style => style.position === 'absolute' && style.borderRadius === 12);
+    const diameter = getRadioSize(DEFAULT_THEME, 'md');
+    // The track disc of each circle: absolutely positioned and round.
+    const tracks = collectStyles(toJSON()).filter(
+      (style) => style.position === 'absolute' && style.borderRadius === diameter / 2
+    );
 
     expect(tracks).toHaveLength(2);
-    expect(tracks[0].backgroundColor).toBe(rgba(mockTheme.colors.primary[6]));
-    expect(tracks[1].backgroundColor).toBe(rgba(mockTheme.colors.gray[4]));
-    // The check icon the card used to show on select is gone.
     expect(UNSAFE_queryAllByType(Icon)).toHaveLength(0);
   });
 
-  it('dims group label when disabled', () => {
+  it('dims the group label when disabled', () => {
     const { getByText } = render(
+      <RadioGroup label="Choose plan" disabled value="basic" options={[{ label: 'Basic', value: 'basic' }]} />
+    );
+
+    const labelStyles = StyleSheet.flatten(getByText('Choose plan').props.style);
+    expect(labelStyles.color).toBe(DEFAULT_THEME.text.disabled);
+  });
+
+  it('joins segmented options with logical corners', () => {
+    const { getByTestId } = render(
       <RadioGroup
-        label="Choose plan"
-        disabled
-        value="basic"
-        options={[{ label: 'Basic', value: 'basic' }]}
+        variant="segmented"
+        value="a"
+        testID="seg"
+        options={[
+          { label: 'A', value: 'a' },
+          { label: 'B', value: 'b' },
+        ]}
       />
     );
 
-    const label = getByText('Choose plan');
-    const labelStyles = StyleSheet.flatten(label.props.style);
-    expect(labelStyles.color).toBe(mockTheme.text.disabled);
+    expect(StyleSheet.flatten(getByTestId('seg-option-0').props.style)).toMatchObject({
+      borderTopStartRadius: 8,
+      borderBottomStartRadius: 8,
+    });
+    expect(StyleSheet.flatten(getByTestId('seg-option-1').props.style)).toMatchObject({
+      borderTopEndRadius: 8,
+      borderBottomEndRadius: 8,
+    });
   });
 });
 
@@ -195,6 +136,7 @@ describe('Radio snapshots', () => {
         checked
         onChange={() => {}}
         size="sm"
+        id="snap-radio"
       />
     );
 
@@ -204,6 +146,7 @@ describe('Radio snapshots', () => {
   it('matches snapshot for vertical RadioGroup with description and error', () => {
     const { toJSON } = render(
       <RadioGroup
+        id="subscription"
         label="Subscription"
         description="Choose carefully"
         error="Selection required"

@@ -3,9 +3,7 @@ title: Groups
 category: features
 order: 40
 tags: [avatars, groups]
-highlightLines: [16-24]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -1,11 +1,9 @@
 ---
-title: Basic Usage
+title: Basics
 category: usage
 order: 10
 tags: [title, headings]
-highlightLines: [8-11]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

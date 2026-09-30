@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text } from 'react-native';
-import Svg, { Rect, Path, G } from 'react-native-svg';
+import Svg, { Rect, Path, G, Defs } from 'react-native-svg';
 import { roundedBarPath } from '../../utils/barPath';
 import Animated, {
   useSharedValue,
@@ -22,7 +22,8 @@ import { Axis } from '../../core/Axis';
 import { ChartGrid } from '../../core/ChartGrid';
 import { linearScale, generateNiceTicks } from '../../utils/scales';
 import type { Scale } from '../../utils/scales';
-import { getColorFromScheme, colorSchemes } from '../../utils';
+import { createColorScale, resolveColorScaleColors, type ColorScaleContext } from '../../utils/colorScale';
+import { ChartGradientDef, fillSwatchColor, isChartGradient, useChartFillId } from '../../core/ChartFill';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -121,9 +122,12 @@ const AnimatedHistogramBar: React.FC<{
   animationProgress: SharedValue<number>;
   fill: string;
   opacity: number;
+  stroke?: string;
+  strokeWidth?: number;
+  strokeOpacity?: number;
   radius: number;
   disabled: boolean;
-}> = React.memo(({ bin, index, x, y, width, height, animationProgress, fill, opacity, radius, disabled }) => {
+}> = React.memo(({ bin, index, x, y, width, height, animationProgress, fill, opacity, stroke, strokeWidth, strokeOpacity, radius, disabled }) => {
   const animatedProps = useAnimatedProps(() => {
     const progress = animationProgress.value;
     const animatedHeight = Math.max(0, height * progress);
@@ -140,6 +144,7 @@ const AnimatedHistogramBar: React.FC<{
       animatedProps={animatedProps}
       fill={fill}
       fillOpacity={opacity}
+      {...(stroke ? { stroke, strokeWidth, strokeOpacity } : null)}
     />
   );
 });
@@ -179,8 +184,8 @@ AnimatedDensityCurve.displayName = 'AnimatedDensityCurve';
 export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
   const {
     data,
-    width = 400,
-    height = 260,
+    w: width = 400,
+    h: height = 260,
     title,
     subtitle,
     bins: binsOverride,
@@ -189,8 +194,11 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
     bandwidth,
     density = true,
     barColor,
+    colorScale,
     barOpacity = 0.8,
-    densityColor = '#ef4444',
+    barStroke,
+    barStrokeWidth,
+    densityColor: densityColorProp,
     densityThickness = 2,
     barRadius = 2,
     barGap = 0.08,
@@ -236,8 +244,8 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
   // Layout constants — margins measured from the labels the axes will draw.
   const basePadding = useMemo(
     () => resolveCartesianPadding({
-      yTickLabels: domainTickLabels([0, maxCount], (value) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : `${Math.round(value)}`)),
-      xTickLabels: domainTickLabels([min, max], (value) => (xAxis?.labelFormatter ? xAxis.labelFormatter(value) : `${value}`)),
+      yTickLabels: domainTickLabels([0, maxCount], yAxis?.labelFormatter, theme.numberFormat, String),
+      xTickLabels: domainTickLabels([min, max], xAxis?.labelFormatter, theme.numberFormat, String),
       yTitle: yAxis?.title,
       xTitle: xAxis?.title,
       showYAxis: yAxis?.show !== false,
@@ -248,16 +256,23 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
       containerHeight: height,
     }),
     [maxCount, min, max, yAxis?.labelFormatter, xAxis?.labelFormatter, yAxis?.title, xAxis?.title,
-     yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, width, height]
+     yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, width, height, theme.numberFormat]
   );
-  // Grown so the plot clears the title and legend overlays. Mirrors the fixed pair of
-  // entries the legend renders below.
+  // A labelled threshold scale gets one legend entry per band, so what each band
+  // means never rides on color alone.
+  const bandLabels = colorScale && typeof colorScale !== 'function' && colorScale.type === 'threshold' && colorScale.labels?.length
+    ? colorScale.labels
+    : null;
+  const bandLabelsKey = bandLabels?.join('\u0000');
+  // Grown so the plot clears the title and legend overlays. Mirrors the entries
+  // the legend renders below.
   const legendLabels = useMemo(
     () => [
-      { label: density ? 'Density' : 'Count' },
+      ...(bandLabels ? bandLabels.map((label) => ({ label })) : [{ label: density ? 'Density' : 'Count' }]),
       ...(showDensity ? [{ label: 'KDE' }] : []),
     ],
-    [density, showDensity]
+    // bandLabelsKey tracks bandLabels' contents across inline arrays.
+    [density, showDensity, bandLabelsKey]
   );
   const padding = useMemo(
     () =>
@@ -336,11 +351,16 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
 
   // Animation
   const animationProgress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = React.useRef(false);
   const dataSignature = useMemo(() => {
     return bins.map((b: HistogramBin) => `${b.start}-${b.end}-${b.count}`).join('|');
   }, [bins]);
 
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (disabled) {
       animationProgress.value = 1;
       return;
@@ -423,10 +443,47 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
     }
   }, [binSummaries, onBinBlur]);
 
+  // Bar color: colorScale (per bin) → barColor → theme palette slot 0. One
+  // resolution feeds the bars, tooltip swatches and legend so they always agree.
+  const palette = theme.colors.accentPalette;
+  const baseFill = barColor ?? palette[0];
+  const baseColor = fillSwatchColor(baseFill, palette[0]);
+  const gradientFill = isChartGradient(baseFill) ? baseFill : null;
+  const gradientId = useChartFillId('histogram-fill');
+  const basePaint = gradientFill ? `url(#${gradientId})` : baseColor;
+  const densityColor = densityColorProp ?? palette[1] ?? '#ef4444';
+
+  const scaleContext = useMemo<ColorScaleContext>(
+    () => ({ base: baseColor, background: theme.colors.background, ink: theme.colors.textPrimary, palette }),
+    [baseColor, theme.colors.background, theme.colors.textPrimary, palette]
+  );
+
+  // Per-bin colors; undefined entries fall back to basePaint.
+  const binColors = useMemo<(string | undefined)[]>(() => {
+    if (!colorScale || !binSummaries.length) return [];
+    if (typeof colorScale === 'function') return binSummaries.map((bin) => colorScale(bin));
+    const byCount = colorScale.by === 'count';
+    const scale = createColorScale(colorScale, byCount ? [0, maxCount] : [min, max], scaleContext);
+    return binSummaries.map((bin) => scale(byCount ? bin.count : bin.midpoint));
+  }, [colorScale, binSummaries, maxCount, min, max, scaleContext]);
+
+  const legendItems = useMemo(() => {
+    let barItems: Array<{ label: string; color: string; visible: boolean }>;
+    if (bandLabels && colorScale && typeof colorScale !== 'function') {
+      const bandColors = resolveColorScaleColors(colorScale, scaleContext);
+      barItems = bandLabels.map((label, i) => ({ label, color: bandColors[i] ?? baseColor, visible: true }));
+    } else {
+      // A scaled histogram's swatch shows its tallest bin — the color most of the chart wears.
+      const modal = binSummaries.reduce<number>((best, bin, i) => (bin.count > (binSummaries[best]?.count ?? -1) ? i : best), 0);
+      barItems = [{ label: density ? 'Density' : 'Count', color: binColors[modal] ?? baseColor, visible: true }];
+    }
+    return [...barItems, ...(showDensity ? [{ label: 'KDE', color: densityColor, visible: true }] : [])];
+    // bandLabelsKey tracks bandLabels' contents across inline arrays.
+  }, [bandLabelsKey, colorScale, scaleContext, binSummaries, binColors, baseColor, density, showDensity, densityColor]);
+
   // New interaction engine: each bin is a band mark carrying its bar rectangle
   // (container-origin) so the tester resolves rect membership + nearest-category.
   // The mark id is the bin index (the band tester's category key).
-  const histColor = barColor || getColorFromScheme(0, colorSchemes.default);
   const hitSeries: HitSeries[] = useMemo(() => {
     const marks: Mark[] = bins.map((bin: HistogramBin, i: number) => {
       const x0 = xScale(bin.start);
@@ -455,10 +512,11 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
         extent: { rect: { x: rectX, y: rectY, width: effectiveW, height } },
         formattedValue: typeof tf === 'string' ? tf : defaultFormatted,
         ...(tf != null && typeof tf !== 'string' ? { customTooltip: tf } : {}),
+        ...(binColors[i] ? { color: binColors[i] } : {}),
       };
     });
-    return [{ id: 'hist-bins', name: 'Count', color: histColor, visible: true, marks }];
-  }, [bins, binSummaries, xScale, yScale, padding.left, padding.top, plotHeight, barGap, density, valueFormatter, histColor, tooltip]);
+    return [{ id: 'hist-bins', name: 'Count', color: baseColor, visible: true, marks }];
+  }, [bins, binSummaries, xScale, yScale, padding.left, padding.top, plotHeight, barGap, density, valueFormatter, baseColor, binColors, tooltip]);
 
   const tester = useMemo(() => new BandCategoryHitTester(hitSeries, { orientation: 'x' }), [hitSeries]);
 
@@ -500,8 +558,10 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
     });
   }, [plotHeight, yAxis?.ticks, yAxisScale]);
 
-  const barFill = barColor || theme.colors.accentPalette[0];
   const pointerActive = activeBinIndex != null;
+  // Never brighter than the resting opacity, even for faint outlined bars.
+  const dimmedBarOpacity = Math.min(barOpacity, Math.max(0.25, barOpacity * 0.55));
+  const resolvedStrokeWidth = barStroke ? (barStrokeWidth ?? 1) : 0;
 
   const rangeRects = useMemo(() => {
     if (!rangeHighlights || !rangeHighlights.length) return [] as Array<{
@@ -541,8 +601,8 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
   return (
     <ChartContainer
       {...rest}
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       style={style}
       interactionConfig={{ multiTooltip, liveTooltip: tooltip?.show === false ? false : liveTooltip, enableCrosshair }}
     >
@@ -550,10 +610,7 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
 
       {legend?.show && (
         <ChartLegend
-          items={[
-            { label: density ? 'Density' : 'Count', color: barFill, visible: true },
-            ...(showDensity ? [{ label: 'KDE', color: densityColor, visible: true }] : []),
-          ]}
+          items={legendItems}
           position={legend?.position}
           align={legend?.align}
         />
@@ -585,6 +642,15 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
         height={height}
         style={{ position: 'absolute' }}
       >
+        {gradientFill && (
+          <Defs>
+            <ChartGradientDef
+              id={gradientId}
+              gradient={gradientFill}
+              bounds={gradientFill.extent === 'plot' ? { x: 0, y: 0, width: plotWidth, height: plotHeight } : undefined}
+            />
+          </Defs>
+        )}
         <G x={padding.left} y={padding.top}>
           {/* Range highlights */}
           {rangeRects.map((rect) => (
@@ -620,8 +686,11 @@ export const HistogramChart: React.FC<HistogramChartProps> = (props) => {
                 width={effectiveW}
                 height={Math.max(0, h)}
                 animationProgress={animationProgress}
-                fill={barFill}
-                opacity={pointerActive ? (isActive ? barOpacity : Math.max(0.25, barOpacity * 0.55)) : barOpacity}
+                fill={binColors[i] ?? basePaint}
+                opacity={pointerActive && !isActive ? dimmedBarOpacity : barOpacity}
+                stroke={barStroke}
+                strokeWidth={resolvedStrokeWidth}
+                strokeOpacity={pointerActive && !isActive ? 0.4 : 1}
                 radius={barRadius}
                 disabled={disabled}
               />

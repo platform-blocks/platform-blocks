@@ -5,7 +5,6 @@ order: 55
 tags: [validation, required, clearable]
 highlightLines: []
 status: stable
-since: 0.11.0
 hidden: false
 ---
 

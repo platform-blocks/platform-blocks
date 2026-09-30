@@ -19,7 +19,7 @@ A unified dialog system for React Native with support for modals, bottom sheets,
 Wrap your app with `DialogProvider` and add `DialogRenderer`:
 
 ```tsx
-import { DialogProvider, DialogRenderer } from '@platform-blocks/ui';
+import { DialogProvider, DialogRenderer } from '@plocks/ui';
 
 function App() {
   return (
@@ -34,7 +34,7 @@ function App() {
 ### 2. Use the Dialog Hook
 
 ```tsx
-import { useDialog, Button, Text } from '@platform-blocks/ui';
+import { useDialog, Button, Text } from '@plocks/ui';
 
 function MyComponent() {
   const { openDialog } = useDialog();
@@ -129,7 +129,7 @@ openDialog({
 For common patterns, use `useSimpleDialog`:
 
 ```tsx
-import { useSimpleDialog } from '@platform-blocks/ui';
+import { useSimpleDialog } from '@plocks/ui';
 
 function MyComponent() {
   const dialog = useSimpleDialog();
@@ -174,8 +174,9 @@ Control animation duration:
 
 ```tsx
 <Dialog
+  opened={opened}
   variant="modal"
-  animationDuration={300} // Custom duration in ms
+  transitionDuration={300} // Custom duration in ms (0 = instant; always 0 under reduced motion)
   // ... other props
 />
 ```
@@ -230,7 +231,7 @@ Returns an object with:
 
 The Dialog system includes:
 
-- **Focus management**: Automatically focuses first focusable element
+- **Focus management**: Focus moves into the dialog on open (the dialog itself, the first field with `autoFocus`, or a ref) and returns to the opener on close
 - **Focus trapping**: Keeps focus within the dialog
 - **Screen reader support**: Proper ARIA attributes
 - **Keyboard navigation**: Escape key, tab navigation
@@ -271,4 +272,4 @@ The Dialog system includes:
 
 ## Examples
 
-See the Dialog examples in the PlatformBlocks documentation for live demonstrations of all variants and features.
+See the Dialog examples in the plocks documentation for live demonstrations of all variants and features.

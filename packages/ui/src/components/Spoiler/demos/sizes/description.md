@@ -5,8 +5,7 @@ order: 30
 tags: [spoiler, layout, sizes]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 
-Dial the `maxHeight` value up or down to control how much content stays visible before the toggle appears.
+Dial the `mah` value up or down to control how much content stays visible before the toggle appears.

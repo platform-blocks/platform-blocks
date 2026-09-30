@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Block, Icon, Select, Text, useTheme } from '@platform-blocks/ui'
+import { Block, Icon, Select, Text, useTheme } from '@plocks/ui'
 import { detailedSports, type DetailedSport } from '../data'
 
 export function Demo() {
@@ -32,8 +32,8 @@ export function Demo() {
             >
               <Text size="3xl">{emoji}</Text>
               <Block direction="column" style={{ flex: 1 }} gap={0}>
-                <Text weight={selected ? '900' : '600'}>{name}</Text>
-                <Text size="sm" color="secondary">
+                <Text fw={selected ? '900' : '600'}>{name}</Text>
+                <Text size="sm" c="secondary">
                   {description}
                 </Text>
               </Block>

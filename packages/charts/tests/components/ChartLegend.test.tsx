@@ -12,7 +12,7 @@ describe('ChartLegend', () => {
 
     return render(
       <ChartThemeProvider>
-        <ChartContainer width={320} height={240} useOwnInteractionProvider={false} suppressPopover>
+        <ChartContainer w={320} h={240} useOwnInteractionProvider={false} suppressPopover>
           <ChartLegend items={items} {...props} />
         </ChartContainer>
       </ChartThemeProvider>

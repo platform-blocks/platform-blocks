@@ -1,4 +1,4 @@
-import { Accordion } from '@platform-blocks/ui';
+import { Accordion } from '@plocks/ui';
 import { faqItems } from '../data';
 
 export function Demo() {

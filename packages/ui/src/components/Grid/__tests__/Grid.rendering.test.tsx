@@ -5,7 +5,9 @@ import * as ReactNative from 'react-native';
 
 import { Grid, GridItem } from '../Grid';
 
-const useWindowDimensionsSpy = jest.spyOn(ReactNative, 'useWindowDimensions');
+// Grid reads the viewport from the shared store in core/responsive, which
+// measures through Dimensions.get('window').
+const useWindowDimensionsSpy = jest.spyOn(ReactNative.Dimensions, 'get');
 
 const createDimensions = (width: number) => ({ width, height: 768, scale: 2, fontScale: 2 });
 

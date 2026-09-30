@@ -6,14 +6,12 @@ import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
 import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
-import { scaleLinear, generateTicks, formatNumber, getColorFromScheme, colorSchemes } from '../../utils';
+import { scaleLinear, generateTicks, formatNumber, createTickFormatter, getColorFromScheme } from '../../utils';
 import { linearScale as createLinearScale } from '../../utils/scales';
+import { createColorScale } from '../../utils/colorScale';
 import type { Scale } from '../../utils/scales';
 import { AnimatedBubble } from './AnimatedBubble';
 import type { ActiveTarget } from '../../core/hittest/types';
-
-// Backwards compatibility alias
-export type SimpleBubbleChartProps = BubbleChartProps;
 
 const clamp01 = (value: number) => {
   if (!Number.isFinite(value)) return 0;
@@ -122,9 +120,8 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
   const {
     data = [],
     dataKey,
-    width = 400,
-    height,
-    h,
+    w: width = 400,
+    h: height,
     range = [36, 576],
     color,
     colorScale,
@@ -187,7 +184,7 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
     setHiddenLegendKeys((prev) => (setsEqual(prev, nextHidden) ? prev : nextHidden));
   }, [legendItemsSignature, legend?.items]);
 
-  const resolvedHeight = h ?? height ?? 300;
+  const resolvedHeight = height ?? 300;
   const resolvedBubbleOpacity = bubbleOpacityProp ?? 0.85;
 
   const padding = React.useMemo(() => {
@@ -336,11 +333,12 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
     if (xState.isNumeric) {
       const [min, max] = xState.domain;
       const tickValues = generateTicks(min, max, Math.min(6, Math.max(3, data.length)));
+      const format = xAxis?.labelFormatter ?? createTickFormatter(tickValues, theme.numberFormat);
       return tickValues.map((value) => {
         const ratio = clamp01((value - min) / (max - min));
         return {
           value,
-          label: xAxis?.labelFormatter ? xAxis.labelFormatter(value) : formatNumber(value, 2),
+          label: format(value),
           gridRatio: ratio,
         };
       });
@@ -357,18 +355,19 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
         gridRatio: ratio,
       };
     });
-  }, [xState, xAxis, data, plotWidth]);
+  }, [xState, xAxis, data, plotWidth, theme.numberFormat]);
 
   const yTicks: AxisTick[] = useMemo(() => {
     if (yState.isNumeric) {
       const [min, max] = yState.domain;
       const tickValues = generateTicks(min, max, 5);
+      const format = yAxis?.labelFormatter ?? createTickFormatter(tickValues, theme.numberFormat);
       return tickValues.map((value) => {
         const ratio = clamp01((value - min) / (max - min));
         const gridRatio = 1 - ratio;
         return {
           value,
-          label: yAxis?.labelFormatter ? yAxis.labelFormatter(value) : formatNumber(value, 2),
+          label: format(value),
           gridRatio,
         };
       });
@@ -386,10 +385,12 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
         gridRatio,
       };
     });
-  }, [yState, yAxis, data, plotHeight]);
+  }, [yState, yAxis, data, plotHeight, theme.numberFormat]);
 
   const xTickValues = useMemo(() => xTicks.map((tick) => tick.value), [xTicks]);
   const yTickValues = useMemo(() => yTicks.map((tick) => tick.value), [yTicks]);
+  const xTickFormat = useMemo(() => createTickFormatter(xTickValues, theme.numberFormat), [xTickValues, theme.numberFormat]);
+  const yTickFormat = useMemo(() => createTickFormatter(yTickValues, theme.numberFormat), [yTickValues, theme.numberFormat]);
 
   const xAxisTickSize = xAxis?.tickLength ?? 4;
   const yAxisTickSize = yAxis?.tickLength ?? 4;
@@ -475,6 +476,26 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
     return scale;
   }, [plotHeight, yState, yTickValues]);
 
+  // A scale config reads one numeric field across the dataset.
+  const scaleColorFor = useMemo(() => {
+    if (!colorScale || typeof colorScale === 'function') return null;
+    const field = colorScale.by ?? (dataKey.color ? 'color' : 'z');
+    const key = dataKey[field];
+    if (key == null) return null;
+    const values = data.map((item) => Number((item as any)[key])).filter(Number.isFinite);
+    if (!values.length) return null;
+    const colorAt = createColorScale(colorScale, [Math.min(...values), Math.max(...values)], {
+      base: color ?? theme.colors.accentPalette[0],
+      background: theme.colors.background,
+      ink: theme.colors.textPrimary,
+      palette: theme.colors.accentPalette,
+    });
+    return (item: Record<string, any>) => {
+      const value = Number(item[key as string]);
+      return Number.isFinite(value) ? colorAt(value) : undefined;
+    };
+  }, [colorScale, dataKey, data, color, theme.colors.accentPalette, theme.colors.background, theme.colors.textPrimary]);
+
   const allBubbles: BubbleInternal[] = useMemo(() => {
     if (!plotWidth || !plotHeight) return [];
     return data.map((item, index) => {
@@ -493,7 +514,9 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
 
       const rawColorValue = dataKey.color ? (item as any)[dataKey.color] : undefined;
 
-      let bubbleColor = colorScale ? colorScale(rawColorValue, item, index) : undefined;
+      let bubbleColor = typeof colorScale === 'function'
+        ? colorScale(rawColorValue, item, index)
+        : scaleColorFor?.(item);
 
       if (!bubbleColor && rawColorValue != null) {
         if (isLikelyColor(rawColorValue)) {
@@ -513,7 +536,7 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
       }
 
       if (!bubbleColor) {
-        bubbleColor = getColorFromScheme(index, theme.colors.accentPalette ?? colorSchemes.default);
+        bubbleColor = getColorFromScheme(index, theme.colors.accentPalette);
       }
 
       const labelValue = dataKey.label ? (item as any)[dataKey.label] : rawX;
@@ -563,7 +586,7 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
         legendKey,
       } as BubbleInternal;
     });
-  }, [data, dataKey, getXRatio, getYRatio, computeRadius, color, colorScale, theme.colors.accentPalette, xState, yState, sizeDomain, valueFormatter, plotWidth, plotHeight, tooltip?.formatter]);
+  }, [data, dataKey, getXRatio, getYRatio, computeRadius, color, colorScale, scaleColorFor, theme.colors.accentPalette, xState, yState, sizeDomain, valueFormatter, plotWidth, plotHeight, tooltip?.formatter]);
 
   const bubbles: BubbleInternal[] = useMemo(() => {
     if (!hiddenLegendKeys.size) return allBubbles;
@@ -778,8 +801,8 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
 
   return (
     <ChartContainer
-      width={width}
-      height={resolvedHeight}
+      w={width}
+      h={resolvedHeight}
       padding={padding}
       disabled={disabled}
       style={style}
@@ -857,7 +880,7 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
           tickFormat={(value) => {
             if (yState.isNumeric) {
               const numeric = typeof value === 'number' ? value : Number(value);
-              return yAxis?.labelFormatter ? yAxis.labelFormatter(numeric) : formatNumber(numeric, 2);
+              return yAxis?.labelFormatter ? yAxis.labelFormatter(numeric) : yTickFormat(numeric);
             }
             return String(value);
           }}
@@ -885,7 +908,7 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
           tickFormat={(value) => {
             if (xState.isNumeric) {
               const numeric = typeof value === 'number' ? value : Number(value);
-              return xAxis?.labelFormatter ? xAxis.labelFormatter(numeric) : formatNumber(numeric, 2);
+              return xAxis?.labelFormatter ? xAxis.labelFormatter(numeric) : xTickFormat(numeric);
             }
             return String(value);
           }}

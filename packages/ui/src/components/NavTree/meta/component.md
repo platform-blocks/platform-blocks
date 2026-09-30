@@ -1,6 +1,7 @@
 ---
 name: NavTree
 title: NavTree
+summary: Sidebar navigation that groups a flat list of routes into a collapsible tree, opening and marking the current page
 category: navigation
 tags: [navigation, sidebar, tree, menu, routes]
 playground: true
@@ -21,18 +22,12 @@ props:
   highlightMatches: Mark the matched substring in row labels (default true)
   persistKey: Remember which branches are open across reloads (web)
   size: Row density
+  renderLabel: Custom row label — `(node, depth, isOpen, state) => ReactNode`, as on Tree
 examples:
   - basic
   - counts
   - search
   - collapsed
-since: 1.1.0
 ---
 
-A sidebar that nests itself.
-
-Hand it the flat list of routes an app already has — with a category on each — and it groups, orders and renders them as a tree. The branches above the current page open on their own, the row for that page is marked and scrolled to, and which branches are open survives a reload.
-
-Rows carrying an `href` render as real `<a>` elements on web, so cmd-click, middle-click, "copy link address" and crawlers all work; a plain left-click goes to `onNavigate` for client-side routing. Omit `onNavigate` and the rows stay ordinary links the browser follows.
-
-Built on [Tree](/components/Tree), so keyboard navigation, guide lines, filtering and the ARIA `tree`/`treeitem` roles come along with it.
+NavTree turns a flat route list into a collapsible sidebar navigation tree.

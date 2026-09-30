@@ -1,122 +1,133 @@
-import React, { createContext, useContext, useMemo, useCallback } from 'react';
-import { View, Pressable } from 'react-native';
+import React, { createContext, useCallback, useContext, useMemo } from 'react';
+import { Pressable, View, type ViewStyle } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import type { KeyboardEventLike } from '../../core/accessibility/keyboard';
+import { getNodeText } from '../../core/accessibility/useA11yId';
+import { useRovingFocus, type RovingItemProps } from '../../core/accessibility/useRovingFocus';
 import { factory } from '../../core/factory';
-import { useTheme } from '../../core/theme';
-import { getSpacing, getHeight, getFontSize } from '../../core/theme/sizes';
-import { createRadiusStyles } from '../../core/theme/radius';
-import { resolveAccentColor } from '../../core/theme/resolveColors';
-import { 
-  getSpacingStyles, 
-  getLayoutStyles, 
-  extractSpacingProps, 
-  extractLayoutProps 
-} from '../../core/utils';
+import { webProps, webStyle } from '../../core/platform';
+import type { RadiusValue } from '../../core/theme/radius';
+import { resolveAccentColor, resolveTextColor } from '../../core/theme/resolveColors';
+import type { SizeValue } from '../../core/theme/sizes';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getControlSize, onColor, resolveRadius } from '../../core/theme/tokens';
+import type { PlocksTheme } from '../../core/theme/types';
+import { extractLayoutProps, getLayoutStyles } from '../../core/utils/layout';
+import { warnOnce } from '../../core/utils/logger';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState';
+import { extractDisclaimerProps, useDisclaimer } from '../_internal/Disclaimer';
 import { Text } from '../Text';
-import { useDisclaimer, extractDisclaimerProps } from '../_internal/Disclaimer';
-import { ToggleButtonProps, ToggleGroupProps, ToggleGroupContextValue } from './types';
+import type {
+  ToggleButtonProps,
+  ToggleGroupContextValue,
+  ToggleGroupProps,
+  ToggleGroupValue,
+  ToggleValue,
+  ToggleVariant,
+} from './types';
 
-// Create context for toggle group
-const ToggleGroupContext = createContext<ToggleGroupContextValue | null>(null);
+interface ToggleGroupInternalContext extends ToggleGroupContextValue {
+  orientation: 'horizontal' | 'vertical';
+  radius?: RadiusValue;
+  isSelected: (value: ToggleValue) => boolean;
+  getItemProps: (index: number) => RovingItemProps;
+}
 
-// Hook to use toggle group context
-const useToggleGroup = () => {
-  return useContext(ToggleGroupContext);
-};
+const ToggleGroupContext = createContext<ToggleGroupInternalContext | null>(null);
+ToggleGroupContext.displayName = 'ToggleGroupContext';
 
-// Helper function to get toggle button styles
-const getToggleButtonStyles = (
-  theme: any,
-  selected: boolean,
-  disabled: boolean,
-  size: any,
-  color?: string,
-  variant?: 'solid' | 'ghost',
-  isFirst?: boolean,
-  isLast?: boolean,
-  orientation: 'horizontal' | 'vertical' = 'horizontal'
-) => {
-  const height = getHeight(size);
-  const horizontalSpacing = getSpacing(size);
-  
-  const baseColor = resolveAccentColor(theme, color) ?? theme.colors.primary[5];
-  
+/** A button's position in its group, provided by ToggleGroup around each child. */
+interface ToggleItemPosition {
+  index: number;
+  isFirst: boolean;
+  isLast: boolean;
+}
+const ToggleItemContext = createContext<ToggleItemPosition | null>(null);
+ToggleItemContext.displayName = 'ToggleItemContext';
+
+const STANDALONE: ToggleItemPosition = { index: 0, isFirst: true, isLast: true };
+
+interface ToggleStyleParams {
+  theme: PlocksTheme;
+  selected: boolean;
+  disabled: boolean;
+  size: SizeValue;
+  color?: string;
+  variant: ToggleVariant;
+  radius?: RadiusValue;
+  position: ToggleItemPosition;
+  orientation: 'horizontal' | 'vertical';
+}
+
+/** Box + color style of one toggle button (standalone, or a segment of a group). */
+function getToggleButtonStyle({
+  theme,
+  selected,
+  disabled,
+  size,
+  color,
+  variant,
+  radius,
+  position,
+  orientation,
+}: ToggleStyleParams): { box: ViewStyle; textColor: string } {
+  const control = getControlSize(theme, size);
+  const accent = resolveAccentColor(theme, color ?? 'primary') ?? theme.text.link;
   const isGhost = variant === 'ghost';
-  
-  const baseStyles = {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    height,
-    minHeight: height,
-    paddingHorizontal: horizontalSpacing,
-    paddingVertical: 2,
+  const r = radius === undefined ? control.radius : resolveRadius(theme, radius);
+
+  const box: ViewStyle = {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: control.height,
+    minHeight: control.height,
+    paddingHorizontal: control.paddingX,
     borderWidth: isGhost ? 0 : 1,
-    backgroundColor: selected ? (isGhost ? theme.colors.gray[2] : baseColor) : 'transparent',
-    borderColor: isGhost ? 'transparent' : baseColor,
+    backgroundColor: selected ? (isGhost ? theme.backgrounds.selected : accent) : 'transparent',
+    borderColor: isGhost ? 'transparent' : accent,
     opacity: disabled ? 0.5 : 1,
   };
 
-  // Handle border radius for grouped buttons
-  const radiusStyles: any = {};
-  const radius = 6; // Default border radius
-  
-  if (orientation === 'horizontal') {
-    if (isFirst && !isLast) {
-      radiusStyles.borderTopLeftRadius = radius;
-      radiusStyles.borderBottomLeftRadius = radius;
-      radiusStyles.borderTopRightRadius = 0;
-      radiusStyles.borderBottomRightRadius = 0;
-      radiusStyles.borderRightWidth = 0;
-    } else if (isLast && !isFirst) {
-      radiusStyles.borderTopRightRadius = radius;
-      radiusStyles.borderBottomRightRadius = radius;
-      radiusStyles.borderTopLeftRadius = 0;
-      radiusStyles.borderBottomLeftRadius = 0;
-    } else if (!isFirst && !isLast) {
-      radiusStyles.borderRadius = 0;
-      radiusStyles.borderRightWidth = 0;
-    } else {
-      radiusStyles.borderRadius = radius;
-    }
+  // Segments share borders and only round the group's outer corners (logical
+  // corners, so the group mirrors under RTL).
+  const { isFirst, isLast } = position;
+  if (isFirst && isLast) {
+    box.borderRadius = r;
+  } else if (orientation === 'horizontal') {
+    box.borderTopStartRadius = isFirst ? r : 0;
+    box.borderBottomStartRadius = isFirst ? r : 0;
+    box.borderTopEndRadius = isLast ? r : 0;
+    box.borderBottomEndRadius = isLast ? r : 0;
+    if (!isLast) box.borderEndWidth = 0;
   } else {
-    // Vertical orientation
-    if (isFirst && !isLast) {
-      radiusStyles.borderTopLeftRadius = radius;
-      radiusStyles.borderTopRightRadius = radius;
-      radiusStyles.borderBottomLeftRadius = 0;
-      radiusStyles.borderBottomRightRadius = 0;
-      radiusStyles.borderBottomWidth = 0;
-    } else if (isLast && !isFirst) {
-      radiusStyles.borderBottomLeftRadius = radius;
-      radiusStyles.borderBottomRightRadius = radius;
-      radiusStyles.borderTopLeftRadius = 0;
-      radiusStyles.borderTopRightRadius = 0;
-    } else if (!isFirst && !isLast) {
-      radiusStyles.borderRadius = 0;
-      radiusStyles.borderBottomWidth = 0;
-    } else {
-      radiusStyles.borderRadius = radius;
-    }
+    box.borderTopStartRadius = isFirst ? r : 0;
+    box.borderTopEndRadius = isFirst ? r : 0;
+    box.borderBottomStartRadius = isLast ? r : 0;
+    box.borderBottomEndRadius = isLast ? r : 0;
+    if (!isLast) box.borderBottomWidth = 0;
   }
 
-  return {
-    ...baseStyles,
-    ...radiusStyles,
-  };
-};
+  const textColor = selected
+    ? isGhost
+      ? (resolveTextColor(theme, color ?? 'primary') ?? theme.text.primary)
+      : onColor(theme, accent)
+    : accent;
 
-// ToggleButton component
+  return { box, textColor };
+}
+
 /**
- * A toggle button component for use within toggle groups or as standalone controls.
- * Supports selection states, various sizes, and visual variants.
+ * A toggle button: standalone (a button with `aria-pressed`, controlled by
+ * `selected` + `onPress`), or a segment of a ToggleGroup, which supplies its
+ * selected state, size, color and keyboard navigation.
  */
-export const ToggleButton = factory<{
-  props: ToggleButtonProps;
-  ref: View;
-}>((props, ref) => {
-  const { spacingProps, otherProps: propsAfterSpacing } = extractSpacingProps(props);
+export const ToggleButton = factory<{ props: ToggleButtonProps; ref: View }>((props, ref) => {
+  const { styleProps, otherProps: propsAfterSpacing } = extractStyleProps(props);
   const { layoutProps, otherProps } = extractLayoutProps(propsAfterSpacing);
-  
   const {
     value,
     selected: selectedProp,
@@ -126,126 +137,123 @@ export const ToggleButton = factory<{
     size: sizeProp,
     color: colorProp,
     variant: variantProp,
+    radius: radiusProp,
     style,
     testID,
-    ...restProps
+    accessibilityLabel,
+    ...rest
   } = otherProps;
 
   const theme = useTheme();
-  const groupContext = useToggleGroup();
-  
-  // Use group context values as fallbacks
-  const selected = selectedProp ?? (
-    groupContext 
-      ? Array.isArray(groupContext.value) 
-        ? groupContext.value.includes(value)
-        : groupContext.value === value
-      : false
-  );
-  
-  const disabled = disabledProp ?? groupContext?.disabled ?? false;
-  const size = sizeProp ?? groupContext?.size ?? 'md';
+  const group = useContext(ToggleGroupContext);
+  const itemPosition = useContext(ToggleItemContext);
+  const position = group && itemPosition ? itemPosition : STANDALONE;
+
+  const selected = selectedProp ?? (group ? group.isSelected(value) : false);
+  const disabled = disabledProp ?? group?.disabled ?? false;
+  const size = sizeProp ?? group?.size ?? 'md';
   // A button's own color wins over the group's.
-  const color = colorProp ?? groupContext?.color;
-  const variant = variantProp ?? groupContext?.variant ?? 'solid';
+  const color = colorProp ?? group?.color;
+  const variant = variantProp ?? group?.variant ?? 'solid';
+  const radius = radiusProp ?? group?.radius;
+  const orientation = group?.orientation ?? 'horizontal';
 
-  const spacingStyles = getSpacingStyles(spacingProps);
-  const layoutStyles = getLayoutStyles(layoutProps);
-  
-  // For standalone buttons, use full border radius
-  const buttonStyles = useMemo(() => {
-    if (!groupContext) {
-      // Standalone button
-      const height = getHeight(size);
-      const horizontalSpacing = getSpacing(size);
-      
-      const baseColor = resolveAccentColor(theme, color) ?? theme.colors.primary[5];
-      
-      const isGhost = variant === 'ghost';
-      return {
-        flexDirection: 'row' as const,
-        alignItems: 'center' as const,
-        justifyContent: 'center' as const,
-        height,
-        minHeight: height,
-        paddingHorizontal: horizontalSpacing,
-        paddingVertical: 2,
-        borderWidth: isGhost ? 0 : 1,
-        borderRadius: 6,
-        // backgroundColor: selected ? (isGhost ? theme.colors.gray[2] : baseColor) : 'transparent',
-        borderColor: isGhost ? 'transparent' : baseColor,
-        opacity: disabled ? 0.5 : 1,
-      };
-    }
-    
-    // This will be set by the group
-    return {};
-  }, [theme, selected, disabled, size, color, groupContext, variant]);
-
-  const textColor = useMemo(() => {
-    const baseColor = resolveAccentColor(theme, color) ?? theme.colors.primary[5];
-    
-    if (variant === 'ghost') {
-      return selected ? theme.colors.primary[7] : baseColor;
-    }
-    return selected ? '#FFFFFF' : baseColor;
-  }, [selected, color, theme.colors.primary, variant]);
+  const { box, textColor } = useMemo(
+    () => getToggleButtonStyle({ theme, selected, disabled, size, color, variant, radius, position, orientation }),
+    [theme, selected, disabled, size, color, variant, radius, position, orientation]
+  );
 
   const handlePress = useCallback(() => {
     if (disabled) return;
-    
-    if (groupContext?.onChange) {
-      groupContext.onChange(value);
-    } else if (onPressProp) {
-      onPressProp(value);
+    if (group?.onChange) group.onChange(value);
+    else onPressProp?.(value);
+  }, [disabled, group, value, onPressProp]);
+
+  const roving = group && itemPosition ? group.getItemProps(itemPosition.index) : undefined;
+  const mergedRef = useMergedRef<View>(ref, roving?.ref);
+  const isRadio = !!group?.exclusive;
+
+  const handleKeyDown = (event: KeyboardEventLike) => {
+    roving?.onKeyDown(event);
+    // react-native-web only activates `role="button"` on Space; a radio needs it too.
+    if (isRadio && !event.defaultPrevented && event.key === ' ') {
+      event.preventDefault?.();
+      handlePress();
     }
-  }, [disabled, groupContext, value, onPressProp]);
+  };
+
+  if (!accessibilityLabel && !getNodeText(children)) {
+    warnOnce('ToggleButton.label', 'ToggleButton: a toggle without text content needs an `accessibilityLabel`.');
+  }
+
+  const accessibility = isRadio
+    ? a11yProps({ role: 'radio', checked: selected, disabled, label: accessibilityLabel })
+    : a11yProps({ role: 'button', pressed: selected, disabled, label: accessibilityLabel });
+
+  const control = getControlSize(theme, size);
 
   return (
-    <View style={[spacingStyles, layoutStyles]} ref={ref}>
-      <Pressable
-        style={[buttonStyles, style]}
-        onPress={handlePress}
-        disabled={disabled}
-        testID={testID}
-        {...restProps}
-      >
-        {typeof children === 'string' ? (
-          <Text 
-            size={size} 
-            weight="600" 
-            color={textColor}
-            selectable={false}
-            style={{ 
-              lineHeight: getFontSize(size) * 1.3,
-              textAlignVertical: 'center' as const
-            }}
-          >
-            {children}
-          </Text>
-        ) : (
-          children
-        )}
-      </Pressable>
-    </View>
+    <Pressable
+      {...accessibility}
+      {...rest}
+      ref={mergedRef}
+      style={[
+        box,
+        // `fullWidth` first, so an explicit `w` wins.
+        getLayoutStyles(layoutProps),
+        resolveStyleProps(styleProps, theme),
+        webStyle({ cursor: disabled ? 'not-allowed' : 'pointer' }),
+        style,
+      ]}
+      onPress={handlePress}
+      disabled={disabled}
+      testID={testID}
+      onFocus={roving?.onFocus}
+      {...webProps({ tabIndex: roving?.tabIndex, onKeyDown: roving || isRadio ? handleKeyDown : undefined })}
+    >
+      {typeof children === 'string' || typeof children === 'number' ? (
+        <Text
+          size={size}
+          fw="600"
+          c={textColor}
+          selectable={false}
+          style={{ lineHeight: Math.round(control.fontSize * 1.3), textAlignVertical: 'center' }}
+        >
+          {children}
+        </Text>
+      ) : (
+        children
+      )}
+    </Pressable>
   );
-});
+}, { displayName: 'ToggleButton' });
 
-// ToggleGroup component
+const toArray = (value: ToggleGroupValue | undefined): ToggleValue[] =>
+  Array.isArray(value) ? value : value !== undefined ? [value] : [];
+
+interface ChildInfo {
+  value?: ToggleValue;
+  disabled?: boolean;
+}
+
 /**
- * A group of toggle buttons that manages selection state and provides keyboard navigation.
- * Supports single or multi-selection modes with customizable orientation and styling.
+ * A group of toggle buttons that manages selection. `exclusive` makes it a
+ * radio group (one value); otherwise any number of buttons can be pressed.
+ * Keyboard: one tab stop; arrow keys (following `orientation`, mirrored under
+ * RTL) move between buttons, Home/End jump to the ends, Space/Enter toggles.
+ * Controlled (`value` + `onChange`) or uncontrolled (`defaultValue`).
  */
-export const ToggleGroup = factory<{
-  props: ToggleGroupProps;
-  ref: View;
-}>((props, ref) => {
-  const { spacingProps, otherProps: propsAfterSpacing } = extractSpacingProps(props);
+export const ToggleGroup = factory<{ props: ToggleGroupProps; ref: View }>((props, ref) => {
+  const { styleProps, otherProps: propsAfterSpacing } = extractStyleProps(props);
   const { layoutProps, otherProps: propsAfterLayout } = extractLayoutProps(propsAfterSpacing);
-  const { disclaimerProps: disclaimerData, otherProps } = extractDisclaimerProps(propsAfterLayout as ToggleGroupProps);
-  
+  const { disclaimerProps: disclaimerData, otherProps } = extractDisclaimerProps(propsAfterLayout);
+  // Spacing wraps the group and its disclaimer; the box props (with `fullWidth`)
+  // size the group itself, the element that takes `style`.
+  const { w, h, miw, maw, mih, mah, bg, opacity, ...spacingProps } = styleProps;
+
   const {
-    value,
+    value: valueProp,
+    defaultValue,
     onChange,
     exclusive = false,
     disabled = false,
@@ -254,122 +262,114 @@ export const ToggleGroup = factory<{
     variant,
     orientation = 'horizontal',
     required = false,
+    radius,
+    accessibilityLabel,
     style,
     children,
     testID,
-    ...restProps
   } = otherProps;
 
   const theme = useTheme();
   const renderDisclaimer = useDisclaimer(disclaimerData.disclaimer, disclaimerData.disclaimerProps);
-  
-  const spacingStyles = getSpacingStyles(spacingProps);
-  const layoutStyles = getLayoutStyles(layoutProps);
 
-  const containerStyles = useMemo(() => ({
-    flexDirection: orientation === 'horizontal' ? 'row' as const : 'column' as const,
-    alignItems: 'stretch' as const,
-  }), [orientation]);
+  const [value, setValue] = useControllableState<ToggleGroupValue>({
+    value: valueProp,
+    defaultValue,
+    finalValue: [],
+    onChange,
+  });
+  const selectedValues = useMemo(() => toArray(value), [value]);
 
-  const handleChange = useCallback((buttonValue: string | number) => {
-    if (!onChange) return;
-    
-    if (exclusive) {
-      // Exclusive mode - only one can be selected
-      if (required && value === buttonValue) {
-        // Don't allow deselecting if required and this is the only selected
+  const childArray = useMemo(() => React.Children.toArray(children).filter(React.isValidElement), [children]);
+  const childInfo = useMemo<ChildInfo[]>(
+    () => childArray.map((child) => (child.props ?? {}) as ChildInfo),
+    [childArray]
+  );
+
+  const handleToggle = useCallback(
+    (buttonValue: ToggleValue) => {
+      const isSelected = selectedValues.includes(buttonValue);
+      if (exclusive) {
+        // Don't allow deselecting the only value when a selection is required.
+        if (isSelected && required) return;
+        setValue(isSelected ? [] : buttonValue);
         return;
       }
-      // For exclusive mode, pass the buttonValue or an empty array to represent no selection
-      onChange(value === buttonValue ? [] : buttonValue);
-    } else {
-      // Multiple selection mode
-      const currentValues = Array.isArray(value) ? value : (value !== undefined ? [value] : []);
-      const isSelected = currentValues.includes(buttonValue);
-      
       if (isSelected) {
-        const newValues = currentValues.filter(v => v !== buttonValue);
-        if (required && newValues.length === 0) {
-          // Don't allow deselecting all if required
-          return;
-        }
-        onChange(newValues);
+        const next = selectedValues.filter((v) => v !== buttonValue);
+        if (required && next.length === 0) return;
+        setValue(next);
       } else {
-        onChange([...currentValues, buttonValue]);
+        setValue([...selectedValues, buttonValue]);
       }
-    }
-  }, [value, onChange, exclusive, required]);
+    },
+    [selectedValues, exclusive, required, setValue]
+  );
 
-  const contextValue = useMemo<ToggleGroupContextValue>(() => ({
-    value,
-    onChange: handleChange,
-    exclusive,
-    disabled,
-    size,
-    color,
-    variant,
-    required,
-  }), [value, handleChange, exclusive, disabled, size, color, variant, required]);
+  const firstSelectedIndex = childInfo.findIndex((info) => info.value !== undefined && selectedValues.includes(info.value));
+  const isItemDisabled = useCallback((index: number) => disabled || !!childInfo[index]?.disabled, [disabled, childInfo]);
+  const { getItemProps } = useRovingFocus({
+    count: childArray.length,
+    orientation,
+    activeIndex: firstSelectedIndex >= 0 ? firstSelectedIndex : undefined,
+    isDisabled: isItemDisabled,
+  });
+  const positions = useMemo<ToggleItemPosition[]>(
+    () => childArray.map((_, index) => ({ index, isFirst: index === 0, isLast: index === childArray.length - 1 })),
+    [childArray]
+  );
 
-  // Clone children with position info for styling
-  const childrenWithProps = useMemo(() => {
-    const childArray = React.Children.toArray(children);
-    
-    return childArray.map((child, index) => {
-      if (React.isValidElement<ToggleButtonProps>(child) && child.type === ToggleButton) {
-        const isFirst = index === 0;
-        const isLast = index === childArray.length - 1;
-        
-        const buttonValue = child.props.value;
-        const selected = Array.isArray(value) 
-          ? value.includes(buttonValue)
-          : value === buttonValue;
-        
-        const effectiveVariant = (child.props as any).variant ?? variant;
-        const effectiveColor = (child.props as any).color ?? color;
-        const buttonStyles = getToggleButtonStyles(
-          theme,
-          selected,
-          disabled || (child.props.disabled ?? false),
-          size,
-          effectiveColor,
-          effectiveVariant,
-          isFirst,
-          isLast,
-          orientation
-        );        return React.cloneElement(child, {
-          ...child.props,
-          style: [buttonStyles, child.props.style],
-        });
-      }
-      
-      return child;
-    });
-  }, [children, value, theme, disabled, size, color, orientation]);
+  const isSelected = useCallback((v: ToggleValue) => selectedValues.includes(v), [selectedValues]);
+
+  const contextValue = useMemo<ToggleGroupInternalContext>(
+    () => ({
+      value,
+      onChange: handleToggle,
+      exclusive,
+      disabled,
+      size,
+      color,
+      variant,
+      required,
+      orientation,
+      radius,
+      isSelected,
+      getItemProps,
+    }),
+    [value, handleToggle, exclusive, disabled, size, color, variant, required, orientation, radius, isSelected, getItemProps]
+  );
 
   const disclaimerNode = renderDisclaimer();
 
   return (
     <ToggleGroupContext.Provider value={contextValue}>
-      <View style={spacingStyles}>
-        <View 
-          style={[containerStyles, layoutStyles, style]} 
+      <View style={resolveStyleProps(spacingProps, theme)}>
+        <View
           ref={ref}
+          style={[
+            { flexDirection: orientation === 'horizontal' ? 'row' : 'column', alignItems: 'stretch' },
+            // `fullWidth` first, so an explicit `w` wins.
+            getLayoutStyles(layoutProps),
+            resolveStyleProps({ w, h, miw, maw, mih, mah, bg, opacity }, theme),
+            style,
+          ]}
           testID={testID}
-          {...restProps}
+          {...a11yProps({
+            role: exclusive ? 'radiogroup' : 'group',
+            label: accessibilityLabel,
+            disabled,
+            required: exclusive && required,
+            orientation: exclusive ? orientation : undefined,
+          })}
         >
-          {childrenWithProps}
+          {childArray.map((child, index) => (
+            <ToggleItemContext.Provider key={child.key ?? index} value={positions[index]}>
+              {child}
+            </ToggleItemContext.Provider>
+          ))}
         </View>
-        {disclaimerNode ? (
-          <View style={{ width: '100%' }}>
-            {disclaimerNode}
-          </View>
-        ) : null}
+        {disclaimerNode ? <View style={{ width: '100%' }}>{disclaimerNode}</View> : null}
       </View>
     </ToggleGroupContext.Provider>
   );
-});
-
-// Set display names
-ToggleButton.displayName = 'ToggleButton';
-ToggleGroup.displayName = 'ToggleGroup';
+}, { displayName: 'ToggleGroup' });

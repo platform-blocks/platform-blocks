@@ -1,0 +1,68 @@
+{
+  "name": "@plocks/code",
+  "version": "0.1.0",
+  "description": "Code blocks with syntax highlighting, and Markdown rendering, for plocks.",
+  "type": "module",
+  "main": "lib/esm/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/esm/index.d.ts",
+  "react-native": "./lib/esm/index.js",
+  "exports": {
+    ".": {
+      "react-native": {
+        "types": "./lib/esm/index.d.ts",
+        "default": "./lib/esm/index.js"
+      },
+      "import": {
+        "types": "./lib/esm/index.d.ts",
+        "default": "./lib/esm/index.js"
+      },
+      "require": null,
+      "default": "./lib/esm/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "lib",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "npm run clean && rollup -c --forceExit && npm run build:types",
+    "build:types": "tsc -p tsconfig.build.json --emitDeclarationOnly --outDir lib/.types && node ../ui/scripts/emit-types.mjs .",
+    "clean": "rm -rf lib || true",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "test": "jest",
+    "test:web": "jest -c jest.web.config.cjs",
+    "lint": "eslint src",
+    "lint:check": "eslint src --max-warnings 0"
+  },
+  "peerDependencies": {
+    "@plocks/ui": "^0.1.0",
+    "react": ">=18.0.0 <20.0.0",
+    "react-native": ">=0.79.0",
+    "react-native-svg": ">=13.0.0"
+  },
+  "dependencies": {
+    "react-syntax-highlighter": "^16.1.0"
+  },
+  "keywords": [
+    "react-native",
+    "plocks",
+    "react-native-web",
+    "code",
+    "syntax-highlighting",
+    "markdown"
+  ],
+  "author": "Josh Stovall",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/platform-blocks/plocks.git",
+    "directory": "packages/code"
+  },
+  "bugs": {
+    "url": "https://github.com/platform-blocks/plocks/issues"
+  },
+  "homepage": "https://plocks.dev"
+}

@@ -1,67 +1,83 @@
 import React, {
-  createContext,
-  useContext,
-  useState,
-  useRef,
-  useCallback,
-  useEffect,
   cloneElement,
   isValidElement,
-  ReactNode,
+  useCallback,
+  useEffect,
   useMemo,
+  useRef,
+  useState,
 } from 'react';
-import { View, ScrollView, Pressable, Platform, ViewStyle } from 'react-native';
+import type { ReactElement, ReactNode, Ref } from 'react';
+import { ScrollView, View } from 'react-native';
+import type {
+  AccessibilityActionEvent,
+  GestureResponderEvent,
+  LayoutChangeEvent,
+  StyleProp,
+  ViewProps,
+  ViewStyle,
+} from 'react-native';
+
 import { Text } from '../Text';
 import { Icon } from '../Icon';
-import { ListGroup, ListGroupBody, ListGroupDivider } from '../ListGroup';
-import { factory } from '../../core/factory';
-import { useTheme } from '../../core/theme';
-import { useOverlayApi } from '../../core/providers/OverlayProvider';
-import { measureElement, calculateOverlayPositionEnhanced, type PlacementType } from '../../core/utils/positioning-enhanced';
-import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
-import { MenuItemButton, type MenuItemColor } from '../MenuItemButton';
-import {
+import { ListGroup, ListGroupBody } from '../ListGroup';
+import { MenuItemButton } from '../MenuItemButton';
+import type { MenuItemButtonProps } from '../MenuItemButton';
+import { factory, withStatics } from '../../core/factory';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { useStyleProps } from '../../core/utils/spacing';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { warnOnce } from '../../core/utils/logger';
+import { hasDOM, isWeb, webProps } from '../../core/platform';
+import type { WebKeyboardEvent, WebMouseEvent } from '../../core/platform';
+import { useFloating } from '../../core/overlay/useFloating';
+import type { UseFloatingReturn } from '../../core/overlay/useFloating';
+import { createPointAnchor } from '../../core/overlay/pointAnchor';
+import { focusContainer, focusElement, resolveDOMElement } from '../../core/overlay/focus';
+import { useIsRTL } from '../../core/overlay/placement';
+import { useRovingFocus } from '../../core/accessibility/useRovingFocus';
+import { useA11yId } from '../../core/accessibility/useA11yId';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { measureElement } from '../../core/utils/positioning-enhanced';
+import { useControllableState } from '../../hooks/useControllableState';
+import type {
   MenuProps,
   MenuItemProps,
   MenuLabelProps,
   MenuDividerProps,
   MenuDropdownProps,
   MenuSubProps,
+  MenuFactoryPayload,
 } from './types';
 import { useMenuStyles } from './styles';
-import { useControllableState } from '../../hooks/useControllableState';
+import { MenuCheckboxItem, MenuRadioGroup, MenuRadioItem } from './MenuChoiceItems';
 
-interface MenuContextValue {
-  closeMenu: () => void;
-  opened: boolean;
-}
+import { MenuContext, useMenuContext } from './MenuContext';
+import type { MenuContextValue } from './MenuContext';
+export { useMenuContext } from './MenuContext';
+export type { MenuContextValue } from './MenuContext';
 
-const MenuContext = createContext<MenuContextValue | null>(null);
+/** Where keyboard focus lands when a menu opens. */
+export type MenuInitialFocus = 'first' | 'last' | 'none';
+type InitialFocus = MenuInitialFocus;
+
+const MENU_ITEM_SELECTOR = '[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]';
 
 /**
  * Approximate rendered heights of the rows a menu is built from, at the `sm`
- * size the dropdown uses.
- *
- * These only feed the positioner's pre-mount height hint, so a few pixels either
- * way is harmless: they shift the point at which the menu decides to open upward
- * rather than downward, never the final layout — that comes from the `maxHeight`
- * the positioner returns.
+ * size the dropdown uses. They only feed the positioner's pre-mount height
+ * hint (so the first frame picks the right side); the real size is measured.
  */
 const MENU_ITEM_HEIGHT = 34;
 const MENU_LABEL_HEIGHT = 30;
 const MENU_DIVIDER_HEIGHT = 9;
 /** Padding and border the dropdown surface adds around the rows. */
 const MENU_CHROME_HEIGHT = 10;
+/** The dropdown surface's own max width (see styles.ts). */
+const MENU_MAX_WIDTH = 320;
+const HOVER_CLOSE_DELAY = 150;
+const SUBMENU_CLOSE_DELAY = 220;
 
-/**
- * How tall the menu will be once mounted, capped at its `maxH`.
- *
- * Supplying this is what lets the menu pick its side correctly on the first and
- * only positioning pass. It previously used a flat `120` — "typical menu with
- * 3-4 items" — so a longer menu near the bottom of the window concluded it fitted
- * below and rendered its remaining items off-screen. Unlike Select, the menu is
- * positioned once at open and never re-measured, so nothing corrected it after.
- */
 function estimateMenuHeight(items: ReactNode, maxHeight: number): number {
   const content = React.Children.toArray(items).reduce<number>((total, child) => {
     if (isValidElement(child)) {
@@ -70,39 +86,251 @@ function estimateMenuHeight(items: ReactNode, maxHeight: number): number {
     }
     return total + MENU_ITEM_HEIGHT;
   }, 0);
-
   return Math.min(maxHeight, content + MENU_CHROME_HEIGHT);
 }
 
-export function useMenuContext() {
-  const context = useContext(MenuContext);
-  if (!context) {
-    throw new Error('Menu compound components must be used within Menu');
+/** React 19 made `ref` an ordinary prop; on 18 it lives on the element (reading `element.ref` on 19 warns). */
+function getElementRef(element: ReactElement | null): Ref<unknown> | undefined {
+  if (!element) return undefined;
+  if (parseInt(React.version, 10) >= 19) {
+    return (element.props as { ref?: Ref<unknown> }).ref;
   }
-  return context;
+  return (element as unknown as { ref?: Ref<unknown> }).ref;
 }
 
-interface MenuFactoryPayload {
-  props: MenuProps;
-  ref: View;
+function chain<A extends unknown[]>(
+  first: ((...args: A) => void) | undefined,
+  second: (...args: A) => void
+): (...args: A) => void {
+  if (!first) return second;
+  return (...args: A) => {
+    first(...args);
+    second(...args);
+  };
+}
+
+/** Props a trigger child may carry that the menu chains onto. */
+interface TriggerChildProps {
+  id?: string;
+  onPress?: (event: GestureResponderEvent) => void;
+  onLongPress?: (event: GestureResponderEvent) => void;
+  onKeyDown?: (event: WebKeyboardEvent) => void;
+  onLayout?: (event: LayoutChangeEvent) => void;
+  onAccessibilityAction?: (event: AccessibilityActionEvent) => void;
+}
+
+function splitMenuChildren(children: ReactNode): {
+  triggerElement: ReactElement | null;
+  dropdownElement: ReactElement<MenuDropdownProps> | null;
+} {
+  let triggerElement: ReactElement | null = null;
+  let dropdownElement: ReactElement<MenuDropdownProps> | null = null;
+  React.Children.forEach(children, (child) => {
+    if (!isValidElement(child)) return;
+    if (child.type === MenuDropdown) {
+      if (!dropdownElement) dropdownElement = child as ReactElement<MenuDropdownProps>;
+    } else if (!triggerElement) {
+      triggerElement = child;
+    }
+  });
+  return { triggerElement, dropdownElement };
+}
+
+// ---------------------------------------------------------------------------
+// MenuList — the dropdown surface shared by Menu and Menu.Sub
+// ---------------------------------------------------------------------------
+
+/** @internal shared with ContextMenu */
+export interface MenuListProps {
+  floating: UseFloatingReturn;
+  contextValue: MenuContextValue;
+  children: ReactNode;
+  style: StyleProp<ViewStyle>;
+  maxHeight: number;
+  scrollable: boolean;
+  initialFocus: InitialFocus;
+  /** Bumped to re-run the initial focus while already open (keyboard re-entry). */
+  focusRequest: number;
+  /** Tab: menus aren't in the tab sequence, so Tab closes them. */
+  onTabOut: () => void;
+  /** Submenus: the "back" arrow (Left, Right in RTL) closes this level. */
+  onNavigateBack?: () => void;
+  onNavigateHorizontal?: (direction: -1 | 1) => void;
+  labelledBy?: string;
+  label?: string;
+  onPointerEnter?: () => void;
+  onPointerLeave?: () => void;
+  testID?: string;
 }
 
 /**
- * Which edge a content-sized panel should hug inside the (wider) box the
- * positioner laid out for it — the same edge the placement anchored to, so the
- * panel's visible edge still lines up with the trigger.
+ * The menu surface: role="menu" (via useFloating), roving focus over its own
+ * menu items (Arrow keys, Home/End, typeahead — `useRovingFocus`), Space /
+ * Enter to activate, Tab to leave. Items are discovered from the DOM so any
+ * composition of Menu.Item / Menu.Sub works; keyboard handling is web-only.
  */
-function alignForPlacement(placement: string): ViewStyle['alignItems'] {
-  if (placement.endsWith('-end')) return 'flex-end';
-  if (placement.endsWith('-start')) return 'flex-start';
-  // A bare 'top'/'bottom' is centred on the trigger; anything horizontal
-  // ('left'/'right') already sits beside it, so its box is its own width.
-  return placement === 'top' || placement === 'bottom' ? 'center' : 'flex-start';
+export function MenuList({
+  floating,
+  contextValue,
+  children,
+  style,
+  maxHeight,
+  scrollable,
+  initialFocus,
+  focusRequest,
+  onTabOut,
+  onNavigateBack,
+  onNavigateHorizontal,
+  labelledBy,
+  label,
+  onPointerEnter,
+  onPointerLeave,
+  testID,
+}: MenuListProps) {
+  const listRef = useRef<View>(null);
+  const itemsRef = useRef<HTMLElement[]>([]);
+  const [count, setCount] = useState(0);
+  const rtl = useIsRTL();
+
+  /** This menu's own items, in DOM order (not those of a submenu rendered inline inside it). */
+  const collectItems = useCallback((): HTMLElement[] => {
+    const container = resolveDOMElement(listRef);
+    if (!container) {
+      itemsRef.current = [];
+      return [];
+    }
+    const items = Array.from(container.querySelectorAll<HTMLElement>(MENU_ITEM_SELECTOR)).filter(
+      (item) => item.closest('[role="menu"]') === container
+    );
+    itemsRef.current = items;
+    return items;
+  }, []);
+
+  // Keep the roving-focus item count in step with what is rendered.
+  useEffect(() => {
+    if (!hasDOM) return;
+    const next = collectItems().length;
+    setCount((previous) => (previous === next ? previous : next));
+  }, [children, collectItems]);
+
+  const getItemText = useCallback((index: number) => itemsRef.current[index]?.textContent?.trim() ?? '', []);
+  const isItemDisabled = useCallback(
+    (index: number) => itemsRef.current[index]?.getAttribute('aria-disabled') === 'true',
+    []
+  );
+  const focusItemAt = useCallback((index: number) => {
+    focusElement(itemsRef.current[index]);
+  }, []);
+
+  const { handleKeyDown: handleRovingKeyDown } = useRovingFocus({
+    count,
+    orientation: 'vertical',
+    loop: true,
+    moveFocus: false,
+    typeahead: getItemText,
+    isDisabled: isItemDisabled,
+    onActiveChange: focusItemAt,
+    rtl,
+  });
+
+  const focusInitial = useLatestCallback(() => {
+    if (!hasDOM || initialFocus === 'none') return;
+    const enabled = collectItems().filter((item) => item.getAttribute('aria-disabled') !== 'true');
+    const target = initialFocus === 'last' ? enabled[enabled.length - 1] : enabled[0];
+    if (target) {
+      focusElement(target);
+      return;
+    }
+    const container = resolveDOMElement(listRef);
+    if (container) focusContainer(container);
+  });
+
+  useEffect(() => {
+    focusInitial();
+  }, [focusInitial, focusRequest]);
+
+  const handleKeyDown = useCallback(
+    (event: WebKeyboardEvent) => {
+      const container = resolveDOMElement(listRef);
+      const target = event.target as HTMLElement | null;
+      if (!container || !target || typeof target.closest !== 'function') return;
+      // Keys from a submenu rendered inline inside this one belong to it.
+      if (target !== container && target.closest('[role="menu"]') !== container) return;
+
+      const items = collectItems();
+      const index = items.findIndex((item) => item === target || item.contains(target));
+
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        onTabOut();
+        return;
+      }
+      if (event.key === ' ' && index >= 0) {
+        // Enter activates through the pressable; Space only does for buttons.
+        event.preventDefault();
+        items[index].click();
+        return;
+      }
+      if (onNavigateBack && event.key === (rtl ? 'ArrowRight' : 'ArrowLeft')) {
+        event.preventDefault();
+        event.stopPropagation();
+        onNavigateBack();
+        return;
+      }
+      if (onNavigateHorizontal && (event.key === 'ArrowLeft' || event.key === 'ArrowRight') && items[index]?.getAttribute('aria-haspopup') !== 'menu') {
+        event.preventDefault();
+        event.stopPropagation();
+        onNavigateHorizontal(event.key === 'ArrowRight' ? (rtl ? -1 : 1) : (rtl ? 1 : -1));
+        return;
+      }
+      // From the container itself, Down starts at the top and Up at the bottom.
+      const start = index >= 0 ? index : event.key === 'ArrowUp' ? items.length : -1;
+      handleRovingKeyDown(event, start);
+    },
+    [collectItems, handleRovingKeyDown, onNavigateBack, onNavigateHorizontal, onTabOut, rtl]
+  );
+
+  const body = scrollable ? (
+    <ScrollView style={{ maxHeight }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ListGroupBody>{children}</ListGroupBody>
+    </ScrollView>
+  ) : (
+    <View style={{ maxHeight, overflow: 'hidden' }}>
+      <ListGroupBody>{children}</ListGroupBody>
+    </View>
+  );
+
+  const floatingProps = floating.getFloatingProps({
+    ref: listRef,
+    style,
+    testID,
+    'aria-label': label,
+    ...(isWeb && labelledBy && !label ? { 'aria-labelledby': labelledBy } : null),
+    ...webProps({
+      onKeyDown: handleKeyDown,
+      onMouseEnter: onPointerEnter,
+      onMouseLeave: onPointerLeave,
+    }),
+  });
+
+  return (
+    <MenuContext.Provider value={contextValue}>
+      <ListGroup variant="default" size="sm" {...(floatingProps as ViewProps)}>
+        {body}
+      </ListGroup>
+    </MenuContext.Provider>
+  );
 }
 
-function MenuBase(props: MenuProps, ref: React.Ref<View>) {
+// ---------------------------------------------------------------------------
+// Menu
+// ---------------------------------------------------------------------------
+
+function MenuBase(props: MenuProps, ref: Ref<View>) {
   const {
     opened: controlledOpened,
+    defaultOpened = false,
+    onChange,
     trigger = 'click',
     position = 'auto',
     offset = 4,
@@ -110,478 +338,282 @@ function MenuBase(props: MenuProps, ref: React.Ref<View>) {
     closeOnEscape = true,
     onOpen,
     onClose,
-  w = 'auto',
-    maxH = 300,
+    onNavigateHorizontal,
+    w = 'auto',
+    mah: maxH = 300,
     shadow = 'md',
     radius = 'md',
     children,
     testID,
     disabled = false,
-    strategy = Platform.OS === 'web' ? 'fixed' : 'portal',
+    strategy = isWeb ? 'fixed' : 'portal',
+    style,
+    'aria-label': ariaLabel,
     ...spacingProps
   } = props;
 
-  const [isOpened, setOpened] = useControllableState<boolean>({
+  const spacingStyles = useStyleProps(spacingProps);
+  const menuStyles = useMenuStyles({ radius, shadow });
+  const isHover = trigger === 'hover';
+  const isContext = trigger === 'contextmenu';
+
+  const [opened, setOpened] = useControllableState<boolean>({
     value: controlledOpened,
-    defaultValue: false,
+    defaultValue: defaultOpened,
+    finalValue: false,
+    onChange,
   });
-  // Derive menu dropdown items from children each render for reactivity
-  const { menuItems, menuDropdownProps } = useMemo(() => {
-    const childArray = React.Children.toArray(children);
-    const menuDropdown = childArray.find(child => 
-      isValidElement(child) && child.type === MenuDropdown
-    );
-    if (menuDropdown && isValidElement(menuDropdown)) {
-      return {
-        menuItems: (menuDropdown.props as any).children,
-        menuDropdownProps: menuDropdown.props as MenuDropdownProps,
-      };
+  const [initialFocus, setInitialFocus] = useState<InitialFocus>('first');
+  const [focusRequest, setFocusRequest] = useState(0);
+  const [triggerWidth, setTriggerWidth] = useState<number | undefined>(undefined);
+
+  // Read by timers and handlers that may outlive the render that made them.
+  const openedRef = useRef(opened);
+  useEffect(() => {
+    openedRef.current = opened;
+  }, [opened]);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+  }, []);
+
+  const { triggerElement, dropdownElement } = useMemo(() => splitMenuChildren(children), [children]);
+  if (!triggerElement) {
+    warnOnce('Menu:no-trigger', '[plocks] Menu needs a trigger element (a child other than Menu.Dropdown).');
+  }
+  const dropdownProps = dropdownElement?.props;
+  const items = dropdownProps?.children;
+  const dropdownScrollable = dropdownProps?.scrollable;
+  const dropdownStyle = dropdownProps?.style;
+  const dropdownTestID = dropdownProps?.testID;
+  // Style props on Menu.Dropdown style the dropdown surface.
+  const dropdownSpacing = useStyleProps(dropdownProps ?? {});
+
+  const openMenu = useCallback((focus: InitialFocus) => {
+    if (disabled) return;
+    if (hoverTimer.current) {
+      clearTimeout(hoverTimer.current);
+      hoverTimer.current = null;
     }
-    return { menuItems: null, menuDropdownProps: undefined };
-  }, [children]);
-  // Build a stable signature from menu items' keys to avoid unnecessary overlay updates.
-  const menuItemsSignature = useMemo(() => {
-    if (!menuItems) {
-      return (menuDropdownProps?.scrollable === false ? 'no-scroll' : 'scroll') + (menuDropdownProps?.testID ? `:${menuDropdownProps.testID}` : '');
-    }
-    const arr = React.Children.toArray(menuItems);
-    const scrollSig = menuDropdownProps?.scrollable === false ? 'no-scroll' : 'scroll';
-    const testIDSig = menuDropdownProps?.testID ? `:${menuDropdownProps.testID}` : '';
-    const itemSig = arr.map((c: any, idx) => {
-      const base = (isValidElement(c) && c.key != null ? c.key : idx);
-      if (isValidElement(c)) {
-        const propsAny = c.props as any;
-        if (propsAny && propsAny['data-overlay-hash']) {
-          return base + ':' + propsAny['data-overlay-hash'];
-        }
-      }
-      return base;
-    }).join('|');
-    return `${scrollSig}${testIDSig}|${itemSig}`;
-  }, [menuItems, menuDropdownProps]);
-  const lastSignatureRef = useRef<string>('');
-  // Keep a ref in sync with latest open state to avoid stale closures blocking first re-open click
-  const isOpenedRef = useRef(false);
-  const containerRef = useRef<View>(null);
-  const triggerRef = useRef<View>(null);
-  const { openOverlay, closeOverlay, updateOverlay } = useOverlayApi();
-  const overlayIdRef = useRef<string | null>(null);
-  const lastResolvedWidthRef = useRef<number | undefined>(undefined);
-  const lastAutoSizeRef = useRef<{ minWidth: number; align: ViewStyle['alignItems'] } | undefined>(undefined);
-  /** The panel's real width, once it has laid out. Feeds the next placement. */
-  const measuredWidthRef = useRef<number | undefined>(undefined);
-  const repositionRef = useRef<(() => void) | null>(null);
-  const lastResolvedMaxHeightRef = useRef<number | undefined>(undefined);
-  const theme = useTheme();
-  const styles = useMenuStyles();
-  const dropdownSpacingStyles = useMemo(() => {
-    if (!menuDropdownProps) return undefined;
-    return getSpacingStyles(extractSpacingProps(menuDropdownProps as any).spacingProps);
-  }, [menuDropdownProps]);
-
-  isOpenedRef.current = isOpened;
-
-  // Overlay content update effect moved below handleClose definition
-
-  // Track last pointer position for context menu
-  const lastPointerPosRef = useRef<{x: number; y: number} | null>(null);
-
-  const handleClose = useCallback(() => {
-    if (!isOpenedRef.current) return;
-    if (overlayIdRef.current) {
-      // This will trigger the lightweight onClose we passed to openOverlay
-      closeOverlay(overlayIdRef.current);
-      overlayIdRef.current = null;
-    }
-    // Ensure state sync even if overlay already closing
-    setOpened(false);
-    isOpenedRef.current = false;
-    // onClose is invoked in overlay onClose; avoid double-calling
-  }, [closeOverlay]);
-
-  const menuContextValueOpened = useMemo(() => ({ closeMenu: handleClose, opened: true }), [handleClose]);
-
-  /**
-   * `resolvedMaxHeight` is the smaller of the caller's `maxH` and the space the
-   * positioner found on the side it chose. Applying it is what keeps a long menu
-   * on screen: it scrolls within the available space instead of running off the
-   * bottom edge.
-   */
-  const buildMenuDropdown = useCallback((
-    resolvedWidth: number | undefined,
-    resolvedMaxHeight: number = maxH,
-    autoSize?: { minWidth: number; align: ViewStyle['alignItems'] },
-  ) => {
-    if (!menuItems) return null;
-    const scrollable = menuDropdownProps?.scrollable !== false;
-    const listGroupStyle: ViewStyle = {
-      ...(styles.dropdown as any),
-      ...(dropdownSpacingStyles || {}),
-      maxHeight: resolvedMaxHeight,
-      width: resolvedWidth,
-      // `w="auto"` means *auto*: no explicit width, so the panel is as wide as
-      // its longest item and no wider. It still never gets narrower than the
-      // trigger it hangs off — a menu tucked inside its own button reads as a
-      // mistake — and `styles.dropdown.maxWidth` still caps it.
-      ...(autoSize ? { minWidth: autoSize.minWidth } : null),
-    };
-
-    const panel = (
-        <ListGroup
-          variant="default"
-          size="sm"
-          style={listGroupStyle}
-        >
-          {scrollable ? (
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              style={{ maxHeight: resolvedMaxHeight }}
-            >
-              <ListGroupBody>{menuItems}</ListGroupBody>
-            </ScrollView>
-          ) : (
-            <View style={{ maxHeight: resolvedMaxHeight, overflow: 'hidden' }}>
-              <ListGroupBody>{menuItems}</ListGroupBody>
-            </View>
-          )}
-        </ListGroup>
-    );
-
-    return (
-      <MenuContext.Provider value={menuContextValueOpened}>
-        {autoSize ? (
-          // The overlay box is positioned from an *estimated* width, so a panel
-          // that shrank to its content has slack on one side. Aligning it to
-          // the edge the placement chose puts that slack where nobody looks:
-          // an end-placed menu still lines its right edge up with the trigger.
-          // `box-none` keeps the empty strip from eating outside clicks.
-          <View pointerEvents="box-none" style={{ width: '100%', alignItems: autoSize.align }}>
-            <View
-              onLayout={(event) => {
-                // First paint placed the menu from an estimated width; this is
-                // the first moment the real one is known. Re-place only when
-                // they differ, so a correct estimate costs nothing.
-                const measured = event.nativeEvent.layout.width;
-                if (!measured || Math.abs((measuredWidthRef.current ?? 0) - measured) < 1) return;
-                measuredWidthRef.current = measured;
-                repositionRef.current?.();
-              }}
-            >
-              {panel}
-            </View>
-          </View>
-        ) : panel}
-      </MenuContext.Provider>
-    );
-  }, [menuItems, menuDropdownProps, styles.dropdown, dropdownSpacingStyles, maxH, menuContextValueOpened]);
-
-  /**
-   * Measure the trigger and work out where the menu belongs.
-   *
-   * Split out of `handleOpen` so the same computation can run again while the
-   * menu is open — the menu is anchored to a trigger that scrolls with the page,
-   * so its viewport coordinates go stale the moment anything scrolls.
-   *
-   * `retryOnEmpty` is wanted only on open, where a zero measurement means the
-   * trigger hasn't laid out yet and is worth waiting for. On a reposition a zero
-   * measurement means the trigger has been scrolled out of existence, and
-   * blocking a scroll frame on a 100ms sleep would be the wrong answer.
-   */
-  const computeMenuGeometry = useCallback(async (
-    opts?: { clientX?: number; clientY?: number; retryOnEmpty?: boolean }
-  ) => {
-    if (!menuItems) return null;
-
-    const anchorRef = containerRef.current ? containerRef : triggerRef;
-    const triggerRect = await measureElement(anchorRef);
-
-    if (triggerRect.width === 0 && triggerRect.height === 0) {
-      if (!opts?.retryOnEmpty) return null;
-      await new Promise(resolve => setTimeout(resolve, 100));
-      const retryRect = await measureElement(anchorRef);
-      if (retryRect.width > 0 || retryRect.height > 0) {
-        Object.assign(triggerRect, retryRect);
-      }
-    }
-
-    // Height is derived from the actual items rather than assumed, so the side
-    // choice is right the first time rather than being corrected after paint.
-    const menuHeight = estimateMenuHeight(menuItems, maxH);
-    // Two different widths. `resolvedWidth` is what the panel is told to be —
-    // undefined under `auto`, so it lays out to its own content. `layoutWidth`
-    // is what the positioner reasons about, which has to be a number; the
-    // long-standing 200 estimate stays, and `buildMenuDropdown` absorbs the
-    // difference by aligning the panel inside the box it produces.
-    const isAutoWidth = w !== 'target' && typeof w !== 'number';
-    const resolvedWidth = w === 'target' ? triggerRect.width : (typeof w === 'number' ? w : undefined);
-    const layoutWidth = resolvedWidth ?? measuredWidthRef.current ?? 200;
-    const overlaySize = { width: layoutWidth, height: menuHeight };
-
-    // If contextmenu trigger, prefer cursor coordinates
-    let positionResult: { x: number; y: number; placement?: PlacementType; maxHeight?: number; anchorEdge?: 'top' | 'bottom'; anchorOffset?: number };
-    if (trigger === 'contextmenu') {
-      const cursorX = opts?.clientX ?? lastPointerPosRef.current?.x ?? 0;
-      const cursorY = opts?.clientY ?? lastPointerPosRef.current?.y ?? 0;
-      // Basic viewport clamping (assume available via window for web)
-      if (typeof window !== 'undefined') {
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-        positionResult = {
-          x: Math.min(cursorX, vw - (overlaySize.width || 200) - 4),
-          y: Math.min(cursorY, vh - overlaySize.height - 4),
-        };
-      } else {
-        positionResult = { x: cursorX, y: cursorY };
-      }
-    } else {
-      positionResult = calculateOverlayPositionEnhanced(triggerRect, overlaySize, {
-        placement: position,
-        offset,
-        strategy: strategy === 'portal' ? 'fixed' : strategy,
-        // Both the side choice and the height cap come from this.
-        desiredHeight: menuHeight,
-      });
-    }
-
-    // Never taller than the space the positioner found on the side it picked.
-    const resolvedMaxHeight = typeof positionResult.maxHeight === 'number'
-      ? Math.min(maxH, positionResult.maxHeight)
-      : maxH;
-
-    const autoSize = isAutoWidth
-      ? { minWidth: triggerRect.width, align: alignForPlacement(positionResult.placement || position) }
-      : undefined;
-
-    return { positionResult, overlaySize, resolvedWidth, resolvedMaxHeight, autoSize };
-  }, [menuItems, maxH, w, trigger, position, offset, strategy]);
-
-  const handleOpen = useCallback(async (opts?: { clientX?: number; clientY?: number }) => {
-    // Use ref to avoid stale isOpened value after async close from backdrop click
-    if (disabled || isOpenedRef.current || !menuItems) return;
-
-    try {
-      // Add a small delay to ensure element is mounted
-      await new Promise(resolve => setTimeout(resolve, 10));
-
-      const geometry = await computeMenuGeometry({ ...opts, retryOnEmpty: true });
-      if (!geometry) return;
-
-      const { positionResult, overlaySize, resolvedWidth, resolvedMaxHeight, autoSize } = geometry;
-
-      lastResolvedWidthRef.current = resolvedWidth;
-      lastResolvedMaxHeightRef.current = resolvedMaxHeight;
-      lastAutoSizeRef.current = autoSize;
-
-      // Create menu dropdown content
-      const menuDropdown = buildMenuDropdown(resolvedWidth, resolvedMaxHeight, autoSize);
-      if (!menuDropdown) return;
-
-      const overlayId = openOverlay({
-        content: menuDropdown,
-        anchor: { x: positionResult.x, y: positionResult.y, width: overlaySize.width, height: overlaySize.height },
-        // Pin to the trigger-adjacent edge when the positioner supplied one, so
-        // an upward-opening menu grows away from the trigger instead of having
-        // its top edge computed from an assumed height.
-        pinEdge: positionResult.anchorEdge,
-        pinOffset: positionResult.anchorOffset,
-        anchorNode: containerRef.current ?? triggerRef.current,
-        placement: positionResult.placement || position,
-        closeOnClickOutside,
-        closeOnEscape,
-        strategy,
-        // Provide lightweight onClose that only resets state; actual closing is already in progress
-        onClose: () => {
-          overlayIdRef.current = null;
-          setOpened(false);
-          isOpenedRef.current = false;
-          onClose?.();
-        },
-      });
-
-      overlayIdRef.current = overlayId;
+    if (openedRef.current) return;
+    openedRef.current = true;
+    setInitialFocus(focus);
     setOpened(true);
-    isOpenedRef.current = true;
-      onOpen?.();
-    } catch (error) {
-      console.warn('Failed to open menu:', error);
+    onOpen?.();
+  }, [disabled, setOpened, onOpen]);
+
+  const closeMenu = useCallback(() => {
+    if (hoverTimer.current) {
+      clearTimeout(hoverTimer.current);
+      hoverTimer.current = null;
     }
-  }, [disabled, position, strategy, closeOnClickOutside, closeOnEscape, onOpen, menuItems, buildMenuDropdown, onClose, computeMenuGeometry, openOverlay]);
+    if (!openedRef.current) return;
+    openedRef.current = false;
+    setOpened(false);
+    onClose?.();
+  }, [setOpened, onClose]);
 
-  /**
-   * Keep an open menu docked to its trigger.
-   *
-   * Without this the menu is positioned once, at open, and holds those viewport
-   * coordinates forever — scrolling the page slides the trigger away and leaves
-   * the menu floating where the trigger used to be. Every other overlay in the
-   * library tracks; this was the last one that didn't.
-   *
-   * Context menus are excluded on purpose: they are anchored to the point where
-   * the pointer was, not to an element, so there is nothing to track them to.
-   */
-  useEffect(() => {
-    if (Platform.OS !== 'web' || !isOpened || trigger === 'contextmenu') return;
+  const isOpen = opened && !disabled && items != null;
 
-    let frame: number | null = null;
-    let cancelled = false;
+  const floating = useFloating({
+    opened: isOpen,
+    onDismiss: closeMenu,
+    placement: isContext ? 'bottom-start' : position,
+    offset: isContext ? 0 : offset,
+    matchWidth: w === 'target',
+    strategy,
+    trigger: isHover ? 'hover' : isContext ? 'contextmenu' : 'click',
+    role: 'menu',
+    closeOnEscape,
+    closeOnOutsidePress: isHover ? false : closeOnClickOutside,
+    // The menu focuses its first (or last) item itself.
+    autoFocus: false,
+    restoreFocus: true,
+    desiredHeight: estimateMenuHeight(items, maxH),
+  });
+  const { refs, getReferenceProps, update: updatePosition } = floating;
 
-    const reposition = async () => {
-      if (cancelled) return;
-      const geometry = await computeMenuGeometry();
-      if (cancelled || !geometry || !overlayIdRef.current) return;
+  // --- anchor ------------------------------------------------------------------
+  // The trigger element is the anchor when it forwards a ref; otherwise the
+  // wrapper. Refs attach child-first, so the trigger's wins when present.
+  // Context menus anchor to the pointer instead (a virtual point anchor).
+  const triggerNodeRef = useRef<unknown>(null);
+  const rootNodeRef = useRef<unknown>(null);
+  const setTriggerNode = useCallback((node: unknown) => {
+    triggerNodeRef.current = node;
+    if (!isContext && node) refs.setReference(node);
+  }, [isContext, refs]);
+  const setRootNode = useCallback((node: unknown) => {
+    rootNodeRef.current = node;
+    if (!isContext && node && !triggerNodeRef.current) refs.setReference(node);
+  }, [isContext, refs]);
+  const rootRef = useMergedRef<View>(ref, setRootNode);
+  const triggerRef = useMergedRef<unknown>(getElementRef(triggerElement), setTriggerNode);
 
-      const { positionResult, overlaySize, resolvedWidth, resolvedMaxHeight, autoSize } = geometry;
-      lastResolvedWidthRef.current = resolvedWidth;
-      lastResolvedMaxHeightRef.current = resolvedMaxHeight;
-      lastAutoSizeRef.current = autoSize;
+  const openAtPoint = useCallback((x: number, y: number, focus: InitialFocus) => {
+    if (disabled) return;
+    refs.setReference(createPointAnchor({ x, y }));
+    if (openedRef.current) {
+      void updatePosition();
+      return;
+    }
+    openMenu(focus);
+  }, [disabled, refs, updatePosition, openMenu]);
 
-      // `updateOverlay` diffs before committing, so a scroll that doesn't move
-      // the trigger costs a measurement and nothing more.
-      updateOverlay(overlayIdRef.current, {
-        anchor: { x: positionResult.x, y: positionResult.y, width: overlaySize.width, height: overlaySize.height },
-        pinEdge: positionResult.anchorEdge,
-        pinOffset: positionResult.anchorOffset,
-      });
-    };
-
-    // Coalesced to one reposition per frame: the scroll listener is registered
-    // in the capture phase so it fires for every scrolling ancestor.
-    const handleUpdate = () => {
-      if (frame !== null) return;
-      frame = requestAnimationFrame(() => {
-        frame = null;
-        reposition();
-      });
-    };
-
-    // `onLayout` on the panel calls this once it knows its real width, which is
-    // the only moment the placement estimate can be corrected.
-    repositionRef.current = handleUpdate;
-
-    window.addEventListener('scroll', handleUpdate, true);
-    window.addEventListener('resize', handleUpdate);
-
-    return () => {
-      cancelled = true;
-      repositionRef.current = null;
-      if (frame !== null) cancelAnimationFrame(frame);
-      window.removeEventListener('scroll', handleUpdate, true);
-      window.removeEventListener('resize', handleUpdate);
-    };
-  }, [isOpened, trigger, computeMenuGeometry, updateOverlay]);
-
-  // When menu content changes while open, update overlay content in place
-  useEffect(() => {
-    if (!isOpenedRef.current || !overlayIdRef.current) return;
-    if (!menuItems) return;
-    if (lastSignatureRef.current === menuItemsSignature) return; // no structural change
-    lastSignatureRef.current = menuItemsSignature;
-    // Different items, different width — the cached measurement is stale.
-    measuredWidthRef.current = undefined;
-    const currentId = overlayIdRef.current;
-    const resolvedWidth = lastResolvedWidthRef.current ?? (typeof w === 'number' ? w : undefined);
-    const menuDropdown = buildMenuDropdown(resolvedWidth, lastResolvedMaxHeightRef.current, lastAutoSizeRef.current);
-    if (!menuDropdown) return;
-    updateOverlay(currentId, {
-      content: menuDropdown,
+  /** Keyboard / assistive-technology context menu: open at the trigger's corner. */
+  const openAtTrigger = useCallback(() => {
+    const node = triggerNodeRef.current ?? rootNodeRef.current;
+    void measureElement({ current: node }).then((rect) => {
+      openAtPoint(rect.x, rect.y + rect.height, 'first');
     });
-  }, [menuItemsSignature, menuItems, updateOverlay, w, buildMenuDropdown]);
+  }, [openAtPoint]);
 
-  const handleToggle = useCallback(() => {
-    if (isOpenedRef.current) {
-      handleClose();
-    } else {
-      handleOpen();
+  // --- hover ---------------------------------------------------------------------
+  const hoverOpen = useCallback(() => {
+    if (hoverTimer.current) {
+      clearTimeout(hoverTimer.current);
+      hoverTimer.current = null;
     }
-  }, [handleOpen, handleClose]);
+    openMenu('none');
+  }, [openMenu]);
+  const hoverClose = useCallback(() => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => {
+      hoverTimer.current = null;
+      closeMenu();
+    }, HOVER_CLOSE_DELAY);
+  }, [closeMenu]);
 
-  // Find trigger element (first non-MenuDropdown child)
-  const findTriggerElement = (children: ReactNode): React.ReactElement => {
-    const childArray = React.Children.toArray(children);
-    const triggerChild = childArray.find(child => 
-      isValidElement(child) && child.type !== MenuDropdown
-    );
-    
-    if (!triggerChild || !isValidElement(triggerChild)) {
-      throw new Error('Menu must have a trigger element (non-MenuDropdown child)');
+  // --- trigger -----------------------------------------------------------------
+  const triggerId = useA11yId(undefined, 'menu-trigger');
+  const childProps = (triggerElement?.props ?? {}) as TriggerChildProps;
+  const resolvedTriggerId = childProps.id ?? triggerId;
+
+  const handleTriggerKeyDown = (event: WebKeyboardEvent) => {
+    childProps.onKeyDown?.(event);
+    if (event.defaultPrevented || disabled) return;
+    if (isContext) {
+      if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
+        event.preventDefault();
+        openAtTrigger();
+      }
+      return;
     }
-    
-    return triggerChild;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (openedRef.current) {
+        setInitialFocus(event.key === 'ArrowUp' ? 'last' : 'first');
+        setFocusRequest((n) => n + 1);
+      } else {
+        openMenu(event.key === 'ArrowUp' ? 'last' : 'first');
+      }
+    }
   };
 
-  const triggerElement = findTriggerElement(children);
-  
-  // Create a callback ref that works better with React Native Web
-  const triggerCallbackRef = useCallback((node: any) => {
-    triggerRef.current = node;
-    // console.log('Trigger ref set to:', node);
-  }, []);
-  
-  const enhancedTrigger = isValidElement(triggerElement) 
-    ? cloneElement(triggerElement, {
-        ref: triggerCallbackRef,
-        ...(triggerElement.props as any),
-        ...(trigger === 'click' && { onPress: handleToggle }),
-        ...(trigger === 'hover' && Platform.OS === 'web' && {
-          onMouseEnter: handleOpen,
-          onMouseLeave: handleClose,
-        }),
-        ...(trigger === 'contextmenu' && Platform.OS === 'web' && {
-          onContextMenu: (e: any) => {
-            e.preventDefault();
-            lastPointerPosRef.current = { x: e.clientX, y: e.clientY };
-            handleOpen({ clientX: e.clientX, clientY: e.clientY });
-          },
-        }),
-        ...(disabled && { opacity: 0.5 }),
-      })
-    : triggerElement;
+  const triggerOverrides: Record<string, unknown> = {
+    ref: triggerRef,
+    onLayout: chain(childProps.onLayout, (event: LayoutChangeEvent) => {
+      const width = event.nativeEvent.layout.width;
+      setTriggerWidth((previous) => (previous === width ? previous : width));
+    }),
+  };
+  if (isWeb) triggerOverrides.onKeyDown = handleTriggerKeyDown;
 
-  // Create a callback ref that forwards to both internal and external refs
-  const combinedRef = useCallback((node: View | null) => {
-    containerRef.current = node;
-    if (typeof ref === 'function') {
-      ref(node);
-    } else if (ref) {
-      (ref as any).current = node;
+  if (isContext) {
+    // Native: long-press opens it at the finger; assistive tech gets an action.
+    if (!isWeb) {
+      triggerOverrides.onLongPress = chain(childProps.onLongPress, (event: GestureResponderEvent) => {
+        openAtPoint(event.nativeEvent.pageX, event.nativeEvent.pageY, 'first');
+      });
+      triggerOverrides.accessibilityActions = [{ name: 'longpress', label: 'Open menu' }];
+      triggerOverrides.onAccessibilityAction = chain(childProps.onAccessibilityAction, (event: AccessibilityActionEvent) => {
+        if (event.nativeEvent.actionName === 'longpress') openAtTrigger();
+      });
     }
-    // console.log('Combined ref set to:', node);
-  }, [ref]);
+  } else {
+    Object.assign(triggerOverrides, getReferenceProps({}, { ref: false }));
+    triggerOverrides.id = resolvedTriggerId;
+    triggerOverrides.onPress = chain(childProps.onPress, () => {
+      if (openedRef.current) closeMenu();
+      else openMenu('first');
+    });
+  }
+  if (disabled) triggerOverrides.disabled = true;
+
+  const enhancedTrigger = triggerElement ? cloneElement(triggerElement, triggerOverrides) : null;
+
+  const handleContextMenu = useCallback((event: WebMouseEvent) => {
+    event.preventDefault();
+    openAtPoint(event.clientX ?? 0, event.clientY ?? 0, 'first');
+  }, [openAtPoint]);
+  const rootWebProps = isWeb
+    ? {
+        ...(isContext ? { onContextMenu: handleContextMenu } : null),
+        ...(isHover ? webProps({ onMouseEnter: hoverOpen, onMouseLeave: hoverClose }) : null),
+      }
+    : null;
+
+  // --- dropdown ------------------------------------------------------------------
+  const position_ = floating.position;
+  const resolvedMaxHeight = typeof position_?.maxHeight === 'number' ? Math.min(maxH, position_.maxHeight) : maxH;
+  let widthStyle: ViewStyle | null = null;
+  if (typeof w === 'number') widthStyle = { width: w };
+  else if (w === 'auto' && triggerWidth && !isContext) widthStyle = { minWidth: Math.min(triggerWidth, MENU_MAX_WIDTH) };
+
+  const contextValue = useMemo<MenuContextValue>(() => ({ closeMenu, opened: isOpen }), [closeMenu, isOpen]);
+
+  const content = items != null ? (
+    <MenuList
+      floating={floating}
+      contextValue={contextValue}
+      style={[menuStyles.dropdown, widthStyle, dropdownSpacing, dropdownStyle]}
+      maxHeight={resolvedMaxHeight}
+      scrollable={dropdownScrollable !== false}
+      initialFocus={initialFocus}
+      focusRequest={focusRequest}
+      onTabOut={closeMenu}
+      onNavigateHorizontal={onNavigateHorizontal}
+      labelledBy={isContext ? undefined : resolvedTriggerId}
+      label={ariaLabel}
+      onPointerEnter={isHover ? hoverOpen : undefined}
+      onPointerLeave={isHover ? hoverClose : undefined}
+      testID={dropdownTestID}
+    >
+      {items}
+    </MenuList>
+  ) : null;
 
   return (
-    <MenuContext.Provider value={{ closeMenu: handleClose, opened: isOpened }}>
-      <View 
-        ref={combinedRef}
-        style={getSpacingStyles(extractSpacingProps(spacingProps).spacingProps)} 
-        testID={testID}
-        {...(trigger === 'contextmenu' && Platform.OS === 'web'
-          ? {
-              onContextMenu: (e: any) => {
-                // Ensure we intercept the native browser context menu
-                if (e?.preventDefault) e.preventDefault();
-                const x = (e?.clientX ?? 0);
-                const y = (e?.clientY ?? 0);
-                lastPointerPosRef.current = { x, y };
-                handleOpen({ clientX: x, clientY: y });
-              },
-            }
-          : {})}
-        onLayout={() => {
-          // Force a re-render to ensure ref is available
-          if (containerRef.current) {
-            // console.log('Menu container onLayout - container ref available:', containerRef.current);
-          }
-        }}
-      >
+    <MenuContext.Provider value={contextValue}>
+      <View ref={rootRef} style={[spacingStyles, style]} testID={testID} collapsable={false} {...rootWebProps}>
         {enhancedTrigger}
+        {floating.renderFloating(content)}
       </View>
     </MenuContext.Provider>
   );
 }
 
-// Menu.Item component
-function MenuItemBase(props: MenuItemProps, ref: React.Ref<View>) {
-  const { spacingProps, otherProps } = extractSpacingProps(props as any);
+// ---------------------------------------------------------------------------
+// Menu.Item
+// ---------------------------------------------------------------------------
+
+/** Props MenuItemButton forwards to its Pressable but doesn't declare. */
+function menuItemA11y(options: {
+  disabled: boolean;
+  hasPopup?: boolean;
+  extra?: Record<string, unknown>;
+}): Partial<MenuItemButtonProps> {
+  return {
+    role: 'menuitem',
+    'aria-disabled': options.disabled || undefined,
+    ...(options.hasPopup && isWeb ? { 'aria-haspopup': 'menu' } : null),
+    // Menus manage focus with the arrow keys; items are never tab stops.
+    ...webProps({ tabIndex: -1 }),
+    ...options.extra,
+  } as Partial<MenuItemButtonProps>;
+}
+
+function MenuItemBase(props: MenuItemProps, ref: Ref<View>) {
   const {
     children,
     onPress,
@@ -591,8 +623,9 @@ function MenuItemBase(props: MenuItemProps, ref: React.Ref<View>) {
     color = 'default',
     closeMenuOnClick = true,
     testID,
-    ...restProps
-  } = otherProps as MenuItemProps;
+    style,
+    ...spacingProps
+  } = props;
 
   const { closeMenu } = useMenuContext();
 
@@ -602,67 +635,62 @@ function MenuItemBase(props: MenuItemProps, ref: React.Ref<View>) {
     if (closeMenuOnClick) closeMenu();
   }, [disabled, onPress, closeMenuOnClick, closeMenu]);
 
-  const itemColor: MenuItemColor = color ?? 'default';
-
   return (
     <MenuItemButton
-      ref={ref as any}
+      ref={ref}
       onPress={handlePress}
       disabled={disabled}
-      startIcon={startSection}
-      endIcon={endSection}
-      color={itemColor}
+      startSection={startSection}
+      endSection={endSection}
+      color={color}
       testID={testID}
+      style={style}
       {...spacingProps}
-      {...restProps}
+      {...menuItemA11y({ disabled })}
     >
       {children}
     </MenuItemButton>
   );
 }
 
-// Menu.Label component
-function MenuLabelBase(props: MenuLabelProps, ref: React.Ref<View>) {
-  const { children, testID, ...spacingProps } = props;
+// ---------------------------------------------------------------------------
+// Menu.Label / Menu.Divider / Menu.Dropdown
+// ---------------------------------------------------------------------------
+
+function MenuLabelBase(props: MenuLabelProps, ref: Ref<View>) {
+  const { children, testID, style, textProps, ...spacingProps } = props;
   const styles = useMenuStyles();
-  const spacingStyles = getSpacingStyles(extractSpacingProps(spacingProps).spacingProps);
+  const spacingStyles = useStyleProps(spacingProps);
 
   return (
-    <View ref={ref} style={[styles.label, spacingStyles]} testID={testID}>
-      <Text variant="small" color="secondary">
-        {children}
-      </Text>
+    <View ref={ref} style={[styles.label, spacingStyles, style]} testID={testID} role="presentation">
+      <Text {...mergeSlotProps({ textRole: 'sectionLabel' }, textProps)}>{children}</Text>
     </View>
   );
 }
 
-// Menu.Divider component
-function MenuDividerBase(props: MenuDividerProps, ref: React.Ref<View>) {
-  const { testID, ...spacingProps } = props;
+function MenuDividerBase(props: MenuDividerProps, ref: Ref<View>) {
+  const { testID, style, ...spacingProps } = props;
   const styles = useMenuStyles();
-  const spacingStyles = getSpacingStyles(extractSpacingProps(spacingProps).spacingProps);
+  const spacingStyles = useStyleProps(spacingProps);
 
-  return (
-    <View ref={ref} style={[styles.divider, spacingStyles]} testID={testID} />
-  );
+  return <View ref={ref} role="separator" style={[styles.divider, spacingStyles, style]} testID={testID} />;
 }
 
-// Menu.Dropdown component - This is just a container, it doesn't render anything itself
-function MenuDropdownBase(props: MenuDropdownProps, ref: React.Ref<View>) {
-  // MenuDropdown doesn't render anything in the main tree
-  // Its children are extracted and rendered in the overlay
+/** A declaration only: Menu reads its props and renders the items in the dropdown. */
+function MenuDropdownBase(_props: MenuDropdownProps, _ref: Ref<View>) {
   return null;
 }
 
-// Menu.Sub component — a flyout submenu, like nested context menus.
-// Renders a trigger row inside the parent dropdown that opens its own overlay
-// to the side (hover on web, press elsewhere). Nested overlays unmount as a
-// cascade when any ancestor closes (see the unmount cleanup below), so selecting
-// a leaf item or dismissing the root tears the whole chain down.
-const SUBMENU_CLOSE_DELAY = 220;
+// ---------------------------------------------------------------------------
+// Menu.Sub — a flyout submenu
+// ---------------------------------------------------------------------------
+// A trigger row inside the parent dropdown that opens its own menu to the side:
+// on hover (web), press, or ArrowRight / Enter / Space (ArrowLeft or Escape
+// closes it again and returns focus to the row). Choosing a leaf item closes
+// the whole chain; an ancestor closing unmounts it and its overlay.
 
-function MenuSubBase(props: MenuSubProps, ref: React.Ref<View>) {
-  const { spacingProps, otherProps } = extractSpacingProps(props as any);
+function MenuSubBase(props: MenuSubProps, ref: Ref<View>) {
   const {
     label,
     children,
@@ -670,179 +698,169 @@ function MenuSubBase(props: MenuSubProps, ref: React.Ref<View>) {
     disabled = false,
     color = 'default',
     w = 200,
-    maxH = 300,
+    mah: maxH = 300,
     testID,
-  } = otherProps as MenuSubProps;
+    style,
+    ...spacingProps
+  } = props;
 
-  const parentContext = useMenuContext();
-  const { openOverlay, closeOverlay, updateOverlay } = useOverlayApi();
-  const styles = useMenuStyles();
+  const parent = useMenuContext();
+  const menuStyles = useMenuStyles();
+  const rtl = useIsRTL();
 
-  const itemRef = useRef<View>(null);
-  const overlayIdRef = useRef<string | null>(null);
-  const openRef = useRef(false);
-  const closeTimerRef = useRef<any>(null);
-  const [, forceOpenState] = useState(false);
+  const [opened, setOpened] = useState(false);
+  const [initialFocus, setInitialFocus] = useState<InitialFocus>('none');
+  const [focusRequest, setFocusRequest] = useState(0);
+  const pendingFocusRef = useRef<InitialFocus>('none');
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const itemColor: MenuItemColor = color ?? 'default';
-
-  const cancelScheduledClose = useCallback(() => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
+  const cancelClose = useCallback(() => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
     }
   }, []);
+  useEffect(() => cancelClose, [cancelClose]);
 
-  const closeSelf = useCallback(() => {
-    cancelScheduledClose();
-    if (overlayIdRef.current) {
-      closeOverlay(overlayIdRef.current);
-      overlayIdRef.current = null;
-    }
-    openRef.current = false;
-    forceOpenState(false);
-  }, [cancelScheduledClose, closeOverlay]);
+  const openSub = useCallback((focus: InitialFocus) => {
+    if (disabled) return;
+    cancelClose();
+    setInitialFocus(focus);
+    if (focus !== 'none') setFocusRequest((n) => n + 1);
+    setOpened(true);
+  }, [disabled, cancelClose]);
 
-  // Selecting a leaf item closes this submenu *and* bubbles up so the whole chain
-  // (including the root menu) dismisses.
-  const closeChain = useCallback(() => {
-    closeSelf();
-    parentContext.closeMenu();
-  }, [closeSelf, parentContext]);
+  const closeSub = useCallback(() => {
+    cancelClose();
+    setOpened(false);
+  }, [cancelClose]);
 
   const scheduleClose = useCallback(() => {
-    cancelScheduledClose();
-    closeTimerRef.current = setTimeout(() => closeSelf(), SUBMENU_CLOSE_DELAY);
-  }, [cancelScheduledClose, closeSelf]);
+    cancelClose();
+    closeTimer.current = setTimeout(() => {
+      closeTimer.current = null;
+      setOpened(false);
+    }, SUBMENU_CLOSE_DELAY);
+  }, [cancelClose]);
 
-  const subContextValue = useMemo(
-    () => ({ closeMenu: closeChain, opened: true }),
-    [closeChain]
+  const { closeMenu: closeParentChain } = parent;
+  const closeChain = useCallback(() => {
+    closeSub();
+    closeParentChain();
+  }, [closeSub, closeParentChain]);
+
+  const isOpen = opened && !disabled;
+  const floating = useFloating({
+    opened: isOpen,
+    onDismiss: closeSub,
+    placement: 'right-start',
+    fallbackPlacements: ['right-start', 'left-start', 'right', 'left'],
+    offset: 2,
+    role: 'menu',
+    strategy: isWeb ? 'fixed' : 'portal',
+    autoFocus: false,
+    restoreFocus: true,
+    desiredHeight: estimateMenuHeight(children, maxH),
+  });
+
+  const anchorRef = useMergedRef<View>(ref, floating.refs.setReference);
+
+  const handleKeyDown = (event: WebKeyboardEvent) => {
+    if (disabled) return;
+    const forward = rtl ? 'ArrowLeft' : 'ArrowRight';
+    if (event.key === forward) {
+      event.preventDefault();
+      event.stopPropagation();
+      openSub('first');
+    } else if (event.key === 'Enter' || event.key === ' ') {
+      // The press that follows opens it; keyboard users land inside.
+      pendingFocusRef.current = 'first';
+    }
+  };
+
+  const handlePress = () => {
+    const focus = pendingFocusRef.current;
+    pendingFocusRef.current = 'none';
+    if (!opened) openSub(focus);
+    else if (focus !== 'none') openSub(focus);
+    // Web opens on hover, so a click never closes it; elsewhere press toggles.
+    else if (!isWeb) closeSub();
+  };
+
+  const resolvedMaxHeight = typeof floating.position?.maxHeight === 'number'
+    ? Math.min(maxH, floating.position.maxHeight)
+    : maxH;
+  const subContext = useMemo<MenuContextValue>(() => ({ closeMenu: closeChain, opened: isOpen }), [closeChain, isOpen]);
+
+  const content = (
+    <MenuList
+      floating={floating}
+      contextValue={subContext}
+      style={[menuStyles.dropdown, { width: w }]}
+      maxHeight={resolvedMaxHeight}
+      scrollable
+      initialFocus={initialFocus}
+      focusRequest={focusRequest}
+      onTabOut={closeChain}
+      onNavigateBack={closeSub}
+      label={typeof label === 'string' ? label : undefined}
+      onPointerEnter={cancelClose}
+      onPointerLeave={scheduleClose}
+    >
+      {children}
+    </MenuList>
   );
 
-  const buildSubContent = useCallback((resolvedWidth: number) => {
-    const listGroupStyle: ViewStyle = {
-      ...(styles.dropdown as any),
-      maxHeight: maxH,
-      width: resolvedWidth,
-    };
-    return (
-      <MenuContext.Provider value={subContextValue}>
-        <View
-          {...(Platform.OS === 'web'
-            ? { onMouseEnter: cancelScheduledClose, onMouseLeave: scheduleClose }
-            : {})}
-        >
-          <ListGroup variant="default" size="sm" style={listGroupStyle}>
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              style={{ maxHeight: maxH }}
-            >
-              <ListGroupBody>{children}</ListGroupBody>
-            </ScrollView>
-          </ListGroup>
-        </View>
-      </MenuContext.Provider>
-    );
-  }, [styles.dropdown, maxH, subContextValue, children, cancelScheduledClose, scheduleClose]);
-
-  const openSub = useCallback(async () => {
-    if (disabled || openRef.current) return;
-    openRef.current = true;
-
-    const resolvedWidth = typeof w === 'number' ? w : 200;
-    const triggerRect = await measureElement(itemRef);
-    const subHeight = estimateMenuHeight(children, maxH);
-    const overlaySize = { width: resolvedWidth, height: subHeight };
-    const positionResult = calculateOverlayPositionEnhanced(triggerRect, overlaySize, {
-      placement: 'right-start',
-      offset: 2,
-      strategy: Platform.OS === 'web' ? 'fixed' : 'absolute',
-      fallbackPlacements: ['right-start', 'left-start', 'right', 'left'],
-      desiredHeight: subHeight,
-    });
-
-    const overlayId = openOverlay({
-      content: buildSubContent(resolvedWidth),
-      anchor: { x: positionResult.x, y: positionResult.y, width: overlaySize.width, height: overlaySize.height },
-      anchorNode: itemRef.current,
-      placement: (positionResult as any).placement || 'right-start',
-      closeOnClickOutside: true,
-      closeOnEscape: true,
-      strategy: Platform.OS === 'web' ? 'fixed' : 'portal',
-      onClose: () => {
-        overlayIdRef.current = null;
-        openRef.current = false;
-        forceOpenState(false);
-      },
-    });
-    overlayIdRef.current = overlayId;
-    forceOpenState(true);
-  }, [disabled, w, maxH, buildSubContent, openOverlay]);
-
-  // Keep the submenu content in sync when its children change while open.
-  useEffect(() => {
-    if (!openRef.current || !overlayIdRef.current) return;
-    updateOverlay(overlayIdRef.current, { content: buildSubContent(typeof w === 'number' ? w : 200) });
-  }, [buildSubContent, updateOverlay, w]);
-
-  // Cascade cleanup: when an ancestor overlay closes, this component unmounts and
-  // tears down its own overlay + timer.
-  useEffect(() => () => {
-    if (overlayIdRef.current) closeOverlay(overlayIdRef.current);
-    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-  }, [closeOverlay]);
-
-  const combinedRef = useCallback((node: any) => {
-    itemRef.current = node;
-    if (typeof ref === 'function') ref(node);
-    else if (ref) (ref as any).current = node;
-  }, [ref]);
+  const referenceProps = floating.getReferenceProps({}, { ref: false });
 
   return (
-    <MenuItemButton
-      ref={combinedRef}
-      onPress={() => (openRef.current ? closeSelf() : openSub())}
-      disabled={disabled}
-      startIcon={startSection}
-      endIcon={<Icon name="chevron-right" size={16} />}
-      color={itemColor}
-      testID={testID}
-      {...spacingProps}
-      {...(Platform.OS === 'web'
-        ? {
-            onHoverIn: () => {
-              cancelScheduledClose();
-              openSub();
-            },
-            onHoverOut: scheduleClose,
-          }
-        : {})}
-    >
-      {label}
-    </MenuItemButton>
+    <>
+      <MenuItemButton
+        ref={anchorRef}
+        onPress={handlePress}
+        disabled={disabled}
+        startSection={startSection}
+        // Icon mirrors chevrons itself in RTL.
+        endSection={<Icon name="chevron-right" size={16} />}
+        color={color}
+        testID={testID}
+        style={style}
+        {...spacingProps}
+        onHoverIn={isWeb ? () => openSub('none') : undefined}
+        onHoverOut={isWeb ? scheduleClose : undefined}
+        {...menuItemA11y({
+          disabled,
+          hasPopup: true,
+          extra: { ...referenceProps, ...webProps({ onKeyDown: handleKeyDown }) },
+        })}
+      >
+        {label}
+      </MenuItemButton>
+      {floating.renderFloating(content)}
+    </>
   );
 }
 
-// Create factory components
-export const Menu = factory<MenuFactoryPayload>(MenuBase);
-export const MenuItem = factory<{ props: MenuItemProps; ref: View }>(MenuItemBase);
-export const MenuLabel = factory<{ props: MenuLabelProps; ref: View }>(MenuLabelBase);
-export const MenuDivider = factory<{ props: MenuDividerProps; ref: View }>(MenuDividerBase);
-export const MenuDropdown = factory<{ props: MenuDropdownProps; ref: View }>(MenuDropdownBase);
-export const MenuSub = factory<{ props: MenuSubProps; ref: View }>(MenuSubBase);
+// ---------------------------------------------------------------------------
+// Exports
+// ---------------------------------------------------------------------------
 
-// Add compound components with type assertion
-(Menu as any).Item = MenuItem;
-(Menu as any).Label = MenuLabel;
-(Menu as any).Divider = MenuDivider;
-(Menu as any).Dropdown = MenuDropdown;
-(Menu as any).Sub = MenuSub;
+export const MenuItem = factory<{ props: MenuItemProps; ref: View }>(MenuItemBase, { displayName: 'Menu.Item' });
+export const MenuLabel = factory<{ props: MenuLabelProps; ref: View }>(MenuLabelBase, { displayName: 'Menu.Label' });
+export const MenuDivider = factory<{ props: MenuDividerProps; ref: View }>(MenuDividerBase, { displayName: 'Menu.Divider' });
+export const MenuDropdown = factory<{ props: MenuDropdownProps; ref: View }>(MenuDropdownBase, { displayName: 'Menu.Dropdown' });
+export const MenuSub = factory<{ props: MenuSubProps; ref: View }>(MenuSubBase, { displayName: 'Menu.Sub' });
 
-Menu.displayName = 'Menu';
-MenuItem.displayName = 'Menu.Item';
-MenuLabel.displayName = 'Menu.Label';
-MenuDivider.displayName = 'Menu.Divider';
-MenuDropdown.displayName = 'Menu.Dropdown';
-MenuSub.displayName = 'Menu.Sub';
+const MenuRoot = factory<MenuFactoryPayload>(MenuBase, { displayName: 'Menu' });
+
+/** Dropdown menu of actions. Compound members: `Menu.Item`, `Menu.Label`, `Menu.Divider`, `Menu.Dropdown`, `Menu.Sub`. */
+export const Menu = withStatics(MenuRoot, {
+  Item: MenuItem,
+  Label: MenuLabel,
+  Divider: MenuDivider,
+  Dropdown: MenuDropdown,
+  Sub: MenuSub,
+  CheckboxItem: MenuCheckboxItem,
+  RadioGroup: MenuRadioGroup,
+  RadioItem: MenuRadioItem,
+});

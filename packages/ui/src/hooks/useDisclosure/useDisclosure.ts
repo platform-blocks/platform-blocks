@@ -1,4 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
 
 export interface UseDisclosureCallbacks {
   /** Called when the state transitions from closed → open. */
@@ -19,14 +21,15 @@ export interface UseDisclosureHandlers {
 export type UseDisclosureReturn = readonly [boolean, UseDisclosureHandlers];
 
 /**
- * Boolean-state hook with `open` / `close` / `toggle` handlers — the canonical
- * Optional `onOpen` / `onClose` callbacks fire only on actual
- * transitions, never on no-op calls.
+ * Boolean-state hook with `open` / `close` / `toggle` handlers. Optional
+ * `onOpen` / `onClose` callbacks fire only on actual transitions, never on
+ * no-op calls. The handlers object is stable for the component's lifetime
+ * (callbacks may be inline functions; the latest ones are called).
  *
  * @example
  * const [opened, { open, close, toggle }] = useDisclosure(false, {
- *   onOpen: () => console.log('opened'),
- *   onClose: () => console.log('closed'),
+ *   onOpen: () => track('opened'),
+ *   onClose: () => track('closed'),
  * });
  */
 export function useDisclosure(
@@ -34,30 +37,33 @@ export function useDisclosure(
   callbacks?: UseDisclosureCallbacks,
 ): UseDisclosureReturn {
   const [opened, setOpened] = useState<boolean>(initialState);
+  // Mirrors the latest requested state so repeated calls in one event see each
+  // other, and so callbacks run in the handler — not inside a state updater,
+  // which StrictMode may run twice.
+  const openedRef = useRef(initialState);
+  const onOpen = useLatestCallback(callbacks?.onOpen);
+  const onClose = useLatestCallback(callbacks?.onClose);
 
   const open = useCallback(() => {
-    setOpened((isOpened) => {
-      if (isOpened) return isOpened;
-      callbacks?.onOpen?.();
-      return true;
-    });
-  }, [callbacks]);
+    if (openedRef.current) return;
+    openedRef.current = true;
+    setOpened(true);
+    onOpen();
+  }, [onOpen]);
 
   const close = useCallback(() => {
-    setOpened((isOpened) => {
-      if (!isOpened) return isOpened;
-      callbacks?.onClose?.();
-      return false;
-    });
-  }, [callbacks]);
+    if (!openedRef.current) return;
+    openedRef.current = false;
+    setOpened(false);
+    onClose();
+  }, [onClose]);
 
   const toggle = useCallback(() => {
-    if (opened) {
-      close();
-    } else {
-      open();
-    }
-  }, [opened, open, close]);
+    if (openedRef.current) close();
+    else open();
+  }, [open, close]);
 
-  return [opened, { open, close, toggle }] as const;
+  const handlers = useMemo(() => ({ open, close, toggle }), [open, close, toggle]);
+
+  return useMemo(() => [opened, handlers] as const, [opened, handlers]);
 }

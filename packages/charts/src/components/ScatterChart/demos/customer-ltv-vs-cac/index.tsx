@@ -1,4 +1,4 @@
-import { ScatterChart } from '@platform-blocks/charts';
+import { ScatterChart } from '@plocks/charts';
 
 import { QUADRANTS, SERIES } from './data';
 
@@ -20,7 +20,7 @@ export function Demo() {
     <ScatterChart
       title="Customer LTV vs. Acquisition Cost"
       subtitle="Segment performance across recent cohorts"
-      height={360}
+      h={360}
       data={SERIES.flatMap((serie) => serie.data)}
       series={SERIES}
       quadrants={QUADRANTS}

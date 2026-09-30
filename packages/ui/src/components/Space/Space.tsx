@@ -1,48 +1,45 @@
-import React from 'react';
-import { View, ViewStyle } from 'react-native';
-import { getSpacing, type SizeValue } from '../../core/theme/sizes';
+import React, { useMemo } from 'react';
+import { View, type DimensionValue, type ViewStyle } from 'react-native';
+
+import { factory } from '../../core/factory/factory';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveSpacing } from '../../core/theme/tokens';
+import type { SpacingValue } from '../../core/theme/types';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 import type { SpaceProps } from './types';
 
-function resolveDimension(value?: SizeValue): number | undefined {
+/** `w` / `h` / `size` → a dimension: spacing tokens resolve through `theme.spacing`, `'full'` is 100%. */
+function resolveDimension(
+  theme: Parameters<typeof resolveSpacing>[0],
+  value?: SpaceProps['w']
+): DimensionValue | undefined {
   if (value == null) return undefined;
   if (typeof value === 'number') return value;
-  return getSpacing(value);
+  if (value === 'full') return '100%';
+  if (value === 'auto' || value.endsWith('%')) return value as DimensionValue;
+  const resolved = resolveSpacing(theme, value as SpacingValue);
+  return typeof resolved === 'number' ? resolved : undefined;
 }
 
-export const Space = React.forwardRef<View, SpaceProps>((props, ref) => {
-  const {
-    h,
-    w,
-    size = 'md',
-    style,
-    testID,
-    accessibilityLabel,
-    accessibilityRole,
-    accessible,
-    ...rest
-  } = props;
+/** A fixed-size gap between siblings. Height `size` (default `md`) unless `h` / `w` is given. */
+export const Space = factory<{ props: SpaceProps; ref: View }>((props, ref) => {
+  const theme = useTheme();
+  // `w` / `h` are the spacer itself (and accept spacing tokens), so they are
+  // resolved here rather than with the other style props.
+  const { h, w, ...propsWithoutSize } = props;
+  const { styleProps, otherProps } = extractStyleProps(propsWithoutSize);
+  const { size = 'md', style, ...rest } = otherProps;
 
-  const resolvedHeight = resolveDimension(h);
-  const resolvedWidth = resolveDimension(w);
-  const fallbackSize = resolveDimension(size) ?? 0;
+  const spacerStyle = useMemo((): ViewStyle => {
+    const height = resolveDimension(theme, h);
+    const width = resolveDimension(theme, w);
+    return {
+      height: height ?? (width == null ? resolveDimension(theme, size) ?? 0 : undefined),
+      width,
+      flexShrink: 0,
+    };
+  }, [theme, h, w, size]);
+  const spacingStyle = useStyleProps(styleProps);
 
-  const spacerStyle: ViewStyle = {
-    height: resolvedHeight ?? (resolvedWidth == null ? fallbackSize : undefined),
-    width: resolvedWidth,
-    flexShrink: 0,
-  };
-
-  return (
-    <View
-      ref={ref}
-      testID={testID}
-      style={[spacerStyle, style]}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityRole={accessibilityRole}
-      accessible={accessible}
-      {...rest}
-    />
-  );
-});
-
-Space.displayName = 'Space';
+  return <View ref={ref} style={[spacerStyle, spacingStyle, style]} {...rest} />;
+}, { displayName: 'Space' });

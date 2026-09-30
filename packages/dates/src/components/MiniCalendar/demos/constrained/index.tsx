@@ -1,0 +1,32 @@
+import React, { useMemo, useState } from 'react';
+import { Block, Text } from '@plocks/ui';
+import { MiniCalendar } from '@plocks/dates';
+
+export function Demo() {
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+
+  const { minDate, maxDate } = useMemo(() => {
+    const today = new Date();
+    const nextWeek = new Date();
+    nextWeek.setDate(today.getDate() + 7);
+    return { minDate: today, maxDate: nextWeek };
+  }, []);
+
+  return (
+    <Block fullWidth>
+      <MiniCalendar
+        value={selectedDate}
+        onChange={(date: Date | null) => setSelectedDate(date)}
+        numberOfDays={7}
+        minDate={minDate}
+        maxDate={maxDate}
+      />
+      <Text size="sm" c="secondary">
+        {selectedDate ? `Selected: ${selectedDate.toLocaleDateString()}` : 'No date selected'}
+      </Text>
+      <Text size="xs" c="secondary">
+        Only the next seven days are enabled
+      </Text>
+    </Block>
+  );
+}

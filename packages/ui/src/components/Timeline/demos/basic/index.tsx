@@ -1,4 +1,4 @@
-import { Block, Text, Timeline } from '@platform-blocks/ui';
+import { Text, Timeline } from '@plocks/ui';
 
 const events = [
   {
@@ -25,17 +25,15 @@ const events = [
 
 export function Demo() {
   return (
-      <Timeline active={2}>
-        {events.map((event) => (
-          <Timeline.Item key={event.title} title={event.title}>
-            <Text color="secondary" size="xs">
-              {event.timestamp}
-            </Text>
-            <Text size="sm">{event.description}</Text>
-          </Timeline.Item>
-        ))}
-      </Timeline>
+    <Timeline active={2}>
+      {events.map((event) => (
+        <Timeline.Item key={event.title} title={event.title}>
+          <Text c="secondary" size="xs">
+            {event.timestamp}
+          </Text>
+          <Text size="sm">{event.description}</Text>
+        </Timeline.Item>
+      ))}
+    </Timeline>
   );
 }
-
-

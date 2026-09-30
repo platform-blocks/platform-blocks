@@ -36,7 +36,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, multiTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <MarimekkoChart data={DATA} width={480} height={320} />
+        <MarimekkoChart data={DATA} w={480} h={320} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );

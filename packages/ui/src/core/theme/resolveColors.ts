@@ -1,4 +1,4 @@
-import type { PlatformBlocksTheme } from './types';
+import type { PlocksTheme } from './types';
 
 /**
  * The single place a color prop turns into a concrete color.
@@ -80,21 +80,26 @@ const ACCENT_SHADES = [5, 0] as const;
 const LINE_SHADES = [3, 5, 0] as const;
 
 export function resolveColorProp(
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   value?: string,
   { scopes = [], shades = ACCENT_SHADES }: ResolveColorOptions = {},
 ): string | undefined {
   if (!value) return undefined;
 
+  // A consumer theme may define palettes beyond the declared ones (or, in
+  // older themes, a palette as a single color string), so read by name.
+  const palettes: Readonly<Record<string, unknown>> | undefined = theme.colors;
   const fromPalette = (name: string, preferred?: number): string | undefined => {
-    const palette = (theme.colors as any)?.[name];
+    const palette = palettes?.[name];
     if (typeof palette === 'string') return palette;
     if (!Array.isArray(palette)) return undefined;
+    const entries: readonly (string | null | undefined)[] = palette;
     const order = preferred === undefined ? shades : [preferred, ...shades];
     for (const shade of order) {
-      if (palette[shade] != null) return palette[shade];
+      const entry = entries[shade];
+      if (entry != null) return entry;
     }
-    return palette[0];
+    return entries[0] ?? undefined;
   };
 
   const shadeMatch = SHADE_SYNTAX.exec(value);
@@ -104,7 +109,8 @@ export function resolveColorProp(
   }
 
   for (const scope of scopes) {
-    const token = (theme as any)?.[scope]?.[value];
+    const tokens = theme?.[scope] as Readonly<Record<string, unknown>> | undefined;
+    const token = tokens?.[value];
     if (typeof token === 'string') return token;
   }
 
@@ -112,20 +118,17 @@ export function resolveColorProp(
 }
 
 /**
- * Resolve a text `color` (or its `c` shorthand):
+ * Resolve a text color (the `c` prop):
  *
- *   • `'dimmed'` → `theme.text.muted`
  *   • `'primary' | 'secondary' | 'muted' | 'disabled' | 'link'` → `theme.text.<key>`
  *   • `'info'` → the primary palette (the brand accent, not body copy)
  *   • `'primary.6'` → palette[6]
  *   • bare palette name → palette[6], the readable neighbour of the base
  *   • any other CSS color passes through
  */
-export function resolveTextColor(theme: PlatformBlocksTheme, value?: string): string | undefined {
+export function resolveTextColor(theme: PlocksTheme, value?: string): string | undefined {
   if (!value) return undefined;
-  // Long-standing alias for the muted text token.
-  const normalized = value === 'dimmed' ? 'muted' : value;
-  return resolveColorProp(theme, normalized, { scopes: ['text'], shades: TEXT_SHADES });
+  return resolveColorProp(theme, value, { scopes: ['text'], shades: TEXT_SHADES });
 }
 
 /**
@@ -139,7 +142,7 @@ export function resolveTextColor(theme: PlatformBlocksTheme, value?: string): st
  * Used by Card, Block, Surface, and any other Box-rendering component that
  * accepts the `bg` shorthand.
  */
-export function resolveBg(theme: PlatformBlocksTheme, value?: string): string | undefined {
+export function resolveBg(theme: PlocksTheme, value?: string): string | undefined {
   return resolveColorProp(theme, value, { scopes: ['backgrounds'], shades: BACKGROUND_SHADES });
 }
 
@@ -148,7 +151,7 @@ export function resolveBg(theme: PlatformBlocksTheme, value?: string): string | 
  * ring. Bare palette names land on the vivid base ([5]); there is no named-token
  * scope, so `'primary'` here means the brand palette rather than body text.
  */
-export function resolveAccentColor(theme: PlatformBlocksTheme, value?: string): string | undefined {
+export function resolveAccentColor(theme: PlocksTheme, value?: string): string | undefined {
   return resolveColorProp(theme, value, { shades: ACCENT_SHADES });
 }
 
@@ -160,7 +163,7 @@ export function resolveAccentColor(theme: PlatformBlocksTheme, value?: string): 
  *   • bare palette name → palette[3], well below the accent so a tinted rule
  *     still reads as chrome
  */
-export function resolveLineColor(theme: PlatformBlocksTheme, value?: string): string | undefined {
+export function resolveLineColor(theme: PlocksTheme, value?: string): string | undefined {
   if (!value) return undefined;
   // The only text token in this vocabulary. Looked up explicitly rather than by
   // adding `'text'` to `scopes`, which would also divert `'primary'` and

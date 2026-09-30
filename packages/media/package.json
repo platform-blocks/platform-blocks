@@ -1,0 +1,79 @@
+{
+  "name": "@plocks/media",
+  "version": "0.1.0",
+  "description": "Audio player, video player and sound feedback for plocks.",
+  "type": "module",
+  "main": "lib/esm/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/esm/index.d.ts",
+  "react-native": "./lib/esm/index.js",
+  "exports": {
+    ".": {
+      "react-native": {
+        "types": "./lib/esm/index.d.ts",
+        "default": "./lib/esm/index.js"
+      },
+      "import": {
+        "types": "./lib/esm/index.d.ts",
+        "default": "./lib/esm/index.js"
+      },
+      "require": null,
+      "default": "./lib/esm/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "lib",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "npm run clean && rollup -c --forceExit && npm run build:types",
+    "build:types": "tsc -p tsconfig.build.json --emitDeclarationOnly --outDir lib/.types && node ../ui/scripts/emit-types.mjs .",
+    "clean": "rm -rf lib || true",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "test": "jest",
+    "test:web": "jest -c jest.web.config.cjs",
+    "lint": "eslint src",
+    "lint:check": "eslint src --max-warnings 0"
+  },
+  "peerDependencies": {
+    "@plocks/ui": "^0.1.0",
+    "react": ">=18.0.0 <20.0.0",
+    "react-native": ">=0.79.0",
+    "expo-audio": ">=1.0.0",
+    "expo-haptics": ">=14.0.0",
+    "react-native-webview": ">=11.0.0"
+  },
+  "peerDependenciesMeta": {
+    "expo-audio": {
+      "optional": true
+    },
+    "expo-haptics": {
+      "optional": true
+    },
+    "react-native-webview": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "react-native",
+    "plocks",
+    "react-native-web",
+    "audio",
+    "video",
+    "sound",
+    "media-player"
+  ],
+  "author": "Josh Stovall",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/platform-blocks/plocks.git",
+    "directory": "packages/media"
+  },
+  "bugs": {
+    "url": "https://github.com/platform-blocks/plocks/issues"
+  },
+  "homepage": "https://plocks.dev"
+}

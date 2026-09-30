@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Knob } from '@platform-blocks/ui';
+import { Block, Knob } from '@plocks/ui';
 import { POSITION_COLORS } from './data';
 
 // Twelve detents on a full circle. `max` is 12 rather than 11 so position 11 sits one step
@@ -11,7 +11,7 @@ export function Demo() {
 
   return (
     <Block >
-      <Knob
+      <Knob accessibilityLabel="Position"
         value={position}
         onChange={setPosition}
         min={0}

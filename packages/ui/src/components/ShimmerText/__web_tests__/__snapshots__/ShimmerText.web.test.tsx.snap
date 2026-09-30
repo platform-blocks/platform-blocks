@@ -1,0 +1,35 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`ShimmerText (web) matches snapshots before and after layout: before layout 1`] = `
+<DocumentFragment>
+  <div
+    class="css-view-g5y9jx r-alignSelf-k200y r-position-bnwqim"
+    data-testid="shimmer"
+    style="display: inline-block;"
+  >
+    <p
+      class="plocks-text"
+      style="margin: 0px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: start; color: rgb(142, 142, 147); font-size: 16px; font-weight: 400; line-height: 22.4px; display: inline;"
+    >
+      Live preview
+    </p>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`ShimmerText (web) matches snapshots before and after layout: sweep running 1`] = `
+<DocumentFragment>
+  <div
+    class="css-view-g5y9jx r-alignSelf-k200y r-position-bnwqim"
+    data-testid="shimmer"
+    style="display: inline-block;"
+  >
+    <p
+      class="plocks-text"
+      style="margin: 0px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: start; color: rgb(142, 142, 147); font-size: 16px; font-weight: 400; line-height: 22.4px; display: inline-block; background-color: rgb(142, 142, 147); background-image: linear-gradient(270deg, rgba(28, 28, 30, 0) 0.000%, rgba(28, 28, 30, 0.7) 50.000%, rgba(28, 28, 30, 0) 100.000%); background-repeat: no-repeat; background-size: 500px 100%; background-position: calc(100% + var(--plocks-shimmer-band)) 0; --plocks-shimmer-band: 500px; background-clip: text; -webkit-text-fill-color: transparent; animation-name: plocks-shimmer-sweep; animation-duration: 1800ms; animation-delay: 0ms; animation-timing-function: linear; animation-iteration-count: infinite; animation-direction: reverse; animation-fill-mode: both;"
+    >
+      Live preview
+    </p>
+  </div>
+</DocumentFragment>
+`;

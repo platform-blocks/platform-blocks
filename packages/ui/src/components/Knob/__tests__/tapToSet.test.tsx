@@ -14,14 +14,13 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { render } from '@testing-library/react-native';
 
-// react-native-svg does not resolve to renderable components under this jest preset, and
-// none of the drawing matters here — only the pan handlers on the host view do.
-jest.mock('react-native-svg', () => {
-  const { View } = require('react-native');
-  return { __esModule: true, default: View, Svg: View, Circle: View, Line: View, Path: View };
-});
-
 import { Knob } from '../Knob';
+
+// `isWeb` & co. are module constants; these tests flip `Platform.OS` at runtime,
+// so the flags follow it instead.
+jest.mock('../../../core/platform/flags', () =>
+  require('../../../__test-utils__/platformFlags').livePlatformFlags()
+);
 
 const SIZE = 200;
 const CENTER = SIZE / 2;

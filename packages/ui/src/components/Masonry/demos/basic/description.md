@@ -1,5 +1,5 @@
 ---
-title: Basic Masonry
+title: Basics
 description: Simple masonry layout with uniform item heights arranged in a two-column grid.
 tags: ["basic", "layout", "grid", "columns", "simple"]
 ---

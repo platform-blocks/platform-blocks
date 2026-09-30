@@ -3,9 +3,7 @@ title: Accent Colors
 category: appearance
 order: 35
 tags: [accordion, appearance, color]
-highlightLines: [9, 16, 23, 30, 37]
 status: stable
-since: 0.10.1
 hidden: false
 ---
 

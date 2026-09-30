@@ -1,0 +1,47 @@
+import React, { useMemo, useRef } from 'react';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import type { ViewProps } from 'react-native';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useA11yId } from '../../core/accessibility/useA11yId';
+import { factory } from '../../core/factory';
+import { webProps } from '../../core/platform';
+import { useFloating } from '../../core/overlay/useFloating';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { useStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState';
+import { useOverlayMode } from '../../hooks/useOverlayMode';
+import { DropdownSheet } from '../_internal/DropdownSheet/DropdownSheet';
+import { Field } from '../_internal/Field/Field';
+import { Icon } from '../Icon';
+import { PickerTrigger } from '../Select/PickerTrigger';
+import { getDropdownSurfaceStyle } from '../Select/fieldControlStyles';
+import { Text } from '../Text';
+import { Tree } from '../Tree';
+import type { TreeNode } from '../Tree';
+import type { TreeSelectProps } from './types';
+function flatten(data: TreeNode[]): TreeNode[] { return data.flatMap((node) => [node, ...flatten(node.children ?? [])]); }
+const Root = factory<{ props: TreeSelectProps; ref: View }>((props, ref) => {
+  const { data, mode = 'single', value: valueProp, defaultValue, onChange, placeholder = 'Select…', expandOnClick = true, checkStrictly = false, checkedStrategy = 'child', onRemove, maxDisplayedValues = Infinity, maxDisplayedValuesContent, maxValues, searchable = false, searchValue, defaultSearchValue, onSearchChange, filter, clearSearchOnChange = true, nothingFoundMessage = 'Nothing found', clearable = false, allowDeselect = true, withLines = true, renderNode, maxDropdownHeight = 260, expandedValues, defaultExpandedValues, defaultExpandAll, onExpandedChange, dropdownOpened, defaultDropdownOpened, onDropdownOpen, onDropdownClose, position = 'bottom-start', dropdownWidth = 'target', offset, label, description, error, helperText, required, withAsterisk, disabled, readOnly, size = 'md', radius, variant, accessibilityLabel, accessibilityHint, startSection, style, testID } = props;
+  const theme = useTheme(); const spacing = useStyleProps(props); const { shouldUseModal } = useOverlayMode(); const anchor = useRef<View>(null);
+  const id = useA11yId(undefined, 'plocks-tree-select');
+  const [opened, setOpened] = useControllableState({ value: dropdownOpened, defaultValue: defaultDropdownOpened, finalValue: false, onChange: (next) => next ? onDropdownOpen?.() : onDropdownClose?.() });
+  const [value, setValue] = useControllableState<string | string[] | null>({ value: valueProp, defaultValue, finalValue: mode === 'single' ? null : [], onChange });
+  const [query, setQuery] = useControllableState({ value: searchValue, defaultValue: defaultSearchValue, finalValue: '', onChange: onSearchChange });
+  const all = useMemo(() => flatten(data), [data]); const byId = useMemo(() => new Map(all.map((node) => [node.id, node])), [all]);
+  const selected = Array.isArray(value) ? value : value ? [value] : [];
+  const display = mode === 'single' ? (selected[0] ? byId.get(selected[0])?.label ?? selected[0] : '') : selected.length ? `${selected.length} selected` : '';
+  const pills = mode !== 'single' && selected.length > 0 ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>{selected.slice(0, maxDisplayedValues).map((item) => <Pressable key={item} role="button" accessibilityLabel={`Remove ${byId.get(item)?.label ?? item}`} onPress={() => { const next = selected.filter((value) => value !== item); setValue(next); onRemove?.(item); }} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, backgroundColor: theme.backgrounds.subtle }}><Text size="sm">{byId.get(item)?.label ?? item} ×</Text></Pressable>)}{selected.length > maxDisplayedValues && (maxDisplayedValuesContent ?? <Text size="sm">+{selected.length - maxDisplayedValues}</Text>)}</View> : null;
+  const close = () => { setOpened(false); if (clearSearchOnChange) setQuery(''); };
+  const selectIds = (ids: string[], node: TreeNode) => { if (mode === 'single') { const next = value === node.id && allowDeselect ? null : node.id; setValue(next); close(); } else { if (ids.length > (maxValues ?? Infinity)) return; setValue(ids); if (clearSearchOnChange) setQuery(''); } };
+  const checkedIds = (ids: string[], node: TreeNode) => { const next = checkedStrategy === 'child' ? ids.filter((item) => !byId.get(item)?.children?.length) : checkedStrategy === 'parent' ? ids.filter((item) => !all.some((parent) => parent.children?.some((child) => child.id === item) && ids.includes(parent.id))) : ids; selectIds(next, node); };
+  const normalized = useMemo(() => data.map((node) => ({ ...node, selectable: mode === 'checkbox' ? node.selectable : node.children?.length ? false : node.selectable, children: node.children ? normalizeChildren(node.children, mode) : undefined })), [data, mode]);
+  const filtered = filter && query ? normalized.filter((node) => filter(node, query) || flatten(node.children ?? []).some((child) => filter(child, query))) : normalized;
+  const tree = <ScrollView {...a11yProps({ id: `${id}-tree` })} style={{ maxHeight: maxDropdownHeight }} keyboardShouldPersistTaps="handled"><Tree data={filtered} selectionMode={mode === 'checkbox' ? 'none' : mode} selectedIds={mode === 'checkbox' ? undefined : selected} onSelectionChange={selectIds} checkboxes={mode === 'checkbox'} checkedIds={mode === 'checkbox' ? selected : undefined} onCheckedChange={checkedIds} cascadeCheck={!checkStrictly} expandOnClick={expandOnClick} showGuides={withLines} renderLabel={renderNode ? (node, _depth, _open, state) => renderNode(node, state) : undefined} filterQuery={query} hideFiltered={!!query} autoExpandOnFilter expandedIds={expandedValues} defaultExpandedIds={defaultExpandedValues} expandAll={defaultExpandAll} onExpandedIdsChange={onExpandedChange} noResultsFallback={<Text p="sm">{nothingFoundMessage}</Text>} accessibilityLabel={accessibilityLabel ?? 'Options'} /></ScrollView>;
+  const search = searchable && <TextInput value={query} onChangeText={setQuery} placeholder="Search…" aria-label="Search" style={{ padding: 10, color: theme.text.primary }} />;
+  const floating = useFloating({ opened: opened && !shouldUseModal, onDismiss: close, placement: position, offset, matchWidth: dropdownWidth === 'target', role: null, popupType: 'tree', layer: 'dropdown', autoFocus: true });
+  const content = <View {...floating.getFloatingProps({ style: [getDropdownSurfaceStyle(theme), typeof dropdownWidth === 'number' ? { width: dropdownWidth } : null] }) as ViewProps}>{search}{tree}</View>;
+  const setAnchor = (node: View | null) => { anchor.current = node; floating.refs.setReference(node); };
+  return <Field id={id} label={label} description={description} error={error} helperText={helperText} required={required} withAsterisk={withAsterisk} disabled={disabled} readOnly={readOnly} size={size} accessibilityLabel={accessibilityLabel} accessibilityHint={accessibilityHint} style={[spacing, style]} testID={testID}>{({ controlProps, invalid }) => <View ref={ref}><PickerTrigger triggerRef={setAnchor} triggerProps={{ ...controlProps, ...a11yProps({ role: 'combobox', expanded: opened, hasPopup: 'tree', controls: `${id}-tree` }), ...webProps({ onKeyDown: (event) => { if (disabled || readOnly) return; if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setOpened(true); } else if (event.key === 'Escape') close(); } }) }} onPress={() => { if (!disabled && !readOnly) setOpened(!opened); }} displayValue={display} placeholder={placeholder} size={size} radius={radius} variant={variant} invalid={invalid} opened={opened} disabled={disabled} readOnly={readOnly} startSection={startSection} endSection={<Icon name="chevron-down" decorative />} showClear={clearable && selected.length > 0} onClear={() => { setValue(mode === 'single' ? null : []);  }} />{pills}{!shouldUseModal && floating.renderFloating(content)}{shouldUseModal && <DropdownSheet opened={opened} onClose={close} title={label ?? placeholder} accessibilityLabel={accessibilityLabel ?? placeholder} placement="center" withCloseButton>{search}{tree}</DropdownSheet>}</View>}</Field>;
+}, { displayName: 'TreeSelect' });
+function normalizeChildren(data: TreeNode[], mode: string): TreeNode[] { return data.map((node) => ({ ...node, selectable: mode === 'checkbox' ? node.selectable : node.children?.length ? false : node.selectable, children: node.children ? normalizeChildren(node.children, mode) : undefined })); }
+export const TreeSelect = Root;

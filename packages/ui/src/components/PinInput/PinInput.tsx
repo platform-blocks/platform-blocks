@@ -1,34 +1,55 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { View, TextInput, Platform } from 'react-native';
-import { Text } from '../Text';
-import { PinInputProps } from './types';
-import { factory } from '../../core/factory';
-import { useTheme } from '../../core/theme';
-import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
-import { FieldHeader } from '../_internal/FieldHeader';
-import { useControllableState } from '../../hooks/useControllableState';
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { TextInput, View, type TextStyle, type ViewStyle } from 'react-native';
 
-export const PinInput = factory<{
-  props: PinInputProps;
-  ref: View;
-}>((props, ref) => {
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { getNodeText, useA11yId } from '../../core/accessibility/useA11yId';
+import { factory } from '../../core/factory';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { useThemedStyles } from '../../core/hooks/useThemedStyles';
+import { isWeb, webProps } from '../../core/platform';
+import { useKeyboardFocusOptional } from '../../core/providers/KeyboardManagerProvider';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getControlSize } from '../../core/theme/tokens';
+import type { FieldHandle } from '../../core/types/base';
+import { getLayoutStyles } from '../../core/utils/layout';
+import { useStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState';
+import { Disclaimer } from '../_internal/Disclaimer/Disclaimer';
+import { Field, type FieldRenderProps } from '../_internal/Field/Field';
+import { getFieldFrameStyles } from '../_internal/Field/fieldFrameStyles';
+import { useGroupFocus } from '../Checkbox/useGroupFocus';
+import type { PinInputProps } from './types';
+
+const PLOCKS_INPUT_DATASET = { plocksInput: 'true' } as const;
+
+/**
+ * A code / PIN entry: one single-character cell per position, with automatic
+ * focus hand-off, paste of a whole code, and one-time-code autofill. Each cell
+ * is framed like every other text field (`variant`, `radius`, error and focus
+ * states) and sized from the theme's control height.
+ */
+export const PinInput = factory<{ props: PinInputProps; ref: FieldHandle }>((props, ref) => {
   const {
     length = 4,
     value: controlledValue,
     defaultValue = '',
     onChange,
+    onComplete,
     mask = false,
     maskChar = '•',
     manageFocus = true,
+    enforceOrderInitialOnly = false,
     type = 'numeric',
     placeholder = '',
     allowPaste = true,
     oneTimeCode = false,
     spacing = 8,
     disabled = false,
+    readOnly = false,
     error,
     size = 'md',
-    onComplete,
+    radius,
+    variant = 'default',
     textInputProps,
     label,
     description,
@@ -37,6 +58,10 @@ export const PinInput = factory<{
     withAsterisk,
     labelProps,
     descriptionProps,
+    accessibilityLabel,
+    accessibilityHint,
+    onFocus,
+    onBlur,
     style,
     keyboardFocusId,
     name,
@@ -45,21 +70,26 @@ export const PinInput = factory<{
     autoCapitalize,
     autoCorrect,
     autoFocus,
-    selectTextOnFocus: selectTextOnFocusProp,
-    textContentType: textContentTypeProp,
-    textAlign,
+    selectTextOnFocus,
+    textContentType,
+    textAlign = 'center',
     spellCheck,
     selectionColor,
     showSoftInputOnFocus,
-    ...spacingProps
+    id,
+    disclaimer,
+    disclaimerProps,
   } = props;
 
   const theme = useTheme();
+  const spacingStyles = useStyleProps(props);
+  const layoutStyles = getLayoutStyles(props);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const [focusedIndex, setFocusedIndex] = useState(-1);
-  const keyboardManager = useKeyboardManagerOptional();
+  const focusedIndexRef = useRef(-1);
+  const keyboardFocus = useKeyboardFocusOptional();
+  const locked = disabled || readOnly;
 
-  // Support both controlled (`value`) and uncontrolled (`defaultValue`) usage.
   const [value, commitValue] = useControllableState<string>({
     value: controlledValue,
     defaultValue,
@@ -67,304 +97,266 @@ export const PinInput = factory<{
     onChange,
   });
 
-  const fallbackFocusIdRef = useRef(`pin-${Math.random().toString(36).slice(2, 10)}`);
+  const fallbackFocusId = useA11yId(undefined, 'pin');
   const focusTargetId = useMemo(() => {
-    if (typeof keyboardFocusId === 'string' && keyboardFocusId.trim().length > 0) {
-      return keyboardFocusId.trim();
+    for (const candidate of [keyboardFocusId, name, testID]) {
+      if (typeof candidate === 'string' && candidate.trim().length > 0) return candidate.trim();
     }
-    if (typeof name === 'string' && name.trim().length > 0) {
-      return name.trim();
-    }
-    if (typeof testID === 'string' && testID.trim().length > 0) {
-      return testID.trim();
-    }
-    return fallbackFocusIdRef.current;
-  }, [keyboardFocusId, name, testID]);
-  
-  // Initialize refs array
-  useEffect(() => {
-    inputRefs.current = inputRefs.current.slice(0, length);
-    for (let i = inputRefs.current.length; i < length; i++) {
-      inputRefs.current[i] = null;
-    }
-  }, [length]);
+    return fallbackFocusId;
+  }, [keyboardFocusId, name, testID, fallbackFocusId]);
 
-  // Split value into array of individual digits
+  // Split value into one entry per cell.
   const digits = value.split('').slice(0, length);
-  while (digits.length < length) {
-    digits.push('');
-  }
+  while (digits.length < length) digits.push('');
 
-  // Call onComplete when all digits are filled
+  // onComplete fires on the transition to a complete PIN — never merely because
+  // the parent re-rendered (an inline callback used to re-fire it, which
+  // double-submitted one-time codes). A PIN already complete on mount doesn't fire.
+  const emitComplete = useLatestCallback(onComplete);
+  const lastCompletedRef = useRef<string | null>(value.length === length ? value : null);
+  const hasCompletedRef = useRef(value.length === length);
   useEffect(() => {
-    if (value.length === length && onComplete) {
-      onComplete(value);
-    }
-  }, [value, length, onComplete]);
-
-  const filterChars = useCallback((input: string) => (
-    type === 'numeric'
-      ? input.replace(/[^0-9]/g, '')
-      : input.replace(/[^a-zA-Z0-9]/g, '')
-  ), [type]);
-
-  const handleChangeText = useCallback((text: string, index: number) => {
-    if (disabled) return;
-
-    // Some platforms append the newly typed character to a cell that already
-    // holds a digit (instead of replacing the selection), yielding a 2-char
-    // string. Treat that as a single keystroke — not a paste — so we don't wipe
-    // the value or skip focus ahead.
-    const prevDigit = digits[index] || '';
-    let incoming = text;
-    if (prevDigit && text.length === prevDigit.length + 1 && text.startsWith(prevDigit)) {
-      incoming = text.slice(prevDigit.length);
-    }
-
-    // Handle genuine multi-character paste
-    if (incoming.length > 1 && allowPaste) {
-      const pastedDigits = filterChars(incoming).slice(0, length);
-      commitValue(pastedDigits);
-
-      // Focus the next empty input or the last input
-      const nextEmptyIndex = Math.min(pastedDigits.length, length - 1);
-      if (manageFocus && inputRefs.current[nextEmptyIndex]) {
-        setTimeout(() => {
-          inputRefs.current[nextEmptyIndex]?.focus();
-        }, 0);
-      }
-      // If paste filled all digits, blur all
-      if (pastedDigits.length === length) {
-        setTimeout(() => {
-          inputRefs.current.forEach(r => r?.blur());
-          setFocusedIndex(-1);
-        }, 0);
-      }
+    if (value.length !== length) {
+      lastCompletedRef.current = null;
       return;
     }
+    hasCompletedRef.current = true;
+    if (lastCompletedRef.current === value) return;
+    lastCompletedRef.current = value;
+    emitComplete(value);
+  }, [value, length, emitComplete]);
 
-    // Single character entry — only keep the last valid character
-    const newDigit = filterChars(incoming).slice(-1);
+  const filterChars = useCallback(
+    (input: string) => (type === 'numeric' ? input.replace(/[^0-9]/g, '') : input.replace(/[^a-zA-Z0-9]/g, '')),
+    [type]
+  );
 
-    // Update the value
-    const newDigits = [...digits];
-    newDigits[index] = newDigit;
-    const newValue = newDigits.join('');
-    commitValue(newValue);
-
-    if (manageFocus && newDigit && index < length - 1) {
-      // Always advance to the immediate next cell — even if it already has a
-      // value (e.g. when editing an earlier digit of a filled PIN).
-      setTimeout(() => {
-        inputRefs.current[index + 1]?.focus();
-      }, 0);
-    } else if (index === length - 1 && newValue.length === length) {
-      // Completed on the final cell: blur all inputs
-      setTimeout(() => {
-        inputRefs.current.forEach(r => r?.blur());
-        setFocusedIndex(-1);
-      }, 0);
-    }
-  }, [digits, disabled, allowPaste, length, commitValue, manageFocus, filterChars]);
-
-  const handleKeyPress = useCallback((key: string, index: number) => {
-    if (disabled) return;
-
-    if (key === 'Backspace') {
-      // If current input is empty, focus previous input
-      if (!digits[index] && index > 0 && manageFocus) {
-        setTimeout(() => {
-          inputRefs.current[index - 1]?.focus();
-        }, 0);
-      }
-      return;
-    }
-
-    // When the pressed character matches the digit already in this cell, the
-    // native input value doesn't change, so `onChangeText` never fires and the
-    // usual auto-advance is skipped. Advance focus here to cover that case.
-    if (manageFocus && index < length - 1 && key === digits[index]) {
-      const isValidChar = type === 'numeric'
-        ? /^[0-9]$/.test(key)
-        : /^[a-zA-Z0-9]$/.test(key);
-      if (isValidChar) {
-        setTimeout(() => {
-          inputRefs.current[index + 1]?.focus();
-        }, 0);
-      }
-    }
-  }, [digits, disabled, manageFocus, length, type]);
-
-  const handleFocus = useCallback((index: number) => {
-    // Determine first empty index
-    const firstEmpty = digits.findIndex(d => d === '');
-
-    // If all empty, always force focus to 0
-    if (firstEmpty === 0 && index !== 0) {
-      setTimeout(() => inputRefs.current[0]?.focus(), 0);
-      setFocusedIndex(0);
-      return;
-    }
-
-    // If there is an earlier empty digit than the one focused, redirect to that
-    if (firstEmpty !== -1 && index > firstEmpty) {
-      setTimeout(() => inputRefs.current[firstEmpty]?.focus(), 0);
-      setFocusedIndex(firstEmpty);
-      return;
-    }
-
-    setFocusedIndex(index);
-  }, [digits]);
-
-  const handleBlur = useCallback(() => {
-    setFocusedIndex(-1);
+  const focusCell = useCallback((index: number) => {
+    setTimeout(() => inputRefs.current[index]?.focus(), 0);
   }, []);
 
-  const focusPreferredCell = useCallback(() => {
-    const digitsArray = value.split('').slice(0, length);
-    const firstEmptyIndex = digitsArray.findIndex(digit => digit === '');
-    let targetIndex = 0;
+  const blurAll = useCallback(() => {
+    setTimeout(() => {
+      inputRefs.current.forEach((input) => input?.blur());
+      focusedIndexRef.current = -1;
+      setFocusedIndex(-1);
+    }, 0);
+  }, []);
 
-    if (manageFocus) {
-      if (firstEmptyIndex !== -1) {
-        targetIndex = firstEmptyIndex;
-      } else if (digitsArray.length > 0) {
-        targetIndex = Math.min(digitsArray.length, length - 1);
+  const handleChangeText = useCallback(
+    (text: string, index: number) => {
+      if (locked) return;
+
+      // Some platforms append the typed character to a cell that already holds
+      // one (instead of replacing the selection), yielding a 2-char string.
+      // Treat that as one keystroke — not a paste.
+      const prevDigit = digits[index] || '';
+      let incoming = text;
+      if (prevDigit && text.length === prevDigit.length + 1 && text.startsWith(prevDigit)) {
+        incoming = text.slice(prevDigit.length);
       }
-    }
 
-    const node = inputRefs.current[targetIndex] ?? inputRefs.current[0];
-    node?.focus?.();
-    setFocusedIndex(targetIndex);
+      // A genuine multi-character paste fills from the start.
+      if (incoming.length > 1 && allowPaste) {
+        const pasted = filterChars(incoming).slice(0, length);
+        commitValue(pasted);
+        if (manageFocus) focusCell(Math.min(pasted.length, length - 1));
+        if (pasted.length === length) blurAll();
+        return;
+      }
+
+      // Single character entry — only keep the last valid character.
+      const newDigit = filterChars(incoming).slice(-1);
+      const nextDigits = [...digits];
+      nextDigits[index] = newDigit;
+      const nextValue = nextDigits.join('');
+      commitValue(nextValue);
+
+      if (manageFocus && newDigit && index < length - 1) {
+        // Always advance to the next cell — even if it already has a value
+        // (editing an earlier digit of a filled PIN).
+        focusCell(index + 1);
+      } else if (index === length - 1 && nextValue.length === length) {
+        blurAll();
+      }
+    },
+    [digits, locked, allowPaste, length, commitValue, manageFocus, filterChars, focusCell, blurAll]
+  );
+
+  const handleKeyPress = useCallback(
+    (key: string, index: number) => {
+      if (locked) return;
+      if (key === 'Backspace') {
+        // From an empty cell, step back to the previous one.
+        if (!digits[index] && index > 0 && manageFocus) focusCell(index - 1);
+        return;
+      }
+      // Typing the character a cell already holds changes nothing, so
+      // `onChangeText` never fires and the auto-advance would be skipped.
+      if (manageFocus && index < length - 1 && key === digits[index]) {
+        const isValidChar = type === 'numeric' ? /^[0-9]$/.test(key) : /^[a-zA-Z0-9]$/.test(key);
+        if (isValidChar) focusCell(index + 1);
+      }
+    },
+    [digits, locked, manageFocus, length, type, focusCell]
+  );
+
+  const groupFocus = useGroupFocus(onFocus, onBlur);
+
+  const handleFocus = useCallback(
+    (index: number) => {
+      const firstEmpty = digits.findIndex((d) => d === '');
+      // Sequential entry: a later cell redirects to the first empty one — unless
+      // `enforceOrderInitialOnly` and the PIN has already been completed once.
+      const enforce = !(enforceOrderInitialOnly && hasCompletedRef.current);
+      let target = index;
+      if (enforce && firstEmpty !== -1 && index > firstEmpty) {
+        target = firstEmpty;
+        focusCell(firstEmpty);
+      }
+      focusedIndexRef.current = target;
+      setFocusedIndex(target);
+      groupFocus.onPartFocus();
+    },
+    [digits, enforceOrderInitialOnly, focusCell, groupFocus]
+  );
+
+  const handleBlur = useCallback(() => {
+    focusedIndexRef.current = -1;
+    setFocusedIndex(-1);
+    groupFocus.onPartBlur();
+  }, [groupFocus]);
+
+  const focusPreferredCell = useCallback(() => {
+    const cells = value.split('').slice(0, length);
+    const firstEmpty = cells.findIndex((d) => d === '');
+    let target = 0;
+    if (manageFocus) {
+      if (firstEmpty !== -1) target = firstEmpty;
+      else if (cells.length > 0) target = Math.min(cells.length, length - 1);
+    }
+    (inputRefs.current[target] ?? inputRefs.current[0])?.focus();
+    focusedIndexRef.current = target;
+    setFocusedIndex(target);
   }, [value, length, manageFocus]);
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: focusPreferredCell,
+      blur: () => inputRefs.current.forEach((input) => input?.blur()),
+      clear: () => commitValue(''),
+      isFocused: () => focusedIndexRef.current !== -1,
+    }),
+    [focusPreferredCell, commitValue]
+  );
+
+  // Focus hand-off from KeyboardManagerProvider (e.g. after the keyboard closed).
+  const pendingFocusTarget = keyboardFocus?.pendingFocusTarget;
+  const consumeFocusTarget = keyboardFocus?.consumeFocusTarget;
   useEffect(() => {
-    if (!keyboardManager) {
-      return;
+    if (!consumeFocusTarget || pendingFocusTarget !== focusTargetId) return;
+    if (consumeFocusTarget(focusTargetId)) {
+      requestAnimationFrame(() => focusPreferredCell());
     }
+  }, [pendingFocusTarget, consumeFocusTarget, focusTargetId, focusPreferredCell]);
 
-    if (keyboardManager.pendingFocusTarget !== focusTargetId) {
-      return;
-    }
+  const cellSize = getControlSize(theme, size).height;
+  const styles = useThemedStyles(
+    () => {
+      // Digits read larger than body text; the masked dot a little larger still.
+      const fontSize = Math.round(cellSize * 0.45) + (mask ? 6 : 0);
+      return {
+        row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing } as ViewStyle,
+        cell: { width: cellSize, height: cellSize, paddingHorizontal: 0, paddingVertical: 0, justifyContent: 'center' } as ViewStyle,
+        input: { fontSize, textAlign: 'center', width: '100%', height: '100%' } as TextStyle,
+      };
+    },
+    [cellSize, mask, spacing]
+  );
 
-    if (keyboardManager.consumeFocusTarget(focusTargetId)) {
-      requestAnimationFrame(() => {
-        focusPreferredCell();
-      });
-    }
-  }, [keyboardManager, focusTargetId, focusPreferredCell]);
+  const invalid = !!error;
+  const labelText = accessibilityLabel ?? getNodeText(label);
+  const cellLabel = (index: number) =>
+    labelText ? `${labelText}, digit ${index + 1} of ${length}` : `Digit ${index + 1} of ${length}`;
 
-  // Input styles
-  const getInputStyle = useCallback((index: number) => {
-    const baseFontSize = size === 'xs' ? 14 : size === 'sm' ? 16 : size === 'lg' ? 20 : size === 'xl' ? 24 : 18;
-    const baseStyle = {
-      width: size === 'xs' ? 32 : size === 'sm' ? 40 : size === 'lg' ? 56 : size === 'xl' ? 64 : 48,
-      height: size === 'xs' ? 32 : size === 'sm' ? 40 : size === 'lg' ? 56 : size === 'xl' ? 64 : 48,
-      borderWidth: 1,
-      borderColor: error 
-        ? theme.colors.error[5]
-        : focusedIndex === index 
-          ? theme.colors.primary[5]
-          : theme.colors.gray[3],
-      borderRadius: 6,
-      backgroundColor: disabled 
-        ? theme.colors.gray[1] 
-        : (theme.colorScheme === 'dark' ? theme.colors.gray[1] : 'white'),
-      textAlign: 'center' as const,
-      // Slightly larger font for masked dots for better visibility
-      fontSize: mask ? baseFontSize + 6 : baseFontSize,
-      color: disabled ? theme.text.disabled : theme.text.primary,
-      marginRight: index < length - 1 ? spacing : 0,
-    };
-    
-    return baseStyle;
-  }, [size, error, focusedIndex, length, spacing, disabled, theme, mask]);
+  const renderCells = ({ controlProps }: FieldRenderProps) => {
+    // The row is a group named by the field label; each cell has its own name and
+    // carries the field's description / error / required / invalid wiring.
+    const { id: groupId, 'aria-labelledby': labelledBy, 'aria-label': _groupLabel, ...cellWiring } = controlProps;
+    return (
+      <View id={groupId} role="group" aria-labelledby={labelledBy} style={styles.row}>
+        {digits.map((digit, index) => {
+          const focused = focusedIndex === index;
+          const frame = getFieldFrameStyles(theme, size, variant, radius, invalid, focused, disabled);
+          return (
+            <View key={index} style={[frame.frame, styles.cell]}>
+              {focused && !disabled ? <View style={frame.focusRing} /> : null}
+              <TextInput
+                ref={(node) => {
+                  inputRefs.current[index] = node;
+                }}
+                {...cellWiring}
+                {...a11yProps({ label: cellLabel(index) })}
+                {...webProps({ dataSet: PLOCKS_INPUT_DATASET })}
+                testID={testID ? `${testID}-cell-${index}` : undefined}
+                style={[frame.input, styles.input]}
+                value={mask && digit ? maskChar : digit}
+                onChangeText={(text) => handleChangeText(text, index)}
+                onKeyPress={isWeb ? ({ nativeEvent }) => handleKeyPress(nativeEvent.key, index) : undefined}
+                onFocus={() => handleFocus(index)}
+                onBlur={handleBlur}
+                maxLength={allowPaste ? undefined : 1}
+                keyboardType={type === 'numeric' ? 'number-pad' : 'default'}
+                textContentType={oneTimeCode ? 'oneTimeCode' : textContentType}
+                autoComplete={oneTimeCode ? 'one-time-code' : 'off'}
+                selectTextOnFocus={selectTextOnFocus ?? true}
+                editable={!locked}
+                placeholder={focused ? '' : placeholder}
+                placeholderTextColor={theme.text.muted}
+                autoCapitalize={autoCapitalize}
+                autoCorrect={autoCorrect}
+                autoFocus={autoFocus && index === 0}
+                textAlign={textAlign}
+                spellCheck={spellCheck}
+                selectionColor={selectionColor}
+                showSoftInputOnFocus={showSoftInputOnFocus}
+                {...textInputProps}
+              />
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
 
   return (
-    <View
-      ref={ref}
-      style={[style, spacingProps]}
+    <Field
+      id={id}
+      label={label}
+      description={description}
+      error={error}
+      helperText={helperText}
+      required={required}
+      withAsterisk={withAsterisk}
+      disabled={disabled}
+      readOnly={readOnly}
+      size={size}
+      labelProps={labelProps}
+      descriptionProps={descriptionProps}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       testID={testID}
+      style={[spacingStyles, layoutStyles, style]}
     >
-      <FieldHeader
-        label={label}
-        description={description}
-        required={required}
-        withAsterisk={withAsterisk ?? required}
-        disabled={disabled}
-        error={!!error}
-        size={size as any}
-        labelProps={labelProps}
-        descriptionProps={descriptionProps}
-        marginBottom={8}
-      />
-      
-      <View 
-        style={{ 
-          flexDirection: 'row', 
-          alignItems: 'center',
-          justifyContent: 'center' 
-        }}
-      >
-        {digits.map((digit, index) => (
-          <TextInput
-            key={index}
-            ref={(ref) => {
-              inputRefs.current[index] = ref;
-            }}
-            style={getInputStyle(index)}
-            value={mask && digit ? maskChar : digit}
-            onChangeText={(text) => handleChangeText(text, index)}
-            onKeyPress={Platform.OS === 'web' ? ({ nativeEvent }) => {
-              handleKeyPress(nativeEvent.key, index);
-            } : undefined}
-            onFocus={() => handleFocus(index)}
-            onBlur={handleBlur}
-            maxLength={allowPaste ? undefined : 1}
-            keyboardType={type === 'numeric' ? 'number-pad' : 'default'}
-            textContentType={oneTimeCode ? 'oneTimeCode' : (textContentTypeProp ?? undefined)}
-            autoComplete={oneTimeCode ? 'one-time-code' : 'off'}
-            selectTextOnFocus={selectTextOnFocusProp ?? true}
-            editable={!disabled}
-            placeholder={focusedIndex === index ? '' : placeholder}
-            placeholderTextColor={theme.text.muted}
-            autoCapitalize={autoCapitalize}
-            autoCorrect={autoCorrect}
-            autoFocus={autoFocus && index === 0}
-            textAlign={textAlign}
-            spellCheck={spellCheck}
-            selectionColor={selectionColor}
-            showSoftInputOnFocus={showSoftInputOnFocus}
-            {...textInputProps}
-          />
-        ))}
-      </View>
-      
-      {error ? (
-        <Text 
-          style={{ 
-            marginTop: 4, 
-            fontSize: 12, 
-            color: theme.colors.error[5] 
-          }}
-        >
-          {error}
-        </Text>
-      ) : null}
-      
-      {helperText && !error ? (
-        <Text 
-          style={{ 
-            marginTop: 4, 
-            fontSize: 12, 
-            color: theme.text.muted 
-          }}
-        >
-          {helperText}
-        </Text>
-      ) : null}
-    </View>
+      {(field: FieldRenderProps) => (
+        <>
+          {renderCells(field)}
+          {disclaimer ? <Disclaimer {...disclaimerProps}>{disclaimer}</Disclaimer> : null}
+        </>
+      )}
+    </Field>
   );
-});
+}, { displayName: 'PinInput' });
 
 PinInput.displayName = 'PinInput';

@@ -33,6 +33,9 @@ const mockTheme = {
     secondary: '#475569',
     muted: '#94a3b8',
   },
+  backgrounds: {
+    border: '#e2e8f0',
+  },
 };
 
 jest.mock('../../../core/theme/ThemeProvider', () => ({
@@ -57,8 +60,22 @@ describe('Ring - behavior', () => {
     expect(progressCircle.strokeDashoffset).toBeCloseTo(0, 5);
     expect(progressCircle.strokeDasharray).toBe(`${circumference} ${circumference}`);
 
-    const accessibility = getByTestId('ring-root').props.accessibilityValue;
-    expect(accessibility).toEqual({ min: 0, max: 120, now: 120 });
+    const { props } = getByTestId('ring-root');
+    expect([props['aria-valuemin'], props['aria-valuemax'], props['aria-valuenow']]).toEqual([0, 120, 120]);
+    expect(props.role).toBe('progressbar');
+    expect(props['aria-valuetext']).toBe('100%');
+    expect(props.accessibilityRole).toBeUndefined();
+  });
+
+  it('is named by its caption, not a generic fallback', () => {
+    const { getByTestId, rerender } = render(<Ring value={40} caption="Storage" testID="named-ring" />);
+    expect(getByTestId('named-ring').props['aria-label']).toBe('Storage');
+
+    rerender(<Ring value={40} testID="named-ring" />);
+    expect(getByTestId('named-ring').props['aria-label']).toBeUndefined();
+
+    rerender(<Ring value={40} caption="Storage" accessibilityLabel="Disk usage" testID="named-ring" />);
+    expect(getByTestId('named-ring').props['aria-label']).toBe('Disk usage');
   });
 
   it('derives the progress stroke color from color stops when provided', () => {
@@ -110,7 +127,8 @@ describe('Ring - behavior', () => {
 
     expect(circleLog).toHaveLength(2);
     const [trackCircle, progressCircle] = circleLog;
-    expect(trackCircle.stroke).toBe('rgba(148,163,184,0.3)');
+    // The track is the theme's border role (no scheme-specific literals).
+    expect(trackCircle.stroke).toBe('#e2e8f0');
     expect(progressCircle.stroke).toBe(trackCircle.stroke);
   });
 

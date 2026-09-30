@@ -4,7 +4,7 @@ title: Form
 category: input
 tags: [form, fields, validation, submit]
 playground: true
-source: "@platform-blocks/ui"
+source: "@plocks/ui"
 status: "stable"
 related:
   - "Input"
@@ -21,4 +21,4 @@ props:
   validateOnBlur: Run validation when a field is blurred
 ---
 
-Form manages values, validation, and submission state for a group of inputs. Wrap each control in a `Form.Field` (which injects value and change handlers via context) and submit with `Form.Submit`.
+Form manages values, validation, and submission state for a group of inputs.

@@ -1,6 +1,7 @@
 ---
 playground: true
 title: Spoiler
+summary: Collapses content taller than `mah` behind a show more / show less toggle
 description: A component that collapses overflowing content beyond a specified height
 source: ui/src/components/Spoiler
 status: stable
@@ -9,9 +10,9 @@ props:
   - name: children
     type: ReactNode
     description: Content to be shown/hidden
-  - name: maxHeight
+  - name: mah
     type: number
-    description: Maximum height before content is collapsed
+    description: Height the content collapses to (the content's, not the root's)
     default: 120
   - name: showLabel
     type: string
@@ -21,9 +22,9 @@ props:
     type: string
     description: Text for the show less button
     default: Hide
-  - name: initiallyOpen
+  - name: defaultExpanded
     type: boolean
-    description: Whether the spoiler starts expanded
+    description: Whether the spoiler starts expanded when uncontrolled
     default: false
   - name: transitionDuration
     type: number
@@ -33,18 +34,18 @@ props:
     type: SizeValue
     description: Size token for the show/hide control font size
     default: sm
-  - name: opened
+  - name: expanded
     type: boolean
-    description: Controlled open state. Pair with `onToggle`.
-  - name: onToggle
-    type: (opened: boolean) => void
-    description: Called with the requested open state whenever the control is pressed
+    description: Controlled expanded state. Pair with `onExpandedChange`.
+  - name: onExpandedChange
+    type: (expanded: boolean) => void
+    description: Called with the requested expanded state whenever the control is pressed
   - name: disabled
     type: boolean
     description: Disables the show/hide control
     default: false
   - name: renderControl
-    type: "(args: { opened, toggle, showLabel, hideLabel }) => ReactNode"
+    type: "(args: { expanded, toggle, showLabel, hideLabel }) => ReactNode"
     description: Render a custom control in place of the default text button
   - name: transparentFade
     type: boolean
@@ -59,14 +60,14 @@ props:
     default: false
   - name: controlProps
     type: "Omit<TextProps, 'children'>"
-    description: Override props applied to the show/hide control `<Text>` (style, weight, ff, size, color)
+    description: Override props applied to the show/hide control `<Text>` (style, fw, ff, size, c)
 examples:
   - basic
   - sizes
   - newspaper
   - customControl
-  - initiallyOpen
+  - defaultExpanded
   - control-customization
 ---
 
-The Spoiler component automatically collapses content that exceeds a specified height, providing a show/hide toggle to reveal the full content.
+Spoiler collapses long content behind a show or hide control.

@@ -1,6 +1,6 @@
-import { TextProps } from '../Text/Text';
+import type { TextProps } from '../Text/Text';
 
-export interface GradientTextProps extends Omit<TextProps, 'color'> {
+export interface GradientTextProps extends Omit<TextProps, 'c' | 'position'> {
   /** Array of colors for the gradient (at least 2 required) */
   colors: string[];
   
@@ -22,12 +22,9 @@ export interface GradientTextProps extends Omit<TextProps, 'color'> {
   /**
    * Sweep the gradient position continuously (web only). Runs as a CSS
    * animation, so no JavaScript executes per frame. Overrides `position` while
-   * it is running; on native the gradient stays static.
+   * it is running; on native — and under reduced motion — the gradient stays static.
    */
   animation?: GradientTextAnimation;
-
-  /** Custom testID for testing */
-  testID?: string;
 }
 
 /** Declarative sweep for {@link GradientTextProps.animation}. */

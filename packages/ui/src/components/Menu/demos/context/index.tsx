@@ -1,34 +1,10 @@
-import {
-  Block,
-  Card,
-  Icon,
-  Menu,
-  MenuDivider,
-  MenuDropdown,
-  MenuItem,
-  Text,
-} from '@platform-blocks/ui';
+import { Card, Icon, Menu, MenuDivider, MenuDropdown, MenuItem, Text } from '@plocks/ui';
 
 export function Demo() {
   return (
     <Menu trigger="contextmenu">
-      <Card
-        p="lg"
-        variant="outline"
-        style={{
-          borderStyle: 'dashed',
-          cursor: 'context-menu',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: 140,
-        }}
-      >
-        <Block align="center">
-          <Icon name="star" size="lg" color="gold" />
-          <Text size="sm" color="secondary">
-            Right-click or long-press this area
-          </Text>
-        </Block>
+      <Card variant="outline" p="xl">
+        <Text>Right-click or long-press here</Text>
       </Card>
       <MenuDropdown>
         <MenuItem startSection={<Icon name="copy" size="sm" />}>

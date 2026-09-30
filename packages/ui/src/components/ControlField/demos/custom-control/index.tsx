@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Block, Checkbox, ControlField } from '@platform-blocks/ui';
+import { Block, Checkbox, ControlField } from '@plocks/ui';
 
 export function Demo() {
   const [subscribed, setSubscribed] = useState(false);
 
   return (
-    <ControlField isSelected={subscribed} onSelectedChange={setSubscribed}>
+    <ControlField checked={subscribed} onChange={setSubscribed}>
       <Block style={{ flex: 1 }} fullWidth={false}>
         <ControlField.Label>Subscribe to newsletter</ControlField.Label>
         <ControlField.Description>

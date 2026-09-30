@@ -1,9 +1,11 @@
 import type React from 'react';
-import type { StyleProp, ViewStyle } from 'react-native';
+import type { GestureResponderEvent, StyleProp, ViewStyle } from 'react-native';
 
 import type { ComponentSizeValue } from '../../core/theme/componentSize';
+import type { WebKeyboardEvent } from '../../core/platform/webProps';
+import type { BaseProps } from '../../core/types/base';
 
-export interface TreeNode<T = any> {
+export interface TreeNode<T = unknown> {
   id: string;
   label: string;
   children?: TreeNode<T>[];
@@ -26,6 +28,13 @@ export interface TreeNode<T = any> {
   data?: T; // arbitrary extra data
 }
 
+/**
+ * The event behind a row activation: a press (pointer / touch) or, on web, the
+ * key that activated the focused row (Enter / Space). Modifier flags
+ * (`shiftKey`, `metaKey`, `ctrlKey`) are read off it for range selection.
+ */
+export type TreePressEvent = GestureResponderEvent | WebKeyboardEvent;
+
 /** Everything a row knows about itself, handed to `renderLabel` / `renderEndSection`. */
 export interface TreeNodeState {
   selected: boolean;
@@ -45,7 +54,7 @@ export interface TreeNodeState {
 }
 
 /** A visible row: one entry per node the tree is currently showing, in display order. */
-export interface TreeRow<T = any> {
+export interface TreeRow<T = unknown> {
   node: TreeNode<T>;
   depth: number;
   /** Position among visible rows — the axis keyboard nav, ranges and striping use. */
@@ -70,7 +79,7 @@ export interface TreeRow<T = any> {
  * branch keeps its children in this structure until the animation finishes,
  * while `TreeRow.index` stays -1 so they never count as visible.
  */
-export interface TreeRenderNode<T = any> {
+export interface TreeRenderNode<T = unknown> {
   row: TreeRow<T>;
   children: TreeRenderNode<T>[];
   /** Children are rendered — either the branch is open, or it is animating shut. */
@@ -82,12 +91,15 @@ export type TreeCheckState = 'checked' | 'indeterminate' | 'unchecked';
 /** Where the expand/collapse caret is drawn. See `TreeProps.disclosure`. */
 export type TreeDisclosure = 'always' | 'nested' | 'none';
 
-export interface TreeProps<T = any> {
+export interface TreeProps<T = unknown> extends BaseProps<ViewStyle> {
   data: TreeNode<T>[];
   /** Called when a leaf is activated, or when any node carrying `href` is pressed */
   onNavigate?: (node: TreeNode<T>) => void;
   /** Called when a node row is pressed. Return false to prevent default handling (selection, expand). */
-  onNodePress?: (node: TreeNode<T>, context: { isBranch: boolean; event?: any }) => boolean | void;
+  onNodePress?: (
+    node: TreeNode<T>,
+    context: { isBranch: boolean; event?: TreePressEvent }
+  ) => boolean | void;
   /** Allow collapsing/expanding */
   collapsible?: boolean;
   /**
@@ -96,13 +108,18 @@ export interface TreeProps<T = any> {
    * - `'always'` — a caret on each branch, and the column held open on rows
    *   without one so labels line up whatever the row is.
    * - `'nested'` — top-level branches go bare and no row reserves the column,
-   *   so the outermost rows read as headings and the whole tree sits flush
-   *   against its edge. Branches still open when the row itself is pressed.
+   *   so the outermost rows read as headings (the theme's `sectionLabel` text
+   *   role) and the whole tree sits flush against its edge. Branches still
+   *   open when the row itself is pressed.
    * - `'none'` — no caret at any depth, and no column.
    * @default 'always'
    */
   disclosure?: TreeDisclosure;
-  /** Row density. Drives height, padding, indent and icon size. */
+  /**
+   * Row density. Drives height, padding, indent and icon size (resolved from
+   * the theme's control sizes, one step down — rows are compact controls). A
+   * number is read as the label font size and the rest of the row scales with it.
+   */
   size?: ComponentSizeValue;
   /** Indent size in px for each depth level. Defaults to the `size` scale. */
   indent?: number;
@@ -121,7 +138,6 @@ export interface TreeProps<T = any> {
   ) => React.ReactNode;
   /** Trailing slot rendered at the end of a row (actions, counts, badges) */
   renderEndSection?: (node: TreeNode<T>, state: TreeNodeState) => React.ReactNode;
-  style?: StyleProp<ViewStyle>;
   /** Style applied to every row container */
   rowStyle?: StyleProp<ViewStyle>;
   /** Selection mode */
@@ -168,18 +184,24 @@ export interface TreeProps<T = any> {
   highlight?: (label: string, query: string) => React.ReactNode;
   /** Apply alternating background stripes to rows */
   striped?: boolean;
-  /** Animate branch expansion/collapse using the Collapse component */
+  /** Animate branch expansion/collapse using the Collapse component (instant under reduced motion) */
   useAnimations?: boolean;
-  /** Render rows through a virtualized list. Disables expand/collapse animation. */
+  /**
+   * Render rows through a virtualized list, which fills the tree's height
+   * (`h`, 320 by default). Disables expand/collapse animation.
+   */
   virtualized?: boolean;
-  /** Viewport height for the virtualized list */
-  height?: number;
-  /** Arrow-key navigation, type-ahead and roving focus (web). Defaults to on. */
+  /**
+   * Arrow-key navigation, type-ahead and roving focus (web). Defaults to on.
+   * The tree is then a single tab stop that tracks the focused row with
+   * `aria-activedescendant`, per the WAI-ARIA tree pattern.
+   */
   keyboardNavigation?: boolean;
   /**
    * Id of the node representing the current location — the navigation
    * counterpart to selection. It paints the row as active, opens the branches
    * above it, and scrolls it into view, without consuming `selectedIds`.
+   * On web the row gets `aria-current="page"`.
    */
   activeId?: string;
   /**

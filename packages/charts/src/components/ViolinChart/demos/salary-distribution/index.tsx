@@ -1,4 +1,4 @@
-import { ViolinChart } from '@platform-blocks/charts';
+import { ViolinChart } from '@plocks/charts';
 
 import { MARKET_RANGE, SALARY_SERIES, STATS } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <ViolinChart
       title="Total compensation distribution by department"
       subtitle="Annual salary including bonus (USD thousands)"
-      height={480}
+      h={480}
       series={SALARY_SERIES}
       samples={96}
       bandwidth={2.8}

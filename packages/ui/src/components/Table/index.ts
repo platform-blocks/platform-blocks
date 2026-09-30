@@ -13,5 +13,7 @@ export {
   type TableScrollContainerProps,
   type TableSectionProps,
   type TableRowProps,
-  type TableCellProps
+  type TableCellProps,
+  type TableColumnConfig,
+  type TableAriaProps,
 } from './Table';

@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Block, Search, Text } from '@platform-blocks/ui';
+import { Block, Search, Text } from '@plocks/ui';
 
 export function Demo() {
   const [query, setQuery] = useState('');
 
   return (
-    <Block maxW={320} w="100%">
-      <Search value={query} onChange={setQuery} placeholder="Search docs" />
-      <Text size="xs" color="muted">
+    <Block maw={320} w="100%">
+      <Search value={query} onChangeText={setQuery} placeholder="Search docs" />
+      <Text size="xs" c="muted">
         Current query: {query || '—'}
       </Text>
     </Block>

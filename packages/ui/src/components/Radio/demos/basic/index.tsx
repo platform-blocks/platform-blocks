@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Radio, RadioGroup, Text } from '@platform-blocks/ui';
+import { Block, Radio, RadioGroup, Text } from '@plocks/ui';
 
 const TEAMS = ['Falcons', 'Tigers', 'Sharks'] as const;
 
@@ -10,7 +10,7 @@ export function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Standalone radios
         </Text>
         <Block>
@@ -27,7 +27,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Grouped selection
         </Text>
         <RadioGroup

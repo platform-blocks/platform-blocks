@@ -1,4 +1,4 @@
-import { BarChart } from '@platform-blocks/charts';
+import { BarChart } from '@plocks/charts';
 
 import { RECRUITING_PROGRESS } from './data';
 
@@ -15,7 +15,7 @@ export function Demo() {
     <BarChart
       title="New hires secured this recruiting cycle"
       subtitle="Compared with winter intake"
-      height={440}
+      h={440}
       orientation="horizontal"
       data={RECRUITING_PROGRESS}
       barSpacing={0.25}

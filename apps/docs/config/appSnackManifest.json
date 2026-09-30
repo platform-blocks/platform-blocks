@@ -1,0 +1,348 @@
+[
+  {
+    "slug": "baseball-live",
+    "codeFiles": [
+      "App.tsx",
+      "components/CountDisplay.tsx",
+      "components/FieldDiamond.tsx",
+      "components/FixtureCard.tsx",
+      "components/Panel.tsx",
+      "components/Scoreboard.tsx",
+      "components/TeamMark.tsx",
+      "data.ts",
+      "game/engine.ts",
+      "game/types.ts",
+      "screens/GamecastScreen.tsx",
+      "screens/ScoresScreen.tsx",
+      "screens/StandingsScreen.tsx",
+      "theme.ts"
+    ],
+    "assets": [],
+    "dependencies": []
+  },
+  {
+    "slug": "calculator",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": []
+  },
+  {
+    "slug": "chatline",
+    "codeFiles": [
+      "App.tsx",
+      "data.ts"
+    ],
+    "assets": [],
+    "dependencies": [
+      "@react-native-async-storage/async-storage"
+    ]
+  },
+  {
+    "slug": "daily-edition",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [
+      "assets/scene-city.webp",
+      "assets/scene-desert.webp",
+      "assets/scene-forest.webp",
+      "assets/scene-lake.webp",
+      "assets/scene-ocean.webp"
+    ],
+    "dependencies": [
+      "@react-native-async-storage/async-storage"
+    ]
+  },
+  {
+    "slug": "daymark",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": [
+      "@plocks/charts@0.1.0",
+      "@react-native-async-storage/async-storage"
+    ]
+  },
+  {
+    "slug": "dicom-viewer",
+    "codeFiles": [
+      "App.tsx",
+      "components/ScanViewport.tsx",
+      "dicom.ts",
+      "study.ts",
+      "theme.ts"
+    ],
+    "assets": [],
+    "dependencies": [
+      "expo-document-picker",
+      "expo-file-system"
+    ]
+  },
+  {
+    "slug": "e-reader",
+    "codeFiles": [
+      "App.tsx",
+      "book.ts"
+    ],
+    "assets": [],
+    "dependencies": [
+      "@react-native-async-storage/async-storage",
+      "expo-speech"
+    ]
+  },
+  {
+    "slug": "fieldhouse",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": [
+      "@react-native-async-storage/async-storage"
+    ]
+  },
+  {
+    "slug": "fish-dating",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": [
+      "@react-native-async-storage/async-storage"
+    ]
+  },
+  {
+    "slug": "flight-tracker",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": []
+  },
+  {
+    "slug": "flutterflight",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": []
+  },
+  {
+    "slug": "frameleaf",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [
+      "assets/scene-city.webp",
+      "assets/scene-desert.webp",
+      "assets/scene-forest.webp",
+      "assets/scene-lake.webp",
+      "assets/scene-ocean.webp"
+    ],
+    "dependencies": [
+      "@plocks/carousel@0.1.0",
+      "@react-native-async-storage/async-storage"
+    ]
+  },
+  {
+    "slug": "guildline",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": [
+      "@react-native-async-storage/async-storage"
+    ]
+  },
+  {
+    "slug": "idea-grid",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [
+      "assets/pins/balcony-garden.webp",
+      "assets/pins/ceramic-vase.webp",
+      "assets/pins/coffee.webp",
+      "assets/pins/interior.webp",
+      "assets/pins/living-room.webp",
+      "assets/pins/market-flowers.webp",
+      "assets/pins/minimal-flowers.webp",
+      "assets/pins/pottery.webp",
+      "assets/pins/reading-nook.webp",
+      "assets/pins/studio.webp",
+      "assets/pins/table.webp",
+      "assets/pins/workspace.webp"
+    ],
+    "dependencies": [
+      "@react-native-async-storage/async-storage"
+    ]
+  },
+  {
+    "slug": "lettergrid",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": []
+  },
+  {
+    "slug": "loopshop",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": [
+      "@plocks/carousel@0.1.0",
+      "@react-native-async-storage/async-storage"
+    ]
+  },
+  {
+    "slug": "mosaic-chat",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": [
+      "@react-native-async-storage/async-storage"
+    ]
+  },
+  {
+    "slug": "music",
+    "codeFiles": [
+      "App.tsx",
+      "catalog.ts"
+    ],
+    "assets": [
+      "assets/audio/afterglow.mp3",
+      "assets/audio/blue-apartment.mp3",
+      "assets/audio/golden-hour.mp3",
+      "assets/audio/night-drive.mp3",
+      "assets/audio/side-streets.mp3",
+      "assets/audio/soft-focus.mp3"
+    ],
+    "dependencies": [
+      "@plocks/carousel@0.1.0",
+      "@react-native-async-storage/async-storage",
+      "expo-audio"
+    ]
+  },
+  {
+    "slug": "nightfall",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [
+      "assets/demo-clip.mp4",
+      "assets/scene-city.webp",
+      "assets/scene-desert.webp",
+      "assets/scene-forest.webp",
+      "assets/scene-lake.webp",
+      "assets/scene-ocean.webp"
+    ],
+    "dependencies": [
+      "@plocks/media@0.1.0",
+      "@react-native-async-storage/async-storage",
+      "expo-asset"
+    ]
+  },
+  {
+    "slug": "postbox",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": [
+      "@react-native-async-storage/async-storage"
+    ]
+  },
+  {
+    "slug": "signal-news",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": []
+  },
+  {
+    "slug": "solitaire",
+    "codeFiles": [
+      "App.tsx",
+      "game.ts"
+    ],
+    "assets": [],
+    "dependencies": []
+  },
+  {
+    "slug": "springstep",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": []
+  },
+  {
+    "slug": "sproutfolio",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": [
+      "@plocks/charts@0.1.0",
+      "@react-native-async-storage/async-storage"
+    ]
+  },
+  {
+    "slug": "threadit",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": [
+      "@react-native-async-storage/async-storage"
+    ]
+  },
+  {
+    "slug": "townlist",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [
+      "assets/listings/apartment.webp",
+      "assets/listings/balcony.webp",
+      "assets/listings/bicycle.webp",
+      "assets/listings/cafe.webp",
+      "assets/listings/chair-room.webp",
+      "assets/listings/desk.webp",
+      "assets/listings/living-room.webp",
+      "assets/listings/studio.webp"
+    ],
+    "dependencies": [
+      "@react-native-async-storage/async-storage"
+    ]
+  },
+  {
+    "slug": "weather",
+    "codeFiles": [
+      "App.tsx",
+      "weather.ts"
+    ],
+    "assets": [
+      "assets/scene-city.webp",
+      "assets/scene-desert.webp",
+      "assets/scene-lake.webp"
+    ],
+    "dependencies": [
+      "expo-linear-gradient"
+    ]
+  },
+  {
+    "slug": "wordtrail",
+    "codeFiles": [
+      "App.tsx"
+    ],
+    "assets": [],
+    "dependencies": []
+  }
+]

@@ -1,4 +1,4 @@
-import { BubbleChart } from '@platform-blocks/charts';
+import { BubbleChart } from '@plocks/charts';
 
 import { accounts } from './data';
 
@@ -9,7 +9,7 @@ export function Demo() {
     <BubbleChart
       title="Customer Account Health vs Expansion"
       subtitle="Bubble size reflects current ARR; use upper-right quadrant to spot ready-to-expand logos"
-      height={440}
+      h={440}
       data={accounts}
       dataKey={{
         x: 'healthScore',

@@ -3,9 +3,7 @@ title: Indeterminate
 category: interaction
 order: 40
 tags: [checkboxes, indeterminate]
-highlightLines: [21-40]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

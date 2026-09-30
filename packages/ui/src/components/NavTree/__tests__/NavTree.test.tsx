@@ -9,7 +9,8 @@ import { NavTree } from '../NavTree';
 import { buildNavTree, isGroupNodeId } from '../buildNavTree';
 import type { NavTreeItem } from '../types';
 
-jest.mock('../../../core/theme', () => ({
+jest.mock('../../../core/theme/ThemeProvider', () => ({
+  ...jest.requireActual('../../../core/theme/ThemeProvider'),
   useTheme: () => ({
     colorScheme: 'light',
     colors: {
@@ -23,20 +24,20 @@ jest.mock('../../../core/theme', () => ({
 // `Search` wraps `Input`, whose style resolver wants a fuller theme than this
 // suite mocks. Standing in a bare TextInput with the same contract keeps these
 // tests about NavTree's query wiring rather than about Input's styling.
-jest.mock('../../Search', () => {
+jest.mock('../../Search/Search', () => {
   const React = require('react');
   const { TextInput } = require('react-native');
-  const MockSearch = ({ value, onChange, accessibilityLabel, placeholder }: any) =>
+  const MockSearch = ({ value, onChangeText, accessibilityLabel, placeholder }: any) =>
     React.createElement(TextInput, {
       value,
-      onChangeText: onChange,
+      onChangeText,
       accessibilityLabel,
       placeholder,
     });
   return { Search: MockSearch };
 });
 
-jest.mock('../../Icon', () => {
+jest.mock('../../Icon/Icon', () => {
   const React = require('react');
   const { View } = require('react-native');
   return { Icon: ({ name }: { name: string }) => React.createElement(View, { accessibilityLabel: `icon-${name}` }) };
@@ -131,7 +132,8 @@ describe('NavTree', () => {
     // Nothing below the top level is open by default, so 'Button' being on
     // screen means activeHref opened 'Components' → 'Input' to reach it.
     expect(queryByText('Button')).not.toBeNull();
-    expect(getByLabelText('Button').props.accessibilityRole).toBe('link');
+    expect(getByLabelText('Button').props.role).toBe('link');
+    expect(getByLabelText('Button').props.accessibilityState.selected).toBe(true);
   });
 
   it('reports the original item back to onNavigate', () => {

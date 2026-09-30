@@ -8,54 +8,64 @@
  */
 
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
+import { DEFAULT_THEME } from '../../../core/theme/defaultTheme';
+import { DARK_THEME } from '../../../core/theme/darkTheme';
+import { contrastRatio } from '../../../core/theme/colorUtils';
+import { resolveVariantRoles } from '../../../core/theme/variantRoles';
 import { MenuItemButton } from '../MenuItemButton';
 
-const PRIMARY = ['#e6f0ff', '#cce0ff', '#99c2ff', '#66a3ff', '#3385ff', '#0066ff', '#0052cc', '#003d99'];
+let mockTheme = DEFAULT_THEME;
 
-jest.mock('../../../core/theme', () => ({
-  useTheme: () => ({
-    colorScheme: 'light',
-    colors: {
-      primary: PRIMARY,
-      error: ['#fee', '#fcc', '#faa', '#f88', '#f66', '#f44', '#f22'],
-      success: ['#e6f9f0', '#ccf3e1', '#99e7c3', '#66dca5', '#33d087', '#00c469', '#009853'],
-      warning: ['#fff9e6', '#fff3cc', '#ffe699', '#ffd966', '#ffcc33', '#ffbf00', '#cc9900'],
-    },
-    text: { primary: '#111111', onPrimary: '#ffffff', disabled: '#999999' },
-  }),
+jest.mock('../../../core/theme/ThemeProvider', () => ({
+  ...jest.requireActual('../../../core/theme/ThemeProvider'),
+  useTheme: () => mockTheme,
 }));
 
-const backgroundWhilePressed = (props: any = {}) => {
+/** The row's style in Pressable's pressed state (the style is a function of it). */
+const styleWhilePressed = (props: any = {}) => {
   const screen = render(
     <MenuItemButton testID="item" {...props}>
       Option
     </MenuItemButton>
   );
-  const item = screen.getByTestId('item');
-  fireEvent(item, 'pressIn');
-  return StyleSheet.flatten(screen.getByTestId('item').props.style)?.backgroundColor;
+  const [pressable] = screen.UNSAFE_root.findAll((node) => typeof node.props.style === 'function');
+  return StyleSheet.flatten(pressable.props.style({ pressed: true, hovered: false }));
 };
 
 describe('MenuItemButton press feedback', () => {
-  it('tints a default-color row neutrally rather than with the accent color', () => {
-    const background = backgroundWhilePressed({ color: 'default', activeColor: 'default' });
+  beforeEach(() => {
+    mockTheme = DEFAULT_THEME;
+  });
 
-    expect(background).toBe('rgba(0, 0, 0, 0.08)');
-    expect(PRIMARY).not.toContain(background);
+  it('tints a default-color row neutrally rather than with the accent color', () => {
+    const background = styleWhilePressed({ color: 'default', activeColor: 'default' })?.backgroundColor;
+
+    expect(background).toBe(DEFAULT_THEME.backgrounds.pressed);
+    expect(DEFAULT_THEME.colors.primary).not.toContain(background);
   });
 
   it('still uses the accent color when the caller asks for a primary press', () => {
-    const background = backgroundWhilePressed({ color: 'default', activeColor: 'primary' });
+    const background = styleWhilePressed({ color: 'default', activeColor: 'primary' })?.backgroundColor;
 
-    expect(background).toBe(PRIMARY[1]);
+    expect(background).toBe(resolveVariantRoles(DEFAULT_THEME, { variant: 'light', color: 'primary' }).fill);
   });
 
   it('keeps danger rows on the error palette', () => {
-    const background = backgroundWhilePressed({ danger: true });
+    const background = styleWhilePressed({ danger: true })?.backgroundColor;
 
-    expect(background).toBe('#fcc');
+    expect(background).toBe(resolveVariantRoles(DEFAULT_THEME, { variant: 'light', color: 'error' }).fill);
+  });
+
+  it('keeps success / warning labels readable on the dark surface', () => {
+    mockTheme = DARK_THEME;
+    for (const color of ['success', 'warning'] as const) {
+      const { getByText, unmount } = render(<MenuItemButton color={color}>{color}</MenuItemButton>);
+      const textColor = StyleSheet.flatten(getByText(color).props.style).color as string;
+      expect(contrastRatio(textColor, DARK_THEME.backgrounds.surface)).toBeGreaterThanOrEqual(4.5);
+      unmount();
+    }
   });
 });

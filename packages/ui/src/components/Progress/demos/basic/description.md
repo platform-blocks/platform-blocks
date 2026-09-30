@@ -3,9 +3,7 @@ title: Basics
 category: basics
 order: 10
 tags: [progress]
-highlightLines: [22]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

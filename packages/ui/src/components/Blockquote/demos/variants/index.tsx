@@ -1,10 +1,11 @@
-import { Block, Blockquote, Text } from '@platform-blocks/ui';
+import { Block, Blockquote, Text } from '@plocks/ui';
+import { BrandIcon } from '@plocks/brands';
 
 export function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="h5" weight="semibold">
+        <Text variant="h5" fw="semibold">
           Default
         </Text>
         <Blockquote author={{ name: 'Anonymous' }}>
@@ -13,7 +14,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="h5" weight="semibold">
+        <Text variant="h5" fw="semibold">
           Testimonial
         </Text>
         <Blockquote
@@ -31,7 +32,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="h5" weight="semibold">
+        <Text variant="h5" fw="semibold">
           Featured
         </Text>
         <Blockquote
@@ -47,14 +48,14 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="h5" weight="semibold">
+        <Text variant="h5" fw="semibold">
           Minimal
         </Text>
         <Blockquote
           variant="minimal"
           quoteIconPosition="none"
           author={{ name: '@username' }}
-          source={{ name: 'X (Twitter)', brand: 'x' }}
+          source={{ name: 'X (Twitter)', icon: <BrandIcon brand="x" size="sm" /> }}
           date="2 hours ago"
         >
           Just discovered this amazing new feature! 🚀

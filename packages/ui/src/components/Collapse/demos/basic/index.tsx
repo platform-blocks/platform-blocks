@@ -1,4 +1,4 @@
-import { Block, Button, Collapse, Text } from '@platform-blocks/ui';
+import { Block, Button, Collapse, Text } from '@plocks/ui';
 import { useState } from 'react';
 export function Demo() {
   const [isCollapsed, setIsCollapsed] = useState(false);

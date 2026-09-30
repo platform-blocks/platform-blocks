@@ -5,7 +5,6 @@ order: 45
 tags: [toast, stack, queue, limit]
 highlightLines: []
 status: stable
-since: 1.1.0
 hidden: false
 ---
 

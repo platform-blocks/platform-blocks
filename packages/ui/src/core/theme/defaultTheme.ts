@@ -1,7 +1,73 @@
-import { PlatformBlocksTheme } from './types';
-import { DESIGN_TOKENS } from '../design-tokens';
+import { Platform } from 'react-native';
 
-export const DEFAULT_THEME: PlatformBlocksTheme = {
+import type { PlocksTheme, ThemeBackgrounds } from './types';
+import { DESIGN_TOKENS } from '../design-tokens';
+import {
+  DEFAULT_BREAKPOINT_VALUES,
+  DEFAULT_CONTROL_SIZES,
+  DEFAULT_FONT_SIZE_SCALE,
+  DEFAULT_LIGHT_SHADOWS,
+  DEFAULT_RADIUS_SCALE,
+  DEFAULT_SCRIM_COLORS,
+  DEFAULT_SPACING_SCALE,
+  toPxScale,
+} from './scales';
+import { DEFAULT_Z_INDICES } from './zIndices';
+
+/** Platform-correct monospace stack, shared by the light and dark themes. */
+export const DEFAULT_FONT_FAMILY_MONO: string =
+  Platform.select({
+    ios: 'Menlo',
+    android: 'monospace',
+    default: 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+  }) ?? 'monospace';
+
+const LIGHT_BACKGROUNDS: ThemeBackgrounds = {
+  base: '#F7F8FA', // faint gray page so white cards read as elevated
+  subtle: '#EDEFF3', // one step darker so subtle/ghost surfaces stay distinct from the page
+  surface: '#FFFFFF',
+  elevated: '#FFFFFF',
+  border: '#E5E7EB',
+  // gray[2]: the stroke Button's default variant draws, visible on white and on the page.
+  borderStrong: '#D1D1D6',
+  // Translucent washes (the values `surfaceInteractionTint` has always used), so
+  // hover/pressed read correctly on every elevation instead of one.
+  hover: 'rgba(0, 0, 0, 0.04)',
+  pressed: 'rgba(0, 0, 0, 0.08)',
+  // primary[1]: the selected-row fill Table/DataTable already paint. Opaque so
+  // pinned/sticky cells can reuse it.
+  selected: '#DBEAFE',
+  // gray[0]: the fill disabled inputs use today.
+  disabled: '#F2F2F7',
+  // amber-200 — 13:1 under text.primary.
+  mark: '#FDE68A',
+  scrim: DEFAULT_SCRIM_COLORS.light,
+};
+
+const LIGHT_STATES: NonNullable<PlocksTheme['states']> = {
+  focusRing: 'rgba(59,130,246,0.45)',
+  textSelection: 'rgba(251, 191, 36, 0.3)', // Semi-transparent highlight[5]
+  highlightText: '#B45309', // highlight[8] for good contrast
+  highlightBackground: 'rgba(253, 230, 138, 0.6)', // Semi-transparent highlight[3]
+};
+
+const LIGHT_PRIMARY = [
+  '#EFF6FF',
+  '#DBEAFE',
+  '#BFDBFE',
+  '#93C5FD',
+  '#60A5FA',
+  // Base sits on blue-600 rather than blue-500: white label text needs
+  // 4.5:1 and only clears it from 600 down (5.17:1 vs 3.68:1). The ramp is
+  // still Tailwind blue end to end, re-anchored one step darker.
+  '#2563EB', // Base color — unified brand blue
+  '#1D4ED8',
+  '#1E40AF',
+  '#1E3A8A',
+  '#172554',
+];
+
+export const DEFAULT_THEME: PlocksTheme = {
   primaryColor: '#2563EB',
   colorScheme: 'light',
 
@@ -9,21 +75,7 @@ export const DEFAULT_THEME: PlatformBlocksTheme = {
   designTokens: DESIGN_TOKENS,
 
   colors: {
-    primary: [
-      '#EFF6FF',
-      '#DBEAFE',
-      '#BFDBFE',
-      '#93C5FD',
-      '#60A5FA',
-      // Base sits on blue-600 rather than blue-500: white label text needs
-      // 4.5:1 and only clears it from 600 down (5.17:1 vs 3.68:1). The ramp is
-      // still Tailwind blue end to end, re-anchored one step darker.
-      '#2563EB', // Base color — unified brand blue
-      '#1D4ED8',
-      '#1E40AF',
-      '#1E3A8A',
-      '#172554'
-    ],
+    primary: LIGHT_PRIMARY,
     secondary: [
       '#F8FAFC',
       '#F1F5F9',
@@ -162,13 +214,7 @@ export const DEFAULT_THEME: PlatformBlocksTheme = {
   onPrimary: '#FFFFFF'
   },
 
-  backgrounds: {
-    base: '#F7F8FA',    // faint gray page so white cards read as elevated
-    subtle: '#EDEFF3',  // one step darker so subtle/ghost surfaces stay distinct from the page
-    surface: '#FFFFFF',
-    elevated: '#FFFFFF',
-    border: '#E5E7EB'
-  },
+  backgrounds: LIGHT_BACKGROUNDS,
 
   // Light mode reads elevation mainly through shadow — the fill stays white
   // from level 1 up, so a dropdown over a card doesn't turn grey.
@@ -179,60 +225,26 @@ export const DEFAULT_THEME: PlatformBlocksTheme = {
     3: { background: '#FFFFFF', border: '#E5E7EB', shadow: 'xl' },
   },
 
-  states: {
-    focusRing: 'rgba(59,130,246,0.45)',
-    textSelection: 'rgba(251, 191, 36, 0.3)', // Semi-transparent highlight[5]
-    highlightText: '#B45309', // highlight[8] for good contrast
-    highlightBackground: 'rgba(253, 230, 138, 0.6)' // Semi-transparent highlight[3]
-  },
+  states: LIGHT_STATES,
 
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
 
-  fontSizes: {
-    xs: '10px',
-    sm: '12px',
-    md: '14px',
-    lg: '16px',
-    xl: '18px',
-    '2xl': '20px',
-    '3xl': '24px'
-  },
+  fontFamilyMono: DEFAULT_FONT_FAMILY_MONO,
 
-  spacing: {
-    xs: '4px',
-    sm: '8px',
-    md: '12px',
-    lg: '16px',
-    xl: '20px',
-    '2xl': '24px',
-    '3xl': '32px'
-  },
+  controlSizes: DEFAULT_CONTROL_SIZES,
 
-  radii: {
-    xs: '2px',
-    sm: '4px',
-    md: '6px',
-    lg: '8px',
-    xl: '12px',
-    '2xl': '16px',
-    '3xl': '20px'
-  },
+  zIndices: DEFAULT_Z_INDICES,
 
-  shadows: {
-    xs: '0 1px 3px rgba(0, 0, 0, 0.1)',
-    sm: '0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24)',
-    md: '0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12)',
-    lg: '0 10px 20px rgba(0, 0, 0, 0.15), 0 3px 6px rgba(0, 0, 0, 0.10)',
-    xl: '0 15px 25px rgba(0, 0, 0, 0.15), 0 5px 10px rgba(0, 0, 0, 0.05)'
-  },
+  fontSizes: toPxScale(DEFAULT_FONT_SIZE_SCALE),
 
-  breakpoints: {
-    xs: '480px',
-    sm: '768px',
-    md: '1024px',
-    lg: '1280px',
-    xl: '1536px'
-  },
+  spacing: toPxScale(DEFAULT_SPACING_SCALE),
+
+  radii: toPxScale(DEFAULT_RADIUS_SCALE),
+
+  shadows: { ...DEFAULT_LIGHT_SHADOWS },
+
+  // xs 480 · sm 576 · md 768 · lg 992 · xl 1200 — the only breakpoint table.
+  breakpoints: toPxScale(DEFAULT_BREAKPOINT_VALUES),
 
   motion: {
     easing: {
@@ -248,15 +260,6 @@ export const DEFAULT_THEME: PlatformBlocksTheme = {
       normal: '250ms',
       slow: '400ms'
     }
-  },
-
-  semantic: {
-    accent: '#2563EB', // primary[5] — unified brand blue
-    borderDefault: '#E7E7E9', // surface[3]
-    borderSubtle: '#F7F8FA', // surface[1]
-    surfaceElevated: '#FFFFFF', // surface[0]
-    surfaceCard: '#F7F8FA', // surface[1]
-    focusRing: '#60A5FA' // primary[4]
   },
 
   components: {},

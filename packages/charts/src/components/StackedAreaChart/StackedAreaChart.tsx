@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useRef, useEffect } from 'react';
 import { Platform, View } from 'react-native';
-import Svg, { Path, G, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Path, G, Defs } from 'react-native-svg';
 import Animated, { 
   useSharedValue, 
   withTiming, 
@@ -26,11 +26,11 @@ import {
   scaleTime, 
   generateTicks, 
   createSmoothPath, 
-  colorSchemes, 
   getColorFromScheme, 
-  formatNumber 
+  createTickFormatter
 } from '../../utils';
 import { ChartGrid } from '../../core/ChartGrid';
+import { ChartGradientDef, isChartGradient, useChartFillId, type ChartGradient } from '../../core/ChartFill';
 import { Axis } from '../../core/Axis';
 import type { Scale } from '../../utils/scales';
 
@@ -48,6 +48,8 @@ interface StackedSeries {
   id: any; 
   name?: string; 
   color: string; 
+  /** Gradient area fill from the series' `fillColor`, when it is one */
+  fill?: ChartGradient;
   points: StackedPoint[]; 
   visible: boolean; 
 }
@@ -56,6 +58,7 @@ interface StackedLayer {
   id: any;
   name?: string;
   color: string;
+  fill?: ChartGradient;
   path: string;
   smooth: boolean;
   points: StackedPoint[];
@@ -70,7 +73,8 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 const useStackedData = (
   series: LineChartSeries[], 
   stackOrder: 'normal' | 'reverse', 
-  interaction: ReturnType<typeof useChartInteractionContext> | null
+  interaction: ReturnType<typeof useChartInteractionContext> | null,
+  palette: string[]
 ) => {
   return useMemo(() => {
     const xValues = Array.from(
@@ -85,7 +89,7 @@ const useStackedData = (
       const overriddenVisible = interaction?.series.find(sr => sr.id === (s.id ?? si))?.visible;
       if (s.visible === false || overriddenVisible === false) return;
       
-      const color = s.color || getColorFromScheme(si, colorSchemes.default);
+      const color = s.color || getColorFromScheme(si, palette);
       const points: StackedPoint[] = xValues.map((x, idx) => {
         const raw = s.data.find(p => p.x === x);
         const val = raw ? raw.y : 0;
@@ -106,13 +110,14 @@ const useStackedData = (
         id: s.id ?? si,
         name: s.name,
         color,
+        fill: isChartGradient(s.fillColor) ? s.fillColor : undefined,
         points,
         visible: overriddenVisible !== undefined ? overriddenVisible : (s.visible ?? true)
       });
     });
 
     return { layers, totals: runningTotals, xValues };
-  }, [series, stackOrder, interaction?.series]);
+  }, [series, stackOrder, interaction?.series, palette]);
 };
 
 // Custom hook for generating area paths
@@ -156,6 +161,7 @@ const useStackedAreaPaths = (
         id: layer.id,
         name: layer.name,
         color: layer.color,
+        fill: layer.fill,
         path,
         smooth,
         points: layer.points,
@@ -169,12 +175,14 @@ const useStackedAreaPaths = (
 // AnimatedStackedArea component - encapsulates animation logic
 const AnimatedStackedArea: React.FC<{
   layer: StackedLayer;
+  /** Gradient url for the fill; the layer color otherwise */
+  paint?: string;
   opacity: number;
   animationProgress: SharedValue<number>;
   disabled: boolean;
   onHover?: () => void;
   onHoverOut?: () => void;
-}> = React.memo(({ layer, opacity, animationProgress, disabled, onHover, onHoverOut }) => {
+}> = React.memo(({ layer, paint, opacity, animationProgress, disabled, onHover, onHoverOut }) => {
   const scale = useSharedValue(disabled ? 1 : 0);
   
   useEffect(() => {
@@ -211,7 +219,7 @@ const AnimatedStackedArea: React.FC<{
     >
       <AnimatedPath
         animatedProps={animatedProps}
-        fill={layer.color}
+        fill={paint ?? layer.color}
         stroke={layer.color}
         strokeWidth={1}
       />
@@ -224,8 +232,8 @@ AnimatedStackedArea.displayName = 'AnimatedStackedArea';
 export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
   const {
     series,
-    width = 400,
-    height = 300,
+    w: width = 400,
+    h: height = 300,
     title,
     subtitle,
     xAxis,
@@ -255,6 +263,8 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
     stackOrder = 'normal',
     ...rest
   } = props;
+  const theme = useChartTheme();
+  const fillIdPrefix = useChartFillId('stacked-area-fill');
 
   let interaction: ReturnType<typeof useChartInteractionContext> | null = null;
   try {
@@ -273,7 +283,7 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
   const { activeTarget } = useActiveTarget();
 
   // Use custom hooks for data processing
-  const stackedData = useStackedData(series, stackOrder, interaction);
+  const stackedData = useStackedData(series, stackOrder, interaction, theme.colors.accentPalette);
   const { layers: rawLayers, totals, xValues } = stackedData;
 
   const layers = useMemo(() => {
@@ -314,14 +324,10 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
   // reserve that was a third of the width on a narrow chart.
   const basePadding = useMemo(
     () => resolveCartesianPadding({
-      yTickLabels: domainTickLabels(yDomain, (value) =>
-        yAxis?.labelFormatter ? yAxis.labelFormatter(value)
-          : yScaleType === 'time' ? new Date(value).toLocaleDateString()
-          : formatNumber(value)),
-      xTickLabels: domainTickLabels(xDomain, (value) =>
-        xAxis?.labelFormatter ? xAxis.labelFormatter(value)
-          : xScaleType === 'time' ? new Date(value).toLocaleDateString()
-          : formatNumber(value)),
+      yTickLabels: domainTickLabels(yDomain, yAxis?.labelFormatter
+        ?? (yScaleType === 'time' ? (value: number) => new Date(value).toLocaleDateString() : undefined), theme.numberFormat),
+      xTickLabels: domainTickLabels(xDomain, xAxis?.labelFormatter
+        ?? (xScaleType === 'time' ? (value: number) => new Date(value).toLocaleDateString() : undefined), theme.numberFormat),
       yTitle: yAxis?.title,
       xTitle: xAxis?.title,
       showYAxis: yAxis?.show !== false,
@@ -332,7 +338,7 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
       containerHeight: height,
     }),
     [yDomain, xDomain, yAxis?.labelFormatter, xAxis?.labelFormatter, yAxis?.title, xAxis?.title,
-     yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, yScaleType, xScaleType, width, height]
+     yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, yScaleType, xScaleType, width, height, theme.numberFormat]
   );
   // Grown so the plot clears the title and legend overlays.
   const legendLabels = useMemo(
@@ -376,6 +382,7 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
 
   // Animation
   const animationProgress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = React.useRef(false);
   const dataSignature = useMemo(() => {
     return layers.map(l => 
       `${l.id}-${l.color}-${l.points.map(p => `${p.x}:${p.y1}`).join(',')}`
@@ -383,6 +390,10 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
   }, [layers]);
 
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (disabled) {
       animationProgress.value = 1;
       return;
@@ -398,7 +409,7 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
   // the layer's upper edge (y1). Registering all layers lets the shared engine
   // resolve the nearest point on hover and produce a multi-series slice tooltip
   // (every layer's value at the hovered x). Legend visibility is driven separately
-  // via updateSeriesVisibility (upsert), so no legacy registerSeries is needed.
+  // via updateSeriesVisibility (upsert).
   const hitSeries: HitSeries[] = useMemo(() => layers.map((layer, index) => ({
     id: layer.id,
     name: layer.name || `Series ${index + 1}`,
@@ -439,6 +450,8 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
   // Generate ticks and scales for axes
   const xTicks = useMemo(() => generateTicks(xDomain[0], xDomain[1], 6), [xDomain]);
   const yTicks = useMemo(() => generateTicks(yDomain[0], yDomain[1], 5), [yDomain]);
+  const xTickFormat = useMemo(() => createTickFormatter(xTicks, theme.numberFormat), [xTicks, theme.numberFormat]);
+  const yTickFormat = useMemo(() => createTickFormatter(yTicks, theme.numberFormat), [yTicks, theme.numberFormat]);
   const normXTicks = useMemo(() => 
     xTicks.map(t => (plotWidth > 0 ? scaleX(t) / plotWidth : 0)), [xTicks, scaleX, plotWidth]
   );
@@ -464,7 +477,6 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
     return scale;
   }, [scaleY, plotHeight, yDomain, yTicks]);
 
-  const theme = useChartTheme();
   const xAxisTickSize = xAxis?.tickLength ?? 4;
   const yAxisTickSize = yAxis?.tickLength ?? 4;
   const axisTickPadding = 4;
@@ -478,8 +490,8 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
 
   return (
     <ChartContainer
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       disabled={disabled}
       animationDuration={animationDuration}
       style={style}
@@ -519,14 +531,18 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
         width={plotWidth}
         height={plotHeight}
       >
-        <Defs>
-          {areaPaths.map((area, index) => (
-            <LinearGradient key={`gradient-${area.id}`} id={`fillGradient-${area.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-              <Stop offset="0%" stopColor={area.color} stopOpacity={opacity} />
-              <Stop offset="100%" stopColor={area.color} stopOpacity={opacity * 0.5} />
-            </LinearGradient>
-          ))}
-        </Defs>
+        {areaPaths.some((area) => area.fill) && (
+          <Defs>
+            {areaPaths.map((area) => area.fill ? (
+              <ChartGradientDef
+                key={area.index}
+                id={`${fillIdPrefix}-${area.index}`}
+                gradient={area.fill}
+                bounds={area.fill.extent === 'plot' ? { x: 0, y: 0, width: plotWidth, height: plotHeight } : undefined}
+              />
+            ) : null)}
+          </Defs>
+        )}
         
         <G>
           {areaPaths.map((area, index) => {
@@ -537,6 +553,7 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
               <AnimatedStackedArea
                 key={area.id}
                 layer={area}
+                paint={area.fill ? `url(#${fillIdPrefix}-${area.index})` : undefined}
                 opacity={opacity}
                 animationProgress={animationProgress}
                 disabled={disabled}
@@ -584,7 +601,7 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
             const numeric = typeof value === 'number' ? value : Number(value);
             if (xAxis?.labelFormatter) return xAxis.labelFormatter(numeric);
             if (xScaleType === 'time') return new Date(numeric).toLocaleDateString();
-            return formatNumber(numeric);
+            return xTickFormat(numeric);
           }}
           showLabels={xAxis?.showLabels !== false}
           showTicks={xAxis?.showTicks !== false}
@@ -612,7 +629,7 @@ export const StackedAreaChart: React.FC<StackedAreaChartProps> = (props) => {
             const numeric = typeof value === 'number' ? value : Number(value);
             if (yAxis?.labelFormatter) return yAxis.labelFormatter(numeric);
             if (yScaleType === 'time') return new Date(numeric).toLocaleDateString();
-            return formatNumber(numeric);
+            return yTickFormat(numeric);
           }}
           showLabels={yAxis?.showLabels !== false}
           showTicks={yAxis?.showTicks !== false}

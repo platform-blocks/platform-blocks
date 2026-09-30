@@ -1,29 +1,16 @@
-import { useState } from 'react'
-import { Block, Chip } from '@platform-blocks/ui'
-
-const initialSports = [
-  { label: 'Soccer', emoji: '⚽' },
-  { label: 'Basketball', emoji: '🏀' },
-  { label: 'Tennis', emoji: '🎾' },
-]
+import { useState } from 'react';
+import { Chip, Row } from '@plocks/ui';
 
 export function Demo() {
-  const [chips, setChips] = useState(initialSports)
-
-  const handleRemove = (chipToRemove: string) => {
-    setChips((current) => current.filter((chip) => chip.label !== chipToRemove))
-  }
+  const [tags, setTags] = useState(['Soccer', 'Basketball', 'Tennis']);
 
   return (
-    <Block>
-      {chips.map((chip) => (
-        <Chip
-          key={chip.label}
-          onRemove={() => handleRemove(chip.label)}
-        >
-          {chip.label}
+    <Row gap={8} wrap="wrap">
+      {tags.map((tag) => (
+        <Chip key={tag} onRemove={() => setTags((current) => current.filter((t) => t !== tag))}>
+          {tag}
         </Chip>
       ))}
-    </Block>
-  )
+    </Row>
+  );
 }

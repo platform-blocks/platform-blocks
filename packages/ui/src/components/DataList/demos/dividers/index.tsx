@@ -1,4 +1,4 @@
-import { DataList } from '@platform-blocks/ui';
+import { DataList } from '@plocks/ui';
 
 export function Demo() {
   return (

@@ -1,7 +1,5 @@
 // Accessible / semantic color palettes & assignment utilities
 
-import { colorSchemes } from './utils';
-
 /**
  * Default categorical palette — validated for both color schemes.
  *
@@ -9,7 +7,9 @@ import { colorSchemes } from './utils';
  * ORDER is the CVD-safety mechanism, chosen so every adjacent pair clears the
  * hard gates (worst adjacent CVD ΔE ≈ 9.1 light / 8.4 dark, OKLab ×100; normal-
  * vision ΔE ≈ 19.6 light / 19.3 dark) on the light `#FFFFFF` and dark `#1C1C1F`
- * chart surfaces. Do not reorder or re-step without re-running the palette
+ * chart surfaces. Every dark step clears 3:1 contrast on `#1C1C1F`; on white,
+ * aqua, yellow and magenta sit below 3:1, so charts leaning on them need visible
+ * labels or a table view. Do not reorder or re-step without re-running the palette
  * validator against both surfaces. Slots past #3 cannot clear the all-pairs
  * floors (scatter/bubble) — fold extras to "Other" or facet rather than cycling.
  */
@@ -110,14 +110,16 @@ function hashString(str: string): number {
 /**
  * Creates a color assignment function based on palette and hashing options
  * @param opts - Color assignment options
+ * @param defaultPalette - What `'default'` (or no palette) resolves to. Charts pass
+ *   the theme's `accentPalette`; without it the built-in default palette is used.
  * @returns Function that assigns colors by index or id
  */
-export function createColorAssigner(opts: ColorAssignOptions = {}) {
+export function createColorAssigner(opts: ColorAssignOptions = {}, defaultPalette?: string[]) {
   let palette: string[];
   if (Array.isArray(opts.palette)) {
     palette = opts.palette;
   } else if (!opts.palette || opts.palette === 'default') {
-    palette = colorSchemes.default;
+    palette = defaultPalette?.length ? defaultPalette : registry.default;
   } else {
     palette = registry[opts.palette] || registry.default;
   }

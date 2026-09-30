@@ -1,4 +1,4 @@
-import { Block, Button, useToast } from '@platform-blocks/ui';
+import { Block, Button, useToast } from '@plocks/ui';
 
 export function Demo() {
   const toast = useToast();
@@ -17,17 +17,10 @@ export function Demo() {
   };
 
   const showPersistentToast = () => {
-    let toastId = '';
-    toastId = toast.show({
+    toast.show({
       title: 'Important notice',
       message: 'This toast stays visible until dismissed.',
       persistent: true,
-      actions: [
-        {
-          label: 'Dismiss',
-          onPress: () => toast.hide(toastId),
-        },
-      ],
     });
   };
 
@@ -51,5 +44,3 @@ export function Demo() {
     </Block>
   );
 }
-
-

@@ -1,82 +1,20 @@
-import { useState, type ComponentProps } from 'react';
-import { StyleSheet } from 'react-native';
-import { Block, Button, Card, Input, LoadingOverlay, Switch, Text } from '@platform-blocks/ui';
-
-type TextFieldConfig = {
-  key: string;
-} & Pick<ComponentProps<typeof Input>, 'label' | 'placeholder' | 'keyboardType' | 'secureTextEntry'>;
-
-const TEXT_FIELDS: TextFieldConfig[] = [
-  { key: 'first-name', label: 'First name', placeholder: 'Jane' },
-  { key: 'last-name', label: 'Last name', placeholder: 'Doe' },
-  {
-    key: 'email',
-    label: 'Email',
-    placeholder: 'jane@platform-blocks.com',
-    keyboardType: 'email-address',
-  },
-  {
-    key: 'password',
-    label: 'Password',
-    placeholder: '••••••••',
-    secureTextEntry: true,
-  },
-];
+import { useState } from 'react';
+import { Block, Card, Input, LoadingOverlay, Switch } from '@plocks/ui';
 
 export function Demo() {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
 
   return (
-    <Block align="center" style={styles.wrapper}>
-      <Block style={styles.section}>
-        <Card style={styles.card} shadow="lg">
-          <LoadingOverlay
-            visible={visible}
-            overlayProps={{ blur: 12, radius: 'md', backgroundOpacity: 0.4 }}
-            loaderProps={{ variant: 'dots', size: 'lg' }}
-          />
+    <Block fullWidth maw={480}>
+      <Card>
+        <Block>
+          <Input label="Name" placeholder="Jane Doe" disabled={visible} />
+          <Input label="Email" placeholder="jane@example.com" disabled={visible} />
+        </Block>
+        <LoadingOverlay visible={visible} overlayProps={{ radius: 'md' }} />
+      </Card>
 
-          <Block>
-            <Block>
-              <Text variant="h4" weight="semibold">
-                Account details
-              </Text>
-              <Text variant="p" color="muted">
-                Pause form interaction while requests finish and keep the layout intact.
-              </Text>
-            </Block>
-
-            <Block>
-              {TEXT_FIELDS.map(({ key, ...field }) => (
-                <Input key={key} disabled={visible} {...field} />
-              ))}
-              <Switch label="Subscribe to product updates" disabled={visible} />
-            </Block>
-          </Block>
-        </Card>
-
-        <Button onPress={() => setVisible((current) => !current)}>
-          {visible ? 'Stop loading' : 'Simulate loading'}
-        </Button>
-      </Block>
-
-      <Text variant="small" color="muted" align="center">
-        LoadingOverlay anchors to a relative container and dims the content while the loader animates.
-      </Text>
+      <Switch label="Loading" checked={visible} onChange={setVisible} />
     </Block>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    width: '100%',
-  },
-  section: {
-    width: '100%',
-    maxWidth: 480,
-    alignSelf: 'center',
-  },
-  card: {
-    width: '100%',
-  },
-});

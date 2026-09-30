@@ -1,11 +1,9 @@
 ---
-title: Single Expansion
+title: Basics
 category: usage
 order: 10
 tags: [accordion]
-highlightLines: [36-40]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -1,4 +1,4 @@
-import { Block, Blockquote, Text } from '@platform-blocks/ui';
+import { Block, Blockquote, Text } from '@plocks/ui';
 
 import { AUTHOR, QUOTE, SOURCE } from './data';
 
@@ -6,7 +6,7 @@ export function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="h5" weight="semibold">
+        <Text variant="h5" fw="semibold">
           Right (default)
         </Text>
         <Blockquote
@@ -20,7 +20,7 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text variant="h5" weight="semibold">
+        <Text variant="h5" fw="semibold">
           Left
         </Text>
         <Blockquote

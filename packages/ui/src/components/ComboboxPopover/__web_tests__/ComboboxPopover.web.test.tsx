@@ -1,0 +1,67 @@
+import React from 'react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { PlocksProvider } from '../../../core/theme/PlocksProvider';
+import { Button } from '../../Button';
+import { ComboboxPopover } from '../ComboboxPopover';
+const originalRect = Element.prototype.getBoundingClientRect;
+beforeAll(() => { Element.prototype.getBoundingClientRect = () => ({ x: 20, y: 40, top: 40, left: 20, right: 220, bottom: 80, width: 200, height: 40, toJSON: () => ({}) }) as DOMRect; });
+afterAll(() => { Element.prototype.getBoundingClientRect = originalRect; });
+const flush = async () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 150)); });
+it('selects a single option and closes', async () => {
+  const onChange = jest.fn();
+  render(<PlocksProvider><ComboboxPopover data={['Apple', 'Banana']} onChange={onChange}><ComboboxPopover.Target><Button>Choose</Button></ComboboxPopover.Target></ComboboxPopover></PlocksProvider>);
+  fireEvent.click(screen.getByRole('button', { name: 'Choose' }));
+  await flush();
+  fireEvent.click(screen.getByRole('option', { name: 'Apple' }));
+  expect(onChange).toHaveBeenCalledWith('Apple', expect.objectContaining({ value: 'Apple' }));
+  expect(screen.queryByRole('listbox')).toBeNull();
+});
+it('toggles multiple options while staying open', async () => {
+  const onChange = jest.fn();
+  render(<PlocksProvider><ComboboxPopover multiple data={['Apple', 'Banana']} onChange={onChange}><ComboboxPopover.Target><Button>Choose</Button></ComboboxPopover.Target></ComboboxPopover></PlocksProvider>);
+  fireEvent.click(screen.getByRole('button', { name: 'Choose' }));
+  await flush();
+  fireEvent.click(screen.getByRole('option', { name: 'Apple' }));
+  expect(onChange).toHaveBeenCalledWith(['Apple'], [expect.objectContaining({ value: 'Apple' })]);
+  expect(screen.getByRole('listbox')).toBeTruthy();
+});
+it('opens with ArrowDown, skips disabled options, and selects the highlighted option with Enter', async () => {
+  const onChange = jest.fn();
+  render(<PlocksProvider><ComboboxPopover data={[{ value: 'blocked', disabled: true }, 'Apple', 'Banana']} onChange={onChange}><ComboboxPopover.Target><Button>Choose</Button></ComboboxPopover.Target></ComboboxPopover></PlocksProvider>);
+  const trigger = screen.getByRole('button', { name: 'Choose' });
+  fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+  await flush();
+  const listbox = screen.getByRole('listbox');
+  expect(trigger.getAttribute('aria-controls')).toBe(listbox.id);
+  expect(trigger.getAttribute('aria-activedescendant')).toBe(screen.getByRole('option', { name: 'Apple' }).id);
+  fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+  expect(trigger.getAttribute('aria-activedescendant')).toBe(screen.getByRole('option', { name: 'Banana' }).id);
+  fireEvent.keyDown(trigger, { key: 'Enter' });
+  expect(onChange).toHaveBeenLastCalledWith('Banana', expect.objectContaining({ value: 'Banana' }));
+  expect(screen.queryByRole('listbox')).toBeNull();
+});
+it('keeps a controlled value selected until its owner updates it', async () => {
+  const onChange = jest.fn();
+  const view = render(<PlocksProvider><ComboboxPopover data={['Apple', 'Banana']} value="Apple" onChange={onChange}><ComboboxPopover.Target><Button>Choose</Button></ComboboxPopover.Target></ComboboxPopover></PlocksProvider>);
+  fireEvent.click(screen.getByRole('button', { name: 'Choose' }));
+  await flush();
+  fireEvent.click(screen.getByRole('option', { name: 'Banana' }));
+  expect(onChange).toHaveBeenCalledWith('Banana', expect.objectContaining({ value: 'Banana' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Choose' }));
+  await flush();
+  expect(screen.getByRole('option', { name: 'Apple' }).getAttribute('aria-selected')).toBe('true');
+  view.rerender(<PlocksProvider><ComboboxPopover data={['Apple', 'Banana']} value="Banana" onChange={onChange}><ComboboxPopover.Target><Button>Choose</Button></ComboboxPopover.Target></ComboboxPopover></PlocksProvider>);
+  expect(screen.getByRole('option', { name: 'Banana' }).getAttribute('aria-selected')).toBe('true');
+});
+it('dismisses with Escape without selecting and keeps focus on the target', async () => {
+  const onChange = jest.fn();
+  render(<PlocksProvider><ComboboxPopover data={['Apple']} onChange={onChange}><ComboboxPopover.Target><Button>Choose</Button></ComboboxPopover.Target></ComboboxPopover></PlocksProvider>);
+  const trigger = screen.getByRole('button', { name: 'Choose' });
+  act(() => trigger.focus());
+  fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+  await flush();
+  fireEvent.keyDown(trigger, { key: 'Escape' });
+  expect(screen.queryByRole('listbox')).toBeNull();
+  expect(document.activeElement).toBe(trigger);
+  expect(onChange).not.toHaveBeenCalled();
+});

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Flex, Text, ColorSwatch } from '@platform-blocks/ui';
+import { Flex, Text, ColorSwatch } from '@plocks/ui';
 
 const colors = [
   '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
@@ -11,7 +11,7 @@ export function Demo() {
 
   return (
     <Flex direction="column" gap={16} p={16} style={{ maxWidth: 400 }}>
-      <Text weight="semibold" size="md">Basic Color Swatches</Text>
+      <Text fw="semibold" size="md">Basic Color Swatches</Text>
       
       <Flex direction="column" gap={8}>
         <Text size="sm">Click to select a color:</Text>
@@ -26,7 +26,7 @@ export function Demo() {
             />
           ))}
         </Flex>
-        <Text size="xs" color="secondary">
+        <Text size="xs" c="secondary">
           Selected: {selectedColor}
         </Text>
       </Flex>

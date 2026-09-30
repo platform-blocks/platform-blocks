@@ -1,4 +1,4 @@
-import { ComboChart } from '@platform-blocks/charts';
+import { ComboChart } from '@plocks/charts';
 
 import { LAYERS } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
 		<ComboChart
 			title="Revenue vs. active users"
 			subtitle="First half of FY25"
-			height={340}
+			h={340}
 			layers={LAYERS}
 			enableCrosshair
 			multiTooltip

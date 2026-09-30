@@ -1,15 +1,18 @@
-import { Button, useToast } from '@platform-blocks/ui';
+import { Button, useToast } from '@plocks/ui';
 
 export function Demo() {
   const toast = useToast();
 
-  const handlePress = () => {
-    toast.success({
-      title: 'Success!',
-      message: 'The operation finished without issues.',
-      autoHide: 4000,
-    });
-  };
-
-  return <Button onPress={handlePress}>Show success toast</Button>;
+  return (
+    <Button
+      onPress={() =>
+        toast.success({
+          title: 'Success!',
+          message: 'The operation finished without issues.',
+        })
+      }
+    >
+      Show success toast
+    </Button>
+  );
 }

@@ -5,7 +5,6 @@ order: 40
 tags: [buttons, sizes]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

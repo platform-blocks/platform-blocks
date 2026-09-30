@@ -1,4 +1,4 @@
-import type { DonutChartDataPoint } from '@platform-blocks/charts';
+import type { DonutChartDataPoint } from '@plocks/charts';
 
 export const REGION_HEADCOUNT: DonutChartDataPoint[] = [
   { id: 'na', label: 'North America', value: 1820 },

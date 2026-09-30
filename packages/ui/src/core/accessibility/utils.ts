@@ -1,5 +1,6 @@
-import { AccessibilityRole, AccessibilityState, Platform } from 'react-native';
-import { ACCESSIBILITY_LABELS, ACCESSIBILITY_ROLES } from './constants';
+import type { AccessibilityRole } from 'react-native';
+import { ACCESSIBILITY_LABELS } from './constants';
+import { a11yProps, type A11yProps, type A11yValue } from './a11yProps';
 
 /**
  * Generate accessible label with context
@@ -39,93 +40,18 @@ export const createAccessibleLabel = (
   return accessibleLabel;
 };
 
-export type AccessibilityValue = {
-  min?: number;
-  max?: number;
-  now?: number;
-  text?: string;
-};
+export type AccessibilityValue = A11yValue;
 
 /**
- * Props that publish a control's current value to assistive technology.
- *
- * `accessibilityValue` is the React Native prop and is all native needs, but
- * react-native-web (0.21) does not map the object — it only forwards the flattened
- * `aria-value*` props. Passing the object alone therefore lands a `role="slider"` or
- * `role="progressbar"` in the DOM with no value for a screen reader to read, silently.
- * Emitting both covers either platform.
- *
- * Note that `aria-value*` is meaningless without a value-bearing role, so callers must
- * also set an `accessibilityRole` such as `progressbar`, `slider`, or `adjustable`.
+ * Props that publish a control's current value to assistive technology:
+ * `aria-valuemin|max|now|text`, which React Native and react-native-web both
+ * understand. (RN's `accessibilityValue` object is dropped by react-native-web,
+ * so it is never emitted.) Callers must also set a value-bearing role such as
+ * `progressbar`, `slider` or `spinbutton`.
  */
-export const getAccessibilityValueProps = (value?: AccessibilityValue) => {
+export const getAccessibilityValueProps = (value?: AccessibilityValue): A11yProps => {
   if (!value) return {};
-  const props: Record<string, unknown> = { accessibilityValue: value };
-  if (Platform.OS !== 'web') return props;
-  if (value.min !== undefined) props['aria-valuemin'] = value.min;
-  if (value.max !== undefined) props['aria-valuemax'] = value.max;
-  if (value.now !== undefined) props['aria-valuenow'] = value.now;
-  if (value.text !== undefined) props['aria-valuetext'] = value.text;
-  return props;
-};
-
-/**
- * Generate accessibility props for React Native components
- */
-export const createAccessibilityProps = (options: {
-  role?: AccessibilityRole;
-  label?: string;
-  hint?: string;
-  state?: AccessibilityState;
-  value?: { min?: number; max?: number; now?: number; text?: string };
-  actions?: Array<{ name: string; label?: string }>;
-  disabled?: boolean;
-  selected?: boolean;
-}) => {
-  const {
-    role,
-    label,
-    hint,
-    state,
-    value,
-    actions,
-    disabled = false,
-    selected = false,
-  } = options;
-
-  const accessibilityProps: any = {
-    accessible: true,
-  };
-
-  if (role) {
-    accessibilityProps.accessibilityRole = role;
-  }
-
-  if (label) {
-    accessibilityProps.accessibilityLabel = label;
-  }
-
-  if (hint) {
-    accessibilityProps.accessibilityHint = hint;
-  }
-
-  if (state || disabled || selected) {
-    accessibilityProps.accessibilityState = {
-      ...state,
-      disabled,
-      selected,
-    };
-  }
-
-  if (value) {
-    Object.assign(accessibilityProps, getAccessibilityValueProps(value));
-  }
-
-  if (actions) {
-    accessibilityProps.accessibilityActions = actions;
-  }
-
-  return accessibilityProps;
+  return a11yProps({ value });
 };
 
 /**
@@ -213,21 +139,31 @@ export const getAriaRole = (componentType: string): AccessibilityRole | undefine
 /**
  * Check if an element should be focusable
  */
-export const isFocusable = (element: any): boolean => {
-  if (!element) return false;
+export const isFocusable = (element: unknown): boolean => {
+  if (!element || typeof element !== 'object') return false;
+  const props = (element as { props?: FocusRelevantProps }).props;
 
   // Check if element is disabled
-  if (element.props?.disabled) return false;
+  if (props?.disabled) return false;
 
   // Check if element has accessibility props that make it focusable
-  if (element.props?.accessible === false) return false;
+  if (props?.accessible === false) return false;
 
   // Check role-based focusability
-  const role = element.props?.accessibilityRole;
-  const focusableRoles = ['button', 'link', 'checkbox', 'radio', 'switch', 'adjustable'];
+  const role = props?.accessibilityRole;
+  const focusableRoles: readonly unknown[] = ['button', 'link', 'checkbox', 'radio', 'switch', 'adjustable'];
 
-  return focusableRoles.includes(role) || element.props?.onPress || element.props?.onFocus;
+  return focusableRoles.includes(role) || !!props?.onPress || !!props?.onFocus;
 };
+
+/** The props of a React element `isFocusable` inspects. */
+interface FocusRelevantProps {
+  disabled?: unknown;
+  accessible?: unknown;
+  accessibilityRole?: unknown;
+  onPress?: unknown;
+  onFocus?: unknown;
+}
 
 /**
  * Debounce announcements to prevent spam

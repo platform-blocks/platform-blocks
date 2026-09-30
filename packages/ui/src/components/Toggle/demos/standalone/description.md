@@ -5,8 +5,7 @@ order: 60
 tags: [toggle, standalone]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 
-Drive a single toggle by managing its `selected` state without a surrounding group.
+Drive a single toggle without a surrounding group by pairing its `selected` state with `onPress`.

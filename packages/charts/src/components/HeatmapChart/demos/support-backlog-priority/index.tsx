@@ -1,4 +1,4 @@
-import { HeatmapChart } from '@platform-blocks/charts';
+import { HeatmapChart } from '@plocks/charts';
 
 import { BACKLOG, MODULES, PRIORITIES } from './data';
 
@@ -7,14 +7,14 @@ export function Demo() {
     <HeatmapChart
       title="Support backlog by module"
       subtitle="Open tickets by severity priority"
-      height={360}
+      h={360}
       data={{ rows: MODULES, cols: PRIORITIES, values: BACKLOG }}
       cellSize={{ width: 108, height: 48 }}
       gap={6}
       colorScale={{
-        type: 'log',
-        min: 1,
-        max: 32,
+        type: 'sequential',
+        interpolation: 'log',
+        domain: [1, 32],
         colors: ['#EFF6FF', '#60A5FA', '#1D4ED8'],
       }}
       valueFormatter={({ value }) => `${value} ${value === 1 ? 'ticket' : 'tickets'}`}

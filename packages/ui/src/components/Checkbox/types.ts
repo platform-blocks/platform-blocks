@@ -1,63 +1,41 @@
-import React from 'react';
-import { SizeValue, SpacingProps } from '../../core/theme/types';
-import type { TextProps } from '../Text';
+import type React from 'react';
 
-export interface BaseComponentProps extends SpacingProps {
-  /** Component test ID for testing */
-  testID?: string;
-  
-  /** Additional CSS styles */
-  style?: any;
-}
+import type { ThemeColor } from '../../core/theme/resolveColors';
+import type { FieldBaseProps } from '../_internal/Field/fieldProps';
+import type { ChoiceLabelPosition } from './ChoiceField';
 
-export interface CheckboxProps extends BaseComponentProps {
-  /** Whether checkbox is checked */
+export type CheckboxLabelPosition = ChoiceLabelPosition;
+
+/**
+ * Props for `Checkbox`.
+ *
+ * `style`, spacing and layout props apply to the root (control + label +
+ * footer); `ref` and `testID` go to the focusable control itself.
+ */
+export interface CheckboxProps extends Omit<FieldBaseProps, 'variant' | 'keyboardFocusId'> {
+  /** Controlled checked state. */
   checked?: boolean;
-  /** Initial checked value for uncontrolled usage */
+  /** Initial checked state for uncontrolled usage. */
   defaultChecked?: boolean;
-  
-  /** Change handler */
+  /** Called with the next checked state. */
   onChange?: (checked: boolean) => void;
-  
-  /** Indeterminate state for partial selections */
+
+  /** Mixed state for partial selections (`aria-checked="mixed"`). Pressing it checks the box. */
   indeterminate?: boolean;
-  
-  /** Indicator color. A palette token (`'success'`), `'primary.6'` shade syntax, or any CSS color. */
-  color?: string;
 
-  
-  /** Checkbox size */
-  size?: SizeValue;
-  
-  /** Checkbox label */
-  label?: React.ReactNode;
-  
-  /** Whether checkbox is disabled */
-  disabled?: boolean;
-  
-  /** Whether checkbox is required */
-  required?: boolean;
-  
-  /** Error message */
-  error?: string;
-  
-  /** Helper text */
-  description?: string;
-  
-  /** Icon to show when checked */
+  /** Indicator color: a palette token (`'success'`), `'primary.6'` shade syntax, or any CSS color. */
+  color?: ThemeColor;
+
+  /** Icon shown when checked. */
   icon?: React.ReactNode;
-  
-  /** Icon to show when indeterminate */
+  /** Icon shown when indeterminate. */
   indeterminateIcon?: React.ReactNode;
-  
-  /** Label position relative to checkbox */
-  labelPosition?: 'left' | 'right' | 'top' | 'bottom';
 
-  /** Override styles/props applied to the label `<Text>` */
-  labelProps?: Omit<TextProps, 'children'>;
-
-  /** Override styles/props applied to the description `<Text>` */
-  descriptionProps?: Omit<TextProps, 'children'>;
+  /**
+   * Label position relative to the box. `left` / `right` follow the reading
+   * direction (`right` = after the box). Default `'right'`.
+   */
+  labelPosition?: CheckboxLabelPosition;
 
   /**
    * Length of the check/uncheck animation in ms; the fill and mark phases scale
@@ -66,20 +44,9 @@ export interface CheckboxProps extends BaseComponentProps {
    */
   transitionDuration?: number;
 
-  /** Checkbox content/children (alternative to label) */
+  /** Label content (alternative to `label`; wins when both are set). */
   children?: React.ReactNode;
 
-  /** Accessibility label, used when there is no visible text label */
-  accessibilityLabel?: string;
-}
-
-export interface CheckboxStyleProps {
-  checked: boolean;
-  indeterminate: boolean;
-  disabled: boolean;
-  error: boolean;
-  size: SizeValue;
-  /** Already resolved to a concrete color by the component. */
-  color?: string;
-  labelPosition?: 'left' | 'right' | 'top' | 'bottom';
+  /** Base id: the control gets it, the label/description/error get `${id}-label` etc. */
+  id?: string;
 }

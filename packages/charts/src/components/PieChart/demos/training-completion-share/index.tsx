@@ -1,4 +1,4 @@
-import { PieChart, type PieChartDataPoint } from '@platform-blocks/charts';
+import { PieChart, type PieChartDataPoint } from '@plocks/charts';
 
 import { TOTAL_COMPLETIONS, TRAINING_COMPLETIONS } from './data';
 
@@ -16,8 +16,8 @@ export function Demo() {
     <PieChart
       title="Training completion share"
       subtitle="Annual compliance program"
-      maxWidth={520}
-      height={440}
+      maw={520}
+      h={440}
       data={TRAINING_COMPLETIONS}
       innerRadius={100}
       outerRadius={160}

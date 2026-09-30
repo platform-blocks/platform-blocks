@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Accordion } from '@platform-blocks/ui';
+import { Accordion } from '@plocks/ui';
 import { knowledgeBase } from '../data';
 
 export function Demo() {

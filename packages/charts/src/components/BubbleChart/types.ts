@@ -6,6 +6,16 @@ import type {
   ChartLegend,
   ChartTooltip,
 } from '../../types/base';
+import type { ColorScaleConfig } from '../../utils/colorScale';
+
+/**
+ * Bubble color. A function maps the `dataKey.color` value (plus the record) to a
+ * color. A shared scale config reads a numeric field: `by: 'color'` (the default
+ * when `dataKey.color` is set), `'z'` (bubble size, the default otherwise), `'x'` or `'y'`.
+ */
+export type BubbleColorScale<T extends Record<string, any> = Record<string, any>> =
+  | (ColorScaleConfig & { by?: 'color' | 'x' | 'y' | 'z' })
+  | ((value: any, record: T, index: number) => string | undefined);
 
 export interface BubbleChartDataKey<T extends Record<string, any> = Record<string, any>> {
   /** Field name for x axis values */
@@ -37,8 +47,8 @@ export interface BubbleChartProps<T extends Record<string, any> = Record<string,
   maxBubbleSize?: number;
   /** Base fill color when data does not provide one. */
   color?: string;
-  /** Optional color scale function allowing categorical values to resolve to palette entries. */
-  colorScale?: (value: any, record: T, index: number) => string | undefined;
+  /** Color bubbles by a field — a function, or a shared scale config over a numeric field. */
+  colorScale?: BubbleColorScale<T>;
   /** Bubble fill opacity. Defaults to 0.85. */
   bubbleOpacity?: number;
   /** Bubble outline color. */
@@ -73,9 +83,4 @@ export interface BubbleChartProps<T extends Record<string, any> = Record<string,
   xAxis?: ChartAxis;
   /** Y axis configuration (ticks, formatting, labels). */
   yAxis?: ChartAxis;
-  /** Height alias */
-  h?: number;
 }
-
-// Backward compatibility alias
-export type SimpleBubbleChartProps<T extends Record<string, any> = Record<string, any>> = BubbleChartProps<T>;

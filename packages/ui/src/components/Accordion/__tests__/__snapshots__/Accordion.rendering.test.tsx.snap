@@ -1,0 +1,921 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Accordion - rendering matches snapshot for default accordion with icons and comfortable density 1`] = `
+<View
+  style={
+    [
+      {
+        "backgroundColor": "transparent",
+      },
+      {},
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "backgroundColor": "transparent",
+          "borderBottomColor": "#e2e8f0",
+          "borderBottomWidth": 1,
+        },
+        false,
+        {},
+      ]
+    }
+  >
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": false,
+          "expanded": true,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      id="plocks-accordion-_r_0_-header-one"
+      onBlur={[Function]}
+      onClick={[Function]}
+      onFocus={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      role="button"
+      style={
+        [
+          {
+            "alignItems": "center",
+            "backgroundColor": "transparent",
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "paddingHorizontal": 16,
+            "paddingVertical": 12,
+          },
+          undefined,
+        ]
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "flexDirection": "row",
+          }
+        }
+      >
+        <View
+          aria-hidden={true}
+          style={
+            {
+              "marginEnd": 12,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "backgroundColor": undefined,
+                "height": undefined,
+                "width": undefined,
+              }
+            }
+            testID="icon-info"
+          />
+        </View>
+        <Text
+          fw="600"
+          selectable={false}
+          style={
+            [
+              {
+                "color": "#0f172a",
+                "flex": 1,
+                "fontSize": 16,
+                "fontWeight": "500",
+              },
+              {
+                "color": "#0f172a",
+                "fontWeight": "600",
+              },
+              false,
+              undefined,
+            ]
+          }
+        >
+          Overview
+        </Text>
+        <View
+          aria-hidden={true}
+          style={
+            [
+              {
+                "marginStart": 8,
+              },
+              {
+                "marginStart": "auto",
+              },
+              {
+                "transform": [
+                  {
+                    "rotate": "180deg",
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            style={
+              {
+                "backgroundColor": "#475569",
+                "height": "md",
+                "width": "md",
+              }
+            }
+            testID="icon-chevron-down"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      aria-labelledby="plocks-accordion-_r_0_-header-one"
+      id="plocks-accordion-_r_0_-panel-one"
+      role="region"
+      style={
+        [
+          {
+            "position": "relative",
+            "zIndex": 1,
+          },
+          false,
+        ]
+      }
+    >
+      <View
+        style={
+          [
+            {
+              "backgroundColor": "transparent",
+              "paddingBottom": 16,
+              "paddingHorizontal": 16,
+              "paddingTop": 0,
+            },
+            undefined,
+          ]
+        }
+      >
+        <View
+          pointerEvents="box-none"
+        >
+          <Text>
+            High level summary
+          </Text>
+        </View>
+      </View>
+    </View>
+  </View>
+  <View
+    style={
+      [
+        {
+          "backgroundColor": "transparent",
+          "borderBottomColor": "#e2e8f0",
+          "borderBottomWidth": 1,
+        },
+        false,
+        false,
+      ]
+    }
+  >
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": false,
+          "expanded": false,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      id="plocks-accordion-_r_0_-header-two"
+      onBlur={[Function]}
+      onClick={[Function]}
+      onFocus={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      role="button"
+      style={
+        [
+          {
+            "alignItems": "center",
+            "backgroundColor": "transparent",
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "paddingHorizontal": 16,
+            "paddingVertical": 12,
+          },
+          undefined,
+        ]
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "flexDirection": "row",
+          }
+        }
+      >
+        <View
+          aria-hidden={true}
+          style={
+            {
+              "marginEnd": 12,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "backgroundColor": undefined,
+                "height": undefined,
+                "width": undefined,
+              }
+            }
+            testID="icon-layers"
+          />
+        </View>
+        <Text
+          fw="400"
+          selectable={false}
+          style={
+            [
+              {
+                "color": "#0f172a",
+                "flex": 1,
+                "fontSize": 16,
+                "fontWeight": "500",
+              },
+              false,
+              false,
+              undefined,
+            ]
+          }
+        >
+          Details
+        </Text>
+        <View
+          aria-hidden={true}
+          style={
+            [
+              {
+                "marginStart": 8,
+              },
+              {
+                "marginStart": "auto",
+              },
+              {
+                "transform": [
+                  {
+                    "rotate": "0deg",
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            style={
+              {
+                "backgroundColor": "#475569",
+                "height": "md",
+                "width": "md",
+              }
+            }
+            testID="icon-chevron-down"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      aria-labelledby="plocks-accordion-_r_0_-header-two"
+      id="plocks-accordion-_r_0_-panel-two"
+      role="region"
+      style={
+        [
+          {
+            "position": "relative",
+            "zIndex": 1,
+          },
+          false,
+        ]
+      }
+    />
+  </View>
+  <View
+    style={
+      [
+        {
+          "backgroundColor": "transparent",
+          "borderBottomColor": "#e2e8f0",
+          "borderBottomWidth": 1,
+        },
+        {
+          "borderBottomWidth": 0,
+        },
+        false,
+      ]
+    }
+  >
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": false,
+          "expanded": false,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      id="plocks-accordion-_r_0_-header-three"
+      onBlur={[Function]}
+      onClick={[Function]}
+      onFocus={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      role="button"
+      style={
+        [
+          {
+            "alignItems": "center",
+            "backgroundColor": "transparent",
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "paddingHorizontal": 16,
+            "paddingVertical": 12,
+          },
+          undefined,
+        ]
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "flexDirection": "row",
+          }
+        }
+      >
+        <Text
+          fw="400"
+          selectable={false}
+          style={
+            [
+              {
+                "color": "#0f172a",
+                "flex": 1,
+                "fontSize": 16,
+                "fontWeight": "500",
+              },
+              false,
+              false,
+              undefined,
+            ]
+          }
+        >
+          Notes
+        </Text>
+        <View
+          aria-hidden={true}
+          style={
+            [
+              {
+                "marginStart": 8,
+              },
+              {
+                "marginStart": "auto",
+              },
+              {
+                "transform": [
+                  {
+                    "rotate": "0deg",
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            style={
+              {
+                "backgroundColor": "#475569",
+                "height": "md",
+                "width": "md",
+              }
+            }
+            testID="icon-chevron-down"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      aria-labelledby="plocks-accordion-_r_0_-header-three"
+      id="plocks-accordion-_r_0_-panel-three"
+      role="region"
+      style={
+        [
+          {
+            "position": "relative",
+            "zIndex": 1,
+          },
+          false,
+        ]
+      }
+    />
+  </View>
+</View>
+`;
+
+exports[`Accordion - rendering matches snapshot for separated compact accordion without chevrons 1`] = `
+<View
+  style={
+    {
+      "padding": 12,
+    }
+  }
+>
+  <View
+    style={
+      [
+        {
+          "backgroundColor": "transparent",
+        },
+        {},
+        undefined,
+      ]
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#f8fafc",
+            "borderColor": "#e2e8f0",
+            "borderRadius": 8,
+            "borderWidth": 1,
+            "marginBottom": 8,
+          },
+          false,
+          false,
+        ]
+      }
+    >
+      <View
+        accessibilityState={
+          {
+            "busy": undefined,
+            "checked": undefined,
+            "disabled": false,
+            "expanded": false,
+            "selected": undefined,
+          }
+        }
+        accessibilityValue={
+          {
+            "max": undefined,
+            "min": undefined,
+            "now": undefined,
+            "text": undefined,
+          }
+        }
+        accessible={true}
+        collapsable={false}
+        focusable={true}
+        id="plocks-accordion-_r_1_-header-one"
+        onBlur={[Function]}
+        onClick={[Function]}
+        onFocus={[Function]}
+        onResponderGrant={[Function]}
+        onResponderMove={[Function]}
+        onResponderRelease={[Function]}
+        onResponderTerminate={[Function]}
+        onResponderTerminationRequest={[Function]}
+        onStartShouldSetResponder={[Function]}
+        role="button"
+        style={
+          [
+            {
+              "alignItems": "center",
+              "backgroundColor": "transparent",
+              "borderTopEndRadius": 8,
+              "borderTopStartRadius": 8,
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "paddingHorizontal": 7.199999999999999,
+              "paddingVertical": 5.3999999999999995,
+            },
+            undefined,
+          ]
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flex": 1,
+              "flexDirection": "row",
+            }
+          }
+        >
+          <View
+            aria-hidden={true}
+            style={
+              {
+                "marginEnd": 12,
+              }
+            }
+          >
+            <View
+              style={
+                {
+                  "backgroundColor": undefined,
+                  "height": undefined,
+                  "width": undefined,
+                }
+              }
+              testID="icon-info"
+            />
+          </View>
+          <Text
+            fw="400"
+            selectable={false}
+            style={
+              [
+                {
+                  "color": "#0f172a",
+                  "flex": 1,
+                  "fontSize": 14,
+                  "fontWeight": "500",
+                },
+                false,
+                false,
+                undefined,
+              ]
+            }
+          >
+            Overview
+          </Text>
+        </View>
+      </View>
+      <View
+        aria-labelledby="plocks-accordion-_r_1_-header-one"
+        id="plocks-accordion-_r_1_-panel-one"
+        role="region"
+        style={
+          [
+            {
+              "position": "relative",
+              "zIndex": 1,
+            },
+            false,
+          ]
+        }
+      />
+    </View>
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#f8fafc",
+            "borderColor": "#e2e8f0",
+            "borderRadius": 8,
+            "borderWidth": 1,
+            "marginBottom": 8,
+          },
+          false,
+          {},
+        ]
+      }
+    >
+      <View
+        accessibilityState={
+          {
+            "busy": undefined,
+            "checked": undefined,
+            "disabled": false,
+            "expanded": true,
+            "selected": undefined,
+          }
+        }
+        accessibilityValue={
+          {
+            "max": undefined,
+            "min": undefined,
+            "now": undefined,
+            "text": undefined,
+          }
+        }
+        accessible={true}
+        collapsable={false}
+        focusable={true}
+        id="plocks-accordion-_r_1_-header-two"
+        onBlur={[Function]}
+        onClick={[Function]}
+        onFocus={[Function]}
+        onResponderGrant={[Function]}
+        onResponderMove={[Function]}
+        onResponderRelease={[Function]}
+        onResponderTerminate={[Function]}
+        onResponderTerminationRequest={[Function]}
+        onStartShouldSetResponder={[Function]}
+        role="button"
+        style={
+          [
+            {
+              "alignItems": "center",
+              "backgroundColor": "transparent",
+              "borderTopEndRadius": 8,
+              "borderTopStartRadius": 8,
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "paddingHorizontal": 7.199999999999999,
+              "paddingVertical": 5.3999999999999995,
+            },
+            undefined,
+          ]
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flex": 1,
+              "flexDirection": "row",
+            }
+          }
+        >
+          <View
+            aria-hidden={true}
+            style={
+              {
+                "marginEnd": 12,
+              }
+            }
+          >
+            <View
+              style={
+                {
+                  "backgroundColor": undefined,
+                  "height": undefined,
+                  "width": undefined,
+                }
+              }
+              testID="icon-layers"
+            />
+          </View>
+          <Text
+            fw="600"
+            selectable={false}
+            style={
+              [
+                {
+                  "color": "#0f172a",
+                  "flex": 1,
+                  "fontSize": 14,
+                  "fontWeight": "500",
+                },
+                {
+                  "color": "#0f172a",
+                  "fontWeight": "600",
+                },
+                false,
+                undefined,
+              ]
+            }
+          >
+            Details
+          </Text>
+        </View>
+      </View>
+      <View
+        aria-labelledby="plocks-accordion-_r_1_-header-two"
+        id="plocks-accordion-_r_1_-panel-two"
+        role="region"
+        style={
+          [
+            {
+              "position": "relative",
+              "zIndex": 1,
+            },
+            false,
+          ]
+        }
+      >
+        <View
+          style={
+            [
+              {
+                "backgroundColor": "transparent",
+                "paddingBottom": 7.199999999999999,
+                "paddingHorizontal": 7.199999999999999,
+                "paddingTop": 0,
+              },
+              undefined,
+            ]
+          }
+        >
+          <View
+            pointerEvents="box-none"
+          >
+            <Text>
+              Deep dive copy
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#f8fafc",
+            "borderColor": "#e2e8f0",
+            "borderRadius": 8,
+            "borderWidth": 1,
+            "marginBottom": 8,
+          },
+          {},
+          {},
+        ]
+      }
+    >
+      <View
+        accessibilityState={
+          {
+            "busy": undefined,
+            "checked": undefined,
+            "disabled": false,
+            "expanded": true,
+            "selected": undefined,
+          }
+        }
+        accessibilityValue={
+          {
+            "max": undefined,
+            "min": undefined,
+            "now": undefined,
+            "text": undefined,
+          }
+        }
+        accessible={true}
+        collapsable={false}
+        focusable={true}
+        id="plocks-accordion-_r_1_-header-three"
+        onBlur={[Function]}
+        onClick={[Function]}
+        onFocus={[Function]}
+        onResponderGrant={[Function]}
+        onResponderMove={[Function]}
+        onResponderRelease={[Function]}
+        onResponderTerminate={[Function]}
+        onResponderTerminationRequest={[Function]}
+        onStartShouldSetResponder={[Function]}
+        role="button"
+        style={
+          [
+            {
+              "alignItems": "center",
+              "backgroundColor": "transparent",
+              "borderTopEndRadius": 8,
+              "borderTopStartRadius": 8,
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "paddingHorizontal": 7.199999999999999,
+              "paddingVertical": 5.3999999999999995,
+            },
+            undefined,
+          ]
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flex": 1,
+              "flexDirection": "row",
+            }
+          }
+        >
+          <Text
+            fw="600"
+            selectable={false}
+            style={
+              [
+                {
+                  "color": "#0f172a",
+                  "flex": 1,
+                  "fontSize": 14,
+                  "fontWeight": "500",
+                },
+                {
+                  "color": "#0f172a",
+                  "fontWeight": "600",
+                },
+                false,
+                undefined,
+              ]
+            }
+          >
+            Notes
+          </Text>
+        </View>
+      </View>
+      <View
+        aria-labelledby="plocks-accordion-_r_1_-header-three"
+        id="plocks-accordion-_r_1_-panel-three"
+        role="region"
+        style={
+          [
+            {
+              "position": "relative",
+              "zIndex": 1,
+            },
+            false,
+          ]
+        }
+      >
+        <View
+          style={
+            [
+              {
+                "backgroundColor": "transparent",
+                "paddingBottom": 7.199999999999999,
+                "paddingHorizontal": 7.199999999999999,
+                "paddingTop": 0,
+              },
+              undefined,
+            ]
+          }
+        >
+          <View
+            pointerEvents="box-none"
+          >
+            <Text>
+              Action items
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  </View>
+</View>
+`;

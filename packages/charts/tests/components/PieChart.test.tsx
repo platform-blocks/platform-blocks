@@ -27,7 +27,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <PieChart data={DATA} width={320} height={320} />
+        <PieChart data={DATA} w={320} h={320} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );
@@ -36,7 +36,7 @@ const renderWithLegend = () =>
   render(
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, pointerRAF: false }}>
-        <PieChart data={DATA} width={320} height={320} legend={{ show: true }} />
+        <PieChart data={DATA} w={320} h={320} legend={{ show: true }} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );
@@ -96,5 +96,45 @@ describe('PieChart (angular hit-test engine)', () => {
     await waitFor(() => {
       expect(ctxRef?.pointer?.inside).toBe(false);
     });
+  });
+});
+
+describe('PieChart slice gradients', () => {
+  // react-native-svg is mocked to one component, so find the def by its props.
+  const gradientPoints = (queryAll: (props: object) => Array<{ props: Record<string, unknown> }>) => {
+    const [def] = queryAll({ gradientUnits: 'objectBoundingBox' });
+    return [def.props.x1, def.props.y1, def.props.x2, def.props.y2];
+  };
+  const renderGradient = (gradient: Record<string, unknown>) =>
+    render(
+      <ChartThemeProvider>
+        <PieChart
+          data={[{ id: 'a', label: 'A', value: 1, color: '#6366f1', style: { gradient: { stops: [{ offset: 0, color: '#000000' }, { offset: 1, color: '#ffffff' }], ...gradient } } }]}
+          w={320}
+          h={320}
+        />
+      </ChartThemeProvider>
+    );
+
+  it('keeps the corner-to-corner default when no direction is given', () => {
+    const { UNSAFE_queryAllByProps } = renderGradient({});
+    expect(gradientPoints(UNSAFE_queryAllByProps)).toEqual(['0', '0', '1', '1']);
+  });
+
+  it('gives each pie on a page its own gradient ids', () => {
+    const slice = { id: 'a', label: 'A', value: 1, style: { gradient: { stops: [{ offset: 0, color: '#000000' }, { offset: 1, color: '#ffffff' }] } } };
+    const { UNSAFE_queryAllByProps } = render(
+      <ChartThemeProvider>
+        <PieChart data={[slice]} w={200} h={200} />
+        <PieChart data={[slice]} w={200} h={200} />
+      </ChartThemeProvider>
+    );
+    const ids = new Set(UNSAFE_queryAllByProps({ gradientUnits: 'objectBoundingBox' }).map((n) => n.props.id));
+    expect(ids.size).toBe(2);
+  });
+
+  it('honors an angle through the shared gradient def', () => {
+    const { UNSAFE_queryAllByProps } = renderGradient({ angle: 0 });
+    expect(gradientPoints(UNSAFE_queryAllByProps)).toEqual(['0', '0.5', '1', '0.5']);
   });
 });

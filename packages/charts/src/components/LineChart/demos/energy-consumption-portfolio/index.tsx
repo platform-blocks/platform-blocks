@@ -1,4 +1,4 @@
-import { LineChart } from '@platform-blocks/charts';
+import { LineChart } from '@plocks/charts';
 
 import { COOLING_SEASON, MONTHS, PORTFOLIO_TARGET, SERIES } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <LineChart
       title="Energy Consumption Across Office Portfolio"
       subtitle="Monthly MWh usage benchmarking against 360 MWh target"
-      height={440}
+      h={440}
       series={SERIES}
       smooth={false}
       grid={{ show: true, style: 'dashed' }}

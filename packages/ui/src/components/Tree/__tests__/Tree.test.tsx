@@ -3,16 +3,18 @@
  */
 
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { render, fireEvent } from '@testing-library/react-native';
 
 import { Tree } from '../Tree';
-import { Collapse } from '../../Collapse';
+import { Collapse } from '../../Collapse/Collapse';
 import { ancestorIds, filterTree, findNodeByHref, idRange, toggleCheckedIds } from '../treeUtils';
 import type { TreeNode } from '../types';
 
-jest.mock('../../../core/theme', () => ({
-  useTheme: () => ({
+// One theme object for the whole suite, like a real provider: a fresh object per
+// `useTheme()` call would change every memo keyed on the theme on each render.
+jest.mock('../../../core/theme/ThemeProvider', () => {
+  const theme = {
     colorScheme: 'light',
     colors: {
       primary: [
@@ -47,10 +49,14 @@ jest.mock('../../../core/theme', () => ({
       muted: '#AEAEB2',
       disabled: '#C7C7CC'
     }
-  })
-}));
+  };
+  return {
+    ...jest.requireActual('../../../core/theme/ThemeProvider'),
+    useTheme: () => theme,
+  };
+});
 
-jest.mock('../../Icon', () => {
+jest.mock('../../Icon/Icon', () => {
   const React = require('react');
   const { View } = require('react-native');
 
@@ -60,7 +66,7 @@ jest.mock('../../Icon', () => {
   return { Icon: MockIcon };
 });
 
-jest.mock('../../Checkbox', () => {
+jest.mock('../../Checkbox/Checkbox', () => {
   const React = require('react');
   const { Pressable, Text } = require('react-native');
 
@@ -153,13 +159,71 @@ describe('Tree component', () => {
       <Tree data={checkboxTree} checkboxes onCheckedChange={onCheckedChange} />
     );
 
-    const [, leafCheckbox] = getAllByTestId('tree-checkbox');
+    // The box is a decorative picture of the row's checked state (the row
+    // carries it for assistive tech), so it is hidden from the a11y tree.
+    const [, leafCheckbox] = getAllByTestId('tree-checkbox', { includeHiddenElements: true });
     fireEvent.press(leafCheckbox);
 
     expect(onCheckedChange).toHaveBeenCalledWith(
       expect.arrayContaining(['leaf']),
       expect.objectContaining({ id: 'leaf' })
     );
+  });
+
+  it('reports the checked state on the row itself', () => {
+    const { getByLabelText } = render(
+      <Tree data={basicTree} checkboxes expandAll defaultCheckedIds={['child-1']} />
+    );
+
+    expect(getByLabelText('Child Node').props.accessibilityState.checked).toBe(true);
+    // Cascading: every descendant checked reads as checked on the branch too.
+    expect(getByLabelText('Root Folder').props.accessibilityState.checked).toBe(true);
+  });
+
+  it('offers expanding and checking as accessibility actions on the row', () => {
+    // A native screen reader treats the row as one element, so its caret and
+    // checkbox are not separately reachable — the actions are how it gets them.
+    const onCheckedChange = jest.fn();
+    const { getByLabelText, queryByText } = render(
+      <Tree data={basicTree} checkboxes onCheckedChange={onCheckedChange} />
+    );
+    const row = getByLabelText('Root Folder');
+    expect(row.props.accessibilityActions.map((action: { name: string }) => action.name)).toEqual([
+      'toggle',
+      'check',
+    ]);
+
+    fireEvent(row, 'accessibilityAction', { nativeEvent: { actionName: 'toggle' } });
+    expect(queryByText('Child Node')).not.toBeNull();
+
+    fireEvent(getByLabelText('Root Folder'), 'accessibilityAction', { nativeEvent: { actionName: 'check' } });
+    expect(onCheckedChange).toHaveBeenCalledWith(
+      expect.arrayContaining(['root', 'child-1']),
+      expect.objectContaining({ id: 'root' })
+    );
+  });
+
+  it('re-renders only the rows whose state changed', () => {
+    // Every callback the tree hands its memoized rows keeps its identity, so a
+    // selection change reaches the rows it flips and no others.
+    const flat: TreeNode[] = [
+      { id: 'a', label: 'Alpha' },
+      { id: 'b', label: 'Beta' },
+      { id: 'c', label: 'Gamma' },
+    ];
+    const renderLabel = jest.fn((node: TreeNode) => <Text>{node.label}</Text>);
+    const { getByLabelText } = render(
+      <Tree data={flat} selectionMode="single" renderLabel={renderLabel} />
+    );
+    const renderedIds = () => renderLabel.mock.calls.map(([node]) => node.id).sort();
+
+    renderLabel.mockClear();
+    fireEvent.press(getByLabelText('Alpha'));
+    expect(renderedIds()).toEqual(['a']);
+
+    renderLabel.mockClear();
+    fireEvent.press(getByLabelText('Beta'));
+    expect(renderedIds()).toEqual(['a', 'b']);
   });
 
   describe('row geometry', () => {
@@ -195,6 +259,14 @@ describe('Tree component', () => {
       expect(rowStyle(large.getByLabelText('Root Folder')).minHeight).toBeGreaterThan(
         rowStyle(small.getByLabelText('Root Folder')).minHeight
       );
+    });
+
+    it('bounds a virtualized tree at 320 unless `h` sizes it', () => {
+      const fallback = render(<Tree data={basicTree} virtualized testID="tree" />);
+      expect(rowStyle(fallback.getByTestId('tree')).height).toBe(320);
+
+      const sized = render(<Tree data={basicTree} virtualized h={200} testID="tree" />);
+      expect(rowStyle(sized.getByTestId('tree')).height).toBe(200);
     });
   });
 
@@ -427,8 +499,9 @@ describe('tree utilities', () => {
     it('gives a node with an href the link role', () => {
       const { getByLabelText } = render(<Tree data={navTree} activeHref="/components/Button" />);
 
-      expect(getByLabelText('Button').props.accessibilityRole).toBe('link');
-      expect(getByLabelText('Components').props.accessibilityRole).toBe('button');
+      // Native has no tree roles, so a row is the link or button it acts as.
+      expect(getByLabelText('Button').props.role).toBe('link');
+      expect(getByLabelText('Components').props.role).toBe('button');
     });
   });
 

@@ -1,3 +1,2 @@
 export { ListGroup, ListGroupItem, ListGroupDivider, ListGroupBody } from './ListGroup';
-export type { ListGroupProps, ListGroupItemProps } from './types';
-
+export type { ListGroupProps, ListGroupItemProps, ListGroupDividerProps } from './types';

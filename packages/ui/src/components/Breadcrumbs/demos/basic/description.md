@@ -1,11 +1,10 @@
 ---
-title: Hierarchy
+title: Basics
 category: navigation
 order: 10
 tags: [breadcrumbs]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

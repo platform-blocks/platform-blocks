@@ -1,4 +1,4 @@
-import { ScatterChart } from '@platform-blocks/charts';
+import { ScatterChart } from '@plocks/charts';
 
 import { SERIES } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <ScatterChart
       title="Spend vs. qualified leads"
       subtitle="Campaign cohort"
-      height={340}
+      h={340}
       data={SERIES.flatMap((serie) => serie.data)}
       series={SERIES}
       showTrendline="per-series"

@@ -25,12 +25,14 @@ import {
   dataToChartCoordinates,
   chartToDataCoordinates,
   getColorFromScheme,
-  colorSchemes,
   formatNumber,
+  createTickFormatter,
   distance as calculateDistance
 } from '../../utils';
 import type { Scale } from '../../utils/scales';
 import { usePanZoom } from '../../hooks/usePanZoom';
+
+const formatTime = (value: number) => new Date(value).toLocaleDateString();
 
 /** Per-series shape fed to the hit-test engine (points augmented with layout coordinates). */
 interface ScatterChartSeriesRegistration {
@@ -102,8 +104,7 @@ const AnimatedScatterPoint: React.FC<{
     return null;
   }
 
-  const palette = colorScheme && colorScheme.length ? colorScheme : colorSchemes.default;
-  const backgroundColor = point.color || fallbackColor || getColorFromScheme(index, palette);
+  const backgroundColor = point.color || fallbackColor || getColorFromScheme(index, colorScheme);
 
   return (
     <Animated.View
@@ -130,8 +131,8 @@ AnimatedScatterPoint.displayName = 'AnimatedScatterPoint';
 const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
   const {
     data: initialData,
-    width = 400,
-    height = 300,
+    w: width = 400,
+    h: height = 300,
     pointSize = 6,
     series,
     pointColor,
@@ -220,8 +221,8 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
   // Chart dimensions — grown so the plot clears the title and legend overlays.
   const basePadding = React.useMemo(
     () => resolveCartesianPadding({
-      yTickLabels: domainTickLabels(paddedYDomain, (value) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : formatNumber(value))),
-      xTickLabels: domainTickLabels(paddedXDomain, (value) => (xAxis?.labelFormatter ? xAxis.labelFormatter(value) : formatNumber(value))),
+      yTickLabels: domainTickLabels(paddedYDomain, yAxis?.labelFormatter ?? (props.yScaleType === 'time' ? formatTime : undefined), theme.numberFormat),
+      xTickLabels: domainTickLabels(paddedXDomain, xAxis?.labelFormatter ?? (props.xScaleType === 'time' ? formatTime : undefined), theme.numberFormat),
       yTitle: yAxis?.title,
       xTitle: xAxis?.title,
       showYAxis: yAxis?.show !== false,
@@ -232,7 +233,8 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
       containerHeight: height,
     }),
     [paddedYDomain, paddedXDomain, yAxis?.labelFormatter, xAxis?.labelFormatter, yAxis?.title, xAxis?.title,
-     yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, width, height]
+     yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, width, height,
+     props.xScaleType, props.yScaleType, theme.numberFormat]
   );
   const legendLabels = React.useMemo(
     () => normalizedSeries.map((s, i) => ({ label: s.name || `Series ${i + 1}` })),
@@ -315,6 +317,8 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
       default: return generateTicks(paddedYDomain[0], paddedYDomain[1], 5);
     }
   }, [paddedYDomain, props.yScaleType]);
+  const xTickFormat = React.useMemo(() => createTickFormatter(xTicks, theme.numberFormat), [xTicks, theme.numberFormat]);
+  const yTickFormat = React.useMemo(() => createTickFormatter(yTicks, theme.numberFormat), [yTicks, theme.numberFormat]);
 
   const axisScaleX = useMemo<Scale<number>>(() => {
     const range: [number, number] = [0, Math.max(plotWidth, 0)];
@@ -631,13 +635,13 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
         id: Date.now(),
         x: Math.round(dataCoords.x * 100) / 100,
         y: Math.round(dataCoords.y * 100) / 100,
-        color: pointColor || getColorFromScheme(data.length, colorSchemes.default),
+        color: pointColor || getColorFromScheme(data.length, theme.colors.accentPalette),
       };
       setData([...data, newPoint]);
       setSelectedPoint(newPoint);
     }
     onPress?.({ nativeEvent: e.raw, chartX, chartY });
-  }, [disabled, pointSize, allowAddPoints, plotWidth, plotHeight, paddedXDomain, paddedYDomain, pointColor, data, onDataPointPress, onPress]);
+  }, [disabled, pointSize, allowAddPoints, plotWidth, plotHeight, paddedXDomain, paddedYDomain, pointColor, data, onDataPointPress, onPress, theme.colors.accentPalette]);
 
   const { handlers: pointerHandlers, ref: surfaceRef, onLayout: surfaceOnLayout } = useChartPointer({
     padding,
@@ -700,8 +704,8 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
           tickFormat={(value) => {
             const numeric = typeof value === 'number' ? value : Number(value);
             if (xAxis?.labelFormatter) return xAxis.labelFormatter(numeric);
-            if (props.xScaleType === 'time') return new Date(numeric).toLocaleDateString();
-            return formatNumber(numeric);
+            if (props.xScaleType === 'time') return formatTime(numeric);
+            return xTickFormat(numeric);
           }}
           showLabels={xAxis?.showLabels !== false}
           showTicks={xAxis?.showTicks !== false}
@@ -728,8 +732,8 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
           tickFormat={(value) => {
             const numeric = typeof value === 'number' ? value : Number(value);
             if (yAxis?.labelFormatter) return yAxis.labelFormatter(numeric);
-            if (props.yScaleType === 'time') return new Date(numeric).toLocaleDateString();
-            return formatNumber(numeric);
+            if (props.yScaleType === 'time') return formatTime(numeric);
+            return yTickFormat(numeric);
           }}
           showLabels={yAxis?.showLabels !== false}
           showTicks={yAxis?.showTicks !== false}
@@ -1097,8 +1101,8 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
 
 export const ScatterChart: React.FC<ScatterChartProps> = (props) => {
   const {
-    width = 400,
-    height = 300,
+    w: width = 400,
+    h: height = 300,
     disabled = false,
     animationDuration = 800,
     animationEasing,
@@ -1148,8 +1152,8 @@ export const ScatterChart: React.FC<ScatterChartProps> = (props) => {
 
   return (
     <ChartContainer
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       disabled={disabled}
       animationDuration={animationDuration}
       animationEasing={animationEasing}
@@ -1162,8 +1166,8 @@ export const ScatterChart: React.FC<ScatterChartProps> = (props) => {
     >
       <ScatterChartInner
         {...props}
-        width={width}
-        height={height}
+        w={width}
+        h={height}
         disabled={disabled}
         animationDuration={animationDuration}
       />

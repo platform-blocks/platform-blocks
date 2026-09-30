@@ -8,42 +8,15 @@ import React from 'react';
 import { render, act, fireEvent, screen } from '@testing-library/react-native';
 import { Button } from 'react-native';
 
-jest.mock('react-native-reanimated', () => {
-  const View = require('react-native').View;
-  return {
-    __esModule: true,
-    default: {
-      View,
-      Text: View,
-      ScrollView: View,
-      createAnimatedComponent: (Component: any) => Component,
-    },
-    // Stable across renders, like the real hook — a fresh object each render
-    // would make every effect that lists a shared value re-run.
-    useSharedValue: (initial: any) => require('react').useRef({ value: initial }).current,
-    useAnimatedStyle: (cb: any) => cb(),
-    // Deliberately never invokes the completion callback, so these tests
-    // exercise the path where the `onExited` handshake does not arrive.
-    withTiming: (value: any) => value,
-    withSpring: (value: any) => value,
-    withRepeat: (value: any) => value,
-    withSequence: (...values: any[]) => values[0],
-    cancelAnimation: () => {},
-    interpolate: (_value: any, _input: any, output: any) => output[0],
-    Easing: {
-      linear: (t: number) => t,
-      ease: (t: number) => t,
-      cubic: (t: number) => t,
-      back: () => (t: number) => t,
-      bezier: () => (t: number) => t,
-      inOut: () => (t: number) => t,
-      out: () => (t: number) => t,
-      in: () => (t: number) => t,
-    },
-    runOnJS: (fn: any) => fn,
-    runOnUI: (fn: any) => fn,
-  };
-});
+// The shared mock (src/__test-utils__/reanimatedMock.ts), except that animations
+// never report completion: these tests exercise the path where the `onExited`
+// handshake does not arrive.
+jest.mock('react-native-reanimated', () => ({
+  ...require('../../../__test-utils__/reanimatedMock'),
+  __esModule: true,
+  withTiming: (value: unknown) => value,
+  withSpring: (value: unknown) => value,
+}));
 
 const mockNotifySuccess = jest.fn();
 jest.mock('../../../hooks/useHaptics', () => ({
@@ -77,7 +50,7 @@ jest.mock('../../../core/theme/ThemeProvider', () => ({
   }),
 }));
 
-import { ToastProvider, useToast, type ToastOptions } from '../ToastProvider';
+import { ToastProvider, toasts, useOptionalToast, useToast, type ToastOptions } from '../ToastProvider';
 
 /** Fires `show` with the given options and nothing else. */
 function Trigger({ options, label = 'show' }: { options: ToastOptions; label?: string }) {
@@ -371,5 +344,34 @@ describe('toast.promise', () => {
     advance(4000);
     advance(600);
     expect(screen.queryByText('Failed')).toBeNull();
+  });
+});
+
+describe('useOptionalToast', () => {
+  it('is null without a ToastProvider (useToast falls back to the global queue)', () => {
+    let optional: ReturnType<typeof useOptionalToast> | undefined;
+    let fallback: ReturnType<typeof useToast> | undefined;
+    function Probe() {
+      optional = useOptionalToast();
+      fallback = useToast();
+      return null;
+    }
+    render(<Probe />);
+    expect(optional).toBeNull();
+    expect(fallback).toBe(toasts);
+  });
+
+  it("returns the provider's API inside a ToastProvider", () => {
+    let optional: ReturnType<typeof useOptionalToast> | undefined;
+    let api: ReturnType<typeof useToast> | undefined;
+    function Probe() {
+      optional = useOptionalToast();
+      api = useToast();
+      return null;
+    }
+    renderWithProvider(<Probe />);
+    expect(optional).not.toBeNull();
+    expect(optional).toBe(api);
+    expect(optional).not.toBe(toasts);
   });
 });

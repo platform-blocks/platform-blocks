@@ -1,6 +1,6 @@
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import type { SizeValue } from '../../core/theme/sizes';
-import type { SpacingProps } from '../../core/utils';
+import type { SpacingProps } from '../../core/utils/spacing';
 
 export type RollingNumberTimingFunction =
   | 'linear'
@@ -8,6 +8,13 @@ export type RollingNumberTimingFunction =
   | 'ease-in'
   | 'ease-out'
   | 'ease-in-out';
+
+/**
+ * Which way the digit columns roll: `1` always up, `-1` always down, `0` each
+ * digit straight to its new value. A function gets the previous and new value
+ * and returns a number whose sign picks the direction.
+ */
+export type RollingNumberTrend = -1 | 0 | 1 | ((previous: number, value: number) => number);
 
 export interface RollingNumberProps extends SpacingProps {
   /** Value to display. Each digit that changes rolls to its new position. */
@@ -41,20 +48,23 @@ export interface RollingNumberProps extends SpacingProps {
    * digit leads. Default `0` (all columns move together).
    */
   stagger?: number;
+  /**
+   * Which way the digits roll. By default they roll up when the number grows
+   * and down when it shrinks, so 19 → 20 carries the ones column forward
+   * 9 → 0 like an odometer. `1` or `-1` fix the direction, `0` moves each digit
+   * straight to its new value, and a function decides per change.
+   */
+  trend?: RollingNumberTrend;
   /** Animate from zero on first render instead of appearing settled. Default `false`. */
   animateOnMount?: boolean;
 
   /** Font size token or explicit number. Default `'md'`. */
   size?: SizeValue;
-  /** Text color. Accepts theme palette syntax (`'primary.6'`, `'dimmed'`) or any CSS color. */
-  color?: string;
-  /** Shorthand alias for `color`, resolved identically. `color` wins when both are set. */
+  /** Text color. Accepts a text role (`'muted'`), palette syntax (`'primary.6'`) or any CSS color. */
   c?: string;
   /** Font weight. */
-  weight?: TextStyle['fontWeight'] | 'normal' | 'medium' | 'semibold' | 'bold';
+  fw?: TextStyle['fontWeight'] | 'normal' | 'medium' | 'semibold' | 'bold';
   /** Custom font family. */
-  fontFamily?: string;
-  /** Shorthand alias for `fontFamily`. */
   ff?: string;
   /**
    * Use tabular (fixed-width) figures so columns do not shift width as digits

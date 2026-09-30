@@ -4,7 +4,6 @@ category: interaction
 order: 10
 tags: [hover, pressable, web]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

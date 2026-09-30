@@ -1,21 +1,122 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { View, Platform, Pressable, ViewStyle } from 'react-native';
+import React, { cloneElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Ref } from 'react';
+import { View } from 'react-native';
+import type { GestureResponderEvent, NativeSyntheticEvent, TargetedEvent, ViewStyle } from 'react-native';
+
 import { factory } from '../../core/factory';
-import { useTheme } from '../../core/theme';
-import { getRadius, getSpacing } from '../../core/theme/sizes';
-import { useDropdownPositioning } from '../../core/hooks/useDropdownPositioning';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveSurface } from '../../core/theme/surfaces';
+import { resolveRadius, resolveShadow, resolveSpacing } from '../../core/theme/tokens';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { useStyleProps } from '../../core/utils/spacing';
+import { isNative, isWeb, webProps } from '../../core/platform';
+import type { WebMouseEvent } from '../../core/platform';
+import { useFloating } from '../../core/overlay/useFloating';
+import { resolvePlacementForDirection, useIsRTL } from '../../core/overlay/placement';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import type { PlacementType } from '../../core/utils/positioning-enhanced';
 import type { HoverCardProps, HoverCardFactoryPayload } from './types';
 
-// A lightweight hover-activated floating panel
-function HoverCardBase(props: HoverCardProps, ref: React.Ref<View>) {
+const ARROW_SIZE = 6;
+/** Distance of the arrow from the card's start / top edge. */
+const ARROW_INSET = 12;
+
+/** Handlers a target may carry that the card chains onto. */
+interface TargetProps {
+  onPress?: (event: GestureResponderEvent) => void;
+  onFocus?: (event: NativeSyntheticEvent<TargetedEvent>) => void;
+  onBlur?: (event: NativeSyntheticEvent<TargetedEvent>) => void;
+  onHoverIn?: (event: unknown) => void;
+  onHoverOut?: (event: unknown) => void;
+  onMouseEnter?: (event: WebMouseEvent) => void;
+  onMouseLeave?: (event: WebMouseEvent) => void;
+}
+
+function chain<A extends unknown[]>(
+  first: ((...args: A) => void) | undefined,
+  second: (...args: A) => void
+): (...args: A) => void {
+  if (!first) return second;
+  return (...args: A) => {
+    first(...args);
+    second(...args);
+  };
+}
+
+/**
+ * Border-triangle arrow on the card edge facing the target. `placement` is
+ * physical; mirroring it again (its own inverse) gives the logical side, which
+ * maps onto start/end keys that RN's RTL swap and the web's `dir` both honour.
+ */
+function getArrowStyle(placement: PlacementType, color: string, isRTL: boolean): ViewStyle {
+  const side = resolvePlacementForDirection(placement, isRTL).split('-')[0];
+  const base: ViewStyle = { position: 'absolute', width: 0, height: 0 };
+  switch (side) {
+    case 'top':
+      return {
+        ...base,
+        top: '100%',
+        start: ARROW_INSET,
+        borderStartWidth: ARROW_SIZE,
+        borderEndWidth: ARROW_SIZE,
+        borderTopWidth: ARROW_SIZE,
+        borderStartColor: 'transparent',
+        borderEndColor: 'transparent',
+        borderTopColor: color,
+      };
+    case 'left':
+      // Card on the target's start side: the arrow sits past its end edge.
+      return {
+        ...base,
+        start: '100%',
+        top: ARROW_INSET,
+        borderTopWidth: ARROW_SIZE,
+        borderBottomWidth: ARROW_SIZE,
+        borderStartWidth: ARROW_SIZE,
+        borderTopColor: 'transparent',
+        borderBottomColor: 'transparent',
+        borderStartColor: color,
+      };
+    case 'right':
+      // Card on the target's end side: the arrow sits past its start edge.
+      return {
+        ...base,
+        end: '100%',
+        top: ARROW_INSET,
+        borderTopWidth: ARROW_SIZE,
+        borderBottomWidth: ARROW_SIZE,
+        borderEndWidth: ARROW_SIZE,
+        borderTopColor: 'transparent',
+        borderBottomColor: 'transparent',
+        borderEndColor: color,
+      };
+    case 'bottom':
+    default:
+      return {
+        ...base,
+        bottom: '100%',
+        start: ARROW_INSET,
+        borderStartWidth: ARROW_SIZE,
+        borderEndWidth: ARROW_SIZE,
+        borderBottomWidth: ARROW_SIZE,
+        borderStartColor: 'transparent',
+        borderEndColor: 'transparent',
+        borderBottomColor: color,
+      };
+  }
+}
+
+/** A hover- (or press-) activated floating card anchored to its target. */
+function HoverCardBase(props: HoverCardProps, ref: Ref<View>) {
   const {
     children,
     target,
-    position: position_ = 'bottom',
+    position = 'bottom',
     offset = 8,
     openDelay = 100,
     closeDelay = 150,
     opened: controlledOpened,
+    defaultOpened = false,
     shadow = 'md',
     radius = 'md',
     w,
@@ -26,224 +127,166 @@ function HoverCardBase(props: HoverCardProps, ref: React.Ref<View>) {
     disabled = false,
     style,
     testID,
-    zIndex = 3000,
+    zIndex,
     trigger = 'hover',
-    strategy = Platform.OS === 'web' ? 'fixed' : 'portal',
+    strategy = isWeb ? 'fixed' : 'portal',
+    ...spacingProps
   } = props;
 
-  const [opened, setOpened] = useState(false);
-  const openTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const closeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const containerRef = useRef<View>(null);
-  const isHoveringTargetRef = useRef(false);
-  const isHoveringOverlayRef = useRef(false);
-  const isOpenedRef = useRef(false);
   const theme = useTheme();
+  const isRTL = useIsRTL();
+  const spacingStyles = useStyleProps(spacingProps);
 
-  const isOpened = controlledOpened !== undefined ? controlledOpened : opened;
-  isOpenedRef.current = isOpened;
+  const [uncontrolledOpened, setUncontrolledOpened] = useState(defaultOpened);
+  const isControlled = controlledOpened !== undefined;
+  const opened = isControlled ? controlledOpened : uncontrolledOpened;
+  const isOpen = opened && !disabled;
 
-  /**
-   * Positioning, measurement and overlay lifecycle all come from the shared
-   * hook now.
-   *
-   * The hand-rolled version this replaces measured the trigger behind a pair of
-   * `setTimeout`s, assumed a flat `120px` card height, positioned once, and then
-   * never looked again — so a card whose content was taller than the guess
-   * opened on the wrong side of a trigger near the viewport edge, and any scroll
-   * left it stranded at its original coordinates. The hook measures the card
-   * itself, caps it to the space available, pins it to the trigger-adjacent edge
-   * and keeps it docked as the page scrolls.
-   */
-  const {
-    position,
-    anchorRef,
-    popoverRef,
-    showOverlay,
-    hideOverlay,
-  } = useDropdownPositioning({
-    isOpen: isOpened && !disabled,
-    placement: position_,
-    offset,
-    flip: true,
-    shift: true,
-    closeOnClickOutside: trigger !== 'hover',
-    closeOnEscape,
-    onClose: () => handleCloseRef.current(),
+  const onOpenLatest = useLatestCallback(onOpen);
+  const onCloseLatest = useLatestCallback(onClose);
+  const openedRef = useRef(opened);
+  useEffect(() => {
+    openedRef.current = opened;
   });
 
-  // `handleClose` is defined below but referenced by the hook's onClose above.
-  const handleCloseRef = useRef<() => void>(() => {});
-
-  const clearTimers = useCallback(() => {
-    if (openTimeout.current) { clearTimeout(openTimeout.current); openTimeout.current = null; }
-    if (closeTimeout.current) { clearTimeout(closeTimeout.current); closeTimeout.current = null; }
-  }, []);
-
-  useEffect(() => () => clearTimers(), [clearTimers]);
-
-  const shadowStyle: ViewStyle = (() => {
-    switch (shadow) {
-      case 'sm':
-        return { boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)', elevation: 2 };
-      case 'md':
-        return { boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)', elevation: 4 };
-      case 'lg':
-        return { boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)', elevation: 8 };
-      default:
-        return {};
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
-  })();
+  }, []);
+  useEffect(() => clearTimer, [clearTimer]);
 
-  const renderArrow = useCallback((placement: string) => {
-    if (!withArrow) return null;
-    const base: ViewStyle = { position: 'absolute', width: 0, height: 0 } as any;
-    const color = theme.colors.gray[0];
-    const styles: Record<string, ViewStyle> = {
-      top: { top: '100%' as any, left: 12, borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 6, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: color },
-      bottom: { bottom: '100%' as any, left: 12, borderLeftWidth: 6, borderRightWidth: 6, borderBottomWidth: 6, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: color },
-      left: { left: '100%' as any, top: 12, borderTopWidth: 6, borderBottomWidth: 6, borderLeftWidth: 6, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: color },
-      right: { right: '100%' as any, top: 12, borderTopWidth: 6, borderBottomWidth: 6, borderRightWidth: 6, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderRightColor: color },
-    };
-    const key = placement.split('-')[0];
-    return <View style={{ ...base, ...(styles[key] || styles.top) }} />;
-  }, [withArrow, theme.colors.gray]);
+  const setOpened = useCallback((next: boolean) => {
+    if (next && disabled) return;
+    if (openedRef.current === next) return;
+    openedRef.current = next;
+    if (!isControlled) setUncontrolledOpened(next);
+    if (next) onOpenLatest();
+    else onCloseLatest();
+  }, [disabled, isControlled, onOpenLatest, onCloseLatest]);
 
-  const handleClose = useCallback(() => {
-    if (!isOpenedRef.current) return;
-    hideOverlay();
-    setOpened(false);
-    isOpenedRef.current = false;
-    onClose?.();
-  }, [hideOverlay, onClose]);
-
-  handleCloseRef.current = handleClose;
-
-  // Escape key (web only)
-  useEffect(() => {
-    if (!closeOnEscape || Platform.OS !== 'web') return;
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [closeOnEscape, handleClose]);
-
-  const scheduleClose = useCallback(() => {
-    clearTimers();
-    closeTimeout.current = setTimeout(() => {
-      // Only close if neither target nor overlay are hovered (web)
-      if (Platform.OS === 'web') {
-        if (isHoveringTargetRef.current || isHoveringOverlayRef.current) return;
-      }
-      handleClose();
-    }, closeDelay);
-  }, [handleClose, closeDelay, clearTimers]);
-
-  const handleOpen = useCallback(() => {
-    if (disabled || isOpenedRef.current) return;
+  const openNow = useCallback(() => {
+    clearTimer();
     setOpened(true);
-    isOpenedRef.current = true;
-    onOpen?.();
-  }, [disabled, onOpen]);
+  }, [clearTimer, setOpened]);
+  const closeNow = useCallback(() => {
+    clearTimer();
+    setOpened(false);
+  }, [clearTimer, setOpened]);
+  const scheduleOpen = useCallback(() => {
+    clearTimer();
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      setOpened(true);
+    }, openDelay);
+  }, [clearTimer, setOpened, openDelay]);
+  const scheduleClose = useCallback(() => {
+    clearTimer();
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      setOpened(false);
+    }, closeDelay);
+  }, [clearTimer, setOpened, closeDelay]);
+  const toggle = useCallback(() => {
+    if (openedRef.current) closeNow();
+    else openNow();
+  }, [closeNow, openNow]);
 
-  const overlayContent = useMemo(() => (
+  const isHover = trigger === 'hover';
+  const floating = useFloating({
+    opened: isOpen,
+    onDismiss: closeNow,
+    placement: position === 'auto' ? 'auto' : position,
+    offset: offset + (withArrow ? ARROW_SIZE : 0),
+    strategy,
+    trigger: isHover ? 'hover' : 'click',
+    role: 'dialog',
+    zIndex,
+    closeOnEscape,
+    // Touch has no hover: a tap elsewhere is the natural way to dismiss it.
+    closeOnOutsidePress: !isHover || isNative,
+    restoreFocus: true,
+  });
+
+  // --- anchor: the target when it forwards a ref, else the wrapper ------------------
+  const { refs } = floating;
+  const targetNodeRef = useRef<unknown>(null);
+  const setTargetNode = useCallback((node: unknown) => {
+    targetNodeRef.current = node;
+    if (node) refs.setReference(node);
+  }, [refs]);
+  const setWrapperNode = useCallback((node: unknown) => {
+    if (node && !targetNodeRef.current) refs.setReference(node);
+  }, [refs]);
+  const wrapperRef = useMergedRef<View>(ref, setWrapperNode);
+
+  const targetProps = (target.props ?? {}) as TargetProps;
+  const targetRef: Ref<unknown> | undefined = parseInt(React.version, 10) >= 19
+    ? (targetProps as { ref?: Ref<unknown> }).ref
+    : (target as unknown as { ref?: Ref<unknown> }).ref;
+  const mergedTargetRef = useMergedRef<unknown>(targetRef, setTargetNode);
+
+  const overrides: Record<string, unknown> = {
+    ref: mergedTargetRef,
+    ...floating.getReferenceProps({}, { ref: false }),
+  };
+  if (!isHover || isNative) {
+    // Click trigger, and hover's touch fallback: a press toggles it.
+    overrides.onPress = chain(targetProps.onPress, toggle);
+  }
+  if (isHover && isWeb) {
+    Object.assign(overrides, webProps({
+      onMouseEnter: chain(targetProps.onMouseEnter, scheduleOpen),
+      onMouseLeave: chain(targetProps.onMouseLeave, scheduleClose),
+    }));
+    overrides.onHoverIn = chain(targetProps.onHoverIn, scheduleOpen);
+    overrides.onHoverOut = chain(targetProps.onHoverOut, scheduleClose);
+  }
+  if (isHover) {
+    // Keyboard users get the same card when the target takes focus.
+    overrides.onFocus = chain(targetProps.onFocus, scheduleOpen);
+    overrides.onBlur = chain(targetProps.onBlur, scheduleClose);
+  }
+  if (disabled) overrides.disabled = true;
+  const enhancedTarget = cloneElement(target, overrides);
+
+  // --- card ------------------------------------------------------------------------
+  // Level 2 of the elevation ladder, like every surface floating over content.
+  const surface = resolveSurface(theme, 2);
+  const cardStyle = useMemo<ViewStyle>(() => ({
+    backgroundColor: surface.background,
+    borderColor: surface.border,
+    borderWidth: 1,
+    borderRadius: resolveRadius(theme, radius),
+    paddingHorizontal: resolveSpacing(theme, 'md') as number,
+    paddingVertical: resolveSpacing(theme, 'sm') as number,
+    minWidth: w ?? 160,
+    maxWidth: w ?? 320,
+    ...resolveShadow(theme, shadow),
+  }), [surface.background, surface.border, theme, radius, w, shadow]);
+
+  const card = isOpen ? (
     <View
-      ref={popoverRef}
-      style={[
-        {
-          backgroundColor: theme.colors.gray[0],
-          borderRadius: getRadius(radius),
-          paddingHorizontal: getSpacing('md'),
-          paddingVertical: getSpacing('sm'),
-          borderWidth: 1,
-          borderColor: theme.colors.gray[3],
-          minWidth: w || 160,
-          maxWidth: w || 320,
-        },
-        shadowStyle,
-      ]}
-      {...(Platform.OS === 'web' && trigger === 'hover' ? {
-        onMouseEnter: () => { isHoveringOverlayRef.current = true; clearTimers(); },
-        onMouseLeave: () => { isHoveringOverlayRef.current = false; scheduleClose(); },
-      } : {})}
+      {...floating.getFloatingProps({
+        style: cardStyle,
+        testID: testID ? `${testID}-card` : undefined,
+        // The pointer may travel onto the card without it closing.
+        ...(isHover && isWeb ? webProps({ onMouseEnter: clearTimer, onMouseLeave: scheduleClose }) : null),
+      })}
     >
       {children}
-      {renderArrow(position?.placement ?? position_)}
+      {withArrow && <View style={getArrowStyle(floating.placement, surface.background, isRTL)} />}
     </View>
-  ), [popoverRef, theme.colors.gray, radius, w, shadowStyle, trigger, clearTimers, scheduleClose, children, renderArrow, position?.placement, position_]);
-
-  // Push the card once the hook has measured a position, and update it in place
-  // afterwards — re-opening the overlay on every position change would tear down
-  // the node the pointer is hovering and close the card out from under it.
-  useEffect(() => {
-    if (!isOpened || !position) return;
-
-    showOverlay(overlayContent, {
-      zIndex,
-      trigger,
-      strategy,
-      maxHeight: position.maxHeight,
-    });
-  }, [isOpened, position, overlayContent, showOverlay, zIndex, trigger, strategy]);
-
-  useEffect(() => () => hideOverlay(), [hideOverlay]);
-
-  const scheduleOpen = useCallback(() => {
-    clearTimers();
-    openTimeout.current = setTimeout(handleOpen, openDelay);
-  }, [handleOpen, openDelay, clearTimers]);
-
-  const handleToggle = useCallback(() => {
-    if (isOpenedRef.current) {
-      handleClose();
-    } else {
-      handleOpen();
-    }
-  }, [handleOpen, handleClose]);
-
-  const targetProps: any = {};
-  if (trigger === 'hover') {
-    if (Platform.OS === 'web') {
-      targetProps.onMouseEnter = () => { isHoveringTargetRef.current = true; scheduleOpen(); };
-      targetProps.onMouseLeave = () => { isHoveringTargetRef.current = false; scheduleClose(); };
-    } else {
-      // fallback: tap to toggle on native
-      targetProps.onPress = handleToggle;
-    }
-  } else if (trigger === 'click') {
-    targetProps.onPress = handleToggle;
-  }
-
-  // Create a callback ref that forwards to both internal and external refs, and
-  // to the positioning hook's anchor — the container is what the card is
-  // measured against and stays docked to.
-  const combinedRef = useCallback((node: View | null) => {
-    containerRef.current = node;
-    (anchorRef as any).current = node;
-    if (typeof ref === 'function') {
-      ref(node);
-    } else if (ref) {
-      (ref as any).current = node;
-    }
-  }, [ref, anchorRef]);
+  ) : null;
 
   return (
-    <View 
-      ref={combinedRef} 
-      style={[{ alignSelf: 'flex-start' }, style]} 
-      testID={testID}
-    >
-      <Pressable
-        {...targetProps}
-        style={({ pressed }) => [
-          { opacity: pressed ? 0.85 : 1 },
-          (target as any)?.props?.style,
-        ]}
-      >
-        {target}
-      </Pressable>
+    <View ref={wrapperRef} style={[{ alignSelf: 'flex-start' }, spacingStyles, style]} testID={testID}>
+      {enhancedTarget}
+      {floating.renderFloating(card)}
     </View>
   );
 }
 
-export const HoverCard = factory<HoverCardFactoryPayload>(HoverCardBase);
-HoverCard.displayName = 'HoverCard';
+export const HoverCard = factory<HoverCardFactoryPayload>(HoverCardBase, { displayName: 'HoverCard' });

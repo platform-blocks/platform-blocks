@@ -1,4 +1,4 @@
-import { Block, Form, Input } from '@platform-blocks/ui';
+import { Block, Form } from '@plocks/ui';
 
 export function Demo() {
   return (
@@ -8,10 +8,10 @@ export function Demo() {
     >
       <Block style={{ width: '100%', maxWidth: 400 }}>
         <Form.Field name="name">
-          <Input label="Full name" placeholder="Ada Lovelace" />
+          <Form.Input label="Full name" placeholder="Ada Lovelace" />
         </Form.Field>
         <Form.Field name="email">
-          <Input label="Email" placeholder="ada@example.com" />
+          <Form.Input label="Email" placeholder="ada@example.com" />
         </Form.Field>
         <Form.Submit>Create account</Form.Submit>
       </Block>

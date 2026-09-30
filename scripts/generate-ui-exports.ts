@@ -1,10 +1,9 @@
 /**
- * Generates the per-component subpath `exports` map for @platform-blocks/ui.
+ * Generates the per-component subpath `exports` map for @plocks/ui.
  *
  * The build preserves the source module graph (see packages/ui/rollup.config.js),
- * so `@platform-blocks/ui/Button` can pull just that component's subtree instead
- * of the whole barrel — which matters because Metro does virtually no
- * tree-shaking of its own.
+ * so `@plocks/ui/Button` can pull just that component's subtree instead
+ * of the whole barrel.
  *
  *   npm run ui:exports          rewrite packages/ui/package.json
  *   npm run ui:exports:check    fail if the committed map is stale (CI / release)
@@ -16,10 +15,10 @@ const UI_ROOT = join(process.cwd(), 'packages', 'ui');
 const PACKAGE_JSON = join(UI_ROOT, 'package.json');
 const COMPONENTS_DIR = join(UI_ROOT, 'src', 'components');
 
-type ExportEntry = Record<string, string>;
+type ExportEntry = Record<string, string | Record<string, string> | null>;
 
 /** Entries that are hand-maintained and always lead the map, in this order. */
-const BASE_EXPORTS = ['.', './snack', './package.json'] as const;
+const BASE_EXPORTS = ['.', './package.json'] as const;
 
 /** Directories under src/components that are not public components. */
 const isPublicComponentDir = (name: string) => !name.startsWith('_') && !name.startsWith('.');
@@ -37,17 +36,18 @@ function findComponents(): string[] {
 }
 
 /**
- * Condition order matters: `types` first so TS resolves it, `react-native`
- * before `import` so Metro picks the ESM build, `default` last.
+ * Condition order matters: `react-native` before `import`/`require` so Metro
+ * (and TS with `customConditions: ["react-native"]`, as Expo sets) picks the
+ * ESM build, `default` last. The `require` condition is explicitly blocked:
+ * this package now publishes ESM only.
  */
 function componentExport(name: string): ExportEntry {
-  const esm = `./lib/esm/components/${name}/index.js`;
+  const esm = { types: `./lib/esm/components/${name}/index.d.ts`, default: `./lib/esm/components/${name}/index.js` };
   return {
-    types: `./lib/components/${name}/index.d.ts`,
     'react-native': esm,
     import: esm,
-    require: `./lib/cjs/components/${name}/index.js`,
-    default: esm,
+    require: null,
+    default: esm.default,
   };
 }
 

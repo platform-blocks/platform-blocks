@@ -1,6 +1,11 @@
-import { Platform } from 'react-native';
+import {
+  flushStoredJSON,
+  readStoredJSON,
+  scheduleStoredJSON,
+  writeStoredJSON,
+} from '../../core/storage/localStorage';
 
-const STORAGE_PREFIX = 'platform-blocks-tree:';
+const STORAGE_PREFIX = 'plocks-tree:';
 
 /**
  * Which branches a tree had open, remembered across reloads.
@@ -11,42 +16,31 @@ const STORAGE_PREFIX = 'platform-blocks-tree:';
  * refresh — is a web case. Native trees keep expansion in component state,
  * which already survives navigation.
  *
- * Every read and write is wrapped: Safari in private mode throws on
- * `localStorage` access rather than returning null, and a tree that cannot
- * remember its state must still render.
+ * Storage access is guarded (core/storage): a tree that cannot remember its
+ * state must still render.
  */
-const storage = (): Storage | null => {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
-  try {
-    return window.localStorage ?? null;
-  } catch {
-    return null;
-  }
-};
-
 export const readPersistedExpansion = (key: string): string[] | null => {
-  const store = storage();
-  if (!store) return null;
-  try {
-    const raw = store.getItem(`${STORAGE_PREFIX}${key}`);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    // A hand-edited or version-skewed entry is discarded rather than trusted —
-    // a non-string id would flow straight into the expanded set.
-    if (!Array.isArray(parsed)) return null;
-    return parsed.filter((id): id is string => typeof id === 'string');
-  } catch {
-    return null;
-  }
+  const parsed = readStoredJSON(`${STORAGE_PREFIX}${key}`);
+  // A hand-edited or version-skewed entry is discarded rather than trusted —
+  // a non-string id would flow straight into the expanded set.
+  if (!Array.isArray(parsed)) return null;
+  return parsed.filter((id): id is string => typeof id === 'string');
 };
 
 export const writePersistedExpansion = (key: string, ids: string[]): void => {
-  const store = storage();
-  if (!store) return;
-  try {
-    store.setItem(`${STORAGE_PREFIX}${key}`, JSON.stringify(ids));
-  } catch {
-    // Quota exceeded, or storage disabled mid-session. Expansion is a
-    // convenience; losing it is not worth an exception in a render effect.
-  }
+  writeStoredJSON(`${STORAGE_PREFIX}${key}`, ids);
+};
+
+/**
+ * Writes are debounced: expanding a few branches in a row (or a filter opening
+ * a dozen) costs one `localStorage` write, not one per branch.
+ * `flushPersistedExpansion` lands a pending write right away — on unmount, so
+ * the last toggle before navigating away is not lost.
+ */
+export const schedulePersistedExpansion = (key: string, ids: string[]): void => {
+  scheduleStoredJSON(`${STORAGE_PREFIX}${key}`, ids);
+};
+
+export const flushPersistedExpansion = (key: string): void => {
+  flushStoredJSON(`${STORAGE_PREFIX}${key}`);
 };

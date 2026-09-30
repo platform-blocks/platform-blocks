@@ -1,4 +1,4 @@
-export { OverlayProvider, useOverlay, useOverlayApi, useOptionalOverlayApi, useOverlays } from './OverlayProvider';
+export { OverlayProvider, useOverlayApi, useOptionalOverlayApi, useOverlays } from './OverlayProvider';
 export { OverlayRenderer } from './OverlayRenderer';
 export type { OverlayConfig } from './OverlayProvider';
 
@@ -6,7 +6,6 @@ export type { OverlayConfig } from './OverlayProvider';
 export { 
   DirectionProvider, 
   useDirection, 
-  useDirectionSafe,
   DirectionContext 
 } from './DirectionProvider';
 export type { 
@@ -20,8 +19,12 @@ export {
   KeyboardManagerProvider,
   useKeyboardManager,
   useKeyboardManagerOptional,
+  useKeyboardMetricsOptional,
+  useKeyboardFocusOptional,
 } from './KeyboardManagerProvider';
 export type {
   KeyboardManagerProviderProps,
   KeyboardManagerContextValue,
+  KeyboardMetrics,
+  KeyboardFocusApi,
 } from './KeyboardManagerProvider';

@@ -1,4 +1,4 @@
-import { RadarChart } from '@platform-blocks/charts';
+import { RadarChart } from '@plocks/charts';
 
 import { SERIES } from './data';
 
@@ -7,8 +7,8 @@ export function Demo() {
     <RadarChart
       title="Product health radar"
       subtitle="Operational score vs. strategic goal"
-      maxWidth={580}
-      height={440}
+      maw={580}
+      h={440}
       series={SERIES}
       maxValue={10}
       radialGrid={{ rings: 4, shape: 'circle', showAxes: false }}

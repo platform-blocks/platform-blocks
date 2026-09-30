@@ -1,13 +1,43 @@
-import React from 'react';
-import { SpacingProps, LayoutProps } from '../../core/utils';
-import { BorderRadiusProps } from '../../core/theme/radius';
-import { ShadowProps } from '../../core/theme/shadow';
-import { SizeValue } from '../../core/theme/sizes';
-import { TooltipProps, TooltipPropValue } from '../Tooltip';
-import type { TextProps } from '../Text';
+import type React from 'react';
+import type { LayoutChangeEvent, PressableProps, ViewStyle } from 'react-native';
 
-export interface ButtonProps extends SpacingProps, LayoutProps, BorderRadiusProps, ShadowProps {
-  key?: React.Key; // allow React key without complaint in TS where JSX key is forwarded in type checking
+import type { BorderRadiusProps } from '../../core/theme/radius';
+import type { ShadowProps } from '../../core/theme/shadow';
+import type { SizeValue } from '../../core/theme/sizes';
+import type { BaseProps, ColorProp, PassthroughAccessibilityProps } from '../../core/types/base';
+import type { LayoutProps } from '../../core/utils/layout';
+import type { TextProps } from '../Text';
+import type { TooltipPropValue } from '../Tooltip';
+
+export type ButtonVariant =
+  | 'default'
+  | 'filled'
+  | 'light'
+  | 'subtle'
+  | 'secondary'
+  | 'outline'
+  | 'ghost'
+  | 'gradient'
+  | 'link'
+  | 'none';
+
+/** Moved to `core/types/base`; re-exported here so both import paths work. */
+export type { PassthroughAccessibilityProps };
+
+/**
+ * Accessibility props passed straight through to the Button's Pressable
+ * (`role`, `aria-*`, `accessibilityActions`, …); the name and hint are
+ * Button's own `accessibilityLabel` / `accessibilityHint` props.
+ */
+export type ButtonAccessibilityProps = Omit<PassthroughAccessibilityProps, 'accessibilityLabel' | 'accessibilityHint'>;
+
+export interface ButtonProps
+  extends BaseProps<ViewStyle>,
+    LayoutProps,
+    BorderRadiusProps,
+    ShadowProps,
+    ButtonAccessibilityProps,
+    Pick<PressableProps, 'hitSlop' | 'delayLongPress' | 'onFocus' | 'onBlur' | 'nativeID'> {
   /** Button text content - can be provided via title prop or children */
   title?: string;
   /** Button text content - alternative to title prop */
@@ -25,28 +55,29 @@ export interface ButtonProps extends SpacingProps, LayoutProps, BorderRadiusProp
   /** Called when the button is long-pressed */
   onLongPress?: () => void;
   /** Called when the button layout is calculated */
-  onLayout?: (event: any) => void;
+  onLayout?: (event: LayoutChangeEvent) => void;
   /**
    * Button visual variant.
    *
-   * `default` is a neutral button — the card surface with a hairline border and
+   * `default` is a neutral button — a recessed fill with a visible border and
    * body text — so an unstyled `<Button>` never claims the accent color. A solid
    * primary fill is opt-in via `filled`.
    * @default 'default'
    */
-  variant?: 'default' | 'filled' | 'light' | 'subtle' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'link' | 'none';
+  variant?: ButtonVariant;
   /**
    * Theme color the button is tinted with. A palette token (`primary`, `success`,
-   * `error`, …) or any raw CSS/hex color. Applies to the color-bearing variants
-   * (`filled`, `light`, `subtle`, `outline`, `gradient`) and to the text of
-   * `ghost`/`link`. Defaults to `primary`. `secondary` stays neutral by design.
+   * `error`, …), `'primary.6'` shade syntax, or any raw CSS/hex color. Applies to
+   * the color-bearing variants (`filled`, `light`, `subtle`, `outline`, `gradient`)
+   * and to the text of `ghost`/`link`. Defaults to `primary`. `secondary` stays
+   * neutral by design.
    */
-  color?: string;
-  /** Button size */
+  color?: ColorProp;
+  /** Button size: a size token, or a number (the control height in px). */
   size?: SizeValue;
   /** Whether the button is disabled */
   disabled?: boolean;
-  /** Whether button is in loading state (shows loader) */
+  /** Whether button is in loading state (shows loader, sets `aria-busy`) */
   loading?: boolean;
   /** Text to show when loading (if not provided, shows empty text but maintains original width) */
   loadingTitle?: string;
@@ -57,34 +88,36 @@ export interface ButtonProps extends SpacingProps, LayoutProps, BorderRadiusProp
    */
   fullWidth?: boolean;
   /** Explicit text color override (else derived automatically from variant & color) */
-  textColor?: string;
-  /** Icon to show in the center (for icon-only buttons) */
+  textColor?: ColorProp;
+  /**
+   * Icon to show in the center (for icon-only buttons). Icon-only buttons need an
+   * accessible name: pass `accessibilityLabel`, or a `tooltip` (used as the name).
+   */
   icon?: React.ReactNode;
-  /** Icon to show on the left side of the button */
-  startIcon?: React.ReactNode;
-  /** Icon to show on the right side of the button */
-  endIcon?: React.ReactNode;
+  /** Content (usually an icon) before the label. */
+  startSection?: React.ReactNode;
+  /** Content (usually an icon) after the label. */
+  endSection?: React.ReactNode;
   /**
    * Tooltip shown on hover/focus — wraps the button in a `Tooltip`.
    * Pass a string for the common case, or a config object to tune the tooltip:
-   * `tooltip={{ label: 'Long explanation…', maxWidth: 320, withArrow: true }}`.
+   * `tooltip={{ label: 'Long explanation…', maw: 320, withArrow: true }}`.
+   * For an icon-only button without `accessibilityLabel`, the tooltip text is
+   * also the button's accessible name.
    */
   tooltip?: TooltipPropValue;
-  /** Tooltip position when the string form of `tooltip` is used */
-  tooltipPosition?: TooltipProps['position'];
   /**
    * Length of the press / pulse / hover transitions in ms. `0` applies each
    * state instantly (no scale animation). Always 0 under reduced motion.
    * @default 110
    */
   transitionDuration?: number;
-  /** Style overrides for the button container */
-  style?: any;
-  /** Test ID for testing library queries */
-  testID?: string;
-  /** Accessibility label for screen readers */
+  /**
+   * Accessible name. Defaults to the button's text; icon-only buttons fall back
+   * to the tooltip text.
+   */
   accessibilityLabel?: string;
-  /** Accessibility hint for screen readers */
+  /** Accessibility hint for screen readers (native) */
   accessibilityHint?: string;
   /** Override props applied to the inner label `<Text>` (style, weight, ff, size, color). */
   labelProps?: Omit<TextProps, 'children'>;

@@ -1,6 +1,2 @@
-export {
-  Row,
-  Column,
-  RowProps,
-  ColumnProps
-} from './Layout';
+export { Row, Column } from './Layout';
+export type { RowProps, ColumnProps } from './Layout';

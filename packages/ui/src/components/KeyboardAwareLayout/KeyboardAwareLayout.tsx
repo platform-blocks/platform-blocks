@@ -1,127 +1,109 @@
-import React, { forwardRef, useMemo } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import type { KeyboardAvoidingViewProps, ScrollViewProps, StyleProp, ViewStyle } from 'react-native';
+import React, { useMemo } from 'react';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native';
+import type { KeyboardAvoidingViewProps, StyleProp, ViewStyle } from 'react-native';
 
-import { extractSpacingProps, getSpacingStyles } from '../../core/utils';
-import type { SpacingProps } from '../../core/utils';
-import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
+import { factory } from '../../core/factory/factory';
+import { isIOS } from '../../core/platform/flags';
+import { useKeyboardMetricsOptional } from '../../core/providers/KeyboardManagerProvider';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 import type { KeyboardAwareLayoutProps } from './types';
 
 const DEFAULT_EXTRA_SCROLL_HEIGHT = 24;
 
-export const KeyboardAwareLayout = forwardRef<KeyboardAvoidingView, KeyboardAwareLayoutProps>((props, ref) => {
-  const {
-    children,
-    behavior,
-    keyboardVerticalOffset = 0,
-    enabled = true,
-    scrollable = true,
-    extraScrollHeight = DEFAULT_EXTRA_SCROLL_HEIGHT,
-    style,
-    contentContainerStyle,
-    keyboardShouldPersistTaps = 'handled',
-    scrollRef,
-    scrollViewProps,
-    // Native ScrollView passthrough props
-    scrollEnabled,
-    bounces,
-    onScroll,
-    scrollEventThrottle,
-    onMomentumScrollBegin,
-    onMomentumScrollEnd,
-    showsVerticalScrollIndicator,
-    showsHorizontalScrollIndicator,
-    decelerationRate,
-    overScrollMode: overScrollModeProp,
-    refreshControl,
-    ...rest
-  } = props;
+/**
+ * A KeyboardAvoidingView (+ ScrollView by default) that pads its content by the
+ * keyboard height reported by `KeyboardManagerProvider` (metrics only — it
+ * doesn't re-render on focus hand-offs).
+ */
+export const KeyboardAwareLayout = factory<{ props: KeyboardAwareLayoutProps; ref: KeyboardAvoidingView }>(
+  (props, ref) => {
+    const { styleProps, otherProps } = extractStyleProps(props);
+    const {
+      children,
+      behavior,
+      keyboardVerticalOffset = 0,
+      enabled = true,
+      scrollable = true,
+      extraScrollHeight = DEFAULT_EXTRA_SCROLL_HEIGHT,
+      style,
+      contentContainerStyle,
+      keyboardShouldPersistTaps = 'handled',
+      scrollRef,
+      scrollViewProps,
+      // Native ScrollView passthrough props
+      scrollEnabled,
+      bounces,
+      onScroll,
+      scrollEventThrottle,
+      onMomentumScrollBegin,
+      onMomentumScrollEnd,
+      showsVerticalScrollIndicator,
+      showsHorizontalScrollIndicator,
+      decelerationRate,
+      overScrollMode: overScrollModeProp,
+      refreshControl,
+      ...rest
+    } = otherProps;
 
-  const { spacingProps, otherProps } = extractSpacingProps(rest as SpacingProps & KeyboardAvoidingViewProps);
-  const spacingStyles = getSpacingStyles(spacingProps);
+    const spacingStyles = useStyleProps(styleProps);
+    const keyboard = useKeyboardMetricsOptional();
 
-  const keyboard = useKeyboardManagerOptional();
+    const isKeyboardVisible = keyboard?.isKeyboardVisible ?? false;
+    const keyboardHeight = keyboard?.keyboardHeight ?? 0;
 
-  const isKeyboardVisible = keyboard?.isKeyboardVisible ?? false;
-  const keyboardHeight = keyboard?.keyboardHeight ?? 0;
+    const { contentContainerStyle: scrollContentStyle, ...restScrollViewProps } = scrollViewProps ?? {};
 
-  const { contentContainerStyle: scrollContentStyle, ...restScrollViewProps } = scrollViewProps ?? {};
+    const resolvedBehavior: KeyboardAvoidingViewProps['behavior'] = behavior ?? (isIOS ? 'padding' : 'height');
 
-  const resolvedBehavior: KeyboardAvoidingViewProps['behavior'] = behavior
-    ?? (Platform.OS === 'ios' ? 'padding' : 'height');
+    const bottomPadding = enabled && isKeyboardVisible ? keyboardHeight + extraScrollHeight : extraScrollHeight;
 
-  const bottomPadding = useMemo(() => {
-    if (!enabled) {
-      return extraScrollHeight;
-    }
+    const contentStyles = useMemo<StyleProp<ViewStyle>>(
+      () => [
+        styles.content,
+        contentContainerStyle,
+        scrollContentStyle,
+        bottomPadding > 0 ? { paddingBottom: bottomPadding } : null,
+      ],
+      [contentContainerStyle, scrollContentStyle, bottomPadding]
+    );
 
-    if (!isKeyboardVisible) {
-      return extraScrollHeight;
-    }
-
-    return keyboardHeight + extraScrollHeight;
-  }, [enabled, extraScrollHeight, isKeyboardVisible, keyboardHeight]);
-
-  const contentStyles = useMemo<StyleProp<ViewStyle>>(() => {
-    const stylesArray: Array<StyleProp<ViewStyle>> = [styles.content];
-    const mergedContentStyles: Array<StyleProp<ViewStyle>> = [...stylesArray];
-    if (contentContainerStyle) {
-      mergedContentStyles.push(contentContainerStyle);
-    }
-    if (scrollContentStyle) {
-      mergedContentStyles.push(scrollContentStyle as StyleProp<ViewStyle>);
-    }
-    if (bottomPadding > 0) {
-      mergedContentStyles.push({ paddingBottom: bottomPadding });
-    }
-    return mergedContentStyles;
-  }, [contentContainerStyle, scrollContentStyle, bottomPadding]);
-
-  const containerStyles = useMemo<StyleProp<ViewStyle>>(() => {
-    const stylesArray: Array<StyleProp<ViewStyle>> = [styles.container, spacingStyles];
-    if (style) {
-      stylesArray.push(style);
-    }
-    return stylesArray;
-  }, [spacingStyles, style]);
-
-  return (
-    <KeyboardAvoidingView
-      ref={ref}
-      behavior={resolvedBehavior}
-      keyboardVerticalOffset={keyboardVerticalOffset}
-      enabled={enabled}
-      style={containerStyles}
-      {...otherProps}
-    >
-      {scrollable ? (
-        <ScrollView
-          ref={scrollRef}
-          contentContainerStyle={contentStyles as ScrollViewProps['contentContainerStyle']}
-          keyboardShouldPersistTaps={keyboardShouldPersistTaps}
-          showsVerticalScrollIndicator={showsVerticalScrollIndicator ?? false}
-          showsHorizontalScrollIndicator={showsHorizontalScrollIndicator}
-          overScrollMode={overScrollModeProp ?? 'never'}
-          scrollEnabled={scrollEnabled}
-          bounces={bounces}
-          onScroll={onScroll}
-          scrollEventThrottle={scrollEventThrottle}
-          onMomentumScrollBegin={onMomentumScrollBegin}
-          onMomentumScrollEnd={onMomentumScrollEnd}
-          decelerationRate={decelerationRate}
-          refreshControl={refreshControl}
-          {...restScrollViewProps}
-        >
-          {children}
-        </ScrollView>
-      ) : (
-        <View style={contentStyles}>{children}</View>
-      )}
-    </KeyboardAvoidingView>
-  );
-});
-
-KeyboardAwareLayout.displayName = 'KeyboardAwareLayout';
+    return (
+      <KeyboardAvoidingView
+        ref={ref}
+        behavior={resolvedBehavior}
+        keyboardVerticalOffset={keyboardVerticalOffset}
+        enabled={enabled}
+        style={[styles.container, spacingStyles, style]}
+        {...rest}
+      >
+        {scrollable ? (
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={contentStyles}
+            keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+            showsVerticalScrollIndicator={showsVerticalScrollIndicator ?? false}
+            showsHorizontalScrollIndicator={showsHorizontalScrollIndicator}
+            overScrollMode={overScrollModeProp ?? 'never'}
+            scrollEnabled={scrollEnabled}
+            bounces={bounces}
+            onScroll={onScroll}
+            scrollEventThrottle={scrollEventThrottle}
+            onMomentumScrollBegin={onMomentumScrollBegin}
+            onMomentumScrollEnd={onMomentumScrollEnd}
+            decelerationRate={decelerationRate}
+            refreshControl={refreshControl}
+            {...restScrollViewProps}
+          >
+            {children}
+          </ScrollView>
+        ) : (
+          <View style={contentStyles}>{children}</View>
+        )}
+      </KeyboardAvoidingView>
+    );
+  },
+  { displayName: 'KeyboardAwareLayout' }
+);
 
 const styles = StyleSheet.create({
   container: {

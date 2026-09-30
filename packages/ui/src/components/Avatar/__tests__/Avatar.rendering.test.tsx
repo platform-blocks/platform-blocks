@@ -39,14 +39,13 @@ jest.mock('../../Indicator', () => ({
 }));
 
 // Mock the theme
-jest.mock('../../../core/theme', () => ({
+jest.mock('../../../core/theme/ThemeProvider', () => ({
+  ...jest.requireActual('../../../core/theme/ThemeProvider'),
   useTheme: () => ({
+    ...jest.requireActual('../../../core/theme/defaultTheme').DEFAULT_THEME,
     colors: {
       gray: ['#f8f9fa', '#f1f3f5', '#e9ecef', '#dee2e6', '#ced4da', '#adb5bd', '#868e96', '#495057', '#343a40', '#212529'],
       success: ['#ebfbee', '#d3f9d8', '#b2f2bb', '#8ce99a', '#69db7c', '#51cf66', '#40c057', '#37b24d', '#2f9e44', '#2b8a3e'],
-    },
-    text: {
-      white: '#ffffff',
     },
     shadows: {
       xs: '0 1px 2px rgba(0,0,0,0.1)',
@@ -105,12 +104,11 @@ describe('Avatar - Rendering and Behavior', () => {
       expect(image.props.source.uri).toBe('https://example.com/avatar.jpg');
     });
 
-    it('should apply accessibilityLabel to Image', () => {
-      const { UNSAFE_getByType } = render(
+    it('names the avatar (an image) from accessibilityLabel', () => {
+      const { getByRole } = render(
         <Avatar src="https://example.com/avatar.jpg" accessibilityLabel="User avatar" />
       );
-      const image = UNSAFE_getByType(Image);
-      expect(image.props.accessibilityLabel).toBe('User avatar');
+      expect(getByRole('image', { name: 'User avatar' })).toBeTruthy();
     });
   });
 
@@ -184,8 +182,8 @@ describe('Avatar - Rendering and Behavior', () => {
   });
 
   describe('Color Application', () => {
-    it('should apply custom backgroundColor', () => {
-      const { UNSAFE_getByType } = render(<Avatar backgroundColor="#ff0000" />);
+    it('should apply a custom bg', () => {
+      const { UNSAFE_getByType } = render(<Avatar bg="#ff0000" />);
       expect(UNSAFE_getByType(View)).toBeTruthy();
     });
 
@@ -199,7 +197,7 @@ describe('Avatar - Rendering and Behavior', () => {
       expect(getByTestId('indicator')).toBeTruthy();
     });
 
-    it('should use default gray background when no backgroundColor', () => {
+    it('should use default gray background when no bg', () => {
       const { UNSAFE_getByType } = render(<Avatar />);
       expect(UNSAFE_getByType(View)).toBeTruthy();
     });
@@ -401,7 +399,7 @@ describe('Avatar - Rendering and Behavior', () => {
         <Avatar
           size="lg"
           fallback="JD"
-          backgroundColor="#ff0000"
+          bg="#ff0000"
           textColor="#ffffff"
           online={true}
           indicatorColor="#00ff00"

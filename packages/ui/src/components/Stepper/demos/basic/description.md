@@ -1,11 +1,9 @@
 ---
-title: Controlled Flow
+title: Basics
 category: usage
 order: 10
 tags: [stepper]
-highlightLines: [44-53]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

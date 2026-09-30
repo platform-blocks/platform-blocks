@@ -1,3 +1,4 @@
+import { isDev, devWarn } from '../../../core/utils/logger';
 /**
  * Pattern-based input masking with caret preservation.
  *
@@ -56,9 +57,6 @@ const DEFAULT_DEFINITIONS: Record<string, RegExp> = {
   '#': /\d/,           // Any digit (alternative)
 };
 
-/** `__DEV__` is a Metro global; guard it so web/SSR bundles don't blow up. */
-const IS_DEV = typeof __DEV__ !== 'undefined' ? __DEV__ : process.env.NODE_ENV !== 'production';
-
 interface PatternSlot {
   char: string;
   isFixed: boolean;
@@ -97,7 +95,7 @@ export function createMask(definition: MaskDefinition) {
 
   const slotCount = pattern.reduce((total, slot) => (slot.isFixed ? total : total + 1), 0);
 
-  if (IS_DEV) {
+  if (isDev) {
     // A literal that also matches a slot definition is ambiguous, but only once
     // real slots precede it: a leading `+1 ` prefix is resolvable (see the
     // `carriesPrefix` guard in `unmask`), whereas `000-1-000` is not.
@@ -110,8 +108,8 @@ export function createMask(definition: MaskDefinition) {
         pattern.some(other => !other.isFixed && other.regex!.test(slot.char))
     );
     if (ambiguous !== -1) {
-      console.warn(
-        `[platform-blocks] createMask: the mask "${mask}" uses "${pattern[ambiguous].char}" at position ${ambiguous} as a literal, but that character also matches one of its own slots. Input at that position is ambiguous — move fixed separators of this kind outside the mask.`
+      devWarn(
+        `[plocks] createMask: the mask "${mask}" uses "${pattern[ambiguous].char}" at position ${ambiguous} as a literal, but that character also matches one of its own slots. Input at that position is ambiguous — move fixed separators of this kind outside the mask.`
       );
     }
   }

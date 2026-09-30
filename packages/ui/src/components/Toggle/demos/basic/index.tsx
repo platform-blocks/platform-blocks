@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Text, ToggleButton, ToggleGroup } from '@platform-blocks/ui';
+import { Block, Text, ToggleButton, ToggleGroup } from '@plocks/ui';
 
 export function Demo() {
   const [alignment, setAlignment] = useState('center');
@@ -18,7 +18,7 @@ export function Demo() {
         <ToggleButton value="center">Center</ToggleButton>
         <ToggleButton value="right">Right</ToggleButton>
       </ToggleGroup>
-      <Text size="xs" color="secondary">
+      <Text size="xs" c="secondary">
         Selected alignment: {alignment}
       </Text>
     </Block>

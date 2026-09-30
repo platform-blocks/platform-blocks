@@ -25,7 +25,7 @@ export {
   resolveContentBottom,
   isMobileBreakpoint,
 } from './shellCssVars';
-export type { AppShellCssConfig, AppShellCssVar } from './shellCssVars';
+export type { AppShellCssConfig, AppShellCssOptions, AppShellCssVar } from './shellCssVars';
 
 // Hooks
 export { useBreakpoint } from './hooks/useBreakpoint';
@@ -39,6 +39,8 @@ export {
   AppLayoutRenderer,
   useAppLayoutContext,
 } from './app-layout';
+export type { AppLayoutProviderProps } from './app-layout/AppLayoutProvider';
+export type { AppLayoutRendererProps } from './app-layout/AppLayoutRenderer';
 export type {
   AppLayoutBlueprint,
   AppLayoutRuntimeOverrides,
@@ -50,6 +52,7 @@ export type {
   LayoutFooterConfig,
   LayoutBottomNavConfig,
   LayoutMainConfig,
+  LayoutMainExtraProps,
   LayoutOptions,
   LayoutSection,
 } from './app-layout';
@@ -69,6 +72,21 @@ export type {
   AsideConfig,
   FooterConfig,
   BottomNavConfig,
+  LayoutVisibilityConfig,
+  MobileMenuConfig,
+  StatusBarConfig,
+  AppShellContextValue,
+  AppShellApi,
+  AppShellLayoutValue,
+  AppShellHeaderProps,
+  AppShellNavbarProps,
+  AppShellAsideProps,
+  AppShellFooterProps,
+  AppShellMainProps,
+  AppShellSectionProps,
   AppShellBottomNavProps,
-  BottomAppBarItem
+  BottomAppBarProps,
+  BottomAppBarItem,
+  MobileMenuProps,
+  StatusBarManagerProps,
 } from './types';

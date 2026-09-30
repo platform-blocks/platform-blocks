@@ -1,9 +1,7 @@
-import { Masonry, Card, Text, useTheme } from '@platform-blocks/ui';
-import type { MasonryItem } from '@platform-blocks/ui';
+import { Card, Masonry, Text } from '@plocks/ui';
+import type { MasonryItem } from '@plocks/ui';
 
 export function Demo() {
-  const theme = useTheme();
-  
   const masonryItems: MasonryItem[] = [
     {
       id: '1',
@@ -119,9 +117,7 @@ export function Demo() {
   return (
     <Masonry
       data={masonryItems}
-      numColumns={2}
       gap="lg"
-      optimizeItemArrangement={true}
       style={{ height: 600 }}
     />
   );

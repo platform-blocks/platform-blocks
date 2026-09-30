@@ -1,2 +1,2 @@
 export { Pagination } from './Pagination';
-export type { PaginationProps } from './types';
+export type { PaginationProps, PaginationAccessibilityLabels } from './types';

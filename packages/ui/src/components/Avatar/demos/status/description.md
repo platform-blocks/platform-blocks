@@ -3,9 +3,7 @@ title: Status indicator
 category: behavior
 order: 50
 tags: [avatars, status]
-highlightLines: [18-42]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

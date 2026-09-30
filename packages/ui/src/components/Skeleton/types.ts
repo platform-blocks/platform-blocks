@@ -1,6 +1,6 @@
-import { DimensionValue, ViewStyle, View, StyleProp } from 'react-native';
-import { SpacingProps } from '../../core/utils';
-import { SizeValue } from '../../core/theme/sizes';
+import type { ViewStyle, View } from 'react-native';
+import type { BaseProps, RadiusValue } from '../../core/types/base';
+import type { SizeValue } from '../../core/theme/types';
 
 export type SkeletonShape =
   | 'text'
@@ -12,27 +12,25 @@ export type SkeletonShape =
   | 'rectangle'
   | 'rounded';
 
-export interface SkeletonProps extends SpacingProps {
+export interface SkeletonProps extends BaseProps<ViewStyle> {
   /** Shape of the skeleton placeholder */
   shape?: SkeletonShape;
-  /** Width of the skeleton component */
-  w?: DimensionValue;
-  /** Height of the skeleton component */
-  h?: DimensionValue;
-  /** Size of the skeleton component (overrides width/height) */
+  /** Size of the skeleton component (a control-size token or px; `w`/`h` win) */
   size?: SizeValue;
-  /** Border radius for rectangle/rounded shapes */
-  radius?: SizeValue | number;
-  /** Whether to show the loading animation */
+  /** Corner radius: theme radius token, px, `'none'` or `'full'`. Defaults per shape. */
+  radius?: RadiusValue;
+  /** Whether to show the loading (pulse) animation. Never runs while reduced motion is on. */
   animate?: boolean;
   /** Duration of the loading animation in milliseconds */
   animationDuration?: number;
-  /** Gradient colors for the shimmer effect */
+  /** Base and highlight colors of the pulse. Defaults to `backgrounds.border` / `backgrounds.borderStrong`. */
   colors?: [string, string];
-  /** Style overrides for the skeleton container */
-  style?: StyleProp<ViewStyle>;
-  /** Optional test identifier */
-  testID?: string;
+  /**
+   * Announce the placeholder as a loading status with this name
+   * (`role="status"`, `aria-busy`). Without it the skeleton is decorative and
+   * hidden from assistive technology — label the region that is loading instead.
+   */
+  accessibilityLabel?: string;
 }
 
 export interface SkeletonFactoryPayload {

@@ -25,7 +25,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <RadialBarChart data={DATA} width={300} height={300} barThickness={16} gap={6} />
+        <RadialBarChart data={DATA} w={300} h={300} barThickness={16} gap={6} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );

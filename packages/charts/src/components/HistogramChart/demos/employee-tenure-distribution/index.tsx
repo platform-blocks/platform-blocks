@@ -1,4 +1,4 @@
-import { HistogramChart } from '@platform-blocks/charts';
+import { HistogramChart } from '@plocks/charts';
 
 import { TENURE_YEARS, medianTenure } from './data';
 
@@ -6,25 +6,21 @@ export function Demo() {
   return (
     <HistogramChart
       title="Employee tenure distribution"
-      subtitle="Helps spot retention risks and succession depth"
-      height={320}
+      subtitle="Shaded by headcount: bolder bins hold more people"
+      h={320}
       data={TENURE_YEARS}
       bins={12}
       binMethod="sqrt"
       showDensity
       densityThickness={2.5}
-      densityColor="#22C55E"
-      barOpacity={0.8}
-      rangeHighlights={[
-        { id: 'new-hires', start: 0, end: 1.5, color: '#FACC15', opacity: 0.18 },
-        { id: 'veterans', start: 8, end: 15, color: '#22C55E', opacity: 0.12 },
-      ]}
+      barOpacity={0.9}
+      colorScale={{ type: 'sequential', by: 'count' }}
       annotations={[
         {
           id: 'median-tenure',
           shape: 'vertical-line',
           x: Number(medianTenure.toFixed(2)),
-          color: '#F97316',
+          color: '#71717A',
           label: `Median ${medianTenure.toFixed(1)} yrs`,
         },
       ]}

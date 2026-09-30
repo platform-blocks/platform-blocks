@@ -1,17 +1,39 @@
-import React, { createContext, useContext } from 'react';
-import { Platform, Dimensions } from 'react-native';
-import { useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useSyncExternalStore } from 'react';
+import { Platform } from 'react-native';
+
+import { DEFAULT_BREAKPOINT_VALUES } from '../theme/scales';
+import { useTheme } from '../theme/ThemeProvider';
+import { getBreakpoints, type BreakpointValues } from '../theme/tokens';
+import {
+  SERVER_VIEWPORT,
+  getServerViewportSnapshot,
+  getViewportSnapshot,
+  subscribeViewport,
+  type ViewportSize,
+} from './viewportStore';
+
+export {
+  SERVER_VIEWPORT,
+  getServerViewportSnapshot,
+  getViewportSnapshot,
+  subscribeViewport,
+  type ViewportSize,
+} from './viewportStore';
+export type { BreakpointValues } from '../theme/tokens';
 
 // Breakpoint system
 export type Breakpoint = 'base' | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
+/** Ascending breakpoint names. `base` is everything below `xs`. */
+export const BREAKPOINT_ORDER: readonly Breakpoint[] = ['base', 'xs', 'sm', 'md', 'lg', 'xl'];
+
+/**
+ * Default breakpoint table — `DEFAULT_THEME.breakpoints` as numbers, plus `base`.
+ * Hooks read the CURRENT theme's table (or a `BreakpointProvider` override).
+ */
 const BREAKPOINTS = {
-  base: 0,    // Mobile first (default)
-  xs: 480,    // Extra small devices
-  sm: 576,    // Small devices (landscape phones)
-  md: 768,    // Medium devices (tablets)
-  lg: 992,    // Large devices (desktops)
-  xl: 1200,   // Extra large devices (large desktops)
+  base: 0,
+  ...DEFAULT_BREAKPOINT_VALUES,
 } as const;
 
 // Responsive value type - can be a single value or breakpoint object
@@ -22,90 +44,99 @@ export type ResponsiveSize = ResponsiveValue<number>;
 export type ResponsiveString = ResponsiveValue<string>;
 export type ResponsiveBoolean = ResponsiveValue<boolean>;
 
-// Shared breakpoint context — a single resize listener feeds all consumers
-const BreakpointContext = createContext<Breakpoint | null>(null);
+/** Viewport size plus the breakpoint it falls in. */
+export interface ViewportState extends ViewportSize {
+  breakpoint: Breakpoint;
+}
 
-function computeBreakpoint(): Breakpoint {
-  let width: number;
-  if (Platform.OS === 'web') {
-    // During web static rendering (SSR) there is no `window`; accessing it would
-    // throw and blank the prerendered tree. Default to a desktop width so the
-    // static HTML reflects the full desktop layout; the client recomputes on
-    // mount via the resize listener in BreakpointProvider.
-    width = typeof window !== 'undefined' ? window.innerWidth : BREAKPOINTS.xl;
-  } else {
-    width = Dimensions.get('window').width;
+/** The breakpoint a `width` falls in, against `values` (defaults to the default theme's table). */
+export function getBreakpointForWidth(
+  width: number,
+  values: Partial<BreakpointValues> = DEFAULT_BREAKPOINT_VALUES
+): Breakpoint {
+  for (let i = BREAKPOINT_ORDER.length - 1; i > 0; i -= 1) {
+    const name = BREAKPOINT_ORDER[i] as Exclude<Breakpoint, 'base'>;
+    const min = values[name] ?? DEFAULT_BREAKPOINT_VALUES[name];
+    if (width >= min) return name;
   }
-
-  if (width >= BREAKPOINTS.xl) return 'xl';
-  if (width >= BREAKPOINTS.lg) return 'lg';
-  if (width >= BREAKPOINTS.md) return 'md';
-  if (width >= BREAKPOINTS.sm) return 'sm';
-  if (width >= BREAKPOINTS.xs) return 'xs';
   return 'base';
 }
 
+/** Whether breakpoint `current` is at or above `target`. */
+export function isBreakpointAtLeast(current: Breakpoint, target: Breakpoint): boolean {
+  return BREAKPOINT_ORDER.indexOf(current) >= BREAKPOINT_ORDER.indexOf(target);
+}
+
+const BreakpointValuesContext = createContext<BreakpointValues | null>(null);
+
+export interface BreakpointProviderProps {
+  /**
+   * Override (some of) the theme's breakpoint widths, in px, for this subtree.
+   * Omit to use `theme.breakpoints`.
+   */
+  breakpoints?: Partial<BreakpointValues>;
+  children?: React.ReactNode;
+}
+
 /**
- * Provider that maintains a single resize / Dimensions listener and shares
- * the current breakpoint with all descendants via context.
- * Mount once near the root of the app (PlatformBlocksProvider does this automatically).
+ * Optional override of the breakpoint table for a subtree. The viewport itself
+ * is tracked by one module-level store, so this provider no longer owns a
+ * listener; without `breakpoints` it is a pass-through.
+ * `PlocksProvider` mounts one automatically.
  */
-function BreakpointProvider({ children }: { children: React.ReactNode }) {
-  const [breakpoint, setBreakpoint] = useState<Breakpoint>(computeBreakpoint);
-
-  useEffect(() => {
-    const update = () => {
-      setBreakpoint(computeBreakpoint());
-    };
-
-    if (Platform.OS === 'web') {
-      window.addEventListener('resize', update);
-      return () => window.removeEventListener('resize', update);
-    } else {
-      const subscription = Dimensions.addEventListener('change', update);
-      return () => subscription?.remove();
+function BreakpointProvider({ breakpoints, children }: BreakpointProviderProps) {
+  const parent = useContext(BreakpointValuesContext);
+  const theme = useTheme();
+  const themeValues = getBreakpoints(theme);
+  const { xs, sm, md, lg, xl } = breakpoints ?? {};
+  const value = useMemo<BreakpointValues | null>(() => {
+    if (xs === undefined && sm === undefined && md === undefined && lg === undefined && xl === undefined) {
+      return parent;
     }
-  }, []);
+    const base = parent ?? themeValues;
+    return {
+      xs: xs ?? base.xs,
+      sm: sm ?? base.sm,
+      md: md ?? base.md,
+      lg: lg ?? base.lg,
+      xl: xl ?? base.xl,
+    };
+  }, [parent, themeValues, xs, sm, md, lg, xl]);
 
-  return React.createElement(
-    BreakpointContext.Provider,
-    { value: breakpoint },
-    children
+  return React.createElement(BreakpointValuesContext.Provider, { value }, children);
+}
+
+/** The breakpoint table in effect: a `BreakpointProvider` override, else `theme.breakpoints`. */
+function useBreakpointValues(): BreakpointValues {
+  const override = useContext(BreakpointValuesContext);
+  const theme = useTheme();
+  return override ?? getBreakpoints(theme);
+}
+
+/**
+ * Current viewport `{ width, height, breakpoint }`, re-rendering on every size
+ * change. Hydration-safe: the server (and the hydration pass) see a desktop
+ * default. Prefer `useBreakpoint()` when only the breakpoint matters.
+ */
+export function useViewport(): ViewportState {
+  const size = useSyncExternalStore(subscribeViewport, getViewportSnapshot, getServerViewportSnapshot);
+  const values = useBreakpointValues();
+  return useMemo(
+    () => ({ width: size.width, height: size.height, breakpoint: getBreakpointForWidth(size.width, values) }),
+    [size, values]
   );
 }
 
-// Hook to get current breakpoint.
-// When a BreakpointProvider is present it reads from context (zero extra listeners).
-// Falls back to a local listener for standalone usage.
-const useBreakpoint = (): Breakpoint => {
-  const contextValue = useContext(BreakpointContext);
-  
-  // Fast path — provider exists, just return context value
-  if (contextValue !== null) {
-    return contextValue;
-  }
-
-  // Fallback — no provider, use local state + listener (backwards compatible)
-  const [breakpoint, setBreakpoint] = useState<Breakpoint>(computeBreakpoint);
-  
-  useEffect(() => {
-    const updateBreakpoint = () => {
-      setBreakpoint(computeBreakpoint());
-    };
-    
-    updateBreakpoint();
-    
-    if (Platform.OS === 'web') {
-      window.addEventListener('resize', updateBreakpoint);
-      return () => window.removeEventListener('resize', updateBreakpoint);
-    } else {
-      const subscription = Dimensions.addEventListener('change', updateBreakpoint);
-      return () => subscription?.remove();
-    }
-  }, []);
-  
-  return breakpoint;
-};
+/**
+ * Current breakpoint name. Only re-renders when the breakpoint changes, not on
+ * every resize. Hook-order-safe and hydration-safe (server: `xl`).
+ */
+function useBreakpoint(): Breakpoint {
+  const values = useBreakpointValues();
+  const getSnapshot = useCallback(() => getBreakpointForWidth(getViewportSnapshot().width, values), [values]);
+  const getServerSnapshot = useCallback(() => getBreakpointForWidth(SERVER_VIEWPORT.width, values), [values]);
+  return useSyncExternalStore(subscribeViewport, getSnapshot, getServerSnapshot);
+}
 
 // Utility to check if we're on mobile
 const useIsMobile = (): boolean => {
@@ -122,13 +153,13 @@ const resolveResponsiveValue = <T>(
   if (typeof value !== 'object' || value === null) {
     return value as T;
   }
-  
+
   // Array of breakpoints in order from largest to smallest
   const breakpointOrder: Breakpoint[] = ['xl', 'lg', 'md', 'sm', 'xs', 'base'];
   const currentIndex = breakpointOrder.indexOf(currentBreakpoint);
-  
+
   const responsiveObj = value as Partial<Record<Breakpoint, T>>;
-  
+
   // Look for the closest breakpoint value, starting from current and going down
   for (let i = currentIndex; i < breakpointOrder.length; i++) {
     const bp = breakpointOrder[i];
@@ -136,7 +167,7 @@ const resolveResponsiveValue = <T>(
       return responsiveObj[bp] as T;
     }
   }
-  
+
   // If no value found, return undefined (TypeScript will handle this)
   return undefined as T;
 };
@@ -148,7 +179,7 @@ const useResponsiveValue = <T>(value: ResponsiveValue<T>): T => {
 };
 
 // Utility function to create responsive styles for React Native
-const createResponsiveStyle = <T extends Record<string, any>>(
+const createResponsiveStyle = <T extends object>(
   styleValue: ResponsiveValue<T>,
   breakpoint: Breakpoint
 ): T => {
@@ -160,68 +191,46 @@ const isResponsiveValue = <T>(value: ResponsiveValue<T>): value is Partial<Recor
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 };
 
+/**
+ * CSS-in-JS output of `createResponsiveCSS`: the base declaration plus one
+ * nested block per `@media (min-width: …)` query.
+ */
+type ResponsiveCSS = { [propertyOrMediaQuery: string]: string | Record<string, string> };
+
 // CSS-in-JS style helper for web
 const createResponsiveCSS = <T>(
   property: string,
   value: ResponsiveValue<T>,
-  unit: string = ''
-): Record<string, any> => {
+  unit: string = '',
+  breakpoints: Partial<BreakpointValues> = DEFAULT_BREAKPOINT_VALUES
+): ResponsiveCSS => {
   if (Platform.OS !== 'web') {
     return {};
   }
-  
+
   if (!isResponsiveValue(value)) {
     return { [property]: `${value}${unit}` };
   }
-  
-  const styles: Record<string, any> = {};
-  
+
+  const styles: ResponsiveCSS = {};
+
   Object.entries(value).forEach(([bp, val]) => {
     const breakpoint = bp as Breakpoint;
     if (val !== undefined) {
       if (breakpoint === 'base') {
         styles[property] = `${val}${unit}`;
       } else {
-        const mediaQuery = `@media (min-width: ${BREAKPOINTS[breakpoint]}px)`;
-        if (!styles[mediaQuery]) {
-          styles[mediaQuery] = {};
-        }
-        styles[mediaQuery][property] = `${val}${unit}`;
+        const min = breakpoints[breakpoint] ?? BREAKPOINTS[breakpoint];
+        const mediaQuery = `@media (min-width: ${min}px)`;
+        const existing = styles[mediaQuery];
+        const block = typeof existing === 'object' ? existing : {};
+        block[property] = `${val}${unit}`;
+        styles[mediaQuery] = block;
       }
     }
   });
-  
-  return styles;
-};
 
-// Helper to get responsive padding/margin values
-const getResponsiveSpacing = (
-  value: ResponsiveValue<number | string>,
-  breakpoint: Breakpoint,
-  multiplier: number = 1
-): number => {
-  const resolved = resolveResponsiveValue(value, breakpoint);
-  
-  if (typeof resolved === 'number') {
-    return resolved * multiplier;
-  }
-  
-  if (typeof resolved === 'string') {
-    // Handle string values like 'xs', 'sm', etc.
-    const spacingMap = {
-      xs: 4,
-      sm: 8,
-      md: 16,
-      lg: 24,
-      xl: 32,
-      '2xl': 40,
-      '3xl': 48,
-    };
-    
-    return (spacingMap[resolved as keyof typeof spacingMap] || 0) * multiplier;
-  }
-  
-  return 0;
+  return styles;
 };
 
 // Export all utilities
@@ -229,11 +238,11 @@ export {
   BREAKPOINTS,
   BreakpointProvider,
   useBreakpoint,
+  useBreakpointValues,
   useIsMobile,
   resolveResponsiveValue,
   useResponsiveValue,
   createResponsiveStyle,
   isResponsiveValue,
   createResponsiveCSS,
-  getResponsiveSpacing,
 };

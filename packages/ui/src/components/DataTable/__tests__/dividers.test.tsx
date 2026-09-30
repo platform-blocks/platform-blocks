@@ -6,7 +6,7 @@ import TestRenderer from 'react-test-renderer';
 jest.mock('@shopify/flash-list', () => ({ FlashList: () => null }));
 
 import { DataTable } from '../DataTable';
-import { PlatformBlocksThemeProvider } from '../../../core/theme/ThemeProvider';
+import { ThemeScope } from '../../../core/theme/ThemeProvider';
 import { OverlayProvider } from '../../../core/providers/OverlayProvider';
 
 const columns = [
@@ -19,11 +19,11 @@ function renderTable(props: Record<string, unknown> = {}) {
   let tree: TestRenderer.ReactTestRenderer;
   TestRenderer.act(() => {
     tree = TestRenderer.create(
-      <PlatformBlocksThemeProvider>
+      <ThemeScope>
         <OverlayProvider>
           <DataTable columns={columns as any} data={data} {...props} />
         </OverlayProvider>
-      </PlatformBlocksThemeProvider>
+      </ThemeScope>
     );
   });
   return tree!;
@@ -37,31 +37,35 @@ function viewStyles(tree: TestRenderer.ReactTestRenderer) {
   });
 }
 
-const withRightBorder = (tree: TestRenderer.ReactTestRenderer) =>
-  viewStyles(tree).filter((s: any) => s.borderRightWidth > 0);
+// Column rules sit on the logical end edge (right in LTR, left in RTL).
+const withEndBorder = (tree: TestRenderer.ReactTestRenderer) =>
+  viewStyles(tree).filter((s: any) => s.borderEndWidth > 0);
 
 const withRowDivider = (tree: TestRenderer.ReactTestRenderer) =>
   viewStyles(tree).filter((s: any) => s.borderBottomWidth === 1 && s.minHeight);
 
 describe('DataTable column dividers', () => {
   it('draws none unless columnBorderWidth is set', () => {
-    expect(withRightBorder(renderTable({ variant: 'bordered' }))).toHaveLength(0);
+    expect(withEndBorder(renderTable({ variant: 'bordered' }))).toHaveLength(0);
   });
 
   it('spans header and body, skipping the trailing column', () => {
-    const cells = withRightBorder(renderTable({ columnBorderWidth: 1 }));
+    const cells = withEndBorder(renderTable({ columnBorderWidth: 1 }));
     // One header cell + one body cell — the second (last) column is skipped.
     expect(cells).toHaveLength(2);
-    expect(cells.every((s: any) => s.borderRightStyle === 'solid')).toBe(true);
+    // Solid is the platform default, so no per-side style is emitted.
+    expect(cells.every((s: any) => s.borderStyle === undefined)).toBe(true);
   });
 
   it('honors columnBorderStyle', () => {
-    const cells = withRightBorder(renderTable({ columnBorderWidth: 1, columnBorderStyle: 'dashed' }));
-    expect(cells.every((s: any) => s.borderRightStyle === 'dashed')).toBe(true);
+    const cells = withEndBorder(renderTable({ columnBorderWidth: 1, columnBorderStyle: 'dashed' }));
+    expect(cells).toHaveLength(2);
+    // Native styles the whole cell (its only border is the rule); web uses border-inline-end-style.
+    expect(cells.every((s: any) => s.borderStyle === 'dashed')).toBe(true);
   });
 
   it('keeps the trailing rule when an actions column follows', () => {
-    const cells = withRightBorder(
+    const cells = withEndBorder(
       renderTable({ columnBorderWidth: 1, rowActions: () => [{ key: 'edit', label: 'Edit' }] })
     );
     expect(cells).toHaveLength(4);

@@ -30,7 +30,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, multiTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <CandlestickChart series={SERIES} width={420} height={320} />
+        <CandlestickChart series={SERIES} w={420} h={320} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );

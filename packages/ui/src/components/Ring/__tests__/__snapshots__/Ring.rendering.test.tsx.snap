@@ -1,0 +1,199 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Ring - rendering matches snapshot for a compact neutral ring with custom center content 1`] = `
+<View
+  accessible={true}
+  aria-valuemax={60}
+  aria-valuemin={0}
+  aria-valuenow={35}
+  role="progressbar"
+  style={
+    [
+      {
+        "alignItems": "center",
+        "justifyContent": "center",
+      },
+      {},
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "justifyContent": "center",
+          "position": "relative",
+        },
+        {
+          "height": 96,
+          "width": 96,
+        },
+        undefined,
+      ]
+    }
+  >
+    <View>
+      <View />
+      <View />
+    </View>
+    <View
+      pointerEvents="none"
+      style={
+        [
+          {
+            "alignItems": "center",
+            "justifyContent": "center",
+            "position": "absolute",
+            "start": 0,
+            "top": 0,
+          },
+          {
+            "height": 96,
+            "width": 96,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Text>
+        35
+         files
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`Ring - rendering matches snapshot for a labeled performance ring 1`] = `
+<View
+  accessible={true}
+  aria-label="Weekly KPI"
+  aria-valuemax={100}
+  aria-valuemin={0}
+  aria-valuenow={72}
+  aria-valuetext="72%"
+  role="progressbar"
+  style={
+    [
+      {
+        "alignItems": "center",
+        "justifyContent": "center",
+      },
+      {},
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "justifyContent": "center",
+          "position": "relative",
+        },
+        {
+          "height": 160,
+          "width": 160,
+        },
+        undefined,
+      ]
+    }
+  >
+    <View>
+      <View />
+      <View />
+    </View>
+    <View
+      pointerEvents="none"
+      style={
+        [
+          {
+            "alignItems": "center",
+            "justifyContent": "center",
+            "position": "absolute",
+            "start": 0,
+            "top": 0,
+          },
+          {
+            "height": 160,
+            "width": 160,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Text
+        selectable={true}
+        style={
+          [
+            {
+              "color": undefined,
+              "fontFamily": undefined,
+              "fontSize": 16,
+              "fontWeight": "700",
+              "lineHeight": 24,
+              "textAlign": "left",
+            },
+            {},
+            undefined,
+          ]
+        }
+      >
+        New customers
+      </Text>
+      <Text
+        selectable={true}
+        style={
+          [
+            {
+              "color": "#475569",
+              "fontFamily": undefined,
+              "fontSize": 12,
+              "fontWeight": "600",
+              "lineHeight": 15.600000000000001,
+              "textAlign": "left",
+            },
+            {},
+            [
+              {
+                "marginTop": 2,
+              },
+              undefined,
+            ],
+          ]
+        }
+      >
+        Goal 80%
+      </Text>
+    </View>
+  </View>
+  <Text
+    selectable={true}
+    style={
+      [
+        {
+          "color": "#94a3b8",
+          "fontFamily": undefined,
+          "fontSize": 10,
+          "fontWeight": "600",
+          "lineHeight": 12,
+          "textAlign": "left",
+        },
+        {},
+        [
+          {
+            "letterSpacing": 1,
+            "marginTop": 6,
+          },
+          undefined,
+        ],
+      ]
+    }
+  >
+    Weekly KPI
+  </Text>
+</View>
+`;

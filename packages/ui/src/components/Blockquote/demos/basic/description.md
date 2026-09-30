@@ -1,11 +1,10 @@
 ---
-title: Pull quote
+title: Basics
 category: content
 order: 10
 tags: [blockquote, testimonial]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

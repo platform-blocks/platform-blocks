@@ -1,5 +1,5 @@
 ---
-title: Basic Flex Layout
+title: Basics
 description: Simple flex container with three items and gap spacing.
 tags: ["basic", "gap", "layout", "container"]
 ---

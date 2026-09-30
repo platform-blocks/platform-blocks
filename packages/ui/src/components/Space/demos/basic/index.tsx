@@ -1,4 +1,4 @@
-import { Block, Space, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Space, Text, useTheme } from '@plocks/ui';
 
 const EXAMPLES = [
   {
@@ -25,7 +25,7 @@ export function Demo() {
     <Block>
       {EXAMPLES.map(({ label, gap, helper }) => (
         <Block key={label}>
-          <Text weight="medium">{label}</Text>
+          <Text fw="medium">{label}</Text>
           <Block bg={theme.backgrounds.subtle} radius="lg" p="md">
             <Block>
               <Text>First line</Text>
@@ -33,7 +33,7 @@ export function Demo() {
               <Text>Second line</Text>
             </Block>
           </Block>
-          <Text variant="small" color="muted">
+          <Text variant="small" c="muted">
             {helper}
           </Text>
         </Block>

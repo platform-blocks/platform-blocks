@@ -1,10 +1,31 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode, useRef, useMemo } from 'react';
-import { View, Modal, Platform, Dimensions } from 'react-native';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo } from 'react';
+import { Platform } from 'react-native';
+import type { RefObject } from 'react';
+import { devWarn } from '../utils/logger';
+import type { LayerDismissReason } from '../overlay/layerStack';
+
+/**
+ * Layer-stack behaviour of an overlay (see `core/overlay/useLayer`). The
+ * renderer registers every overlay as a layer. Omitted options use the
+ * renderer's defaults.
+ */
+export interface OverlayLayerOptions {
+  closeOnEscape?: boolean;
+  closeOnBack?: boolean;
+  closeOnOutsidePress?: boolean;
+  modal?: boolean;
+  trapFocus?: boolean;
+  autoFocus?: boolean;
+  initialFocus?: 'first-tabbable' | 'container';
+  initialFocusRef?: RefObject<unknown>;
+  restoreFocus?: boolean;
+  restoreFocusRef?: RefObject<unknown>;
+}
 
 export interface OverlayConfig {
   id: string;
   content: ReactNode;
-  trigger?: 'click' | 'hover' | 'contextmenu' | 'manual';
+  trigger?: 'click' | 'hover' | 'focus' | 'contextmenu' | 'manual';
   placement?: 'top' | 'top-start' | 'top-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'left' | 'left-start' | 'left-end' | 'right' | 'right-start' | 'right-end' | 'auto';
   offset?: number;
   anchor?: {
@@ -18,7 +39,7 @@ export interface OverlayConfig {
    * detection so clicking the trigger doesn't count as an "outside" click (the
    * trigger handles its own toggle). Optional — omit for cursor-anchored overlays.
    */
-  anchorNode?: any;
+  anchorNode?: unknown;
   /**
    * Viewport edge to pin the overlay to on its main axis, with the distance from
    * that edge. Supplied by the positioning layer for vertical placements.
@@ -34,13 +55,40 @@ export interface OverlayConfig {
   maxWidth?: number | string;
   maxHeight?: number | string;
   onClose?: () => void;
-  closeOnClickOutside?: boolean;
-  closeOnEscape?: boolean;
   strategy?: 'absolute' | 'fixed' | 'portal';
+  /** Stacking order. Defaults to the theme's `popover` layer (`getZIndex(theme, 'popover')`). */
   zIndex?: number;
   viewport?: {
     padding: number;
   };
+  /**
+   * id for the overlay's content container, so a trigger's `aria-controls`
+   * resolves to a real element. (`useFloating` puts the id on the floating
+   * element itself instead; this is for callers that hand the renderer bare content.)
+   */
+  floatingId?: string;
+  /** ARIA role for the content container (e.g. 'dialog', 'menu', 'listbox'). */
+  role?: string;
+  /** Accessible name for the content container. */
+  ariaLabel?: string;
+  /** Explicit layer behaviour; see {@link OverlayLayerOptions}. */
+  layer?: OverlayLayerOptions;
+  /**
+   * Called instead of closing the overlay when the layer stack asks it to
+   * close (Escape, Android back, outside press). The owner then closes it —
+   * which lets controlled components decide. Without it the overlay closes
+   * itself (and `onClose` runs).
+   */
+  onDismissRequest?: (reason: LayerDismissReason) => void;
+  /** Layer the overlay was opened from, so it always stacks above it. */
+  parentLayerId?: string | null;
+  /**
+   * Viewport layer instead of an anchored one: the content fills the host
+   * (the viewport, at the app root) and presses fall through everywhere its
+   * own children don't cover. No backdrop, and `anchor` / `pin*` / sizing are
+   * ignored — the content positions itself. See `ViewportPortal`.
+   */
+  fill?: boolean;
 }
 
 interface OverlayApiValue {
@@ -54,21 +102,21 @@ interface OverlayApiValue {
 const OverlayApiContext = createContext<OverlayApiValue | null>(null);
 const OverlaysStateContext = createContext<OverlayConfig[] | null>(null);
 
+// Overlay ids are unique across providers: an OverlayHost nests a provider
+// inside a modal, and both providers' overlays share one layer stack.
+let nextOverlayId = 0;
+
 export function OverlayProvider({ children }: { children: ReactNode }) {
   const [overlays, setOverlays] = useState<OverlayConfig[]>([]);
-  const nextIdRef = useRef(0);
 
   const openOverlay = useCallback((config: Omit<OverlayConfig, 'id'>) => {
-    const id = `overlay-${++nextIdRef.current}`;
+    const id = `overlay-${++nextOverlayId}`;
     const overlayConfig: OverlayConfig = {
       id,
       trigger: 'manual',
       placement: 'auto',
       offset: 8,
-      closeOnClickOutside: true,
-      closeOnEscape: true,
       strategy: Platform.OS === 'web' ? 'fixed' : 'portal',
-      zIndex: 9999,
       viewport: { padding: 8 },
       ...config,
     };
@@ -88,7 +136,7 @@ export function OverlayProvider({ children }: { children: ReactNode }) {
               overlay.onClose();
             }
           } catch {
-            console.warn('Error in overlay onClose callback');
+            devWarn('Error in overlay onClose callback');
           }
         }, 0);
       }
@@ -109,9 +157,10 @@ export function OverlayProvider({ children }: { children: ReactNode }) {
             a.x === b!.x && a.y === b!.y && a.width === b!.width && a.height === b!.height
           ))
         );
-        const sameMeta = overlay.width === merged.width && overlay.maxWidth === merged.maxWidth && overlay.maxHeight === merged.maxHeight && overlay.zIndex === merged.zIndex && overlay.strategy === merged.strategy && overlay.pinEdge === merged.pinEdge && overlay.pinOffset === merged.pinOffset;
+        const sameMeta = overlay.width === merged.width && overlay.maxWidth === merged.maxWidth && overlay.maxHeight === merged.maxHeight && overlay.zIndex === merged.zIndex && overlay.strategy === merged.strategy && overlay.pinEdge === merged.pinEdge && overlay.pinOffset === merged.pinOffset && overlay.floatingId === merged.floatingId && overlay.role === merged.role && overlay.ariaLabel === merged.ariaLabel;
+        const sameBehavior = overlay.layer === merged.layer && overlay.onDismissRequest === merged.onDismissRequest && overlay.anchorNode === merged.anchorNode && overlay.onClose === merged.onClose;
         const sameContent = overlay.content === merged.content;
-        if (sameAnchor && sameMeta && sameContent) {
+        if (sameAnchor && sameMeta && sameBehavior && sameContent) {
           return overlay;
         }
         changed = true;
@@ -132,7 +181,7 @@ export function OverlayProvider({ children }: { children: ReactNode }) {
                 overlay.onClose();
               }
             } catch {
-              console.warn('Error in overlay onClose callback');
+              devWarn('Error in overlay onClose callback');
             }
           }, 0);
         }
@@ -157,17 +206,8 @@ export function OverlayProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Back-compat: full object (will re-render on overlays changes)
-export function useOverlay() {
-  const api = useContext(OverlayApiContext);
-  const overlays = useContext(OverlaysStateContext);
-  if (!api || !overlays) {
-    throw new Error('useOverlay must be used within an OverlayProvider');
-  }
-  return { overlays, ...api } as { overlays: OverlayConfig[] } & OverlayApiValue;
-}
-
-// New selectors to avoid unnecessary re-renders
+// Separate selectors, so a component that only opens overlays doesn't
+// re-render when the list changes.
 export function useOverlayApi(): OverlayApiValue {
   const api = useContext(OverlayApiContext);
   if (!api) {
@@ -189,3 +229,5 @@ export function useOverlays(): OverlayConfig[] {
   }
   return overlays;
 }
+
+export type { OverlayApiValue };

@@ -3,9 +3,7 @@ title: Modifiers
 category: usage
 order: 40
 tags: [modifiers, shortcuts, combinations]
-highlightLines: [12-27]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

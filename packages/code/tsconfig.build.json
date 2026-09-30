@@ -1,0 +1,29 @@
+// Build config: `@plocks/ui` resolves through node_modules to its built types
+// (build packages/ui first), so declarations reference it as an external package.
+// Only this package's source is included — @plocks/ui's ambient web-prop types
+// are not published, so web-only props go through `webProps()` here too.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "outDir": "./lib",
+    "rootDir": "./src",
+    "paths": {
+      "@plocks/code": [
+        "./src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "lib",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "src/**/__tests__/**/*",
+    "src/**/__web_tests__/**/*",
+    "src/**/demos/**/*"
+  ]
+}

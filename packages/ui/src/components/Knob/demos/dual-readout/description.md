@@ -5,7 +5,6 @@ order: 50
 tags: [dual, valueLabel]
 highlightLines: []
 status: experimental
-since: 1.1.0
 hidden: false
 ---
 

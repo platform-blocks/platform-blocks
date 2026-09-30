@@ -1,4 +1,4 @@
-import { SankeyChart } from '@platform-blocks/charts';
+import { SankeyChart } from '@plocks/charts';
 
 import { LINKS, NODES } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <SankeyChart
       title="Budget allocation flow"
       subtitle="FY26 operating plan"
-      height={400}
+      h={400}
       nodes={NODES}
       links={LINKS}
     />

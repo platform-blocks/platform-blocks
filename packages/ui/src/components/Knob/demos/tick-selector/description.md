@@ -5,7 +5,6 @@ order: 90
 tags: [ticks, selector, detent, active]
 highlightLines: []
 status: experimental
-since: 1.0.0
 hidden: false
 ---
 

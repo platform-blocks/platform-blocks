@@ -1,13 +1,13 @@
-import { Badge, Row } from '@platform-blocks/ui'
+import { Badge, Row } from '@plocks/ui'
 
 export function Demo() {
   return (
     <Row gap={8} wrap="wrap">
-      <Badge color="primary">Primary</Badge>
-      <Badge color="success">Success</Badge>
-      <Badge color="warning">Warning</Badge>
-      <Badge color="error">Error</Badge>
-      <Badge color="gray">Gray</Badge>
+      <Badge c="primary">Primary</Badge>
+      <Badge c="success">Success</Badge>
+      <Badge c="warning">Warning</Badge>
+      <Badge c="error">Error</Badge>
+      <Badge c="gray">Gray</Badge>
     </Row>
   )
 }

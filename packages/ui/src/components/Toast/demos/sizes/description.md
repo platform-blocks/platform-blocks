@@ -5,7 +5,6 @@ order: 27
 tags: [toast, size, sizing, tokens]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

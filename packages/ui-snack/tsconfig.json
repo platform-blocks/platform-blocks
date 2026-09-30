@@ -1,0 +1,16 @@
+{
+  "extends": "../ui/tsconfig.json",
+  "compilerOptions": {
+    "declaration": false,
+    "rootDir": "../",
+    "outDir": "./lib"
+  },
+  "include": ["src/**/*", "../ui/src/**/*"],
+  "exclude": [
+    "../ui/lib",
+    "../ui/src/**/__tests__/**/*",
+    "../ui/src/**/__web_tests__/**/*",
+    "../ui/src/**/demos/**/*",
+    "../ui/src/__test-utils__/**/*"
+  ]
+}

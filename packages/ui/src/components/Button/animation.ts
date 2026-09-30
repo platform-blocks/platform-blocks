@@ -1,7 +1,13 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Platform } from 'react-native';
+import { useCallback, useRef } from 'react';
+import {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
-import { useReducedMotion } from '../../core/accessibility/hooks';
+import { useReducedMotion } from '../../core/motion/useReducedMotion';
 
 /** Rest / pressed scale for the press feedback. */
 const PRESSED_SCALE = 0.96;
@@ -25,12 +31,12 @@ export interface UseButtonAnimationOptions {
 }
 
 export interface ButtonAnimation {
-  /** Style for the wrapper that carries the press scale. */
-  wrapperStyle: { transform: [{ scale: Animated.Value }] };
-  /** Horizontal offset driving the gradient variant's hover drift. */
-  gradientDrift: Animated.AnimatedInterpolation<number>;
-  /** Whether a press is currently held — used to decide if a pulse is needed. */
-  isPressing: boolean;
+  /** Animated style for the wrapper that carries the press scale. */
+  wrapperStyle: ReturnType<typeof useAnimatedStyle>;
+  /** Animated style driving the gradient variant's hover drift. */
+  gradientStyle: ReturnType<typeof useAnimatedStyle>;
+  /** Whether a press is currently held — decides if an activation needs a pulse. */
+  isPressing: () => boolean;
   pressIn: () => void;
   pressOut: () => void;
   hover: (toValue: number) => void;
@@ -42,100 +48,76 @@ export interface ButtonAnimation {
 }
 
 /**
- * Press, hover and pulse animations for Button. Honors the reduced-motion
- * setting through `useReducedMotion().getDuration`, so every duration below is
- * a request rather than a guarantee.
+ * Press, hover and pulse animations for Button, on Reanimated shared values:
+ * pressing never re-renders the Button. Every duration collapses to 0 (apply the
+ * end state immediately) under reduced motion.
  */
 export function useButtonAnimation({
   transitionDuration,
 }: UseButtonAnimationOptions = {}): ButtonAnimation {
-  const { getDuration } = useReducedMotion();
+  const reducedMotion = useReducedMotion();
 
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const hoverAnim = useRef(new Animated.Value(0)).current;
-  const [isPressing, setIsPressing] = useState(false);
+  const scale = useSharedValue(1);
+  const hoverProgress = useSharedValue(0);
+  // Press state only decides whether an activation needs a pulse, so it lives
+  // in a ref rather than in React state.
+  const pressingRef = useRef(false);
 
-  const pressDuration = getDuration(Math.max(transitionDuration ?? DEFAULT_PRESS_DURATION, 0));
-  const hoverDuration = getDuration(
-    transitionDuration != null ? Math.max(transitionDuration, 0) : DEFAULT_HOVER_DURATION,
-  );
+  const pressDuration = reducedMotion ? 0 : Math.max(transitionDuration ?? DEFAULT_PRESS_DURATION, 0);
+  const hoverDuration = reducedMotion
+    ? 0
+    : transitionDuration != null
+      ? Math.max(transitionDuration, 0)
+      : DEFAULT_HOVER_DURATION;
 
   const animateScaleTo = useCallback(
     (toValue: number) => {
-      if (pressDuration === 0) {
-        scaleAnim.setValue(toValue);
-        return;
-      }
-      Animated.timing(scaleAnim, {
-        toValue,
-        duration: pressDuration,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }).start();
+      scale.value =
+        pressDuration === 0
+          ? toValue
+          : withTiming(toValue, { duration: pressDuration, easing: Easing.out(Easing.quad) });
     },
-    [scaleAnim, pressDuration],
+    [scale, pressDuration],
   );
 
   const pressIn = useCallback(() => {
-    setIsPressing(true);
+    pressingRef.current = true;
     animateScaleTo(PRESSED_SCALE);
   }, [animateScaleTo]);
 
   const pressOut = useCallback(() => {
-    setIsPressing(false);
+    pressingRef.current = false;
     animateScaleTo(1);
   }, [animateScaleTo]);
 
-  // Animated rather than CSS `transition`, which RN-web drops.
+  const isPressing = useCallback(() => pressingRef.current, []);
+
   const hover = useCallback(
     (toValue: number) => {
-      if (hoverDuration === 0) {
-        hoverAnim.setValue(toValue);
-        return;
-      }
-      Animated.timing(hoverAnim, {
-        toValue,
-        duration: hoverDuration,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: Platform.OS !== 'web',
-      }).start();
+      hoverProgress.value =
+        hoverDuration === 0
+          ? toValue
+          : withTiming(toValue, { duration: hoverDuration, easing: Easing.out(Easing.cubic) });
     },
-    [hoverAnim, hoverDuration],
+    [hoverProgress, hoverDuration],
   );
 
   const pulse = useCallback(() => {
     // Nothing to pulse when transitions are off — the button would just sit at
     // rest scale through both legs.
     if (pressDuration === 0) return;
+    const pulseIn = transitionDuration != null ? pressDuration : DEFAULT_PULSE_IN;
+    const pulseOut = transitionDuration != null ? pressDuration : DEFAULT_PULSE_OUT;
+    scale.value = withSequence(
+      withTiming(PULSE_SCALE, { duration: pulseIn, easing: Easing.out(Easing.quad) }),
+      withTiming(1, { duration: pulseOut, easing: Easing.out(Easing.quad) }),
+    );
+  }, [scale, pressDuration, transitionDuration]);
 
-    const pulseIn = transitionDuration != null ? pressDuration : getDuration(DEFAULT_PULSE_IN);
-    const pulseOut = transitionDuration != null ? pressDuration : getDuration(DEFAULT_PULSE_OUT);
+  const wrapperStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const gradientStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: hoverProgress.value * GRADIENT_DRIFT_DISTANCE }],
+  }));
 
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: PULSE_SCALE,
-        duration: pulseIn,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: pulseOut,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [scaleAnim, pressDuration, transitionDuration, getDuration]);
-
-  const wrapperStyle = useMemo(
-    () => ({ transform: [{ scale: scaleAnim }] as [{ scale: Animated.Value }] }),
-    [scaleAnim],
-  );
-
-  const gradientDrift = useMemo(
-    () => hoverAnim.interpolate({ inputRange: [0, 1], outputRange: [0, GRADIENT_DRIFT_DISTANCE] }),
-    [hoverAnim],
-  );
-
-  return { wrapperStyle, gradientDrift, isPressing, pressIn, pressOut, hover, pulse };
+  return { wrapperStyle, gradientStyle, isPressing, pressIn, pressOut, hover, pulse };
 }

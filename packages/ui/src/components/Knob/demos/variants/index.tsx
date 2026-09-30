@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
-import { Block, Knob, Row, Text } from '@platform-blocks/ui';
-import type { KnobVariant } from '@platform-blocks/ui';
+import { Block, Knob, Row, Text } from '@plocks/ui';
+import type { KnobVariant } from '@plocks/ui';
 
 const VARIANTS: { variant: KnobVariant; blurb: string }[] = [
   { variant: 'default', blurb: 'Stock dial' },
@@ -18,12 +18,12 @@ export function Demo() {
     <Block fullWidth direction="row" justify="space-between">
         {VARIANTS.map(({ variant, blurb }) => (
           <Block key={variant} align="center" gap="xs">
-            <Knob
+            <Knob accessibilityLabel={`${variant} knob`}
               value={value}
               onChange={setValue}
               variant={variant}
             />
-            <Text size="sm" weight="600">{variant}</Text>
+            <Text size="sm" fw="600">{variant}</Text>
           </Block>
         ))}
     </Block>

@@ -1,7 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
 import { Text, type TextProps } from '../../Text';
-import { useTheme } from '../../../core/theme/ThemeProvider';
 import type { SpacingValue } from '../../../core/theme/types';
 
 export interface DisclaimerProps extends Omit<TextProps, 'children'> {
@@ -16,13 +14,13 @@ export const Disclaimer: React.FC<DisclaimerProps> = ({
   children,
   mt = 'xs',
   size = 'sm',
-  color = 'muted',
+  c: color = 'muted',
   ...textProps
 }) => {
   return (
     <Text
       size={size}
-      color={color}
+      c={color}
       mt={mt}
       {...textProps}
     >

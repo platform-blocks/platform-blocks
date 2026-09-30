@@ -20,8 +20,8 @@ import {
   scaleTime,
   getDataDomain,
   getColorFromScheme,
-  colorSchemes,
   formatNumber,
+  createTickFormatter,
 } from '../../utils';
 import type { Scale } from '../../utils/scales';
 import { AnimatedCandle } from './AnimatedCandle';
@@ -39,8 +39,8 @@ const toNumeric = (value: number | string | Date): number => {
 export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
   const {
     series,
-    width = 400,
-    height = 300,
+    w: width = 400,
+    h: height = 300,
     title, subtitle,
     xAxis, yAxis, grid, legend,
     animation,
@@ -120,7 +120,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
   const setPointer = interaction?.setPointer;
   const setActiveTarget = interaction?.setActiveTarget;
   const setActiveSlice = interaction?.setActiveSlice;
-  const defaultScheme = colorSchemes.default;
+  const defaultScheme = theme.colors.accentPalette;
   const xDomain = React.useMemo<[number, number]>(() => {
     if (!flattened.length) {
       return [0, 1];
@@ -149,8 +149,8 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
   const basePadding = React.useMemo(
     () => {
       const measured = resolveCartesianPadding({
-        yTickLabels: domainTickLabels(yDomain, (value) => (yAxis?.labelFormatter ? yAxis.labelFormatter(value) : formatNumber(value))),
-        xTickLabels: domainTickLabels(xDomain, (value) => (xAxis?.labelFormatter ? xAxis.labelFormatter(value) : formatNumber(value))),
+        yTickLabels: domainTickLabels(yDomain, (yAxis?.labelFormatter || yScaleType === 'time') ? priceFormatter : undefined, theme.numberFormat, priceFormatter),
+        xTickLabels: domainTickLabels(xDomain, (xAxis?.labelFormatter || xScaleType === 'time') ? xTickFormatter : undefined, theme.numberFormat, xTickFormatter),
         yTitle: yAxis?.title,
         xTitle: xAxis?.title,
         showYAxis: yAxis?.show !== false,
@@ -164,7 +164,8 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
       return volumeEnabled ? { ...measured, bottom: measured.bottom + 12 } : measured;
     },
     [yDomain, xDomain, yAxis?.labelFormatter, xAxis?.labelFormatter, yAxis?.title, xAxis?.title,
-     yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, width, height, volumeEnabled]
+     yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, width, height, volumeEnabled,
+     priceFormatter, xTickFormatter, yScaleType, xScaleType, theme.numberFormat]
   );
   // Grown so the plot clears the title and legend overlays.
   const legendLabels = React.useMemo(
@@ -217,6 +218,17 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
         return generateTicks(yDomain[0], yDomain[1], 5);
     }
   }, [yAxis?.ticks, yDomain, yScaleType]);
+
+  // Custom and date formatters render as given; plain numbers follow the theme's
+  // number format, keeping each axis's own rendering for ticks it won't abbreviate.
+  const xTickFormat = React.useMemo(
+    () => ((xAxis?.labelFormatter || xScaleType === 'time') ? xTickFormatter : createTickFormatter(xTicks, theme.numberFormat, xTickFormatter)),
+    [xAxis?.labelFormatter, xScaleType, xTickFormatter, xTicks, theme.numberFormat]
+  );
+  const yTickFormat = React.useMemo(
+    () => ((yAxis?.labelFormatter || yScaleType === 'time') ? priceFormatter : createTickFormatter(yTicks, theme.numberFormat, priceFormatter)),
+    [yAxis?.labelFormatter, yScaleType, priceFormatter, yTicks, theme.numberFormat]
+  );
 
   const scaleX = React.useCallback((v: number | string | Date) => {
     const value = toNumeric(v);
@@ -586,8 +598,8 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
 
   return (
     <ChartContainer
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       disabled={disabled}
       animationDuration={animationDuration}
       style={style}
@@ -752,7 +764,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
           tickFormat={(value) => {
             const numeric = typeof value === 'number' ? value : Number(value);
             if (!Number.isFinite(numeric)) return String(value ?? '');
-            return xTickFormatter(numeric);
+            return xTickFormat(numeric);
           }}
           showLabels={xAxis?.showLabels !== false}
           showTicks={xAxis?.showTicks !== false}
@@ -779,7 +791,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
           tickFormat={(value) => {
             const numeric = typeof value === 'number' ? value : Number(value);
             if (!Number.isFinite(numeric)) return String(value ?? '');
-            return priceFormatter(numeric);
+            return yTickFormat(numeric);
           }}
           showLabels={yAxis?.showLabels !== false}
           showTicks={yAxis?.showTicks !== false}
@@ -795,7 +807,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
       )}
       {series.length > 1 && (
         <ChartLegend
-          items={series.map((s, si) => ({ label: s.name || `Series ${si + 1}`, color: s.colorBull || getColorFromScheme(si, colorSchemes.default), visible: s.visible !== false }))}
+          items={series.map((s, si) => ({ label: s.name || `Series ${si + 1}`, color: s.colorBull || getColorFromScheme(si, theme.colors.accentPalette), visible: s.visible !== false }))}
           position={props.legend?.position}
           align={props.legend?.align}
           onItemPress={(item, index, nativeEvent) => {

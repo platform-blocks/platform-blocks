@@ -1,13 +1,13 @@
-import { Block, ShimmerText } from '@platform-blocks/ui';
+import { Block, ShimmerText } from '@plocks/ui';
 
 export function Demo() {
   return (
     <Block align="flex-start">
-      <ShimmerText shimmerColor="#facc15" spread={3} weight="bold" size="xl">
+      <ShimmerText shimmerColor="#facc15" spread={3} fw="bold" size="xl">
         Golden spotlight offer
       </ShimmerText>
       <ShimmerText
-        color="#475569"
+        c="#475569"
         shimmerColor="#38bdf8"
         spread={1.2}
         duration={1.2}

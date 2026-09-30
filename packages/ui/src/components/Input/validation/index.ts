@@ -1,9 +1,13 @@
-import { ValidationRule, PasswordStrengthRule } from '../types';
+import type { PasswordStrengthRule, ValidationRule, ValidatorFunction } from '../types';
 
+/**
+ * Runs `rules` against `value` and resolves with every failing rule's message
+ * (in rule order). Length and pattern rules only apply to strings.
+ */
 export const validateValue = async (
-  value: any,
+  value: unknown,
   rules: ValidationRule[],
-  formValues?: Record<string, any>
+  formValues?: Record<string, unknown>
 ): Promise<string[]> => {
   const errors: string[] = [];
 
@@ -17,25 +21,25 @@ export const validateValue = async (
 
       case 'minLength':
         if (typeof value === 'string') {
-          isValid = value.length >= (rule.value || 0);
+          isValid = value.length >= (Number(rule.value) || 0);
         }
         break;
 
       case 'maxLength':
         if (typeof value === 'string') {
-          isValid = value.length <= (rule.value || Infinity);
+          isValid = value.length <= (Number(rule.value) || Infinity);
         }
         break;
 
       case 'pattern':
         if (typeof value === 'string' && rule.value) {
-          const regex = rule.value instanceof RegExp ? rule.value : new RegExp(rule.value);
+          const regex = rule.value instanceof RegExp ? rule.value : new RegExp(String(rule.value));
           isValid = regex.test(value);
         }
         break;
 
       case 'passwordStrength':
-        isValid = validatePasswordStrength(value, rule as PasswordStrengthRule);
+        isValid = validatePasswordStrength(typeof value === 'string' ? value : '', rule as PasswordStrengthRule);
         break;
 
       case 'custom':
@@ -166,7 +170,7 @@ export const validationRules = {
   }),
 
   custom: (
-    validator: (value: any, formValues?: Record<string, any>) => boolean | Promise<boolean>,
+    validator: ValidatorFunction,
     message: string
   ): ValidationRule => ({
     type: 'custom',

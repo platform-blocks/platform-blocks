@@ -3,9 +3,7 @@ title: Icon Overrides
 category: appearance
 order: 30
 tags: [stepper, icons]
-highlightLines: [47-65]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

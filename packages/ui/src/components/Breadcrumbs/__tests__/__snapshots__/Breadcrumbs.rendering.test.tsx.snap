@@ -1,0 +1,529 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Breadcrumbs - rendering matches snapshot for breadcrumb trail with icons 1`] = `
+<View
+  aria-label="Breadcrumb"
+  role="navigation"
+  style={
+    [
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "flexWrap": undefined,
+      },
+      {},
+      undefined,
+    ]
+  }
+>
+  <View
+    role="list"
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "flexWrap": undefined,
+      }
+    }
+  >
+    <View
+      role="listitem"
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+        }
+      }
+    >
+      <View
+        accessibilityState={
+          {
+            "busy": undefined,
+            "checked": undefined,
+            "disabled": undefined,
+            "expanded": undefined,
+            "selected": undefined,
+          }
+        }
+        accessibilityValue={
+          {
+            "max": undefined,
+            "min": undefined,
+            "now": undefined,
+            "text": undefined,
+          }
+        }
+        accessible={true}
+        collapsable={false}
+        focusable={true}
+        onBlur={[Function]}
+        onClick={[Function]}
+        onFocus={[Function]}
+        onResponderGrant={[Function]}
+        onResponderMove={[Function]}
+        onResponderRelease={[Function]}
+        onResponderTerminate={[Function]}
+        onResponderTerminationRequest={[Function]}
+        onStartShouldSetResponder={[Function]}
+        role="link"
+        style={
+          [
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "minHeight": 32,
+            },
+            false,
+          ]
+        }
+      >
+        <View
+          aria-hidden={true}
+          style={
+            {
+              "marginEnd": 4,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "backgroundColor": "#666666",
+                "height": 14,
+                "width": 14,
+              }
+            }
+            testID="icon-home"
+          />
+        </View>
+        <Text
+          style={
+            [
+              {
+                "color": "#666666",
+                "fontSize": 14,
+                "fontWeight": "500",
+              },
+            ]
+          }
+        >
+          Home
+        </Text>
+      </View>
+      <View
+        aria-hidden={true}
+        style={
+          [
+            {
+              "alignItems": "center",
+              "justifyContent": "center",
+              "marginHorizontal": 7,
+            },
+            undefined,
+          ]
+        }
+      >
+        <Text
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": undefined,
+                "fontWeight": undefined,
+              },
+              {
+                "color": "#999999",
+                "fontSize": 12,
+              },
+            ]
+          }
+        >
+          &gt;
+        </Text>
+      </View>
+    </View>
+    <View
+      role="listitem"
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+        }
+      }
+    >
+      <View
+        accessibilityState={
+          {
+            "busy": undefined,
+            "checked": undefined,
+            "disabled": undefined,
+            "expanded": undefined,
+            "selected": undefined,
+          }
+        }
+        accessibilityValue={
+          {
+            "max": undefined,
+            "min": undefined,
+            "now": undefined,
+            "text": undefined,
+          }
+        }
+        accessible={true}
+        collapsable={false}
+        focusable={true}
+        onBlur={[Function]}
+        onClick={[Function]}
+        onFocus={[Function]}
+        onResponderGrant={[Function]}
+        onResponderMove={[Function]}
+        onResponderRelease={[Function]}
+        onResponderTerminate={[Function]}
+        onResponderTerminationRequest={[Function]}
+        onStartShouldSetResponder={[Function]}
+        role="link"
+        style={
+          [
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "minHeight": 32,
+            },
+            false,
+          ]
+        }
+      >
+        <View
+          aria-hidden={true}
+          style={
+            {
+              "marginEnd": 4,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "backgroundColor": "#666666",
+                "height": 14,
+                "width": 14,
+              }
+            }
+            testID="icon-folder"
+          />
+        </View>
+        <Text
+          style={
+            [
+              {
+                "color": "#666666",
+                "fontSize": 14,
+                "fontWeight": "500",
+              },
+            ]
+          }
+        >
+          Projects
+        </Text>
+      </View>
+      <View
+        aria-hidden={true}
+        style={
+          [
+            {
+              "alignItems": "center",
+              "justifyContent": "center",
+              "marginHorizontal": 7,
+            },
+            undefined,
+          ]
+        }
+      >
+        <Text
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": undefined,
+                "fontWeight": undefined,
+              },
+              {
+                "color": "#999999",
+                "fontSize": 12,
+              },
+            ]
+          }
+        >
+          &gt;
+        </Text>
+      </View>
+    </View>
+    <View
+      role="listitem"
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+        }
+      }
+    >
+      <View
+        accessible={true}
+        aria-selected={true}
+        style={
+          [
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "minHeight": 32,
+            },
+            undefined,
+          ]
+        }
+      >
+        <Text
+          style={
+            [
+              {
+                "color": "#111111",
+                "fontSize": 14,
+                "fontWeight": "600",
+              },
+            ]
+          }
+        >
+          Current
+        </Text>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`Breadcrumbs - rendering matches snapshot for condensed breadcrumbs with custom separator 1`] = `
+<View
+  style={
+    {
+      "padding": 8,
+    }
+  }
+>
+  <View
+    aria-label="Breadcrumb"
+    role="navigation"
+    style={
+      [
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "flexWrap": undefined,
+        },
+        {},
+        undefined,
+      ]
+    }
+  >
+    <View
+      role="list"
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "flexWrap": undefined,
+        }
+      }
+    >
+      <View
+        role="listitem"
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+          }
+        }
+      >
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          role="link"
+          style={
+            [
+              {
+                "alignItems": "center",
+                "flexDirection": "row",
+                "minHeight": 32,
+              },
+              false,
+            ]
+          }
+        >
+          <Text
+            style={
+              [
+                {
+                  "color": "#666666",
+                  "fontSize": 14,
+                  "fontWeight": "500",
+                },
+              ]
+            }
+          >
+            Home
+          </Text>
+        </View>
+        <View
+          aria-hidden={true}
+          style={
+            [
+              {
+                "alignItems": "center",
+                "justifyContent": "center",
+                "marginHorizontal": 7,
+              },
+              undefined,
+            ]
+          }
+        >
+          <View
+            style={
+              {
+                "backgroundColor": "#D0D5DD",
+                "borderRadius": 3,
+                "height": 6,
+                "width": 6,
+              }
+            }
+          />
+        </View>
+      </View>
+      <View
+        role="listitem"
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+          }
+        }
+      >
+        <View
+          style={
+            [
+              {
+                "alignItems": "center",
+                "flexDirection": "row",
+                "minHeight": 32,
+              },
+              {
+                "opacity": 0.5,
+              },
+            ]
+          }
+        >
+          <Text
+            style={
+              [
+                {
+                  "color": "#666666",
+                  "fontSize": 14,
+                  "fontWeight": "500",
+                },
+              ]
+            }
+          >
+            ...
+          </Text>
+        </View>
+        <View
+          aria-hidden={true}
+          style={
+            [
+              {
+                "alignItems": "center",
+                "justifyContent": "center",
+                "marginHorizontal": 7,
+              },
+              undefined,
+            ]
+          }
+        >
+          <View
+            style={
+              {
+                "backgroundColor": "#D0D5DD",
+                "borderRadius": 3,
+                "height": 6,
+                "width": 6,
+              }
+            }
+          />
+        </View>
+      </View>
+      <View
+        role="listitem"
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+          }
+        }
+      >
+        <View
+          accessible={true}
+          aria-selected={true}
+          style={
+            [
+              {
+                "alignItems": "center",
+                "flexDirection": "row",
+                "minHeight": 32,
+              },
+              undefined,
+            ]
+          }
+        >
+          <Text
+            style={
+              [
+                {
+                  "color": "#111111",
+                  "fontSize": 14,
+                  "fontWeight": "600",
+                },
+              ]
+            }
+          >
+            Parka
+          </Text>
+        </View>
+      </View>
+    </View>
+  </View>
+</View>
+`;

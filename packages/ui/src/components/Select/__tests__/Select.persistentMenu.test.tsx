@@ -21,8 +21,8 @@ import { OverlayProvider, useOverlays } from '../../../core/providers/OverlayPro
 import { Select } from '../Select';
 
 // Anchored-overlay presentation (desktop web) rather than the native modal.
-jest.mock('../../../hooks', () => ({
-  ...jest.requireActual('../../../hooks'),
+jest.mock('../../../hooks/useOverlayMode', () => ({
+  ...jest.requireActual('../../../hooks/useOverlayMode'),
   useOverlayMode: () => ({
     deviceInfo: {},
     isWeb: true,
@@ -30,7 +30,6 @@ jest.mock('../../../hooks', () => ({
     isDesktopExperience: true,
     shouldUseModal: false,
     shouldUseOverlay: true,
-    shouldUsePortal: true,
   }),
 }));
 
@@ -82,7 +81,7 @@ function Harness({ closeOnSelect = false }: { closeOnSelect?: boolean }) {
       <Select
         label="Persistent menu"
         options={options}
-        value={value ?? undefined}
+        value={value}
         onChange={val => setValue(val as string)}
         closeOnSelect={closeOnSelect}
       />
@@ -121,16 +120,19 @@ const checkedOption = (root: any): string | undefined => {
 
 /**
  * The chevron is one glyph spun by an animated transform, so the open state is
- * read off the trigger's `expanded` a11y state rather than the icon name.
+ * read off the trigger's `aria-expanded` rather than the icon name.
  */
 const triggerExpanded = (screen: any) =>
-  screen.getByLabelText('Persistent menu').props.accessibilityState?.expanded;
+  screen.getByRole('button', { name: 'Persistent menu' }).props.accessibilityState?.expanded;
+
+/** The trigger — the only element named by the label (the listbox is labelled by reference). */
+const pressTrigger = (screen: any) => fireEvent.press(screen.getByRole('button', { name: 'Persistent menu' }));
 
 describe('Select — persistent menu on the overlay path', () => {
   it('moves the check mark when a second option is picked without closing', async () => {
     const screen = render(<Harness />);
 
-    fireEvent.press(screen.getByLabelText('Persistent menu'));
+    pressTrigger(screen);
     await flushTimers();
 
     // Menu is up, nothing chosen yet.
@@ -154,7 +156,7 @@ describe('Select — persistent menu on the overlay path', () => {
   it('keeps exactly one overlay mounted across repeated selections', async () => {
     const screen = render(<Harness />);
 
-    fireEvent.press(screen.getByLabelText('Persistent menu'));
+    pressTrigger(screen);
     await flushTimers();
 
     fireEvent.press(screen.getAllByText('Beta')[0]);
@@ -169,7 +171,7 @@ describe('Select — persistent menu on the overlay path', () => {
   it('leaves the trigger showing an open menu after selecting', async () => {
     const screen = render(<Harness />);
 
-    fireEvent.press(screen.getByLabelText('Persistent menu'));
+    pressTrigger(screen);
     await flushTimers();
     expect(triggerExpanded(screen)).toBe(true);
 
@@ -184,7 +186,7 @@ describe('Select — persistent menu on the overlay path', () => {
   it('still tears the menu down when closeOnSelect is left on', async () => {
     const screen = render(<Harness closeOnSelect />);
 
-    fireEvent.press(screen.getByLabelText('Persistent menu'));
+    pressTrigger(screen);
     await flushTimers();
     expect(screen.queryAllByText('Beta').length).toBeGreaterThan(0);
 

@@ -1,1337 +1,775 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { View, Pressable, Platform, PanResponder } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  PanResponder,
+  Pressable,
+  View,
+  type GestureResponderEvent,
+  type NativeSyntheticEvent,
+  type PanResponderGestureState,
+  type PanResponderInstance,
+  type TextInput,
+  type TextInputKeyPressEventData,
+} from 'react-native';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { factory } from '../../core/factory/factory';
 import { acquirePageScrollLock, releasePageScrollLock } from '../../core/gestures';
-import type { PanResponderGestureState, PanResponderInstance } from 'react-native';
-import { Input } from '../Input';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { useThemedStyles } from '../../core/hooks/useThemedStyles';
+import { isNative, isWeb } from '../../core/platform';
+import { webStyle } from '../../core/platform/webStyle';
+import type { WebKeyboardEvent } from '../../core/platform/webProps';
+import { useKeyboardFocusOptional } from '../../core/providers/KeyboardManagerProvider';
+import { useA11yId } from '../../core/accessibility/useA11yId';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { useControllableState } from '../../hooks/useControllableState/useControllableState';
 import { Icon } from '../Icon';
-import { NumberInputProps } from './types';
-import { ExtendedTextInputProps } from '../Input/types';
-import { factory } from '../../core/factory';
-import { useTheme } from '../../core/theme';
-import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
+import { Input } from '../Input/Input';
+import type { ExtendedTextInputProps } from '../Input/types';
+import { createDragSelectionGuard } from './dragSelectionGuard';
+import {
+  DEFAULT_DECIMAL_SEPARATOR,
+  formatDisplayValue,
+  formatEditableValue,
+  getCurrencySymbol,
+  isShiftHeld,
+  normalizeInput,
+  resolveShiftMultiplier,
+  type FormatOptions,
+  type ModifierEventLike,
+  type NormalizeOptions,
+} from './numberFormat';
+import type { NumberInputProps } from './types';
 
-const DEFAULT_DECIMAL_SEPARATOR = '.';
 const DEFAULT_STEP_DELAY = 500;
 const DEFAULT_STEP_INTERVAL = 100;
 const DEFAULT_DRAG_STEP_DISTANCE = 16;
 const MIN_DRAG_ACTIVATION_DISTANCE = 4;
+/** Extra touch area around the 24px step buttons on native (hitSlop is ignored on web). */
+const STEP_BUTTON_HIT_SLOP = 10;
 
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+type StepDirection = 'up' | 'down';
 
-const getCurrencySymbol = (currency: string) => {
-  try {
-    const formatter = new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency,
-      currencyDisplay: 'narrowSymbol',
-    });
-    const parts = formatter.formatToParts(0);
-    return parts.find(part => part.type === 'currency')?.value ?? '';
-  } catch {
-    return '';
-  }
-};
-
-const groupThousands = (
-  intPart: string,
-  separator: string | undefined,
-  style: 'none' | 'thousand' | 'lakh' | 'wan'
-) => {
-  if (!separator || style === 'none') {
-    return intPart;
-  }
-
-  const part = intPart === '' ? '0' : intPart;
-
-  switch (style) {
-    case 'lakh': {
-      if (part.length <= 3) return part;
-      const lastThree = part.slice(-3);
-      let remaining = part.slice(0, -3);
-      const groups: string[] = [];
-      while (remaining.length > 2) {
-        groups.unshift(remaining.slice(-2));
-        remaining = remaining.slice(0, -2);
-      }
-      if (remaining.length) {
-        groups.unshift(remaining);
-      }
-      return `${groups.join(separator)}${separator}${lastThree}`;
-    }
-    case 'wan':
-      return part.replace(/\B(?=(\d{4})+(?!\d))/g, separator);
-    case 'thousand':
-    default:
-      return part.replace(/\B(?=(\d{3})+(?!\d))/g, separator);
-  }
-};
-
-interface FormatOptions {
-  format: NumberInputProps['format'];
-  currency: string;
-  decimalSeparator: string;
-  thousandSeparator?: string;
-  thousandsGroupStyle: 'none' | 'thousand' | 'lakh' | 'wan';
-  decimalScale?: number;
-  precision?: number;
-  fixedDecimalScale: boolean;
-  prefix?: string;
-  suffix?: string;
-  formatter?: (value: number) => string;
-  allowDecimal: boolean;
+/** Text typed while focused, and the value it produced — shown only while the value still matches. */
+interface EditDraft {
+  text: string;
+  forValue: number | null;
 }
 
-const formatDisplayValue = (value: number, options: FormatOptions): string => {
-  if (!Number.isFinite(value)) return '';
-  if (options.formatter) return options.formatter(value);
-
-  const {
-    format,
-    currency,
-    decimalSeparator,
-    thousandSeparator,
-    thousandsGroupStyle,
-    decimalScale,
-    precision,
-    fixedDecimalScale,
-    prefix,
-    suffix,
-    allowDecimal,
-  } = options;
-
-  const effectivePrefix = prefix ?? (format === 'currency' ? getCurrencySymbol(currency) : undefined);
-  const effectiveSuffix = suffix ?? (format === 'percentage' ? '%' : undefined);
-
-  let resolvedDecimalScale = decimalScale ?? precision;
-  if (!allowDecimal) {
-    resolvedDecimalScale = 0;
-  }
-
-  let workingValue = value;
-  if (!allowDecimal) {
-    workingValue = Math.trunc(workingValue);
-  }
-
-  const sign = workingValue < 0 ? '-' : '';
-  const absoluteValue = Math.abs(workingValue);
-
-  let base: string;
-  if (typeof resolvedDecimalScale === 'number') {
-    base = absoluteValue.toFixed(resolvedDecimalScale);
-    if (!fixedDecimalScale && resolvedDecimalScale > 0) {
-      base = base.replace(/(\.\d*?)0+$/, (_, group: string) => (group === '.' ? '' : group));
-    }
-  } else {
-    base = absoluteValue.toString();
-  }
-
-  base = base.replace(/\.$/, '');
-
-  const [intPartRaw, fracPartRaw = ''] = base.split('.');
-  const intPart = groupThousands(intPartRaw, thousandSeparator, thousandsGroupStyle);
-  const fracPart = fracPartRaw.length > 0 ? fracPartRaw : '';
-  const decimalPortion = fracPart.length > 0 ? `${decimalSeparator}${fracPart}` : '';
-
-  return `${sign}${effectivePrefix ?? ''}${intPart}${decimalPortion}${effectiveSuffix ?? ''}`;
-};
-
-const toLocalizedString = (normalized: string, decimalSeparator: string) => {
-  if (!normalized) return '';
-  if (decimalSeparator === DEFAULT_DECIMAL_SEPARATOR) return normalized;
-  return normalized.replace('.', decimalSeparator);
-};
-
-interface NormalizeOptions {
-  allowDecimal: boolean;
-  allowNegative: boolean;
-  allowLeadingZeros: boolean;
-  decimalSeparator: string;
-  allowedDecimalSeparators: string[];
-  decimalScale?: number;
-  thousandSeparator?: string;
-  prefix?: string;
-  suffix?: string;
-}
-
-interface NormalizeResult {
-  normalized: string;
-  localized: string;
-  parsedValue?: number;
-  hasValue: boolean;
-}
-
-const normalizeInput = (value: string, options: NormalizeOptions): NormalizeResult => {
-  if (!value) {
-    return { normalized: '', localized: '', parsedValue: undefined, hasValue: false };
-  }
-
-  let input = value.trim();
-
-  if (options.prefix && input.startsWith(options.prefix)) {
-    input = input.slice(options.prefix.length);
-  }
-
-  if (options.suffix && input.endsWith(options.suffix)) {
-    input = input.slice(0, -options.suffix.length);
-  }
-
-  if (options.thousandSeparator) {
-    const pattern = new RegExp(escapeRegExp(options.thousandSeparator), 'g');
-    input = input.replace(pattern, '');
-  }
-
-  input = input.replace(/\s+/g, '');
-
-  const decimalChars = new Set<string>(options.allowedDecimalSeparators);
-  decimalChars.add(options.decimalSeparator);
-  decimalChars.add(DEFAULT_DECIMAL_SEPARATOR);
-
-  let normalized = '';
-  let hasDecimal = false;
-  let endedWithDecimal = false;
-
-  for (let index = 0; index < input.length; index += 1) {
-    const char = input[index];
-
-    if (char >= '0' && char <= '9') {
-      normalized += char;
-      endedWithDecimal = false;
-      continue;
-    }
-
-    if ((char === '-' || char === '+') && normalized.length === 0) {
-      if (char === '-' && options.allowNegative) {
-        normalized += char;
-      }
-      endedWithDecimal = false;
-      continue;
-    }
-
-    if (options.allowDecimal && decimalChars.has(char)) {
-      if (!hasDecimal) {
-        normalized += '.';
-        hasDecimal = true;
-        endedWithDecimal = true;
-      }
-    }
-  }
-
-  if (!options.allowNegative) {
-    normalized = normalized.replace(/-/g, '');
-  } else if (normalized.includes('-', 1)) {
-    normalized = normalized[0] === '-' ? `-${normalized.slice(1).replace(/-/g, '')}` : normalized.replace(/-/g, '');
-  }
-
-  if (!options.allowDecimal) {
-    const decimalIndex = normalized.indexOf('.');
-    if (decimalIndex !== -1) {
-      normalized = normalized.slice(0, decimalIndex);
-      hasDecimal = false;
-      endedWithDecimal = false;
-    }
-  }
-
-  if (options.decimalScale !== undefined && options.decimalScale >= 0 && hasDecimal) {
-    const [intPart, fracPartRaw = ''] = normalized.split('.');
-    const truncated = fracPartRaw.slice(0, options.decimalScale);
-    const keepDecimal = options.decimalScale > 0 && (truncated.length > 0 || endedWithDecimal);
-
-    if (options.decimalScale === 0) {
-      normalized = intPart;
-      hasDecimal = false;
-      endedWithDecimal = false;
-    } else {
-      normalized = truncated.length > 0
-        ? `${intPart}.${truncated}`
-        : `${intPart}${keepDecimal ? '.' : ''}`;
-      hasDecimal = truncated.length > 0 || keepDecimal;
-      endedWithDecimal = truncated.length === 0 && keepDecimal;
-    }
-  }
-
-  if (!options.allowLeadingZeros) {
-    const negative = normalized.startsWith('-');
-    let body = negative ? normalized.slice(1) : normalized;
-    const [intPartRaw, fracRaw = ''] = body.split('.');
-    let intPart = intPartRaw.replace(/^0+(?=\d)/, '');
-    if (intPart === '') intPart = '0';
-
-    if (fracRaw) {
-      body = `${intPart}.${fracRaw}`;
-    } else {
-      body = intPart + (endedWithDecimal ? '.' : '');
-    }
-
-    normalized = negative ? `-${body}` : body;
-  }
-
-  const digits = normalized.replace(/[^0-9]/g, '');
-  const hasValue = digits.length > 0;
-  const parsedValue = hasValue ? Number(normalized) : undefined;
-
-  return {
-    normalized,
-    localized: toLocalizedString(normalized, options.decimalSeparator),
-    parsedValue: Number.isFinite(parsedValue) ? parsedValue : undefined,
-    hasValue,
-  };
-};
-
+/**
+ * Numeric text field with optional step buttons, arrow-key stepping, press-and-hold
+ * repeat and press-and-drag scrubbing. Formats on blur (separators, prefix/suffix,
+ * currency, percentage), edits raw digits while focused. On web the field is a
+ * `spinbutton` with `aria-valuenow/min/max`. `ref` points at the TextInput.
+ */
 export const NumberInput = factory<{
   props: NumberInputProps;
-  ref: any;
-}>((props, ref) => {
-  const {
-    value,
-    onChange,
-    min,
-    max,
-    step = 1,
-    precision,
-    format = 'decimal',
-    currency = 'USD',
-    shiftMultiplier = 10,
-    withControls = false,
-    withSideButtons = false,
-    hideControlsOnMobile = true,
-    withDragGesture = false,
-    dragAxis = 'horizontal',
-    dragStepDistance = DEFAULT_DRAG_STEP_DISTANCE,
-    dragStepMultiplier = 1,
-    onDragStateChange,
-    formatter,
-    parser,
-    clampBehavior = 'blur',
-    allowEmpty = true,
-    disabled,
-    error,
-    textInputProps,
-    allowDecimal: allowDecimalProp,
-    allowNegative = true,
-    allowLeadingZeros = true,
-    allowedDecimalSeparators,
-    decimalSeparator = DEFAULT_DECIMAL_SEPARATOR,
-    decimalScale,
-    fixedDecimalScale = false,
-    thousandSeparator,
-    thousandsGroupStyle = 'thousand',
-    prefix,
-    suffix,
-    isAllowed,
-    startValue = 0,
-    stepHoldDelay = DEFAULT_STEP_DELAY,
-    stepHoldInterval = DEFAULT_STEP_INTERVAL,
-    withKeyboardEvents = true,
-    ...inputProps
-  } = props;
+  ref: TextInput;
+}>(
+  (props, ref) => {
+    const {
+      value,
+      defaultValue,
+      onChange,
+      min,
+      max,
+      step = 1,
+      precision,
+      format = 'decimal',
+      currency = 'USD',
+      shiftMultiplier = 10,
+      withControls = false,
+      withSideButtons = false,
+      hideControlsOnMobile = true,
+      withDragGesture = false,
+      dragAxis = 'horizontal',
+      dragStepDistance = DEFAULT_DRAG_STEP_DISTANCE,
+      dragStepMultiplier = 1,
+      onDragStateChange,
+      formatter,
+      parser,
+      clampBehavior = 'blur',
+      allowEmpty = true,
+      disabled,
+      error,
+      textInputProps,
+      allowDecimal: allowDecimalProp,
+      allowNegative = true,
+      allowLeadingZeros = true,
+      allowedDecimalSeparators,
+      decimalSeparator = DEFAULT_DECIMAL_SEPARATOR,
+      decimalScale,
+      fixedDecimalScale = false,
+      thousandSeparator,
+      thousandsGroupStyle = 'thousand',
+      prefix,
+      suffix,
+      isAllowed,
+      startValue = 0,
+      stepHoldDelay = DEFAULT_STEP_DELAY,
+      stepHoldInterval = DEFAULT_STEP_INTERVAL,
+      withKeyboardEvents = true,
+      incrementLabel = 'Increase value',
+      decrementLabel = 'Decrease value',
+      endSection: userEndSection,
+      startSection: userStartSection,
+      onFocus: userOnFocus,
+      onBlur: userOnBlur,
+      keyboardFocusId,
+      name,
+      testID,
+      ...restInputProps
+    } = props;
 
-  const theme = useTheme();
-  const keyboardManager = useKeyboardManagerOptional();
-  const [internalValue, setInternalValue] = useState('');
-  const [focused, setFocused] = useState(false);
-  const inputRef = useRef<any>(null);
-  const holdTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const holdIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const stepCountRef = useRef(0);
-  const holdActiveRef = useRef(false);
-  const dragStateRef = useRef({
-    active: false,
-    dragStartValue: typeof value === 'number' ? value : startValue,
-    lastComputedValue: typeof value === 'number' ? value : undefined,
-    wasFocused: false,
-  });
-  const controlledValueRef = useRef<number | undefined>(
-    typeof value === 'number' ? value : undefined
-  );
+    const theme = useTheme();
+    const keyboardFocus = useKeyboardFocusOptional();
 
-  useEffect(() => {
-    controlledValueRef.current = typeof value === 'number' ? value : undefined;
-  }, [value]);
-
-  const {
-    endSection: userRightSection,
-    startSection: userLeftSection,
-    onFocus: userInputOnFocus,
-    onBlur: userInputOnBlur,
-    ...restInputProps
-  } = inputProps;
-
-  const identityProps = restInputProps as {
-    keyboardFocusId?: string;
-    name?: string;
-    testID?: string;
-  };
-
-  const explicitFocusId = identityProps.keyboardFocusId;
-  const inputName = identityProps.name;
-  const inputTestId = identityProps.testID;
-
-  const fallbackFocusIdRef = useRef(`number-${Math.random().toString(36).slice(2, 10)}`);
-  const focusTargetId = useMemo(() => {
-    if (typeof explicitFocusId === 'string' && explicitFocusId.trim().length > 0) {
-      return explicitFocusId.trim();
-    }
-
-    if (typeof inputName === 'string' && inputName.trim().length > 0) {
-      return inputName.trim();
-    }
-
-    if (typeof inputTestId === 'string' && inputTestId.trim().length > 0) {
-      return inputTestId.trim();
-    }
-
-    return fallbackFocusIdRef.current;
-  }, [explicitFocusId, inputName, inputTestId]);
-
-  const requestFocusRestore = useCallback(() => {
-    if (!keyboardManager) {
-      return;
-    }
-
-    keyboardManager.refocus(focusTargetId);
-  }, [keyboardManager, focusTargetId]);
-
-  const allowDecimal = allowDecimalProp ?? (format !== 'integer');
-
-  const resolvedDecimalScale = useMemo(() => {
-    if (!allowDecimal) return 0;
-    if (decimalScale !== undefined) return decimalScale;
-    if (precision !== undefined) return precision;
-    if (format === 'integer') return 0;
-    return undefined;
-  }, [allowDecimal, decimalScale, precision, format]);
-
-  const resolvedThousandSeparator = useMemo(() => {
-    if (typeof thousandSeparator === 'string') return thousandSeparator;
-    if (thousandSeparator === true) return ',';
-    if (thousandSeparator === false) return undefined;
-    return format === 'currency' ? ',' : undefined;
-  }, [thousandSeparator, format]);
-
-  const allowedDecimalSeparatorsResolved = useMemo(() => {
-    const set = new Set<string>(allowedDecimalSeparators ?? []);
-    set.add(decimalSeparator);
-    set.add(DEFAULT_DECIMAL_SEPARATOR);
-    return Array.from(set);
-  }, [allowedDecimalSeparators, decimalSeparator]);
-
-  const currencySymbol = useMemo(() => getCurrencySymbol(currency), [currency]);
-
-  const effectivePrefix = prefix ?? (format === 'currency' ? currencySymbol : undefined);
-  const effectiveSuffix = suffix ?? (format === 'percentage' ? '%' : undefined);
-
-  const resolvedShiftMultiplier = useMemo(() => {
-    if (typeof shiftMultiplier !== 'number' || Number.isNaN(shiftMultiplier)) {
-      return 10;
-    }
-    if (!Number.isFinite(shiftMultiplier)) {
-      return 10;
-    }
-    const absolute = Math.abs(shiftMultiplier);
-    return absolute >= 1 ? absolute : 1;
-  }, [shiftMultiplier]);
-
-  const formatOptions = useMemo<FormatOptions>(() => ({
-    format,
-    currency,
-    decimalSeparator,
-    thousandSeparator: resolvedThousandSeparator,
-    thousandsGroupStyle,
-    decimalScale: resolvedDecimalScale,
-    precision,
-    fixedDecimalScale,
-    prefix: effectivePrefix,
-    suffix: effectiveSuffix,
-    formatter,
-    allowDecimal,
-  }), [format, currency, decimalSeparator, resolvedThousandSeparator, thousandsGroupStyle, resolvedDecimalScale, precision, fixedDecimalScale, effectivePrefix, effectiveSuffix, formatter, allowDecimal]);
-
-  const formatValue = useCallback((val: number) => formatDisplayValue(val, formatOptions), [formatOptions]);
-
-  const getModifierMultiplier = useCallback((event?: { nativeEvent?: any } | any) => {
-    const native = event?.nativeEvent ?? event;
-    if (!native) return 1;
-
-    if (typeof native.getModifierState === 'function') {
-      try {
-        if (native.getModifierState('Shift')) {
-          return resolvedShiftMultiplier;
-        }
-      } catch {
-        // ignore modifier lookup failures
-      }
-    }
-
-    if (native.shiftKey) {
-      return resolvedShiftMultiplier;
-    }
-
-    const modifiers = native.modifiers ?? native.modifierFlags;
-    if (Array.isArray(modifiers)) {
-      for (let index = 0; index < modifiers.length; index += 1) {
-        const mod = modifiers[index];
-        if (typeof mod === 'string' && mod.toLowerCase() === 'shift') {
-          return resolvedShiftMultiplier;
-        }
-      }
-    }
-
-    return 1;
-  }, [resolvedShiftMultiplier]);
-
-  const normalizationOptions = useMemo<NormalizeOptions>(() => ({
-    allowDecimal,
-    allowNegative,
-    allowLeadingZeros,
-    decimalSeparator,
-    allowedDecimalSeparators: allowedDecimalSeparatorsResolved,
-    decimalScale: resolvedDecimalScale,
-    thousandSeparator: resolvedThousandSeparator,
-    prefix: effectivePrefix,
-    suffix: effectiveSuffix,
-  }), [allowDecimal, allowNegative, allowLeadingZeros, decimalSeparator, allowedDecimalSeparatorsResolved, resolvedDecimalScale, resolvedThousandSeparator, effectivePrefix, effectiveSuffix]);
-
-  const formatEditableValue = useCallback((val: number) => {
-    if (!Number.isFinite(val)) return '';
-
-    let normalized: string;
-
-    if (!allowDecimal) {
-      normalized = Math.trunc(val).toString();
-    } else if (typeof resolvedDecimalScale === 'number') {
-      normalized = val.toFixed(resolvedDecimalScale);
-      if (!fixedDecimalScale && resolvedDecimalScale > 0) {
-        normalized = normalized.replace(/(\.\d*?)0+$/, (_, group: string) => (group === '.' ? '' : group));
-      }
-    } else {
-      normalized = val.toString();
-    }
-
-    normalized = normalized.replace(/\.$/, '');
-
-    return decimalSeparator === DEFAULT_DECIMAL_SEPARATOR
-      ? normalized
-      : normalized.replace('.', decimalSeparator);
-  }, [allowDecimal, resolvedDecimalScale, fixedDecimalScale, decimalSeparator]);
-
-  const allowedChecker = useCallback((nextValue: number, valueString: string) => {
-    if (!isAllowed) return true;
-    return isAllowed({
-      floatValue: nextValue,
-      formattedValue: formatValue(nextValue),
-      value: valueString,
+    // Passing `value` at all (even `undefined` = empty) makes the field controlled;
+    // `null` is the internal "empty" so it can't be mistaken for "uncontrolled".
+    const isControlled = Object.prototype.hasOwnProperty.call(props, 'value');
+    const emitChange = useLatestCallback((next: number | null) => onChange?.(next ?? undefined));
+    const [current, setCurrent] = useControllableState<number | null>({
+      value: isControlled ? (value ?? null) : undefined,
+      defaultValue: defaultValue ?? null,
+      finalValue: null,
+      onChange: emitChange,
     });
-  }, [isAllowed, formatValue]);
 
-  const resolvedMin = useMemo(() => {
-    if (!allowNegative) {
-      const limit = 0;
-      if (min === undefined) return limit;
-      return Math.max(min, limit);
-    }
-    return min;
-  }, [allowNegative, min]);
+    const [focused, setFocused] = useState(false);
+    const [draft, setDraft] = useState<EditDraft | null>(null);
+    const inputRef = useRef<TextInput | null>(null);
+    const mergedRef = useMergedRef<TextInput>(inputRef, ref);
 
-  // Format display value
-  const displayValue = useMemo(() => {
-    if (focused) return internalValue;
-    if (value === undefined || value === null) return '';
-    return formatValue(value);
-  }, [focused, internalValue, value, formatValue]);
+    // The latest committed value, advanced synchronously by steps so a
+    // press-and-hold repeat composes before the parent re-renders.
+    const valueRef = useRef<number | null>(current);
+    valueRef.current = current;
 
-  // Clamp value to bounds
-  const clampValue = useCallback((val: number): number => {
-    let clamped = val;
-    if (resolvedMin !== undefined && clamped < resolvedMin) clamped = resolvedMin;
-    if (max !== undefined && clamped > max) clamped = max;
-    return clamped;
-  }, [resolvedMin, max]);
+    const holdTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const holdIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const stepCountRef = useRef(0);
+    const holdActiveRef = useRef(false);
+    const dragStateRef = useRef({
+      active: false,
+      dragStartValue: current ?? startValue,
+      lastComputedValue: current ?? undefined,
+      wasFocused: false,
+    });
 
-  useEffect(() => {
-    if (!focused) return;
-    if (value === undefined || value === null) {
-      setInternalValue('');
-      return;
-    }
-    setInternalValue(formatEditableValue(value));
-  }, [value, focused, formatEditableValue]);
+    const fallbackFocusId = useA11yId(undefined, 'number');
+    const focusTargetId = useMemo(() => {
+      for (const candidate of [keyboardFocusId, name, testID]) {
+        if (typeof candidate === 'string' && candidate.trim().length > 0) return candidate.trim();
+      }
+      return fallbackFocusId;
+    }, [keyboardFocusId, name, testID, fallbackFocusId]);
 
-  // Handle text input changes
-  const handleChangeText = useCallback((text: string) => {
-    if (parser) {
-      setInternalValue(text);
-      const parsed = parser(text);
-      if (!isNaN(parsed)) {
-        const clamped = clampBehavior === 'strict' ? clampValue(parsed) : parsed;
-        if (allowedChecker(clamped, clamped.toString())) {
-          onChange?.(clamped);
+    const requestFocusRestore = useCallback(() => {
+      if (keyboardFocus) {
+        keyboardFocus.refocus(focusTargetId);
+        return;
+      }
+      requestAnimationFrame(() => inputRef.current?.focus?.());
+    }, [keyboardFocus, focusTargetId]);
+
+    const allowDecimal = allowDecimalProp ?? format !== 'integer';
+
+    const resolvedDecimalScale = useMemo(() => {
+      if (!allowDecimal) return 0;
+      if (decimalScale !== undefined) return decimalScale;
+      if (precision !== undefined) return precision;
+      if (format === 'integer') return 0;
+      return undefined;
+    }, [allowDecimal, decimalScale, precision, format]);
+
+    const resolvedThousandSeparator = useMemo(() => {
+      if (typeof thousandSeparator === 'string') return thousandSeparator;
+      if (thousandSeparator === true) return ',';
+      if (thousandSeparator === false) return undefined;
+      return format === 'currency' ? ',' : undefined;
+    }, [thousandSeparator, format]);
+
+    const allowedDecimalSeparatorsResolved = useMemo(() => {
+      const set = new Set<string>(allowedDecimalSeparators ?? []);
+      set.add(decimalSeparator);
+      set.add(DEFAULT_DECIMAL_SEPARATOR);
+      return Array.from(set);
+    }, [allowedDecimalSeparators, decimalSeparator]);
+
+    const currencySymbol = useMemo(() => getCurrencySymbol(currency), [currency]);
+    const effectivePrefix = prefix ?? (format === 'currency' ? currencySymbol : undefined);
+    const effectiveSuffix = suffix ?? (format === 'percentage' ? '%' : undefined);
+    const resolvedShiftMultiplier = resolveShiftMultiplier(shiftMultiplier);
+
+    const formatOptions = useMemo<FormatOptions>(
+      () => ({
+        format,
+        currency,
+        decimalSeparator,
+        thousandSeparator: resolvedThousandSeparator,
+        thousandsGroupStyle,
+        decimalScale: resolvedDecimalScale,
+        precision,
+        fixedDecimalScale,
+        prefix: effectivePrefix,
+        suffix: effectiveSuffix,
+        formatter,
+        allowDecimal,
+      }),
+      [
+        format,
+        currency,
+        decimalSeparator,
+        resolvedThousandSeparator,
+        thousandsGroupStyle,
+        resolvedDecimalScale,
+        precision,
+        fixedDecimalScale,
+        effectivePrefix,
+        effectiveSuffix,
+        formatter,
+        allowDecimal,
+      ]
+    );
+
+    const normalizationOptions = useMemo<NormalizeOptions>(
+      () => ({
+        allowDecimal,
+        allowNegative,
+        allowLeadingZeros,
+        decimalSeparator,
+        allowedDecimalSeparators: allowedDecimalSeparatorsResolved,
+        decimalScale: resolvedDecimalScale,
+        thousandSeparator: resolvedThousandSeparator,
+        prefix: effectivePrefix,
+        suffix: effectiveSuffix,
+      }),
+      [
+        allowDecimal,
+        allowNegative,
+        allowLeadingZeros,
+        decimalSeparator,
+        allowedDecimalSeparatorsResolved,
+        resolvedDecimalScale,
+        resolvedThousandSeparator,
+        effectivePrefix,
+        effectiveSuffix,
+      ]
+    );
+
+    const formatValue = useCallback((val: number) => formatDisplayValue(val, formatOptions), [formatOptions]);
+
+    const toEditable = useCallback(
+      (val: number) =>
+        formatEditableValue(val, {
+          allowDecimal,
+          decimalScale: resolvedDecimalScale,
+          fixedDecimalScale,
+          decimalSeparator,
+        }),
+      [allowDecimal, resolvedDecimalScale, fixedDecimalScale, decimalSeparator]
+    );
+
+    const getModifierMultiplier = useCallback(
+      (event?: ModifierEventLike | null) => (isShiftHeld(event) ? resolvedShiftMultiplier : 1),
+      [resolvedShiftMultiplier]
+    );
+
+    const allowedChecker = useCallback(
+      (nextValue: number, valueString: string) => {
+        if (!isAllowed) return true;
+        return isAllowed({ floatValue: nextValue, formattedValue: formatValue(nextValue), value: valueString });
+      },
+      [isAllowed, formatValue]
+    );
+
+    const resolvedMin = allowNegative ? min : Math.max(min ?? 0, 0);
+
+    const clampValue = useCallback(
+      (val: number): number => {
+        let clamped = val;
+        if (resolvedMin !== undefined && clamped < resolvedMin) clamped = resolvedMin;
+        if (max !== undefined && clamped > max) clamped = max;
+        return clamped;
+      },
+      [resolvedMin, max]
+    );
+
+    // Unfocused: the formatted value. Focused: what the user typed, as long as
+    // the value is still the one that text produced (a step or an external
+    // change shows the new value instead).
+    const displayValue = (() => {
+      if (!focused) return current === null ? '' : formatValue(current);
+      if (draft && draft.forValue === current) return draft.text;
+      return current === null ? '' : toEditable(current);
+    })();
+
+    const commit = useCallback(
+      (next: number | null) => {
+        valueRef.current = next;
+        setCurrent(next);
+      },
+      [setCurrent]
+    );
+
+    const handleChangeText = useCallback(
+      (text: string) => {
+        const before = valueRef.current;
+
+        if (parser) {
+          const parsed = parser(text);
+          if (!Number.isNaN(parsed)) {
+            const clamped = clampBehavior === 'strict' ? clampValue(parsed) : parsed;
+            if (allowedChecker(clamped, clamped.toString())) {
+              setDraft({ text, forValue: clamped });
+              commit(clamped);
+              return;
+            }
+          } else if (allowEmpty && text === '') {
+            setDraft({ text, forValue: null });
+            commit(null);
+            return;
+          }
+          setDraft({ text, forValue: before });
+          return;
         }
-      } else if (allowEmpty && text === '') {
-        onChange?.(undefined);
-      }
-      return;
-    }
 
-    const normalized = normalizeInput(text, normalizationOptions);
-    setInternalValue(normalized.localized);
+        const normalized = normalizeInput(text, normalizationOptions);
 
-    if (!normalized.hasValue) {
-      if (allowEmpty && normalized.localized === '') {
-        onChange?.(undefined);
-      }
-      return;
-    }
+        if (!normalized.hasValue || normalized.parsedValue === undefined) {
+          if (allowEmpty && normalized.localized === '') {
+            setDraft({ text: '', forValue: null });
+            commit(null);
+            return;
+          }
+          // A partial entry ('-', '.'): keep showing it, value unchanged.
+          setDraft({ text: normalized.localized, forValue: before });
+          return;
+        }
 
-    if (normalized.parsedValue === undefined || Number.isNaN(normalized.parsedValue)) {
-      return;
-    }
+        let nextValue = normalized.parsedValue;
+        let nextText = normalized.localized;
+        if (clampBehavior === 'strict') {
+          nextValue = clampValue(nextValue);
+          if (nextValue !== normalized.parsedValue) nextText = toEditable(nextValue);
+        }
 
-    let nextValue = normalized.parsedValue;
+        if (!allowedChecker(nextValue, nextValue.toString())) {
+          setDraft({ text: nextText, forValue: before });
+          return;
+        }
 
-    if (clampBehavior === 'strict') {
-      nextValue = clampValue(nextValue);
-      setInternalValue(formatEditableValue(nextValue));
-    }
+        setDraft({ text: nextText, forValue: nextValue });
+        commit(nextValue);
+      },
+      [parser, clampBehavior, clampValue, allowEmpty, normalizationOptions, allowedChecker, toEditable, commit]
+    );
 
-    if (!allowedChecker(nextValue, nextValue.toString())) {
-      return;
-    }
+    const handleFocus = useCallback(() => {
+      setFocused(true);
+      setDraft(null);
+      userOnFocus?.();
+    }, [userOnFocus]);
 
-    onChange?.(nextValue);
-  }, [parser, clampBehavior, clampValue, allowEmpty, onChange, normalizationOptions, formatEditableValue, allowedChecker]);
-
-  // Handle focus
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-    if (value === undefined || value === null) {
-      setInternalValue('');
-    } else {
-      setInternalValue(formatEditableValue(value));
-    }
-    userInputOnFocus?.();
-  }, [value, formatEditableValue, userInputOnFocus]);
-
-  // Handle blur
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-    setInternalValue('');
-    
-    // Apply clamping on blur if needed
-    if (clampBehavior === 'blur' && value !== undefined) {
-      const clamped = clampValue(value);
-      if (clamped !== value && allowedChecker(clamped, clamped.toString())) {
-        onChange?.(clamped);
-      }
-    }
-    userInputOnBlur?.();
-  }, [clampBehavior, clampValue, value, onChange, allowedChecker, userInputOnBlur]);
-
-  // Handle increment/decrement
-  const handleStep = useCallback((direction: 'up' | 'down', shouldRestoreFocus = false, multiplier = 1) => {
-    if (disabled) return;
-    const normalizedMultiplier = Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1;
-    const stepSize = step * normalizedMultiplier;
-    const effectiveStep = Number.isFinite(stepSize) && stepSize !== 0 ? stepSize : step;
-    const currentValue = controlledValueRef.current;
-    const hasValue = currentValue !== undefined && currentValue !== null;
-    let nextValue: number;
-
-    if (!hasValue) {
-      nextValue = startValue;
-    } else {
-      const delta = direction === 'up' ? effectiveStep : -effectiveStep;
-      nextValue = (currentValue as number) + delta;
-    }
-
-    if (!allowDecimal) {
-      nextValue = Math.round(nextValue);
-    }
-
-    const clamped = clampValue(nextValue);
-
-    if (!allowedChecker(clamped, clamped.toString())) {
-      return;
-    }
-
-    controlledValueRef.current = clamped;
-    onChange?.(clamped);
-
-    if (focused) {
-      setInternalValue(formatEditableValue(clamped));
-    }
-    if (shouldRestoreFocus) {
-      requestFocusRestore();
-    }
-  }, [disabled, startValue, step, allowDecimal, clampValue, allowedChecker, onChange, focused, formatEditableValue, requestFocusRestore]);
-
-  const clearHoldTimers = useCallback(() => {
-    if (holdTimeoutRef.current) {
-      clearTimeout(holdTimeoutRef.current);
-      holdTimeoutRef.current = null;
-    }
-    if (holdIntervalRef.current) {
-      clearTimeout(holdIntervalRef.current);
-      holdIntervalRef.current = null;
-    }
-  }, []);
-
-  const scheduleNextStep = useCallback((direction: 'up' | 'down', multiplier: number) => {
-    const normalizedMultiplier = Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1;
-    const interval = typeof stepHoldInterval === 'function'
-      ? stepHoldInterval(stepCountRef.current)
-      : stepHoldInterval;
-
-    const delay = Math.max(interval ?? DEFAULT_STEP_INTERVAL, 0);
-
-    holdIntervalRef.current = setTimeout(() => {
-      stepCountRef.current += 1;
-      handleStep(direction, true, normalizedMultiplier);
-      scheduleNextStep(direction, normalizedMultiplier);
-    }, delay);
-  }, [handleStep, stepHoldInterval]);
-
-  const startHold = useCallback((direction: 'up' | 'down', multiplier = 1) => {
-    if (disabled) return;
-    // The pan responder covers the whole field, controls included. Marking the hold keeps a
-    // press on +/- from also arming the drag gesture and double-counting steps.
-    holdActiveRef.current = true;
-    clearHoldTimers();
-    stepCountRef.current = 0;
-    const normalizedMultiplier = Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1;
-    handleStep(direction, true, normalizedMultiplier);
-
-    const delay = Math.max(stepHoldDelay ?? DEFAULT_STEP_DELAY, 0);
-
-    holdTimeoutRef.current = setTimeout(() => {
-      stepCountRef.current = 1;
-      scheduleNextStep(direction, normalizedMultiplier);
-    }, delay);
-  }, [disabled, clearHoldTimers, handleStep, stepHoldDelay, scheduleNextStep]);
-
-  const stopHold = useCallback(() => {
-    holdActiveRef.current = false;
-    clearHoldTimers();
-    stepCountRef.current = 0;
-  }, [clearHoldTimers]);
-
-  useEffect(() => () => {
-    clearHoldTimers();
-  }, [clearHoldTimers]);
-
-  useEffect(() => {
-    const state = dragStateRef.current;
-    if (state.active) return;
-    state.dragStartValue = typeof value === 'number' ? value : startValue;
-    state.lastComputedValue = typeof value === 'number' ? value : undefined;
-  }, [value, startValue]);
-
-  const effectiveDragStepDistance = useMemo(() => {
-    if (!Number.isFinite(dragStepDistance) || dragStepDistance <= 0) {
-      return DEFAULT_DRAG_STEP_DISTANCE;
-    }
-    return dragStepDistance;
-  }, [dragStepDistance]);
-
-  const dragActivationDistance = useMemo(
-    () => Math.max(MIN_DRAG_ACTIVATION_DISTANCE, effectiveDragStepDistance * 0.35),
-    [effectiveDragStepDistance]
-  );
-
-  const getDragAxisDelta = useCallback((gestureState: PanResponderGestureState) => (
-    dragAxis === 'horizontal' ? gestureState.dx : -gestureState.dy
-  ), [dragAxis]);
-
-  // --- Web text-selection guard -------------------------------------------------------------
-  // The gesture starts inside a focused <input>, so the browser is busy running its own
-  // text-selection drag on the same pointer stream. Nothing in the responder system cancels
-  // that, which is why the value ends up highlighted while it is being scrubbed.
-  const selectionGuardRef = useRef({
-    active: false,
-    caret: null as number | null,
-    blurredForDrag: false,
-    prevBodyUserSelect: '',
-    prevBodyCursor: '',
-    prevInputUserSelect: '',
-    prevInputCursor: '',
-  });
-
-  const getWebInputElement = useCallback((): HTMLInputElement | null => {
-    if (Platform.OS !== 'web') return null;
-    const node = inputRef.current as unknown as HTMLInputElement | null;
-    if (!node || typeof node.setSelectionRange !== 'function') return null;
-    return node;
-  }, []);
-
-  // `selectionStart` throws on input types that do not support selection, and this runs inside a
-  // pointer-move handler where a throw would abort the whole gesture.
-  const readSelectionRange = useCallback((element: HTMLInputElement) => {
-    try {
-      const { selectionStart, selectionEnd } = element;
-      if (typeof selectionStart !== 'number' || typeof selectionEnd !== 'number') return null;
-      return { start: selectionStart, end: selectionEnd };
-    } catch {
-      return null;
-    }
-  }, []);
-
-  const collapseSelection = useCallback(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-
-    const element = getWebInputElement();
-    if (element) {
-      const range = readSelectionRange(element);
-      if (range && range.start !== range.end) {
-        const text = element.value ?? '';
-        const caret = selectionGuardRef.current.caret ?? text.length;
-        const bounded = Math.max(0, Math.min(caret, text.length));
-        try {
-          element.setSelectionRange(bounded, bounded);
-        } catch {
-          // Some input modes reject programmatic selection; the highlight is cosmetic here.
+    const handleBlur = useCallback(() => {
+      setFocused(false);
+      setDraft(null);
+      const latest = valueRef.current;
+      if (clampBehavior === 'blur' && latest !== null) {
+        const clamped = clampValue(latest);
+        if (clamped !== latest && allowedChecker(clamped, clamped.toString())) {
+          commit(clamped);
         }
       }
+      userOnBlur?.();
+    }, [clampBehavior, clampValue, allowedChecker, commit, userOnBlur]);
+
+    const handleStep = useCallback(
+      (direction: StepDirection, shouldRestoreFocus = false, multiplier = 1) => {
+        if (disabled) return;
+        const normalizedMultiplier = Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1;
+        const stepSize = step * normalizedMultiplier;
+        const effectiveStep = Number.isFinite(stepSize) && stepSize !== 0 ? stepSize : step;
+        const latest = valueRef.current;
+
+        let nextValue = latest === null ? startValue : latest + (direction === 'up' ? effectiveStep : -effectiveStep);
+        if (!allowDecimal) nextValue = Math.round(nextValue);
+
+        const clamped = clampValue(nextValue);
+        if (!allowedChecker(clamped, clamped.toString())) return;
+
+        commit(clamped);
+        if (shouldRestoreFocus) requestFocusRestore();
+      },
+      [disabled, step, startValue, allowDecimal, clampValue, allowedChecker, commit, requestFocusRestore]
+    );
+
+    const clearHoldTimers = useCallback(() => {
+      if (holdTimeoutRef.current) {
+        clearTimeout(holdTimeoutRef.current);
+        holdTimeoutRef.current = null;
+      }
+      if (holdIntervalRef.current) {
+        clearTimeout(holdIntervalRef.current);
+        holdIntervalRef.current = null;
+      }
+    }, []);
+
+    const scheduleNextStep = useCallback(
+      (direction: StepDirection, multiplier: number) => {
+        const interval =
+          typeof stepHoldInterval === 'function' ? stepHoldInterval(stepCountRef.current) : stepHoldInterval;
+        holdIntervalRef.current = setTimeout(() => {
+          stepCountRef.current += 1;
+          handleStep(direction, true, multiplier);
+          scheduleNextStep(direction, multiplier);
+        }, Math.max(interval ?? DEFAULT_STEP_INTERVAL, 0));
+      },
+      [handleStep, stepHoldInterval]
+    );
+
+    const startHold = useCallback(
+      (direction: StepDirection, multiplier = 1) => {
+        if (disabled) return;
+        // The pan responder covers the whole field, controls included. Marking the hold keeps a
+        // press on +/- from also arming the drag gesture and double-counting steps.
+        holdActiveRef.current = true;
+        clearHoldTimers();
+        stepCountRef.current = 0;
+        handleStep(direction, true, multiplier);
+        holdTimeoutRef.current = setTimeout(() => {
+          stepCountRef.current = 1;
+          scheduleNextStep(direction, multiplier);
+        }, Math.max(stepHoldDelay ?? DEFAULT_STEP_DELAY, 0));
+      },
+      [disabled, clearHoldTimers, handleStep, stepHoldDelay, scheduleNextStep]
+    );
+
+    const stopHold = useCallback(() => {
+      holdActiveRef.current = false;
+      clearHoldTimers();
+      stepCountRef.current = 0;
+    }, [clearHoldTimers]);
+
+    useEffect(() => clearHoldTimers, [clearHoldTimers]);
+
+    // --- Press-and-drag scrubbing ------------------------------------------------------------
+    const selectionGuardRef = useRef<ReturnType<typeof createDragSelectionGuard> | null>(null);
+    if (!selectionGuardRef.current) {
+      selectionGuardRef.current = createDragSelectionGuard(() => inputRef.current);
     }
+    const selectionGuard = selectionGuardRef.current;
 
-    // A drag that started on the label or description selects document text instead, which the
-    // input's own selection API cannot clear.
-    if (element && document.activeElement === element) return;
-    const selection = typeof window !== 'undefined' ? window.getSelection?.() : null;
-    if (selection && !selection.isCollapsed) {
-      selection.removeAllRanges();
-    }
-  }, [getWebInputElement, readSelectionRange]);
+    const effectiveDragStepDistance =
+      Number.isFinite(dragStepDistance) && dragStepDistance > 0 ? dragStepDistance : DEFAULT_DRAG_STEP_DISTANCE;
+    const dragActivationDistance = Math.max(MIN_DRAG_ACTIVATION_DISTANCE, effectiveDragStepDistance * 0.35);
 
-  const preventSelectStart = useCallback((event: Event) => {
-    if (selectionGuardRef.current.active) {
-      event.preventDefault();
-    }
-  }, []);
+    const notifyDragState = useLatestCallback((dragging: boolean) => onDragStateChange?.(dragging));
 
-  const beginSelectionGuard = useCallback(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const beginDrag = useCallback(() => {
+      const state = dragStateRef.current;
+      if (state.active || !withDragGesture || disabled || holdActiveRef.current) return;
 
-    const guard = selectionGuardRef.current;
-    if (guard.active) return;
+      const latest = valueRef.current;
+      state.active = true;
+      state.dragStartValue = latest ?? startValue;
+      state.lastComputedValue = latest ?? undefined;
+      state.wasFocused = focused;
+      selectionGuard.begin(dragAxis);
+      // A scrub only claims the gesture once it clears the activation distance, so the
+      // lock is taken here rather than on touch-down: before that point the touch still
+      // belongs to the page and scrolling over the field is correct.
+      acquirePageScrollLock();
+      notifyDragState(true);
+    }, [withDragGesture, disabled, startValue, focused, selectionGuard, dragAxis, notifyDragState]);
 
-    const element = getWebInputElement();
-    const cursor = dragAxis === 'vertical' ? 'ns-resize' : 'ew-resize';
+    const handleDragMove = useCallback(
+      (gestureState: PanResponderGestureState) => {
+        if (!withDragGesture || disabled) return;
 
-    // Where the pointer went down, so the caret can be parked there instead of jumping once the
-    // browser's half-formed selection is collapsed.
-    const range = element ? readSelectionRange(element) : null;
+        const state = dragStateRef.current;
+        if (!state.active) beginDrag();
+        if (!state.active) return;
 
-    guard.active = true;
-    guard.caret = range && range.start === range.end ? range.start : null;
+        const delta = dragAxis === 'horizontal' ? gestureState.dx : -gestureState.dy;
+        if (!Number.isFinite(delta)) return;
 
-    const body = document.body;
-    if (body) {
-      guard.prevBodyUserSelect = body.style.userSelect;
-      guard.prevBodyCursor = body.style.cursor;
-      body.style.userSelect = 'none';
-      body.style.cursor = cursor;
-    }
+        const stepSize = step * (dragStepMultiplier || 1);
+        if (!Number.isFinite(stepSize) || stepSize === 0) return;
 
-    if (element) {
-      // Form controls opt out of an inherited `user-select: none`, so the field needs its own.
-      guard.prevInputUserSelect = element.style.userSelect;
-      guard.prevInputCursor = element.style.cursor;
-      element.style.userSelect = 'none';
-      element.style.cursor = cursor;
-    }
+        const relativeSteps = delta / effectiveDragStepDistance;
+        const roundedSteps = allowDecimal ? Math.round(relativeSteps * 1e6) / 1e6 : Math.round(relativeSteps);
+        let nextValue = state.dragStartValue + roundedSteps * stepSize;
+        if (!Number.isFinite(nextValue)) return;
+        if (!allowDecimal) nextValue = Math.round(nextValue);
 
-    document.addEventListener('selectstart', preventSelectStart);
-    collapseSelection();
+        const clamped = clampValue(nextValue);
+        if (!allowedChecker(clamped, clamped.toString())) return;
 
-    // `user-select: none` does not apply inside editable elements, so a focused field will still
-    // let the browser drag-select its own text — and the `select` event that produces terminates
-    // the responder outright (react-native-web only lets a responder refuse termination for
-    // contextmenu/scroll/selectionchange). Handing focus back at the end of the gesture is what
-    // keeps the field typeable; holding onto it mid-scrub is what breaks the scrub.
-    if (element && document.activeElement === element) {
-      guard.blurredForDrag = true;
-      element.blur();
-    }
-  }, [dragAxis, getWebInputElement, readSelectionRange, preventSelectStart, collapseSelection]);
+        // The browser keeps extending its own selection while the pointer is down, so the
+        // highlight is cleared on every move rather than once at activation.
+        selectionGuard.collapse();
 
-  /** Returns whether the field gave up focus for the gesture and should get it back. */
-  const endSelectionGuard = useCallback(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return false;
+        if (state.lastComputedValue === clamped) return;
+        state.lastComputedValue = clamped;
+        commit(clamped);
+      },
+      [
+        withDragGesture,
+        disabled,
+        beginDrag,
+        dragAxis,
+        step,
+        dragStepMultiplier,
+        effectiveDragStepDistance,
+        allowDecimal,
+        clampValue,
+        allowedChecker,
+        selectionGuard,
+        commit,
+      ]
+    );
 
-    const guard = selectionGuardRef.current;
-    if (!guard.active) return false;
+    const endDrag = useCallback(() => {
+      const state = dragStateRef.current;
+      const blurredForDrag = selectionGuard.end();
+      if (!state.active) return;
 
-    guard.active = false;
-    document.removeEventListener('selectstart', preventSelectStart);
-
-    const body = document.body;
-    if (body) {
-      body.style.userSelect = guard.prevBodyUserSelect;
-      body.style.cursor = guard.prevBodyCursor;
-    }
-
-    const element = getWebInputElement();
-    if (element) {
-      element.style.userSelect = guard.prevInputUserSelect;
-      element.style.cursor = guard.prevInputCursor;
-    }
-
-    collapseSelection();
-    guard.caret = null;
-
-    const blurredForDrag = guard.blurredForDrag;
-    guard.blurredForDrag = false;
-    return blurredForDrag;
-  }, [preventSelectStart, getWebInputElement, collapseSelection]);
-
-  const beginDrag = useCallback(() => {
-    const state = dragStateRef.current;
-    if (state.active || !withDragGesture || disabled || holdActiveRef.current) {
-      return;
-    }
-
-    const baseValue = typeof value === 'number' ? value : startValue;
-    state.active = true;
-    state.dragStartValue = baseValue;
-    state.lastComputedValue = typeof value === 'number' ? value : undefined;
-    state.wasFocused = focused;
-    beginSelectionGuard();
-    // A scrub only claims the gesture once it clears `dragActivationDistance`,
-    // so the lock is taken here rather than on touch-down: before that point the
-    // touch still belongs to the page and scrolling over the field is correct.
-    acquirePageScrollLock();
-    onDragStateChange?.(true);
-  }, [withDragGesture, disabled, value, startValue, focused, beginSelectionGuard, onDragStateChange]);
-
-  const handleDragMove = useCallback((gestureState: PanResponderGestureState) => {
-    if (!withDragGesture || disabled) {
-      return;
-    }
-
-    const state = dragStateRef.current;
-
-    if (!state.active) {
-      beginDrag();
-    }
-
-    if (!state.active) {
-      return;
-    }
-
-    const delta = getDragAxisDelta(gestureState);
-    if (!Number.isFinite(delta)) {
-      return;
-    }
-
-    const distance = effectiveDragStepDistance;
-    if (!Number.isFinite(distance) || distance <= 0) {
-      return;
-    }
-
-    const multiplier = dragStepMultiplier || 1;
-    const stepSize = step * multiplier;
-
-    if (!Number.isFinite(stepSize) || stepSize === 0) {
-      return;
-    }
-
-    const rawDelta = (delta / distance) * stepSize;
-    let nextValue = state.dragStartValue + rawDelta;
-
-    if (Number.isFinite(stepSize) && stepSize !== 0) {
-      const relativeSteps = (nextValue - state.dragStartValue) / stepSize;
-      const roundedSteps = allowDecimal ? Math.round(relativeSteps * 1e6) / 1e6 : Math.round(relativeSteps);
-      nextValue = state.dragStartValue + roundedSteps * stepSize;
-    }
-
-    if (!Number.isFinite(nextValue)) {
-      return;
-    }
-
-    if (!allowDecimal) {
-      nextValue = Math.round(nextValue);
-    }
-
-    const clamped = clampValue(nextValue);
-
-    if (!allowedChecker(clamped, clamped.toString())) {
-      return;
-    }
-
-    // The browser keeps extending its own selection for as long as the pointer is down, so the
-    // highlight has to be cleared on every move rather than once at activation.
-    collapseSelection();
-
-    if (state.lastComputedValue === clamped) {
-      return;
-    }
-
-    state.lastComputedValue = clamped;
-    controlledValueRef.current = clamped;
-
-    onChange?.(clamped);
-
-    if (focused) {
-      setInternalValue(formatEditableValue(clamped));
-    }
-  }, [withDragGesture, disabled, beginDrag, getDragAxisDelta, effectiveDragStepDistance, dragStepMultiplier, step, allowDecimal, clampValue, allowedChecker, collapseSelection, onChange, focused, formatEditableValue]);
-
-  const endDrag = useCallback(() => {
-    const state = dragStateRef.current;
-    const blurredForDrag = endSelectionGuard();
-
-    if (!state.active) {
-      return;
-    }
-
-    const shouldRestoreFocus = (state.wasFocused || blurredForDrag) && !disabled;
-
-    releasePageScrollLock();
-    state.active = false;
-    state.wasFocused = false;
-    state.lastComputedValue = undefined;
-
-    onDragStateChange?.(false);
-
-    if (shouldRestoreFocus) {
-      requestFocusRestore();
-    }
-  }, [onDragStateChange, requestFocusRestore, endSelectionGuard, disabled]);
-
-  useEffect(() => {
-    if (!withDragGesture || disabled) {
-      endDrag();
-    }
-  }, [withDragGesture, disabled, endDrag]);
-
-  // Unmounting mid-scrub would otherwise leave the page-scroll lock held.
-  useEffect(() => () => {
-    if (dragStateRef.current.active) {
-      dragStateRef.current.active = false;
+      const shouldRestoreFocus = (state.wasFocused || blurredForDrag) && !disabled;
       releasePageScrollLock();
-    }
-  }, []);
+      state.active = false;
+      state.wasFocused = false;
+      state.lastComputedValue = undefined;
+      notifyDragState(false);
+      if (shouldRestoreFocus) requestFocusRestore();
+    }, [selectionGuard, disabled, notifyDragState, requestFocusRestore]);
 
-  const onDragStateChangeRef = useRef(onDragStateChange);
-  useEffect(() => {
-    onDragStateChangeRef.current = onDragStateChange;
-  }, [onDragStateChange]);
+    useEffect(() => {
+      if (!withDragGesture || disabled) endDrag();
+    }, [withDragGesture, disabled, endDrag]);
 
-  // Unmount only. Keying this on `onDragStateChange` would tear down a live drag every time a
-  // parent re-rendered with an inline callback — which is exactly what happens while dragging.
-  useEffect(() => () => {
-    if (dragStateRef.current.active) {
-      dragStateRef.current.active = false;
-      dragStateRef.current.wasFocused = false;
-      dragStateRef.current.lastComputedValue = undefined;
-      onDragStateChangeRef.current?.(false);
-    }
-    endSelectionGuard();
-  }, [endSelectionGuard]);
+    // Unmount only: a live drag would otherwise leave the page-scroll lock and the
+    // selection guard held. Keyed on nothing that changes during a drag.
+    useEffect(
+      () => () => {
+        const state = dragStateRef.current;
+        if (state.active) {
+          state.active = false;
+          state.wasFocused = false;
+          state.lastComputedValue = undefined;
+          releasePageScrollLock();
+          notifyDragState(false);
+        }
+        selectionGuard.end();
+      },
+      [notifyDragState, selectionGuard]
+    );
 
-  const dragConfigRef = useRef({
-    enabled: withDragGesture,
-    disabled: !!disabled,
-    axis: dragAxis,
-    activationDistance: dragActivationDistance,
-  });
-  const dragHandlersRef = useRef({ begin: beginDrag, move: handleDragMove, end: endDrag });
-
-  useEffect(() => {
-    dragConfigRef.current = {
+    // Created once and driven through latest-value refs. A PanResponder accumulates dx/dy in the
+    // instance it was created with, so rebuilding it mid-gesture — which a controlled `value`
+    // update does on every step — resets the travel and snaps the value back.
+    const dragConfig = {
       enabled: withDragGesture,
       disabled: !!disabled,
       axis: dragAxis,
       activationDistance: dragActivationDistance,
     };
-  }, [withDragGesture, disabled, dragAxis, dragActivationDistance]);
+    const dragConfigRef = useRef(dragConfig);
+    dragConfigRef.current = dragConfig;
+    const dragBegin = useLatestCallback(beginDrag);
+    const dragMove = useLatestCallback(handleDragMove);
+    const dragEnd = useLatestCallback(endDrag);
 
-  useEffect(() => {
-    dragHandlersRef.current = { begin: beginDrag, move: handleDragMove, end: endDrag };
-  }, [beginDrag, handleDragMove, endDrag]);
+    const panResponderRef = useRef<PanResponderInstance | null>(null);
+    if (!panResponderRef.current) {
+      panResponderRef.current = PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onStartShouldSetPanResponderCapture: () => false,
+        onMoveShouldSetPanResponder: (_, gestureState) => {
+          const config = dragConfigRef.current;
+          if (!config.enabled || config.disabled || holdActiveRef.current) return false;
+          const primaryDelta = config.axis === 'horizontal' ? Math.abs(gestureState.dx) : Math.abs(gestureState.dy);
+          const crossDelta = config.axis === 'horizontal' ? Math.abs(gestureState.dy) : Math.abs(gestureState.dx);
+          if (primaryDelta < config.activationDistance) return false;
+          return primaryDelta >= crossDelta;
+        },
+        onMoveShouldSetPanResponderCapture: () => false,
+        onPanResponderGrant: () => dragBegin(),
+        onPanResponderMove: (_, gestureState) => dragMove(gestureState),
+        onPanResponderRelease: () => dragEnd(),
+        onPanResponderTerminate: () => dragEnd(),
+        onPanResponderTerminationRequest: () => false,
+        // Once the scrub has out-argued the cross axis it owns the gesture, so an enclosing
+        // native ScrollView is told to stand down for the rest of it.
+        onShouldBlockNativeResponder: () => true,
+      });
+    }
 
-  // Created once and driven through refs. A PanResponder accumulates dx/dy inside the instance
-  // it was created with, so rebuilding it mid-gesture — which a controlled `value` update does
-  // on every single step — resets the travel measured since the drag began and snaps the value
-  // back to where the pointer went down.
-  const panResponderRef = useRef<PanResponderInstance | null>(null);
-  if (!panResponderRef.current) {
-    panResponderRef.current = PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onStartShouldSetPanResponderCapture: () => false,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        const config = dragConfigRef.current;
-        if (!config.enabled || config.disabled || holdActiveRef.current) {
-          return false;
-        }
+    const dragGestureEnabled = withDragGesture && !disabled;
 
-        const primaryDelta = config.axis === 'horizontal' ? Math.abs(gestureState.dx) : Math.abs(gestureState.dy);
-        const crossDelta = config.axis === 'horizontal' ? Math.abs(gestureState.dy) : Math.abs(gestureState.dx);
+    // --- Step buttons ------------------------------------------------------------------------
+    const styles = useThemedStyles(
+      (t) => ({
+        sideButton: [
+          { minWidth: 24, minHeight: 24, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' } as const,
+          webStyle({ cursor: 'pointer' }),
+        ],
+        spinner: { flexDirection: 'column' } as const,
+        spinnerButton: [
+          { minWidth: 24, paddingHorizontal: 4, paddingVertical: 2, alignItems: 'center', justifyContent: 'center' } as const,
+          webStyle({ cursor: 'pointer' }),
+        ],
+        spinnerDivider: { borderBottomWidth: 1, borderBottomColor: t.backgrounds.border },
+        row: { flexDirection: 'row', alignItems: 'center' } as const,
+        stretchRow: { flexDirection: 'row', alignItems: 'stretch', gap: 4 } as const,
+        startGap: { marginStart: 8 },
+        disabled: { opacity: 0.4 },
+      }),
+      []
+    );
 
-        if (primaryDelta < config.activationDistance) {
-          return false;
-        }
+    const showControls = withControls && !(hideControlsOnMobile && isNative);
+    const comparisonValue = current ?? startValue;
+    const disableIncrement = !!disabled || (max !== undefined && comparisonValue >= max);
+    const disableDecrement = !!disabled || (resolvedMin !== undefined && comparisonValue <= resolvedMin);
+    const iconColor = theme.text.secondary;
 
-        return primaryDelta >= crossDelta;
-      },
-      onMoveShouldSetPanResponderCapture: () => false,
-      onPanResponderGrant: () => {
-        dragHandlersRef.current.begin();
-      },
-      onPanResponderMove: (_, gestureState) => {
-        dragHandlersRef.current.move(gestureState);
-      },
-      onPanResponderRelease: () => {
-        dragHandlersRef.current.end();
-      },
-      onPanResponderTerminate: () => {
-        dragHandlersRef.current.end();
-      },
-      onPanResponderTerminationRequest: () => false,
-      // Once the scrub has out-argued the cross axis it owns the gesture, so the
-      // enclosing native ScrollView is told to stand down for the rest of it.
-      onShouldBlockNativeResponder: () => true,
+    const stepButtonProps = (direction: StepDirection, isDisabled: boolean) => ({
+      onPressIn: (event: GestureResponderEvent) => startHold(direction, getModifierMultiplier(event as unknown as ModifierEventLike)),
+      onPressOut: stopHold,
+      onTouchEnd: stopHold,
+      disabled: isDisabled,
+      hitSlop: isWeb ? undefined : STEP_BUTTON_HIT_SLOP,
+      ...a11yProps({
+        role: 'button',
+        label: direction === 'up' ? incrementLabel : decrementLabel,
+        disabled: isDisabled,
+      }),
     });
-  }
 
-  const dragGestureEnabled = withDragGesture && !disabled;
-
-  const inputPropsWithGestures = useMemo(() => {
-    if (!dragGestureEnabled) {
-      return restInputProps;
-    }
-
-    return {
-      ...restInputProps,
-      ...(panResponderRef.current as PanResponderInstance).panHandlers,
-    };
-  }, [restInputProps, dragGestureEnabled]);
-
-  // Controls visibility
-  const showControls = useMemo(() => {
-    if (!withControls) return false;
-    if (hideControlsOnMobile && Platform.OS !== 'web') return false;
-    return true;
-  }, [withControls, hideControlsOnMobile]);
-
-  const comparisonValue = value ?? startValue;
-  const disableIncrement = disabled || (max !== undefined && comparisonValue >= max);
-  const disableDecrement = disabled || (resolvedMin !== undefined && comparisonValue <= resolvedMin);
-
-  const startSection = useMemo(() => {
-    if (!withSideButtons) {
-      return userLeftSection;
-    }
-
-    const button = (
+    const decrementSideButton = withSideButtons ? (
       <Pressable
         key="side-decrement"
-        onPressIn={(event) => startHold('down', getModifierMultiplier(event))}
-        onPressOut={stopHold}
-        onTouchEnd={stopHold}
-        disabled={disableDecrement}
-        accessibilityRole="button"
-        accessibilityLabel="Decrease value"
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        style={{
-          paddingHorizontal: 10,
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: disableDecrement ? 0.4 : 1,
-        }}
+        {...stepButtonProps('down', disableDecrement)}
+        style={[styles.sideButton, disableDecrement && styles.disabled]}
       >
-        <Icon name="minus" size={14} color={theme.text.secondary} />
+        <Icon name="minus" size={14} color={iconColor} />
       </Pressable>
+    ) : null;
+
+    const startSection = decrementSideButton ? (
+      userStartSection ? (
+        <View style={styles.row}>
+          {decrementSideButton}
+          <View style={styles.startGap}>{userStartSection}</View>
+        </View>
+      ) : (
+        decrementSideButton
+      )
+    ) : (
+      userStartSection
     );
 
-    if (!userLeftSection) {
-      return button;
-    }
-
-    return (
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        {button}
-        <View style={{ marginLeft: 8 }}>{userLeftSection}</View>
-      </View>
-    );
-  }, [withSideButtons, userLeftSection, startHold, stopHold, getModifierMultiplier, disableDecrement, theme]);
-
-  // Right section with controls and side button
-  const endSection = useMemo(() => {
-    if (!withSideButtons && !showControls) {
-      return userRightSection ?? null;
-    }
-
-    const sections: React.ReactNode[] = [];
-
+    const endSections: React.ReactNode[] = [];
     if (withSideButtons) {
-      sections.push(
+      endSections.push(
         <Pressable
           key="side-increment"
-          onPressIn={(event) => startHold('up', getModifierMultiplier(event))}
-          onPressOut={stopHold}
-          onTouchEnd={stopHold}
-          disabled={disableIncrement}
-          accessibilityRole="button"
-          accessibilityLabel="Increase value"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={{
-            paddingHorizontal: 10,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: disableIncrement ? 0.4 : 1,
-          }}
+          {...stepButtonProps('up', disableIncrement)}
+          style={[styles.sideButton, disableIncrement && styles.disabled]}
         >
-          <Icon name="plus" size={14} color={theme.text.secondary} />
+          <Icon name="plus" size={14} color={iconColor} />
         </Pressable>
       );
     }
-
     if (showControls) {
-      const marginStyle = sections.length > 0 ? { marginLeft: 4 } : null;
-      sections.push(
-        <View key="spinner" style={[{ flexDirection: 'column' }, marginStyle]}>
+      endSections.push(
+        <View key="spinner" style={styles.spinner}>
           <Pressable
-            onPressIn={(event) => startHold('up', getModifierMultiplier(event))}
-            onPressOut={stopHold}
-            onTouchEnd={stopHold}
-            disabled={disableIncrement}
-            accessibilityRole="button"
-            style={{
-              padding: 4,
-              borderBottomWidth: 1,
-              borderBottomColor: theme.colors.gray[3],
-            }}
+            {...stepButtonProps('up', disableIncrement)}
+            style={[styles.spinnerButton, styles.spinnerDivider, disableIncrement && styles.disabled]}
           >
-            <Icon name="chevron-up" size={12} color={theme.text.secondary} />
+            <Icon name="chevron-up" size={12} color={iconColor} />
           </Pressable>
-
           <Pressable
-            onPressIn={(event) => startHold('down', getModifierMultiplier(event))}
-            onPressOut={stopHold}
-            onTouchEnd={stopHold}
-            disabled={disableDecrement}
-            accessibilityRole="button"
-            style={{
-              padding: 4,
-            }}
+            {...stepButtonProps('down', disableDecrement)}
+            style={[styles.spinnerButton, disableDecrement && styles.disabled]}
           >
-            <Icon name="chevron-down" size={12} color={theme.text.secondary} />
+            <Icon name="chevron-down" size={12} color={iconColor} />
           </Pressable>
         </View>
       );
     }
-
-    if (userRightSection) {
-      const marginStyle = sections.length > 0 ? { marginLeft: 4 } : null;
-      sections.push(
-        <View key="user" style={marginStyle ?? undefined}>
-          {userRightSection}
-        </View>
+    if (userEndSection && endSections.length > 0) {
+      endSections.push(<View key="user">{userEndSection}</View>);
+    }
+    const endSection =
+      endSections.length === 0 ? (userEndSection ?? null) : endSections.length === 1 ? endSections[0] : (
+        <View style={styles.stretchRow}>{endSections}</View>
       );
-    }
 
-    if (sections.length === 0) {
-      return null;
-    }
+    // --- Keyboard ----------------------------------------------------------------------------
+    const userOnKeyPress = textInputProps?.onKeyPress;
+    const userOnKeyDown = textInputProps?.onKeyDown;
 
-    if (sections.length === 1) {
-      return sections[0];
-    }
+    // react-native-web routes a TextInput's DOM keydown through `onKeyPress` (with the full
+    // keyboard event); native reports hardware-keyboard arrows there too.
+    const handleKeyPress = useCallback(
+      (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
+        userOnKeyPress?.(event);
+        if (isWeb) userOnKeyDown?.(event as unknown as WebKeyboardEvent);
+        if (!withKeyboardEvents) return;
+        const webEvent = event as unknown as Partial<WebKeyboardEvent>;
+        if (webEvent.defaultPrevented) return;
+
+        const key = webEvent.key ?? event.nativeEvent?.key;
+        if (key !== 'ArrowUp' && key !== 'ArrowDown') return;
+        webEvent.preventDefault?.();
+        handleStep(key === 'ArrowUp' ? 'up' : 'down', false, getModifierMultiplier(event as unknown as ModifierEventLike));
+      },
+      [userOnKeyPress, userOnKeyDown, withKeyboardEvents, handleStep, getModifierMultiplier]
+    );
+
+    const enhancedTextInputProps = useMemo<ExtendedTextInputProps>(
+      () => ({
+        ...textInputProps,
+        onKeyPress: handleKeyPress,
+        // Web: announce as a spin button with its range (native keeps the text-field role).
+        ...(isWeb
+          ? a11yProps({
+              role: 'spinbutton',
+              value: {
+                min: resolvedMin,
+                max,
+                now: current ?? undefined,
+                text: current === null ? undefined : formatValue(current),
+              },
+            })
+          : null),
+      }),
+      [textInputProps, handleKeyPress, resolvedMin, max, current, formatValue]
+    );
 
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
-        {sections}
-      </View>
+      <Input
+        {...restInputProps}
+        ref={mergedRef}
+        name={name}
+        testID={testID}
+        keyboardFocusId={focusTargetId}
+        value={displayValue}
+        onChangeText={handleChangeText}
+        onBlur={handleBlur}
+        onFocus={handleFocus}
+        keyboardType={allowDecimal ? 'decimal-pad' : 'number-pad'}
+        startSection={startSection}
+        endSection={endSection}
+        disabled={disabled}
+        error={error}
+        textInputProps={enhancedTextInputProps}
+        containerProps={dragGestureEnabled ? panResponderRef.current.panHandlers : undefined}
+      />
     );
-  }, [
-    withSideButtons,
-    showControls,
-    userRightSection,
-    startHold,
-    stopHold,
-    getModifierMultiplier,
-    disableIncrement,
-    disableDecrement,
-    theme
-  ]);
-
-  const userOnKeyDown = textInputProps?.onKeyDown;
-
-  const handleKeyDown = useCallback((event: any) => {
-    userOnKeyDown?.(event);
-    if (!withKeyboardEvents) return;
-    if (event?.defaultPrevented) return;
-
-    const key = event?.nativeEvent?.key ?? event?.key;
-    if (key === 'ArrowUp' || key === 'ArrowDown') {
-      event.preventDefault?.();
-      event.stopPropagation?.();
-      const multiplier = getModifierMultiplier(event);
-      handleStep(key === 'ArrowUp' ? 'up' : 'down', false, multiplier);
-    }
-  }, [userOnKeyDown, withKeyboardEvents, handleStep, getModifierMultiplier]);
-
-  useEffect(() => {
-    if (Platform.OS !== 'web' || !withKeyboardEvents) return;
-
-    const element = inputRef.current as unknown as {
-      addEventListener?: (type: string, listener: any) => void;
-      removeEventListener?: (type: string, listener: any) => void;
-    } | null;
-
-    if (!element?.addEventListener || !element?.removeEventListener) {
-      return;
-    }
-
-    const listener = (event: any) => {
-      handleKeyDown(event);
-    };
-
-    const add = element.addEventListener.bind(element);
-    const remove = element.removeEventListener.bind(element);
-
-    add('keydown', listener);
-
-    return () => {
-      remove('keydown', listener);
-    };
-  }, [handleKeyDown, withKeyboardEvents]);
-
-  const enhancedTextInputProps = useMemo<NumberInputProps['textInputProps']>(() => {
-    if (Platform.OS !== 'web' || !withKeyboardEvents) {
-      return textInputProps;
-    }
-
-    if (textInputProps) {
-      return {
-        ...textInputProps,
-        onKeyDown: handleKeyDown,
-      };
-    }
-
-    return {
-      onKeyDown: handleKeyDown,
-    } as ExtendedTextInputProps;
-  }, [textInputProps, handleKeyDown, withKeyboardEvents]);
-
-  const keyboardType = allowDecimal ? 'decimal-pad' : 'number-pad';
-
-  return (
-    <Input
-      {...inputPropsWithGestures}
-      value={displayValue}
-      onChangeText={handleChangeText}
-      onBlur={handleBlur}
-      onFocus={handleFocus}
-      keyboardType={keyboardType}
-      startSection={startSection}
-      endSection={endSection}
-      disabled={disabled}
-      error={error}
-      inputRef={inputRef}
-      textInputProps={enhancedTextInputProps}
-    />
-  );
-});
-
-NumberInput.displayName = 'NumberInput';
+  },
+  { displayName: 'NumberInput' }
+);

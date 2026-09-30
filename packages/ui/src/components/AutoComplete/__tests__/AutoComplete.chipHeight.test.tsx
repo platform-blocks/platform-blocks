@@ -4,7 +4,9 @@ import { render } from '@testing-library/react-native';
 
 import { OverlayProvider } from '../../../core/providers/OverlayProvider';
 import { AutoComplete } from '../AutoComplete';
-import { getBorderRadius, getComponentDefaultRadius } from '../../../core/theme/radius';
+import { DEFAULT_THEME } from '../../../core/theme/defaultTheme';
+import { getComponentDefaultRadius } from '../../../core/theme/radius';
+import { resolveRadius } from '../../../core/theme/tokens';
 
 const data = [
   { label: 'Apple', value: 'apple' },
@@ -20,7 +22,7 @@ const data = [
 const renderField = (props: Record<string, unknown>) =>
   render(
     <OverlayProvider>
-      <AutoComplete data={data} size="md" useModal={false} usePortal={false} testID="ac-input" {...props} />
+      <AutoComplete data={data} size="md" useModal={false} testID="ac-input" {...props} />
     </OverlayProvider>
   );
 
@@ -61,6 +63,6 @@ describe('AutoComplete multiSelect height', () => {
 describe('AutoComplete radius', () => {
   it('uses the shared input radius token rather than a hardcoded default', () => {
     const shell = fieldShellStyle(renderField({}));
-    expect(shell.borderRadius).toBe(getBorderRadius(getComponentDefaultRadius('input')));
+    expect(shell.borderRadius).toBe(resolveRadius(DEFAULT_THEME, getComponentDefaultRadius('input')));
   });
 });

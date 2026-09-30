@@ -6,15 +6,15 @@ subcategory: Form Controls
 tags: [input, form, selection, choice]
 status: stable
 playground: true
-since: 1.0.0
 platform:
   web: true
   ios: true
   android: true
 accessibility:
-  - Keyboard navigation support
-  - Screen reader compatible
-  - ARIA attributes
+  - RadioGroup is a labelled role="radiogroup"; each option is role="radio" with aria-checked
+  - One tab stop per group (the selected option, or the first while none is selected)
+  - Arrow keys move focus and selection together, following the reading direction; Home/End jump to the ends; Space selects
+  - Group label, description, helperText and error are linked through the shared Field frame
 related:
   - Checkbox
   - Switch
@@ -26,4 +26,4 @@ examples:
   forms: Integration with form controls
 ---
 
-Radio buttons allow users to select a single option from a group of mutually exclusive choices.
+Radio lets users select one option from a group of choices.

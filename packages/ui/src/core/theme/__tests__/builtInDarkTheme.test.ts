@@ -1,4 +1,4 @@
-import { BUILT_IN_DARK_THEME } from '../PlatformBlocksProvider';
+import { BUILT_IN_DARK_THEME } from '../PlocksProvider';
 import { DARK_THEME } from '../darkTheme';
 import { DEFAULT_THEME } from '../defaultTheme';
 import { resolveSurface } from '../surfaces';
@@ -11,7 +11,7 @@ import { resolveSurface } from '../surfaces';
  */
 describe('BUILT_IN_DARK_THEME', () => {
   it('carries every scheme-dependent group from the dark theme', () => {
-    (['colors', 'text', 'backgrounds', 'surfaces', 'states', 'semantic', 'shadows', 'other'] as const)
+    (['colors', 'text', 'backgrounds', 'surfaces', 'states', 'shadows', 'other'] as const)
       .forEach(key => {
         expect(BUILT_IN_DARK_THEME[key]).toEqual(DARK_THEME[key]);
       });
@@ -26,7 +26,7 @@ describe('BUILT_IN_DARK_THEME', () => {
     ([0, 1, 2, 3] as const).forEach(level => {
       const { background } = resolveSurface(BUILT_IN_DARK_THEME as any, level);
       const light = resolveSurface(DEFAULT_THEME as any, level).background;
-      expect(background).toBe(DARK_THEME.surfaces[level].background);
+      expect(background).toBe(DARK_THEME.surfaces?.[level].background);
       expect(background).not.toBe(light);
     });
   });

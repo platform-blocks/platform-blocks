@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Block, Icon, Knob } from '@platform-blocks/ui';
+import { Block, Icon, Knob } from '@plocks/ui';
 
 import { STATUS_SCENES } from './data';
 
@@ -23,7 +23,7 @@ export function Demo() {
 
   return (
     <Block>
-      <Knob
+      <Knob accessibilityLabel="Status"
         value={value}
         onChange={setValue}
         min={0}

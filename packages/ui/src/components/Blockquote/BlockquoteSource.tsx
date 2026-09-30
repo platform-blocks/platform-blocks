@@ -1,9 +1,8 @@
 import React from 'react';
-import { View, Pressable, Linking } from 'react-native';
-import { useTheme } from '../../core/theme';
+import { Linking, Pressable } from 'react-native';
+import { useTheme } from '../../core/theme/ThemeProvider';
 import { Text } from '../Text';
 import { Icon } from '../Icon';
-import { BrandIcon } from '../BrandIcon';
 import { Flex } from '../Flex';
 import type { BlockquoteSourceProps } from './types';
 
@@ -15,14 +14,14 @@ export function BlockquoteSource({
 
   const handlePress = () => {
     if (source.url) {
-      Linking.openURL(source.url);
+      Linking.openURL(source.url).catch(() => {});
     }
   };
 
   const content = (
     <Flex
       // Right-aligned attribution keeps its marks on the outer edge, so the
-      // brand icon trails the name instead of leading it.
+      // icon trails the name instead of leading it.
       direction={alignment === 'right' ? 'row-reverse' : 'row'}
       align="center"
       gap="xs"
@@ -30,27 +29,24 @@ export function BlockquoteSource({
         alignSelf: alignment === 'center' ? 'center' : alignment === 'right' ? 'flex-end' : 'flex-start',
       }}
     >
-      {/* Brand Icon */}
-      {source.brand && (
-        <BrandIcon
-          brand={source.brand}
-          size="sm"
-        />
-      )}
-
-      {/* Regular Icon */}
-      {source.icon && !source.brand && (
-        <Icon
-          name={source.icon}
-          size="sm"
-          color={theme.colors.gray[5]}
-        />
+      {/* A registry icon by name, or the caller's own node (e.g. a BrandIcon) */}
+      {typeof source.icon === 'string' ? (
+        source.icon !== '' && (
+          <Icon
+            name={source.icon}
+            size="sm"
+            color={theme.text.muted}
+            decorative
+          />
+        )
+      ) : (
+        source.icon
       )}
 
       {/* Source Name */}
       <Text 
         size="xs"
-        color="secondary"
+        c="secondary"
         style={{ 
           textAlign: alignment,
           ...(source.url && { textDecorationLine: 'underline' })
@@ -63,7 +59,7 @@ export function BlockquoteSource({
 
   if (source.url) {
     return (
-      <Pressable onPress={handlePress}>
+      <Pressable onPress={handlePress} role="link" aria-label={source.name}>
         {content}
       </Pressable>
     );

@@ -1,22 +1,53 @@
-import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
-import { View, Pressable, Text as RNText } from 'react-native';
+import React, { useMemo, useCallback, useRef, useState, useEffect, useId } from 'react';
+import { View, Text as RNText } from 'react-native';
+import type { GestureResponderEvent, LayoutChangeEvent } from 'react-native';
 import {
   acquirePageScrollLock,
   getGestureSurfaceStyle,
   releasePageScrollLock,
 } from '../../core/gestures';
-import Svg, { Path, Rect, LinearGradient, Stop, Defs, Line, G, Text as SvgText } from 'react-native-svg';
+import Svg, { Path, Rect, LinearGradient, Stop, Defs, Line, G, Circle, Text as SvgText } from 'react-native-svg';
 
-import { useTheme } from '../../core/theme';
+import { factory } from '../../core/factory/factory';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useAdjustable } from '../../core/accessibility/useAdjustable';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { hasDOM } from '../../core/platform';
+import type { WebKeyboardEvent } from '../../core/platform';
+import { useTheme } from '../../core/theme/ThemeProvider';
 import { resolveAccentColor } from '../../core/theme/resolveColors';
-import { WaveformProps, PerformanceMetrics, WaveformSizeMetrics } from './types';
+import { literalBackgrounds, literalText } from '../../core/theme/cssVariableTheme';
+import { onColor, resolveFontSize, resolveRadius } from '../../core/theme/tokens';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
+import type { WaveformProps, PerformanceMetrics, WaveformSizeMetrics } from './types';
 import { WaveformSkeleton } from './WaveformSkeleton';
-import { useMergedRef } from '../../core/utils';
+import { useMergedRef } from '../../core/utils/mergeRefs';
 import {
   resolveComponentSize,
   type ComponentSize,
   type ComponentSizeValue,
 } from '../../core/theme/componentSize';
+import { devWarn, warnOnce } from '../../core/utils/logger';
+import { useElementSize } from '../../hooks/useElementSize';
+
+/** `m:ss` / `h:mm:ss`. */
+export function formatWaveformTime(seconds: number): string {
+  const safe = Math.max(0, Math.floor(seconds));
+  const hrs = Math.floor(safe / 3600);
+  const mins = Math.floor((safe % 3600) / 60);
+  const secs = safe % 60;
+  if (hrs > 0) {
+    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+/** Keyboard seek step when the duration is known. */
+const SEEK_STEP_SECONDS = 5;
+
+/** Reads the web-only `shiftKey` off a responder event (false on native). */
+const isShiftPressed = (event: GestureResponderEvent) =>
+  !!(event.nativeEvent as unknown as { shiftKey?: boolean }).shiftKey;
 
 const WAVEFORM_ALLOWED_SIZES: ComponentSize[] = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
 
@@ -57,54 +88,61 @@ const resolveWaveformMetrics = (value: ComponentSizeValue | undefined): Waveform
   return typeof resolved === 'number' ? resolveWaveformMetrics(resolved) : resolved;
 };
 
-export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
-  peaks,
-  w = 300,
-  h: hProp,
-  color = 'primary',
-  size,
-  barWidth: barWidthProp,
-  barGap: barGapProp,
-  strokeWidth: strokeWidthProp,
-  minBarHeight: minBarHeightProp,
-  variant = 'bars',
-  gradientColors,
-  progress = 0,
-  progressColor,
-  interactive = false,
-  normalize = false,
-  fullWidth = false,
-  onSeek,
-  onDragStart,
-  onDrag,
-  onDragEnd,
-  accessibilityLabel,
-  accessibilityHint,
-  style,
-  maxVisibleBars,
-  showProgressLine = false,
-  progressLineStyle,
-  showTimeStamps = false,
-  duration,
-  timeStampInterval,
-  // New features
-  loading = false,
-  error,
-  loadingProgress,
-  selection,
-  onSelectionChange,
-  zoomLevel = 1,
-  zoomCenter = 0.5,
-  onZoomChange,
-  enableAnimations = true,
-  showRMS = false,
-  rmsData,
-  markers = [],
-  enablePerformanceMonitoring = false,
-  onPerformanceMetrics,
-  ...restProps
-}, ref) => {
+export const Waveform = factory<{ props: WaveformProps; ref: View }>((props, ref) => {
+  // `w` / `h` are the drawing's px geometry: they are applied with it below,
+  // not with the other style props.
+  const { w = 300, h: hProp, ...propsWithoutSize } = props;
+  const { styleProps, otherProps } = extractStyleProps(propsWithoutSize);
+  const {
+    peaks,
+    color = 'primary',
+    size,
+    barWidth: barWidthProp,
+    barGap: barGapProp,
+    strokeWidth: strokeWidthProp,
+    minBarHeight: minBarHeightProp,
+    variant = 'bars',
+    gradientColors,
+    progress = 0,
+    progressColor,
+    interactive = false,
+    normalize = false,
+    fullWidth = false,
+    onSeek,
+    onDragStart,
+    onDrag,
+    onDragEnd,
+    accessibilityLabel,
+    accessibilityHint,
+    style,
+    testID,
+    maxVisibleBars,
+    showProgressLine = false,
+    progressLineStyle,
+    showTimeStamps = false,
+    duration,
+    timeStampInterval,
+    loading = false,
+    error,
+    loadingProgress,
+    selection,
+    onSelectionChange,
+    showRMS = false,
+    rmsData,
+    markers = [],
+    enablePerformanceMonitoring = false,
+    onPerformanceMetrics,
+    onKeyDown,
+    onLayout: onLayoutProp,
+    ...restProps
+  } = otherProps;
+
   const theme = useTheme();
+  const spacingStyles = useStyleProps(styleProps);
+  // SVG paint attributes can't take the `var()` references web themes use for
+  // text / background roles, so the drawing reads the literal colors.
+  const svgText = literalText(theme);
+  const svgBackgrounds = literalBackgrounds(theme);
 
   // Size token supplies the defaults; an explicit prop always wins over the
   // value its token would have contributed.
@@ -119,54 +157,26 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
   const containerRef = useRef<View>(null);
   // Layout measurement keeps its own handle; the consumer's ref is composed in.
   const mergedContainerRef = useMergedRef<View>(containerRef, ref);
-  const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
+  const { width: containerWidth, onLayout: measureLayout } = useElementSize();
   const [isDragging, setIsDragging] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState<number | null>(null);
-  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics | null>(null);
 
-  // Performance monitoring
+  // Performance monitoring: time from render start to commit.
   const renderStartTime = useRef<number>(0);
-  
+  if (enablePerformanceMonitoring) {
+    renderStartTime.current = performance.now();
+  }
+  const reportPerformance = useLatestCallback(onPerformanceMetrics);
   useEffect(() => {
-    if (enablePerformanceMonitoring) {
-      renderStartTime.current = performance.now();
-    }
-  });
-
-  useEffect(() => {
-    if (enablePerformanceMonitoring && renderStartTime.current > 0) {
-      const renderTime = performance.now() - renderStartTime.current;
-      const metrics: PerformanceMetrics = {
-        renderTime,
-        elementsRendered: peaks.length,
-        memoryUsage: peaks.length * 8, // Rough estimate
-        averageFPS: 60, // Would need proper FPS tracking
-      };
-      setPerformanceMetrics(metrics);
-      onPerformanceMetrics?.(metrics);
-    }
-  }, [peaks, enablePerformanceMonitoring, onPerformanceMetrics]);
-
-  // Keyboard event handling for space bar play/pause
-  useEffect(() => {
-    if (!interactive || !isFocused) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code === 'Space') {
-        event.preventDefault();
-        // Trigger a custom event that the parent can listen to
-        const spaceEvent = new CustomEvent('waveformSpacePress');
-        document.dispatchEvent(spaceEvent);
-      }
-    };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [interactive, isFocused]);
+    if (!enablePerformanceMonitoring || renderStartTime.current <= 0) return;
+    reportPerformance({
+      renderTime: performance.now() - renderStartTime.current,
+      elementsRendered: peaks.length,
+      memoryUsage: peaks.length * 8, // Rough estimate
+      averageFPS: 60, // Would need proper FPS tracking
+    } satisfies PerformanceMetrics);
+  }, [peaks, enablePerformanceMonitoring, reportPerformance]);
 
   // A palette token, `primary.6` shade syntax, or a raw color string.
   const resolveColor = useCallback(
@@ -174,8 +184,8 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
     [theme],
   );
 
-  const waveformColor = resolveColor(color as string, '#6366f1');
-  const actualProgressColor = resolveColor(progressColor as string, '#22c55e');
+  const waveformColor = resolveColor(color, theme.colors.primary[5]);
+  const actualProgressColor = resolveColor(progressColor, theme.colors.success[5]);
 
   // Normalize gradient colors (allow semantic keys inside gradientColors too).
   // Without an explicit list the `gradient` variant would have no stops and
@@ -185,7 +195,7 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
       return gradientColors.map(c => resolveColor(c, c));
     }
 
-    const palette = (theme.colors as any)[color as string];
+    const palette = (theme.colors as Record<string, string[] | undefined>)[color];
     if (Array.isArray(palette)) {
       return [palette[3] ?? waveformColor, palette[7] ?? waveformColor];
     }
@@ -196,13 +206,13 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
   // Process peaks data for rendering with virtual windowing
   const processedPeaks = useMemo(() => {
     if (!peaks || peaks.length === 0) {
-      console.warn('Waveform: No peaks data provided');
+      warnOnce('waveform:no-peaks', 'Waveform: No peaks data provided');
       return [];
     }
 
     // Validate peaks data
     if (!Array.isArray(peaks)) {
-      console.warn('Waveform: peaks must be an array');
+      warnOnce('waveform:peaks-type', 'Waveform: peaks must be an array');
       return [];
     }
 
@@ -219,7 +229,7 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
     }
 
     if (targetBars <= 0) {
-      console.warn('Waveform: Not enough w to render any bars');
+      warnOnce('waveform:too-narrow', 'Waveform: Not enough width to render any bars');
       return [];
     }
 
@@ -257,7 +267,7 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
 
     // Find the maximum absolute value in the processed peaks
     const maxValue = Math.max(...processedPeaks.map(Math.abs));
-    
+
     // If maxValue is 0 or very small, return original values to avoid division by zero
     if (maxValue <= 0.001) {
       return processedPeaks;
@@ -269,7 +279,8 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
 
   // Calculate progress position relative to actual waveform width
   const actualWaveformWidth = normalizedPeaks.length * (barWidth + barGap) - barGap;
-  const progressX = progress * actualWaveformWidth;
+  const clampedProgress = Math.max(0, Math.min(1, typeof progress === 'number' && !isNaN(progress) ? progress : 0));
+  const progressX = clampedProgress * actualWaveformWidth;
 
   // Handle fullWidth behavior - SVG configuration
   const svgProps = useMemo(() => {
@@ -287,42 +298,33 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
     };
   }, [fullWidth, actualWaveformWidth, h, w]);
 
-  const handleLayout = useCallback((event: any) => {
-    const { width: containerWidth, height: containerHeight } = event.nativeEvent.layout;
-    setContainerDimensions({ width: containerWidth, height: containerHeight });
-  }, []);
+  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+    measureLayout(event);
+    onLayoutProp?.(event);
+  }, [measureLayout, onLayoutProp]);
 
   const calculatePosition = useCallback((locationX: number) => {
     let position: number;
-    
+
     if (fullWidth) {
       // For fullWidth, use the measured container width
-      const containerWidth = containerDimensions.width;
-      if (containerWidth > 0) {
-        position = locationX / containerWidth;
-      } else {
-        // Fallback if container hasn't been measured yet
-        position = locationX / (w || 300);
-      }
+      position = containerWidth > 0 ? locationX / containerWidth : locationX / (w || 300);
     } else {
       // For fixed width, calculate position relative to actual waveform width
       position = Math.min(locationX, actualWaveformWidth) / actualWaveformWidth;
     }
-    
-    return Math.max(0, Math.min(1, position));
-  }, [fullWidth, containerDimensions.width, w, actualWaveformWidth]);
 
-  const handleResponderGrant = useCallback((event: any) => {
+    return Math.max(0, Math.min(1, position));
+  }, [fullWidth, containerWidth, w, actualWaveformWidth]);
+
+  const handleResponderGrant = useCallback((event: GestureResponderEvent) => {
     if (!interactive) return;
 
     try {
-      const locationX = event.nativeEvent?.locationX ?? 0;
-      const position = calculatePosition(locationX);
-      
-      // Check if shift key is pressed for selection mode (web only)
-      const isShiftPressed = event.nativeEvent?.shiftKey || false;
-      
-      if (isShiftPressed && onSelectionChange) {
+      const position = calculatePosition(event.nativeEvent?.locationX ?? 0);
+
+      // Shift+press selects a range instead of seeking (web).
+      if (isShiftPressed(event) && onSelectionChange) {
         setIsSelecting(true);
         setSelectionStart(position);
       } else {
@@ -330,67 +332,93 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
         onDragStart?.(position);
         onSeek?.(position);
       }
-    } catch (error) {
-      console.warn('Waveform: Error handling drag start', error);
+    } catch (err) {
+      devWarn('Waveform: Error handling drag start', err);
     }
   }, [interactive, calculatePosition, onDragStart, onSeek, onSelectionChange]);
 
-  const handleResponderMove = useCallback((event: any) => {
+  const handleResponderMove = useCallback((event: GestureResponderEvent) => {
     if (!interactive) return;
 
     try {
-      const locationX = event.nativeEvent?.locationX ?? 0;
-      const position = calculatePosition(locationX);
-      
+      const position = calculatePosition(event.nativeEvent?.locationX ?? 0);
+
       if (isSelecting && selectionStart !== null && onSelectionChange) {
         // Update selection range
-        const start = Math.min(selectionStart, position);
-        const end = Math.max(selectionStart, position);
-        onSelectionChange([start, end]);
+        onSelectionChange([Math.min(selectionStart, position), Math.max(selectionStart, position)]);
       } else if (isDragging) {
         onDrag?.(position);
         onSeek?.(position);
       }
-    } catch (error) {
-      console.warn('Waveform: Error handling drag move', error);
+    } catch (err) {
+      devWarn('Waveform: Error handling drag move', err);
     }
   }, [interactive, isDragging, isSelecting, selectionStart, calculatePosition, onDrag, onSeek, onSelectionChange]);
 
-  const handleResponderRelease = useCallback((event: any) => {
+  const handleResponderRelease = useCallback((event: GestureResponderEvent) => {
     if (!interactive) return;
 
     try {
-      const locationX = event.nativeEvent?.locationX ?? 0;
-      const position = calculatePosition(locationX);
-      
+      const position = calculatePosition(event.nativeEvent?.locationX ?? 0);
+
       if (isSelecting && selectionStart !== null && onSelectionChange) {
         // Finalize selection
-        const start = Math.min(selectionStart, position);
-        const end = Math.max(selectionStart, position);
-        onSelectionChange([start, end]);
+        onSelectionChange([Math.min(selectionStart, position), Math.max(selectionStart, position)]);
         setIsSelecting(false);
         setSelectionStart(null);
       } else if (isDragging) {
         setIsDragging(false);
         onDragEnd?.(position);
       }
-    } catch (error) {
-      console.warn('Waveform: Error handling drag end', error);
+    } catch (err) {
+      devWarn('Waveform: Error handling drag end', err);
     }
   }, [interactive, isDragging, isSelecting, selectionStart, calculatePosition, onDragEnd, onSelectionChange]);
 
-  // Legacy single press handler for backward compatibility
-  const handlePress = useCallback((event: any) => {
+  // Seek to the pressed position when interaction is enabled.
+  const handlePress = useCallback((event: GestureResponderEvent) => {
     if (!interactive || !onSeek) return;
 
     try {
-      const locationX = event.nativeEvent?.locationX ?? 0;
-      const position = calculatePosition(locationX);
-      onSeek(position);
-    } catch (error) {
-      console.warn('Waveform: Error handling press event', error);
+      onSeek(calculatePosition(event.nativeEvent?.locationX ?? 0));
+    } catch (err) {
+      devWarn('Waveform: Error handling press event', err);
     }
   }, [interactive, onSeek, calculatePosition]);
+
+  // --- Accessibility: a seek slider when interactive, otherwise an image ---
+  const seekable = interactive && !!onSeek;
+  const percent = Math.round(clampedProgress * 1000) / 10;
+  const valueText = duration && duration > 0
+    ? `${formatWaveformTime(clampedProgress * duration)} of ${formatWaveformTime(duration)}`
+    : `${Math.round(clampedProgress * 100)}%`;
+  const { adjustableProps } = useAdjustable({
+    value: percent,
+    min: 0,
+    max: 100,
+    step: duration && duration > 0 ? Math.min(100, (SEEK_STEP_SECONDS / duration) * 100) : 1,
+    largeStep: 10,
+    onChange: (next) => onSeek?.(next / 100),
+    label: accessibilityLabel || 'Audio waveform',
+    hint: accessibilityHint || 'Tap to seek to a position, or drag to scrub through',
+    valueText,
+    disabled: !seekable,
+  });
+  const adjustableKeyDown = adjustableProps.onKeyDown;
+
+  // Web keys: the consumer's handler first (AudioPlayer shortcuts), then the
+  // slider keys, then Space — which, for compatibility, dispatches the
+  // documented `waveformSpacePress` DOM event for apps that toggle playback.
+  const handleKeyDown = useCallback((event: WebKeyboardEvent) => {
+    onKeyDown?.(event);
+    if (event.defaultPrevented) return;
+    adjustableKeyDown?.(event);
+    if (event.defaultPrevented || !interactive) return;
+    if (event.key === ' ' || event.key === 'Spacebar') {
+      event.preventDefault();
+      if (hasDOM) document.dispatchEvent(new CustomEvent('waveformSpacePress'));
+    }
+  }, [onKeyDown, adjustableKeyDown, interactive]);
 
   const renderBars = () => {
     return normalizedPeaks.map((peak, index) => {
@@ -438,40 +466,27 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
     return (
       <>
         {/* Main waveform line */}
-        <Path
-          d={pathData}
-          stroke={waveformColor}
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
+        <Path d={pathData} stroke={waveformColor} strokeWidth={strokeWidth} fill="none" />
         {/* Progress highlight line */}
         {progressPathData && (
-          <Path
-            d={progressPathData}
-            stroke={actualProgressColor}
-            strokeWidth={strokeWidth}
-            fill="none"
-          />
+          <Path d={progressPathData} stroke={actualProgressColor} strokeWidth={strokeWidth} fill="none" />
         )}
       </>
     );
   };
 
-  const gradientId = useMemo(
-    () => `waveform-gradient-${Math.random().toString(36).substr(2, 9)}`,
-    []
-  );
+  const gradientId = `waveform-gradient-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   const renderGradient = () => {
     return (
       <>
         <Defs>
           <LinearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-            {resolvedGradientColors.map((color, index) => (
+            {resolvedGradientColors.map((stopColor, index) => (
               <Stop
                 key={index}
                 offset={`${(index / (resolvedGradientColors.length - 1 || 1)) * 100}%`}
-                stopColor={color}
+                stopColor={stopColor}
               />
             ))}
           </LinearGradient>
@@ -482,14 +497,7 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
           const y = (h - barHeight) / 2;
 
           return (
-            <Rect
-              key={index}
-              x={x}
-              y={y}
-              width={barWidth}
-              height={barHeight}
-              fill={`url(#${gradientId})`}
-            />
+            <Rect key={index} x={x} y={y} width={barWidth} height={barHeight} fill={`url(#${gradientId})`} />
           );
         })}
       </>
@@ -498,23 +506,22 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
 
   // Progress line component
   const ProgressLine = useMemo(() => {
-    if (!showProgressLine || typeof progress !== 'number') return null;
+    if (!showProgressLine) return null;
 
-    const clampedProgress = Math.max(0, Math.min(1, progress));
-    const progressX = clampedProgress * actualWaveformWidth;
+    const lineX = clampedProgress * actualWaveformWidth;
 
     return (
       <Line
-        x1={progressX}
+        x1={lineX}
         y1={0}
-        x2={progressX}
+        x2={lineX}
         y2={h}
-        stroke={progressLineStyle?.color || theme.colors.gray[7]}
+        stroke={progressLineStyle?.color || svgText.secondary}
         strokeWidth={progressLineStyle?.width || 2}
         strokeOpacity={progressLineStyle?.opacity || 0.8}
       />
     );
-  }, [showProgressLine, progress, actualWaveformWidth, h, progressLineStyle, theme.colors.gray]);
+  }, [showProgressLine, clampedProgress, actualWaveformWidth, h, progressLineStyle, svgText.secondary]);
 
   // Timestamp markers component
   const TimeStamps = useMemo(() => {
@@ -525,48 +532,27 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
 
     for (let i = 0; i <= intervalCount; i++) {
       const time = i * timeStampInterval;
-      const timeProgress = time / duration;
-      const x = timeProgress * actualWaveformWidth;
-
-      // Format time as mm:ss or h:mm:ss
-      const formatTime = (seconds: number) => {
-        const hrs = Math.floor(seconds / 3600);
-        const mins = Math.floor((seconds % 3600) / 60);
-        const secs = Math.floor(seconds % 60);
-        
-        if (hrs > 0) {
-          return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-      };
+      const x = (time / duration) * actualWaveformWidth;
 
       timestamps.push(
         <G key={i}>
-          <Line
-            x1={x}
-            y1={h - 10}
-            x2={x}
-            y2={h}
-            stroke={theme.colors.gray[5]}
-            strokeWidth={1}
-            strokeOpacity={0.6}
-          />
+          <Line x1={x} y1={h - 10} x2={x} y2={h} stroke={svgText.muted} strokeWidth={1} strokeOpacity={0.6} />
           <SvgText
             x={x}
             y={h + 15}
-            fill={theme.colors.gray[6]}
+            fill={svgText.secondary}
             fontSize={labelFontSize}
             textAnchor="middle"
             opacity={0.8}
           >
-            {formatTime(time)}
+            {formatWaveformTime(time)}
           </SvgText>
         </G>
       );
     }
 
     return <G>{timestamps}</G>;
-  }, [showTimeStamps, duration, timeStampInterval, actualWaveformWidth, h, labelFontSize, theme.colors]);
+  }, [showTimeStamps, duration, timeStampInterval, actualWaveformWidth, h, labelFontSize, svgText.muted, svgText.secondary]);
 
   // Selection overlay component
   const SelectionOverlay = useMemo(() => {
@@ -575,13 +561,12 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
     const [start, end] = selection;
     const startX = start * actualWaveformWidth;
     const endX = end * actualWaveformWidth;
-    const selectionWidth = endX - startX;
 
     return (
       <Rect
         x={startX}
         y={0}
-        width={selectionWidth}
+        width={endX - startX}
         height={h}
         fill={theme.colors.primary[3]}
         opacity={0.3}
@@ -606,24 +591,9 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
             case 'line':
               return (
                 <G key={index}>
-                  <Line
-                    x1={x}
-                    y1={0}
-                    x2={x}
-                    y2={h}
-                    stroke={markerColor}
-                    strokeWidth={2}
-                    strokeOpacity={0.8}
-                  />
+                  <Line x1={x} y1={0} x2={x} y2={h} stroke={markerColor} strokeWidth={2} strokeOpacity={0.8} />
                   {marker.label && (
-                    <SvgText
-                      x={x}
-                      y={-5}
-                      fill={markerColor}
-                      fontSize={labelFontSize}
-                      textAnchor="middle"
-                      fontWeight="bold"
-                    >
+                    <SvgText x={x} y={-5} fill={markerColor} fontSize={labelFontSize} textAnchor="middle" fontWeight="bold">
                       {marker.label}
                     </SvgText>
                   )}
@@ -632,15 +602,7 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
             case 'flag':
               return (
                 <G key={index}>
-                  <Line
-                    x1={x}
-                    y1={0}
-                    x2={x}
-                    y2={h}
-                    stroke={markerColor}
-                    strokeWidth={1}
-                    strokeOpacity={0.6}
-                  />
+                  <Line x1={x} y1={0} x2={x} y2={h} stroke={markerColor} strokeWidth={1} strokeOpacity={0.6} />
                   <Rect
                     x={x + 2}
                     y={2}
@@ -653,7 +615,7 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
                     <SvgText
                       x={x + 4}
                       y={12}
-                      fill="white"
+                      fill={onColor(theme, markerColor)}
                       fontSize={Math.max(8, labelFontSize - 1)}
                       fontWeight="bold"
                     >
@@ -665,14 +627,7 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
             case 'dot':
               return (
                 <G key={index}>
-                  <circle
-                    cx={x}
-                    cy={h / 2}
-                    r={4}
-                    fill={markerColor}
-                    stroke="white"
-                    strokeWidth={1}
-                  />
+                  <Circle cx={x} cy={h / 2} r={4} fill={markerColor} stroke={svgBackgrounds.base} strokeWidth={1} />
                   {marker.label && (
                     <SvgText
                       x={x}
@@ -693,14 +648,14 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
         })}
       </G>
     );
-  }, [markers, actualWaveformWidth, h, labelFontSize, theme.colors.warning]);
+  }, [markers, actualWaveformWidth, h, labelFontSize, theme, svgBackgrounds.base]);
 
   // RMS visualization component
   const RMSBars = useMemo(() => {
     if (!showRMS || !rmsData || rmsData.length === 0) return null;
 
     const processedRMS = rmsData.slice(0, normalizedPeaks.length);
-    
+
     return (
       <G opacity={0.5}>
         {processedRMS.map((rms, index) => {
@@ -715,14 +670,14 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
               y={y}
               width={barWidth}
               height={rmsHeight}
-              fill={theme.colors.gray[4]}
+              fill={svgText.muted}
               rx={variant === 'rounded' ? barWidth / 2 : 0}
             />
           );
         })}
       </G>
     );
-  }, [showRMS, rmsData, normalizedPeaks, barWidth, barGap, minBarHeight, h, variant, theme.colors.gray]);
+  }, [showRMS, rmsData, normalizedPeaks, barWidth, barGap, minBarHeight, h, variant, svgText.muted]);
 
   const renderWaveform = () => {
     switch (variant) {
@@ -737,21 +692,84 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
     }
   };
 
-  const WrapperComponent = View;
-  const wrapperProps = interactive 
-    ? { 
-        onLayout: handleLayout,
+  const widthStyle = fullWidth ? { width: '100%' as const } : { width: w };
+
+  if (loading) {
+    return (
+      <WaveformSkeleton
+        ref={ref}
+        w={w}
+        h={h}
+        fullWidth={fullWidth}
+        barsCount={maxVisibleBars || 20}
+        progress={loadingProgress}
+        style={[spacingStyles, style]}
+        testID={testID}
+      />
+    );
+  }
+
+  if (error) {
+    return (
+      <View
+        ref={ref}
+        style={[
+          spacingStyles,
+          style,
+          widthStyle,
+          {
+            height: h,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: theme.colors.error[1],
+            borderRadius: resolveRadius(theme, 'sm'),
+            borderWidth: 1,
+            borderColor: theme.colors.error[3],
+          }
+        ]}
+        testID={testID}
+        {...restProps}
+        role="alert"
+        aria-label={`Waveform error: ${error}`}
+      >
+        <RNText style={{ color: theme.colors.error[7], fontSize: resolveFontSize(theme, 'xs'), textAlign: 'center' }}>
+          {error}
+        </RNText>
+      </View>
+    );
+  }
+
+  // Empty state
+  if (normalizedPeaks.length === 0) {
+    return (
+      <View
+        ref={ref}
+        style={[spacingStyles, style, widthStyle, { height: h, justifyContent: 'center', alignItems: 'center' }]}
+        testID={testID}
+        {...restProps}
+        {...a11yProps({ role: 'img', label: accessibilityLabel || 'Empty waveform', accessible: true })}
+      >
+        <Svg {...svgProps}>
+          {/* Render a minimal placeholder */}
+          <Rect x={0} y={h / 2 - 1} width={fullWidth ? '100%' : w} height={2} fill={waveformColor} opacity={0.3} />
+        </Svg>
+      </View>
+    );
+  }
+
+  const interactionProps = interactive
+    ? {
         onStartShouldSetResponder: () => true,
         onMoveShouldSetResponder: () => true,
-        onResponderGrant: (event: any) => {
+        onResponderGrant: (event: GestureResponderEvent) => {
           acquirePageScrollLock();
-          if (onDragStart || onDrag || onDragEnd) handleResponderGrant(event);
+          if (onDragStart || onDrag || onDragEnd || onSelectionChange) handleResponderGrant(event);
           else handlePress(event);
         },
-        onResponderMove: onDrag ? handleResponderMove : undefined,
-        onResponderRelease: (event: any) => {
+        onResponderMove: onDrag || onSelectionChange ? handleResponderMove : undefined,
+        onResponderRelease: (event: GestureResponderEvent) => {
           releasePageScrollLock();
-          if (onDragEnd) handleResponderRelease(event);
+          if (onDragEnd || onSelectionChange) handleResponderRelease(event);
         },
         // A scrub that drifts vertically stays a scrub: neither an enclosing
         // ScrollView nor the browser gets to take the gesture back mid-drag.
@@ -760,100 +778,36 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
           releasePageScrollLock();
         },
         onShouldBlockNativeResponder: () => true,
-        accessibilityRole: 'adjustable' as const,
-        accessibilityLabel: accessibilityLabel || 'Audio waveform',
-        accessibilityHint: accessibilityHint || (onSeek ? 'Tap to seek to a position, or drag to scrub through' : undefined),
-        accessibilityValue: progress !== undefined ? {
-          min: 0,
-          max: 1,
-          now: progress,
-        } : undefined,
-      } 
-    : {
-        onLayout: handleLayout,
-        accessibilityRole: 'image' as const,
-        accessibilityLabel: accessibilityLabel || 'Audio waveform visualization',
-      };
+      }
+    : null;
 
-  // Early return for empty state
-  if (normalizedPeaks.length === 0) {
-    return (
-      <View
-        style={[style, fullWidth ? { width: '100%' } : { width: w }, { height: h, justifyContent: 'center', alignItems: 'center' }]}
-        accessibilityRole="image"
-        accessibilityLabel={accessibilityLabel || 'Empty waveform'}
-        {...restProps}
-      >
-        <Svg {...svgProps}>
-          {/* Render a minimal placeholder */}
-          <Rect
-            x={0}
-            y={h / 2 - 1}
-            width={fullWidth ? '100%' : w}
-            height={2}
-            fill={waveformColor}
-            opacity={0.3}
-          />
-        </Svg>
-      </View>
-    );
-  }
-
-  if (loading) {
-    return (
-      <WaveformSkeleton
-        w={w}
-        h={h}
-        fullWidth={fullWidth}
-        barsCount={maxVisibleBars || 20}
-      />
-    );
-  }
-
-  if (error) {
-    return (
-      <View
-        style={[
-          style,
-          fullWidth ? { width: '100%' } : { width: w },
-          {
-            height: h,
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: theme.colors.error[1],
-            borderRadius: 4,
-            borderWidth: 1,
-            borderColor: theme.colors.error[3],
-          }
-        ]}
-        accessibilityRole="alert"
-        accessibilityLabel={`Waveform error: ${error}`}
-        {...restProps}
-      >
-        <RNText style={{ color: theme.colors.error[7], fontSize: 12, textAlign: 'center' }}>
-          {error}
-        </RNText>
-      </View>
-    );
-  }
+  const roleProps = seekable
+    ? adjustableProps
+    : a11yProps({
+        role: 'img',
+        label: accessibilityLabel || (interactive ? 'Audio waveform' : 'Audio waveform visualization'),
+      });
 
   return (
-    <WrapperComponent
+    <View
       ref={mergedContainerRef}
       style={[
         // A waveform is a large surface, so it keeps `pan-y`: vertical page
         // scrolling still works over it, while a horizontal scrub is ours for
         // the whole gesture. Compact controls (Slider, Knob) claim both axes.
         getGestureSurfaceStyle({ axis: 'x', enabled: interactive, cursor: interactive ? 'pointer' : undefined }),
+        spacingStyles,
         style,
-        fullWidth ? { width: '100%' } : { width: w },
+        widthStyle,
       ]}
-      accessible={true}
-      focusable={interactive}
-      onFocus={() => setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
-      {...wrapperProps}
+      testID={testID}
+      accessible
+      focusable={seekable}
+      onLayout={handleLayout}
+      {...interactionProps}
+      {...roleProps}
       {...restProps}
+      onKeyDown={handleKeyDown}
     >
       <Svg {...svgProps}>
         {SelectionOverlay}
@@ -863,8 +817,6 @@ export const Waveform = React.memo(React.forwardRef<View, WaveformProps>(({
         {TimeStamps}
         {Markers}
       </Svg>
-    </WrapperComponent>
+    </View>
   );
-}));
-
-Waveform.displayName = 'Waveform';
+}, { displayName: 'Waveform' });

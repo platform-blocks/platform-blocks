@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NumberInput } from '@platform-blocks/ui';
+import { NumberInput } from '@plocks/ui';
 
 export function Demo() {
   const [quantity, setQuantity] = useState<number | undefined>(2);
@@ -11,7 +11,6 @@ export function Demo() {
       value={quantity}
       onChange={setQuantity}
       min={0}
-      step={1}
     />
   );
 }

@@ -16,7 +16,7 @@ A polymorphic building block component that serves as a foundational element to 
 ### Basic Usage
 
 ```tsx
-import { Block } from '@platform-blocks/ui';
+import { Block } from '@plocks/ui';
 
 // Simple container
 <Block bg="blue.500" p="md" radius="lg">
@@ -109,7 +109,7 @@ import { Block } from '@platform-blocks/ui';
 | `radius` | `number \| 'xs' \| 'sm' \| 'md' \| 'lg' \| 'xl' \| 'full'` | Border radius |
 | `borderWidth` | `number` | Border width |
 | `borderColor` | `string` | Border color |
-| `shadow` | `number \| 'xs' \| 'sm' \| 'md' \| 'lg' \| 'xl'` | Shadow depth |
+| `shadow` | `'none' \| 'xs' \| 'sm' \| 'md' \| 'lg' \| 'xl'` | Shadow depth |
 | `opacity` | `number` | Opacity (0-1) |
 
 #### Dimensions
@@ -117,8 +117,8 @@ import { Block } from '@platform-blocks/ui';
 | Prop | Type | Description |
 |------|------|-------------|
 | `w`, `h` | `number \| string \| 'auto' \| 'full'` | Width and height |
-| `minW`, `minH` | `number \| string` | Minimum dimensions |
-| `maxW`, `maxH` | `number \| string` | Maximum dimensions |
+| `miw`, `mih` | `number \| string` | Minimum dimensions |
+| `maw`, `mah` | `number \| string` | Maximum dimensions |
 
 #### Flexbox
 
@@ -208,7 +208,7 @@ After:
 </Block>
 ```
 
-## Migration Guide
+## Using Block in place of View
 
 The Block component is designed to be a drop-in replacement for View components while providing additional functionality:
 

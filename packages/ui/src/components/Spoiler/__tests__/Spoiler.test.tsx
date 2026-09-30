@@ -38,13 +38,13 @@ const clipHeight = (utils: ReturnType<typeof render>): number | undefined => {
 
 const renderSpoiler = (props: Record<string, unknown> = {}) =>
   render(
-    <Spoiler maxHeight={100} transitionDuration={0} {...props}>
+    <Spoiler mah={100} transitionDuration={0} {...props}>
       <RNText>content</RNText>
     </Spoiler>,
   );
 
 describe('Spoiler', () => {
-  it('clamps overflowing content to maxHeight while closed', () => {
+  it('clamps overflowing content to mah while closed', () => {
     const utils = renderSpoiler();
     layoutAll(utils, 400);
 
@@ -75,8 +75,8 @@ describe('Spoiler', () => {
     expect(clipHeight(utils)).toBe(100);
   });
 
-  it('starts expanded when initiallyOpen is set', () => {
-    const utils = renderSpoiler({ initiallyOpen: true });
+  it('starts expanded when defaultExpanded is set', () => {
+    const utils = renderSpoiler({ defaultExpanded: true });
     layoutAll(utils, 400);
 
     expect(clipHeight(utils)).toBe(400);
@@ -91,10 +91,10 @@ describe('Spoiler', () => {
     expect(clipHeight(utils)).toBe(60);
   });
 
-  it('honours the controlled opened prop and reports changes', () => {
-    const onToggle = jest.fn();
+  it('honours the controlled expanded prop and reports changes', () => {
+    const onExpandedChange = jest.fn();
     const utils = render(
-      <Spoiler maxHeight={100} transitionDuration={0} opened={false} onToggle={onToggle}>
+      <Spoiler mah={100} transitionDuration={0} expanded={false} onExpandedChange={onExpandedChange}>
         <RNText>content</RNText>
       </Spoiler>,
     );
@@ -102,12 +102,12 @@ describe('Spoiler', () => {
     expect(clipHeight(utils)).toBe(100);
 
     fireEvent.press(utils.getByText('Show more'));
-    expect(onToggle).toHaveBeenCalledWith(true);
+    expect(onExpandedChange).toHaveBeenCalledWith(true);
     // Controlled: the parent owns the value, so nothing moves on its own.
     expect(clipHeight(utils)).toBe(100);
 
     utils.rerender(
-      <Spoiler maxHeight={100} transitionDuration={0} opened onToggle={onToggle}>
+      <Spoiler mah={100} transitionDuration={0} expanded onExpandedChange={onExpandedChange}>
         <RNText>content</RNText>
       </Spoiler>,
     );
@@ -116,14 +116,14 @@ describe('Spoiler', () => {
   });
 
   it('does not toggle while disabled', () => {
-    const onToggle = jest.fn();
-    const utils = renderSpoiler({ disabled: true, onToggle });
+    const onExpandedChange = jest.fn();
+    const utils = renderSpoiler({ disabled: true, onExpandedChange });
     layoutAll(utils, 400);
 
     fireEvent.press(utils.getByText('Show more'));
     layoutAll(utils, 400);
 
-    expect(onToggle).not.toHaveBeenCalled();
+    expect(onExpandedChange).not.toHaveBeenCalled();
     expect(clipHeight(utils)).toBe(100);
   });
 });

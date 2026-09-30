@@ -5,7 +5,6 @@ order: 20
 tags: [nesting, raised, elevation]
 highlightLines: []
 status: stable
-since: 0.11.0
 hidden: false
 ---
 

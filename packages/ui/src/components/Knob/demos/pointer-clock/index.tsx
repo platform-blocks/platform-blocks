@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { Block, Knob, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Knob, Text, useTheme } from '@plocks/ui';
 
 const SIZE = 240;
 const CENTER = SIZE / 2;
@@ -149,7 +149,7 @@ export function Demo() {
         />
       </View>
 
-      <Text size="xl" weight="700">
+      <Text size="xl" fw="700">
         {formatTime(time.minutes)}
       </Text>
     </Block>

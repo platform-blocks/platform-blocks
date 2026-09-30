@@ -164,7 +164,7 @@ describe('Stepper - rendering', () => {
     expect(containerStyles.flexDirection).toBe('column');
   });
 
-  it('reverses row layout when iconPosition="right" in vertical mode', () => {
+  it('puts the rail after the body when iconPosition="right" in vertical mode', () => {
     const { getByLabelText } = render(
       <Stepper active={0} orientation="vertical" iconPosition="right">
         <Stepper.Step label="Right" aria-label="right-step" />
@@ -173,8 +173,9 @@ describe('Stepper - rendering', () => {
 
     const stepButton = getByLabelText('right-step');
     const wrapper = getChild(stepButton, 0);
-    const wrapperStyles = getStyle(wrapper);
-
-    expect(wrapperStyles.flexDirection).toBe('row-reverse');
+    // A plain row (it flips under RTL); the order carries the placement.
+    expect(getStyle(wrapper).flexDirection).toBe('row');
+    const railColumn = getChild(wrapper, 1);
+    expect(getStyle(railColumn).alignItems).toBe('center');
   });
 });

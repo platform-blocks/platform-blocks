@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { Asset } from 'expo-asset';
-import { Block, Text, Video, Waveform } from '@platform-blocks/ui';
-import type { VideoRef, VideoState } from '@platform-blocks/ui';
+import { Block, Waveform } from '@plocks/ui';
+import { Video } from '@plocks/media';
+import type { VideoRef, VideoState } from '@plocks/media';
 
 import { CLIP_PEAKS } from '../data';
 
@@ -23,14 +24,13 @@ export function Demo() {
     }));
 
   return (
-    <Block gap="sm" w="100%" maxW={640}>
+    <Block w="100%" maw={640}>
       <Video
         ref={videoRef}
         source={{ url: CLIP_URL }}
         w="100%"
         aspectRatio={640 / 426}
         controls
-        muted={false}
         onLoad={track}
         onTimeUpdate={track}
         onDurationChange={(duration) => setPlayback((prev) => ({ ...prev, duration }))}
@@ -41,7 +41,6 @@ export function Demo() {
         progress={progress}
         h={72}
         fullWidth
-        color="primary"
         interactive
         onSeek={(position) => videoRef.current?.seek(position * playback.duration)}
         showProgressLine
@@ -50,12 +49,6 @@ export function Demo() {
         accessibilityLabel="Waveform of the clip audio"
         accessibilityHint="Tap or drag to seek the video"
       />
-
-      <Text variant="small" color="muted">
-        The peaks were measured from this clip's audio track. `onTimeUpdate` feeds `progress`, and
-        scrubbing the waveform calls `seek()` on the video ref — so the two stay in step in both
-        directions.
-      </Text>
     </Block>
   );
 }

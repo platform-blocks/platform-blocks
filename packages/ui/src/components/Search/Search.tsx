@@ -1,185 +1,209 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { TextInput, Pressable, View, Platform } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Pressable, View, type TextInput } from 'react-native';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { ClearButton } from '../../core/components/ClearButton';
 import { factory } from '../../core/factory/factory';
-import { Input } from '../Input';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { useThemedStyles } from '../../core/hooks/useThemedStyles';
+import { webStyle } from '../../core/platform/webStyle';
+import { getComponentDefaultRadius } from '../../core/theme/radius';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getControlSize, resolveRadius, resolveSpacing } from '../../core/theme/tokens';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { resolveStyleProps, extractStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState/useControllableState';
 import { Icon } from '../Icon';
-import { Text } from '../Text';
-import { useTheme } from '../../core/theme';
-import { spotlight } from '../Spotlight';
-import type { SearchProps, InternalState } from './types';
+import { Input } from '../Input/Input';
+import type { ExtendedTextInputProps } from '../Input/types';
 import { Space } from '../Space';
-import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
-import { getBorderRadius, getComponentDefaultRadius } from '../../core/theme/radius';
 import { useSurfaceStyles } from '../Surface/useSurfaceStyles';
+import { Text } from '../Text';
+import type { SearchProps } from './types';
 
-export const Search = factory<{ props: SearchProps; ref: TextInput }>((props, ref) => {
-  const { spacingProps, otherProps } = extractSpacingProps(props);
-  const {
-    value,
-    defaultValue = '',
-    onChange,
-    onSubmit,
-    placeholder = 'Search...',
-    size = 'sm',
-    // Undefined by design — the `input` radius token supplies the default, both
-    // for the Input below and for the button-mode trigger.
-    radius,
-    autoFocus,
-    debounce = 0,
-    clearButton = true,
-    loading = false,
-    endSection,
-    rightComponent,
-    accessibilityLabel = 'Search',
-    style,
-    buttonMode = false,
-    onPress,
-  } = otherProps;
+const SEARCHBOX_PROPS: ExtendedTextInputProps = a11yProps({ role: 'searchbox' });
 
-  const theme = useTheme();
-  const triggerSurface = useSurfaceStyles({ raised: true, withBorder: true, shadow: 'none' });
-  const spacingStyles = getSpacingStyles(spacingProps);
-  const inputRef = useRef<TextInput | null>(null);
-  const [internal, setInternal] = useState<InternalState>(() => ({
-    value: value ?? defaultValue,
-    isControlled: value !== undefined
-  }));
-  const debouncedValueRef = useRef(internal.value);
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+/**
+ * Search field with a leading search icon, a clear button, an optional loading
+ * indicator and debounced `onChangeText`. `buttonMode` renders a button that
+ * calls `onPress` instead. `ref` points at the TextInput.
+ */
+export const Search = factory<{ props: SearchProps; ref: TextInput }>(
+  (props, ref) => {
+    const { styleProps, otherProps } = extractStyleProps(props);
+    const {
+      value,
+      defaultValue,
+      onChangeText,
+      onSubmit,
+      placeholder = 'Search...',
+      size = 'sm',
+      // Undefined by design — the `input` radius token supplies the default, both
+      // for the Input below and for the button-mode trigger.
+      radius,
+      autoFocus,
+      debounce = 0,
+      clearButton = true,
+      clearButtonLabel = 'Clear search',
+      loading = false,
+      endSection,
+      rightComponent,
+      accessibilityLabel = 'Search',
+      disabled,
+      style,
+      testID,
+      buttonMode = false,
+      onPress,
+    } = otherProps;
 
-  // Sync controlled value
-  useEffect(() => {
-    if (internal.isControlled && value !== undefined && value !== internal.value) {
-      setInternal(s => ({ ...s, value }));
-    }
-  }, [value, internal.isControlled, internal.value]);
+    const theme = useTheme();
+    const triggerSurface = useSurfaceStyles({ raised: true, withBorder: true, shadow: 'none' });
+    const spacingStyles = resolveStyleProps(styleProps, theme);
+    const inputRef = useRef<TextInput | null>(null);
+    const mergedRef = useMergedRef<TextInput>(inputRef, ref);
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const emitChange = useCallback((next: string) => {
-    if (onChange) onChange(next);
-  }, [onChange]);
+    // Controlled: the parent owns the query. Uncontrolled: it lives here.
+    const [query, setQuery, isControlled] = useControllableState<string>({
+      value,
+      defaultValue,
+      finalValue: '',
+    });
+    // While a debounced change is pending, a controlled field still shows what was typed.
+    const [pendingText, setPendingText] = useState<string | null>(null);
+    const shownQuery = pendingText ?? query;
 
-  const handleChange = (text: string) => {
-    setInternal(s => ({ ...s, value: text }));
-    if (debounce > 0) {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-      debounceTimer.current = setTimeout(() => {
-        debouncedValueRef.current = text;
-        emitChange(text);
-      }, debounce);
-    } else {
-      emitChange(text);
-    }
-  };
+    const emitChange = useLatestCallback((next: string) => {
+      onChangeText?.(next);
+    });
 
-  const handleSubmit = () => {
-    if (onSubmit) onSubmit(internal.value);
-  };
+    const cancelPending = useCallback(() => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+        debounceTimer.current = null;
+      }
+    }, []);
 
-  const clear = () => {
-    if (!internal.value) return;
-    if (!internal.isControlled) {
-      setInternal(s => ({ ...s, value: '' }));
-    }
-    emitChange('');
-    if (onSubmit) onSubmit('');
-    // Refocus
-    requestAnimationFrame(() => inputRef.current?.focus());
-  };
+    useEffect(() => cancelPending, [cancelPending]);
 
-  // Left search icon
-  const left = (
-    <Icon name="search" size={size === 'xs' ? 14 : 16} color={theme.text.muted} />
-  );
-
-  // Right section logic (clear / loading / custom)
-  let finalRight: React.ReactNode = endSection;
-  if (loading) {
-    finalRight = <Icon name="loader" size={16} color={theme.text.muted} />;
-  } else if (clearButton && internal.value && !buttonMode) {
-    finalRight = (
-      <Pressable
-        onPress={clear}
-        accessibilityLabel="Clear search"
-        style={{ padding: 4, margin: -4, borderRadius: 6 }}
-        hitSlop={6}
-      >
-        <Icon name="close" size={14} color={theme.text.muted} />
-      </Pressable>
+    const handleChange = useCallback(
+      (text: string) => {
+        setQuery(text);
+        if (debounce > 0) {
+          if (isControlled) setPendingText(text);
+          cancelPending();
+          debounceTimer.current = setTimeout(() => {
+            debounceTimer.current = null;
+            setPendingText(null);
+            emitChange(text);
+          }, debounce);
+        } else {
+          emitChange(text);
+        }
+      },
+      [setQuery, debounce, isControlled, cancelPending, emitChange]
     );
-  }
 
-  // Handle button press
-  const handleButtonPress = useCallback(() => {
-    if (onPress) {
-      onPress();
-    } else {
-      // Default behavior: open spotlight
-      spotlight.open();
+    const handleSubmit = useCallback(() => {
+      onSubmit?.(shownQuery);
+    }, [onSubmit, shownQuery]);
+
+    const clear = useCallback(() => {
+      if (!shownQuery) return;
+      cancelPending();
+      setPendingText(null);
+      setQuery('');
+      emitChange('');
+      onSubmit?.('');
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }, [shownQuery, cancelPending, setQuery, emitChange, onSubmit]);
+
+    const metrics = getControlSize(theme, size);
+    const styles = useThemedStyles(
+      (t) => ({
+        trigger: {
+          flexDirection: 'row' as const,
+          alignItems: 'center' as const,
+          gap: resolveSpacing(t, 'xl') as number,
+          paddingHorizontal: resolveSpacing(t, 'sm') as number,
+          paddingVertical: resolveSpacing(t, 'xs') as number,
+          borderRadius: resolveRadius(t, radius ?? getComponentDefaultRadius('input')),
+          borderWidth: 1,
+          minHeight: metrics.height,
+        },
+        triggerText: {
+          flex: 1,
+          marginStart: resolveSpacing(t, 'xs') as number,
+          color: t.text.muted,
+          fontSize: metrics.fontSize,
+        },
+      }),
+      [radius, metrics]
+    );
+
+    const searchIcon = <Icon name="search" size={metrics.iconSize} color={theme.text.muted} />;
+
+    // Trailing section: loading indicator, else the clear button, else the caller's section.
+    let trailing: React.ReactNode = endSection;
+    if (loading) {
+      trailing = <Icon name="loader" size={metrics.iconSize} color={theme.text.muted} />;
+    } else if (clearButton && shownQuery && !buttonMode) {
+      trailing = (
+        <ClearButton onPress={clear} size={size} disabled={disabled} accessibilityLabel={clearButtonLabel} />
+      );
     }
-  }, [onPress]);
 
-  // If in button mode, render as a pressable button
-  if (buttonMode) {
-    return (
-      <View style={spacingStyles}>
-        <Pressable
-          onPress={handleButtonPress}
-          accessibilityLabel={accessibilityLabel}
-          accessibilityRole="button"
-          style={[
-            {
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: theme.spacing.xl,
-              paddingHorizontal: theme.spacing.sm,
-              paddingVertical: theme.spacing.xs,
+    const handleButtonPress = useCallback(() => {
+      onPress?.();
+    }, [onPress]);
+
+    if (buttonMode) {
+      return (
+        <View style={spacingStyles}>
+          <Pressable
+            onPress={handleButtonPress}
+            disabled={disabled}
+            {...a11yProps({ role: 'button', label: accessibilityLabel, disabled })}
+            testID={testID}
+            style={[
+              styles.trigger,
               // A control sitting on its container, so it rises one step from
               // whatever surface it's placed on rather than assuming the page.
-              backgroundColor: triggerSurface.token.background,
-              borderRadius: getBorderRadius(radius ?? getComponentDefaultRadius('input')),
-              borderWidth: 1,
-              borderColor: triggerSurface.token.border,
-              minHeight: size === 'xs' ? 28 : size === 'sm' ? 32 : size === 'md' ? 36 : 40,
-            },
-            style
-          ]}
-        >
-          {left}
-          <Text
-            style={{
-              flex: 1,
-              marginLeft: theme.spacing.xs,
-              color: theme.text.muted,
-              fontSize: size === 'xs' ? 12 : size === 'sm' ? 14 : 16,
-            }}
+              { backgroundColor: triggerSurface.token.background, borderColor: triggerSurface.token.border },
+              webStyle({ cursor: 'pointer' }),
+              style,
+            ]}
           >
-            {placeholder}
-          </Text>
-          <Space w={64} />
-          {rightComponent || finalRight}
-        </Pressable>
+            {searchIcon}
+            <Text style={styles.triggerText}>{placeholder}</Text>
+            <Space w={64} />
+            {rightComponent || trailing}
+          </Pressable>
+        </View>
+      );
+    }
+
+    return (
+      <View style={spacingStyles}>
+        <Input
+          ref={mergedRef}
+          type="search"
+          value={shownQuery}
+          onChangeText={handleChange}
+          onEnter={handleSubmit}
+          placeholder={placeholder}
+          size={size}
+          radius={radius}
+          disabled={disabled}
+          autoFocus={autoFocus}
+          startSection={searchIcon}
+          endSection={trailing}
+          accessibilityLabel={accessibilityLabel}
+          textInputProps={SEARCHBOX_PROPS}
+          testID={testID}
+          style={style}
+        />
       </View>
     );
-  }
-
-  return (
-    <View style={spacingStyles}>
-      <Input
-        ref={ref}
-        type="search"
-        value={internal.value}
-        onChangeText={handleChange}
-        onEnter={handleSubmit}
-        placeholder={placeholder}
-        size={size}
-        radius={radius}
-        startSection={left}
-        endSection={finalRight}
-        accessibilityLabel={accessibilityLabel}
-        style={style}
-      />
-    </View>
-  );
-});
-
-Search.displayName = 'Search';
+  },
+  { displayName: 'Search' }
+);

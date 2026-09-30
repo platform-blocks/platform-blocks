@@ -4,9 +4,15 @@ import { resolveOptionalModule } from '../../utils/optionalModule';
 
 export type ColorScheme = 'light' | 'dark';
 
+/** The part of React Native's `Appearance` API read here. */
+interface AppearanceApi {
+  getColorScheme?: () => string | null | undefined;
+  addChangeListener?: (listener: () => void) => { remove?: () => void } | undefined;
+}
+
 function getAppearance() {
-  return resolveOptionalModule<any>('react-native', {
-    accessor: mod => mod.Appearance,
+  return resolveOptionalModule<AppearanceApi>('react-native', {
+    accessor: (mod: { Appearance?: AppearanceApi }) => mod.Appearance,
     devWarning: 'Appearance API not available',
   });
 }

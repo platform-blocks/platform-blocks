@@ -3,7 +3,6 @@ title: Zoom & pan
 order: 20
 tags: [zoom, pan, wheel, brush, interaction]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

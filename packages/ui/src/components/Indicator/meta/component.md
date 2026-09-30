@@ -22,4 +22,5 @@ examples:
   - statuses
   - labels
 ---
-The Indicator component renders a small dot or pill-shaped badge in the corner of a parent container — perfect for online status, unread counts, or "new" markers. Pass `label` for text content (the dot auto-expands to fit multi-digit counts); use `children` for arbitrary custom content like icons.
+
+Indicator places a status dot or count on a parent element.

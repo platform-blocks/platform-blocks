@@ -3,7 +3,8 @@ import { render, fireEvent } from '@testing-library/react-native';
 
 import { ControlField } from '../ControlField';
 
-jest.mock('../../../core/theme', () => ({
+jest.mock('../../../core/theme/ThemeProvider', () => ({
+  ...jest.requireActual('../../../core/theme/ThemeProvider'),
   useTheme: () => ({
     colorScheme: 'light',
     colors: {
@@ -55,7 +56,7 @@ describe('ControlField', () => {
   });
 
   it('defaults to the switch indicator', () => {
-    const { getByTestId } = render(<ControlField label="Wifi" defaultSelected />);
+    const { getByTestId } = render(<ControlField label="Wifi" defaultChecked />);
     expect(getByTestId('indicator-switch-on', { includeHiddenElements: true })).toBeTruthy();
   });
 
@@ -64,31 +65,32 @@ describe('ControlField', () => {
     expect(getByTestId('indicator-checkbox-off', { includeHiddenElements: true })).toBeTruthy();
   });
 
-  it('toggles uncontrolled state and fires onSelectedChange', () => {
-    const onSelectedChange = jest.fn();
-    const { getByTestId } = render(
-      <ControlField testID="cf" label="Wifi" onSelectedChange={onSelectedChange} />
-    );
+  it('toggles uncontrolled state and fires onChange', () => {
+    const onChange = jest.fn();
+    const { getByTestId } = render(<ControlField testID="cf" label="Wifi" onChange={onChange} />);
     fireEvent.press(getByTestId('cf'));
-    expect(onSelectedChange).toHaveBeenCalledWith(true);
+    expect(onChange).toHaveBeenCalledWith(true);
     // reflected in the indicator
     expect(getByTestId('indicator-switch-on', { includeHiddenElements: true })).toBeTruthy();
   });
 
   it('does not toggle when disabled', () => {
-    const onSelectedChange = jest.fn();
-    const { getByTestId } = render(
-      <ControlField testID="cf" label="Wifi" isDisabled onSelectedChange={onSelectedChange} />
-    );
+    const onChange = jest.fn();
+    const { getByTestId } = render(<ControlField testID="cf" label="Wifi" disabled onChange={onChange} />);
     fireEvent.press(getByTestId('cf'));
-    expect(onSelectedChange).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('shows the error message when invalid', () => {
-    const { getByText } = render(
-      <ControlField label="Agree" variant="checkbox" isInvalid error="Required" />
-    );
+  it('shows the error message and announces it', () => {
+    const { getByText, getByRole } = render(<ControlField label="Agree" variant="checkbox" error="Required" />);
     expect(getByText('Required')).toBeTruthy();
+    expect(getByRole('alert')).toBeTruthy();
+  });
+
+  it('marks the field invalid without a message when error is true', () => {
+    const { getByTestId, queryByRole } = render(<ControlField testID="cf" label="Agree" error />);
+    expect(queryByRole('alert')).toBeNull();
+    expect(getByTestId('cf')).toBeTruthy();
   });
 
   it('renders a group with N-1 dividers between rows', () => {
@@ -118,7 +120,7 @@ describe('ControlField', () => {
   it('propagates group size to child fields', () => {
     const { getByTestId } = render(
       <ControlField.Group size="lg">
-        <ControlField testID="row" label="Wi-Fi" defaultSelected />
+        <ControlField testID="row" label="Wi-Fi" defaultChecked />
       </ControlField.Group>
     );
     // The row still renders and toggles under the inherited size.
@@ -127,9 +129,11 @@ describe('ControlField', () => {
 
   it('exposes an accessibility role matching the variant', () => {
     const { getByTestId } = render(
-      <ControlField testID="cf" label="Agree" variant="checkbox" defaultSelected />
+      <ControlField testID="cf" label="Agree" variant="checkbox" defaultChecked />
     );
     const node = getByTestId('cf');
-    expect(node.props.accessibilityState).toEqual({ checked: true, disabled: false });
+    expect(node.props.role).toBe('checkbox');
+    expect(node.props.accessibilityState).toMatchObject({ checked: true, disabled: false });
+    expect(node.props.accessibilityLabel).toBe('Agree');
   });
 });

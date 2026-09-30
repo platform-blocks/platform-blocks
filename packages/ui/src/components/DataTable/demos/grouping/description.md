@@ -4,7 +4,6 @@ category: behavior
 order: 60
 tags: [datatable, grouping, aggregation, totals, footer]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

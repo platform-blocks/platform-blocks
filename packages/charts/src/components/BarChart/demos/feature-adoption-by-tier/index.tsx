@@ -1,4 +1,4 @@
-import { BarChart } from '@platform-blocks/charts';
+import { BarChart } from '@plocks/charts';
 
 import { FEATURE_ADOPTION } from './data';
 
@@ -9,7 +9,7 @@ export function Demo() {
     <BarChart
       title="Feature adoption by customer tier"
       subtitle="Accounts live on the experimentation canvas within 45 days"
-      height={400}
+      h={400}
       data={FEATURE_ADOPTION}
       barSpacing={0.26}
       barBorderRadius={12}

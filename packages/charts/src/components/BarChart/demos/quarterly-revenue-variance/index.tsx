@@ -1,6 +1,10 @@
-import { BarChart } from '@platform-blocks/charts';
+import { BarChart } from '@plocks/charts';
 
 import { REGIONAL_REVENUE } from './data';
+
+// Status colors: the value labels spell out each variance, so color is never the only cue.
+const BEAT_PLAN = '#0ca30c';
+const MISSED_PLAN = '#d03b3b';
 
 const formatMillions = (value: number) => `$${value.toFixed(2)}M`;
 
@@ -16,9 +20,10 @@ export function Demo() {
     <BarChart
       title="Quarterly Revenue by Region"
       subtitle="Q3 actuals with variance to plan"
-      height={420}
+      h={420}
       data={REGIONAL_REVENUE}
       barSpacing={0.32}
+      colorScale={({ datum }) => (datum.value >= (datum.data?.goal ?? 0) ? BEAT_PLAN : MISSED_PLAN)}
       legend={{ show: false }}
       valueFormatter={(value, datum) => {
         const goal = datum.data?.goal;

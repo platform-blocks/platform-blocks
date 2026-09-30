@@ -1,8 +1,8 @@
-import { Block, Chip, Divider, Text } from '@platform-blocks/ui';
+import { Block, Chip, Divider, Text } from '@plocks/ui';
 
 export function Demo() {
   return (
-    <Block>
+    <Block fullWidth>
       <Text variant="p">Sign in with email</Text>
       <Divider label="or" />
       <Text variant="p">Continue with social accounts</Text>
@@ -19,5 +19,3 @@ export function Demo() {
     </Block>
   );
 }
-
-

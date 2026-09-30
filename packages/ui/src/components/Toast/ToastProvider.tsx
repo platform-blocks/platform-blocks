@@ -1,10 +1,15 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { ViewStyle, Platform, useWindowDimensions } from 'react-native';
+import type { ViewStyle } from 'react-native';
 import { ToastStack } from './ToastStack';
-import { ToastProps, ToastVariant } from './types';
+import type { ToastProps, ToastVariant } from './types';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getZIndex } from '../../core/theme/zIndices';
+import { useViewport } from '../../core/responsive';
+import { isWeb, webStyle } from '../../core/platform';
 import type { ComponentSizeValue } from '../../core/theme/componentSize';
 import { Icon } from '../Icon';
 import { semanticIcons } from '../../core/theme/semanticIcons';
+import { devError } from '../../core/utils/logger';
 
 type ToastRequestListener = () => void;
 
@@ -22,9 +27,7 @@ function notifyToastListeners() {
     try {
       listener();
     } catch (error) {
-      if (__DEV__) {
-        console.error('[toasts] listener error', error);
-      }
+      devError('[toasts] listener error', error);
     }
   });
 }
@@ -63,9 +66,7 @@ export function setToastViewportOffset(offset: ToastViewportOffset | null | unde
     try {
       listener(currentToastViewportOffset);
     } catch (error) {
-      if (__DEV__) {
-        console.error('[toasts] viewport offset listener error', error);
-      }
+      devError('[toasts] viewport offset listener error', error);
     }
   });
 }
@@ -79,9 +80,13 @@ function subscribeToastViewportOffset(listener: (offset: ToastViewportOffset) =>
 }
 
 /**
- * Publish a viewport offset for the toast layer while the calling component is
- * mounted (resets to zero on unmount). Call this from inside the app shell with
- * the header height + safe-area inset so toasts never overlap the shell chrome.
+ * Publishes a viewport offset (`top` / `bottom` / `left` / `right`, in px) for
+ * every toast stack while the calling component is mounted — it works anywhere
+ * in the tree, no provider needed — and clears it on unmount, when the
+ * `ToastProvider`'s static `offset` applies again.
+ *
+ * Call this from inside the app shell with the header height + safe-area inset
+ * so toasts never overlap the shell chrome.
  */
 export function useToastViewportOffset(offset: ToastViewportOffset) {
   const { top = 0, bottom = 0, left = 0, right = 0 } = offset || {};
@@ -91,12 +96,13 @@ export function useToastViewportOffset(offset: ToastViewportOffset) {
   }, [top, bottom, left, right]);
 }
 
-export type ToastPosition = 
-  | 'top-left' 
-  | 'top-right' 
+/** Screen corner / edge a toast stack is anchored to. */
+export type ToastStackPosition =
+  | 'top-left'
+  | 'top-right'
   | 'top-center'
-  | 'bottom-left' 
-  | 'bottom-right' 
+  | 'bottom-left'
+  | 'bottom-right'
   | 'bottom-center';
 
 export type ToastStackDirection = 'up' | 'down';
@@ -122,7 +128,7 @@ export interface ToastOptions extends Omit<ToastProps, 'visible' | 'onClose' | '
   /** Unique identifier for the toast */
   id?: string;
   /** Position where the toast should appear */
-  position?: ToastPosition;
+  position?: ToastStackPosition;
   /** Auto hide duration in ms (0 to disable) */
   autoHide?: number;
   /** Custom message (alternative to children) */
@@ -137,7 +143,7 @@ export interface ToastItem extends ToastOptions {
   id: string;
   /** False once the toast has started leaving; it is unmounted when it lands. */
   visible: boolean;
-  position: ToastPosition;
+  position: ToastStackPosition;
   timestamp: number;
   priority: number;
 }
@@ -163,7 +169,8 @@ export type SeverityToastOptions = Omit<ToastOptions, 'severity'>;
 export type ToastMessage = string;
 export type ToastShortcut = ToastMessage | SeverityToastOptions;
 
-interface ToastContextValue {
+/** The toast API (`useToast()`, `useOptionalToast()`, the global `toasts`). */
+export interface ToastContextValue {
   show: (options: ToastOptions) => string;
   send: (options: ToastOptions) => string;
   hide: (id: string) => void;
@@ -178,7 +185,7 @@ interface ToastContextValue {
     options: {
       pending: ToastShortcut;
       success: ToastShortcut | ((data: T) => ToastShortcut);
-      error: ToastShortcut | ((error: any) => ToastShortcut);
+      error: ToastShortcut | ((error: unknown) => ToastShortcut);
     }
   ) => Promise<T>;
   // Severity-based methods
@@ -218,9 +225,7 @@ function flushPendingToastOperations() {
     try {
       operation?.(toastsApiRef);
     } catch (error) {
-      if (__DEV__) {
-        console.error('[toasts] queued operation failed', error);
-      }
+      devError('[toasts] queued operation failed', error);
     }
   }
 }
@@ -252,6 +257,16 @@ function normalizeToastShortcut(options: ToastShortcut, severity: 'info' | 'succ
   };
 }
 
+/**
+ * Returns the toast API (`show`, `update`, `hide`, `hideAll`, `promise`,
+ * `success` / `error` / `info` / `warning`, …) of the nearest `ToastProvider`;
+ * it never throws — outside a provider it returns the global `toasts` object,
+ * which queues calls until one mounts (use `useOptionalToast()` to get `null`
+ * instead).
+ *
+ * Without a provider it also notifies `onToastsRequested` listeners, so an app
+ * can mount one lazily.
+ */
 export const useToast = () => {
   const api = useContext(ToastApiContext);
 
@@ -264,7 +279,21 @@ export const useToast = () => {
   return api ?? toasts;
 };
 
-export const useActiveToast = () => {
+/**
+ * Returns the nearest `ToastProvider`'s toast API, or `null` when none is
+ * mounted — for components that show a toast only if the app has somewhere to
+ * render it (`useToast()` falls back to the global `toasts` queue instead).
+ */
+export const useOptionalToast = (): ToastContextValue | null => useContext(ToastApiContext) ?? null;
+
+/**
+ * Returns the toasts the nearest `ToastProvider` currently holds (as
+ * `ToastItem`s, including ones mid-exit with `visible: false`) and re-renders
+ * when that list changes — for counters, badges or a custom toast list;
+ * outside a provider it returns a non-reactive snapshot (empty when no
+ * provider is mounted) instead of throwing.
+ */
+export const useActiveToasts = () => {
   const state = useContext(ToastStateContext);
 
   useEffect(() => {
@@ -279,7 +308,7 @@ export const useActiveToast = () => {
 interface ToastProviderProps {
   children: React.ReactNode;
   /** Default position for toasts */
-  defaultPosition?: ToastPosition;
+  defaultPosition?: ToastStackPosition;
   /** Maximum number of toasts per position */
   limit?: number;
   /** Default auto hide duration */
@@ -312,7 +341,9 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
 
   // Subscribed rather than read once: a centred stack has to re-centre when the
   // window resizes, and a stack read from a stale width lands off-screen.
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth } = useViewport();
+  const theme = useTheme();
+  const toastZIndex = getZIndex(theme, 'toast');
 
   // Track the shell-published viewport offset so toast stacks stay clear of the
   // app header / status bar. Falls back to the static `offset` prop per axis.
@@ -459,7 +490,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
     options: {
       pending: ToastShortcut;
       success: ToastShortcut | ((data: T) => ToastShortcut);
-      error: ToastShortcut | ((error: any) => ToastShortcut);
+      error: ToastShortcut | ((error: unknown) => ToastShortcut);
     }
   ): Promise<T> => {
     // One toast for the whole operation. Hiding the pending toast and showing a
@@ -552,14 +583,13 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
     };
   }, [contextValue]);
 
-  const getPositionStyle = (position: ToastPosition): ViewStyle => {
+  const getPositionStyle = (position: ToastStackPosition): ViewStyle => {
     // App-shell aware offsets (header height, safe-area/status bar, sidebars).
     const { top: oTop, bottom: oBottom, left: oLeft, right: oRight } = viewportOffset;
     // Keep centered stacks centered within the content region between any side
     // chrome (e.g. a left navbar shifts the visual center rightward).
     const centerShift = (oLeft - oRight) / 2;
 
-    const isWeb = Platform.OS === 'web';
     const horizontalMargin = isWeb ? 20 : 16;
     const available = Math.max(windowWidth - horizontalMargin * 2, 0);
     // Stacks position their toasts absolutely, so the container needs a real
@@ -574,9 +604,9 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
     const rightPos = horizontalMargin + oRight;
 
     const base: ViewStyle = {
-      position: (isWeb ? 'fixed' : 'absolute') as ViewStyle['position'],
-      zIndex: 2000,
-      pointerEvents: 'box-none',
+      position: 'absolute',
+      ...webStyle({ position: 'fixed' }),
+      zIndex: toastZIndex,
       width: containerWidth,
       maxWidth: 400,
     };
@@ -607,7 +637,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
     }
     acc[position].push(toast);
     return acc;
-  }, {} as Record<ToastPosition, ToastItem[]>);
+  }, {} as Record<ToastStackPosition, ToastItem[]>);
 
   return (
     <ToastApiContext.Provider value={contextValue}>
@@ -618,9 +648,9 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
       {Object.entries(toastsByPosition).map(([position, positionToast]) => (
         <ToastStack
           key={position}
-          position={position as ToastPosition}
+          position={position as ToastStackPosition}
           items={positionToast}
-          containerStyle={getPositionStyle(position as ToastPosition)}
+          containerStyle={getPositionStyle(position as ToastStackPosition)}
           spacing={spacing}
           onClose={hide}
           onExited={remove}
@@ -681,7 +711,7 @@ export const toasts: ToastContextValue = {
     options: {
       pending: ToastShortcut;
       success: ToastShortcut | ((data: T) => ToastShortcut);
-      error: ToastShortcut | ((error: any) => ToastShortcut);
+      error: ToastShortcut | ((error: unknown) => ToastShortcut);
     }
   ) => {
     if (toastsApiRef) {
@@ -704,9 +734,11 @@ export const toasts: ToastContextValue = {
   error: (options: ToastShortcut) => toasts.show(normalizeToastShortcut(options, 'error')),
 };
 
-// Hook to get toasts object with actual context
+/**
+ * Returns the same toast API as `useToast()` (an alias): the nearest
+ * `ToastProvider`'s `show` / `update` / `hide` / … methods, or the global
+ * `toasts` queue outside one — never throws.
+ */
 export const useToastApi = () => useToast();
-
-export const useActiveToasts = useActiveToast;
 
 export const onToastsRequested = onToastRequested;

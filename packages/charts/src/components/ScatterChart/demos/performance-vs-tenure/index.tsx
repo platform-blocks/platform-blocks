@@ -1,4 +1,4 @@
-import { ScatterChart } from '@platform-blocks/charts';
+import { ScatterChart } from '@plocks/charts';
 
 import { SERIES } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <ScatterChart
       title="Performance rating vs. tenure"
       subtitle="Team-by-team view with marker size scaled to total compensation (USD thousands)"
-      height={360}
+      h={360}
       data={SERIES.flatMap((serie) => serie.data)}
       series={SERIES}
       pointOpacity={0.88}

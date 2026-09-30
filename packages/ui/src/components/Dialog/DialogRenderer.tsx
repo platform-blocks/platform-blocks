@@ -7,15 +7,18 @@ export function DialogRenderer() {
 
   if (dialogs.length === 0) return null;
 
-  // Render the topmost dialog
+  // Only the topmost dialog renders: iOS cannot present a second Modal next to
+  // the first, and the layer stack gives Escape / back to the top one anyway.
   const topDialog = dialogs[dialogs.length - 1];
 
   return (
     <Dialog
-      visible={true}
+      opened
       variant={topDialog.variant}
       title={topDialog.title}
+      accessibilityLabel={topDialog.accessibilityLabel}
       closable={topDialog.closable}
+      bottomSheetSwipeZone={topDialog.bottomSheetSwipeZone}
       backdrop={topDialog.backdrop}
       backdropClosable={topDialog.backdropClosable}
       shouldClose={topDialog.isClosing}

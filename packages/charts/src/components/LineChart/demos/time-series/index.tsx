@@ -1,4 +1,4 @@
-import { LineChart } from '@platform-blocks/charts';
+import { LineChart } from '@plocks/charts';
 
 import { SERIES, formatter } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <LineChart
       title="Web analytics"
       subtitle="Sessions and goals over time"
-      height={360}
+      h={360}
       series={SERIES}
       xScaleType="time"
       enableCrosshair

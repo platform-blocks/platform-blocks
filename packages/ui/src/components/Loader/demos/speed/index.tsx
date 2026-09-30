@@ -1,4 +1,4 @@
-import { Block, Loader, Row, Text } from '@platform-blocks/ui';
+import { Block, Loader, Row, Text } from '@plocks/ui';
 
 // `speed` is the duration of one full animation cycle in milliseconds —
 // lower is faster. Default is 1000ms.
@@ -13,11 +13,11 @@ export function Demo() {
     <Block>
       {SPEEDS.map(({ label, value }) => (
         <Row key={value} gap="lg" align="center">
-          <Block minW={96}>
-            <Text variant="small" weight="semibold">
+          <Block miw={96}>
+            <Text variant="small" fw="semibold">
               {label}
             </Text>
-            <Text variant="small" color="muted">
+            <Text variant="small" c="muted">
               {value}ms
             </Text>
           </Block>

@@ -1,53 +1,26 @@
-import { Avatar, Block } from '@platform-blocks/ui';
-import type { AvatarProps } from '@platform-blocks/ui';
-
-type StatusAvatar = Pick<AvatarProps, 'size' | 'src' | 'online' | 'indicatorColor'> & {
-  key: string;
-  label: string;
-  description: string;
-};
-
-const STATUS_AVATARS: StatusAvatar[] = [
-  {
-    key: 'online',
-    label: 'Josh',
-    description: 'Online',
-    src: require('../../../../assets/avatars/avatar-1.png')
-  },
-  {
-    key: 'available',
-    label: 'Alice',
-    description: 'Available',
-    src: require('../../../../assets/avatars/avatar-2.png')
-  },
-  {
-    key: 'focus',
-    label: 'Mike',
-    description: 'Focus time',
-    src: require('../../../../assets/avatars/avatar-3.png'),
-    indicatorColor: '#f59e0b'
-  },
-  {
-    key: 'offline',
-    label: 'Tori',
-    description: 'Last active 5m ago',
-    src: require('../../../../assets/avatars/avatar-4.png'),
-    online: false
-  }
-];
+import { Avatar, Row } from '@plocks/ui';
 
 export function Demo() {
   return (
-    <Block direction="row" justify="space-evenly" fullWidth>
-      {STATUS_AVATARS.map(({ key, indicatorColor, online = true, ...avatar }) => (
-        <Avatar
-          key={key}
-          {...avatar}
-          fallback={avatar.label.slice(0, 2).toUpperCase()}
-          online={online}
-          indicatorColor={indicatorColor}
-        />
-      ))}
-    </Block>
+    <Row gap="xl" wrap="wrap">
+      <Avatar
+        src={require('../../../../assets/avatars/avatar-1.png')}
+        label="Josh"
+        description="Online"
+        online
+      />
+      <Avatar
+        src={require('../../../../assets/avatars/avatar-3.png')}
+        label="Mike"
+        description="Focus time"
+        online
+        indicatorColor="#f59e0b"
+      />
+      <Avatar
+        src={require('../../../../assets/avatars/avatar-4.png')}
+        label="Tori"
+        description="Offline"
+      />
+    </Row>
   );
 }

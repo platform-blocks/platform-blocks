@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Block, Chip, Row, TableOfContents, Text, Title, TitleRegistryProvider } from '@platform-blocks/ui';
+import { Block, Chip, Row, TableOfContents, Text, Title, TitleRegistryProvider } from '@plocks/ui';
 
 const SECTIONS = [
   { id: 'overview', title: 'Overview', summary: 'Explain when the progress indicator should appear.' },
@@ -31,7 +31,7 @@ export function Demo() {
             {SECTIONS.map((section, index) => (
               <Block key={section.id}>
                 <Title order={index === 0 ? 1 : 2}>{section.title}</Title>
-                <Text color="secondary">{section.summary}</Text>
+                <Text c="secondary">{section.summary}</Text>
               </Block>
             ))}
           </Block>

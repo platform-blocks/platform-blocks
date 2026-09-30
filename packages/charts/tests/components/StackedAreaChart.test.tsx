@@ -22,7 +22,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, multiTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <StackedAreaChart series={SERIES} width={400} height={240} />
+        <StackedAreaChart series={SERIES} w={400} h={240} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );
@@ -71,5 +71,24 @@ describe('StackedAreaChart (hit-test engine)', () => {
       expect(ctxRef?.activeTarget).toBeNull();
       expect(ctxRef?.activeSlice?.length).toBe(0);
     });
+  });
+});
+
+describe('StackedAreaChart gradient fill', () => {
+  it('paints a series with a gradient fillColor and leaves the others flat', () => {
+    const series = [
+      { id: 'a', name: 'A', color: '#111111', fillColor: { stops: [{ offset: 0, color: '#aa00aa' }, { offset: 1, color: '#00aaaa' }] }, data: [{ x: 0, y: 1 }, { x: 1, y: 2 }] },
+      { id: 'b', name: 'B', color: '#222222', data: [{ x: 0, y: 2 }, { x: 1, y: 1 }] },
+    ];
+    const r = render(
+      <ChartThemeProvider>
+        <StackedAreaChart series={series} w={400} h={300} disabled />
+      </ChartThemeProvider>
+    );
+    // react-native-svg is mocked to one component, so find elements by their props.
+    const urlFills = r.UNSAFE_root.findAll((n) => typeof n.props.fill === 'string' && n.props.fill.startsWith('url(#stacked-area-fill-'));
+    expect(urlFills.length).toBeGreaterThan(0);
+    expect(r.UNSAFE_queryAllByProps({ fill: '#222222' }).length).toBeGreaterThan(0);
+    expect(r.UNSAFE_queryAllByProps({ stopColor: '#aa00aa' }).length).toBeGreaterThan(0);
   });
 });

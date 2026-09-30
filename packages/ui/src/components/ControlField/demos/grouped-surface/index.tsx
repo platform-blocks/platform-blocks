@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ControlField } from '@platform-blocks/ui';
+import { ControlField } from '@plocks/ui';
 
 export function Demo() {
   const [wifi, setWifi] = useState(true);
@@ -12,17 +12,17 @@ export function Demo() {
       title="Connectivity"
       footer="Airplane mode disables all wireless radios."
     >
-      <ControlField label="Wi-Fi" isSelected={wifi} onSelectedChange={setWifi} />
+      <ControlField label="Wi-Fi" checked={wifi} onChange={setWifi} />
       <ControlField
         label="Bluetooth"
-        isSelected={bluetooth}
-        onSelectedChange={setBluetooth}
+        checked={bluetooth}
+        onChange={setBluetooth}
       />
       <ControlField
         label="Airplane mode"
         description="Turn off all connections"
-        isSelected={airplane}
-        onSelectedChange={setAirplane}
+        checked={airplane}
+        onChange={setAirplane}
       />
     </ControlField.Group>
   );

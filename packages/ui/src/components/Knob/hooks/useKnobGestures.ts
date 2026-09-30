@@ -1,5 +1,7 @@
 import { MutableRefObject, useCallback, useMemo, useRef } from 'react';
-import { Platform, type View } from 'react-native';
+import type { View } from 'react-native';
+
+import { isWeb } from '../../../core/platform';
 
 import {
   getArcAngleFromRatio,
@@ -57,7 +59,7 @@ export const useKnobGestures = ({
     [interactionConfig]
   );
   const pointerModes = useMemo(() => {
-    if (Platform.OS === 'web') return pointerModesFromConfig;
+    if (isWeb) return pointerModesFromConfig;
     // Force spin-only interaction on native/touch to reduce jitter from slide modes.
     return ['spin'];
   }, [pointerModesFromConfig]);
@@ -109,7 +111,7 @@ export const useKnobGestures = ({
       // On touch/native we see more positional noise, which makes endless/spin
       // jittery. Apply a small low-pass filter to smooth angle changes without
       // affecting web precision.
-      if (Platform.OS !== 'web' && lastDragAngleRef.current != null) {
+      if (!isWeb && lastDragAngleRef.current != null) {
         const previous = lastDragAngleRef.current;
         const alpha = 0.25; // keep most of the new signal, lightly smooth
         // Choose the shortest direction around the circle to avoid jumps at 0/360.

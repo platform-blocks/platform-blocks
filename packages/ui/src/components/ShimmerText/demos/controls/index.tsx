@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Row, ShimmerText, Slider, Switch, Text } from '@platform-blocks/ui';
+import { Block, Row, ShimmerText, Slider, Switch, Text } from '@plocks/ui';
 
 const MIN_SPREAD = 1;
 const MAX_SPREAD = 4;
@@ -33,14 +33,14 @@ export function Demo() {
         repeatDelay={0.6}
         duration={1.6}
         shimmerColor="#38bdf8"
-        weight="bold"
+        fw="bold"
         size="lg"
       >
         Interactive shimmer headline
       </ShimmerText>
 
       <Block w="100%">
-        <Text variant="small" weight="medium">
+        <Text variant="small" fw="medium">
           Spread: {spread.toFixed(1)}
         </Text>
         <Slider

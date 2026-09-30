@@ -1,12 +1,13 @@
 /**
- * Gauge - value reporting to assistive tech.
+ * Gauge - value reporting to assistive tech (native).
  *
  * The Gauge has no docs page to check by hand, so this is where its accessibility contract
- * is pinned: a value-bearing role, and the value published in the form each platform reads.
+ * is pinned: a value-bearing role, and the value published as aria-value* (React Native maps
+ * them to its accessibility value; react-native-web writes them to the DOM — see
+ * __web_tests__/Gauge.web.test.tsx, where the role is `meter`).
  */
 
 import React from 'react';
-import { Platform } from 'react-native';
 import { render } from '@testing-library/react-native';
 
 jest.mock('react-native-svg', () => {
@@ -35,36 +36,44 @@ jest.mock('react-native-svg', () => {
 
 import { Gauge } from '../Gauge';
 
-const originalOS = Platform.OS;
-const setPlatform = (os: string) => {
-  (Platform as unknown as { OS: string }).OS = os;
-};
-afterAll(() => setPlatform(originalOS));
+const renderGauge = (props: Partial<React.ComponentProps<typeof Gauge>> = {}) =>
+  render(<Gauge testID="gauge" value={42} min={0} max={200} {...props} />).getByTestId('gauge');
 
-const renderGauge = () =>
-  render(<Gauge testID="gauge" value={42} min={0} max={200} />).getByTestId('gauge');
-
-describe('Gauge accessibility', () => {
-  it('carries a value-bearing role, without which the value has nowhere to land', () => {
-    setPlatform('web');
-
-    expect(renderGauge().props.accessibilityRole).toBe('progressbar');
+describe('Gauge accessibility (native)', () => {
+  it('carries a value-bearing role (native has no meter role, so progressbar)', () => {
+    const gauge = renderGauge();
+    expect(gauge.props.role).toBe('progressbar');
+    expect(gauge.props.accessibilityRole).toBeUndefined();
   });
 
-  it('publishes the value as aria-* on web, which is all react-native-web reads', () => {
-    setPlatform('web');
+  it('publishes the value as aria-* (never the dropped accessibilityValue object)', () => {
     const gauge = renderGauge();
 
     expect(gauge.props['aria-valuemin']).toBe(0);
     expect(gauge.props['aria-valuemax']).toBe(200);
     expect(gauge.props['aria-valuenow']).toBe(42);
+    expect(gauge.props['aria-valuetext']).toBe('42');
+    expect(gauge.props.accessibilityValue).toBeUndefined();
   });
 
-  it('publishes it as the RN object on native', () => {
-    setPlatform('ios');
-    const gauge = renderGauge();
+  it('speaks the formatted value and the band it falls in', () => {
+    const gauge = renderGauge({
+      labels: { formatter: (v: number) => `${v} rpm` },
+      ranges: [
+        { from: 0, to: 100, color: '#22c55e', label: 'Normal' },
+        { from: 100, to: 200, color: '#ef4444', label: 'Redline' },
+      ],
+    });
+    expect(gauge.props['aria-valuetext']).toBe('42 rpm, Normal');
+  });
 
-    expect(gauge.props.accessibilityValue).toEqual({ min: 0, max: 200, now: 42 });
-    expect(gauge.props['aria-valuenow']).toBeUndefined();
+  it('uses aria-label as its name and never invents a generic one', () => {
+    expect(renderGauge({ 'aria-label': 'Engine speed' }).props['aria-label']).toBe('Engine speed');
+    expect(renderGauge().props['aria-label']).toBeUndefined();
+  });
+
+  it('exposes the compound parts as statics', () => {
+    expect(typeof Gauge.Track).toBe('object');
+    expect(Gauge.Needle.displayName).toBe('Gauge.Needle');
   });
 });

@@ -24,7 +24,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, multiTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <RadarChart series={SERIES} width={300} height={300} />
+        <RadarChart series={SERIES} w={300} h={300} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );

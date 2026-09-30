@@ -1,4 +1,4 @@
-import { LineChart } from '@platform-blocks/charts';
+import { LineChart } from '@plocks/charts';
 
 import { SERIES } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <LineChart
       title="Revenue trajectory"
       subtitle="Smoothed forecast vs. actuals"
-      height={320}
+      h={320}
       series={SERIES}
       smooth
       fill

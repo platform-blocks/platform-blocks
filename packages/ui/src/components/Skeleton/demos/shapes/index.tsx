@@ -1,4 +1,4 @@
-import { Block, Row, Skeleton } from '@platform-blocks/ui';
+import { Block, Row, Skeleton } from '@plocks/ui';
 
 export function Demo() {
   return (

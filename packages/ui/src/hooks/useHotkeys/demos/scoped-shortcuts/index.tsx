@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Block, KeyCap, Row, Text, useHotkeys } from '@platform-blocks/ui';
+import { Block, KeyCap, Row, Text, useHotkeys } from '@plocks/ui';
 
 export function Demo() {
   const [log, setLog] = useState<string[]>([]);
@@ -8,14 +8,11 @@ export function Demo() {
     setLog(prev => [entry, ...prev].slice(0, 4));
   }, []);
 
-  useHotkeys(
-    [
-      ['mod+b', () => append('Bold toggled')],
-      ['mod+shift+p', () => append('Command palette opened')],
-      ['escape', () => append('Escape pressed')],
-    ],
-    [append]
-  );
+  useHotkeys([
+    ['mod+b', () => append('Bold toggled')],
+    ['mod+shift+p', () => append('Command palette opened')],
+    ['escape', () => append('Escape pressed')],
+  ]);
 
   return (
     <Block align="flex-start">
@@ -29,7 +26,7 @@ export function Demo() {
           <Text key={`${entry}-${index}`} size="sm">{entry}</Text>
         ))
       ) : (
-        <Text size="sm" color="muted">No shortcuts fired yet.</Text>
+        <Text size="sm" c="muted">No shortcuts fired yet.</Text>
       )}
     </Block>
   );

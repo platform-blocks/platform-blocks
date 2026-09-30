@@ -1,17 +1,11 @@
-import { useState } from 'react';
-import { Slider, Block } from '@platform-blocks/ui';
+import { Block, Slider } from '@plocks/ui';
 
 export function Demo() {
-  const [value, setValue] = useState(50);
-
   return (
-    <Block w={400}>
+    <Block fullWidth>
       <Slider
-        value={value}
-        onChange={setValue}
-        min={0}
-        max={100}
-        showTicks
+        accessibilityLabel="Milestone"
+        defaultValue={50}
         restrictToTicks
         ticks={[
           { value: 0, label: 'Min' },
@@ -20,7 +14,6 @@ export function Demo() {
           { value: 75 },
           { value: 100, label: 'Max' },
         ]}
-
       />
     </Block>
   );

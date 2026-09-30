@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { Block, DataList, Text, TitleRegistryProvider, useTitleRegistration, useTitleRegistry } from '@platform-blocks/ui';
+import { Block, DataList, Text, TitleRegistryProvider, useTitleRegistration, useTitleRegistry } from '@plocks/ui';
 
 const SECTIONS = [
   { title: 'Why it matters', order: 1, description: 'Explain how the registry keeps navigation UI in sync with content.' },
@@ -12,8 +12,8 @@ function Section({ title, order, description }: { title: string; order: number; 
 
   return (
     <View ref={elementRef} nativeID={id}>
-      <Text weight="semibold">{title}</Text>
-      <Text size="sm" color="secondary">{description}</Text>
+      <Text fw="semibold">{title}</Text>
+      <Text size="sm" c="secondary">{description}</Text>
     </View>
   );
 }
@@ -22,7 +22,7 @@ function RegistryPreview() {
   const { titles } = useTitleRegistry();
 
   if (!titles.length) {
-    return <Text size="sm" color="muted">No titles registered yet.</Text>;
+    return <Text size="sm" c="muted">No titles registered yet.</Text>;
   }
 
   return (
@@ -38,7 +38,7 @@ export function Demo() {
     <TitleRegistryProvider>
       <Block gap="lg">
         <Block gap="xs">
-          <Text size="sm" weight="semibold">Registered titles</Text>
+          <Text size="sm" fw="semibold">Registered titles</Text>
           <RegistryPreview />
         </Block>
         <Block gap="lg">

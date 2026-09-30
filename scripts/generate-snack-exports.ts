@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 /**
- * Extracts the export names from packages/ui/src/snack.ts — and from the
- * charts barrel, which Snacks consume whole — into
- * apps/platform-blocks.com/data/generated/snack-exports.json.
+ * Extracts the export names from packages/ui-snack/src/index.ts — and from the
+ * barrels of the other workspace packages (charts, dates, …), which Snacks
+ * consume whole — into apps/docs/data/generated/snack-exports.json.
  *
  * The docs site uses those lists to decide which demos get an "Open in Snack"
  * button: a demo can only run in a Snack if every identifier it imports from
@@ -13,15 +13,13 @@
 import fs from 'fs';
 import path from 'path';
 
+import { UI_PACKAGE, listWorkspacePackages } from './lib/packages';
+
 const ROOT = path.resolve(__dirname, '..');
-const SNACK_ENTRY = path.join(ROOT, 'packages', 'ui', 'src', 'snack.ts');
-const UI_PACKAGE_JSON = path.join(ROOT, 'packages', 'ui', 'package.json');
-const CHARTS_ENTRY = path.join(ROOT, 'packages', 'charts', 'src', 'index.ts');
-const CHARTS_PACKAGE_JSON = path.join(ROOT, 'packages', 'charts', 'package.json');
+const SNACK_ENTRY = path.join(ROOT, 'packages', 'ui-snack', 'src', 'index.ts');
 const OUTPUT = path.join(
   ROOT,
-  'apps',
-  'platform-blocks.com',
+  'apps', 'docs',
   'data',
   'generated',
   'snack-exports.json'
@@ -55,33 +53,41 @@ if (exports.length === 0) {
   process.exit(1);
 }
 
-// The charts barrel is small enough for Snackager as-is, so Snacks install the
-// package whole rather than a trimmed entry. `export * from './utils'` and
-// friends are not followed: chart demos import chart components, which the
-// barrel names explicitly, and a name this misses only costs that demo a button.
-const chartsExports = parseExportNames(fs.readFileSync(CHARTS_ENTRY, 'utf8'));
-
-if (chartsExports.length === 0) {
-  console.error('generate-snack-exports: no exports parsed from', CHARTS_ENTRY);
+const workspacePackages = listWorkspacePackages(ROOT);
+const ui = workspacePackages.find(pkg => pkg.name === UI_PACKAGE);
+if (!ui) {
+  console.error('generate-snack-exports: no', UI_PACKAGE, 'package under packages/');
   process.exit(1);
 }
+const snackManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'packages', 'ui-snack', 'package.json'), 'utf8'));
+if (snackManifest.version !== ui.version) {
+  throw new Error(`@plocks/ui-snack ${snackManifest.version} must match ${UI_PACKAGE} ${ui.version}`);
+}
 
-const { version } = JSON.parse(fs.readFileSync(UI_PACKAGE_JSON, 'utf8'));
-const { version: chartsVersion } = JSON.parse(fs.readFileSync(CHARTS_PACKAGE_JSON, 'utf8'));
+// The other packages' barrels are small enough for Snackager as-is, so Snacks
+// install each package whole rather than a trimmed entry. `export * from
+// './utils'` and friends are not followed: demos import components, which the
+// barrels name explicitly, and a name this misses only costs that demo a button.
+const packages: Record<string, { version: string; entry: string; exports: string[] }> = {};
+for (const pkg of workspacePackages) {
+  if (pkg === ui) continue;
+  const packageExports = parseExportNames(fs.readFileSync(pkg.entry, 'utf8'));
+  if (packageExports.length === 0) {
+    console.error('generate-snack-exports: no exports parsed from', pkg.entry);
+    process.exit(1);
+  }
+  packages[pkg.name] = { version: pkg.version, entry: pkg.name, exports: packageExports };
+}
 
 fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
 fs.writeFileSync(
   OUTPUT,
   `${JSON.stringify(
     {
-      version,
-      entry: '@platform-blocks/ui/snack',
+      version: snackManifest.version,
+      entry: '@plocks/ui-snack',
       exports,
-      charts: {
-        version: chartsVersion,
-        entry: '@platform-blocks/charts',
-        exports: chartsExports,
-      },
+      packages,
     },
     null,
     2
@@ -89,6 +95,7 @@ fs.writeFileSync(
 );
 
 console.log(
-  `generate-snack-exports: wrote ${exports.length} ui + ${chartsExports.length} charts exports ` +
-  `(ui v${version}, charts v${chartsVersion}) -> ${path.relative(ROOT, OUTPUT)}`
+  `generate-snack-exports: wrote ${exports.length} ui exports (v${ui.version}) + ` +
+  Object.entries(packages).map(([name, pkg]) => `${pkg.exports.length} ${name} (v${pkg.version})`).join(', ') +
+  ` -> ${path.relative(ROOT, OUTPUT)}`
 );

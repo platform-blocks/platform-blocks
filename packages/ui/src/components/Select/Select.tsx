@@ -1,47 +1,44 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { View, Pressable, FlatList, Text as RNText, Modal, Platform, useWindowDimensions } from 'react-native';
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { FlatList, Keyboard, Text, TextInput, View } from 'react-native';
+import type { GestureResponderEvent, ListRenderItemInfo, ViewProps, ViewStyle } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import type { A11yProps } from '../../core/accessibility/a11yProps';
+import { consumeEvent, readKey } from '../../core/accessibility/keyboard';
+import type { KeyboardEventLike } from '../../core/accessibility/keyboard';
+import { useA11yId } from '../../core/accessibility/useA11yId';
+import { useListNavigation } from '../../core/accessibility/useListNavigation';
 import { factory } from '../../core/factory/factory';
-import { FieldHeader } from '../_internal/FieldHeader';
-import { createInputStyles } from '../Input/styles';
-import { useTheme } from '../../core/theme';
-import { createRadiusStyles } from '../../core/theme/radius';
-import { getSpacingStyles, extractSpacingProps, extractLayoutProps, getLayoutStyles } from '../../core/utils';
-import type { SizeValue } from '../../core/theme/types';
-import { getFontSize } from '../../core/theme/sizes';
-import { MenuItemButton } from '../MenuItemButton';
-import { ListGroup, ListGroupDivider } from '../ListGroup';
-import { Surface } from '../Surface';
-import { Icon } from '../Icon';
-import { ClearButton } from '../../core/components/ClearButton';
-import { useDirection } from '../../core/providers/DirectionProvider';
-import { useReducedMotion } from '../../core/motion/ReducedMotionProvider';
-import { useMenuStyles } from '../Menu/styles';
-import { Text } from '../Text';
-import { useKeyboardManagerOptional } from '../../core/providers/KeyboardManagerProvider';
-import { handleSelectionComplete } from '../../core/keyboard/selection';
-import { useDropdownPositioning } from '../../core/hooks/useDropdownPositioning';
-import { useOverlayMode } from '../../hooks';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { useReducedMotion } from '../../core/motion/useReducedMotion';
+import { useFloating } from '../../core/overlay/useFloating';
+import { hasDOM, isWeb } from '../../core/platform';
+import { useKeyboardFocusOptional } from '../../core/providers/KeyboardManagerProvider';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getControlSize } from '../../core/theme/tokens';
+import type { FieldHandle } from '../../core/types/base';
+import { getLayoutStyles } from '../../core/utils/layout';
 import type { PlacementType } from '../../core/utils/positioning-enhanced';
+import { useStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState';
+import { useOverlayMode } from '../../hooks/useOverlayMode';
+import { useDisclaimer } from '../_internal/Disclaimer/disclaimerUtils';
+import { DropdownSheet } from '../_internal/DropdownSheet/DropdownSheet';
+import { Field } from '../_internal/Field/Field';
+import { Icon } from '../Icon';
 
-import type { SelectOption, SelectProps } from './Select.types';
 import { CustomOption } from './CustomOption';
+import { getDropdownSurfaceStyle } from './fieldControlStyles';
+import { OptionRow } from './OptionRow';
+import { PickerTrigger } from './PickerTrigger';
+import type { SelectHandle, SelectOption, SelectProps } from './Select.types';
+import { findEnabledIndex, isKeyboardPress, matchTypeahead } from './selectUtils';
 
 /** Matches the Accordion chevron spin so every disclosure affordance reads alike. */
 const CHEVRON_SPIN_DURATION = 220;
-
-/**
- * Approximate height of one rendered option row.
- *
- * Only used to pre-empt the measurement, so being a few px out is harmless — it
- * shifts the flip threshold slightly, never the final layout, which is driven by
- * the `maxHeight` the positioner returns. Mirrors `MenuItemButton` in `compact`
- * mode: one line of text plus its vertical padding.
- */
-function estimateOptionRowHeight(size: SizeValue): number {
-  return Math.round(getFontSize(size) * 1.5) + 16;
-}
+const DEFAULT_DROPDOWN_MAX_HEIGHT = 260;
+const TYPEAHEAD_RESET_MS = 500;
 
 const DROPDOWN_FALLBACK_PLACEMENTS: PlacementType[] = [
   'top-start',
@@ -52,549 +49,608 @@ const DROPDOWN_FALLBACK_PLACEMENTS: PlacementType[] = [
   'bottom',
 ];
 
-export const Select = factory<{ props: SelectProps; ref: any }>((allProps, ref) => {
-  const { spacingProps, otherProps: propsAfterSpacing } = extractSpacingProps(allProps as any);
-  const { layoutProps, otherProps } = extractLayoutProps(propsAfterSpacing);
+const hasContent = (node: React.ReactNode) =>
+  node !== undefined && node !== null && node !== false && node !== true && node !== '';
+
+function SelectInner<T>(props: SelectProps<T>, ref: React.ForwardedRef<SelectHandle>) {
   const {
     value: valueProp,
     defaultValue,
     onChange,
     options,
     placeholder = 'Select…',
+    placeholderTextColor,
     size = 'md',
     // Undefined by design — the `input` radius token supplies the default.
     radius,
-    disabled,
+    variant = 'default',
+    disabled = false,
+    readOnly = false,
+    required = false,
+    withAsterisk,
     label,
-    helperText,
     description,
+    helperText,
     error,
-    renderOption,
-    fullWidth,
-    maxH = 260,
-    closeOnSelect = true,
-    clearable,
-    clearButtonLabel,
-    onClear,
-    refocusAfterSelect,
-    keyboardAvoidance = true,
     labelProps,
     descriptionProps,
-    variant = 'default',
-  } = otherProps as SelectProps;
+    accessibilityLabel,
+    accessibilityHint,
+    searchable = false,
+    searchPlaceholder = 'Search…',
+    nothingFoundMessage = 'Nothing found',
+    renderOption,
+    maxDropdownHeight: maxH = DEFAULT_DROPDOWN_MAX_HEIGHT,
+    closeOnSelect = true,
+    clearable = false,
+    clearButtonLabel = 'Clear selection',
+    onClear,
+    refocusAfterSelect = true,
+    keyboardAvoidance = true,
+    startSection,
+    startSectionProps,
+    onDropdownOpen,
+    onDropdownClose,
+    onFocus,
+    onBlur,
+    fullWidth,
+    w,
+    disclaimer,
+    disclaimerProps,
+    style,
+    testID,
+    // Style props are resolved by useStyleProps; nothing else to forward.
+  } = props;
 
   const theme = useTheme();
-  const { shouldUseModal, shouldUseOverlay } = useOverlayMode();
-  const menuStyles = useMenuStyles();
-  const { isRTL } = useDirection();
-
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState<any>(valueProp ?? defaultValue ?? null);
-  const [triggerWidth, setTriggerWidth] = useState<number | null>(null);
-
-  // The chevron is a single `chevron-down` spun a half turn rather than two
-  // swapped icons, so opening and closing read as one continuous motion.
+  const { shouldUseModal } = useOverlayMode();
+  const keyboardFocus = useKeyboardFocusOptional();
   const reducedMotion = useReducedMotion();
-  const chevronRotation = useSharedValue(open ? 180 : 0);
+  const spacingStyles = useStyleProps(props);
+  const renderDisclaimer = useDisclaimer(disclaimer, disclaimerProps);
+
+  const baseId = useA11yId(undefined, 'plocks-select');
+  const listId = `${baseId}-listbox`;
+  const hasLabel = hasContent(label);
+
+  const [value, setValue] = useControllableState<T | null>({
+    value: valueProp,
+    defaultValue: defaultValue ?? undefined,
+    finalValue: null,
+    onChange,
+  });
+
+  const [opened, setOpened] = useState(false);
+  const [query, setQuery] = useState('');
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const triggerRef = useRef<View | null>(null);
+  const searchInputRef = useRef<TextInput | null>(null);
+  const openedRef = useRef(opened);
+  openedRef.current = opened;
+
+  const useSheet = shouldUseModal;
+
+  const selectedOption = useMemo(
+    () => options.find((option) => option.value === value) ?? null,
+    [options, value]
+  );
+
+  const filtered = useMemo(() => {
+    const trimmed = query.trim().toLowerCase();
+    if (!searchable || !trimmed) return options;
+    return options.filter((option) => option.label.toLowerCase().includes(trimmed));
+  }, [options, searchable, query]);
+
+  // --- chevron ----------------------------------------------------------------
+  // One `chevron-down` spun a half turn rather than two swapped icons, so
+  // opening and closing read as one continuous motion.
+  const chevronRotation = useSharedValue(0);
   useEffect(() => {
-    const target = open ? 180 : 0;
-    if (reducedMotion) {
-      chevronRotation.value = target;
-      return;
-    }
-    chevronRotation.value = withTiming(target, {
-      duration: CHEVRON_SPIN_DURATION,
-      easing: Easing.inOut(Easing.ease),
-    });
-  }, [open, reducedMotion, chevronRotation]);
-  const animatedChevronStyle = useAnimatedStyle(() => ({
+    const target = opened ? 180 : 0;
+    chevronRotation.value = reducedMotion
+      ? target
+      : withTiming(target, { duration: CHEVRON_SPIN_DURATION, easing: Easing.inOut(Easing.ease) });
+  }, [opened, reducedMotion, chevronRotation]);
+  const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${chevronRotation.value}deg` }],
   }));
 
-  const triggerRef = useRef<View | null>(null);
-  const keyboardManager = useKeyboardManagerOptional();
-  const dismissKeyboardRef = keyboardManager?.dismissKeyboard;
+  // --- open / close / select -------------------------------------------------
+  const onDropdownOpenLatest = useLatestCallback(onDropdownOpen);
+  const onDropdownCloseLatest = useLatestCallback(onDropdownClose);
 
-  // How tall the menu will be, known before it mounts. Feeding this to the
-  // positioner is what lets the very first calculation pick the correct side:
-  // without it the pre-measure pass assumes a short popover, decides a Select
-  // near the bottom of the window fits below, and then flips above once the real
-  // height arrives — the visible jump this replaces.
-  const estimatedDropdownHeight = useMemo(() => {
-    const rowHeight = estimateOptionRowHeight(size as SizeValue);
-    // +2 for the Surface border, and a divider between each pair of rows.
-    const contentHeight = options.length * rowHeight + Math.max(0, options.length - 1) + 2;
-    return typeof maxH === 'number' ? Math.min(maxH, contentHeight) : contentHeight;
-  }, [options.length, size, maxH]);
+  const openDropdown = useCallback(
+    (initial: 'selected' | 'first' | 'last' = 'selected') => {
+      if (disabled || readOnly || openedRef.current) return;
+      // Another field's keyboard would cover the dropdown / sheet.
+      if (keyboardFocus) keyboardFocus.dismissKeyboard();
+      else if (!isWeb) Keyboard.dismiss();
 
-  const {
-    position,
-    anchorRef,
-    popoverRef,
-    showOverlay,
-    hideOverlay,
-    updatePosition,
-  } = useDropdownPositioning({
-    isOpen: open && shouldUseOverlay,
-    placement: 'bottom-start',
-    flip: true,
-    shift: true,
-    offset: 6,
-    boundary: 8,
-    desiredHeight: estimatedDropdownHeight,
-    fallbackPlacements: DROPDOWN_FALLBACK_PLACEMENTS,
-    keyboardAvoidance,
-    closeOnClickOutside: true,
-    closeOnEscape: true,
-    matchAnchorWidth: true,
-    onClose: () => setOpen(false),
-  });
+      const selectedIndex = options.findIndex((option) => option.value === value);
+      let next: number;
+      if (initial === 'last') next = findEnabledIndex(options, options.length, -1);
+      else if (initial === 'first' || selectedIndex < 0 || options[selectedIndex]?.disabled) {
+        next = findEnabledIndex(options, -1, 1);
+      } else next = selectedIndex;
 
-  useEffect(() => {
-    if (valueProp !== undefined) {
-      setValue(valueProp);
-    }
-  }, [valueProp]);
+      setQuery('');
+      setActiveIndex(next);
+      setOpened(true);
+      openedRef.current = true;
+      onDropdownOpenLatest();
+    },
+    [disabled, readOnly, keyboardFocus, options, value, onDropdownOpenLatest]
+  );
 
-  useEffect(() => {
-    if (!open) {
-      dismissKeyboardRef?.();
-    }
-  }, [open, dismissKeyboardRef]);
+  const closeDropdown = useCallback(() => {
+    if (!openedRef.current) return;
+    setOpened(false);
+    openedRef.current = false;
+    setActiveIndex(-1);
+    setQuery('');
+    onDropdownCloseLatest();
+  }, [onDropdownCloseLatest]);
 
   const focusTrigger = useCallback(() => {
-    const node: any = triggerRef.current;
-    node?.focus?.();
+    triggerRef.current?.focus?.();
   }, []);
 
-  const blurTrigger = useCallback(() => {
-    const node: any = triggerRef.current;
-    node?.blur?.();
-  }, []);
-
-  const setTriggerNode = useCallback((node: View | null) => {
-    triggerRef.current = node;
-    (anchorRef as any).current = node;
-
-    if (typeof ref === 'function') {
-      ref(node);
-    } else if (ref) {
-      (ref as any).current = node;
-    }
-  }, [anchorRef, ref]);
-
-  const radiusStyles = createRadiusStyles(radius, undefined, 'input');
-  const { getInputStyles } = createInputStyles(theme, isRTL);
-  const inputStyles = getInputStyles({
-    size: size as SizeValue,
-    focused: open,
-    error: !!error,
-    disabled: !!disabled,
-    hasLeftSection: false,
-    hasRightSection: true,
-    variant,
-  }, radiusStyles);
-
-  // The trigger renders its own <Text> rather than a real <TextInput>, so it has
-  // to resolve the field font size itself — the same scale `createInputStyles`
-  // uses — and the dropdown options are pinned to it.
-  const fieldFontSize = getFontSize(size as SizeValue);
-
-  const spacingStyles = getSpacingStyles(spacingProps);
-  const layoutStyles = getLayoutStyles(layoutProps);
-
-  const hasExplicitWidth = !!(layoutProps as any)?.width || !!(layoutProps as any)?.minWidth || !!(layoutProps as any)?.flex || fullWidth;
-  const defaultMinWidthStyle = !hasExplicitWidth ? { minWidth: 200 } : null;
-  const fullWidthStyle = fullWidth ? { width: '100%' as const } : null;
-
-  const selectedOption = options.find((o: SelectOption) => o.value === value) || null;
-  const showClearButton = !!(clearable && selectedOption && !disabled);
-  const clearLabel = clearButtonLabel || 'Clear selection';
-
-  const close = useCallback(() => {
-    setOpen(false);
-    hideOverlay();
-    keyboardManager?.dismissKeyboard();
-  }, [hideOverlay, keyboardManager]);
-
-  const measureTrigger = useCallback(() => {
-    if (shouldUseOverlay) return;
-    if (!triggerRef.current) return;
-
-    try {
-      (triggerRef.current as any).measure?.((x: number, y: number, width: number) => {
-        setTriggerWidth(width);
-      });
-    } catch {
-      /* native measurement failures can be ignored safely */
-    }
-  }, [shouldUseOverlay]);
-
-  const toggle = useCallback(() => {
-    if (disabled) return;
-
-    setOpen(prev => {
-      const next = !prev;
-      if (next) {
-        if (shouldUseModal) {
-          measureTrigger();
-        }
-      } else {
-        hideOverlay();
-        keyboardManager?.dismissKeyboard();
+  const selectOption = useCallback(
+    (option: SelectOption<T> | undefined) => {
+      if (!option || option.disabled || readOnly) return;
+      setValue(option.value, option);
+      if (!closeOnSelect) return;
+      closeDropdown();
+      // The floating layer / sheet returns focus to the trigger on close.
+      if (!refocusAfterSelect) {
+        requestAnimationFrame(() => triggerRef.current?.blur?.());
       }
-      return next;
-    });
-  }, [disabled, measureTrigger, hideOverlay, keyboardManager, shouldUseModal]);
-
-  /**
-   * The dropdown is edge-pinned and height-capped by the positioner, so a layout
-   * pass no longer changes where it sits — it only refreshes `finalHeight` for
-   * consumers that read it. That makes this a plain silent refresh: the old
-   * `setTimeout(…, 16)` existed to defer a *corrective* reposition until after
-   * the DOM had settled, and correcting is exactly what no longer happens.
-   */
-  const handleDropdownLayout = useCallback(() => {
-    if (!shouldUseOverlay || !open) {
-      return;
-    }
-    updatePosition({ silent: true });
-  }, [open, updatePosition, shouldUseOverlay]);
-
-  useEffect(() => {
-    if (!shouldUseOverlay) {
-      return;
-    }
-
-    const width = position?.finalWidth;
-    if (!width || width <= 0) {
-      return;
-    }
-
-    setTriggerWidth(prev => {
-      if (prev !== null && Math.abs(prev - width) < 1) {
-        return prev;
-      }
-      return width;
-    });
-  }, [position, shouldUseOverlay]);
-
-  const { width: windowWidth } = useWindowDimensions();
-
-  const resolvedDropdownWidth = useMemo(() => {
-    // Mobile picker (Modal) mode: the options render as a centered dialog card,
-    // not an anchored dropdown, so the trigger's width is irrelevant — sizing
-    // the card to it left a narrow list floating at the screen's left edge,
-    // visually disconnected from everything. Use a comfortable dialog width.
-    if (shouldUseModal) {
-      return Math.min(Math.max(windowWidth - 48, 0), 400);
-    }
-    if (position?.finalWidth && position.finalWidth > 0) {
-      return position.finalWidth;
-    }
-    if (triggerWidth && triggerWidth > 0) {
-      return triggerWidth;
-    }
-    return undefined;
-  }, [shouldUseModal, windowWidth, position?.finalWidth, triggerWidth]);
-
-  const resolvedDropdownMaxHeight = useMemo(() => {
-    const keyboardMax = typeof position?.maxHeight === 'number' ? position.maxHeight : undefined;
-    if (typeof maxH === 'number') {
-      return keyboardMax ? Math.min(maxH, keyboardMax) : maxH;
-    }
-    return keyboardMax ?? maxH;
-  }, [maxH, position?.maxHeight]);
-
-  const handleSelect = useCallback((opt: SelectOption) => {
-    if (opt.disabled) return;
-
-    // Deliberately no hideOverlay() here. The menu is pushed into the overlay
-    // registry, so tearing it down mid-selection means the follow-up render
-    // opens a *second* overlay while the first one's deferred onClose is still
-    // queued — that callback then closes this Select and orphans the menu that
-    // is actually on screen. Let the value change flow through and the effect
-    // below update the existing overlay in place; `close()` handles teardown
-    // when closeOnSelect is on.
-    if (valueProp === undefined) {
-      setValue(opt.value);
-    }
-
-    onChange?.(opt.value, opt);
-
-    handleSelectionComplete({
-      mode: 'single',
-      preferRefocus: refocusAfterSelect,
-      keyboardManager,
-      focusCallbacks: {
-        focusPrimary: focusTrigger,
-        blurPrimary: blurTrigger,
-      },
-    });
-
-    if (closeOnSelect) {
-      close();
-    }
-  }, [closeOnSelect, close, onChange, valueProp, refocusAfterSelect, keyboardManager, focusTrigger, blurTrigger]);
-
-  const listMaxHeight = resolvedDropdownMaxHeight ?? maxH;
-  const menu = useMemo(() => {
-    // maxWidth included: menuStyles.dropdown caps at 320, which must not
-    // shrink a dropdown below an explicitly resolved width (a trigger wider
-    // than 320, or the mobile dialog card).
-    const widthStyle = resolvedDropdownWidth && resolvedDropdownWidth > 0
-      ? { width: resolvedDropdownWidth, minWidth: resolvedDropdownWidth, maxWidth: resolvedDropdownWidth }
-      : undefined;
-    const maxHeightStyle = listMaxHeight
-      ? { maxHeight: listMaxHeight }
-      : undefined;
-
-    return (
-      <View style={widthStyle}>
-        {/*
-          One painted surface, at level 2 (floating over content). The inner
-          ListGroup runs `flush` so it doesn't stamp a second background on top
-          — that double-paint is what made the dropdown read as a grey slab.
-        */}
-        <Surface
-          level={2}
-          withBorder
-          radius="md"
-          style={{
-            ...menuStyles.dropdown,
-            ...(maxHeightStyle ?? {}),
-            ...(widthStyle ?? {}),
-          }}
-        >
-        <ListGroup
-          variant="flush"
-          size={size as SizeValue}
-          style={{
-            ...(maxHeightStyle ?? {}),
-            ...(widthStyle ?? {}),
-          }}
-        >
-          <FlatList
-            data={options}
-            keyExtractor={o => String(o.value)}
-            renderItem={({ item }) => {
-              const selected = item.value === value;
-
-              if (renderOption) {
-                return (
-                  <CustomOption
-                    option={item}
-                    selected={selected}
-                    render={renderOption}
-                    onSelect={handleSelect}
-                  />
-                );
-              }
-
-              const primaryPalette = theme.colors.primary || [];
-              const highlightColor = theme.colorScheme === 'dark'
-                ? primaryPalette[5] || primaryPalette[4] || '#60A5FA'
-                : primaryPalette[6] || primaryPalette[5] || '#3B82F6';
-              const baseTextColor = item.disabled ? theme.text.disabled : theme.text.primary;
-              const accentTextColor = item.disabled ? theme.text.disabled : highlightColor;
-
-              return (
-                <MenuItemButton
-                  onPress={() => handleSelect(item)}
-                  disabled={!!item.disabled}
-                  active={false}
-                  color="default"
-                  hoverColor="default"
-                  activeColor="default"
-                  textColor={baseTextColor}
-                  hoverTextColor={baseTextColor}
-                  activeTextColor={baseTextColor}
-                  // No spacer on the unselected rows: labels sit flush against
-                  // the row padding, and only the selected option's checkmark
-                  // pushes its label across.
-                  startIcon={selected ? <Icon name="check" size={16} color={highlightColor} /> : undefined}
-                  compact
-                  rounded={false}
-                  size={size as SizeValue}
-                  // Options read at exactly the trigger's font size. `size` alone
-                  // isn't enough: a numeric `size` means "row height" to the menu
-                  // item but "font size" to the field, so pin the label directly.
-                  labelProps={{ size: fieldFontSize }}
-                  style={{ borderRadius: 0 }}
-                >
-                  {item.label}
-                </MenuItemButton>
-              );
-            }}
-            ItemSeparatorComponent={renderOption ? undefined : ListGroupDivider}
-            style={maxHeightStyle}
-            bounces={false}
-          />
-        </ListGroup>
-        </Surface>
-      </View>
-    );
-  }, [resolvedDropdownWidth, listMaxHeight, menuStyles.dropdown, options, value, renderOption, size, fieldFontSize, theme.colors.primary, theme.colors.secondary, theme.colorScheme, theme.text.disabled, theme.text.primary, theme.text.onPrimary, handleSelect]);
-
-  useEffect(() => {
-    if (!shouldUseOverlay) {
-      return () => {};
-    }
-
-    if (!open) {
-      return () => {
-        hideOverlay();
-      }
-      
-    }
-
-    if (!position) {
-      return () => {};
-    }
-
-    const dropdownWidth = resolvedDropdownWidth;
-    const dropdownMaxHeight = resolvedDropdownMaxHeight;
-
-    const overlayContent = (
-      <View
-        ref={popoverRef}
-        onLayout={handleDropdownLayout}
-        style={[
-          dropdownWidth ? { width: dropdownWidth, minWidth: dropdownWidth } : null,
-          dropdownMaxHeight ? { maxHeight: dropdownMaxHeight } : null,
-        ]}
-      >
-        {menu}
-      </View>
-    );
-
-    showOverlay(overlayContent, {
-      width: dropdownWidth,
-      maxHeight: dropdownMaxHeight,
-      zIndex: 1300,
-    });
-
-    // return () => hideOverlay();
-  }, [open,
-    position, resolvedDropdownWidth, resolvedDropdownMaxHeight, popoverRef, handleDropdownLayout, menu, showOverlay, hideOverlay, shouldUseOverlay
-  ]);
-
-  useEffect(() => {
-    return () => {
-      hideOverlay();
-    };
-  }, [hideOverlay]);
-
-  const handleClear = useCallback((event?: any) => {
-    event?.stopPropagation?.();
-    if (disabled) return;
-
-    if (valueProp === undefined) {
-      setValue(null);
-    }
-
-    onChange?.(null, null);
-    onClear?.();
-    close();
-  }, [disabled, valueProp, onChange, onClear, close]);
-
-  const fieldContent = selectedOption ? (
-    <RNText
-      style={{
-        color: disabled ? theme.text.disabled : theme.text.primary,
-        fontSize: fieldFontSize,
-        fontFamily: theme.fontFamily,
-      }}
-    >
-      {selectedOption.label}
-    </RNText>
-  ) : (
-    <RNText
-      style={{
-        color: disabled ? theme.text.disabled : theme.text.muted,
-        fontSize: fieldFontSize,
-        fontFamily: theme.fontFamily,
-      }}
-    >
-      {placeholder}
-    </RNText>
+    },
+    [readOnly, setValue, closeOnSelect, closeDropdown, refocusAfterSelect]
   );
 
-  return (
-    <View style={[defaultMinWidthStyle, fullWidthStyle, spacingStyles, layoutStyles]}>
-      <FieldHeader
-        label={label}
-        description={description}
-        disabled={disabled}
-        error={!!error}
-        size={size as SizeValue}
-        labelProps={labelProps}
-        descriptionProps={descriptionProps}
+  const selectIndex = useCallback((index: number) => selectOption(filtered[index]), [selectOption, filtered]);
+
+  const handleClear = useCallback(() => {
+    if (disabled || readOnly) return;
+    setValue(null, null);
+    onClear?.();
+    closeDropdown();
+    // The clear button unmounts; keep keyboard focus on the field.
+    if (isWeb) requestAnimationFrame(focusTrigger);
+  }, [disabled, readOnly, setValue, onClear, closeDropdown, focusTrigger]);
+
+  useImperativeHandle(
+    ref,
+    (): FieldHandle => ({
+      focus: focusTrigger,
+      blur: () => triggerRef.current?.blur?.(),
+      clear: handleClear,
+      isFocused: () => hasDOM && document.activeElement === (triggerRef.current as unknown),
+    }),
+    [focusTrigger, handleClear]
+  );
+
+  // --- keyboard ----------------------------------------------------------------
+  const optionId = useCallback((index: number) => `${baseId}-option-${index}`, [baseId]);
+  const isOptionDisabled = useCallback((index: number) => !!filtered[index]?.disabled, [filtered]);
+
+  const nav = useListNavigation({
+    count: filtered.length,
+    activeIndex,
+    onActiveChange: setActiveIndex,
+    onSelect: selectIndex,
+    getId: optionId,
+    isDisabled: isOptionDisabled,
+    opened,
+    listId,
+    loop: false,
+    homeEndKeys: !searchable,
+  });
+
+  const typeaheadRef = useRef<{ buffer: string; timer: ReturnType<typeof setTimeout> | null }>({
+    buffer: '',
+    timer: null,
+  });
+  useEffect(() => () => {
+    const { timer } = typeaheadRef.current;
+    if (timer) clearTimeout(timer);
+  }, []);
+
+  const runTypeahead = useCallback(
+    (char: string): number => {
+      const state = typeaheadRef.current;
+      if (state.timer) clearTimeout(state.timer);
+      state.timer = setTimeout(() => {
+        state.buffer = '';
+      }, TYPEAHEAD_RESET_MS);
+      state.buffer += char.toLowerCase();
+      return matchTypeahead(options, state.buffer, activeIndex);
+    },
+    [options, activeIndex]
+  );
+
+  const handleTriggerKeyDown = useCallback(
+    (event: KeyboardEventLike) => {
+      if (disabled || readOnly) return;
+      const { key, alt, ctrl, meta } = readKey(event);
+      const printable = key.length === 1 && key !== ' ' && !ctrl && !meta && !alt;
+
+      if (!openedRef.current) {
+        if (key === 'ArrowDown' || key === 'Enter' || key === ' ') {
+          consumeEvent(event);
+          openDropdown('selected');
+        } else if (key === 'ArrowUp' || key === 'Home') {
+          consumeEvent(event);
+          openDropdown('first');
+        } else if (key === 'End') {
+          consumeEvent(event);
+          openDropdown('last');
+        } else if (printable && !searchable) {
+          const match = runTypeahead(key);
+          openDropdown('selected');
+          if (match >= 0) setActiveIndex(match);
+        }
+        return;
+      }
+
+      // With a filter input, keys are handled there (it holds focus).
+      if (searchable) return;
+      if (key === 'Tab') {
+        closeDropdown();
+        return;
+      }
+      if (key === ' ') {
+        consumeEvent(event);
+        selectIndex(activeIndex);
+        return;
+      }
+      if (nav.handleKeyDown(event)) return;
+      if (printable) {
+        const match = runTypeahead(key);
+        if (match >= 0) setActiveIndex(match);
+      }
+    },
+    [disabled, readOnly, openDropdown, searchable, runTypeahead, closeDropdown, selectIndex, activeIndex, nav]
+  );
+
+  const handleSearchKeyDown = useCallback(
+    (event: KeyboardEventLike) => {
+      const { key } = readKey(event);
+      if (key === 'Tab') {
+        closeDropdown();
+        return;
+      }
+      nav.handleKeyDown(event);
+    },
+    [closeDropdown, nav]
+  );
+
+  const handleQueryChange = useCallback(
+    (text: string) => {
+      setQuery(text);
+      const trimmed = text.trim().toLowerCase();
+      const next = trimmed ? options.filter((option) => option.label.toLowerCase().includes(trimmed)) : options;
+      setActiveIndex(findEnabledIndex(next, -1, 1));
+    },
+    [options]
+  );
+
+  const handleTriggerPress = useCallback(
+    (event: GestureResponderEvent) => {
+      // react-native-web also "presses" on Enter keyup; keys are handled on keydown.
+      if (isKeyboardPress(event)) return;
+      if (openedRef.current) closeDropdown();
+      else openDropdown('selected');
+    },
+    [closeDropdown, openDropdown]
+  );
+
+  // Keep the highlighted option in view (web: the list scrolls under a fixed trigger).
+  const activeId = nav.activeId;
+  useEffect(() => {
+    if (!hasDOM || !opened || !activeId) return;
+    const node = document.getElementById(activeId) as (HTMLElement & { scrollIntoView?: (o?: unknown) => void }) | null;
+    node?.scrollIntoView?.({ block: 'nearest' });
+  }, [opened, activeId]);
+
+  // --- positioning -----------------------------------------------------------
+  const metrics = getControlSize(theme, size);
+  const estimatedDropdownHeight = useMemo(() => {
+    // Known before the list mounts, so the first placement picks the right side.
+    const rowHeight = Math.max(32, metrics.height - 4) + 1;
+    const searchHeight = searchable ? metrics.height + 16 : 0;
+    return Math.min(maxH, options.length * rowHeight + 2) + searchHeight;
+  }, [metrics.height, searchable, maxH, options.length]);
+
+  const floating = useFloating({
+    opened: opened && !useSheet,
+    onDismiss: closeDropdown,
+    placement: 'bottom-start',
+    offset: 6,
+    boundary: 8,
+    flip: true,
+    shift: true,
+    matchWidth: true,
+    fallbackPlacements: DROPDOWN_FALLBACK_PLACEMENTS,
+    role: null,
+    popupType: 'listbox',
+    id: `${baseId}-dropdown`,
+    layer: 'dropdown',
+    // Select-only: real focus stays on the trigger (aria-activedescendant).
+    // Searchable: the filter input takes focus.
+    autoFocus: searchable,
+    initialFocusRef: searchable ? searchInputRef : undefined,
+    keyboardAvoidance,
+    desiredHeight: estimatedDropdownHeight,
+  });
+
+  const { refs: floatingRefs } = floating;
+  const setTriggerNode = useCallback(
+    (node: View | null) => {
+      triggerRef.current = node;
+      floatingRefs.setReference(node);
+    },
+    [floatingRefs]
+  );
+
+  const positionMaxHeight = floating.position?.maxHeight;
+  const listMaxHeight = typeof positionMaxHeight === 'number'
+    ? Math.max(80, Math.min(maxH, positionMaxHeight - (searchable ? metrics.height + 16 : 0)))
+    : maxH;
+
+  // --- dropdown content ----------------------------------------------------------
+  const virtualFocus = !useSheet;
+  const renderRow = useCallback(
+    ({ item, index }: ListRenderItemInfo<SelectOption<T>>) => {
+      const selected = item.value === value;
+      const active = index === activeIndex;
+      const optionProps = nav.getOptionProps(index);
+      if (renderOption) {
+        return (
+          <CustomOption
+            option={item}
+            index={index}
+            optionProps={optionProps}
+            selected={selected}
+            active={active}
+            virtualFocus={virtualFocus}
+            render={renderOption}
+            onSelect={selectIndex}
+            onHover={setActiveIndex}
+          />
+        );
+      }
+      return (
+        <OptionRow
+          optionProps={optionProps}
+          index={index}
+          label={item.label}
+          description={item.description}
+          selected={selected}
+          active={active}
+          disabled={item.disabled}
+          onSelect={selectIndex}
+          onHover={setActiveIndex}
+          size={size}
+          virtualFocus={virtualFocus}
+        />
+      );
+    },
+    [value, activeIndex, nav, renderOption, virtualFocus, selectIndex, size]
+  );
+
+  const listboxProps = a11yProps({
+    role: 'listbox',
+    id: listId,
+    labelledBy: hasLabel && !accessibilityLabel ? `${baseId}-label` : undefined,
+    label: accessibilityLabel ?? (hasLabel ? undefined : placeholder),
+  });
+
+  const listbox = (
+    <View {...listboxProps} style={[LIST_WRAPPER, { maxHeight: useSheet ? undefined : listMaxHeight }]}>
+      <FlatList
+        data={filtered}
+        extraData={`${String(value)}|${activeIndex}`}
+        keyExtractor={optionKey}
+        renderItem={renderRow}
+        keyboardShouldPersistTaps="handled"
+        initialNumToRender={Math.min(filtered.length, 30)}
+        ItemSeparatorComponent={renderOption ? undefined : OptionDivider}
+        bounces={false}
+        style={{ flexGrow: 0 }}
       />
-      <Pressable
-        ref={setTriggerNode}
-        onPress={toggle}
-        {...(Platform.OS === 'web' ? { role: 'combobox' as const } : { accessibilityRole: 'button' as const })}
-        accessibilityLabel={label || placeholder}
-        // The chevron now conveys open/closed by rotation alone, so the state has
-        // to be published to assistive tech explicitly.
-        accessibilityState={{ disabled: !!disabled, expanded: open }}
-        disabled={disabled}
-        style={[
-          inputStyles.inputContainer,
-          {
-            flexDirection: isRTL ? 'row-reverse' : 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            maxWidth: '100%',
-            width: '100%',
-          },
-        ]}
-      >
-        <View
+      {filtered.length === 0 ? (
+        <Text
           style={{
-            flex: 1,
-            ...(isRTL ? { paddingLeft: showClearButton ? 8 : 0 } : { paddingRight: showClearButton ? 8 : 0 }),
+            paddingHorizontal: metrics.paddingX,
+            paddingVertical: metrics.gap * 2,
+            color: theme.text.muted,
+            fontSize: metrics.fontSize,
+            fontFamily: theme.fontFamily,
           }}
         >
-          {fieldContent}
-        </View>
-        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-          {showClearButton && (
-            <ClearButton
-              onPress={handleClear}
-              size={size as SizeValue}
-              accessibilityLabel={clearLabel}
-              hasRightSection={true}
-            />
-          )}
-          <Animated.View style={animatedChevronStyle}>
-            <Icon
-              name="chevron-down"
-              size={16}
-              color={disabled ? theme.text.disabled : theme.text.muted}
-            />
-          </Animated.View>
-        </View>
-      </Pressable>
-      {error && <RNText style={inputStyles.error}>{error}</RNText>}
-      {!error && helperText && <RNText style={inputStyles.helperText}>{helperText}</RNText>}
-
-      {open && shouldUseModal && (
-        <Modal transparent animationType="fade" visible onRequestClose={close}>
-          <Pressable
-            // Centered both ways: without alignItems the card stretched from the
-            // left edge at whatever width the trigger measured, so the options
-            // appeared as a detached strip at the screen's mid-left.
-            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.2)', padding: 24, justifyContent: 'center', alignItems: 'center' }}
-            onPress={close}
-          >
-            <Pressable style={{ boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)', elevation: 4 }}>
-              {menu}
-            </Pressable>
-          </Pressable>
-        </Modal>
-      )}
+          {nothingFoundMessage}
+        </Text>
+      ) : null}
     </View>
   );
-});
+
+  const { onKeyDown: _navKeyDown, ...searchInputA11y } = nav.inputProps;
+  void _navKeyDown;
+  const searchInput = searchable ? (
+    <View style={{ padding: metrics.gap, borderBottomWidth: 1, borderBottomColor: theme.backgrounds.border }}>
+      <TextInput
+        ref={searchInputRef}
+        value={query}
+        onChangeText={handleQueryChange}
+        placeholder={searchPlaceholder}
+        placeholderTextColor={theme.text.muted}
+        autoCorrect={false}
+        autoCapitalize="none"
+        {...searchInputA11y}
+        aria-label={searchPlaceholder}
+        // react-native-web routes a TextInput's keydown through onKeyPress (its own
+        // onKeyDown wins over a passed one), with the DOM key event.
+        onKeyPress={handleSearchKeyDown}
+        style={{
+          minHeight: Math.max(32, metrics.height - 8),
+          paddingHorizontal: metrics.paddingX,
+          fontSize: metrics.fontSize,
+          fontFamily: theme.fontFamily,
+          color: theme.text.primary,
+          borderRadius: metrics.radius,
+          backgroundColor: theme.backgrounds.subtle,
+        }}
+      />
+    </View>
+  ) : null;
+
+  const dropdownSurface = useMemo(() => getDropdownSurfaceStyle(theme), [theme]);
+  const anchorWidth = floating.position?.finalWidth;
+  const floatingProps = floating.getFloatingProps({
+    style: [dropdownSurface, anchorWidth ? { width: anchorWidth } : null],
+    testID: testID ? `${testID}-dropdown` : undefined,
+  }) as ViewProps;
+
+  const floatingElement = useSheet
+    ? null
+    : floating.renderFloating(
+        <View {...floatingProps}>
+          {searchInput}
+          {listbox}
+        </View>,
+        { width: anchorWidth }
+      );
+
+  // --- trigger ------------------------------------------------------------------
+  const displayValue = selectedOption?.label;
+  const referenceAria = floating.getReferenceProps({}, { ref: false });
+
+  const buildTriggerA11y = (controlProps: A11yProps) => {
+    const nameFallback = !hasLabel && !accessibilityLabel ? placeholder : undefined;
+    const state = a11yProps({
+      role: isWeb ? 'combobox' : 'button',
+      expanded: opened,
+      hasPopup: 'listbox',
+      controls: opened ? listId : undefined,
+      activeDescendant: opened && !searchable ? activeId : undefined,
+      disabled,
+      // Native reads the value after the label ("Sport, Tennis, button");
+      // web reads a select-only combobox's value from its text.
+      value: !isWeb && displayValue ? { text: displayValue } : undefined,
+    });
+    return {
+      ...controlProps,
+      ...(nameFallback && !controlProps['aria-label'] ? { 'aria-label': nameFallback } : null),
+      ...state,
+      'aria-expanded': opened,
+      // Only the web trigger may point at the popup (native gets aria-expanded only).
+      ...(isWeb ? { 'aria-haspopup': referenceAria['aria-haspopup'] as A11yProps['aria-haspopup'] } : null),
+    };
+  };
+
+  const endSection = (
+    <Animated.View style={chevronStyle}>
+      <Icon name="chevron-down" size={metrics.iconSize} color={disabled ? theme.text.disabled : theme.text.muted} decorative />
+    </Animated.View>
+  );
+
+  const rootStyle: ViewStyle = fullWidth || w !== undefined ? {} : { width: 'auto', minWidth: 200 };
+  const layoutStyles = getLayoutStyles({ fullWidth });
+  const disclaimerNode = renderDisclaimer();
+
+  return (
+    <Field
+      id={baseId}
+      label={label}
+      description={description}
+      error={error}
+      helperText={helperText}
+      required={required}
+      withAsterisk={withAsterisk}
+      disabled={disabled}
+      readOnly={readOnly}
+      size={size}
+      labelProps={labelProps}
+      descriptionProps={descriptionProps}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      style={[rootStyle, layoutStyles, spacingStyles, style]}
+      testID={testID}
+    >
+      {({ controlProps, invalid }) => (
+        <>
+          <View style={ANCHOR_WRAPPER}>
+            <PickerTrigger
+              triggerRef={setTriggerNode}
+              triggerProps={{
+                ...buildTriggerA11y(controlProps),
+                onKeyDown: handleTriggerKeyDown,
+                onFocus,
+                onBlur,
+              }}
+              onPress={handleTriggerPress}
+              displayValue={displayValue}
+              placeholder={placeholder}
+              placeholderTextColor={placeholderTextColor}
+              size={size}
+              radius={radius}
+              variant={variant}
+              opened={opened}
+              invalid={invalid}
+              disabled={disabled}
+              readOnly={readOnly}
+              startSection={startSection}
+              startSectionProps={startSectionProps}
+              endSection={endSection}
+              showClear={clearable && !!selectedOption && !disabled && !readOnly}
+              onClear={handleClear}
+              clearButtonLabel={clearButtonLabel}
+              testID={testID ? `${testID}-trigger` : undefined}
+            />
+            {floatingElement}
+          </View>
+          {disclaimerNode}
+          {useSheet ? (
+            <DropdownSheet
+              opened={opened}
+              onClose={closeDropdown}
+              title={typeof label === 'string' || typeof label === 'number' ? label : undefined}
+              accessibilityLabel={accessibilityLabel ?? placeholder}
+              withCloseButton
+              initialFocusRef={searchable ? searchInputRef : undefined}
+              testID={testID ? `${testID}-sheet` : undefined}
+            >
+              {searchInput}
+              {listbox}
+            </DropdownSheet>
+          ) : null}
+        </>
+      )}
+    </Field>
+  );
+}
+
+const optionKey = <T,>(option: SelectOption<T>, index: number) => `${String(option.value)}-${index}`;
+
+const ANCHOR_WRAPPER: ViewStyle = { position: 'relative', width: '100%' };
+const LIST_WRAPPER: ViewStyle = { flexShrink: 1 };
+
+function OptionDivider() {
+  const theme = useTheme();
+  return <View style={{ height: 1, backgroundColor: theme.backgrounds.border }} />;
+}
+
+const SelectBase = factory<{ props: SelectProps; ref: SelectHandle }>(SelectInner, { displayName: 'Select' });
+
+/**
+ * A select-only combobox: a field that opens a listbox of options.
+ *
+ * Generic over the option value — `<Select options={[{ label: 'One', value: 1 }]} />`
+ * infers `number`, so `onChange` receives `number | null`.
+ */
+export const Select = SelectBase as unknown as (<T>(
+  props: SelectProps<T> & React.RefAttributes<SelectHandle>
+) => React.ReactElement | null) &
+  Pick<typeof SelectBase, 'displayName' | 'extend' | 'withProps'>;

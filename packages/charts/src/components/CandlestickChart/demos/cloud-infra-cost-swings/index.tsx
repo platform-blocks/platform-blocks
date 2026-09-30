@@ -1,4 +1,4 @@
-import { CandlestickChart } from '@platform-blocks/charts';
+import { CandlestickChart } from '@plocks/charts';
 
 import { COST_SERIES, CloudCandle, annotations } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <CandlestickChart
       title="Cloud Spend Volatility"
       subtitle="Optimization window captured a 4.7% cost reduction"
-      height={420}
+      h={420}
       series={[
         {
           id: 'cloud-costs',

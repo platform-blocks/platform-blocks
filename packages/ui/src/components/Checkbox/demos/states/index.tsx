@@ -1,22 +1,12 @@
-import { useState } from 'react';
-import { Block, Checkbox, Text } from '@platform-blocks/ui';
+import { Block, Checkbox } from '@plocks/ui';
 
 export function Demo() {
-  const [enabled, setEnabled] = useState(true);
-  const [required, setRequired] = useState(true);
-  const [withError, setWithError] = useState(false);
-
   return (
     <Block>
-      <Checkbox label="Enabled" checked={enabled} onChange={setEnabled} />
-      <Checkbox label="Disabled" checked={false} disabled />
-      <Checkbox label="Required" required checked={required} onChange={setRequired} />
-      <Checkbox
-        label="With error"
-        error={withError ? 'Selection required' : undefined}
-        checked={withError}
-        onChange={setWithError}
-      />
+      <Checkbox label="Enabled" defaultChecked />
+      <Checkbox label="Disabled" disabled />
+      <Checkbox label="Required" required defaultChecked />
+      <Checkbox label="With error" error="Selection required" />
     </Block>
   );
 }

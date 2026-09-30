@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Block, Knob } from '@platform-blocks/ui';
+import { Block, Knob } from '@plocks/ui';
 
 export function Demo() {
   const [value, setValue] = useState(0);
@@ -8,7 +8,7 @@ export function Demo() {
 
   return (
     <Block fullWidth>
-      <Knob
+      <Knob accessibilityLabel="Jog wheel"
         value={value}
         onChange={setValue}
         behavior="endless"

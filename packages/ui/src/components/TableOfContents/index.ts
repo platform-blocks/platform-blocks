@@ -1,2 +1,2 @@
 export { TableOfContents } from './TableOfContents';
-export type { TableOfContentsProps, TocItem } from './types';
+export type { TableOfContentsProps, TableOfContentsControlProps, TocItem } from './types';

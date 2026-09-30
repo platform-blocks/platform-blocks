@@ -1,23 +1,6 @@
-import React from 'react';
-import { View } from 'react-native';
-import { Flex, FlexProps } from './Flex';
-
 /**
- * Row component - shorthand for Flex with direction="row"
- * Automatically mirrors to row-reverse in RTL
+ * `Row` / `Column` live in `components/Layout`; re-exported here so existing
+ * deep imports from `components/Flex` keep working with one implementation.
  */
-export const Row = React.forwardRef<View, Omit<FlexProps, 'direction'>>((props, ref) => {
-  return <Flex {...props} direction="row" ref={ref} />;
-});
-
-Row.displayName = 'Row';
-
-/**
- * Column component - shorthand for Flex with direction="column"
- * Not affected by RTL (columns are vertical)
- */
-export const Column = React.forwardRef<View, Omit<FlexProps, 'direction'>>((props, ref) => {
-  return <Flex {...props} direction="column" ref={ref} />;
-});
-
-Column.displayName = 'Column';
+export { Row, Column } from '../Layout/Layout';
+export type { RowProps, ColumnProps } from '../Layout/Layout';

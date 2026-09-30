@@ -1,4 +1,4 @@
-import { Block, Text, Timeline } from '@platform-blocks/ui';
+import { Block, Text, Timeline } from '@plocks/ui';
 
 const phases = ['Start', 'Plan', 'Build'];
 
@@ -21,7 +21,7 @@ export function Demo() {
     <Block direction="row" justify="space-between" fullWidth>
       {variantExamples.map((example) => (
         <Block key={example.label}>
-          <Text weight="semibold">{example.label}</Text>
+          <Text fw="semibold">{example.label}</Text>
           <Timeline>
             {phases.map((title) => (
               <Timeline.Item key={`${example.label}-${title}`} title={title} lineVariant={example.variant} />
@@ -30,7 +30,7 @@ export function Demo() {
         </Block>
       ))}
       <Block>
-        <Text weight="semibold">Mix line variants</Text>
+        <Text fw="semibold">Mix line variants</Text>
         <Timeline>
           {releaseFlow.map((step) => (
             <Timeline.Item key={step.title} title={step.title} lineVariant={step.variant} />

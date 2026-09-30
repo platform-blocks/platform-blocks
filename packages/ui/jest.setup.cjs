@@ -31,86 +31,10 @@ afterEach(() => {
   scheduledFrames.clear();
 });
 
-// Mock React Native Reanimated
-jest.mock('react-native-reanimated', () => {
-  const View = require('react-native').View;
-  const createAnimatedStyle = (cb) => new Proxy({}, {
-    get: (_target, prop) => {
-      const latest = cb() || {};
-      return latest[prop];
-    },
-    ownKeys: () => {
-      const latest = cb() || {};
-      return Reflect.ownKeys(latest);
-    },
-    getOwnPropertyDescriptor: (_target, prop) => {
-      const latest = cb() || {};
-      if (prop in latest) {
-        return {
-          configurable: true,
-          enumerable: true,
-          value: latest[prop],
-        };
-      }
-      return undefined;
-    },
-  });
-  return {
-    __esModule: true,
-    default: {
-      View,
-      Text: View,
-      ScrollView: View,
-      createAnimatedComponent: (Component) => Component,
-    },
-    useSharedValue: (initial) => ({ value: initial }),
-    useAnimatedStyle: (cb) => createAnimatedStyle(cb),
-    withTiming: (value, _config, callback) => {
-      if (callback) {
-        callback(true);
-      }
-      return value;
-    },
-    withSpring: (value, _config, callback) => {
-      if (callback) {
-        callback(true);
-      }
-      return value;
-    },
-    withDelay: (_delay, value) => value,
-    withRepeat: (value) => value,
-    withSequence: (...values) => values[0],
-    cancelAnimation: () => {},
-    interpolate: (value, inputRange, outputRange) => {
-      // Simple interpolation mock
-      return outputRange[0];
-    },
-    interpolateColor: (value, inputRange, outputRange) => {
-      // Simple color interpolation mock - return first color
-      return outputRange[0];
-    },
-    Extrapolation: {
-      CLAMP: 'clamp',
-      EXTEND: 'extend',
-      IDENTITY: 'identity',
-    },
-    Easing: {
-      linear: (t) => t,
-      ease: (t) => t,
-      quad: (t) => t,
-      cubic: (t) => t,
-      back: (s) => (t) => t,
-      elastic: (bounciness) => (t) => t,
-      bounce: (t) => t,
-      bezier: () => (t) => t,
-      inOut: (easing) => (t) => t,
-      out: (easing) => (t) => t,
-      in: (easing) => (t) => t,
-    },
-    runOnJS: (fn) => fn,
-    runOnUI: (fn) => fn,
-  };
-});
+// React Native Reanimated: shared values that persist across renders, instant
+// animations. See src/__test-utils__/reanimatedMock.ts (tests needing other
+// behavior spread it and override).
+jest.mock('react-native-reanimated', () => require('./src/__test-utils__/reanimatedMock'));
 
 // Mock React Native Gesture Handler
 jest.mock('react-native-gesture-handler', () => {
@@ -145,10 +69,13 @@ jest.mock('react-native-gesture-handler', () => {
   };
 });
 
-// Mock SVG
+// Mock SVG: every element renders as a View with its props, so geometry can be
+// asserted. `default` is `Svg`, as in the real package (`import Svg, { Path }`).
 jest.mock('react-native-svg', () => {
   const { View } = require('react-native');
   return {
+    __esModule: true,
+    default: View,
     Svg: View,
     Circle: View,
     Ellipse: View,
@@ -181,26 +108,6 @@ jest.mock('expo-linear-gradient', () => {
     LinearGradient: View,
   };
 });
-
-// Mock I18n Context
-jest.mock('./src/core/i18n/I18nContext', () => ({
-  useI18n: () => ({
-    t: (key) => key,
-    locale: 'en',
-    setLocale: jest.fn(),
-    supportedLocales: ['en'],
-  }),
-}));
-
-// Mock Direction Provider
-jest.mock('./src/core/providers/DirectionProvider', () => ({
-  useDirection: () => ({
-    direction: 'ltr',
-    isRTL: false,
-    setDirection: jest.fn(),
-  }),
-  DirectionProvider: ({ children }) => children,
-}));
 
 // Simplified mocks for initial setup
 // React Native mocks can be added as needed

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, DataList, Knob } from '@platform-blocks/ui';
+import { Block, DataList, Knob } from '@plocks/ui';
 
 export function Demo() {
   const [value, setValue] = useState(32);
@@ -8,7 +8,7 @@ export function Demo() {
 
   return (
     <Block direction="row" align="center" justify="space-evenly">
-      <Knob
+      <Knob accessibilityLabel="Value"
         value={value}
         onChange={setValue}
         onChangeEnd={setCommitted}

@@ -17,7 +17,7 @@ import { useChartInteractionContext, useActiveTarget } from '../../interaction/C
 import { useChartPointer } from '../../interaction/useChartPointer';
 import { AngularSliceHitTester } from '../../core/hittest/angular';
 import type { HitSeries, Mark } from '../../core/hittest/types';
-import { getColorFromScheme, colorSchemes, formatNumber } from '../../utils';
+import { getColorFromScheme, formatNumber } from '../../utils';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -135,8 +135,8 @@ AnimatedRadialBar.displayName = 'AnimatedRadialBar';
 export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
   const {
     data,
-    width = 240,
-    height = 240,
+    w: width = 240,
+    h: height = 240,
     title,
     subtitle,
     barThickness = 14,
@@ -235,11 +235,16 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
 
   // Animation
   const animationProgress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = React.useRef(false);
   const dataSignature = useMemo(() => {
     return data.map(d => `${d.id || 'auto'}-${d.value}-${d.max || ''}`).join('|');
   }, [data]);
 
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (disabled) {
       animationProgress.value = 1;
       return;
@@ -263,7 +268,7 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
       const visible = override ? override.visible !== false : true;
       
       const ringRadius = maxRadius - i * (barThickness + gap) - barThickness / 2;
-      const color = d.color || getColorFromScheme(i, colorSchemes.default);
+      const color = d.color || getColorFromScheme(i, theme.colors.accentPalette);
       const trackColor = d.trackColor || theme.colors.background || '#f1f5f9';
       
       return {
@@ -276,7 +281,7 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
         isValid: ringRadius - barThickness / 2 > 0,
       };
     });
-  }, [data, maxRadius, barThickness, gap, theme.colors.background, interaction?.series]);
+  }, [data, maxRadius, barThickness, gap, theme.colors.background, theme.colors.accentPalette, interaction?.series]);
 
   // New interaction engine: each ring is a single angular-sector mark (annular band
   // at the ring's radius across the full track). The angular hit-tester resolves
@@ -356,8 +361,8 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
   return (
     <ChartContainer
       {...rest}
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       style={style}
       interactionConfig={{ multiTooltip, liveTooltip: tooltip?.show === false ? false : liveTooltip }}
     >
@@ -482,7 +487,7 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
             const visible = override ? override.visible !== false : true;
             return {
               label: d.label || String(d.id || i),
-              color: d.color || getColorFromScheme(i, colorSchemes.default),
+              color: d.color || getColorFromScheme(i, theme.colors.accentPalette),
               visible,
             };
           })}

@@ -3,9 +3,7 @@ title: Orientation
 category: layout
 order: 70
 tags: [tabs, orientation]
-highlightLines: [37-46]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

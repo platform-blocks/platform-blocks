@@ -1,4 +1,4 @@
-import { Block, Button, Row, Space, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Button, Row, Space, Text, useTheme } from '@plocks/ui';
 
 const GROUPS = [
   {
@@ -20,7 +20,7 @@ export function Demo() {
     <Block>
       {GROUPS.map(({ label, gap, helper }) => (
         <Block key={label}>
-          <Text weight="medium">{label}</Text>
+          <Text fw="medium">{label}</Text>
           <Block bg={theme.backgrounds.surface} radius="lg" p="md">
             <Row align="center">
               <Button size="sm">Primary</Button>
@@ -34,7 +34,7 @@ export function Demo() {
               </Button>
             </Row>
           </Block>
-          <Text variant="small" color="muted">
+          <Text variant="small" c="muted">
             {helper}
           </Text>
         </Block>

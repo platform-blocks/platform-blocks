@@ -1,4 +1,4 @@
-import { LineChart } from '@platform-blocks/charts';
+import { LineChart } from '@plocks/charts';
 
 import { FORECAST_END, FORECAST_START, MONTH_LABELS, SERIES } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <LineChart
       title="ARR Progression vs. Forecast"
       subtitle="GTM regions actualized ARR with forward-looking plans"
-      height={440}
+      h={440}
       series={SERIES}
       smooth
       showPoints

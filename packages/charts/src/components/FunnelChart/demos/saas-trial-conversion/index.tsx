@@ -1,21 +1,14 @@
-import { FunnelChart } from '@platform-blocks/charts';
+import { FunnelChart, formatCompactNumber } from '@plocks/charts';
 
 import { TRIAL_CONVERSION, TrialMeta } from './data';
-
-const compact = (value: number) => {
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
-  if (abs >= 1_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
-  return `${value}`;
-};
 
 export function Demo() {
   return (
     <FunnelChart
       title="SaaS trial-to-paid conversion"
       subtitle="Retention from sign-up to paid"
-      maxWidth={520}
-      height={440}
+      maw={520}
+      h={440}
       series={TRIAL_CONVERSION}
       layout={{
         shape: 'trapezoid',
@@ -24,7 +17,7 @@ export function Demo() {
         showConversion: false,
         connectors: { show: false },
       }}
-      valueFormatter={(value) => compact(value)}
+      valueFormatter={(value) => formatCompactNumber(value)}
       legend={{ show: false }}
       tooltip={{
         show: true,

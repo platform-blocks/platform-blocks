@@ -1,4 +1,4 @@
-import { CandlestickChart } from '@platform-blocks/charts';
+import { CandlestickChart } from '@plocks/charts';
 
 import { TREASURY_SERIES, TreasuryCandle, annotations } from './data';
 
@@ -12,7 +12,7 @@ export function Demo() {
     <CandlestickChart
       title="Crypto Treasury Balances"
       subtitle="Weekly BTC position changes with treasury policy markers"
-      height={420}
+      h={420}
       series={[
         {
           id: 'btc',

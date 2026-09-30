@@ -80,9 +80,14 @@ export const AnimatedSparkline: React.FC<AnimatedSparklineProps> = React.memo((p
   } = props;
 
   const progress = useSharedValue(0);
+  const hasPlayedIntro = React.useRef(false);
   const safeLength = Math.max(pathLength, 0.0001);
 
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     const enabled = animationConfig?.enabled !== false;
     if (disabled || !visible || !enabled) {
       progress.value = 1;

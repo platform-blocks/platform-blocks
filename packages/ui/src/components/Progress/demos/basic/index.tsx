@@ -1,18 +1,13 @@
 import { useState } from 'react';
-import { Block, Button, Progress } from '@platform-blocks/ui';
-
-import { randomValue } from './randomValue';
-
-const TRANSITION_MS = 400;
+import { Block, Button, Progress } from '@plocks/ui';
 
 export function Demo() {
-  const [completion, setCompletion] = useState<number>(50);
+  const [value, setValue] = useState(50);
+
   return (
-    <Block fullWidth >
-      <Progress value={completion} transitionDuration={TRANSITION_MS} />
-      <Button onPress={() => setCompletion(randomValue)}>
-        randomize value
-      </Button>
+    <Block fullWidth>
+      <Progress value={value} transitionDuration={400} />
+      <Button onPress={() => setValue(Math.round(Math.random() * 100))}>Randomize value</Button>
     </Block>
   );
 }

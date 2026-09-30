@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Icon, Switch, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Icon, Switch, Text, useTheme } from '@plocks/ui';
 
 export function Demo() {
   const theme = useTheme();
@@ -9,7 +9,7 @@ export function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Icon on the thumb — swaps with the on/off state
         </Text>
         <Switch
@@ -18,12 +18,12 @@ export function Demo() {
           size="xl"
           label="Wi-Fi"
           onIcon={<Icon name="check" size={18} color={theme.colors.primary[3]} stroke={3} />}
-          offIcon={<Icon name="close" size={18} color={theme.colors.gray[5]} stroke={3} />}
+          offIcon={<Icon name="close" size={18} color={theme.text.muted} stroke={3} />}
         />
       </Block>
 
       <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Text label on the thumb
         </Text>
         <Switch
@@ -38,7 +38,7 @@ export function Demo() {
             </Text>
           }
           offIcon={
-            <Text style={{ fontSize: 12, lineHeight: 11, fontWeight: '700', color: theme.colors.gray[5] }}>
+            <Text style={{ fontSize: 12, lineHeight: 11, fontWeight: '700', color: theme.text.muted }}>
               OFF
             </Text>
           }

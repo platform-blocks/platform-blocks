@@ -4,7 +4,6 @@ category: composition
 order: 30
 tags: [control-field, composition, checkbox]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

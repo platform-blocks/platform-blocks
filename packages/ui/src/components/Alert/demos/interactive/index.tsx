@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Button } from '@platform-blocks/ui';
+import { Alert, Button } from '@plocks/ui';
 
 export function Demo() {
   const [visible, setVisible] = useState(true);

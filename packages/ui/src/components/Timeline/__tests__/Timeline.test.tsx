@@ -23,7 +23,8 @@ import { View, Text } from 'react-native';
 import { Timeline } from '../Timeline';
 
 // Mock the theme
-jest.mock('../../../core/theme', () => ({
+jest.mock('../../../core/theme/ThemeProvider', () => ({
+  ...jest.requireActual('../../../core/theme/ThemeProvider'),
   useTheme: () => ({
     colors: {
       gray: ['#f8f9fa', '#f1f3f5', '#e9ecef', '#dee2e6', '#ced4da', '#adb5bd', '#868e96', '#495057', '#343a40', '#212529'],
@@ -34,6 +35,10 @@ jest.mock('../../../core/theme', () => ({
     text: {
       primary: '#212529',
       secondary: '#495057',
+    },
+    backgrounds: {
+      border: '#e9ecef',
+      borderStrong: '#dee2e6',
     },
   }),
 }));
@@ -542,12 +547,15 @@ describe('Timeline - Type Safety and Prop Validation', () => {
   });
 
   describe('Display Names', () => {
+    // factory() components are memo-wrapped: the name lives on the wrapped component.
+    const nameOf = (component: any) => component.displayName ?? component.type?.displayName;
+
     it('should have correct displayName for Timeline', () => {
-      expect((Timeline as any).displayName).toBe('Timeline');
+      expect(nameOf(Timeline)).toBe('Timeline');
     });
 
     it('should have correct displayName for Timeline.Item', () => {
-      expect((Timeline.Item as any).displayName).toBe('Timeline.Item');
+      expect(nameOf(Timeline.Item)).toBe('Timeline.Item');
     });
   });
 

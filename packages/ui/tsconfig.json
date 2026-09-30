@@ -1,16 +1,24 @@
 {
   "compilerOptions": {
-    "ignoreDeprecations": "6.0",
     "types": [
       "node"
     ],
-    "target": "es2018",
+    "target": "es2020",
     "lib": [
-      "es2018",
-      "esnext.asynciterable",
+      "es2020",
       "dom"
     ],
-    "module": "commonjs",
+    "module": "esnext",
+    // Kept on the legacy "node" (node10) resolver on purpose, which is why
+    // `ignoreDeprecations` is set. react-native 0.86's legacy typings import
+    // themselves by package name ('react-native/types/private/Utilities', ...)
+    // while its package.json "exports" maps "./types/*" to null, so under
+    // "bundler"/"node16" those imports fail to resolve and every RN host
+    // component (View, Text, ScrollView...) stops being a valid JSX element
+    // type (~1,600 errors). Revisit when RN's exports map allows its own type
+    // self-references (or when moving to its strict API types).
+    "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
     "declaration": true,
     "outDir": "./lib",
     "rootDir": "./src",
@@ -18,37 +26,23 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
     "resolveJsonModule": true,
     "jsx": "react-native",
-    "baseUrl": "./src",
+    // Paths resolve relative to this file (no baseUrl). Demos import the
+    // package by its public name; these point that at the source.
     "paths": {
-      "@tabler/icons-react-native": [
-        "../../../node_modules/@tabler/icons-react-native/dist/tabler-icons-react-native.d.ts"
+      "plocks": [
+        "./src/index.ts"
       ],
-      "@tabler/icons-react-native/*": [
-        "../../../node_modules/@tabler/icons-react-native/dist/icons/icons/*"
+      "plocks/*": [
+        "./src/*"
       ],
-      "platform-blocks": [
-        "./index.ts"
+      "@plocks/ui": [
+        "./src/index.ts"
       ],
-      "platform-blocks/*": [
-        "./*"
-      ],
-      "@platform-blocks/ui": [
-        "./index.ts"
-      ],
-      "@platform-blocks/ui/*": [
-        "./*"
-      ],
-      "@platform-blocks/charts": [
-        "../charts/src/index.ts"
-      ],
-      "@platform-blocks/charts/*": [
-        "../charts/*"
+      "@plocks/ui/*": [
+        "./src/*"
       ]
     }
   },
@@ -61,6 +55,10 @@
     "lib/**/*",
     "**/*.test.ts",
     "**/*.test.tsx",
+    "src/**/__tests__/**/*",
+    "src/**/__web_tests__/**/*",
+    // Test-only helpers and mocks (jest.setup.cjs, test files); never shipped.
+    "src/__test-utils__/**/*",
     "src/**/demos/**/*",
     "src/**/__examples__/**/*"
   ]

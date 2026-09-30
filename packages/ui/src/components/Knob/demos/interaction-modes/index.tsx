@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, DataList, Knob, Row, Text, useTheme } from '@platform-blocks/ui';
+import { Block, DataList, Knob, Row, Text, useTheme } from '@plocks/ui';
 
 const MODES = [
   {
@@ -40,10 +40,10 @@ export function Demo() {
     <Block fullWidth>
       <Row gap="xl" align="center" wrap="wrap">
         <Block align="center">
-          <Text size="sm" weight="500">
+          <Text size="sm" fw="500">
             Multimodal control
           </Text>
-          <Knob
+          <Knob accessibilityLabel="Pan"
             value={value}
             onChange={setValue}
             min={-100}
@@ -89,11 +89,11 @@ export function Demo() {
               <DataList.Item key={mode.key}>
                 {/* The mode currently driving the knob is pulled up to full-contrast text. */}
                 <DataList.ItemLabel
-                  color={activeMode === mode.key ? theme.text.primary : theme.text.muted}
+                  c={activeMode === mode.key ? theme.text.primary : theme.text.muted}
                 >
                   {mode.name}
                 </DataList.ItemLabel>
-                <DataList.ItemValue color={theme.text.secondary}>{mode.detail}</DataList.ItemValue>
+                <DataList.ItemValue c={theme.text.secondary}>{mode.detail}</DataList.ItemValue>
               </DataList.Item>
             ))}
           </DataList>

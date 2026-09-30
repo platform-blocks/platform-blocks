@@ -1,4 +1,4 @@
-import { PieChart, type PieChartDataPoint } from '@platform-blocks/charts';
+import { PieChart, type PieChartDataPoint } from '@plocks/charts';
 
 import { BUG_TYPES } from './data';
 
@@ -11,8 +11,8 @@ export function Demo() {
     <PieChart
       title="Bug type distribution"
       subtitle="Latest release cycle"
-      maxWidth={560}
-      height={380}
+      maw={560}
+      h={380}
       data={BUG_TYPES}
       innerRadius={70}
       outerRadius={150}

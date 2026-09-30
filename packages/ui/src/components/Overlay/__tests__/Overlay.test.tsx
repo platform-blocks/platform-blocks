@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { render } from '@testing-library/react-native';
 
 import { Overlay } from '../Overlay';
+import { resolveRadius } from '../../../core/theme/tokens';
 
 const mockTheme = {
   colors: {
@@ -42,36 +43,48 @@ describe('Overlay - behavior', () => {
     );
 
     let style = StyleSheet.flatten(getByTestId('overlay').props.style);
-    expect(style.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    // No color: the (default light) theme scrim at the clamped opacity.
+    expect(style.backgroundColor).toBe('rgba(15, 23, 42, 0)');
 
     rerender(<Overlay testID="overlay" color="#ff0000" opacity={2} />);
     style = StyleSheet.flatten(getByTestId('overlay').props.style);
     expect(style.backgroundColor).toBe('rgba(255, 0, 0, 1)');
   });
 
-  it('applies blur, gradient, and fixed positioning on web', () => {
-    const originalOS = Platform.OS;
-    (Platform as any).OS = 'web';
+  it('ignores web-only gradient / blur / fixed on native (falls back to the color)', () => {
+    const { getByTestId } = render(
+      <Overlay testID="overlay" gradient="linear-gradient(90deg, #000, transparent)" blur={12} fixed />
+    );
+    const style = StyleSheet.flatten(getByTestId('overlay').props.style);
+    expect(style.backgroundImage).toBeUndefined();
+    expect(style.backdropFilter).toBeUndefined();
+    expect(style.position).toBe('absolute');
+    // No color / opacity: the scrim token as-is (the mock theme has none → built-in light scrim).
+    expect(style.backgroundColor).toBe('rgba(15, 23, 42, 0.45)');
+  });
 
+  it('uses the theme scrim by default, re-alphaed by an explicit opacity', () => {
+    const backgrounds = mockTheme.backgrounds as Record<string, string>;
+    backgrounds.scrim = 'rgba(1, 2, 3, 0.5)';
     try {
-      const { getByTestId } = render(
-        <Overlay
-          testID="overlay"
-          gradient="linear-gradient(90deg, rgba(0,0,0,0.8), transparent)"
-          blur={12}
-          fixed
-        />
-      );
-
-      const style = StyleSheet.flatten(getByTestId('overlay').props.style);
-      expect(style.backgroundImage).toBe('linear-gradient(90deg, rgba(0,0,0,0.8), transparent)');
-      expect(style.backdropFilter).toContain('blur(12px)');
-      expect(style.position).toBe('fixed');
-      expect(style.top).toBe(0);
-      expect(style.left).toBe(0);
+      const { getByTestId, rerender } = render(<Overlay testID="overlay" />);
+      expect(StyleSheet.flatten(getByTestId('overlay').props.style).backgroundColor).toBe('rgba(1, 2, 3, 0.5)');
+      rerender(<Overlay testID="overlay" opacity={0.25} />);
+      expect(StyleSheet.flatten(getByTestId('overlay').props.style).backgroundColor).toBe('rgba(1, 2, 3, 0.25)');
+      // An explicit color keeps the old default opacity.
+      rerender(<Overlay testID="overlay" color="#ff0000" />);
+      expect(StyleSheet.flatten(getByTestId('overlay').props.style).backgroundColor).toBe('rgba(255, 0, 0, 0.6)');
     } finally {
-      (Platform as any).OS = originalOS;
+      delete backgrounds.scrim;
     }
+  });
+
+  it('keeps opacity off the root and applies the box props to it', () => {
+    const { getByTestId } = render(<Overlay testID="overlay" opacity={0.3} w={200} mah={100} m={4} />);
+    const style = StyleSheet.flatten(getByTestId('overlay').props.style);
+    expect(style.opacity).toBeUndefined();
+    expect(style).toMatchObject({ width: 200, maxHeight: 100, marginTop: 4 });
+    expect(getByTestId('overlay').props.w).toBeUndefined();
   });
 
   it('translates radius tokens and centers children when center=true', () => {
@@ -80,7 +93,8 @@ describe('Overlay - behavior', () => {
     );
 
     const style = StyleSheet.flatten(getByTestId('overlay').props.style);
-    expect(style.borderRadius).toBe(8);
+    // The mock theme has no radii, so the default scale applies.
+    expect(style.borderRadius).toBe(resolveRadius({}, 'lg'));
     expect(style.justifyContent).toBe('center');
     expect(style.alignItems).toBe('center');
   });

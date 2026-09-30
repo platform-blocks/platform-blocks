@@ -1,250 +1,237 @@
-// TODO: Refactor to be more modular, just a proof-of-concept for now
+import React, { useCallback, useMemo, useRef } from 'react';
+import { Linking, Pressable, View, type ViewStyle } from 'react-native';
 
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Platform, View, Pressable, Linking, StyleSheet, ViewStyle } from 'react-native';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useA11yId } from '../../core/accessibility/useA11yId';
+import { factory } from '../../core/factory';
+import { useLayer } from '../../core/overlay/useLayer';
+import { resolveColorProp } from '../../core/theme/resolveColors';
+import { useOptionalThemeMode } from '../../core/theme/ThemeModeProvider';
 import { useTheme } from '../../core/theme/ThemeProvider';
-import { Icon } from '../Icon';
-// import { useColorScheme } from '../../core/theme/useColorScheme';
-import { directSpotlight } from '../Spotlight';
-import { useThemeMode } from 'platform-blocks/core/theme/ThemeModeProvider';
-import { useDisclosure } from '../../hooks';
-import { useMergedRef } from '../../core/utils';
+import { getControlSize, onColor, resolveShadow } from '../../core/theme/tokens';
+import { getZIndex } from '../../core/theme/zIndices';
+import type { BaseProps, ColorProp } from '../../core/types/base';
+import { devError, warnOnce } from '../../core/utils/logger';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
+import { useDisclosure } from '../../hooks/useDisclosure';
+import { Icon } from '../Icon/Icon';
+import { pointerEventsStyles } from '../../core/platform/pointerEvents';
 
 export interface FloatingActionItem {
   key: string;
+  /** Icon registry name */
   icon?: string;
+  /** Icon name computed at render time (e.g. reflecting the current theme mode) */
   getIcon?: () => string;
   onPress: () => void;
+  /** Accessible name of the action (falls back to `key`, with a dev warning) */
   accessibilityLabel?: string;
+  /** Extra description for screen readers (native) */
+  accessibilityHint?: string;
 }
 
-export interface FloatingActionsProps {
-  /** Custom actions. If not provided, defaults to spotlight, theme toggle, and GitHub */
+export interface FloatingActionsProps extends BaseProps<ViewStyle> {
+  /** Custom actions. If not provided, defaults to a theme toggle, plus Spotlight and GitHub when `onOpenSpotlight` / `githubUrl` are set */
   actions?: FloatingActionItem[];
   /** Called when the speed dial opens */
   onOpen?: () => void;
   /** Called when the speed dial closes */
   onClose?: () => void;
-  /** If true, clicking/tapping outside will not close the menu */
+  /** If true, clicking/tapping outside will not close the menu (web) */
   disableOutsideClose?: boolean;
-  /** Radius (in px) for the arc along which actions are laid out */
-  radius?: number;
-  /** Container style (position should remain absolute for proper layout) */
-  style?: ViewStyle;
+  /** Radius (in px) of the arc the actions are laid out along. @default 88 */
+  arcRadius?: number;
+  /** Button color: palette token, `'primary.6'` shade syntax, or CSS color. @default 'primary' */
+  color?: ColorProp;
+  /** Opens Spotlight; the default Spotlight action is only shown when this is set */
+  onOpenSpotlight?: () => void;
   /** Handler to toggle theme (if omitted, the Theme action still shows but will be a no-op) */
   onToggleTheme?: () => void;
-  /** GitHub URL for the default GitHub action */
+  /** Repository URL for the default GitHub action; the action is only shown when this is set */
   githubUrl?: string;
+  /** Accessible names of the main button. @default { open: 'Open actions', close: 'Close actions' } */
+  toggleLabels?: { open: string; close: string };
 }
 
-const DEFAULT_GITHUB_URL = 'https://github.com/platform-blocks/platform-blocks';
+const DEFAULT_TOGGLE_LABELS = { open: 'Open actions', close: 'Close actions' };
+const EDGE_OFFSET = 24;
+const CENTERED: ViewStyle = { alignItems: 'center', justifyContent: 'center' };
 
-export const FloatingActions = React.memo(
-  React.forwardRef<View, FloatingActionsProps>(({
+/**
+ * A floating speed dial pinned to the bottom end corner: a main button that
+ * fans out a set of actions along an arc.
+ *
+ * The main button is a disclosure (`aria-expanded`, `aria-controls`). While
+ * open, the actions form a layer: focus moves to the first action, Tab cycles
+ * within the dial, Escape (web) / back (Android) or a press outside (web)
+ * closes it, and focus returns to the main button.
+ */
+export const FloatingActions = factory<{ props: FloatingActionsProps; ref: View }>((props, ref) => {
+  const {
     actions,
     onOpen,
     onClose,
     disableOutsideClose = false,
-    radius = 88,
+    arcRadius = 88,
+    color = 'primary',
     style,
     onToggleTheme,
-    githubUrl = DEFAULT_GITHUB_URL,
-  }, ref) => {
-    const theme = useTheme();
-    // const scheme = useColorScheme();
-      const { mode, cycleMode } = useThemeMode();
+    onOpenSpotlight,
+    githubUrl,
+    toggleLabels = DEFAULT_TOGGLE_LABELS,
+    testID,
+    ...rest
+  } = props;
 
-    const containerRef = useRef<View>(null);
-    const mainButtonRef = useRef<any>(null);
+  const theme = useTheme();
+  const themeMode = useOptionalThemeMode();
+  const mode = themeMode?.mode;
+  const { styleProps } = extractStyleProps(rest);
+  const actionsId = useA11yId(undefined, 'plocks-floating-actions');
 
-    // Focusable refs for web keyboard nav
-    const actionRefs = useRef<any[]>([]);
+  const containerRef = useRef<View>(null);
+  const mergedContainerRef = useMergedRef<View>(containerRef, ref);
 
-    // useDisclosure handles the boolean state plus onOpen/onClose firing on
-    // real transitions only — replaces the manual useState + transition logic.
-    const [isOpen, { open, close, toggle: toggleOpen }] = useDisclosure(false, {
-      onOpen,
-      onClose,
-    });
+  // Fires onOpen/onClose on real transitions only.
+  const [isOpen, { close, toggle }] = useDisclosure(false, { onOpen, onClose });
 
-    const closeMenu = close;
+  useLayer({
+    active: isOpen,
+    onDismiss: close,
+    closeOnOutsidePress: !disableOutsideClose,
+    trapFocus: true,
+    containerRef,
+  });
 
-    const toggle = useCallback(() => {
-      if (!isOpen) {
-        // Focus first action on web for accessibility before flipping state
-        if (Platform.OS === 'web') {
-          actionRefs.current?.[0]?.focus?.();
-        }
-        open();
-      } else {
-        toggleOpen();
+  const handleActionPress = useCallback(
+    (callback: () => void) => {
+      try {
+        callback();
+      } finally {
+        close();
       }
-    }, [isOpen, open, toggleOpen]);
+    },
+    [close]
+  );
 
-    const handleActionPress = useCallback(
-      (callback: () => void) => {
-        try {
-          callback?.();
-        } finally {
-          closeMenu();
-        }
-      },
-      [closeMenu]
-    );
-
-    const defaultActions: FloatingActionItem[] = useMemo(() => {
-      return [
-        { key: 'spotlight', icon: 'search', onPress: () => directSpotlight.open(), accessibilityLabel: 'Open spotlight' },
-        {
-          key: 'theme',
-          getIcon: () => (mode === 'light' ? 'sun' : mode === 'dark' ? 'moon' : 'contrast'),
-          onPress: () => onToggleTheme?.(),
-          accessibilityLabel: 'Toggle theme',
+  const defaultActions = useMemo<FloatingActionItem[]>(() => {
+    const items: FloatingActionItem[] = [];
+    if (onOpenSpotlight) {
+      items.push({ key: 'spotlight', icon: 'search', onPress: onOpenSpotlight, accessibilityLabel: 'Open spotlight' });
+    }
+    items.push({
+        key: 'theme',
+        getIcon: () => (mode === 'light' ? 'sun' : mode === 'dark' ? 'moon' : 'contrast'),
+        onPress: () => onToggleTheme?.(),
+        accessibilityLabel: 'Toggle theme',
+        accessibilityHint: 'Toggles the color theme',
+    });
+    if (githubUrl) {
+      items.push({
+        key: 'github',
+        icon: 'info',
+        onPress: () => {
+          Linking.openURL(githubUrl).catch((error) => devError('FloatingActions: failed to open URL', githubUrl, error));
         },
-        { key: 'github', icon: 'info', onPress: () => Linking.openURL(githubUrl), accessibilityLabel: 'Open GitHub' },
-      ];
-    }, [mode, onToggleTheme, githubUrl]);
+        accessibilityLabel: 'Open GitHub',
+      });
+    }
+    return items;
+  }, [mode, onToggleTheme, onOpenSpotlight, githubUrl]);
 
-    const resolvedActions = actions && actions.length > 0 ? actions : defaultActions;
+  const resolvedActions = actions && actions.length > 0 ? actions : defaultActions;
 
-    // Outside click/tap handling
-    useEffect(() => {
-      if (!isOpen || disableOutsideClose) return;
-      if (Platform.OS !== 'web') return; // web only below
+  const mainColor = resolveColorProp(theme, color) ?? theme.text.link;
+  const actionColor = resolveColorProp(theme, color, { shades: [6, 5] }) ?? mainColor;
+  const mainSize = getControlSize(theme, '3xl');
+  const actionSize = getControlSize(theme, 'xl');
 
-      const handler = (e: Event) => {
-        const target = e.target as Node | null;
-        if (!target) return;
-        const el = containerRef.current as any;
-        if (el && typeof el.contains === 'function' && el.contains(target)) return;
-        closeMenu();
-      };
-      document.addEventListener('pointerdown', handler, true);
-      return () => document.removeEventListener('pointerdown', handler, true);
-    }, [isOpen, disableOutsideClose, closeMenu]);
-
-    // Focus trap & keyboard accessibility (web only)
-    useEffect(() => {
-      if (Platform.OS !== 'web') return;
-      if (!isOpen) return;
-      const keyHandler = (e: KeyboardEvent) => {
-        if (!isOpen) return;
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          closeMenu();
-          mainButtonRef.current?.focus?.();
-          return;
-        }
-        if (e.key === 'Tab') {
-          e.preventDefault();
-          const focusables = [...actionRefs.current.slice(0, resolvedActions.length), mainButtonRef.current].filter(Boolean);
-          if (focusables.length === 0) return;
-          const currentIndex = focusables.indexOf(document.activeElement as any);
-          const dir = e.shiftKey ? -1 : 1;
-          const nextIndex = (currentIndex + dir + focusables.length) % focusables.length;
-          (focusables[nextIndex] as any)?.focus?.();
-        }
-      };
-      document.addEventListener('keydown', keyHandler, true);
-      return () => document.removeEventListener('keydown', keyHandler, true);
-    }, [isOpen, closeMenu, resolvedActions.length]);
-
-    const mergedContainerRef = useMergedRef<View>(containerRef, ref);
-
-    return (
-      <View
-        ref={mergedContainerRef}
-        style={[
-          styles.container,
-          { bottom: 24, right: 24, pointerEvents: 'box-none' },
-          style,
-        ]}
-      >
-        {/* Native overlay to capture outside presses */}
-        {isOpen && !disableOutsideClose && Platform.OS !== 'web' && (
-          <Pressable
-            key="press-outside-overlay"
-            style={StyleSheet.absoluteFill}
-            accessibilityLabel="Close actions overlay"
-            onPress={closeMenu}
-          />
-        )}
-
-        {/* Action buttons */}
-        {isOpen &&
-          resolvedActions.map((a, idx, arr) => {
-            const angle = (idx / Math.max(arr.length - 1, 1)) * (Math.PI / 2);
-            const x = Math.cos(angle) * radius;
-            const y = Math.sin(angle) * radius;
-
+  return (
+    <View
+      ref={mergedContainerRef}
+      testID={testID}
+      style={[
+        {
+          position: 'absolute',
+          bottom: EDGE_OFFSET,
+          end: EDGE_OFFSET,
+          zIndex: getZIndex(theme, 'sticky'),
+        },
+        pointerEventsStyles.boxNone,
+        resolveStyleProps(styleProps, theme),
+        style,
+      ]}
+    >
+      {isOpen ? (
+        <View {...a11yProps({ id: actionsId })}>
+          {resolvedActions.map((action, index, all) => {
+            const angle = (index / Math.max(all.length - 1, 1)) * (Math.PI / 2);
+            const label = action.accessibilityLabel ?? action.key;
+            if (!action.accessibilityLabel) {
+              warnOnce(
+                `FloatingActions.label:${action.key}`,
+                `FloatingActions: action "${action.key}" has no accessibilityLabel; its key is used as the name.`
+              );
+            }
             return (
-              <View key={a.key} style={{ position: 'absolute', bottom: y, right: x }}>
+              <View
+                key={action.key}
+                style={{ position: 'absolute', bottom: Math.sin(angle) * arcRadius, end: Math.cos(angle) * arcRadius }}
+              >
                 <Pressable
-                  ref={(el) => {
-                    actionRefs.current[idx] = el as any;
-                  }}
-                  accessibilityLabel={a.accessibilityLabel || a.key}
-                  accessibilityRole="button"
-                  accessibilityHint={a.key === 'theme' ? 'Toggle color theme' : undefined}
-                  onPress={() => handleActionPress(a.onPress)}
+                  {...a11yProps({ role: 'button', label, hint: action.accessibilityHint })}
+                  onPress={() => handleActionPress(action.onPress)}
                   style={({ pressed }) => [
-                    styles.actionButton,
+                    CENTERED,
                     {
-                      backgroundColor: theme.colors.primary[6],
+                      width: actionSize.height,
+                      height: actionSize.height,
+                      borderRadius: actionSize.height / 2,
+                      backgroundColor: actionColor,
                       opacity: pressed ? 0.85 : 1,
                     },
+                    resolveShadow(theme, 'md'),
                   ]}
                 >
-                  <Icon name={(a.getIcon ? a.getIcon() : a.icon) as any} size={22} color={theme.text.onPrimary || '#FFFFFF'} />
+                  <Icon
+                    name={action.getIcon ? action.getIcon() : action.icon}
+                    size={actionSize.iconSize + 2}
+                    color={onColor(theme, actionColor)}
+                  />
                 </Pressable>
               </View>
             );
           })}
-
-        {/* Main button */}
-        <View style={{ transform: [{ rotate: isOpen ? '45deg' : '0deg' }] }}>
-          <Pressable
-            ref={mainButtonRef}
-            accessibilityLabel={isOpen ? 'Close actions' : 'Open actions'}
-            accessibilityRole="button"
-            accessibilityHint={isOpen ? 'Closes action menu' : 'Opens action menu'}
-            onPress={toggle}
-            style={({ pressed }) => [
-              styles.mainButton,
-              { backgroundColor: theme.colors.primary[5], transform: [{ scale: pressed ? 0.96 : 1 }] },
-            ]}
-          >
-            <Icon name="plus" size={28} color={theme.text.onPrimary || '#FFFFFF'} />
-          </Pressable>
         </View>
+      ) : null}
+
+      <View style={{ transform: [{ rotate: isOpen ? '45deg' : '0deg' }] }}>
+        <Pressable
+          {...a11yProps({
+            role: 'button',
+            label: isOpen ? toggleLabels.close : toggleLabels.open,
+            expanded: isOpen,
+            controls: isOpen ? actionsId : undefined,
+          })}
+          onPress={toggle}
+          style={({ pressed }) => [
+            CENTERED,
+            {
+              width: mainSize.height,
+              height: mainSize.height,
+              borderRadius: mainSize.height / 2,
+              backgroundColor: mainColor,
+              transform: [{ scale: pressed ? 0.96 : 1 }],
+            },
+            resolveShadow(theme, 'lg'),
+          ]}
+        >
+          <Icon name="plus" size={mainSize.iconSize} color={onColor(theme, mainColor)} />
+        </Pressable>
       </View>
-    );
-  })
-);
-
-FloatingActions.displayName = 'FloatingActions';
-
-const styles = StyleSheet.create({
-  actionButton: {
-    alignItems: 'center',
-    borderRadius: 26,
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25)',
-    height: 52,
-    justifyContent: 'center',
-    width: 52,
-  },
-  container: {
-    position: 'absolute',
-    zIndex: 3000,
-  },
-  mainButton: {
-    alignItems: 'center',
-    borderRadius: 30,
-    boxShadow: '0 3px 6px rgba(0, 0, 0, 0.3)',
-    height: 60,
-    justifyContent: 'center',
-    width: 60,
-  },
-});
+    </View>
+  );
+}, { displayName: 'FloatingActions' });
 
 export default FloatingActions;

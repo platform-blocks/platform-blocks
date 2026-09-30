@@ -1,0 +1,120 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Overlay - rendering snapshots renders a gradient + blur overlay (native: color fallback) 1`] = `
+<View
+  style={
+    [
+      {
+        "bottom": 0,
+        "left": 0,
+        "position": "absolute",
+        "right": 0,
+        "top": 0,
+      },
+      {},
+      null,
+      {
+        "zIndex": 20,
+      },
+      {
+        "backgroundColor": "rgba(15, 23, 42, 0.45)",
+      },
+      {},
+      {},
+      null,
+      {},
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "bottom": 0,
+          "left": 0,
+          "position": "absolute",
+          "right": 0,
+          "top": 0,
+        },
+        null,
+        null,
+        {
+          "zIndex": 1,
+        },
+        {
+          "backgroundColor": "rgba(15, 23, 42, 0.45)",
+        },
+        null,
+        null,
+        {
+          "borderRadius": 12,
+          "overflow": "hidden",
+        },
+        {},
+        undefined,
+      ]
+    }
+  />
+</View>
+`;
+
+exports[`Overlay - rendering snapshots renders centered overlay with children 1`] = `
+<View
+  style={
+    [
+      {
+        "bottom": 0,
+        "left": 0,
+        "position": "absolute",
+        "right": 0,
+        "top": 0,
+      },
+      null,
+      {
+        "alignItems": "center",
+        "justifyContent": "center",
+      },
+      {
+        "zIndex": 1,
+      },
+      {
+        "backgroundColor": "rgba(15, 23, 42, 0.45)",
+      },
+      null,
+      null,
+      null,
+      {},
+      undefined,
+    ]
+  }
+  testID="overlay"
+>
+  <View
+    style={
+      [
+        {
+          "bottom": 0,
+          "left": 0,
+          "position": "absolute",
+          "right": 0,
+          "top": 0,
+        },
+        null,
+        null,
+        {
+          "zIndex": 1,
+        },
+        {
+          "backgroundColor": "rgba(15, 23, 42, 0.45)",
+        },
+        null,
+        null,
+        null,
+        {},
+        undefined,
+      ]
+    }
+  />
+</View>
+`;

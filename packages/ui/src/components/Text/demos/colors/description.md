@@ -2,11 +2,9 @@
 title: Colors
 category: usage
 order: 20
-tags: [colors, theming]
-highlightLines: [7-15, 19-25]
+tags: [c, colors, theming]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 
-Text color variants and custom color options for different contexts.
+Set `c` to a theme text role (`primary`, `secondary`, `muted`, `disabled`, `link`), a palette color or shade (`success`, `error.7`), or any CSS color.

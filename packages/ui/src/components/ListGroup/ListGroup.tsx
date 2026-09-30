@@ -1,24 +1,30 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
-import { View, Pressable, ViewStyle, TextStyle } from 'react-native';
-import { Text } from '../Text';
-import { useTheme } from '../../core/theme';
-import { useDirection } from '../../core/providers/DirectionProvider';
-import { getFontSize } from '../../core/theme/sizes';
-import { resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
-import type { ListGroupProps, ListGroupItemProps, ListGroupContextValue, ListGroupMetrics } from './types';
-import { factory } from '../../core/factory';
-import { useHover } from '../../hooks';
-import { surfaceInteractionTint } from '../../core/theme/surfaces';
-import { useSurfaceStyles } from '../Surface/useSurfaceStyles';
+import React, { createContext, useContext, useMemo } from 'react';
+import { View, Pressable, StyleSheet, type ViewStyle } from 'react-native';
 
-// Types moved to ./types
+import { Text } from '../Text';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveFontSize, resolveRadius } from '../../core/theme/tokens';
+import type { PlocksTheme } from '../../core/theme/types';
+import { resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
+import type {
+  ListGroupProps,
+  ListGroupItemProps,
+  ListGroupDividerProps,
+  ListGroupContextValue,
+  ListGroupMetrics,
+} from './types';
+import { factory } from '../../core/factory/factory';
+import { useHover } from '../../hooks/useHover/useHover';
+import { surfaceInteractionTint } from '../../core/theme/surfaces';
+import { resolveStyleProps, extractStyleProps } from '../../core/utils/spacing';
+import { useSurfaceStyles } from '../Surface/useSurfaceStyles';
 
 const ListGroupContext = createContext<ListGroupContextValue | null>(null);
 const useListGroup = () => useContext(ListGroupContext);
 
-const LIST_GROUP_ALLOWED_SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
-const LIST_GROUP_ALLOWED_SIZES_ARRAY: ComponentSize[] = [...LIST_GROUP_ALLOWED_SIZES];
+const LIST_GROUP_ALLOWED_SIZES: ComponentSize[] = ['xs', 'sm', 'md', 'lg', 'xl'];
 
+// Row padding / gap per size (the text size itself comes from the theme's font-size tokens).
 const LIST_GROUP_SIZE_SCALE: Partial<Record<ComponentSize, ListGroupMetrics>> = {
   xs: { paddingVertical: 4, paddingHorizontal: 8, gap: 6, dividerInset: 12, textSize: 'xs' },
   sm: { paddingVertical: 6, paddingHorizontal: 10, gap: 8, dividerInset: 12, textSize: 'sm' },
@@ -27,7 +33,7 @@ const LIST_GROUP_SIZE_SCALE: Partial<Record<ComponentSize, ListGroupMetrics>> = 
   xl: { paddingVertical: 12, paddingHorizontal: 16, gap: 14, dividerInset: 16, textSize: 'xl' },
 };
 
-const BASE_LIST_GROUP_METRICS: ListGroupMetrics = LIST_GROUP_SIZE_SCALE.md ?? {
+const DEFAULT_LIST_GROUP_METRICS: ListGroupMetrics = LIST_GROUP_SIZE_SCALE.md ?? {
   paddingVertical: 8,
   paddingHorizontal: 12,
   gap: 10,
@@ -35,32 +41,24 @@ const BASE_LIST_GROUP_METRICS: ListGroupMetrics = LIST_GROUP_SIZE_SCALE.md ?? {
   textSize: 'md',
 };
 
-const BASE_TEXT_SIZE = getFontSize('md');
-const DEFAULT_LIST_GROUP_METRICS = BASE_LIST_GROUP_METRICS;
-
-function resolveListGroupMetrics(value: ComponentSizeValue | undefined): ListGroupMetrics {
+function resolveListGroupMetrics(theme: PlocksTheme, value: ComponentSizeValue | undefined): ListGroupMetrics {
   const resolved = resolveComponentSize(value, LIST_GROUP_SIZE_SCALE, {
-    allowedSizes: LIST_GROUP_ALLOWED_SIZES_ARRAY,
+    allowedSizes: LIST_GROUP_ALLOWED_SIZES,
     fallback: 'md',
   });
-
-  if (typeof resolved === 'number') {
-    return calculateNumericMetrics(resolved);
-  }
-
-  return resolved;
+  return typeof resolved === 'number' ? calculateNumericMetrics(theme, resolved) : resolved;
 }
 
-function calculateNumericMetrics(fontSize: number): ListGroupMetrics {
-  const baseFont = BASE_TEXT_SIZE || 14;
-  const scale = fontSize / baseFont;
+// A numeric size is a font size; padding and gaps scale from the md row.
+function calculateNumericMetrics(theme: PlocksTheme, fontSize: number): ListGroupMetrics {
+  const scale = fontSize / (resolveFontSize(theme, 'md') || 14);
   const scaleAndClamp = (measurement: number, minimum: number) => Math.max(minimum, Math.round(measurement * scale));
 
   return {
-    paddingVertical: scaleAndClamp(BASE_LIST_GROUP_METRICS.paddingVertical, 4),
-    paddingHorizontal: scaleAndClamp(BASE_LIST_GROUP_METRICS.paddingHorizontal, 6),
-    gap: scaleAndClamp(BASE_LIST_GROUP_METRICS.gap, 4),
-    dividerInset: scaleAndClamp(BASE_LIST_GROUP_METRICS.dividerInset, 6),
+    paddingVertical: scaleAndClamp(DEFAULT_LIST_GROUP_METRICS.paddingVertical, 4),
+    paddingHorizontal: scaleAndClamp(DEFAULT_LIST_GROUP_METRICS.paddingHorizontal, 6),
+    gap: scaleAndClamp(DEFAULT_LIST_GROUP_METRICS.gap, 4),
+    dividerInset: scaleAndClamp(DEFAULT_LIST_GROUP_METRICS.dividerInset, 6),
     textSize: fontSize,
   };
 }
@@ -77,18 +75,17 @@ export const ListGroup = factory<{ props: ListGroupProps; ref: View }>((props, r
     ...rest
   } = props;
   const theme = useTheme();
-  const metrics = useMemo(() => resolveListGroupMetrics(size), [size]);
-  const contextValue = useMemo<ListGroupContextValue>(() => ({
-    size: metrics.textSize,
-    metrics,
-    dividers,
-    insetDividers,
-  }), [metrics, dividers, insetDividers]);
-  // Theme radii are CSS strings (e.g. '6px'), so Number() yields NaN — parse the
-  // numeric part so token values actually round the corners.
-  const rawRadius = typeof radius === 'number' ? radius : (theme as any).radii?.[radius];
-  const parsedRadius = typeof rawRadius === 'string' ? parseFloat(rawRadius) : rawRadius;
-  const r = Number.isFinite(parsedRadius) ? parsedRadius : 0;
+  const { styleProps, otherProps } = extractStyleProps(rest);
+  const metrics = useMemo(() => resolveListGroupMetrics(theme, size), [theme, size]);
+  const contextValue = useMemo<ListGroupContextValue>(
+    () => ({
+      size: metrics.textSize,
+      metrics,
+      dividers,
+      insetDividers,
+    }),
+    [metrics, dividers, insetDividers]
+  );
 
   // The group paints the surface it sits on rather than a fixed palette shade,
   // so a list inside a level-2 dropdown matches the dropdown instead of
@@ -99,27 +96,30 @@ export const ListGroup = factory<{ props: ListGroupProps; ref: View }>((props, r
     shadow: 'none',
   });
 
-  const containerStyle: ViewStyle = {
-    borderRadius: r,
-    overflow: 'hidden',
-    ...surface.style,
-    ...(variant === 'flush' ? { backgroundColor: 'transparent' } : {}),
-    ...(variant === 'bordered' ? {} : { borderWidth: 0, borderColor: 'transparent' }),
-  };
-
   return (
     <ListGroupContext.Provider value={contextValue}>
-  <View ref={ref} style={[containerStyle, style]} {...rest}>
+      <View
+        ref={ref}
+        {...otherProps}
+        style={[
+          styles.group,
+          { borderRadius: resolveRadius(theme, radius) },
+          surface.style,
+          variant === 'flush' ? styles.transparent : null,
+          variant === 'bordered' ? null : styles.borderless,
+          resolveStyleProps(styleProps, theme),
+          style,
+        ]}
+      >
         {children}
       </View>
     </ListGroupContext.Provider>
   );
-});
+}, { displayName: 'ListGroup' });
 
 export const ListGroupItem = factory<{ props: ListGroupItemProps; ref: View }>((props, ref) => {
   const group = useListGroup();
   const theme = useTheme();
-  const { isRTL } = useDirection();
   const {
     children,
     label,
@@ -137,41 +137,32 @@ export const ListGroupItem = factory<{ props: ListGroupItemProps; ref: View }>((
     numberOfLines,
     ...rest
   } = props;
+  const { styleProps, otherProps } = extractStyleProps(rest);
 
   const metrics = group?.metrics ?? DEFAULT_LIST_GROUP_METRICS;
   const textSize = group?.size ?? metrics.textSize;
   const isPressable = !!onPress && !disabled;
-  const isDark = theme.colorScheme === 'dark';
   const sectionSpacing = Math.max(4, Math.round(metrics.paddingHorizontal * 0.3));
 
-  const baseColor = danger
-    ? (isDark ? theme.colors.error[2] : theme.colors.error[0])
-    : 'transparent';
+  // The error palette runs light → dark in the light theme and dark → light in
+  // the dark theme, so the low indices are the tint for either scheme.
+  const baseColor = danger ? theme.colors.error[0] : 'transparent';
   // Neutral states are translucent overlays so they read correctly at any
   // elevation — an opaque grey is only ever right on one background.
-  const activeBg = danger
-    ? (isDark ? theme.colors.error[3] : theme.colors.error[1])
-    : surfaceInteractionTint(theme, 'pressed');
+  const activeBg = danger ? theme.colors.error[1] : surfaceInteractionTint(theme, 'pressed');
+  const hoverBg = danger ? theme.colors.error[0] : surfaceInteractionTint(theme, 'hover');
 
   const itemStyle: ViewStyle = {
-    flexDirection: isRTL ? 'row-reverse' : 'row',
+    flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: metrics.paddingVertical,
     paddingHorizontal: metrics.paddingHorizontal,
     gap: metrics.gap,
     backgroundColor: active ? activeBg : baseColor,
     opacity: disabled ? 0.5 : 1,
-    // Divider handled by parent rendering sequence; last item no divider
   };
 
-  const hoverBg = danger
-    ? (isDark ? theme.colors.error[2] : theme.colors.error[0])
-    : surfaceInteractionTint(theme, 'hover');
-
   const [hovered, hoverHandlers] = useHover();
-  // Keep the local names so the spread + JSX below stays unchanged.
-  const onMouseEnter = hoverHandlers.onMouseEnter;
-  const onMouseLeave = hoverHandlers.onMouseLeave;
 
   const primaryColor = danger ? theme.colors.error[6] : theme.text.primary;
 
@@ -181,18 +172,14 @@ export const ListGroupItem = factory<{ props: ListGroupItemProps; ref: View }>((
   const isTwoLine = label != null || description != null;
 
   const content = isTwoLine ? (
-    <View style={{ flex: 1, minWidth: 0 }}>
+    <View style={styles.twoLine}>
       {label != null ? (
         <Text size={textSize} style={[{ color: primaryColor }, textStyle]} numberOfLines={numberOfLines}>
           {label}
         </Text>
       ) : null}
       {description != null ? (
-        <Text
-          size="sm"
-          style={[{ color: theme.text.muted }, descriptionStyle]}
-          numberOfLines={numberOfLines}
-        >
+        <Text size="sm" style={[{ color: theme.text.muted }, descriptionStyle]} numberOfLines={numberOfLines}>
           {description}
         </Text>
       ) : null}
@@ -205,13 +192,10 @@ export const ListGroupItem = factory<{ props: ListGroupItemProps; ref: View }>((
 
   // A two-line block already claims the free space with `flex: 1`, so the
   // trailing content needs no push. Single-line content only takes its natural
-  // width, so the first trailing element gets an `auto` margin to right-align
-  // the whole tail — putting it on both would strand `value` next to the label.
-  const push: ViewStyle | undefined = isTwoLine
-    ? undefined
-    : isRTL
-      ? { marginRight: 'auto' }
-      : { marginLeft: 'auto' };
+  // width, so the first trailing element gets an `auto` start margin to push the
+  // whole tail to the end edge — putting it on both would strand `value` next
+  // to the label. The logical margin follows the layout direction.
+  const push: ViewStyle | undefined = isTwoLine ? undefined : styles.pushToEnd;
 
   const valueContent =
     value != null ? (
@@ -220,32 +204,30 @@ export const ListGroupItem = factory<{ props: ListGroupItemProps; ref: View }>((
       </Text>
     ) : null;
 
-  const startContent = startSection ? (
-    <View style={isRTL ? { marginLeft: sectionSpacing } : { marginRight: sectionSpacing }}>
-      {startSection}
-    </View>
-  ) : null;
+  const startContent = startSection ? <View style={{ marginEnd: sectionSpacing }}>{startSection}</View> : null;
 
-  const endContent = endSection ? (
-    <View style={valueContent ? undefined : push}>{endSection}</View>
-  ) : null;
+  const endContent = endSection ? <View style={valueContent ? undefined : push}>{endSection}</View> : null;
+
+  const spacingStyle = resolveStyleProps(styleProps, theme);
 
   if (isPressable) {
     return (
       <Pressable
-        ref={ref as any}
+        ref={ref}
         onPress={onPress}
         disabled={disabled}
-        onMouseEnter={onMouseEnter as any}
-        onMouseLeave={onMouseLeave as any}
+        onHoverIn={hoverHandlers.onHoverIn}
+        onHoverOut={hoverHandlers.onHoverOut}
+        role="button"
+        {...otherProps}
         style={({ pressed }) => [
           itemStyle,
+          spacingStyle,
           style,
           // Pressed or active state overrides hover
           !active && !disabled && pressed && { backgroundColor: activeBg },
           !active && !disabled && !pressed && hovered && { backgroundColor: hoverBg },
         ]}
-        {...rest as any}
       >
         {startContent}
         {content}
@@ -256,41 +238,39 @@ export const ListGroupItem = factory<{ props: ListGroupItemProps; ref: View }>((
   }
 
   return (
-    <View style={[itemStyle, style]} ref={ref} {...rest}>
+    <View
+      ref={ref}
+      {...(disabled ? { 'aria-disabled': true } : null)}
+      {...otherProps}
+      style={[itemStyle, spacingStyle, style]}
+    >
       {startContent}
       {content}
       {valueContent}
       {endContent}
     </View>
   );
-});
+}, { displayName: 'ListGroupItem' });
 
-export const ListGroupDivider = React.forwardRef<
-  View,
-  { inset?: boolean; style?: ViewStyle }
->(({ inset, style }, ref) => {
+export const ListGroupDivider = factory<{ props: ListGroupDividerProps; ref: View }>(({ inset, style, ...rest }, ref) => {
   const group = useListGroup();
-  const { isRTL } = useDirection();
   const surface = useSurfaceStyles({ shadow: 'none' });
   const useInset = inset ?? group?.insetDividers;
   const metrics = group?.metrics ?? DEFAULT_LIST_GROUP_METRICS;
-  const insetOffset = useInset ? metrics.dividerInset : 0;
   return (
     <View
       ref={ref}
-      style={[{
-        height: 1,
-        // Hairline matched to the surface it divides.
-        backgroundColor: surface.token.border,
-        ...(isRTL
-          ? { marginRight: insetOffset, marginLeft: 0 }
-          : { marginLeft: insetOffset, marginRight: 0 }),
-      }, style]}
+      role="separator"
+      {...rest}
+      style={[
+        styles.divider,
+        // Hairline matched to the surface it divides; the inset sits on the leading edge.
+        { backgroundColor: surface.token.border, marginStart: useInset ? metrics.dividerInset : 0 },
+        style,
+      ]}
     />
   );
-});
-
-ListGroupDivider.displayName = 'ListGroupDivider';
+}, { displayName: 'ListGroupDivider' });
 
 // Helper to auto-insert dividers between children if dividers enabled
 export const ListGroupBody: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -308,5 +288,28 @@ export const ListGroupBody: React.FC<{ children: React.ReactNode }> = ({ childre
     </>
   );
 };
+
+const styles = StyleSheet.create({
+  borderless: {
+    borderColor: 'transparent',
+    borderWidth: 0,
+  },
+  divider: {
+    height: 1,
+  },
+  group: {
+    overflow: 'hidden',
+  },
+  pushToEnd: {
+    marginStart: 'auto',
+  },
+  transparent: {
+    backgroundColor: 'transparent',
+  },
+  twoLine: {
+    flex: 1,
+    minWidth: 0,
+  },
+});
 
 export default ListGroup;

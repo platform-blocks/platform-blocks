@@ -1,11 +1,9 @@
 ---
-title: Form blocking
+title: Basics
 category: feedback
 order: 20
 tags: [overlays, loading]
-highlightLines: [23-69]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

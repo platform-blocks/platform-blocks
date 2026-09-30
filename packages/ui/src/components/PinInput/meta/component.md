@@ -4,7 +4,6 @@ displayName: PinInput
 description: A specialized input component for entering PIN codes, OTP, and other sequential digit/character inputs.
 category: input
 status: stable
-since: 1.0.0
 tags: [pin, otp, security, input, verification]
 props:
   value: The current PIN value as a string
@@ -19,7 +18,11 @@ props:
   disabled: Whether the PIN input is disabled
   autoFocus: Whether to auto-focus the first input field
   mask: Whether to mask the input values
-  onComplete: Callback fired when all fields are filled
+  onComplete: Callback fired once when the PIN becomes complete (not on re-renders; again after an edit)
+  helperText: Text under the cells while there is no error
+  variant: Cell frame variant — 'default' | 'filled' | 'outline' | 'unstyled'
+  radius: Cell corner radius (token or px)
+  enforceOrderInitialOnly: Only force sequential entry until the PIN has been complete once
   labelProps: Override props applied to the label `<Text>`
   descriptionProps: Override props applied to the description `<Text>`
 related:
@@ -36,4 +39,4 @@ examples:
   - Label customization with labelProps / descriptionProps
 ---
 
-A specialized input component designed for entering PIN codes, one-time passwords (OTP), verification codes, and other sequential character inputs. The component provides an intuitive interface with automatic focus management.
+PinInput provides a sequence of fields for entering a PIN or verification code.

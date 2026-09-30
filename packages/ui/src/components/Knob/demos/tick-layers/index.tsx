@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Knob } from '@platform-blocks/ui';
+import { Block, Knob } from '@plocks/ui';
 
 const LEVEL_MARKS = [
   { value: 0, label: 'Mute' },
@@ -15,7 +15,7 @@ export function Demo() {
 
   return (
     <Block align="center">
-      <Knob
+      <Knob accessibilityLabel="Level"
         value={level}
         onChange={setLevel}
         min={0}

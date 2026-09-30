@@ -22,8 +22,8 @@ const mockTheme = {
   },
 };
 
-jest.mock('../../../core/theme', () => {
-  const actual = jest.requireActual('../../../core/theme');
+jest.mock('../../../core/theme/ThemeProvider', () => {
+  const actual = jest.requireActual('../../../core/theme/ThemeProvider');
   return {
     ...actual,
     useTheme: () => mockTheme,
@@ -63,7 +63,7 @@ jest.mock('../../Collapse', () => {
 
 describe('Accordion - behavior', () => {
   beforeEach(() => {
-    delete (globalThis as any).__PLATFORM_BLOCKS_ACCORDION_PERSIST__;
+    delete (globalThis as any).__PLOCKS_ACCORDION_PERSIST__;
   });
 
   const baseItems = [

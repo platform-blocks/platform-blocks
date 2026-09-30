@@ -1,4 +1,4 @@
-import type { DensitySeries, ViolinStatsMarkersConfig, ViolinValueBand } from '@platform-blocks/charts';
+import type { DensitySeries, ViolinStatsMarkersConfig, ViolinValueBand } from '@plocks/charts';
 
 export const createDistribution = (median: number, spread: number, count: number) =>
   Array.from({ length: count }, (_, index) => {

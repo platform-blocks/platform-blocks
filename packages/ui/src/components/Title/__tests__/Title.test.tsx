@@ -12,7 +12,8 @@ const mockTheme = {
   },
 };
 
-jest.mock('../../../core/theme', () => ({
+jest.mock('../../../core/theme/ThemeProvider', () => ({
+  ...jest.requireActual('../../../core/theme/ThemeProvider'),
   useTheme: () => mockTheme,
 }));
 

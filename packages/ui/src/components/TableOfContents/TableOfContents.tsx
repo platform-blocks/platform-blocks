@@ -1,30 +1,77 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { View, Pressable, Platform } from 'react-native';
-import type { LayoutChangeEvent, LayoutRectangle } from 'react-native';
-// NOTE: Direct imports to prevent circular dependency with root index.ts
-import { Text } from '../Text';
-import { useTheme } from '../../core/theme';
-import { useReducedMotion } from '../../core/motion/ReducedMotionProvider';
-import { getSpacing } from '../../core/theme/sizes';
-import { createRadiusStyles } from '../../core/theme/radius';
-import { getSpacingStyles } from '../../core/utils/spacing';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Pressable, View } from 'react-native';
+import type { TextStyle, ViewStyle } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { factory } from '../../core/factory';
+import { createThemedStyles } from '../../core/hooks/useThemedStyles';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import { isWeb } from '../../core/platform';
+import { withAlpha } from '../../core/theme/colorUtils';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { onColor, resolveFontSize, resolveRadius, resolveSpacing } from '../../core/theme/tokens';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 import { useScrollSpy } from '../../hooks/useScrollSpy';
-import { useDirection } from '../../core/providers/DirectionProvider';
-import { TableOfContentsProps, TocItem } from './types';
+import { Text } from '../Text';
+import type { TableOfContentsProps, TocItem } from './types';
 
-const pickContrast = (bg: string, light: string, dark: string) => {
-  if (/^#?[0-9a-fA-F]{6}$/.test(bg)) {
-    const hex = bg.replace('#','');
-    const r = parseInt(hex.slice(0,2),16);
-    const g = parseInt(hex.slice(2,4),16);
-    const b = parseInt(hex.slice(4,6),16);
-    const yiq = (r*299 + g*587 + b*114)/1000;
-    return yiq >= 160 ? dark : light;
+type TocVariant = NonNullable<TableOfContentsProps['variant']>;
+
+const DEFAULT_CONTAINER = 'main, [role="main"], .main-content, #main-content, article, .content, #content';
+
+/** Colors + container style for one (theme, variant, color, autoContrast, size, radius) combination. */
+const getTocStyles = createThemedStyles(
+  (
+    theme: PlocksTheme,
+    variant: TocVariant,
+    color: string | undefined,
+    autoContrast: boolean,
+    size: SizeValue,
+    radius: number
+  ) => {
+    const fill = resolveAccentColor(theme, color) ?? theme.colors.primary[5];
+    const filled = variant === 'filled';
+    // On a filled background the text must read against the fill: the theme's
+    // on-accent color, or (autoContrast) whichever text color contrasts best.
+    const onFill = autoContrast ? onColor(theme, fill) : theme.text.onPrimary ?? onColor(theme, fill);
+    const textColor = filled ? onFill : theme.text.primary;
+
+    return {
+      container: {
+        padding: resolveSpacing(theme, 'sm'),
+        width: '100%',
+        borderRadius: radius,
+        ...(filled ? { backgroundColor: fill } : variant === 'ghost' ? { backgroundColor: 'transparent' } : null),
+      } as ViewStyle,
+      item: {
+        paddingVertical: 4,
+        paddingEnd: 6,
+        flexDirection: 'row',
+        alignItems: 'center',
+        minHeight: 32,
+        borderStartWidth: 2,
+        borderStartColor: theme.backgrounds.border,
+        backgroundColor: 'transparent',
+      } as ViewStyle,
+      activeItem: {
+        backgroundColor: filled ? withAlpha(onFill, 0.15) : theme.backgrounds.selected,
+        borderStartColor: filled ? onFill : fill,
+      } as ViewStyle,
+      ancestorItem: { opacity: 0.85 } as ViewStyle,
+      text: { color: textColor, fontWeight: '400', fontSize: resolveFontSize(theme, size) } as TextStyle,
+      activeText: { fontWeight: '600' } as TextStyle,
+    };
   }
-  return dark;
-};
+);
 
-export const TableOfContents = React.forwardRef<View, TableOfContentsProps>((props, ref) => {
+/**
+ * An in-page table of contents that follows the scroll position (web: the
+ * headings inside `container`). Renders a labelled `navigation` landmark of
+ * links; the current section carries `aria-current="location"`.
+ */
+export const TableOfContents = factory<{ props: TableOfContentsProps; ref: View }>((props, ref) => {
   const {
     variant = 'none',
     color,
@@ -38,36 +85,28 @@ export const TableOfContents = React.forwardRef<View, TableOfContentsProps>((pro
     reinitializeRef,
     autoContrast = false,
     style,
+    testID,
     onActiveChange,
     container,
+    accessibilityLabel = 'Table of contents',
     ...rest
   } = props;
 
   const theme = useTheme();
-  const { isRTL } = useDirection();
-  const spacingStyles = getSpacingStyles(rest);
-  const radiusStyles = createRadiusStyles(radius);
-  
-  const { items, activeId, setActiveId, reinitialize } = useScrollSpy({
-    container: container || 'main, [role="main"], .main-content, #main-content, article, .content, #content',
-    ...scrollSpyOptions
-  }, initialData || []);
+  const { styleProps } = extractStyleProps(rest);
+  const spacingStyles = useStyleProps(styleProps);
+  const styles = getTocStyles(theme, variant, color, autoContrast, size, resolveRadius(theme, radius));
 
-  const resolvedColor = color || theme.colors.primary[5];
-  const backgroundStyles = (() => {
-    switch (variant) {
-      case 'filled': return { backgroundColor: resolvedColor };
-      case 'ghost': return { backgroundColor: 'transparent' };
-      default: return {};
-    }
-  })();
-
-  const textColor = variant === 'filled' && autoContrast
-    ? pickContrast(resolvedColor, '#FFFFFF', theme.colors.gray[9])
-    : (variant === 'filled' ? '#FFFFFF' : theme.colors.gray[9]);
+  const { items, activeId, setActiveId, reinitialize } = useScrollSpy(
+    {
+      container: container || DEFAULT_CONTAINER,
+      ...scrollSpyOptions,
+    },
+    initialData || []
+  );
 
   useEffect(() => {
-    if (reinitializeRef) (reinitializeRef as any).current = () => reinitialize();
+    if (reinitializeRef) reinitializeRef.current = () => reinitialize();
   }, [reinitializeRef, reinitialize]);
 
   useEffect(() => {
@@ -77,62 +116,33 @@ export const TableOfContents = React.forwardRef<View, TableOfContentsProps>((pro
     return () => clearTimeout(timeoutId);
   }, [container, reinitialize]);
 
+  // Report the active section when it changes — not on every render (an inline
+  // `onActiveChange` used to re-fire on each one) and not when only the item
+  // list is rebuilt.
+  const notifyActiveChange = useLatestCallback(onActiveChange);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const lastReportedRef = useRef<string | null | undefined>(undefined);
   useEffect(() => {
-    if (activeId) {
-      const item = items.find(i => i.id === activeId);
-      onActiveChange?.(activeId, item);
-    } else {
-      onActiveChange?.(null, undefined);
-    }
-  }, [activeId, items, onActiveChange]);
+    const id = activeId ?? null;
+    if (lastReportedRef.current === id) return;
+    lastReportedRef.current = id;
+    notifyActiveChange(id, id ? itemsRef.current.find((i) => i.id === id) : undefined);
+  }, [activeId, notifyActiveChange]);
 
-  const sizePx = (() => {
-    switch (size) {
-      case 'xs': return 10;
-      case 'sm': return 12;
-      case 'md': return 14;
-      case 'lg': return 16;
-      case 'xl': return 18;
-      default: return 14;
-    }
-  })();
-
-  const containerStyle = [
-    { 
-      padding: getSpacing('sm'), 
-      // gap: 4,
-      // margin: 'auto',
-      width: '100%'
-    },
-    backgroundStyles,
-    radiusStyles,
-    spacingStyles,
-    style,
-  ];
-
-  const controlBase = (depth: number): any => {
-    const offsetDepth = Math.max(0, depth - minDepthToOffset);
-    return {
-      paddingVertical: 4,
-      paddingHorizontal: 6,
-      // borderRadius: 4,
-      flexDirection: 'row',
-      alignItems: 'center',
-      minHeight: 32,
-    };
-  };
-
-  const activeIndex = useMemo(() => items.findIndex(i => i.id === activeId), [items, activeId]);
+  const activeIndex = useMemo(() => items.findIndex((i) => i.id === activeId), [items, activeId]);
   const activeDepth = activeIndex >= 0 ? items[activeIndex].depth : null;
 
   const renderItem = (item: TocItem, index: number) => {
     const active = item.id === activeId;
     const isAncestor = !active && activeIndex > index && activeDepth != null && item.depth < activeDepth;
-    
+    // Deeper headings are indented from `minDepthToOffset` on.
+    const indent = Math.max(0, item.depth - minDepthToOffset) * depthOffset;
+
     const handlePress = () => {
       setActiveId(item.id);
-      
-      if (Platform.OS === 'web') {
+
+      if (isWeb) {
         const el = item.getNode?.();
         if (el) {
           el.scrollIntoView({ behavior: 'auto', block: 'start' });
@@ -140,61 +150,42 @@ export const TableOfContents = React.forwardRef<View, TableOfContentsProps>((pro
       }
     };
 
-    const defaultProps = {
-      onPress: handlePress,
-      style: {
-        ...controlBase(item.depth),
-        backgroundColor: active 
-          ? (variant === 'filled' ? 'rgba(255,255,255,0.15)' : theme.colors.primary[0])
-          : 'transparent',
-        ...(isRTL ? {
-          borderRightWidth: 2,
-          borderRightColor: active 
-            ? (variant === 'filled' ? '#FFFFFF' : theme.colors.primary[5])
-            : theme.colors.surface[2],
-        } : {
-          borderLeftWidth: 2,
-          borderLeftColor: active 
-            ? (variant === 'filled' ? '#FFFFFF' : theme.colors.primary[5])
-            : theme.colors.surface[2],
-        }),
-        // marginLeft: item.depth > 0 ? depthOffset * (item.depth - (minDepthToOffset > 0 ? minDepthToOffset - 1 : 0)) : 0,
-        opacity: isAncestor ? 0.85 : 1,
-      },
-      accessibilityRole: 'button' as const,
-      accessibilityLabel: item.value,
-      accessibilityHint: `Navigate to ${item.value}`,
-    };
+    const labelNode = <Text style={[styles.text, active && styles.activeText]}>{item.value}</Text>;
 
-    const labelNode = (
-      <Text 
-        size={size as any} 
-        style={{ 
-          color: textColor, 
-          fontWeight: active ? '600' : '400',
-          fontSize: sizePx,
-        }}
-      >
-        {item.value}
-      </Text>
-    );
-
-    const extra = getControlProps ? getControlProps({ data: item, active, index }) : {};
-    const content = (extra as any).children ?? labelNode;
+    const { children: customChildren, ...extra } = getControlProps
+      ? getControlProps({ data: item, active, index })
+      : { children: undefined };
 
     return (
-      <Pressable key={`toc-item-${item.id}-${index}`} {...defaultProps} {...extra}>
-        {content}
+      <Pressable
+        key={`toc-item-${item.id}-${index}`}
+        onPress={handlePress}
+        {...a11yProps({
+          role: 'link',
+          current: active ? 'location' : undefined,
+          hint: `Navigate to ${item.value}`,
+        })}
+        style={[
+          styles.item,
+          { paddingStart: 6 + indent },
+          active && styles.activeItem,
+          isAncestor && styles.ancestorItem,
+        ]}
+        {...extra}
+      >
+        {customChildren ?? labelNode}
       </Pressable>
     );
   };
 
   return (
-    <View ref={ref} style={containerStyle}>
-      {items.map((item, index) => renderItem(item, index))}
+    <View
+      ref={ref}
+      testID={testID}
+      {...a11yProps({ role: 'navigation', label: accessibilityLabel })}
+      style={[styles.container, spacingStyles, style]}
+    >
+      {items.map(renderItem)}
     </View>
   );
-});
-
-TableOfContents.displayName = 'TableOfContents';
-
+}, { displayName: 'TableOfContents' });

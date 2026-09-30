@@ -1,7 +1,8 @@
-import { ReactNode } from 'react';
-import { ViewProps } from 'react-native';
-import { SpacingProps } from '../../core/utils';
-import { type ComponentSizeValue } from '../../core/theme/componentSize';
+import type { ReactNode } from 'react';
+import type { ViewProps, ViewStyle } from 'react-native';
+
+import type { BaseProps } from '../../core/types/base';
+import type { ComponentSizeValue } from '../../core/theme/componentSize';
 
 export type DataListOrientation = 'horizontal' | 'vertical';
 
@@ -24,7 +25,9 @@ export interface DataListDataItem {
   value: ReactNode;
 }
 
-export interface DataListProps extends SpacingProps, Omit<ViewProps, 'children'> {
+type DataListHostProps = Omit<ViewProps, 'children' | 'style' | 'testID'>;
+
+export interface DataListProps extends BaseProps<ViewStyle>, DataListHostProps {
   /** `DataList.Item` children. Ignored when `data` is provided. */
   children?: ReactNode;
   /** Shorthand for rendering items without composing `DataList.Item` manually */
@@ -33,11 +36,11 @@ export interface DataListProps extends SpacingProps, Omit<ViewProps, 'children'>
   orientation?: DataListOrientation;
   /** Render a divider between items */
   withDivider?: boolean;
-  /** Controls font size and spacing */
+  /** Controls font size and spacing (theme font-size / spacing tokens, or a px font size) */
   size?: ComponentSizeValue;
-  /** Override the vertical gap between items */
+  /** Override the vertical gap between items (theme spacing token or px) */
   spacing?: ComponentSizeValue | number;
-  /** Width of the label column in horizontal orientation */
+  /** Width of the label column in horizontal orientation (px or percentage) */
   labelWidth?: number | string;
   /** Override the label text color for all items */
   labelColor?: string;
@@ -47,7 +50,7 @@ export interface DataListProps extends SpacingProps, Omit<ViewProps, 'children'>
   dividerColor?: string;
 }
 
-export interface DataListItemProps extends Omit<ViewProps, 'children'> {
+export interface DataListItemProps extends BaseProps<ViewStyle>, DataListHostProps {
   /** Item content. Compose with `DataList.ItemLabel` / `DataList.ItemValue`. */
   children?: ReactNode;
   /** Shorthand label content (rendered when `children` is not provided) */
@@ -60,16 +63,16 @@ export interface DataListItemProps extends Omit<ViewProps, 'children'> {
   isLastItem?: boolean;
 }
 
-export interface DataListItemLabelProps extends Omit<ViewProps, 'children'> {
+export interface DataListItemLabelProps extends BaseProps<ViewStyle>, DataListHostProps {
   children?: ReactNode;
   /** Override the label text color */
-  color?: string;
+  c?: string;
 }
 
-export interface DataListItemValueProps extends Omit<ViewProps, 'children'> {
+export interface DataListItemValueProps extends BaseProps<ViewStyle>, DataListHostProps {
   children?: ReactNode;
   /** Override the value text color */
-  color?: string;
+  c?: string;
 }
 
 export interface DataListContextValue {

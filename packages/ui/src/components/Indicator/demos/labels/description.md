@@ -4,7 +4,6 @@ order: 50
 tags: [label, count, labelProps, customization]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

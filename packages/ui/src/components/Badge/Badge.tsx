@@ -1,210 +1,213 @@
-import React from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
-import { Text } from '../Text';
-import { useTheme } from '../../core/theme';
-import { getFontSize, getSpacing, getHeight } from '../../core/theme/sizes';
-import { clampComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
-import { createRadiusStyles } from '../../core/theme/radius';
-import { resolveVariantRoles, resolveGradientStops } from '../../core/theme/variantRoles';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
-import { getSpacingStyles, extractSpacingProps, extractShadowProps, getShadowStyles, mergeSlotProps } from '../../core/utils';
-import type { BadgeProps } from './types';
-import { Button } from '../Button';
-import { Icon } from '../Icon';
-import { DESIGN_TOKENS } from '../../core/unified-styles';
+import React, { useMemo } from 'react';
+import { Pressable, View, type TextStyle, type ViewStyle } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { getNodeText } from '../../core/accessibility/useA11yId';
+import { factory } from '../../core/factory';
+import { webStyle } from '../../core/platform';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getControlSize, resolveRadius, resolveShadow } from '../../core/theme/tokens';
+import { resolveGradientStops, resolveVariantRoles } from '../../core/theme/variantRoles';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
 import { resolveLinearGradient } from '../../utils/optionalDependencies';
+import { RemoveButton } from '../Chip/RemoveButton';
+import { Text } from '../Text';
+import type { BadgeProps, BadgeVariant } from './types';
 
 const { LinearGradient: OptionalLinearGradient, hasLinearGradient } = resolveLinearGradient();
 
+/** A badge is a label, not a control: it sits at half the matching control height. */
+const BADGE_HEIGHT_RATIO = 0.5;
+const BADGE_PADDING_RATIO = 0.8;
 
-const BADGE_ALLOWED_SIZES: ComponentSize[] = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+const ABSOLUTE_FILL: ViewStyle = { position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 };
+const GRADIENT_START = { x: 0, y: 0 };
+const GRADIENT_END = { x: 1, y: 1 };
 
-const getBadgeStyles = (
-  theme: PlatformBlocksTheme,
-  variant: BadgeProps['variant'] = 'filled',
-  color: BadgeProps['color'] = 'primary',
-  disabled: boolean = false,
-  height: number,
-  radiusStyles: any,
-  shadowStyles: any,
-  gradientStops?: [string, string]
-) => {
-  // Use design tokens for consistent badge sizing
-  const badgeHeight = Math.max(DESIGN_TOKENS.component.badge.height, height * 0.7);
-  const horizontalPadding = Math.max(DESIGN_TOKENS.component.badge.padding, height * 0.3);
-
-  const baseStyles = {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    height: badgeHeight,
-    minHeight: badgeHeight,
-    paddingHorizontal: horizontalPadding,
-    borderWidth: 1,
-    opacity: disabled ? 0.5 : 1,
-    position: 'relative' as const,
-    ...radiusStyles
-  };
-
-  // Fill + border come from the shared variant system so a Badge matches Alert,
-  // Chip, and Button for the same variant+color on every theme and color scheme.
-  const roles = resolveVariantRoles(theme, { variant, color, gradientStops });
-
-  return {
-    ...baseStyles,
-    backgroundColor: roles.fill,
-    borderColor: roles.border,
-    ...(variant === 'gradient' ? { overflow: 'hidden' as const } : {}),
-    ...shadowStyles
-  };
+/** Foreground row above the absolute gradient fill (see Chip). */
+const CONTENT_STYLE: ViewStyle = {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  position: 'relative',
+  zIndex: 1,
 };
 
-const getBadgeTextStyles = (
-  theme: PlatformBlocksTheme,
-  variant: BadgeProps['variant'] = 'filled',
-  color: BadgeProps['color'] = 'primary',
-  size: ComponentSizeValue = 'md'
-) => {
-  const fontSize = getFontSize(size);
-
-  // Legible label color via the same shared system (measured contrast for
-  // filled/gradient, surface-readable tint for light/outline/subtle).
-  const roles = resolveVariantRoles(theme, { variant, color });
-
-  return {
-    fontSize,
-    textAlign: 'center' as const,
-    color: roles.text,
-  };
-};
-
-export const Badge = React.forwardRef<View, BadgeProps>((props, ref) => {
+/**
+ * A small status label. Metrics derive from the matching control size:
+ * `md` is 20px tall. `onPress` makes
+ * it a button; `onRemove` adds a remove button named "Remove <label>".
+ */
+export const Badge = factory<{ props: BadgeProps; ref: View }>((props, ref) => {
   const {
     children,
     size = 'md',
     variant,
-    v, // variant alias
+    v,
     color,
-    c, // color alias
+    c,
     onPress,
-    startIcon,
-    endIcon,
+    startSection,
+    endSection,
     onRemove,
     removePosition = 'right',
+    removeButtonLabel,
     disabled = false,
     style,
     textStyle,
     labelProps,
-    radius,
-    shadow,
+    radius = 'full',
+    shadow = 'none',
+    testID,
     ...rest
   } = props;
 
-  // The canonical name wins over its shorthand, matching Text and RollingNumber.
-  const requestedVariant = variant || v || 'subtle';
-  const resolvedColor = color || c || 'primary';
-  const shouldUseGradient = requestedVariant === 'gradient' && hasLinearGradient;
-  const effectiveVariant = shouldUseGradient ? 'gradient' : (requestedVariant === 'gradient' ? 'filled' : requestedVariant);
-
-  const clampedSize = clampComponentSize(size, BADGE_ALLOWED_SIZES);
-
-  const { spacingProps, otherProps } = extractSpacingProps(rest);
-  const { shadowProps } = extractShadowProps({ shadow });
-  const spacingStyles = getSpacingStyles(spacingProps);
-
   const theme = useTheme();
+  const { styleProps, otherProps: a11yRest } = extractStyleProps(rest);
 
-  // Handle radius prop with 'chip' as default
-  const radiusStyles = createRadiusStyles(radius || 'badge');
+  // The canonical name wins over its shorthand, matching Text and RollingNumber.
+  const requestedVariant: BadgeVariant = variant ?? v ?? 'subtle';
+  const resolvedColor = color ?? c ?? 'primary';
+  const shouldUseGradient = requestedVariant === 'gradient' && hasLinearGradient;
+  const effectiveVariant: BadgeVariant =
+    requestedVariant === 'gradient' && !hasLinearGradient ? 'filled' : requestedVariant;
 
-  // Badges are flat by default on every variant; opt in with the `shadow` prop.
-  const effectiveShadow = shadowProps.shadow ?? 'none';
-  const shadowStyles = getShadowStyles({ shadow: effectiveShadow }, theme, 'badge');
+  const control = getControlSize(theme, size);
+  const height = typeof size === 'number' ? size : Math.round(control.height * BADGE_HEIGHT_RATIO);
+  const fontSize = typeof size === 'number'
+    ? Math.max(8, Math.round(size * 0.6))
+    : Math.max(8, control.fontSize - 2);
+  const borderRadius = resolveRadius(theme, radius);
 
-  const height = getHeight(clampedSize);
+  const gradientStops = useMemo(
+    () => (shouldUseGradient ? resolveGradientStops(theme, resolvedColor) : undefined),
+    [shouldUseGradient, theme, resolvedColor]
+  );
+  // Fill + border + text come from the shared variant system so a Badge matches
+  // Alert, Chip, and Button for the same variant+color on every theme and scheme.
+  const roles = useMemo(
+    () => resolveVariantRoles(theme, { variant: effectiveVariant, color: resolvedColor, gradientStops }),
+    [theme, effectiveVariant, resolvedColor, gradientStops]
+  );
 
-  const gradientStops = React.useMemo(() => (
-    shouldUseGradient ? resolveGradientStops(theme, resolvedColor as string) : undefined
-  ), [shouldUseGradient, theme, resolvedColor]);
+  const badgeStyle: ViewStyle = {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height,
+    minHeight: height,
+    paddingHorizontal: Math.round(control.paddingX * BADGE_PADDING_RATIO),
+    borderWidth: 1,
+    borderRadius,
+    backgroundColor: roles.fill,
+    borderColor: roles.border,
+    opacity: disabled ? 0.5 : 1,
+    position: 'relative',
+    ...(effectiveVariant === 'gradient' ? { overflow: 'hidden' } : null),
+    // Badges are flat unless the consumer opts in via `shadow`.
+    ...resolveShadow(theme, shadow),
+  };
+  const labelStyle: TextStyle = {
+    fontSize,
+    lineHeight: Math.round(fontSize * 1.2),
+    letterSpacing: -fontSize * 0.02,
+    textAlign: 'center',
+    color: roles.text,
+  };
+  const gap = control.gap;
 
-  const badgeStyles = getBadgeStyles(theme, effectiveVariant, resolvedColor, disabled, height - 10, radiusStyles, shadowStyles, gradientStops);
-  const badgeTextStyles = getBadgeTextStyles(theme, effectiveVariant, resolvedColor, clampedSize);
-  const iconSpacing = getSpacing(clampedSize) / 2;
-
-  const Component = onPress ? Pressable : View;
-
+  const labelText = getNodeText(children);
   const removeButton = onRemove ? (
-    <Button
-      icon={<Icon name="x" size="sm" />}
-      variant="none"
+    <RemoveButton
+      size={size}
+      color={roles.text}
       onPress={onRemove}
       disabled={disabled}
-      style={{ marginLeft: removePosition === 'right' ? DESIGN_TOKENS.spacing.xs : 0, marginRight: removePosition === 'left' ? DESIGN_TOKENS.spacing.xs : 0 }}
+      label={removeButtonLabel ?? (labelText ? `Remove ${labelText}` : 'Remove')}
+      testID={testID ? `${testID}-remove` : undefined}
     />
   ) : null;
 
-  const gradientOverlay = shouldUseGradient && gradientStops ? (
-    <OptionalLinearGradient
-      pointerEvents="none"
-      colors={gradientStops}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[StyleSheet.absoluteFill, radiusStyles]}
-    />
-  ) : null;
+  const gradient =
+    shouldUseGradient && gradientStops ? (
+      <OptionalLinearGradient
+        pointerEvents="none"
+        colors={gradientStops}
+        start={GRADIENT_START}
+        end={GRADIENT_END}
+        style={[ABSOLUTE_FILL, { borderRadius }]}
+      />
+    ) : null;
 
-  // Foreground row that must paint above the absolute gradient fill. On web,
-  // positioned elements paint above non-positioned in-flow siblings regardless
-  // of DOM order, so an opaque gradient would otherwise cover the label.
-  const contentStyles = {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    position: 'relative' as const,
-    zIndex: 1,
-  };
+  const label = (
+    <>
+      {startSection ? <View style={{ marginEnd: gap }}>{startSection}</View> : null}
+      <Text {...mergeSlotProps({ fw: '500' as const, style: [labelStyle, textStyle] }, labelProps)}>{children}</Text>
+      {endSection ? <View style={{ marginStart: gap }}>{endSection}</View> : null}
+    </>
+  );
+
+  const rootStyle = [badgeStyle, resolveStyleProps(styleProps, theme), style];
+  const accessibility = onPress ? a11yProps({ role: 'button', disabled }) : {};
+  const cursorStyle = webStyle({ cursor: disabled ? 'not-allowed' : 'pointer' });
+  const handlePress = disabled ? undefined : onPress;
+
+  // A pressable badge with a remove button: two sibling controls, never nested.
+  if (onPress && removeButton) {
+    return (
+      <View ref={ref} style={rootStyle} testID={testID}>
+        {gradient}
+        <View style={CONTENT_STYLE}>
+          {removePosition === 'left' ? <View style={{ marginEnd: gap / 2 }}>{removeButton}</View> : null}
+          <Pressable
+            style={[CONTENT_STYLE, cursorStyle]}
+            onPress={handlePress}
+            disabled={disabled}
+            testID={testID ? `${testID}-press` : undefined}
+            {...accessibility}
+            {...a11yRest}
+          >
+            {label}
+          </Pressable>
+          {removePosition === 'right' ? <View style={{ marginStart: gap / 2 }}>{removeButton}</View> : null}
+        </View>
+      </View>
+    );
+  }
+
+  const content = (
+    <>
+      {gradient}
+      <View style={CONTENT_STYLE}>
+        {removePosition === 'left' && removeButton ? <View style={{ marginEnd: gap / 2 }}>{removeButton}</View> : null}
+        {label}
+        {removePosition === 'right' && removeButton ? <View style={{ marginStart: gap / 2 }}>{removeButton}</View> : null}
+      </View>
+    </>
+  );
+
+  if (!onPress) {
+    return (
+      <View ref={ref} style={rootStyle} testID={testID} {...a11yRest}>
+        {content}
+      </View>
+    );
+  }
 
   return (
-    <Component
-      ref={ref as any}
-      style={[badgeStyles, spacingStyles, style]}
-      onPress={disabled ? undefined : onPress}
+    <Pressable
+      ref={ref}
+      style={[rootStyle, cursorStyle]}
+      onPress={handlePress}
       disabled={disabled}
-      {...otherProps}
+      testID={testID}
+      {...accessibility}
+      {...a11yRest}
     >
-      {gradientOverlay}
-      <View style={contentStyles}>
-        {removePosition === 'left' && removeButton && (
-          <View style={{ marginRight: iconSpacing }}>
-            {removeButton}
-          </View>
-        )}
-
-        {startIcon && (
-          <View style={{ marginRight: iconSpacing }}>
-            {startIcon}
-          </View>
-        )}
-
-        <Text
-          {...mergeSlotProps(
-            { weight: '500' as const, style: [badgeTextStyles, textStyle] },
-            labelProps,
-          )}
-        >
-          {children}
-        </Text>
-
-        {(endIcon || (onRemove && removePosition === 'right')) && (
-          <View style={{ marginLeft: iconSpacing }}>
-            {removePosition === 'right' && removeButton ? removeButton : endIcon}
-          </View>
-        )}
-      </View>
-    </Component>
+      {content}
+    </Pressable>
   );
-});
-
-Badge.displayName = 'Badge';
+}, { displayName: 'Badge' });
 
 export default Badge;

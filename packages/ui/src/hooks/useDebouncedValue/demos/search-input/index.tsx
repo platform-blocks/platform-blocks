@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Badge, Block, DataList, Input, Row, Text, useDebouncedValue } from '@platform-blocks/ui';
+import { Badge, Block, DataList, Input, Row, Text, useDebouncedValue } from '@plocks/ui';
 
 const PACKAGES = ['react', 'react native', 'redux', 'rxjs', 'remix', 'rollup'];
 
@@ -35,7 +35,7 @@ export function Demo() {
           ))}
         </Row>
       ) : (
-        <Text size="sm" color="muted">No matches.</Text>
+        <Text size="sm" c="muted">No matches.</Text>
       )}
     </Block>
   );

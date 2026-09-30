@@ -1,4 +1,4 @@
-import { StackedAreaChart } from '@platform-blocks/charts';
+import { StackedAreaChart } from '@plocks/charts';
 
 import { SERIES } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <StackedAreaChart
       title="Active users by surface"
       subtitle="Monthly totals"
-      height={340}
+      h={340}
       series={SERIES}
       stackOrder="normal"
       opacity={0.65}

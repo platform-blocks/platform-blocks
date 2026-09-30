@@ -25,7 +25,7 @@ import { ChartContainer, ChartTitle, ChartLegend } from '../../ChartBase';
 import { useChartInteractionContext, usePointer } from '../../interaction/ChartInteractionContext';
 import type { ActiveTarget } from '../../core/hittest/types';
 import { useChartTheme } from '../../theme/ChartThemeContext';
-import { getColorFromScheme, colorSchemes, formatNumber } from '../../utils';
+import { getColorFromScheme, formatNumber, resolveNumberFormatter } from '../../utils';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const LABEL_LINE_GAP = 18;
@@ -81,7 +81,8 @@ function useFunnelGeometry(
   width: number,
   height: number,
   layout: FunnelLayoutConfig | undefined,
-  padding: { top: number; bottom: number; left: number; right: number }
+  padding: { top: number; bottom: number; left: number; right: number },
+  palette: string[]
 ): FunnelGeometry {
   return useMemo(() => {
     if (!seriesList.length) {
@@ -220,7 +221,7 @@ function useFunnelGeometry(
 
         const color = step.color
           || series.color
-          || getColorFromScheme(seriesIndex * steps.length + stepIndex, colorSchemes.default);
+          || getColorFromScheme(seriesIndex * steps.length + stepIndex, palette);
 
         const path = `M ${xTop} ${y} L ${xTop + topWidth} ${y} L ${xBottom + bottomWidth} ${y + segmentHeight} L ${xBottom} ${y + segmentHeight} Z`;
 
@@ -269,7 +270,7 @@ function useFunnelGeometry(
     });
 
     return { segments, groups, gap };
-  }, [seriesList, width, height, layout, padding]);
+  }, [seriesList, width, height, layout, padding, palette]);
 }
 
 // Animated funnel segment component
@@ -353,7 +354,7 @@ const AnimatedFunnelSegment: React.FC<{
       ];
     }
 
-    const baseLine = `${segment.step.label}: ${formatNumber(segment.value)}`;
+    const baseLine = `${segment.step.label}: ${resolveNumberFormatter(theme.numberFormat)(segment.value)}`;
     if (showConversion) {
       return [
         `${baseLine} (${(segment.cumulativeConversion * 100).toFixed(1)}%)`,
@@ -371,7 +372,7 @@ const AnimatedFunnelSegment: React.FC<{
       lines.push(`Trend ${arrow} ${magnitude}%`);
     }
     return lines;
-  }, [segment, steps, valueFormatter, showConversion]);
+  }, [segment, steps, valueFormatter, showConversion, theme.numberFormat]);
 
   const totalLabelHeight = (labelLines.length - 1) * LABEL_LINE_GAP;
   const startY = midY - totalLabelHeight / 2;
@@ -427,8 +428,8 @@ AnimatedFunnelSegment.displayName = 'AnimatedFunnelSegment';
 export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
   const {
     series,
-    width = 360,
-    height = 420,
+    w: width = 360,
+    h: height = 420,
     title,
     subtitle,
     layout,
@@ -468,7 +469,7 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
   const padding = useMemo(() => ({ top: 50, bottom: 40, left: 40, right: 40 }), []);
   const showConversion = layout?.showConversion !== false;
 
-  const geometry = useFunnelGeometry(seriesArr, width, height, layout, padding);
+  const geometry = useFunnelGeometry(seriesArr, width, height, layout, padding, theme.colors.accentPalette);
   const { segments, groups } = geometry;
 
   const seriesSteps = useMemo(() => {
@@ -572,12 +573,17 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
   }, [layout?.connectors, segments]);
 
   const animationProgress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = React.useRef(false);
   const dataSignature = useMemo(
     () => segments.map((segment) => `${segment.id}-${segment.value}-${segment.color}`).join('|'),
     [segments]
   );
 
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (disabled) {
       animationProgress.value = 1;
       return;
@@ -752,8 +758,8 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
   return (
     <ChartContainer
       {...rest}
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       style={style}
       interactionConfig={{ multiTooltip, liveTooltip: tooltip?.show === false ? false : liveTooltip, enableCrosshair }}
     >
@@ -852,7 +858,7 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
                 return {
                   label: entry.name ?? `Series ${index + 1}`,
                   color:
-                    seriesSegments[0]?.color ?? entry.color ?? getColorFromScheme(index, colorSchemes.default),
+                    seriesSegments[0]?.color ?? entry.color ?? getColorFromScheme(index, theme.colors.accentPalette),
                   visible,
                 };
               });
@@ -863,7 +869,7 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
               const visible = segment ? visibleSegmentIds.has(segment.id) : true;
               return {
                 label: step.label,
-                color: segment?.color ?? step.color ?? getColorFromScheme(idx, colorSchemes.default),
+                color: segment?.color ?? step.color ?? getColorFromScheme(idx, theme.colors.accentPalette),
                 visible,
               };
             });

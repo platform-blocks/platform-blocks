@@ -1,2 +1,2 @@
 export { AutoComplete } from './AutoComplete';
-export type { AutoCompleteProps, AutoCompleteOption } from './types';
+export type { AutoCompleteProps, AutoCompleteOption, AutoCompleteHandle } from './types';

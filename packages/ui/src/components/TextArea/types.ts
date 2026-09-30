@@ -1,38 +1,37 @@
-import React from 'react';
-import { TextInputProps, TextInputProps as RNTextInputProps } from 'react-native';
-import { BaseInputProps } from '../Input/types';
-import { SizeValue } from '../../core/theme/types';
+import type { TextInputProps as RNTextInputProps } from 'react-native';
+import type { TextFieldBaseProps } from '../_internal/Field/fieldProps';
+import type { ExtendedTextInputProps } from '../Input/types';
 
-export interface TextAreaProps extends BaseInputProps {
-  /** Default value for uncontrolled mode */
-  defaultValue?: string;
-  
-  /** Number of rows (height) for the textarea */
+export interface TextAreaProps extends Omit<TextFieldBaseProps, 'onEnter' | 'debounceMs'> {
+  /** Id of the TextInput; label/error ids derive from it. Generated when omitted. */
+  id?: string;
+
+  /** Number of visible text rows (default 3). */
   rows?: number;
-  
-  /** Minimum number of rows */
+
+  /** Minimum number of rows while `autoResize` is on. */
   minRows?: number;
-  
-  /** Maximum number of rows */
+
+  /** Maximum number of rows while `autoResize` is on (then it scrolls). */
   maxRows?: number;
-  
-  /** Whether to automatically resize based on content */
+
+  /** Grow and shrink with the content, between `minRows` and `maxRows`. */
   autoResize?: boolean;
-  
+
   /** Character limit */
   maxLength?: number;
-  
-  /** Show character counter */
+
+  /** Show a `count/maxLength` counter under the field (needs `maxLength`). */
   showCharCounter?: boolean;
 
-  /** Fixed height for the TextArea */
+  /** Fixed height of the text box in px (overrides `rows`). Sizes the box, not the root. */
   h?: number;
-  
-  /** Resize behavior */
+
+  /** Whether the user may resize the field (web only; CSS `resize`). Default `'none'`. */
   resize?: 'none' | 'vertical' | 'horizontal' | 'both';
-  
+
   /** Additional TextInput props */
-  textInputProps?: Omit<TextInputProps, keyof BaseInputProps>;
+  textInputProps?: ExtendedTextInputProps;
 
   // --- Native TextInput passthrough props ---
 
@@ -75,19 +74,9 @@ export interface TextAreaProps extends BaseInputProps {
   /** Whether to show the soft keyboard on focus */
   showSoftInputOnFocus?: boolean;
 
-  /** Whether the field is editable */
+  /** Passthrough to the TextInput. Prefer `readOnly`; `editable={false}` behaves the same. */
   editable?: boolean;
 
-  /** Whether scroll is enabled (multiline) */
+  /** Whether the text scrolls inside the field (defaults to `!autoResize`). */
   scrollEnabled?: boolean;
-}
-
-export interface TextAreaStyleProps {
-  size: SizeValue;
-  focused?: boolean;
-  disabled?: boolean;
-  error?: boolean;
-  rows?: number;
-  resize?: 'none' | 'vertical' | 'horizontal' | 'both';
-  h?: number;
 }

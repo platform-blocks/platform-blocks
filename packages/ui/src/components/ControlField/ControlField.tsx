@@ -1,125 +1,126 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { View, Pressable, Platform, type Text as RNText } from 'react-native';
-import { factory } from '../../core/factory';
-import { useTheme } from '../../core/theme';
-import { useDirection } from '../../core/providers/DirectionProvider';
-import { extractSpacingProps, getSpacingStyles, mergeSlotProps } from '../../core/utils';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, Text as RNText, View, type TextStyle, type ViewStyle } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { consumeEvent, readKey, type KeyboardEventLike } from '../../core/accessibility/keyboard';
+import { useFieldA11y } from '../../core/accessibility/useFieldA11y';
+import { factory, withStatics } from '../../core/factory';
+import { useThemedStyles } from '../../core/hooks/useThemedStyles';
+import { isNative, webProps } from '../../core/platform';
+import { getControlSize } from '../../core/theme/tokens';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { useStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState';
+import { Checkbox } from '../Checkbox';
+import { ChoiceIndicatorProvider } from '../Checkbox/ChoiceField';
+import { Radio } from '../Radio';
+import { Switch } from '../Switch';
 import { Text } from '../Text';
 import { FieldHeader } from '../_internal/FieldHeader';
-import { Checkbox } from '../Checkbox';
-import { Switch } from '../Switch';
-import { Radio } from '../Radio';
-import { ControlFieldProvider, useControlField, useControlFieldGroup } from './context';
 import { ControlFieldGroup } from './ControlFieldGroup';
-import { useControlFieldStyles } from './styles';
-import { useControllableState } from '../../hooks/useControllableState';
+import { ControlFieldProvider, useControlField, useControlFieldGroup } from './context';
 import type {
   ControlFieldContextValue,
   ControlFieldDescriptionProps,
   ControlFieldErrorProps,
   ControlFieldIndicatorProps,
   ControlFieldLabelProps,
+  ControlFieldPart,
   ControlFieldProps,
   ControlFieldVariant,
 } from './types';
 
-/** Hide a purely-visual node from assistive tech (the row owns the a11y role). */
-const decorativeProps =
-  Platform.OS === 'web'
-    ? ({ 'aria-hidden': true } as const)
-    : ({ accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' } as const);
+/** Hide a purely-visual node from assistive tech (the row owns the role). */
+const DECORATIVE = isNative
+  ? ({ accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' } as const)
+  : a11yProps({ hidden: true });
+
+const ROLE_FOR: Record<ControlFieldVariant, 'switch' | 'checkbox' | 'radio'> = {
+  switch: 'switch',
+  checkbox: 'checkbox',
+  radio: 'radio',
+};
+
+const hasContent = (node: React.ReactNode) =>
+  node !== undefined && node !== null && node !== false && node !== true && node !== '';
+
+/** Registers a compound part with the row while it is mounted. */
+function usePartRegistration(part: ControlFieldPart, present: boolean) {
+  const { registerPart } = useControlField();
+  useEffect(() => {
+    if (!present) return undefined;
+    registerPart(part, true);
+    return () => registerPart(part, false);
+  }, [registerPart, part, present]);
+}
 
 /** Renders the built-in control for a given variant, wired to field state. */
-function renderBuiltInIndicator(ctx: ControlFieldContextValue) {
-  const { isSelected, isDisabled, isInvalid, size, color, variant } = ctx;
-  // Checkbox/Switch tint their box/border red when `error` is a non-empty
-  // string; there is no visible label here, so a single space triggers the
-  // invalid styling without rendering any error text.
-  const invalidFlag = isInvalid ? ' ' : undefined;
+function renderBuiltInIndicator(ctx: ControlFieldContextValue, variant: ControlFieldVariant) {
+  const { checked, disabled, invalid, size, color } = ctx;
+  // No visible label here: `error={true}` only tints the control.
+  const error = invalid || undefined;
 
   switch (variant) {
     case 'checkbox':
-      return (
-        <Checkbox
-          checked={isSelected}
-          disabled={isDisabled}
-          size={size}
-          color={color as any}
-          error={invalidFlag}
-        />
-      );
+      return <Checkbox checked={checked} disabled={disabled} size={size} color={color} error={error} />;
     case 'radio':
-      return (
-        <Radio
-          value="control-field"
-          checked={isSelected}
-          disabled={isDisabled}
-          size={size}
-          color={color as any}
-          error={invalidFlag}
-        />
-      );
+      return <Radio value="control-field" checked={checked} disabled={disabled} size={size} color={color} error={error} />;
     case 'switch':
     default:
-      return (
-        <Switch
-          checked={isSelected}
-          disabled={isDisabled}
-          size={size}
-          color={color as any}
-          error={invalidFlag}
-        />
-      );
+      return <Switch checked={checked} disabled={disabled} size={size} color={color} error={error} />;
   }
 }
 
-/** Indicator slot — a built-in control or a custom child, kept press-inert. */
-const ControlFieldIndicator = React.forwardRef<View, ControlFieldIndicatorProps>(({ variant, children, style }, ref) => {
+/**
+ * Indicator slot — a built-in control or a custom child. It is only the
+ * picture of the state: the row is the control, so the indicator is inert to
+ * presses, focus and assistive technology.
+ */
+const ControlFieldIndicator = React.forwardRef<View, ControlFieldIndicatorProps>(({ variant, children, style, testID }, ref) => {
   const ctx = useControlField();
-  const effectiveCtx = variant ? { ...ctx, variant } : ctx;
-
-  const customControl = children as React.ReactElement<any> | undefined;
-  const control = customControl
-    ? React.cloneElement(customControl, {
+  const control = children
+    ? React.cloneElement(children, {
         // Inject state only when the custom control hasn't set it itself.
-        checked: customControl.props.checked ?? ctx.isSelected,
-        disabled: customControl.props.disabled ?? ctx.isDisabled,
+        checked: children.props.checked ?? ctx.checked,
+        disabled: children.props.disabled ?? ctx.disabled,
       })
-    : renderBuiltInIndicator(effectiveCtx);
+    : renderBuiltInIndicator(ctx, variant ?? ctx.variant);
 
   return (
-    <View ref={ref} pointerEvents="none" style={style} {...decorativeProps}>
-      {control}
+    <View ref={ref} testID={testID} style={[{ pointerEvents: 'none' }, style]} {...DECORATIVE}>
+      <ChoiceIndicatorProvider value>{control}</ChoiceIndicatorProvider>
     </View>
   );
 });
 ControlFieldIndicator.displayName = 'ControlField.Indicator';
 
-const ControlFieldLabel: React.FC<ControlFieldLabelProps> = ({ children, ...rest }) => {
-  const { isDisabled, isRequired, isInvalid, size } = useControlField();
+const ControlFieldLabel = ({ children, ...rest }: ControlFieldLabelProps) => {
+  const { disabled, required, invalid, size, ids } = useControlField();
+  usePartRegistration('label', hasContent(children));
   return (
     <FieldHeader
       label={children}
-      required={isRequired}
+      required={required}
       withAsterisk
-      disabled={isDisabled}
-      error={isInvalid}
-      size={size as any}
+      disabled={disabled}
+      error={invalid}
+      size={size}
       marginBottom={0}
       labelProps={rest}
+      labelId={ids.label}
     />
   );
 };
 ControlFieldLabel.displayName = 'ControlField.Label';
 
 const ControlFieldDescription = React.forwardRef<RNText, ControlFieldDescriptionProps>(({ children, ...rest }, ref) => {
-  const theme = useTheme();
+  const { ids } = useControlField();
+  usePartRegistration('description', hasContent(children));
+  const styles = useThemedStyles((theme) => ({
+    description: { fontSize: 12, color: theme.text.muted, marginTop: 2 } as TextStyle,
+  }));
   return (
-    <Text
-      ref={ref}
-      selectable={false}
-      {...mergeSlotProps({ style: { fontSize: 12, color: theme.text.muted, marginTop: 2 } }, rest)}
-    >
+    <Text ref={ref} selectable={false} {...mergeSlotProps({ style: styles.description, id: ids.description }, rest)}>
       {children}
     </Text>
   );
@@ -127,37 +128,31 @@ const ControlFieldDescription = React.forwardRef<RNText, ControlFieldDescription
 ControlFieldDescription.displayName = 'ControlField.Description';
 
 const ControlFieldError = React.forwardRef<RNText, ControlFieldErrorProps>(({ children, ...rest }, ref) => {
-  const theme = useTheme();
-  const { isInvalid } = useControlField();
-  if (!isInvalid || !children) return null;
+  const { invalid, ids } = useControlField();
+  const shown = invalid && hasContent(children);
+  usePartRegistration('error', shown);
+  const styles = useThemedStyles((theme) => ({
+    error: { color: theme.colors.error[5], marginTop: 4, fontSize: 12 } as TextStyle,
+  }));
+  if (!shown) return null;
   return (
-    <Text
-      ref={ref}
-      size="sm"
-      selectable={false}
-      {...mergeSlotProps({ style: { color: theme.colors.error[6], marginTop: 4, fontSize: 12 } }, rest)}
-    >
-      {children}
-    </Text>
+    // A polite alert region, so a newly shown error is announced.
+    <View id={ids.error} role="alert" aria-live="polite" accessible>
+      <Text ref={ref} size="sm" selectable={false} {...mergeSlotProps({ style: styles.error }, rest)}>
+        {children}
+      </Text>
+    </View>
   );
 });
 ControlFieldError.displayName = 'ControlField.Error';
 
-const ControlFieldBase = factory<{ props: ControlFieldProps; ref: View }>((rawProps, ref) => {
-  const { spacingProps, otherProps } = extractSpacingProps(rawProps);
-  const spacingStyles = getSpacingStyles(spacingProps);
-
+const ControlFieldBase = factory<{ props: ControlFieldProps; ref: View }>((props, ref) => {
   const {
-    isSelected,
     checked,
-    defaultSelected = false,
-    onSelectedChange,
+    defaultChecked = false,
     onChange,
-    isDisabled,
-    disabled,
-    isInvalid,
-    isRequired,
-    required,
+    disabled = false,
+    required = false,
     variant = 'switch',
     label,
     description,
@@ -172,47 +167,105 @@ const ControlFieldBase = factory<{ props: ControlFieldProps; ref: View }>((rawPr
     testID,
     style,
     accessibilityLabel,
-  } = otherProps as ControlFieldProps;
+    accessibilityHint,
+    id,
+  } = props;
 
-  const theme = useTheme();
-  const { isRTL } = useDirection();
   const group = useControlFieldGroup();
   const size = sizeProp ?? group?.size ?? 'md';
-  const styles = useControlFieldStyles(theme);
+  const spacingStyles = useStyleProps(props);
 
-  const controlledSelected = isSelected ?? checked;
-  const resolvedDisabled = isDisabled ?? disabled ?? false;
-  const resolvedRequired = isRequired ?? required ?? false;
-  const resolvedInvalid = isInvalid ?? !!error;
-  const handleChange = onSelectedChange ?? onChange;
+  const invalid = error === true || hasContent(error);
+  const errorMessage = invalid && hasContent(error) ? error : undefined;
 
-  const [effectiveSelected, setSelected] = useControllableState<boolean>({
-    value: controlledSelected,
-    defaultValue: defaultSelected,
+  const [isChecked, setChecked] = useControllableState<boolean>({
+    value: checked,
+    defaultValue: defaultChecked,
     finalValue: false,
-    onChange: handleChange,
+    onChange,
   });
 
-  const handlePress = useCallback(() => {
-    if (resolvedDisabled) return;
-    setSelected((previous) => !previous);
-  }, [resolvedDisabled, setSelected]);
+  const toggle = useCallback(() => {
+    if (disabled) return;
+    setChecked((previous) => !previous);
+  }, [disabled, setChecked]);
 
-  const ctx: ControlFieldContextValue = useMemo(
+  // Space toggles the row; react-native-web's Pressable only presses on Enter
+  // for non-button roles.
+  const handleKeyDown = useCallback(
+    (event: KeyboardEventLike) => {
+      const { key } = readKey(event);
+      if (key !== ' ' && key !== 'Spacebar') return;
+      consumeEvent(event);
+      toggle();
+    },
+    [toggle]
+  );
+
+  const compound = children != null;
+  const a11y = useFieldA11y({
+    id,
+    // Compound parts are wired through registration below.
+    label: compound ? undefined : label,
+    description: compound ? undefined : description,
+    error: compound ? undefined : errorMessage,
+    invalid,
+    required,
+    disabled,
+    accessibilityLabel,
+    accessibilityHint,
+  });
+  const { ids } = a11y;
+
+  const [parts, setParts] = useState<Record<ControlFieldPart, boolean>>({
+    label: false,
+    description: false,
+    error: false,
+  });
+  const registerPart = useCallback((part: ControlFieldPart, present: boolean) => {
+    setParts((current) => (current[part] === present ? current : { ...current, [part]: present }));
+  }, []);
+
+  const setSelected = useCallback(
+    (next: boolean) => {
+      if (disabled) return;
+      setChecked(next);
+    },
+    [disabled, setChecked]
+  );
+
+  const ctx = useMemo<ControlFieldContextValue>(
     () => ({
-      isSelected: effectiveSelected,
-      onSelectedChange: (next: boolean) => {
-        if (resolvedDisabled) return;
-        setSelected(next);
-      },
-      isDisabled: resolvedDisabled,
-      isInvalid: resolvedInvalid,
-      isRequired: resolvedRequired,
+      checked: isChecked,
+      onChange: setSelected,
+      disabled,
+      invalid,
+      required,
       size,
       color,
       variant,
+      ids: { control: ids.control, label: ids.label, description: ids.description, error: ids.error },
+      registerPart,
     }),
-    [effectiveSelected, resolvedDisabled, resolvedInvalid, resolvedRequired, size, color, variant, setSelected]
+    [isChecked, setSelected, disabled, invalid, required, size, color, variant, ids, registerPart]
+  );
+
+  const styles = useThemedStyles(
+    (theme) => ({
+      row: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%' } as ViewStyle,
+      rowDisabled: { opacity: 0.6 } as ViewStyle,
+      labelBlock: { flex: 1, minWidth: 0 } as ViewStyle,
+      // The whole row is the tap target; the indicator must not intercept presses.
+      indicator: { flexShrink: 0 } as ViewStyle,
+      description: { fontSize: 12, color: theme.text.muted, marginTop: 2 } as TextStyle,
+      error: {
+        color: theme.colors.error[5],
+        marginTop: 4,
+        fontSize: Math.max(10, getControlSize(theme, size).fontSize - 2),
+        fontFamily: theme.fontFamily,
+      } as TextStyle,
+    }),
+    [size]
   );
 
   // Compound mode: children replace the built-in layout. Error children render
@@ -220,7 +273,7 @@ const ControlFieldBase = factory<{ props: ControlFieldProps; ref: View }>((rawPr
   let rowContent: React.ReactNode;
   let errorContent: React.ReactNode = null;
 
-  if (children != null) {
+  if (compound) {
     const rowChildren: React.ReactNode[] = [];
     React.Children.forEach(children, (child) => {
       if (React.isValidElement(child) && child.type === ControlFieldError) {
@@ -233,30 +286,26 @@ const ControlFieldBase = factory<{ props: ControlFieldProps; ref: View }>((rawPr
   } else {
     const labelBlock = (
       <View style={styles.labelBlock} key="label">
-        {(label != null || description != null) ? (
-          <>
-            <FieldHeader
-              label={label}
-              required={resolvedRequired}
-              withAsterisk
-              disabled={resolvedDisabled}
-              error={resolvedInvalid}
-              size={size as any}
-              marginBottom={0}
-              labelProps={labelProps}
-            />
-            {description != null ? (
-              <Text
-                selectable={false}
-                {...mergeSlotProps(
-                  { style: { fontSize: 12, color: theme.text.muted, marginTop: 2 } },
-                  descriptionProps
-                )}
-              >
-                {description}
-              </Text>
-            ) : null}
-          </>
+        {hasContent(label) ? (
+          <FieldHeader
+            label={label}
+            required={required}
+            withAsterisk
+            disabled={disabled}
+            error={invalid}
+            size={size}
+            marginBottom={0}
+            labelProps={labelProps}
+            labelId={ids.label}
+          />
+        ) : null}
+        {hasContent(description) ? (
+          <Text
+            selectable={false}
+            {...mergeSlotProps({ style: styles.description, id: ids.description }, descriptionProps)}
+          >
+            {description}
+          </Text>
         ) : null}
       </View>
     );
@@ -267,35 +316,37 @@ const ControlFieldBase = factory<{ props: ControlFieldProps; ref: View }>((rawPr
       </View>
     );
 
-    // Resolve visual side, honoring RTL.
-    const showIndicatorLeft = isRTL ? indicatorPosition === 'right' : indicatorPosition === 'left';
-    rowContent = showIndicatorLeft ? [indicator, labelBlock] : [labelBlock, indicator];
+    // `row` follows the reading direction on both platforms, so `left` means start.
+    rowContent = indicatorPosition === 'left' ? [indicator, labelBlock] : [labelBlock, indicator];
 
-    errorContent =
-      resolvedInvalid && error ? (
-        <Text style={styles.error} size="sm" selectable={false}>
-          {error}
-        </Text>
-      ) : null;
+    errorContent = errorMessage ? (
+      <View {...a11y.errorProps} accessible>
+        <RNText style={styles.error}>{errorMessage}</RNText>
+      </View>
+    ) : null;
   }
 
-  const accessibilityRole = variant === 'switch' ? 'switch' : variant === 'radio' ? 'radio' : 'checkbox';
-  const resolvedA11yLabel =
-    accessibilityLabel ?? (typeof label === 'string' ? label : undefined);
+  const compoundLinks = compound
+    ? a11yProps({
+        labelledBy: parts.label ? ids.label : undefined,
+        describedBy: [parts.description && ids.description, parts.error && ids.error],
+      })
+    : null;
 
   return (
     <ControlFieldProvider value={ctx}>
       <View style={spacingStyles}>
         <Pressable
           ref={ref}
-          onPress={handlePress}
-          disabled={resolvedDisabled}
+          onPress={toggle}
+          disabled={disabled}
           testID={testID}
           hitSlop={4}
-          accessibilityRole={accessibilityRole as any}
-          accessibilityState={{ checked: effectiveSelected, disabled: resolvedDisabled }}
-          accessibilityLabel={resolvedA11yLabel}
-          style={[styles.row, resolvedDisabled && { opacity: 0.6 }, style]}
+          {...a11y.controlProps}
+          {...compoundLinks}
+          {...a11yProps({ role: ROLE_FOR[variant], checked: isChecked })}
+          {...webProps({ onKeyDown: disabled ? undefined : handleKeyDown })}
+          style={[styles.row, disabled && styles.rowDisabled, style]}
         >
           {rowContent}
         </Pressable>
@@ -305,7 +356,9 @@ const ControlFieldBase = factory<{ props: ControlFieldProps; ref: View }>((rawPr
   );
 }, { displayName: 'ControlField' });
 
-export const ControlField = Object.assign(ControlFieldBase, {
+ControlFieldBase.displayName = 'ControlField';
+
+export const ControlField = withStatics(ControlFieldBase, {
   Label: ControlFieldLabel,
   Description: ControlFieldDescription,
   Indicator: ControlFieldIndicator,

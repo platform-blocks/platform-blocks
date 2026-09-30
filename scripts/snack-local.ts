@@ -4,11 +4,11 @@
  * through Expo Go before anything is published to npm.
  *
  * The app is pinned to Expo SDK 54 (React 19.1.0 / React Native 0.81.5) — the
- * same runtime a Snack gets — and consumes @platform-blocks/ui as a packed
- * tarball, so the published `exports` map and `files` list are exercised rather
- * than the workspace source. App.tsx and the import rewrite come from
- * apps/platform-blocks.com/utils/snackUrl.ts, so what you test locally is what
- * the "Try in Expo Go" buttons ship.
+ * same runtime a Snack gets — and consumes @plocks/ui-snack, @plocks/ui, and other workspace
+ * packages as packed tarballs (`plocks-<dir>.tgz`), so the published `exports`
+ * map and `files` list are exercised rather than the workspace source. App.tsx and the import rewrite come from
+ * apps/docs/utils/snackUrl.ts, so local testing uses the same demo bundling
+ * rules as the Snack URL helpers.
  *
  * Usage:
  *   npx tsx scripts/snack-local.ts Accordion.basic
@@ -25,15 +25,25 @@ import {
   buildComponentBundle,
   buildDemoBundle,
   isSnackSupported,
-} from '../apps/platform-blocks.com/utils/snackUrl';
+} from '../apps/docs/utils/snackUrl';
+import { UI_PACKAGE, listWorkspacePackages, type WorkspacePackage } from './lib/packages';
 
 const ROOT = path.resolve(__dirname, '..');
-const GENERATED_DIR = path.join(ROOT, 'apps', 'platform-blocks.com', 'data', 'generated');
+const GENERATED_DIR = path.join(ROOT, 'apps', 'docs', 'data', 'generated');
 const APP_DIR = path.join(ROOT, 'examples', 'snack-local');
-const UI_DIR = path.join(ROOT, 'packages', 'ui');
-const TARBALL = path.join(APP_DIR, 'platform-blocks-ui.tgz');
-const CHARTS_DIR = path.join(ROOT, 'packages', 'charts');
-const CHARTS_TARBALL = path.join(APP_DIR, 'platform-blocks-charts.tgz');
+const snackRoot = path.join(ROOT, 'packages', 'ui-snack');
+const snackManifest = JSON.parse(fs.readFileSync(path.join(snackRoot, 'package.json'), 'utf8'));
+const SNACK_PACKAGE: WorkspacePackage = {
+  dir: 'ui-snack',
+  name: snackManifest.name,
+  version: snackManifest.version,
+  root: snackRoot,
+  src: path.join(snackRoot, 'src'),
+  components: path.join(snackRoot, 'src', 'components'),
+  entry: path.join(snackRoot, 'src', 'index.ts'),
+};
+const [ui, ...addons] = listWorkspacePackages(ROOT);
+const PACKAGES = [ui, SNACK_PACKAGE, ...addons];
 
 interface DemoFile {
   name: string;
@@ -116,36 +126,45 @@ function writeAppFiles(files: Record<string, { contents: string }>) {
 const siblingNames = (demo: DemoEntry) => demo.siblings.map(f => f.name);
 const snackable = (demo: DemoEntry) => isSnackSupported(demo.code, siblingNames(demo));
 
+/** The tarball a package is packed to, e.g. `plocks-charts.tgz`. */
+const tarballFor = (pkg: WorkspacePackage) => path.join(APP_DIR, `plocks-${pkg.dir}.tgz`);
+
 /** Rebuild lib/ and pack the tarball the app installs from. */
-function packPackage(name: string, dir: string, tarball: string) {
-  console.log(`Building ${name} …`);
-  execFileSync('npm', ['run', 'build'], { cwd: dir, stdio: 'inherit' });
+function packPackage(pkg: WorkspacePackage) {
+  console.log(`Building ${pkg.name} …`);
+  execFileSync('npm', ['run', 'build'], { cwd: pkg.root, stdio: 'inherit' });
 
   console.log('Packing tarball …');
   const output = execFileSync('npm', ['pack', '--pack-destination', APP_DIR], {
-    cwd: dir,
+    cwd: pkg.root,
     encoding: 'utf8',
   });
   const packed = output.trim().split('\n').pop()!.trim();
+  const tarball = tarballFor(pkg);
   fs.renameSync(path.join(APP_DIR, packed), tarball);
   console.log(`  -> ${path.relative(ROOT, tarball)}`);
 }
 
-/**
- * Packs the workspace packages the app installs. Charts is only rebuilt for
- * demos that import it — the app depends on both tarballs, so the file has to
- * exist either way, but rebuilding ~950 KB for a Button demo is wasted time.
- */
-function packPackages(needsCharts: boolean) {
-  packPackage('@platform-blocks/ui', UI_DIR, TARBALL);
-  if (needsCharts || !fs.existsSync(CHARTS_TARBALL)) {
-    packPackage('@platform-blocks/charts', CHARTS_DIR, CHARTS_TARBALL);
-  }
+/** Whether the app's package.json installs a package from its tarball. */
+function appInstalls(pkg: WorkspacePackage): boolean {
+  const manifest = path.join(APP_DIR, 'package.json');
+  return fs.existsSync(manifest) && fs.readFileSync(manifest, 'utf8').includes(path.basename(tarballFor(pkg)));
 }
 
-/** Whether any file of a bundle imports the charts package. */
-function bundleUsesCharts(files: Record<string, { contents: string }>): boolean {
-  return Object.values(files).some(file => file.contents.includes('@platform-blocks/charts'));
+/**
+ * Packs the workspace packages the app installs. @plocks/ui is always rebuilt;
+ * every other package only for bundles that import it — a tarball the app
+ * depends on has to exist either way, but rebuilding charts (~950 KB) for a
+ * Button demo is wasted time.
+ */
+function packPackages(files: Record<string, { contents: string }>) {
+  const sources = Object.values(files).map(file => file.contents);
+  for (const pkg of PACKAGES) {
+    const imported = sources.some(code => code.includes(pkg.name));
+    if (pkg.name === UI_PACKAGE || imported || (appInstalls(pkg) && !fs.existsSync(tarballFor(pkg)))) {
+      packPackage(pkg);
+    }
+  }
 }
 
 const args = process.argv.slice(2);
@@ -165,11 +184,11 @@ if (args.includes('--list') || !target) {
   const supported = demos.filter(snackable);
   console.log(`${supported.length} snack-able demos (of ${demos.length}):\n`);
   for (const demo of supported) console.log(`  ${demo.id}`);
-  process.exit(target ? 0 : 1);
+  process.exit(args.includes('--list') ? 0 : 1);
 }
 
 // One Snack per component: every demo the component has, rendered as sections
-// in a single screen — the same bundle the docs hero will hand to Expo Go.
+// in a single screen.
 if (combined) {
   const componentDemos = demos.filter(d => d.component === target);
   if (componentDemos.length === 0) {
@@ -186,12 +205,12 @@ if (combined) {
   if (!bundle) {
     console.error(
       `None of ${target}'s ${componentDemos.length} demos can run in a Snack — each imports ` +
-        `something outside packages/ui/src/snack.ts or outside what Expo Go bundles.`
+        `something outside packages/ui-snack/src/index.ts and the other package barrels, or outside what Expo Go bundles.`
     );
     process.exit(1);
   }
 
-  if (!skipPack) packPackages(bundleUsesCharts(bundle.files));
+  if (!skipPack) packPackages(bundle.files);
   writeAppFiles(bundle.files);
 
   console.log(`\nLoaded ${target} (${bundle.included.length} demos) into examples/snack-local.`);
@@ -214,8 +233,8 @@ if (!demo) {
 
 if (!snackable(demo)) {
   console.error(
-    `"${demo.id}" cannot run in a Snack — it imports something outside packages/ui/src/snack.ts ` +
-      `or outside what Expo Go bundles.`
+    `"${demo.id}" cannot run in a Snack — it imports something outside packages/ui-snack/src/index.ts ` +
+      `and the other package barrels, or outside what Expo Go bundles.`
   );
   process.exit(1);
 }
@@ -232,7 +251,7 @@ if (!files) {
   process.exit(1);
 }
 
-if (!skipPack) packPackages(bundleUsesCharts(files));
+if (!skipPack) packPackages(files);
 writeAppFiles(files);
 
 console.log(`\nLoaded ${demo.id} into examples/snack-local.\n`);

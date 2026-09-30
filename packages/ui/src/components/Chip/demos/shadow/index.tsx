@@ -1,4 +1,4 @@
-import { Chip, Row } from '@platform-blocks/ui'
+import { Chip, Row } from '@plocks/ui';
 
 export function Demo() {
   return (
@@ -10,5 +10,5 @@ export function Demo() {
       <Chip shadow="lg">LG Shadow</Chip>
       <Chip shadow="xl">XL Shadow</Chip>
     </Row>
-  )
+  );
 }

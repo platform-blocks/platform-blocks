@@ -5,7 +5,6 @@ order: 70
 tags: [orientation, vertical]
 highlightLines: []
 status: stable
-since: 0.10.2
 hidden: false
 ---
 

@@ -1,225 +1,107 @@
-#!/usr/bin/env ts-node
-import fs from 'fs';
-import path from 'path';
-import { execSync } from 'child_process';
-
-interface PackageTarget {
-  name: string;
-  dir: string;
-  workspace: string;
-}
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const ROOT = path.resolve(__dirname, '..');
-const DEFAULT_ACCESS = 'public';
-const PACKAGES: PackageTarget[] = [
-  {
-    name: '@platform-blocks/ui',
-    dir: path.join(ROOT, 'packages', 'ui'),
-    workspace: 'packages/ui',
-  },
-  {
-    name: '@platform-blocks/charts',
-    dir: path.join(ROOT, 'packages', 'charts'),
-    workspace: 'packages/charts',
-  },
+// Publish the dependency first so npm can resolve peers as each package goes live.
+const PACKAGE_DIRS = [
+  'ui', 'ui-snack', 'charts', 'dates', 'code', 'media', 'carousel',
+  'spotlight', 'brands', 'qrcode', 'emoji-picker', 'create-plocks',
 ];
 
-interface Options {
-  version: string;
-  npmTag: string;
-  dryRun: boolean;
-  skipBuild: boolean;
-  access: string;
-}
-
-const parseOptions = (): Options => {
-  const args = process.argv.slice(2);
-  let version = '';
-  let npmTag = 'latest';
-  let dryRun = false;
-  let skipBuild = false;
-  let access = DEFAULT_ACCESS;
-
-  for (let i = 0; i < args.length; i += 1) {
-    const arg = args[i];
-
-    if (arg === '--dry-run') {
-      dryRun = true;
-      continue;
-    }
-
-    if (arg === '--skip-build') {
-      skipBuild = true;
-      continue;
-    }
-
-    if (arg === '--tag' && args[i + 1]) {
-      npmTag = args[i + 1];
-      i += 1;
-      continue;
-    }
-
-    if (arg.startsWith('--tag=')) {
-      npmTag = arg.split('=')[1] ?? npmTag;
-      continue;
-    }
-
-    if ((arg === '--version' || arg === '-v') && args[i + 1]) {
-      version = args[i + 1];
-      i += 1;
-      continue;
-    }
-
-    if (arg.startsWith('--version=')) {
-      version = arg.split('=')[1] ?? version;
-      continue;
-    }
-
-    if (arg.startsWith('--access=')) {
-      access = arg.split('=')[1] ?? DEFAULT_ACCESS;
-      continue;
-    }
-
-    if (arg === '--access' && args[i + 1]) {
-      access = args[i + 1];
-      i += 1;
-      continue;
-    }
-
-    if (!arg.startsWith('--') && !version) {
-      version = arg;
-      continue;
-    }
-
-    throw new Error(`Unknown argument: ${arg}`);
-  }
-
-  if (!version) {
-    throw new Error('Missing version. Example: tsx scripts/publish-release.ts 0.2.0');
-  }
-
-  const semverPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-.]+)?$/;
-  if (!semverPattern.test(version)) {
-    throw new Error(`Version "${version}" is not valid semver.`);
-  }
-
-  return { version, npmTag, dryRun, skipBuild, access };
-};
-
-const runCommand = (command: string, cwd = ROOT, dryRun = false) => {
-  if (dryRun) {
-    console.log(`[dry-run] ${command}`);
-    return;
-  }
-  execSync(command, { cwd, stdio: 'inherit' });
-};
-
-const runCommandCapture = (command: string, cwd = ROOT, dryRun = false): string => {
-  if (dryRun) {
-    console.log(`[dry-run] ${command}`);
-    return '';
-  }
-  return execSync(command, { cwd, stdio: 'pipe', encoding: 'utf8' }) as string;
-};
-
-const ensureNpmAuth = (dryRun: boolean) => {
-  try {
-    const whoami = runCommandCapture('npm whoami', ROOT, dryRun).trim();
-    if (!dryRun) {
-      console.log(`Publishing as npm user: ${whoami}`);
-    }
-  } catch (error) {
-    throw new Error('Unable to determine npm user. Please run "npm login" before publishing.');
-  }
-};
-
-const warnIfDirty = (dryRun: boolean) => {
-  try {
-    const status = runCommandCapture('git status --porcelain', ROOT, dryRun).trim();
-    if (status) {
-      console.warn('Warning: git working tree has uncommitted changes.');
-    }
-  } catch (error) {
-    console.warn('Warning: unable to check git status.');
-  }
-};
-
-const updatePackageVersion = (pkg: PackageTarget, version: string, dryRun: boolean, backups: { path: string; content: string }[]) => {
-  const manifestPath = path.join(pkg.dir, 'package.json');
-  const original = fs.readFileSync(manifestPath, 'utf8');
-  backups.push({ path: manifestPath, content: original });
-
-  if (dryRun) {
-    console.log(`[dry-run] would set ${pkg.name} version to ${version}`);
-    return;
-  }
-
-  const manifest = JSON.parse(original);
-  manifest.version = version;
-  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
-  console.log(`Updated ${pkg.name} to ${version}`);
-};
-
-const revertVersions = (backups: { path: string; content: string }[]) => {
-  backups.forEach(({ path: manifestPath, content }) => {
-    fs.writeFileSync(manifestPath, content, 'utf8');
+const run = (command: string, args: string[], cwd = ROOT): string =>
+  execFileSync(command, args, {
+    cwd,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'inherit'],
+    env: {
+      ...process.env,
+      NPM_CONFIG_CACHE: process.env.NPM_CONFIG_CACHE ?? path.join(os.tmpdir(), 'plocks-npm-cache'),
+    },
   });
-};
 
-const publishPackage = (pkg: PackageTarget, options: Options) => {
-  if (!options.skipBuild) {
-    runCommand(`npm --prefix ${pkg.workspace} run build`, ROOT, options.dryRun);
-  } else {
-    console.log(`Skipping build for ${pkg.name}`);
-  }
-
-  const publishParts = ['npm', 'publish', `--access=${options.access}`];
-  if (options.npmTag) {
-    publishParts.push(`--tag=${options.npmTag}`);
-  }
-  if (options.dryRun) {
-    publishParts.push('--dry-run');
-  }
-
-  runCommand(publishParts.join(' '), pkg.dir, options.dryRun);
-};
+const readJson = (file: string) => JSON.parse(fs.readFileSync(file, 'utf8'));
 
 const main = () => {
-  let options: Options;
-  try {
-    options = parseOptions();
-  } catch (error) {
-    console.error((error as Error).message);
-    process.exit(1);
-    return;
+  const root = readJson(path.join(ROOT, 'package.json'));
+  const args = process.argv.slice(2);
+  const dryRun = args.includes('--dry-run');
+  const skipBuild = args.includes('--skip-build');
+  const versionArg = args.find(arg => !arg.startsWith('--'));
+  const unknown = args.filter(arg => arg !== '--dry-run' && arg !== '--skip-build' && arg !== versionArg);
+  if (unknown.length) throw new Error(`Unknown argument: ${unknown.join(', ')}`);
+  if (versionArg && versionArg !== root.version) {
+    throw new Error(`Requested ${versionArg}, but package.json is ${root.version}. Prepare and commit the version first.`);
   }
 
-  console.log(`Preparing release ${options.version}`);
-  warnIfDirty(options.dryRun);
-  ensureNpmAuth(options.dryRun);
-
-  // Generate SEO files (sitemap.xml and llms.txt) before publishing
-  console.log('Generating SEO files...');
-  try {
-    runCommand('npm --prefix apps/platform-blocks.com run generate-seo', ROOT, options.dryRun);
-    console.log('SEO files generated successfully.');
-  } catch (error) {
-    console.warn('Warning: Failed to generate SEO files. Continuing with publish...');
+  const lock = readJson(path.join(ROOT, 'package-lock.json'));
+  if (lock.version !== root.version || lock.packages?.['']?.version !== root.version) {
+    throw new Error('Root package.json and package-lock.json versions differ. Update the lockfile before release.');
   }
 
-  const backups: { path: string; content: string }[] = [];
+  const packages = PACKAGE_DIRS.map(dir => {
+    const cwd = path.join(ROOT, 'packages', dir);
+    const manifest = readJson(path.join(cwd, 'package.json'));
+    if (manifest.version !== root.version) {
+      throw new Error(`${manifest.name} is ${manifest.version}; expected ${root.version}.`);
+    }
+    if (manifest.peerDependencies?.['@plocks/ui'] && manifest.peerDependencies['@plocks/ui'] !== `^${root.version}`) {
+      throw new Error(`${manifest.name} must peer-depend on @plocks/ui@^${root.version}.`);
+    }
+    if (lock.packages?.[`packages/${dir}`]?.version !== manifest.version) {
+      throw new Error(`package-lock.json has a stale version for ${manifest.name}.`);
+    }
+    return { cwd, manifest };
+  });
 
-  try {
-    PACKAGES.forEach(pkg => updatePackageVersion(pkg, options.version, options.dryRun, backups));
-    PACKAGES.forEach(pkg => publishPackage(pkg, options));
-
-    console.log('Release complete.');
-  } catch (error) {
-    console.error('Release failed. Reverting package versions.');
-    revertVersions(backups);
-    console.error((error as Error).message);
-    process.exit(1);
+  if (!dryRun) {
+    if (run('git', ['status', '--porcelain']).trim()) {
+      throw new Error('Commit the complete release, including generated files, before publishing.');
+    }
+    const remote = run('git', ['remote', 'get-url', 'origin']).trim();
+    if (!/github\.com[:/]platform-blocks\/plocks(?:\.git)?$/.test(remote)) {
+      throw new Error(`Origin points to ${remote}; set it to platform-blocks/plocks before publishing.`);
+    }
+    const user = run('npm', ['whoami']).trim();
+    console.log(`Publishing ${root.version} as ${user}`);
+  } else {
+    console.log(`Checking ${root.version} package tarballs (no publish)`);
   }
+
+  const published: string[] = [];
+  for (const { cwd, manifest } of packages) {
+    if (!skipBuild) {
+      console.log(`Building ${manifest.name}`);
+      run('npm', ['run', 'build'], cwd);
+    }
+    const pack = JSON.parse(run('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], cwd))[0];
+    const packed = new Set<string>(pack.files.map((file: { path: string }) => file.path));
+    const entries = [manifest.main, manifest.module, manifest.types, ...Object.values(manifest.bin ?? {})] as string[];
+    for (const entry of entries.filter(Boolean)) {
+      if (!packed.has(entry.replace(/^\.\//, ''))) {
+        throw new Error(`${manifest.name} tarball is missing ${entry}.`);
+      }
+    }
+    for (const entry of ['README.md', 'LICENSE']) {
+      if (!packed.has(entry)) throw new Error(`${manifest.name} tarball is missing ${entry}.`);
+    }
+    console.log(`${manifest.name}@${manifest.version}: ${pack.files.length} files, ${pack.size} bytes`);
+    if (dryRun) continue;
+    try {
+      const result = run('npm', ['publish', '--access=public', '--tag=latest'], cwd);
+      process.stdout.write(result);
+      published.push(manifest.name);
+    } catch (error) {
+      throw new Error(`Publishing stopped at ${manifest.name}. Already published: ${published.join(', ') || 'none'}. Check npm before retrying.`, { cause: error });
+    }
+  }
+  console.log(dryRun ? 'All package tarballs passed.' : 'All packages published.');
 };
 
-main();
+try {
+  main();
+} catch (error) {
+  console.error((error as Error).message);
+  process.exitCode = 1;
+}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Button, Ring, Row } from '@platform-blocks/ui';
+import { Block, Button, Ring, Row } from '@plocks/ui';
 
 export function Demo() {
   const [value, setValue] = useState(72);

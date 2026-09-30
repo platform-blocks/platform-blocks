@@ -1,4 +1,4 @@
-import { CandlestickChart } from '@platform-blocks/charts';
+import { CandlestickChart } from '@plocks/charts';
 
 import { USAGE_SERIES, UsageCandle, annotations } from './data';
 
@@ -12,7 +12,7 @@ export function Demo() {
     <CandlestickChart
       title="SaaS Usage Peaks"
       subtitle="Daily active sessions during phased launch with capacity guardrails"
-      height={420}
+      h={420}
       series={[
         {
           id: 'active-sessions',

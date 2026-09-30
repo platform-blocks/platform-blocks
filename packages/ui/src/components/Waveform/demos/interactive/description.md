@@ -5,7 +5,6 @@ order: 50
 tags: [interactive, onSeek, progress]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

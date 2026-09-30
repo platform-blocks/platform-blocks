@@ -1,7 +1,7 @@
 ---
 title: Flex
 description: A flexible layout component based on CSS Flexbox for arranging children with customizable direction, alignment, justification, and spacing.
-source: "@platform-blocks/ui"
+source: "@plocks/ui"
 status: "stable"
 category: layout
 accessibility: "Semantic layout structure with proper focus management and screen reader support"
@@ -15,7 +15,7 @@ variants:
   - name: "align"
     description: "Item alignment options along the cross axis"
 dependencies:
-  - "@platform-blocks/core"
+  - "@plocks/core"
 related:
   - "Column"
   - "Row"

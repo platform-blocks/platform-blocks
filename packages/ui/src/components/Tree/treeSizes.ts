@@ -1,15 +1,12 @@
-import { getFontSize, type SizeValue } from '../../core/theme/sizes';
-import {
-  resolveComponentSize,
-  type ComponentSize,
-  type ComponentSizeValue,
-} from '../../core/theme/componentSize';
+import type { ComponentSizeValue } from '../../core/theme/componentSize';
+import { getControlSize, resolveFontSize, stepDown } from '../../core/theme/tokens';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 
 /**
- * Row geometry per density step. `rowHeight` is the floor every row is pinned
- * to — branches carry a disclosure control and leaves do not, so without it the
- * two render at different heights, and a selected row's border changes the box
- * again on top of that.
+ * Row geometry for one density step. `rowHeight` is the floor every row is
+ * pinned to — branches carry a disclosure control and leaves do not, so
+ * without it the two render at different heights, and a selected row's border
+ * changes the box again on top of that.
  */
 export interface TreeMetrics {
   rowHeight: number;
@@ -18,44 +15,54 @@ export interface TreeMetrics {
   indent: number;
   iconSize: number;
   radius: number;
-  textSize: SizeValue;
+  /** Label font size in px. */
+  textSize: number;
   checkboxSize: SizeValue;
 }
 
-const TREE_ALLOWED_SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
-const TREE_ALLOWED_SIZES_ARRAY: ComponentSize[] = [...TREE_ALLOWED_SIZES];
+type ThemeLike = Partial<PlocksTheme> | null | undefined;
 
-const TREE_SIZE_SCALE: Partial<Record<ComponentSize, TreeMetrics>> = {
-  xs: { rowHeight: 24, paddingHorizontal: 4, gap: 3, indent: 12, iconSize: 14, radius: 4, textSize: 'xs', checkboxSize: 'xs' },
-  sm: { rowHeight: 28, paddingHorizontal: 6, gap: 4, indent: 14, iconSize: 16, radius: 6, textSize: 'sm', checkboxSize: 'xs' },
-  md: { rowHeight: 32, paddingHorizontal: 8, gap: 6, indent: 16, iconSize: 18, radius: 6, textSize: 'sm', checkboxSize: 'sm' },
-  lg: { rowHeight: 40, paddingHorizontal: 10, gap: 8, indent: 20, iconSize: 20, radius: 8, textSize: 'md', checkboxSize: 'sm' },
-  xl: { rowHeight: 48, paddingHorizontal: 12, gap: 10, indent: 24, iconSize: 24, radius: 8, textSize: 'lg', checkboxSize: 'md' },
-};
-
-const BASE_METRICS = TREE_SIZE_SCALE.md as TreeMetrics;
-const BASE_FONT_SIZE = getFontSize('md') || 16;
+/**
+ * Rows are compact controls, so they take the theme's control metrics one step
+ * down (`getControlSize(theme, stepDown(size))`) — the `md` row is as tall as a
+ * `sm` button. The gap and the caret follow the requested step itself, and the
+ * label never drops below the theme's `sm` text except at `xs`, where density
+ * is the point.
+ */
+function metricsForToken(theme: ThemeLike, size: SizeValue): TreeMetrics {
+  const row = getControlSize(theme, stepDown(size));
+  const own = getControlSize(theme, size);
+  const smallestText = size === 'xs' ? row.fontSize : resolveFontSize(theme, 'sm');
+  return {
+    rowHeight: row.height,
+    paddingHorizontal: Math.round(row.paddingX * 0.8),
+    gap: own.gap,
+    indent: Math.round(row.height / 2),
+    iconSize: own.iconSize + 2,
+    radius: row.radius,
+    textSize: Math.max(row.fontSize, smallestText),
+    checkboxSize: stepDown(size),
+  };
+}
 
 /** A numeric `size` is read as a font size, and the rest of the row scales with it. */
-function metricsFromFontSize(fontSize: number): TreeMetrics {
-  const scale = fontSize / BASE_FONT_SIZE;
+function metricsFromFontSize(theme: ThemeLike, fontSize: number): TreeMetrics {
+  const base = metricsForToken(theme, 'md');
+  const scale = fontSize / base.textSize;
   const step = (value: number, minimum: number) => Math.max(minimum, Math.round(value * scale));
   return {
-    rowHeight: step(BASE_METRICS.rowHeight, 20),
-    paddingHorizontal: step(BASE_METRICS.paddingHorizontal, 4),
-    gap: step(BASE_METRICS.gap, 2),
-    indent: step(BASE_METRICS.indent, 8),
-    iconSize: step(BASE_METRICS.iconSize, 12),
-    radius: BASE_METRICS.radius,
+    rowHeight: step(base.rowHeight, 20),
+    paddingHorizontal: step(base.paddingHorizontal, 4),
+    gap: step(base.gap, 2),
+    indent: step(base.indent, 8),
+    iconSize: step(base.iconSize, 12),
+    radius: base.radius,
     textSize: fontSize,
     checkboxSize: Math.max(12, Math.round(fontSize * 0.9)),
   };
 }
 
-export function resolveTreeMetrics(size: ComponentSizeValue | undefined): TreeMetrics {
-  const resolved = resolveComponentSize<TreeMetrics>(size, TREE_SIZE_SCALE, {
-    allowedSizes: TREE_ALLOWED_SIZES_ARRAY,
-    fallback: 'md',
-  });
-  return typeof resolved === 'number' ? metricsFromFontSize(resolved) : resolved;
+export function resolveTreeMetrics(theme: ThemeLike, size: ComponentSizeValue | undefined): TreeMetrics {
+  if (typeof size === 'number') return metricsFromFontSize(theme, size);
+  return metricsForToken(theme, size ?? 'md');
 }

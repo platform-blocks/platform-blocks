@@ -10,7 +10,8 @@ import type { SurfaceContextValue } from './types';
 export const SurfaceContext = createContext<SurfaceContextValue>({ level: 0 });
 
 /**
- * The elevation level of the surface the caller is rendered on.
+ * Returns the elevation level (`0`–`3`) of the nearest enclosing `Surface`,
+ * or `0` (the page) when there is none — never throws.
  *
  * Useful for anything that needs to tint *against* its container rather than
  * paint its own: hover/pressed states, dividers, inputs on a dark card.

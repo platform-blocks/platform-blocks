@@ -22,4 +22,5 @@ examples:
   - labeled
   - vertical
 ---
-The Divider component provides a visual separator between content sections. Supports horizontal and vertical orientations, four visual variants (`solid`, `dashed`, `dotted`, `gradient`), an aligned `color` vocabulary with a soft default tuned for separators, an `opacity` shorthand, and optional labels.
+
+Divider separates content with a line or optional label.

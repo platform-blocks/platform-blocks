@@ -228,20 +228,20 @@ describe('Button Component', () => {
       expect(props.children).toBeUndefined();
     });
 
-    it('should accept startIcon prop', () => {
-      const props: ButtonProps = { 
-        startIcon: 'arrow',
+    it('should accept startSection prop', () => {
+      const props: ButtonProps = {
+        startSection: 'arrow',
         title: 'Next'
       };
-      expect(props.startIcon).toBe('arrow');
+      expect(props.startSection).toBe('arrow');
     });
 
-    it('should accept endIcon prop', () => {
-      const props: ButtonProps = { 
-        endIcon: 'arrow',
+    it('should accept endSection prop', () => {
+      const props: ButtonProps = {
+        endSection: 'arrow',
         title: 'Previous'
       };
-      expect(props.endIcon).toBe('arrow');
+      expect(props.endSection).toBe('arrow');
     });
   });
 
@@ -258,13 +258,6 @@ describe('Button Component', () => {
       expect(props.tooltip).toBe('Click to save');
     });
 
-    it('should accept tooltipPosition', () => {
-      const props: ButtonProps = { 
-        tooltip: 'Info',
-        tooltipPosition: 'top'
-      };
-      expect(props.tooltipPosition).toBe('top');
-    });
   });
 
   // ============================================================================
@@ -369,7 +362,7 @@ describe('Button Component', () => {
         fullWidth: true,
         onPress,
         icon: 'check',
-        startIcon: 'check',
+        startSection: 'check',
       };
 
       expect(props.title).toBe('Submit Form');
@@ -401,7 +394,6 @@ describe('Button Component', () => {
         icon: 'info',
         variant: 'ghost',
         tooltip: 'More information',
-        tooltipPosition: 'top',
       };
 
       expect(props.variant).toBe('ghost');

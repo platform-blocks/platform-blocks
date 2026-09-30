@@ -1,11 +1,10 @@
 ---
-title: Basic Group
+title: Basics
 category: basics
 order: 10
 tags: [toggle, alignment]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -1,0 +1,65 @@
+// Typecheck config. `@plocks/ui` (and sibling packages) resolve to their
+// source here, so no build is needed; tsconfig.build.json resolves them to
+// their published types instead. See packages/ui/tsconfig.json for options.
+{
+  "compilerOptions": {
+    "types": [
+      "node"
+    ],
+    "target": "es2020",
+    "lib": [
+      "es2020",
+      "dom"
+    ],
+    "module": "esnext",
+    "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "jsx": "react-native",
+    "paths": {
+      "@plocks/code": [
+        "./src/index.ts"
+      ],
+      "@plocks/ui": [
+        "../ui/src/index.ts"
+      ],
+      "@plocks/brands": [
+        "../brands/src/index.ts"
+      ],
+      "@plocks/carousel": [
+        "../carousel/src/index.ts"
+      ],
+      "@plocks/dates": [
+        "../dates/src/index.ts"
+      ],
+      "@plocks/media": [
+        "../media/src/index.ts"
+      ],
+      "@plocks/qrcode": [
+        "../qrcode/src/index.ts"
+      ],
+      "@plocks/spotlight": [
+        "../spotlight/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*",
+    // @plocks/ui's ambient additions to React Native's types (web-only props).
+    "../ui/src/core/platform/react-native-web.d.ts",
+    "../ui/src/components/Icon/icons/tabler-deep-imports.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "lib",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "src/**/__tests__/**/*",
+    "src/**/__web_tests__/**/*"
+  ]
+}

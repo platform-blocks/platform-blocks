@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { Block, Knob, Text } from '@platform-blocks/ui';
+import { Block, Knob, Text } from '@plocks/ui';
 
 const TEMPERATURE_STOPS = [0, 25, 50, 75, 100];
 
@@ -16,7 +16,7 @@ export function Demo() {
 
   return (
     <Block align="center">
-      <Knob.Root
+      <Knob.Root accessibilityLabel="Level"
         min={0}
         max={100}
         value={level}
@@ -68,7 +68,7 @@ export function Demo() {
           }}
         />
       </Knob.Root>
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         Thermal headroom · {status}
       </Text>
     </Block>

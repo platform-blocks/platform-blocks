@@ -1,20 +1,20 @@
 import type React from 'react';
-import type { StyleProp, ViewStyle, ViewProps } from 'react-native';
+import type { ViewStyle, ViewProps } from 'react-native';
 
-import type { SurfaceLevel } from '../../core/theme/types';
-import type { SizeValue } from '../../core/theme/sizes';
-import type { ShadowProps } from '../../core/theme/shadow';
 import type { BorderRadiusProps } from '../../core/theme/radius';
-import type { SpacingProps, LayoutProps } from '../../core/utils';
+import type { ShadowProps } from '../../core/theme/shadow';
+import type { SizeValue, SurfaceLevel } from '../../core/theme/types';
+import type { BaseProps } from '../../core/types/base';
+import type { LayoutProps } from '../../core/utils/layout';
 
 export type { SurfaceLevel };
 
 export interface SurfaceProps
-  extends SpacingProps,
+  extends BaseProps<ViewStyle>,
     LayoutProps,
     BorderRadiusProps,
     ShadowProps,
-    Omit<ViewProps, 'style'> {
+    Omit<ViewProps, 'style' | 'testID' | 'children'> {
   children?: React.ReactNode;
 
   /**
@@ -44,17 +44,8 @@ export interface SurfaceProps
   /** Border width override in px. Implies a border. */
   borderWidth?: number;
 
-  /**
-   * Background override — CSS color, a `theme.backgrounds` key, or a palette
-   * name/`palette.shade`. Wins over the level's fill.
-   */
-  bg?: string;
-
   /** Internal padding — size token or px. Surfaces have none by default. */
   padding?: SizeValue;
-
-  style?: StyleProp<ViewStyle>;
-  testID?: string;
 }
 
 export interface SurfaceContextValue {

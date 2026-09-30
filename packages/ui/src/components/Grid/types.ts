@@ -1,9 +1,11 @@
-import type { ViewStyle, StyleProp } from 'react-native';
-import type { SpacingProps } from '../../core/utils/spacing';
-import type { SizeValue } from '../../core/theme/sizes';
-import type { ResponsiveProp } from '../../core/theme/breakpoints';
+import type React from 'react';
+import type { ViewProps, ViewStyle } from 'react-native';
 
-export interface GridProps extends SpacingProps {
+import type { ResponsiveProp } from '../../core/theme/breakpoints';
+import type { SizeValue } from '../../core/theme/types';
+import type { BaseProps } from '../../core/types/base';
+
+export interface GridProps extends BaseProps<ViewStyle>, Omit<ViewProps, 'style' | 'testID' | 'children'> {
   /** Number of columns (can be responsive) */
   columns?: ResponsiveProp<number>;
   /** Gap between items */
@@ -16,19 +18,11 @@ export interface GridProps extends SpacingProps {
   fullWidth?: boolean;
   /** Children elements */
   children?: React.ReactNode;
-  /** Custom styles */
-  style?: StyleProp<ViewStyle>;
-  /** Test ID for testing */
-  testID?: string;
 }
 
-export interface GridItemProps extends SpacingProps {
+export interface GridItemProps extends BaseProps<ViewStyle>, Omit<ViewProps, 'style' | 'testID' | 'children'> {
   /** Column span (how many columns this item should span) - can be responsive */
   span?: ResponsiveProp<number>;
   /** Children elements */
   children?: React.ReactNode;
-  /** Custom styles */
-  style?: StyleProp<ViewStyle>;
-  /** Test ID for testing */
-  testID?: string;
 }

@@ -5,7 +5,6 @@ order: 30
 tags: [palette]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

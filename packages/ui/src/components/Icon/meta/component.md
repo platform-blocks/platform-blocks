@@ -1,5 +1,6 @@
 ---
 title: Icon
+summary: Renders an icon from the built-in Tabler registry by `name`, or any icon component or element passed as `icon`
 category: typography
 group: Media
 status: beta

@@ -5,7 +5,6 @@ category: data
 subcategory: Data
 tags: [datalist, description, definition, key-value, label, value, details]
 status: stable
-since: 0.10.1
 playground: true
 platform:
   web: true
@@ -26,4 +25,4 @@ examples:
   data: Data prop shorthand
 ---
 
-DataList displays a set of label/value pairs, such as user details or metadata, in a clean, aligned layout. Compose items with `DataList.Item`, `DataList.ItemLabel`, and `DataList.ItemValue`, or pass a `data` array for a quick setup.
+DataList displays label and value pairs in an aligned list.

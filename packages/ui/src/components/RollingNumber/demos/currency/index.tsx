@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Flex, RollingNumber } from '@platform-blocks/ui';
+import { Button, Flex, RollingNumber } from '@plocks/ui';
 
 export function Demo() {
   const [total, setTotal] = useState(1299.99);
@@ -14,7 +14,7 @@ export function Demo() {
         fixedDecimalScale
         thousandSeparator
         size={36}
-        weight="semibold"
+        fw="semibold"
       />
       <Button variant="outline" onPress={() => setTotal((current) => current + 149.5)}>
         Add item

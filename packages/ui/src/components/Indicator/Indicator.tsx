@@ -1,98 +1,90 @@
 import React from 'react';
-import { View, ViewStyle } from 'react-native';
+import { View, type ViewStyle } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { factory } from '../../core/factory';
+import { isWeb } from '../../core/platform';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { onColor, resolveFontSize } from '../../core/theme/tokens';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
 import { Text } from '../Text';
-import { useTheme } from '../../core/theme';
-import { COMPONENT_SIZES } from '../../core/theme/sizes';
-import { mergeSlotProps } from '../../core/utils';
 import type { IndicatorProps } from './types';
 
+/** Hidden from assistive technology, without hiding the element from test queries on native. */
+const DECORATIVE = isWeb ? a11yProps({ hidden: true }) : { importantForAccessibility: 'no' as const };
+
 /**
- * Indicator: a small indicator positioned on the corner of a parent container.
- * Usage: Wrap target with a relative container and place <Indicator /> as a sibling.
+ * A small dot (or count pill) on the corner of a parent container. Wrap the
+ * target in a relatively positioned container and place `<Indicator />` inside.
  *
  * Pass `label` to render text content (e.g. a count); the dot expands to a pill
- * so multi-digit values fit. For custom content (icon, status dot variations),
- * use `children` instead.
+ * so multi-digit values fit. For custom content (an icon) use `children`. A
+ * plain dot is decorative unless `accessibilityLabel` says what it means.
  */
-export function Indicator({
-  size = 'sm',
-  color,
-  borderColor,
-  borderWidth = 1,
-  placement = 'bottom-right',
-  offset = 0,
-  style,
-  children,
-  label,
-  labelProps,
-  invisible,
-}: IndicatorProps) {
+export const Indicator = factory<{ props: IndicatorProps; ref: View }>((props, ref) => {
+  const {
+    size = 'sm',
+    color,
+    borderColor,
+    borderWidth = 1,
+    placement = 'bottom-right',
+    offset = 0,
+    style,
+    children,
+    label,
+    labelProps,
+    accessibilityLabel,
+    invisible,
+    testID,
+    ...rest
+  } = props;
+
   const theme = useTheme();
+  const { styleProps } = extractStyleProps(rest);
   if (invisible) return null;
 
-  const finalColor = color || theme.colors.success[5];
-  const ringColor = borderColor || theme.colors.surface[0];
-
-  // Resolve size to a number
-  const resolvedSize = typeof size === 'number'
-    ? size
-    : COMPONENT_SIZES.badge[size];
+  const fill = resolveAccentColor(theme, color ?? 'success') ?? theme.text.link;
+  const ringColor = (borderColor && resolveAccentColor(theme, borderColor)) || theme.backgrounds?.surface;
+  // A status dot is as tall as the text of its size token.
+  const diameter = typeof size === 'number' ? size : resolveFontSize(theme, size);
 
   // When a `label` is provided, expand the dot to a pill so multi-digit counts
   // (e.g. "12", "99+") fit. Plain dots stay perfectly circular.
   const hasLabelText = label !== undefined && label !== null && label !== '';
-  const horizontalPadding = hasLabelText ? Math.max(4, Math.round(resolvedSize / 3)) : 0;
+  const edge = -offset;
+  const [vertical, horizontal] = placement.split('-') as ['top' | 'bottom', 'left' | 'right'];
 
   const base: ViewStyle = {
     position: 'absolute',
-    minWidth: hasLabelText ? resolvedSize : undefined,
-    width: hasLabelText ? undefined : resolvedSize,
-    height: resolvedSize,
-    paddingHorizontal: horizontalPadding,
-    borderRadius: resolvedSize / 2,
-    backgroundColor: finalColor,
+    minWidth: hasLabelText ? diameter : undefined,
+    width: hasLabelText ? undefined : diameter,
+    height: diameter,
+    paddingHorizontal: hasLabelText ? Math.max(4, Math.round(diameter / 3)) : 0,
+    borderRadius: diameter / 2,
+    backgroundColor: fill,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth,
     borderColor: ringColor,
+    ...(vertical === 'top' ? { top: edge } : { bottom: edge }),
+    // Logical side, so the indicator mirrors with the layout under RTL.
+    ...(horizontal === 'left' ? { start: edge } : { end: edge }),
   };
 
-  // Corner placement
-  switch (placement) {
-    case 'top-left':
-      base.top = offset * -1;
-      base.left = offset * -1;
-      break;
-    case 'top-right':
-      base.top = offset * -1;
-      base.right = offset * -1;
-      break;
-    case 'bottom-left':
-      base.bottom = offset * -1;
-      base.left = offset * -1;
-      break;
-    case 'bottom-right':
-    default:
-      base.bottom = offset * -1;
-      base.right = offset * -1;
-      break;
-  }
-
   const renderLabel = () => {
-    if (!hasLabelText) return null;
-    if (typeof label !== 'string' && typeof label !== 'number') {
-      return label as React.ReactNode;
-    }
+    if (typeof label !== 'string' && typeof label !== 'number') return label;
     return (
       <Text
         {...mergeSlotProps(
           {
-            size: Math.max(9, Math.round(resolvedSize * 0.55)),
-            weight: '700' as const,
-            color: (theme.text as any)?.onPrimary || '#FFFFFF',
-            style: { lineHeight: resolvedSize },
+            size: Math.max(9, Math.round(diameter * 0.55)),
+            fw: '700' as const,
+            c: onColor(theme, fill),
+            style: { lineHeight: diameter },
           },
-          labelProps,
+          labelProps
         )}
       >
         {label}
@@ -100,9 +92,15 @@ export function Indicator({
     );
   };
 
+  const accessibility = accessibilityLabel
+    ? a11yProps({ role: 'img', label: accessibilityLabel, accessible: true })
+    : hasLabelText || children
+      ? {}
+      : DECORATIVE;
+
   return (
-    <View style={[base, style]}>
+    <View ref={ref} style={[base, resolveStyleProps(styleProps, theme), style]} testID={testID} {...accessibility}>
       {hasLabelText ? renderLabel() : children}
     </View>
   );
-}
+}, { displayName: 'Indicator' });

@@ -1,7 +1,8 @@
+import { isDev, devLog } from './logger';
 /**
  * Debounce utility for performance optimization
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: never[]) => unknown>(
   func: T,
   wait: number,
   immediate = false
@@ -31,7 +32,7 @@ export function debounce<T extends (...args: any[]) => any>(
 /**
  * Throttle utility to limit function execution rate
  */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: never[]) => unknown>(
   func: T,
   limit: number
 ): (...args: Parameters<T>) => void {
@@ -53,11 +54,11 @@ export function measurePerformance<T>(
   name: string,
   fn: () => T
 ): T {
-  if (__DEV__) {
+  if (isDev) {
     const start = performance.now();
     const result = fn();
     const end = performance.now();
-    console.log(`[Performance] ${name}: ${(end - start).toFixed(2)}ms`);
+    devLog(`[Performance] ${name}: ${(end - start).toFixed(2)}ms`);
     return result;
   }
   return fn();
@@ -70,11 +71,11 @@ export async function measureAsyncPerformance<T>(
   name: string,
   fn: () => Promise<T>
 ): Promise<T> {
-  if (__DEV__) {
+  if (isDev) {
     const start = performance.now();
     const result = await fn();
     const end = performance.now();
-    console.log(`[Performance] ${name}: ${(end - start).toFixed(2)}ms`);
+    devLog(`[Performance] ${name}: ${(end - start).toFixed(2)}ms`);
     return result;
   }
   return await fn();

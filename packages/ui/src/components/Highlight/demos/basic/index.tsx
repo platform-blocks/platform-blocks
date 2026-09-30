@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { Highlight, Text } from '@platform-blocks/ui';
+import { Highlight, Text } from '@plocks/ui';
 
 const PARAGRAPH = 'Highlight This, definitely THIS and also this!';
 

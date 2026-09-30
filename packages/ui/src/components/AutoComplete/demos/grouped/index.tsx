@@ -1,32 +1,28 @@
-import { useState } from 'react'
+import { AutoComplete, Block } from '@plocks/ui';
 
-import { AutoComplete, Block } from '@platform-blocks/ui';
-import type { AutoCompleteOption } from '@platform-blocks/ui';
-import { groupedCountries } from '../data'
+const countries = [
+  { label: 'United States', value: 'us', group: 'North America' },
+  { label: 'Canada', value: 'ca', group: 'North America' },
+  { label: 'Mexico', value: 'mx', group: 'North America' },
+  { label: 'United Kingdom', value: 'uk', group: 'Europe' },
+  { label: 'Germany', value: 'de', group: 'Europe' },
+  { label: 'France', value: 'fr', group: 'Europe' },
+  { label: 'Japan', value: 'jp', group: 'Asia' },
+  { label: 'India', value: 'in', group: 'Asia' },
+  { label: 'Australia', value: 'au', group: 'Oceania' },
+  { label: 'Brazil', value: 'br', group: 'South America' },
+];
 
 export function Demo() {
-  const [value, setValue] = useState('')
-  const [selectedCountry, setSelectedCountry] = useState<AutoCompleteOption | null>(null)
-
   return (
-    <Block w={400} >
+    <Block fullWidth>
       <AutoComplete
         label="Search countries"
         placeholder="Search for a country..."
-        data={groupedCountries}
-        value={value}
-        onChangeText={(next) => {
-          setValue(next)
-          if (!next) setSelectedCountry(null)
-        }}
-        onSelect={(item) => {
-          setSelectedCountry(item)
-          setValue(item.label)
-        }}
+        data={countries}
         minSearchLength={1}
-        highlightMatches
         fullWidth
       />
     </Block>
-  )
+  );
 }

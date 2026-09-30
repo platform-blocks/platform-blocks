@@ -1,19 +1,18 @@
 import { useContext, useMemo } from 'react';
 import type { ViewStyle } from 'react-native';
 
-import { useTheme } from '../../core/theme';
-import { clampSurfaceLevel, resolveSurface } from '../../core/theme/surfaces';
-import { createRadiusStyles } from '../../core/theme/radius';
-import { resolveBg } from '../../core/theme/resolveColors';
-import { getShadowStyles } from '../../core/utils';
-import { getSpacing, type SizeValue } from '../../core/theme/sizes';
 import type { RadiusValue } from '../../core/theme/radius';
+import { resolveBg } from '../../core/theme/resolveColors';
 import {
+  createShadowStyles,
   getComponentDefaultShadow,
   type COMPONENT_SHADOW_DEFAULTS,
   type ShadowValue,
 } from '../../core/theme/shadow';
-import type { SurfaceLevel, SurfaceToken } from '../../core/theme/types';
+import { clampSurfaceLevel, resolveSurface } from '../../core/theme/surfaces';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveRadius, resolveSpacing } from '../../core/theme/tokens';
+import type { PlocksTheme, SizeValue, SurfaceLevel, SurfaceToken } from '../../core/theme/types';
 
 import { SurfaceContext } from './SurfaceContext';
 
@@ -51,13 +50,14 @@ export interface UseSurfaceStylesResult {
   /** Background + border + radius + padding. */
   style: ViewStyle;
   /** Shadow styles, kept separate so callers can drop them per platform. */
-  shadowStyle: Record<string, any>;
+  shadowStyle: ViewStyle;
 }
 
-const resolvePadding = (padding: SizeValue | undefined): number | undefined => {
+const resolvePadding = (theme: PlocksTheme, padding: SizeValue | undefined): number | undefined => {
   if (padding === undefined) return undefined;
   if (typeof padding === 'number') return padding;
-  return getSpacing(padding);
+  const resolved = resolveSpacing(theme, padding);
+  return typeof resolved === 'number' ? resolved : undefined;
 };
 
 /**
@@ -102,8 +102,7 @@ export function useSurfaceStyles(options: UseSurfaceStylesOptions = {}): UseSurf
         ? theme.colorScheme === 'dark'
         : withBorder || borderColor !== undefined || borderWidth !== undefined;
 
-    const resolvedPadding = resolvePadding(padding);
-    const radiusStyles = radius !== undefined ? createRadiusStyles(radius) : undefined;
+    const resolvedPadding = resolvePadding(theme, padding);
 
     const style: ViewStyle = {
       backgroundColor: (bg ? resolveBg(theme, bg) : undefined) ?? token.background,
@@ -115,19 +114,17 @@ export function useSurfaceStyles(options: UseSurfaceStylesOptions = {}): UseSurf
             borderStyle: 'solid' as const,
           }
         : {}),
-      ...(radiusStyles || {}),
+      ...(radius !== undefined ? { borderRadius: resolveRadius(theme, radius) } : {}),
     };
 
     // An explicit shadow always wins. Otherwise a component that declares its
     // own shadow identity resolves through COMPONENT_SHADOW_DEFAULTS; anything
-    // else takes the depth implied by its elevation. Resolved to a token up
-    // front because `getShadowStyles` bails on an unset shadow before it ever
-    // consults its `componentType` argument.
+    // else takes the depth implied by its elevation.
     const effectiveShadow =
       shadow ??
       (componentShadowType ? getComponentDefaultShadow(componentShadowType) : token.shadow);
 
-    const shadowStyle = getShadowStyles({ shadow: effectiveShadow }, theme);
+    const shadowStyle = createShadowStyles(effectiveShadow, theme);
 
     return {
       level: resolvedLevel,

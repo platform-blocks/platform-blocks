@@ -3,10 +3,8 @@ title: Alignment Options
 category: layout
 order: 20
 tags: [timeline, layout]
-highlightLines: [26-59]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

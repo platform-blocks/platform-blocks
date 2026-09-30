@@ -1,31 +1,70 @@
+import type { ReactNode } from 'react';
+import type {
+  AccessibilityActionEvent,
+  AccessibilityActionInfo,
+  GestureResponderEvent,
+  View,
+} from 'react-native';
+
+import type { BaseProps } from '../../core/types/base';
+import type { WebKeyboardEvent, WebMouseEvent } from '../../core/platform';
+
 export interface ContextMenuItem {
   id: string;
   label: string;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
   disabled?: boolean;
   danger?: boolean;
   onSelect?: () => void;
 }
 
-export interface ContextMenuProps {
-  /** Render prop for the trigger */
-  children: (props: { onContextMenu: (e: any) => void; onPressIn: (e: any) => void }) => React.ReactNode;
+/**
+ * Handlers the `children` render prop receives. Spread them onto the trigger
+ * element: right-click (web), long-press (native), Shift+F10 / the ContextMenu
+ * key (web keyboard) and the screen-reader "long press" / "Open menu" actions
+ * all open the menu.
+ */
+export interface ContextMenuTriggerProps {
+  /** Web: right-click, or the keyboard ContextMenu key. */
+  onContextMenu: (event: WebMouseEvent) => void;
+  /** Native long-press timer start. */
+  onPressIn: (event: GestureResponderEvent) => void;
+  /** Native long-press timer cancel. */
+  onPressOut: () => void;
+  /** Web keyboard: Shift+F10 / ContextMenu key. */
+  onKeyDown?: (event: WebKeyboardEvent) => void;
+  /** Screen readers: "long press" and a labelled "Open menu" action. */
+  accessibilityActions: ReadonlyArray<AccessibilityActionInfo>;
+  onAccessibilityAction: (event: AccessibilityActionEvent) => void;
+  /** Web: `menu` — the trigger opens one. */
+  'aria-haspopup'?: 'menu';
+}
+
+export interface ContextMenuProps extends BaseProps {
+  /** Render prop for the trigger: spread the given props onto it. */
+  children: (props: ContextMenuTriggerProps) => ReactNode;
   items: ContextMenuItem[];
-  /** Close after selection (default true) */
+  /** Close after selection. @default true */
   closeOnSelect?: boolean;
-  /** Long press duration (ms) for native */
+  /** Long press duration (ms) for native. @default 350 */
   longPressDelay?: number;
-  /** Optional maximum height (scrolls) */
-  maxHeight?: number;
+  /** Menu max height before the items scroll (not the root's). @default 280 */
+  mah?: number;
   /** Called when menu opens */
   onOpen?: () => void;
   /** Called when menu closes */
   onClose?: () => void;
-  /** Controlled open */
-  open?: boolean;
-  /** Controlled position */
+  /** Controlled open state. */
+  opened?: boolean;
+  /** Initial open state when uncontrolled. @default false */
+  defaultOpened?: boolean;
+  /** Controlled position (web: viewport coordinates; native: page coordinates). */
   position?: { x: number; y: number };
-  /** Portal target id (web) - simple placeholder for future portal integration */
-  portalId?: string;
-  style?: any;
+  /** Accessible name of the menu. @default 'Context menu' */
+  'aria-label'?: string;
+}
+
+export interface ContextMenuFactoryPayload {
+  props: ContextMenuProps;
+  ref: View;
 }

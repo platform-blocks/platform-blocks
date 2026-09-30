@@ -1,7 +1,8 @@
 import type React from 'react';
-import type { StyleProp, ViewStyle } from 'react-native';
+import type { ViewStyle } from 'react-native';
 
 import type { ComponentSizeValue } from '../../core/theme/componentSize';
+import type { BaseProps } from '../../core/types/base';
 import type { TreeNode, TreeProps } from '../Tree/types';
 
 /**
@@ -12,7 +13,7 @@ import type { TreeNode, TreeProps } from '../Tree/types';
  * the nested structure `Tree` renders, so nothing has to author a tree by hand
  * or keep one in sync as routes come and go.
  */
-export interface NavTreeItem<T = any> {
+export interface NavTreeItem<T = unknown> {
   /** Row text. */
   label: string;
   /** Route this row points at. Doubles as the item's id unless `id` is given. */
@@ -34,7 +35,7 @@ export interface NavTreeItem<T = any> {
   data?: T;
 }
 
-export interface BuildNavTreeOptions {
+export interface BuildNavTreeOptions<T = unknown> {
   /**
    * Curated order for group labels, checked at every level. Groups not listed
    * follow, alphabetically — so a partial order is enough, and a new group
@@ -72,14 +73,15 @@ export interface BuildNavTreeOptions {
     label: string;
     path: string[];
     depth: number;
-    items: NavTreeItem[];
-  }) => Partial<TreeNode>;
+    items: NavTreeItem<T>[];
+  }) => Partial<TreeNode<NavTreeItem<T>>>;
 }
 
-export interface NavTreeProps
-  extends BuildNavTreeOptions,
+export interface NavTreeProps<T = unknown>
+  extends BaseProps<ViewStyle>,
+    BuildNavTreeOptions<T>,
     Pick<
-      TreeProps,
+      TreeProps<NavTreeItem<T>>,
       | 'showGuides'
       | 'accordion'
       | 'disclosure'
@@ -95,17 +97,21 @@ export interface NavTreeProps
       | 'accessibilityLabel'
       | 'selectionColor'
       | 'rowStyle'
+      | 'renderLabel'
       | 'renderEndSection'
     > {
   /** The destinations, flat. Grouped and nested by `buildNavTree`. */
-  items: NavTreeItem[];
-  /** Current route. Marks its row and opens the groups above it. */
+  items: NavTreeItem<T>[];
+  /**
+   * Current route. Marks its row (`aria-current="page"` on web) and opens the
+   * groups above it.
+   */
   activeHref?: string;
   /**
    * Where a row press goes. Supply it to route client-side; without it the
    * rows stay plain links and the browser navigates.
    */
-  onNavigate?: (item: NavTreeItem, node: TreeNode) => void;
+  onNavigate?: (item: NavTreeItem<T>, node: TreeNode<NavTreeItem<T>>) => void;
   /** Row density. @default 'sm' */
   size?: ComponentSizeValue;
   /**
@@ -127,5 +133,4 @@ export interface NavTreeProps
   searchPlaceholder?: string;
   /** Matched substrings are marked in the row labels. @default true */
   highlightMatches?: boolean;
-  style?: StyleProp<ViewStyle>;
 }

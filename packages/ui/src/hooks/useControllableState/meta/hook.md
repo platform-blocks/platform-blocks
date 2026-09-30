@@ -4,7 +4,6 @@ category: state
 order: 40
 tags: [state, controlled, uncontrolled, forms]
 status: stable
-since: 0.11.0
 hidden: false
 ---
 

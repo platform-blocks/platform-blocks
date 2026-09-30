@@ -1,4 +1,4 @@
-import { Breadcrumbs } from '@platform-blocks/ui';
+import { Breadcrumbs } from '@plocks/ui';
 
 const ITEMS = [
   { label: 'Home', href: '/' },

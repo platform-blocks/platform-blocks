@@ -4,7 +4,6 @@ category: basics
 order: 10
 tags: [controlled, uncontrolled, state]
 status: stable
-since: 0.11.0
 hidden: false
 ---
 

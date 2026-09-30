@@ -1,12 +1,30 @@
 import React, { useMemo } from 'react';
-import { Platform, StyleSheet, type Text as RNText } from 'react-native';
+import { StyleSheet, type Text as RNText, type TextStyle } from 'react-native';
 
+import { factory } from '../../core/factory/factory';
+import { isWeb } from '../../core/platform/flags';
+import { contrastRatio, normalizeHex } from '../../core/theme/colorUtils';
+import { DEFAULT_THEME } from '../../core/theme/defaultTheme';
+import { resolveColorProp, resolveTextColor } from '../../core/theme/resolveColors';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { onColor } from '../../core/theme/tokens';
+import type { PlocksTheme } from '../../core/theme/types';
 import { Text } from '../Text';
 import type { TextProps } from '../Text/Text';
-import { useTheme } from '../../core/theme';
-import { resolveTextColor } from '../../core/theme/resolveColors';
-import type { PlatformBlocksTheme } from '../../core/theme/types';
 import type { HighlightProps, HighlightValue } from './types';
+
+/** Joins highlight values into one memo key; a control character can't appear in a search term by accident. */
+const KEY_SEPARATOR = '\u0000';
+
+/**
+ * Shade used for a palette-name `highlightColor`. Both built-in schemes order
+ * their scales from "closest to the page" to "most contrast" as the index
+ * climbs, so a low index is a soft marker under `text.primary` in either one.
+ */
+const PALETTE_MARK_SHADE = 2;
+
+/** WCAG AA for body text: the marked fragment must stay at least this readable. */
+const MIN_TEXT_CONTRAST = 4.5;
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -24,368 +42,176 @@ const toHighlightArray = (value: HighlightProps['highlight'], trim: boolean): st
     .filter((item) => item.length > 0);
 };
 
-type RGB = { r: number; g: number; b: number };
+interface Matcher {
+  regex: RegExp;
+  /** The values as they compare against a split segment (lower-cased unless case-sensitive). */
+  values: ReadonlySet<string>;
+}
 
-const flattenStyleArray = (style: any): any[] => {
-  if (!Array.isArray(style)) {
-    return style ? [style] : [];
-  }
-  return style.reduce<any[]>((acc, item) => {
-    acc.push(...flattenStyleArray(item));
-    return acc;
-  }, []);
+/** Builds the split regex once per (values, case) — longest first, so overlapping terms prefer the longer match. */
+const buildMatcher = (key: string, caseSensitive: boolean): Matcher | null => {
+  if (!key) return null;
+  const values = key.split(KEY_SEPARATOR);
+  const escaped = values.map(escapeRegExp).sort((a, b) => b.length - a.length);
+  return {
+    regex: new RegExp(`(${escaped.join('|')})`, caseSensitive ? 'g' : 'gi'),
+    values: new Set(caseSensitive ? values : values.map((value) => value.toLowerCase())),
+  };
 };
 
-const extractColorFromStyle = (style: any): string | undefined => {
-  for (const entry of flattenStyleArray(style)) {
-    if (entry && typeof entry === 'object' && typeof entry.color === 'string') {
-      return entry.color;
-    }
+interface Segment {
+  text: string;
+  marked: boolean;
+}
+
+/** The text cut into plain and marked runs, or `null` when nothing matches. */
+const splitSegments = (text: string, matcher: Matcher, caseSensitive: boolean): Segment[] | null => {
+  const parts = text.split(matcher.regex);
+  if (parts.length <= 1) return null;
+  const segments: Segment[] = [];
+  for (const part of parts) {
+    if (!part) continue;
+    segments.push({
+      text: part,
+      marked: matcher.values.has(caseSensitive ? part : part.toLowerCase()),
+    });
   }
-  return undefined;
+  return segments;
 };
 
-const parseColor = (value?: string): RGB | undefined => {
-  if (!value || typeof value !== 'string') {
-    return undefined;
+/**
+ * The marker fill. Default: the theme's `backgrounds.mark` (readable under
+ * `text.primary` in both schemes). A palette name uses its soft shade; shade
+ * syntax (`'teal.3'`), a background role (`'selected'`) or a CSS color is used
+ * as given.
+ */
+const resolveMarkBackground = (theme: PlocksTheme, highlightColor: string | undefined): string => {
+  if (highlightColor) {
+    return (
+      resolveColorProp(theme, highlightColor, { scopes: ['backgrounds'], shades: [PALETTE_MARK_SHADE, 0] }) ??
+      highlightColor
+    );
   }
-
-  const trimmed = value.trim();
-
-  if (trimmed.startsWith('#')) {
-    let hex = trimmed.slice(1);
-    if (hex.length === 3) {
-      hex = hex.split('').map(char => char + char).join('');
-    }
-    if (hex.length === 6) {
-      const r = parseInt(hex.slice(0, 2), 16);
-      const g = parseInt(hex.slice(2, 4), 16);
-      const b = parseInt(hex.slice(4, 6), 16);
-      if ([r, g, b].every(component => !Number.isNaN(component))) {
-        return { r, g, b };
-      }
-    }
-    if (hex.length === 8) {
-      const r = parseInt(hex.slice(0, 2), 16);
-      const g = parseInt(hex.slice(2, 4), 16);
-      const b = parseInt(hex.slice(4, 6), 16);
-      if ([r, g, b].every(component => !Number.isNaN(component))) {
-        return { r, g, b };
-      }
-    }
-  }
-
-  const rgbMatch = trimmed.match(/^rgba?\(([^)]+)\)$/i);
-  if (rgbMatch) {
-    const parts = rgbMatch[1].split(',').map(part => part.trim()).slice(0, 3);
-    if (parts.length === 3) {
-      const [r, g, b] = parts.map(part => parseFloat(part));
-      if ([r, g, b].every(component => !Number.isNaN(component))) {
-        return { r: Math.round(r), g: Math.round(g), b: Math.round(b) };
-      }
-    }
-  }
-
-  return undefined;
+  return theme.backgrounds?.mark ?? theme.states?.highlightBackground ?? DEFAULT_THEME.backgrounds.mark;
 };
 
-const getRelativeLuminance = ({ r, g, b }: RGB): number => {
-  const srgb = [r, g, b].map(channel => {
-    const normalized = channel / 255;
-    return normalized <= 0.03928 ? normalized / 12.92 : Math.pow((normalized + 0.055) / 1.055, 2.4);
-  });
-
-  return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+/** Keeps the surrounding text color on the marker when it is readable there, else picks one that is. */
+const readableTextOn = (theme: PlocksTheme, background: string, preferred: string): string => {
+  const backgroundHex = normalizeHex(background);
+  if (backgroundHex && normalizeHex(preferred) && contrastRatio(preferred, backgroundHex) >= MIN_TEXT_CONTRAST) {
+    return preferred;
+  }
+  return onColor(theme, background, MIN_TEXT_CONTRAST);
 };
 
-const mixRgb = (color: RGB, target: RGB, weight: number): RGB => ({
-  r: Math.round(color.r * (1 - weight) + target.r * weight),
-  g: Math.round(color.g * (1 - weight) + target.g * weight),
-  b: Math.round(color.b * (1 - weight) + target.b * weight),
-});
-
-const toRgba = ({ r, g, b }: RGB, alpha: number): string => `rgba(${r}, ${g}, ${b}, ${alpha})`;
-
-const resolvePaletteShade = (palette: string[] | undefined, preferredIndex: number, fallbackIndex: number): string | undefined => {
-  if (!palette || palette.length === 0) {
-    return undefined;
-  }
-
-  const safePreferred = palette[Math.min(Math.max(preferredIndex, 0), palette.length - 1)];
-  if (safePreferred) {
-    return safePreferred;
-  }
-
-  return palette[Math.min(Math.max(fallbackIndex, 0), palette.length - 1)];
+const colorFromStyle = (style: TextProps['style']): string | undefined => {
+  const color = StyleSheet.flatten(style)?.color;
+  return typeof color === 'string' ? color : undefined;
 };
 
-const createAdaptiveBackground = (baseColor: string, isTextLight: boolean, colorScheme: 'light' | 'dark'): string => {
-  const rgb = parseColor(baseColor);
-  if (!rgb) {
-    return baseColor;
-  }
-
-  const target = isTextLight ? { r: 0, g: 0, b: 0 } : { r: 255, g: 255, b: 255 };
-  const mixAmount = isTextLight ? (colorScheme === 'dark' ? 0.4 : 0.3) : (colorScheme === 'dark' ? 0.25 : 0.15);
-  const alpha = isTextLight ? (colorScheme === 'dark' ? 0.7 : 0.8) : (colorScheme === 'dark' ? 0.55 : 0.88);
-
-  const mixed = mixRgb(rgb, target, mixAmount);
-  return toRgba(mixed, alpha);
-};
-
-const resolveHighlightBackground = (
-  theme: PlatformBlocksTheme,
-  highlightColor: string | undefined,
-  isTextLight: boolean,
-): string => {
-  const themeColors = theme.colors as Record<string, string[] | undefined>;
-  const paletteFromProp = highlightColor ? themeColors[highlightColor] : undefined;
-  const defaultPalette = theme.colors.highlight || theme.colors.amber || theme.colors.primary;
-  const preferredPalette = paletteFromProp || defaultPalette;
-  const highlightStateColor = theme.states?.highlightBackground;
-
-  let baseColor: string | undefined = paletteFromProp
-    ? resolvePaletteShade(paletteFromProp, isTextLight ? 8 : 2, isTextLight ? 7 : 3)
-    : undefined;
-
-  if (!baseColor && highlightColor && !paletteFromProp) {
-    baseColor = highlightColor;
-  }
-
-  if (!baseColor && highlightStateColor) {
-    baseColor = highlightStateColor;
-  }
-
-  if (!baseColor && preferredPalette) {
-    baseColor = resolvePaletteShade(preferredPalette, isTextLight ? 8 : 2, isTextLight ? 7 : 3);
-  }
-
-  if (!baseColor) {
-    baseColor = isTextLight ? '#92400E' : '#FDE68A';
-  }
-
-  return createAdaptiveBackground(baseColor, isTextLight, theme.colorScheme);
-};
-
-const createBaseHighlightStyle = (
-  theme: PlatformBlocksTheme,
-  backgroundColor: string,
-  textColor: string,
-  includeColor: boolean,
-) => ({
-  backgroundColor,
-  ...(includeColor ? { color: textColor } : {}),
-  borderRadius: 4,
-  paddingHorizontal: 4,
-  paddingVertical: Platform.OS === 'web' ? 0 : 2,
-});
-
-export const Highlight = React.forwardRef<RNText, HighlightProps>(({
-  children,
-  highlight,
-  highlightStyles,
-  highlightColor,
-  caseSensitive = false,
-  trim = true,
-  highlightProps,
-  variant,
-  ...rest
-}, ref) => {
-  const theme = useTheme();
-
-  const outerVariant = variant ?? 'span';
-
-  const textContent = useMemo(() => {
-    if (typeof children === 'string' || typeof children === 'number') {
-      return String(children);
-    }
-
-    const parts = React.Children.toArray(children);
-    if (parts.length === 0) {
-      return '';
-    }
-
-    if (parts.every((part) => typeof part === 'string' || typeof part === 'number')) {
-      return parts.map((part) => String(part)).join('');
-    }
-
-    return null;
-  }, [children]);
-
-  const highlightValues = useMemo(() => toHighlightArray(highlight, trim), [highlight, trim]);
-
-  const highlightPropsValue = useMemo<Partial<TextProps>>(() => highlightProps ?? {}, [highlightProps]);
-
-  const highlightDerived = useMemo(() => {
-    const { style, as, variant: innerVariant, color: colorProp, ...restProps } = highlightPropsValue;
-    return {
+export const Highlight = factory<{ props: HighlightProps; ref: RNText }>(
+  (props, ref) => {
+    const {
+      children,
+      highlight,
+      highlightStyles,
+      highlightColor,
+      caseSensitive = false,
+      trim = true,
+      highlightProps,
+      variant,
+      c: color,
       style,
-      color: colorProp,
-      as: (as as TextProps['as']) ?? (Platform.OS === 'web' ? 'mark' : 'span'),
-      variant: (innerVariant as TextProps['variant']) ?? 'span',
-      rest: restProps,
-    };
-  }, [highlightPropsValue]);
+      ...rest
+    } = props;
+    const theme = useTheme();
 
-  const outerColor = useMemo(() => {
-    const restProps = rest as Partial<TextProps>;
-
-    // Same resolution Text itself performs, so a `color` here and a `color` on
-    // the wrapped Text can't land on different shades of the same token.
-    const requested = restProps?.color;
-    if (typeof requested === 'string') {
-      const resolved = resolveTextColor(theme, requested);
-      if (resolved) return resolved;
-    }
-
-    return extractColorFromStyle(restProps?.style);
-  }, [rest, theme]);
-
-  // Default to the surrounding text color so a highlight reads like a normal
-  // marker (yellow background, unchanged text) rather than recoloring the text.
-  const fallbackTextColor = theme.text.primary;
-
-  const { resolvedTextColor, isTextColorLight } = useMemo(() => {
-    const candidate = highlightDerived.color ?? outerColor ?? fallbackTextColor;
-    const parsedCandidate = parseColor(candidate);
-    if (parsedCandidate) {
-      return {
-        resolvedTextColor: candidate as string,
-        isTextColorLight: getRelativeLuminance(parsedCandidate) > 0.6,
-      };
-    }
-
-    const parsedFallback = parseColor(fallbackTextColor);
-    if (parsedFallback) {
-      return {
-        resolvedTextColor: fallbackTextColor,
-        isTextColorLight: getRelativeLuminance(parsedFallback) > 0.6,
-      };
-    }
-
-    return {
-      resolvedTextColor: candidate ?? fallbackTextColor,
-      isTextColorLight: theme.colorScheme === 'dark',
-    };
-  }, [highlightDerived.color, outerColor, fallbackTextColor, theme.colorScheme]);
-
-  const highlightBackground = useMemo(
-    () => resolveHighlightBackground(theme, highlightColor, isTextColorLight),
-    [theme, highlightColor, isTextColorLight],
-  );
-
-  const highlightColorProp = highlightDerived.color;
-
-  const baseHighlightStyle = useMemo(
-    () => createBaseHighlightStyle(theme, highlightBackground, resolvedTextColor, !highlightColorProp),
-    [theme, highlightBackground, resolvedTextColor, highlightColorProp],
-  );
-
-  const overrideHighlightStyle = useMemo(() => (
-    typeof highlightStyles === 'function' ? highlightStyles(theme) : highlightStyles
-  ), [highlightStyles, theme]);
-
-  const highlightNodeStyle = useMemo(
-    () => StyleSheet.flatten([
-      baseHighlightStyle,
-      overrideHighlightStyle,
-      highlightDerived.style,
-    ]),
-    [baseHighlightStyle, overrideHighlightStyle, highlightDerived.style],
-  );
-
-  const highlightVariant = highlightDerived.variant;
-  const highlightAs = highlightDerived.as;
-  const highlightRest = highlightDerived.rest;
-
-  const highlightRegex = useMemo(() => {
-    if (textContent === null || highlightValues.length === 0) {
-      return null;
-    }
-
-    const escaped = highlightValues
-      .map((value) => escapeRegExp(value))
-      .filter((value) => value.length > 0)
-      .sort((a, b) => b.length - a.length);
-
-    if (escaped.length === 0) {
-      return null;
-    }
-
-    return new RegExp(`(${escaped.join('|')})`, caseSensitive ? 'g' : 'gi');
-  }, [textContent, highlightValues, caseSensitive]);
-
-  const highlightNormalizedSet = useMemo(() => {
-    if (caseSensitive) {
-      return new Set(highlightValues);
-    }
-
-    return new Set(highlightValues.map((value) => value.toLowerCase()));
-  }, [highlightValues, caseSensitive]);
-
-  const renderedChildren = useMemo(() => {
-    if (textContent === null) {
-      return children;
-    }
-
-    if (!highlightRegex || highlightValues.length === 0) {
-      return textContent;
-    }
-
-    const segments = textContent.split(highlightRegex);
-    if (segments.length <= 1) {
-      return textContent;
-    }
-
-    return segments.map((segment, index) => {
-      if (!segment) {
-        return null;
+    const textContent = useMemo(() => {
+      if (typeof children === 'string' || typeof children === 'number') {
+        return String(children);
       }
 
-      const normalizedSegment = caseSensitive ? segment : segment.toLowerCase();
+      const parts = React.Children.toArray(children);
+      if (parts.length === 0) {
+        return '';
+      }
 
-      if (highlightNormalizedSet.has(normalizedSegment)) {
-        return (
+      if (parts.every((part) => typeof part === 'string' || typeof part === 'number')) {
+        return parts.map((part) => String(part)).join('');
+      }
+
+      return null;
+    }, [children]);
+
+    // Keyed by the values' content, not the array's identity, so an inline
+    // `highlight={['a', 'b']}` doesn't rebuild the regex on every render.
+    const highlightKey = useMemo(() => toHighlightArray(highlight, trim).join(KEY_SEPARATOR), [highlight, trim]);
+    const matcher = useMemo(() => buildMatcher(highlightKey, caseSensitive), [highlightKey, caseSensitive]);
+    const segments = useMemo(
+      () => (textContent !== null && matcher ? splitSegments(textContent, matcher, caseSensitive) : null),
+      [textContent, matcher, caseSensitive]
+    );
+
+    const markProps = useMemo(() => {
+      const { style: markStyle, as: markAs, variant: markVariant, c: markColor, ...markRest } = highlightProps ?? {};
+      return { markStyle, markAs: markAs ?? 'mark', markVariant: markVariant ?? 'span', markColor, markRest };
+    }, [highlightProps]);
+
+    // Same resolution Text itself performs, so the marker can keep the
+    // surrounding color when it reads on the fill.
+    const outerColor = resolveTextColor(theme, color) ?? colorFromStyle(style);
+    const markBackground = useMemo(() => resolveMarkBackground(theme, highlightColor), [theme, highlightColor]);
+    const markTextColor = useMemo(
+      () => (markProps.markColor ? undefined : readableTextOn(theme, markBackground, outerColor ?? theme.text.primary)),
+      [markProps.markColor, theme, markBackground, outerColor]
+    );
+
+    const baseMarkStyle = useMemo<TextStyle>(
+      () => ({
+        backgroundColor: markBackground,
+        ...(markTextColor ? { color: markTextColor } : null),
+        borderRadius: 4,
+        paddingHorizontal: 4,
+        paddingVertical: isWeb ? 0 : 2,
+      }),
+      [markBackground, markTextColor]
+    );
+
+    const overrideMarkStyle = useMemo(
+      () => (typeof highlightStyles === 'function' ? highlightStyles(theme) : highlightStyles),
+      [highlightStyles, theme]
+    );
+
+    const renderedChildren = useMemo(() => {
+      if (textContent === null) return children;
+      if (!segments) return textContent;
+
+      const { markStyle, markAs, markVariant, markColor, markRest } = markProps;
+      return segments.map((segment, index) =>
+        segment.marked ? (
           <Text
             key={`highlight-${index}`}
-            variant={highlightVariant}
-            as={highlightAs}
-            color={highlightColorProp}
-            {...highlightRest}
-            style={highlightNodeStyle}
+            variant={markVariant}
+            as={markAs}
+            c={markColor}
+            {...markRest}
+            style={[baseMarkStyle, overrideMarkStyle, markStyle]}
           >
-            {segment}
+            {segment.text}
           </Text>
-        );
-      }
-
-      return (
-        <React.Fragment key={`text-${index}`}>
-          {segment}
-        </React.Fragment>
+        ) : (
+          <React.Fragment key={`text-${index}`}>{segment.text}</React.Fragment>
+        )
       );
-    }).filter((item) => item !== null);
-  }, [
-    children,
-    textContent,
-    highlightRegex,
-    highlightValues,
-    caseSensitive,
-    highlightNormalizedSet,
-    highlightVariant,
-    highlightAs,
-    highlightRest,
-    highlightNodeStyle,
-    highlightColorProp,
-  ]);
+    }, [children, textContent, segments, markProps, baseMarkStyle, overrideMarkStyle]);
 
-  return (
-    <Text ref={ref} variant={outerVariant} {...rest}>
-      {renderedChildren}
-    </Text>
-  );
-});
-
-Highlight.displayName = 'Highlight';
+    return (
+      <Text ref={ref} variant={variant ?? 'span'} c={color} style={style} {...rest}>
+        {renderedChildren}
+      </Text>
+    );
+  },
+  { displayName: 'Highlight' }
+);
 
 export default Highlight;

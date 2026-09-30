@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Flex, Text, ColorSwatch } from '@platform-blocks/ui';
+import { Flex, Text, ColorSwatch } from '@plocks/ui';
 
 export function Demo() {
   const [selectedColor, setSelectedColor] = useState<string>('#E74C3C');
@@ -23,7 +23,7 @@ export function Demo() {
 
   return (
     <Flex direction="column" gap={20} p={16} style={{ maxWidth: 600 }}>
-      <Text weight="semibold" size="md">Color Palette Builder</Text>
+      <Text fw="semibold" size="md">Color Palette Builder</Text>
       
       <Flex direction="column" gap={8}>
         <Text size="sm">Selected Color: {selectedColor}</Text>
@@ -37,7 +37,7 @@ export function Demo() {
 
       {Object.entries(colorPalettes).map(([paletteName, colors]) => (
         <Flex key={paletteName} direction="column" gap={8}>
-          <Text weight="medium" size="sm">{paletteName}</Text>
+          <Text fw="medium" size="sm">{paletteName}</Text>
           <Flex direction="row" gap={6} wrap="wrap">
             {colors.map(color => (
               <ColorSwatch
@@ -54,7 +54,7 @@ export function Demo() {
       ))}
 
       <Flex direction="column" gap={8}>
-        <Text weight="medium" size="sm">Custom Styles Examples</Text>
+        <Text fw="medium" size="sm">Custom Styles Examples</Text>
         <Flex direction="row" gap={12} wrap="wrap">
           <Flex direction="column" gap={4} align="center">
             <ColorSwatch 

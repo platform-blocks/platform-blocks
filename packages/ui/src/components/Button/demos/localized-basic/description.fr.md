@@ -5,7 +5,6 @@ order: 70
 tags: [buttons, i18n]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

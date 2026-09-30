@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useRef } from 'react';
-import { setDefaultColorScheme } from '../utils';
+import React, { createContext, useContext, useMemo } from 'react';
+import { resolveNumberFormatter, type NumberFormat } from '../utils';
+import { paletteDefaultDark, paletteDefaultLight } from '../colors';
 
 /**
  * Optional bridge interface to inject theme values from host design system
@@ -42,27 +43,20 @@ export interface ChartTheme {
   radius: number;
   /** Font family */
   fontFamily?: string;
+  /**
+   * How axis ticks and value labels render numbers when a chart has no
+   * formatter of its own. Defaults to `'compact'` (9000 → "9K"); pass `'full'`
+   * for grouped digits (9,000). Tooltips always show full values.
+   */
+  numberFormat?: NumberFormat;
 }
 
 /**
- * Default categorical series palettes — a fixed hue order, assigned by slot, never cycled.
- *
- * Both sets pass all six palette checks (lightness band, chroma floor, CVD separation,
- * normal-vision floor, 3:1 contrast) against their own surface. The dark set is *selected*
- * for the dark surface rather than reused from the light one: on a dark background the
- * light set put four hues outside the lightness band and dropped `#4a3aa7` to 2.04:1
- * contrast, which is effectively invisible.
- *
- * Same hue order in both, so a series keeps its identity across a theme switch. Re-run the
- * palette validator before changing either — worst adjacent pair is currently ΔE 20.9
- * (light) and 15.1 (dark) under simulated CVD, against a floor of 8.
+ * Default categorical series palettes. The steps and their validation notes live in
+ * `colors.ts`; these names are what the provider picks between by surface.
  */
-export const DEFAULT_ACCENT_PALETTE_LIGHT = [
-  '#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948',
-];
-export const DEFAULT_ACCENT_PALETTE_DARK = [
-  '#3280DE', '#B33F03', '#1CAF7A', '#8B5D06', '#D66B94', '#077705', '#766DDF', '#DB4141',
-];
+export const DEFAULT_ACCENT_PALETTE_LIGHT = paletteDefaultLight;
+export const DEFAULT_ACCENT_PALETTE_DARK = paletteDefaultDark;
 
 /** Relative luminance, used only to decide which default palette a surface wants. */
 const surfaceIsDark = (background: string | undefined): boolean => {
@@ -89,52 +83,71 @@ const defaultTheme: ChartTheme = {
   fontSize: { xs: 10, sm: 12, md: 14, lg: 16 },
   radius: 4,
   fontFamily: 'System',
+  numberFormat: 'compact',
 };
 
 const ChartThemeCtx = createContext<ChartTheme>(defaultTheme);
+// True below any ChartThemeProvider, so a nested provider knows it has a parent.
+const ChartThemeNestedCtx = createContext(false);
+
+/** Theme overrides — every field optional, including those inside `colors` and `fontSize`. */
+export type ChartThemeOverrides = Omit<Partial<ChartTheme>, 'colors' | 'fontSize'> & {
+  colors?: Partial<ChartTheme['colors']>;
+  fontSize?: Partial<ChartTheme['fontSize']>;
+};
 
 /**
- * Provider component for chart theming
+ * Provider component for chart theming.
+ *
+ * The outermost provider sets the app-wide chart theme. A nested provider
+ * re-themes only its subtree: it starts from the parent's theme and overrides
+ * just what it is given — e.g. `value={{ colors: { accentPalette: brand } }}`.
  * @param value - Partial theme overrides
  * @param hostThemeBridge - Optional bridge to host design system theme
  * @param children - Child components to render
  */
-export const ChartThemeProvider: React.FC<{ value?: Partial<ChartTheme>; hostThemeBridge?: HostThemeBridge; children: React.ReactNode }> = ({ value, hostThemeBridge, children }) => {
-  const paletteRef = useRef<string | null>(null);
+export const ChartThemeProvider: React.FC<{ value?: ChartThemeOverrides; hostThemeBridge?: HostThemeBridge; children: React.ReactNode }> = ({ value, hostThemeBridge, children }) => {
+  const parentTheme = useContext(ChartThemeCtx);
+  const nested = useContext(ChartThemeNestedCtx);
+  const base = nested ? parentTheme : defaultTheme;
   // A host that supplies a dark surface but no palette of its own gets the dark-surface
   // default, not the light one — the light steps wash out to ~2:1 against a dark
-  // background. An explicit accentPalette always wins.
-  const resolvedBackground = hostThemeBridge?.background ?? value?.colors?.background ?? defaultTheme.colors.background;
-  const defaultPalette = surfaceIsDark(resolvedBackground)
-    ? DEFAULT_ACCENT_PALETTE_DARK
-    : DEFAULT_ACCENT_PALETTE_LIGHT;
+  // background. An explicit accentPalette always wins. A nested provider keeps its
+  // parent's palette unless it passes its own.
+  const resolvedBackground = hostThemeBridge?.background ?? value?.colors?.background ?? base.colors.background;
+  const defaultPalette = nested
+    ? base.colors.accentPalette
+    : surfaceIsDark(resolvedBackground)
+      ? DEFAULT_ACCENT_PALETTE_DARK
+      : DEFAULT_ACCENT_PALETTE_LIGHT;
   const merged: ChartTheme = {
-    ...defaultTheme,
+    ...base,
     ...value,
     colors: {
-      ...defaultTheme.colors,
+      ...base.colors,
       accentPalette: defaultPalette,
       ...(value?.colors || {}),
       ...(hostThemeBridge ? {
-        textPrimary: hostThemeBridge.textPrimary ?? defaultTheme.colors.textPrimary,
-        textSecondary: hostThemeBridge.textSecondary ?? defaultTheme.colors.textSecondary,
-        background: hostThemeBridge.background ?? defaultTheme.colors.background,
-        grid: hostThemeBridge.grid ?? defaultTheme.colors.grid,
+        textPrimary: hostThemeBridge.textPrimary ?? base.colors.textPrimary,
+        textSecondary: hostThemeBridge.textSecondary ?? base.colors.textSecondary,
+        background: hostThemeBridge.background ?? base.colors.background,
+        grid: hostThemeBridge.grid ?? base.colors.grid,
         accentPalette: hostThemeBridge.accentPalette ?? value?.colors?.accentPalette ?? defaultPalette,
       } : {})
     },
-    fontSize: { ...defaultTheme.fontSize, ...(value?.fontSize || {}) },
-    fontFamily: hostThemeBridge?.fontFamily || value?.fontFamily || defaultTheme.fontFamily,
+    fontSize: { ...base.fontSize, ...(value?.fontSize || {}) },
+    fontFamily: hostThemeBridge?.fontFamily || value?.fontFamily || base.fontFamily,
   };
   const palette = Array.isArray(merged.colors?.accentPalette) && merged.colors.accentPalette.length
     ? merged.colors.accentPalette
     : defaultTheme.colors.accentPalette;
-  const paletteKey = palette.join('|');
-  if (paletteRef.current !== paletteKey) {
-    paletteRef.current = paletteKey;
-    setDefaultColorScheme([...palette]);
-  }
-  return <ChartThemeCtx.Provider value={merged}>{children}</ChartThemeCtx.Provider>;
+  // Charts index straight into the palette, so an empty one falls back to the default.
+  merged.colors.accentPalette = palette;
+  return (
+    <ChartThemeNestedCtx.Provider value>
+      <ChartThemeCtx.Provider value={merged}>{children}</ChartThemeCtx.Provider>
+    </ChartThemeNestedCtx.Provider>
+  );
 };
 
 /**
@@ -143,6 +156,17 @@ export const ChartThemeProvider: React.FC<{ value?: Partial<ChartTheme>; hostThe
  */
 export function useChartTheme() {
   return useContext(ChartThemeCtx);
+}
+
+/**
+ * Formatter for a single value (data label, center value) per the theme's
+ * `numberFormat`; `fallback` renders numbers that aren't abbreviated (see
+ * `resolveNumberFormatter`). Axes should use `createTickFormatter` with their
+ * ticks instead.
+ */
+export function useNumberFormatter(fallback?: (value: number) => string) {
+  const { numberFormat } = useChartTheme();
+  return useMemo(() => resolveNumberFormatter(numberFormat, fallback), [numberFormat, fallback]);
 }
 
 /**

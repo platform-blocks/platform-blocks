@@ -3,7 +3,6 @@ name: Accordion
 title: Accordion
 description: Collapsible content panels for organizing related information with single or multiple expansion modes and visual variants.
 status: stable
-since: 0.4.0
 category: display
 subcategories: [layout, disclosure]
 tags: [collapse, expand, panel, ui, content-grouping]
@@ -21,7 +20,7 @@ props:
   headerStyle: Style applied to each header View
   headerTextStyle: Raw TextStyle applied to header labels (escape hatch)
   contentStyle: Style applied to each item's content View
-  titleProps: Override props applied to each item's header `<Text>` (style, weight, ff, size, color)
+  titleProps: Override props applied to each item's header `<Text>` (style, fw, ff, size, c)
   animated: Enable transitions (`true`) or pass `{ duration, easing }`
   transitionDuration: Transition length in ms for the chevron spin and panel height; `0` is instant
 examples:

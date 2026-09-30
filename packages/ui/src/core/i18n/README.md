@@ -1,4 +1,4 @@
-# PlatformBlocks I18n
+# plocks i18n
 
 Built-in lightweight internationalization layer.
 
@@ -11,17 +11,17 @@ Built-in lightweight internationalization layer.
 
 ## Quick Start
 ```tsx
-<PlatformBlocksProvider locale="en" fallbackLocale="en" i18nResources={{
+<PlocksProvider locale="en" fallbackLocale="en" i18nResources={{
   en: { translation: { greeting: 'Hello {{name}}' } },
   fr: { translation: { greeting: 'Bonjour {{name}}' } }
 }}>
   <Text tx="greeting" txParams={{ name: 'World' }} />
-</PlatformBlocksProvider>
+</PlocksProvider>
 ```
 
 ## Manual Hook Usage
 ```tsx
-import { useI18n } from '@platform-blocks/ui';
+import { useI18n } from '@plocks/ui';
 const { t, setLocale, formatNumber } = useI18n();
 ```
 

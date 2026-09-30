@@ -1,28 +1,30 @@
-import { useState } from 'react'
-import { AutoComplete, Block } from '@platform-blocks/ui';
-import type { AutoCompleteOption } from '@platform-blocks/ui';
-import { countries } from '../data'
+import { AutoComplete, Block } from '@plocks/ui';
+
+const countries = [
+  { label: 'United States', value: 'us' },
+  { label: 'Canada', value: 'ca' },
+  { label: 'United Kingdom', value: 'uk' },
+  { label: 'Germany', value: 'de' },
+  { label: 'France', value: 'fr' },
+  { label: 'Italy', value: 'it' },
+  { label: 'Spain', value: 'es' },
+  { label: 'Netherlands', value: 'nl' },
+  { label: 'Australia', value: 'au' },
+  { label: 'Japan', value: 'jp' },
+  { label: 'South Korea', value: 'kr' },
+  { label: 'Brazil', value: 'br' },
+  { label: 'Mexico', value: 'mx' },
+  { label: 'India', value: 'in' },
+  { label: 'China', value: 'cn' },
+];
 
 export function Demo() {
-  const [inputValue, setInputValue] = useState('')
-  const [selectedCountry, setSelectedCountry] = useState<AutoCompleteOption | null>(null)
-
   return (
-    <Block w={400}>
+    <Block fullWidth>
       <AutoComplete
         label="Country"
         placeholder="Select a country..."
         data={countries}
-        value={inputValue}
-        onChangeText={(value) => {
-          setInputValue(value)
-          if (!value) setSelectedCountry(null)
-        }}
-        onSelect={(item) => {
-          setSelectedCountry(item)
-          setInputValue(item.label)
-        }}
-        minSearchLength={0}
         maxSuggestions={countries.length}
         editable={false}
         caretHidden
@@ -31,5 +33,5 @@ export function Demo() {
         fullWidth
       />
     </Block>
-  )
+  );
 }

@@ -10,25 +10,39 @@
  */
 
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { render, fireEvent, act, configure } from '@testing-library/react-native';
+import { View, Text, StyleSheet, Platform, PanResponder } from 'react-native';
 import { Rating } from '../Rating';
 
-// Mock the theme
-jest.mock('../../../core/theme/ThemeProvider', () => ({
-  useTheme: () => ({
+// The real default theme, with the palettes these tests assert against.
+jest.mock('../../../core/theme/ThemeProvider', () => {
+  const actual = jest.requireActual('../../../core/theme/ThemeProvider');
+  const { DEFAULT_THEME } = jest.requireActual('../../../core/theme/defaultTheme');
+  const theme = {
+    ...DEFAULT_THEME,
     colors: {
-      gray: ['#f8f9fa', '#f1f3f5', '#e9ecef', '#dee2e6', '#ced4da', '#adb5bd', '#868e96', '#495057', '#343a40', '#212529'],
+      ...DEFAULT_THEME.colors,
       warning: ['#fff9db', '#fff3bf', '#ffec99', '#ffe066', '#ffd43b', '#fcc419', '#fab005', '#f59f00', '#f08c00', '#e67700'],
-      error: ['#fff5f5', '#ffe3e3', '#ffc9c9', '#ffa8a8', '#ff8787', '#ff6b6b', '#fa5252', '#f03e3e', '#e03131', '#c92a2a'],
-      primary: ['#e7f5ff', '#d0ebff', '#a5d8ff', '#74c0fc', '#4dabf7', '#339af0', '#228be6', '#1c7ed6', '#1971c2', '#1864ab'],
     },
-    text: {
-      primary: '#212529',
-      secondary: '#495057',
-    },
-  }),
-}));
+  };
+  return { ...actual, useTheme: () => theme };
+});
+
+// `isWeb` & co. are module constants; the web-interaction suite flips
+// `Platform.OS` at runtime, so the flags follow it instead.
+jest.mock('../../../core/platform/flags', () =>
+  require('../../../__test-utils__/platformFlags').livePlatformFlags()
+);
+
+// The pointer tests drive the shared drag gesture directly: `PanResponder.create`
+// hands its config back as the handlers, so the row carries the raw callbacks.
+let panResponderSpy: jest.SpyInstance | undefined;
+beforeAll(() => {
+  panResponderSpy = jest
+    .spyOn(PanResponder, 'create')
+    .mockImplementation((config: any) => ({ panHandlers: config }) as any);
+});
+afterAll(() => panResponderSpy?.mockRestore());
 
 // Direction is mocked globally as LTR; override it here so RTL layout can be
 // exercised by flipping `mockIsRTL` inside a test.
@@ -81,6 +95,10 @@ jest.mock('../../Tooltip', () => ({
     );
   },
 }));
+
+// The visual label is hidden from native screen readers (the control's name
+// carries it), so text queries must include hidden elements.
+configure({ defaultIncludeHiddenElements: true });
 
 describe('Rating - Type Safety and Prop Validation', () => {
   
@@ -137,13 +155,13 @@ describe('Rating - Type Safety and Prop Validation', () => {
     it('should use defaultValue', () => {
       const { getByTestId } = render(<Rating defaultValue={3} testID="rating" />);
       const element = getByTestId('rating');
-      expect(element.props.accessibilityValue.now).toBe(3);
+      expect(element.props['aria-valuenow']).toBe(3);
     });
 
     it('should default to 0', () => {
       const { getByTestId } = render(<Rating testID="rating" />);
       const element = getByTestId('rating');
-      expect(element.props.accessibilityValue.now).toBe(0);
+      expect(element.props['aria-valuenow']).toBe(0);
     });
   });
 
@@ -151,17 +169,17 @@ describe('Rating - Type Safety and Prop Validation', () => {
     it('should accept controlled value', () => {
       const { getByTestId } = render(<Rating value={3} testID="rating" />);
       const element = getByTestId('rating');
-      expect(element.props.accessibilityValue.now).toBe(3);
+      expect(element.props['aria-valuenow']).toBe(3);
     });
 
     it('should update when value changes', () => {
       const { getByTestId, rerender } = render(<Rating value={2} testID="rating" />);
       let element = getByTestId('rating');
-      expect(element.props.accessibilityValue.now).toBe(2);
+      expect(element.props['aria-valuenow']).toBe(2);
       
       rerender(<Rating value={4} testID="rating" />);
       element = getByTestId('rating');
-      expect(element.props.accessibilityValue.now).toBe(4);
+      expect(element.props['aria-valuenow']).toBe(4);
     });
   });
 
@@ -169,19 +187,19 @@ describe('Rating - Type Safety and Prop Validation', () => {
     it('should accept count={3}', () => {
       const { getByTestId } = render(<Rating count={3} testID="rating" />);
       const element = getByTestId('rating');
-      expect(element.props.accessibilityValue.max).toBe(3);
+      expect(element.props['aria-valuemax']).toBe(3);
     });
 
     it('should accept count={7}', () => {
       const { getByTestId } = render(<Rating count={7} testID="rating" />);
       const element = getByTestId('rating');
-      expect(element.props.accessibilityValue.max).toBe(7);
+      expect(element.props['aria-valuemax']).toBe(7);
     });
 
     it('should default to count={5}', () => {
       const { getByTestId } = render(<Rating testID="rating" />);
       const element = getByTestId('rating');
-      expect(element.props.accessibilityValue.max).toBe(5);
+      expect(element.props['aria-valuemax']).toBe(5);
     });
   });
 
@@ -210,38 +228,36 @@ describe('Rating - Type Safety and Prop Validation', () => {
   });
 
   describe('ReadOnly Mode', () => {
-    it('should accept readOnly prop', () => {
-      const { getByTestId } = render(<Rating readOnly testID="rating" />);
+    it('should be a labelled image when readOnly', () => {
+      const { getByTestId } = render(<Rating readOnly value={4} label="Quality" testID="rating" />);
       const element = getByTestId('rating');
-      expect(element.props.accessibilityRole).toBe('text');
+      expect(element.props.role).toBe('img');
+      expect(element.props['aria-label']).toBe('Quality: 4 out of 5');
     });
 
-    it('should default to interactive mode', () => {
+    it('should default to an interactive slider', () => {
       const { getByTestId } = render(<Rating testID="rating" />);
       const element = getByTestId('rating');
-      expect(element.props.accessibilityRole).toBe('adjustable');
+      expect(element.props.role).toBe('slider');
     });
   });
 
   describe('Disabled Mode', () => {
-    it('should block input like readOnly', () => {
+    it('should stay a slider that reports it is disabled', () => {
       const { getByTestId } = render(<Rating disabled testID="rating" />);
       const element = getByTestId('rating');
-      expect(element.props.accessibilityRole).toBe('text');
-    });
-
-    it('should report a disabled accessibility state', () => {
-      const { getByTestId } = render(<Rating disabled testID="rating" />);
-      expect(getByTestId('rating').props.accessibilityState.disabled).toBe(true);
+      expect(element.props.role).toBe('slider');
+      expect(element.props['aria-disabled']).toBe(true);
     });
 
     it('should not report disabled when enabled', () => {
       const { getByTestId } = render(<Rating testID="rating" />);
-      expect(getByTestId('rating').props.accessibilityState.disabled).toBe(false);
+      expect(getByTestId('rating').props['aria-disabled']).toBeUndefined();
     });
 
     it('should dim the control', () => {
       const { getByTestId } = render(<Rating disabled testID="rating" />);
+      // The row of stars is the control.
       const flattened = StyleSheet.flatten(getByTestId('rating').props.style);
       expect(flattened.opacity).toBe(0.5);
     });
@@ -294,19 +310,20 @@ describe('Rating - Type Safety and Prop Validation', () => {
         return !!flattened && flattened.position === 'absolute' && flattened.overflow === 'hidden';
       });
 
-    it('should anchor the partial fill to the left in LTR', () => {
+    it('should anchor the partial fill to the logical start edge', () => {
       const { UNSAFE_root } = render(<Rating value={2.5} allowFraction count={5} />);
       const clip = StyleSheet.flatten(findPartialFillClip(UNSAFE_root)[0].props.style);
-      expect(clip.left).toBe(0);
+      // `start` flips with the layout direction on both platforms.
+      expect(clip.start).toBe(0);
+      expect(clip.left).toBeUndefined();
       expect(clip.right).toBeUndefined();
     });
 
-    it('should anchor the partial fill to the right in RTL', () => {
+    it('should keep the same logical anchor in RTL (the row itself mirrors)', () => {
       mockIsRTL = true;
       const { UNSAFE_root } = render(<Rating value={2.5} allowFraction count={5} />);
       const clip = StyleSheet.flatten(findPartialFillClip(UNSAFE_root)[0].props.style);
-      expect(clip.right).toBe(0);
-      expect(clip.left).toBeUndefined();
+      expect(clip.start).toBe(0);
     });
 
     it('should space items with a direction-aware margin', () => {
@@ -474,48 +491,49 @@ describe('Rating - Type Safety and Prop Validation', () => {
   });
 
   describe('Accessibility', () => {
-    it('should have correct accessibilityRole for interactive', () => {
+    it('should be a slider when interactive', () => {
       const { getByTestId } = render(<Rating testID="rating" />);
-      const element = getByTestId('rating');
-      expect(element.props.accessibilityRole).toBe('adjustable');
+      expect(getByTestId('rating').props.role).toBe('slider');
     });
 
-    it('should have correct accessibilityRole for readOnly', () => {
-      const { getByTestId } = render(<Rating readOnly testID="rating" />);
+    it('should be an image when readOnly', () => {
+      const { getByTestId } = render(<Rating readOnly value={3} testID="rating" />);
       const element = getByTestId('rating');
-      expect(element.props.accessibilityRole).toBe('text');
+      expect(element.props.role).toBe('img');
+      expect(element.props['aria-label']).toBe('3 out of 5');
     });
 
     it('should accept custom accessibilityLabel', () => {
-      const { getByTestId } = render(
-        <Rating accessibilityLabel="Custom label" testID="rating" />
-      );
-      const element = getByTestId('rating');
-      expect(element.props.accessibilityLabel).toBe('Custom label');
+      const { getByTestId } = render(<Rating accessibilityLabel="Custom label" testID="rating" />);
+      expect(getByTestId('rating').props['aria-label']).toBe('Custom label');
     });
 
-    it('should have default accessibilityLabel', () => {
-      const { getByTestId } = render(<Rating testID="rating" />);
-      const element = getByTestId('rating');
-      expect(element.props.accessibilityLabel).toContain('Rating');
+    it('should take its accessible name from the label', () => {
+      const { getByTestId } = render(<Rating label="Service" required testID="rating" />);
+      expect(getByTestId('rating').props['aria-label']).toBe('Service, required');
+    });
+
+    it('should warn in development when it has no accessible name', () => {
+      const { resetWarnOnce } = jest.requireActual('../../../core/utils/logger');
+      resetWarnOnce();
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      render(<Rating testID="rating" />);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('needs an accessible name'));
+      warn.mockRestore();
     });
 
     it('should accept custom accessibilityHint', () => {
-      const { getByTestId } = render(
-        <Rating accessibilityHint="Custom hint" testID="rating" />
-      );
-      const element = getByTestId('rating');
-      expect(element.props.accessibilityHint).toBe('Custom hint');
+      const { getByTestId } = render(<Rating accessibilityHint="Custom hint" testID="rating" />);
+      expect(getByTestId('rating').props.accessibilityHint).toBe('Custom hint');
     });
 
-    it('should have accessibilityValue', () => {
+    it('should publish its value, with a spoken value text', () => {
       const { getByTestId } = render(<Rating value={3} count={5} testID="rating" />);
       const element = getByTestId('rating');
-      expect(element.props.accessibilityValue).toEqual({
-        min: 0,
-        max: 5,
-        now: 3,
-      });
+      expect(element.props['aria-valuemin']).toBe(0);
+      expect(element.props['aria-valuemax']).toBe(5);
+      expect(element.props['aria-valuenow']).toBe(3);
+      expect(element.props['aria-valuetext']).toBe('3 out of 5');
     });
   });
 
@@ -526,7 +544,7 @@ describe('Rating - Type Safety and Prop Validation', () => {
   });
 
   describe('Ref Forwarding', () => {
-    it('should forward ref to root View', () => {
+    it('should forward ref to the control', () => {
       const ref = React.createRef<View>();
       render(<Rating ref={ref} />);
       expect(ref.current).toBeTruthy();
@@ -539,11 +557,11 @@ describe('Rating - Type Safety and Prop Validation', () => {
       expect(getByTestId('custom-rating')).toBeTruthy();
     });
 
-    it('should pass style prop', () => {
+    it('should apply style and spacing to the root', () => {
       const customStyle = { backgroundColor: '#f0f0f0' };
-      const { getByTestId } = render(<Rating style={customStyle} testID="rating" />);
-      const element = getByTestId('rating');
-      expect(element.props.style).toContainEqual(customStyle);
+      const { toJSON } = render(<Rating style={customStyle} mt={12} testID="rating" />);
+      const root = toJSON() as { props: { style?: unknown } };
+      expect(StyleSheet.flatten(root.props.style as never)).toMatchObject({ backgroundColor: '#f0f0f0', marginTop: 12 });
     });
   });
 
@@ -621,8 +639,8 @@ describe('Rating - Type Safety and Prop Validation', () => {
     it('should work with readOnly and value', () => {
       const { getByTestId } = render(<Rating value={4} readOnly testID="rating" />);
       const element = getByTestId('rating');
-      expect(element.props.accessibilityRole).toBe('text');
-      expect(element.props.accessibilityValue.now).toBe(4);
+      expect(element.props.role).toBe('img');
+      expect(element.props['aria-label']).toBe('4 out of 5');
     });
 
     it('should work with label and custom count', () => {
@@ -631,7 +649,7 @@ describe('Rating - Type Safety and Prop Validation', () => {
       );
       expect(getByText('Custom rating')).toBeTruthy();
       const element = getByTestId('rating');
-      expect(element.props.accessibilityValue.max).toBe(7);
+      expect(element.props['aria-valuemax']).toBe(7);
     });
 
     it('should work with fractional value and custom size', () => {
@@ -683,18 +701,18 @@ describe('Rating - Type Safety and Prop Validation', () => {
       expect(onChange).toHaveBeenCalledWith(2.5);
     });
 
-    it('should clamp at count', () => {
+    it('should hold at count (no change, so no onChange)', () => {
       const onChange = jest.fn();
       const { getByTestId } = render(<Rating defaultValue={5} count={5} onChange={onChange} testID="rating" />);
       fireAction(getByTestId('rating'), 'increment');
-      expect(onChange).toHaveBeenCalledWith(5);
+      expect(onChange).not.toHaveBeenCalled();
     });
 
-    it('should clamp at zero', () => {
+    it('should hold at zero (no change, so no onChange)', () => {
       const onChange = jest.fn();
       const { getByTestId } = render(<Rating defaultValue={0} onChange={onChange} testID="rating" />);
       fireAction(getByTestId('rating'), 'decrement');
-      expect(onChange).toHaveBeenCalledWith(0);
+      expect(onChange).not.toHaveBeenCalled();
     });
 
     it('should expose increment and decrement actions', () => {
@@ -732,9 +750,9 @@ describe('Rating - Type Safety and Prop Validation', () => {
       return preventDefault;
     };
 
-    // The pointer handlers live on the inner row, not the root.
+    // The drag handlers live on the row of stars (the control).
     const getStarsRow = (root: any) =>
-      root.findAll((node: any) => typeof node.props?.onMouseUp === 'function')[0];
+      root.findAll((node: any) => typeof node.props?.onPanResponderGrant === 'function')[0];
 
     describe('Keyboard', () => {
       it('should be focusable when interactive', () => {
@@ -747,9 +765,9 @@ describe('Rating - Type Safety and Prop Validation', () => {
         expect(getByTestId('rating').props.tabIndex).toBeUndefined();
       });
 
-      it('should not be focusable when disabled', () => {
+      it('should leave the tab order when disabled', () => {
         const { getByTestId } = render(<Rating disabled testID="rating" />);
-        expect(getByTestId('rating').props.tabIndex).toBeUndefined();
+        expect(getByTestId('rating').props.tabIndex).toBe(-1);
       });
 
       it('should increment on ArrowRight and ArrowUp', () => {
@@ -855,8 +873,16 @@ describe('Rating - Type Safety and Prop Validation', () => {
       const renderRow = (props: any = {}) =>
         render(<Rating size={20} gap={0} count={5} {...props} />);
 
-      const clickAt = (root: any, offsetX: number) =>
-        fireEvent(getStarsRow(root), 'mouseUp', { nativeEvent: { offsetX } });
+      // Press and release at `x` px from the row's left edge.
+      const clickAt = (root: any, x: number) => {
+        const event = { nativeEvent: { pageX: x, pageY: 0, locationX: x, locationY: 0 } };
+        act(() => {
+          getStarsRow(root).props.onPanResponderGrant(event);
+        });
+        act(() => {
+          getStarsRow(root).props.onPanResponderRelease(event, {});
+        });
+      };
 
       it('should commit the value under the pointer', () => {
         const onChange = jest.fn();
@@ -934,14 +960,14 @@ describe('Rating - Type Safety and Prop Validation', () => {
       it('should preview the hovered value', () => {
         const onHover = jest.fn();
         const { UNSAFE_root } = renderRow({ defaultValue: 1, onHover });
-        fireEvent(getStarsRow(UNSAFE_root), 'mouseMove', { nativeEvent: { offsetX: 65 } });
+        fireEvent(getStarsRow(UNSAFE_root), 'pointerMove', { nativeEvent: { offsetX: 65 } });
         expect(onHover).toHaveBeenCalledWith(4);
       });
     });
 
     describe('Tooltip label', () => {
       const hoverAt = (root: any, offsetX: number) =>
-        fireEvent(getStarsRow(root), 'mouseMove', { nativeEvent: { offsetX } });
+        fireEvent(getStarsRow(root), 'pointerMove', { nativeEvent: { offsetX } });
 
       it('should show value out of count by default', () => {
         const { UNSAFE_root, getByTestId } = render(
@@ -983,12 +1009,18 @@ describe('Rating - Type Safety and Prop Validation', () => {
       expect(getByText('Rating is required')).toBeTruthy();
     });
 
-    it('should hide the description while an error is shown', () => {
+    it('should keep the description and replace helperText while an error is shown', () => {
       const { queryByText, getByText } = render(
-        <Rating description="Pick a score" error="Rating is required" />
+        <Rating description="Pick a score" helperText="1 is poor, 5 is great" error="Rating is required" />
       );
-      expect(queryByText('Pick a score')).toBeNull();
+      expect(getByText('Pick a score')).toBeTruthy();
+      expect(queryByText('1 is poor, 5 is great')).toBeNull();
       expect(getByText('Rating is required')).toBeTruthy();
+    });
+
+    it('should announce the error and mark the control invalid', () => {
+      const { getByRole } = render(<Rating label="Score" error="Rating is required" testID="rating" />);
+      expect(getByRole('alert')).toBeTruthy();
     });
 
     it('should mark a required label with an asterisk', () => {

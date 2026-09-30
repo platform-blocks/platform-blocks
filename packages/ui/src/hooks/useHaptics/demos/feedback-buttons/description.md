@@ -4,7 +4,6 @@ category: basics
 order: 10
 tags: [impact, notification]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

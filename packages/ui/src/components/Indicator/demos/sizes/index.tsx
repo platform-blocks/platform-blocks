@@ -1,4 +1,4 @@
-import { Block, Card, Indicator, Row, Text } from '@platform-blocks/ui';
+import { Block, Card, Indicator, Row, Text } from '@plocks/ui';
 
 const SIZES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', 24] as const;
 
@@ -10,7 +10,7 @@ export function Demo() {
           <Card w={56} h={56} radius="lg">
             <Indicator placement="top-right" size={size} offset={4} />
           </Card>
-          <Text variant="small">{typeof size === 'number' ? `${size} (numeric)` : size}</Text>
+          <Text variant="small">{size}</Text>
         </Block>
       ))}
     </Row>

@@ -1,4 +1,4 @@
-import { Block, Loader, Row, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Loader, Row, Text, useTheme } from '@plocks/ui';
 
 interface LoaderSwatch {
   label: string;
@@ -19,8 +19,8 @@ export function Demo() {
     <Block>
       {swatches.map(({ label, color }) => (
         <Row key={label} gap="md" align="center">
-          <Block minW={88}>
-            <Text variant="small" color="muted">
+          <Block miw={88}>
+            <Text variant="small" c="muted">
               {label}
             </Text>
           </Block>

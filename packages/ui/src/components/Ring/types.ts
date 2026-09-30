@@ -1,6 +1,6 @@
-import React from 'react';
-import { ViewStyle, TextStyle, StyleProp } from 'react-native';
-import { SpacingProps } from '../../core/utils';
+import type React from 'react';
+import type { ViewStyle, TextStyle, StyleProp } from 'react-native';
+import type { BaseProps } from '../../core/types/base';
 
 export interface RingColorStop {
   /** Threshold (0-100) that determines when the color becomes active */
@@ -20,7 +20,7 @@ export interface RingRenderContext {
   max: number;
 }
 
-export interface RingProps extends SpacingProps {
+export interface RingProps extends BaseProps<ViewStyle> {
   /** Current value represented by the ring */
   value: number;
   /** Lower bound for normalization. Defaults to 0. */
@@ -41,7 +41,7 @@ export interface RingProps extends SpacingProps {
   showValue?: boolean;
   /** Formats the displayed value or percentage */
   valueFormatter?: (value: number, percent: number) => React.ReactNode;
-  /** Track color behind the progress stroke */
+  /** Track color behind the progress stroke. Defaults to the theme's `backgrounds.border`. */
   trackColor?: string;
   /** Progress stroke color or resolver */
   progressColor?: string | ((value: number, percent: number) => string);
@@ -51,8 +51,6 @@ export interface RingProps extends SpacingProps {
   neutral?: boolean;
   /** Controls whether the progress stroke has rounded caps. Defaults to true. */
   roundedCaps?: boolean;
-  /** Container style for the outer wrapper */
-  style?: StyleProp<ViewStyle>;
   /** Style applied to the ring wrapper */
   ringStyle?: StyleProp<ViewStyle>;
   /** Style applied to the center content container */
@@ -71,8 +69,9 @@ export interface RingProps extends SpacingProps {
   captionColor?: string;
   /** Custom center content. Receives value info when passed as a function */
   children?: React.ReactNode | ((context: RingRenderContext) => React.ReactNode);
-  /** Test identifier for end-to-end tests */
-  testID?: string;
-  /** Accessibility label describing the ring */
+  /**
+   * Accessible name of the ring (a `progressbar`). Defaults to the text of
+   * `caption`, else of `label`. The value is exposed as aria-value* on its own.
+   */
   accessibilityLabel?: string;
 }

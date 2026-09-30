@@ -1,142 +1,72 @@
 import React from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import type { Ref } from 'react';
+import { StyleSheet, View } from 'react-native';
 import type { ViewStyle } from 'react-native';
+
+import { factory } from '../../core/factory';
 import { useTheme } from '../../core/theme/ThemeProvider';
-import { getRadius } from '../../core/theme/sizes';
-import type { OverlayProps } from './types';
+import { resolveRadius, resolveScrim } from '../../core/theme/tokens';
+import { resolveColorProp } from '../../core/theme/resolveColors';
+import { getZIndex } from '../../core/theme/zIndices';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
+import { isWeb, webStyle } from '../../core/platform';
+import type { OverlayFactoryPayload, OverlayProps } from './types';
 
+/** Opacity for an explicit `color` when none is given. */
 const DEFAULT_OPACITY = 0.6;
-
+/**
+ * Siblings stack at z 0 (react-native-web sets it on every View), so an overlay
+ * rendered before the content it covers would paint underneath it without a lift.
+ */
+const CONTAINED_Z_INDEX = 1;
 const HEX_COLOR_REGEX = /^#?[0-9a-f]{3,8}$/i;
 
 const clampOpacity = (value: number | undefined): number => {
-  if (value == null || Number.isNaN(value)) {
-    return DEFAULT_OPACITY;
-  }
+  if (value == null || Number.isNaN(value)) return DEFAULT_OPACITY;
   if (value <= 0) return 0;
   if (value >= 1) return 1;
   return value;
 };
 
-const normalizeHex = (hex: string): string => {
-  if (!hex.startsWith('#')) {
-    return `#${hex}`;
-  }
-  return hex;
-};
-
 const hexToRgba = (hex: string, opacity: number): string => {
-  const normalized = normalizeHex(hex).replace('#', '');
-
-  if (normalized.length === 3) {
-    const r = parseInt(normalized[0] + normalized[0], 16);
-    const g = parseInt(normalized[1] + normalized[1], 16);
-    const b = parseInt(normalized[2] + normalized[2], 16);
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  const normalized = hex.replace('#', '');
+  const expand = normalized.length === 3 || normalized.length === 4;
+  const channel = (index: number) => (expand
+    ? parseInt(normalized[index] + normalized[index], 16)
+    : parseInt(normalized.slice(index * 2, index * 2 + 2), 16));
+  if (expand || normalized.length === 6 || normalized.length === 8) {
+    return `rgba(${channel(0)}, ${channel(1)}, ${channel(2)}, ${opacity})`;
   }
-
-  if (normalized.length === 4) {
-    const r = parseInt(normalized[0] + normalized[0], 16);
-    const g = parseInt(normalized[1] + normalized[1], 16);
-    const b = parseInt(normalized[2] + normalized[2], 16);
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-  }
-
-  if (normalized.length === 6 || normalized.length === 8) {
-    const r = parseInt(normalized.slice(0, 2), 16);
-    const g = parseInt(normalized.slice(2, 4), 16);
-    const b = parseInt(normalized.slice(4, 6), 16);
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-  }
-
   return hex;
 };
 
+/** Re-express any common CSS color with the given alpha. */
 const applyOpacity = (color: string, opacity: number): string => {
   const lower = color.toLowerCase();
-  if (lower === 'transparent') {
-    return 'transparent';
-  }
+  if (lower === 'transparent') return 'transparent';
+  if (lower === 'black') return `rgba(0, 0, 0, ${opacity})`;
+  if (lower === 'white') return `rgba(255, 255, 255, ${opacity})`;
+  if (HEX_COLOR_REGEX.test(color)) return hexToRgba(color.startsWith('#') ? color : `#${color}`, opacity);
 
-  if (lower === 'black') {
-    return `rgba(0, 0, 0, ${opacity})`;
+  if (color.startsWith('rgba') || color.startsWith('rgb(')) {
+    const parts = color.slice(color.indexOf('(') + 1, color.lastIndexOf(')')).split(',').map((part) => part.trim());
+    if (parts.length >= 3) return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${opacity})`;
   }
-
-  if (lower === 'white') {
-    return `rgba(255, 255, 255, ${opacity})`;
-  }
-
-  if (HEX_COLOR_REGEX.test(color)) {
-    return hexToRgba(color, opacity);
-  }
-
-  if (color.startsWith('rgba')) {
-    const body = color.slice(color.indexOf('(') + 1, color.lastIndexOf(')'));
-    const parts = body.split(',').map(part => part.trim());
-    if (parts.length === 4) {
-      return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${opacity})`;
-    }
-    if (parts.length === 3) {
-      return `rgba(${parts.join(', ')}, ${opacity})`;
-    }
-  }
-
-  if (color.startsWith('rgb(')) {
-    return color.replace('rgb', 'rgba').replace(')', `, ${opacity})`);
-  }
-
   if (color.startsWith('hsl')) {
     const prefix = color.startsWith('hsla') ? 'hsla' : 'hsl';
-    const body = color.slice(color.indexOf('(') + 1, color.lastIndexOf(')'));
-    const parts = body.split(',').map(part => part.trim());
-    if (parts.length === 3) {
-      return `${prefix}(${parts.join(', ')}, ${opacity})`;
-    }
-    if (parts.length === 4) {
-      return `${prefix}(${parts[0]}, ${parts[1]}, ${parts[2]}, ${opacity})`;
-    }
+    const parts = color.slice(color.indexOf('(') + 1, color.lastIndexOf(')')).split(',').map((part) => part.trim());
+    if (parts.length >= 3) return `${prefix}(${parts[0]}, ${parts[1]}, ${parts[2]}, ${opacity})`;
   }
-
   return color;
 };
 
-const resolveThemeColor = (theme: any, color?: string): string | undefined => {
-  if (!color) return undefined;
-  if (color === 'transparent') return 'transparent';
-  if (color.startsWith('#') || color.startsWith('rgb') || color.startsWith('hsl') || color.startsWith('var(')) {
-    return color;
-  }
-
-  const [palette, shadeToken] = color.split('.');
-  const paletteValue = theme?.colors?.[palette];
-
-  if (paletteValue) {
-    if (Array.isArray(paletteValue)) {
-      const shadeIndex = shadeToken ? Number(shadeToken) : 5;
-      if (!Number.isNaN(shadeIndex) && paletteValue[shadeIndex] != null) {
-        return paletteValue[shadeIndex];
-      }
-      return paletteValue[5] ?? paletteValue[0];
-    }
-    if (typeof paletteValue === 'string') {
-      return paletteValue;
-    }
-  }
-
-  const backgroundColor = theme?.backgrounds?.[color];
-  if (backgroundColor) {
-    return backgroundColor;
-  }
-
-  const textColor = theme?.text?.[color];
-  if (textColor) {
-    return textColor;
-  }
-
-  return color;
+const blurValue = (value: number | string): string => {
+  if (typeof value === 'number') return `blur(${value}px)`;
+  return value.includes('(') ? value : `blur(${value})`;
 };
 
-export const Overlay = React.forwardRef<View, OverlayProps>((props, ref) => {
+/** A dimming / tinting layer that fills its positioned parent (or the viewport with `fixed`). */
+function OverlayBase(props: OverlayProps, ref: Ref<View>) {
   const theme = useTheme();
   const {
     color,
@@ -150,53 +80,30 @@ export const Overlay = React.forwardRef<View, OverlayProps>((props, ref) => {
     center = false,
     style,
     children,
-    ...rest
+    ...others
   } = props;
+  // `opacity` (taken above) tints the background only: on the root it would fade the children too.
+  const { styleProps, otherProps: rest } = extractStyleProps(others);
+  const boxStyles = useStyleProps(styleProps);
 
-  const clampedOpacity = clampOpacity(backgroundOpacity ?? opacity ?? DEFAULT_OPACITY);
-  const resolvedColor = resolveThemeColor(theme, color);
-  const baseColor = resolvedColor ?? '#000000';
-  const backgroundColor = gradient && Platform.OS === 'web'
-    ? undefined
-    : applyOpacity(baseColor, clampedOpacity);
-
-  const resolvedRadius = typeof radius === 'number'
-    ? radius
-    : radius != null
-    ? getRadius(radius)
+  const explicitOpacity = backgroundOpacity ?? opacity;
+  const resolvedColor = color
+    ? resolveColorProp(theme, color, { scopes: ['backgrounds', 'text'], shades: [5, 0] })
     : undefined;
+  // Web paints the gradient instead of the flat color; native falls back to the color.
+  // Without a `color` it is the theme's scrim — at its own strength unless an
+  // opacity is given.
+  const backgroundColor = gradient && isWeb
+    ? undefined
+    : resolvedColor
+      ? applyOpacity(resolvedColor, clampOpacity(explicitOpacity ?? DEFAULT_OPACITY))
+      : resolveScrim(theme, explicitOpacity == null ? undefined : clampOpacity(explicitOpacity));
 
-  const radiusStyle = resolvedRadius != null
-    ? {
-        borderRadius: resolvedRadius,
-        overflow: resolvedRadius > 0 ? 'hidden' : undefined,
-      } as ViewStyle
-    : null;
+  const resolvedZIndex = zIndex ?? (fixed ? getZIndex(theme, 'overlay') : CONTAINED_Z_INDEX);
 
-  const getBlurValue = (value: number | string): string => {
-    if (typeof value === 'number') {
-      return `blur(${value}px)`;
-    }
-    return value.includes('(') ? value : `blur(${value})`;
-  };
-
-  const blurStyle = Platform.OS === 'web' && blur != null
-    ? {
-        backdropFilter: getBlurValue(blur),
-        WebkitBackdropFilter: getBlurValue(blur),
-      } as ViewStyle
-    : null;
-
-  const gradientStyle = Platform.OS === 'web' && gradient
-    ? {
-        backgroundImage: gradient,
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: 'cover',
-      } as ViewStyle
-    : null;
-
-  const webFixedStyle = Platform.OS === 'web' && fixed
-    ? ({ position: 'fixed', top: 0, right: 0, bottom: 0, left: 0 } as unknown as ViewStyle)
+  const resolvedRadius = radius != null ? resolveRadius(theme, radius) : undefined;
+  const radiusStyle: ViewStyle | null = resolvedRadius != null
+    ? { borderRadius: resolvedRadius, overflow: resolvedRadius > 0 ? 'hidden' : undefined }
     : null;
 
   return (
@@ -204,13 +111,14 @@ export const Overlay = React.forwardRef<View, OverlayProps>((props, ref) => {
       ref={ref}
       style={[
         StyleSheet.absoluteFill,
-        webFixedStyle,
+        fixed ? webStyle({ position: 'fixed', top: 0, right: 0, bottom: 0, left: 0 }) : null,
         center ? styles.center : null,
-        zIndex != null ? { zIndex } : null,
+        { zIndex: resolvedZIndex },
         backgroundColor ? { backgroundColor } : null,
-        gradientStyle,
-        blurStyle,
+        gradient ? webStyle({ backgroundImage: gradient }) : null,
+        blur != null ? webStyle({ backdropFilter: blurValue(blur), WebkitBackdropFilter: blurValue(blur) }) : null,
         radiusStyle,
+        boxStyles,
         style,
       ]}
       {...rest}
@@ -218,9 +126,9 @@ export const Overlay = React.forwardRef<View, OverlayProps>((props, ref) => {
       {children}
     </View>
   );
-});
+}
 
-Overlay.displayName = 'Overlay';
+export const Overlay = factory<OverlayFactoryPayload>(OverlayBase, { displayName: 'Overlay' });
 
 const styles = StyleSheet.create({
   center: {

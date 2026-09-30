@@ -4,6 +4,7 @@ import { Scale } from '../utils/scales';
 import { useChartTheme } from '../theme/ChartThemeContext';
 import { estimateChartTextWidth } from '../ChartBase';
 import { AXIS_TICK_PADDING, AXIS_TICK_SIZE, AXIS_TITLE_GAP } from './axisLayout';
+import { createTickFormatter } from '../utils';
 
 export interface AxisProps {
   scale: Scale<any>;
@@ -86,6 +87,14 @@ export const Axis: React.FC<AxisProps> = ({
 
   const resolvedTickFontSize = tickLabelFontSize ?? 11;
 
+  // Without a tickFormat, numeric ticks follow the theme's number format;
+  // category ticks, and numbers that can't be abbreviated, render as-is.
+  const formatTick = useMemo(() => {
+    if (tickFormat) return tickFormat;
+    if (!rawTicks.every((t) => typeof t === 'number')) return (t: any) => String(t);
+    return createTickFormatter(rawTicks, theme.numberFormat, String);
+  }, [tickFormat, rawTicks, theme.numberFormat]);
+
   /**
    * Drops labels that would sit on top of their neighbour.
    *
@@ -98,7 +107,7 @@ export const Axis: React.FC<AxisProps> = ({
     if (!showLabels || !avoidLabelOverlap) return rawTicks.map(t => ({ value: t, hidden: false }));
     const horizontal = orientation === 'bottom' || orientation === 'top';
     const extent = (val: any) => horizontal
-      ? estimateChartTextWidth(String(tickFormat ? tickFormat(val) : val), resolvedTickFontSize)
+      ? estimateChartTextWidth(String(formatTick(val)), resolvedTickFontSize)
       : resolvedTickFontSize * 1.3;
     const placed: { start: number; end: number }[] = [];
     return rawTicks.map(t => {
@@ -110,7 +119,7 @@ export const Axis: React.FC<AxisProps> = ({
       if (!collision) placed.push({ start, end });
       return { value: t, hidden: collision };
     });
-  }, [rawTicks, showLabels, orientation, tickFormat, scale, avoidLabelOverlap, resolvedTickFontSize]);
+  }, [rawTicks, showLabels, orientation, formatTick, scale, avoidLabelOverlap, resolvedTickFontSize]);
 
   const rootStyle: any = {
     position: 'absolute',
@@ -128,10 +137,10 @@ export const Axis: React.FC<AxisProps> = ({
   // nothing wraps mid-word inside a box that was too small for it.
   const widestTick = useMemo(
     () => rawTicks.reduce(
-      (widest, tick) => Math.max(widest, estimateChartTextWidth(String(tickFormat ? tickFormat(tick) : tick), resolvedTickFontSize)),
+      (widest, tick) => Math.max(widest, estimateChartTextWidth(String(formatTick(tick)), resolvedTickFontSize)),
       0,
     ),
-    [rawTicks, tickFormat, resolvedTickFontSize],
+    [rawTicks, formatTick, resolvedTickFontSize],
   );
   const hLabelWidth = tickLabelWidth ?? Math.max(Math.ceil(widestTick), 24);
   const vLabelWidth = tickLabelWidth ?? Math.max(Math.ceil(widestTick), 24);
@@ -226,7 +235,7 @@ export const Axis: React.FC<AxisProps> = ({
                 numberOfLines={isHorizontal ? hLabelLines : 1}
                 ellipsizeMode="tail"
               >
-                {tickFormat ? tickFormat(t) : String(t)}
+                {formatTick(t)}
               </Text>
             )}
           </View>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Switch, Text } from '@platform-blocks/ui';
+import { Block, Switch, Text } from '@plocks/ui';
 
 const PREFERENCE_CONTROLS = [
   {
@@ -35,7 +35,7 @@ export function Demo() {
   return (
     <Block>
       <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Shared state
         </Text>
         {PREFERENCE_CONTROLS.map(({ key, label, description }) => (
@@ -51,7 +51,7 @@ export function Demo() {
         ))}
       </Block>
   <Block>
-        <Text variant="small" color="muted">
+        <Text variant="small" c="muted">
           Summary
         </Text>
         <Text variant="p">

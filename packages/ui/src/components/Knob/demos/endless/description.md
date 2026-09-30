@@ -5,7 +5,6 @@ order: 20
 tags: [endless, encoder, rotation]
 highlightLines: []
 status: experimental
-since: 1.0.0
 hidden: false
 ---
 

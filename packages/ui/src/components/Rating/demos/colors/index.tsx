@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Rating, Text, useTheme } from '@platform-blocks/ui';
+import { Block, Rating, Text, useTheme } from '@plocks/ui';
 
 const COLOR_CONFIG = [
   {
@@ -60,7 +60,7 @@ export function Demo() {
               size="lg"
               labelPosition="right"
               label={
-            <Text variant="small" color="muted">
+            <Text variant="small" c="muted">
               {label}
             </Text>
             }

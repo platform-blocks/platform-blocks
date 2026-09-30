@@ -1,8 +1,12 @@
 import { SizeValue } from './theme/types';
+import { DEFAULT_CONTROL_SIZES } from './theme/scales';
 
 /**
- * Design tokens for consistent styling across the UI library
- * These tokens ensure visual consistency and make global changes easier
+ * Static design tokens: motion, interaction, opacity and a few component
+ * constants. Spacing, radii, shadows and type sizes live on the theme and are
+ * resolved through `core/theme/tokens.ts` (`resolveSpacing`, `resolveRadius`,
+ * `resolveShadow`, `resolveFontSize`, …), so they follow custom themes and the
+ * dark scheme.
  */
 
 /**
@@ -25,87 +29,18 @@ export const MOTION_TOKENS = {
 } as const;
 
 /** 
- * Shadow tokens for depth and elevation
- */
-export const SHADOW_TOKENS = {
-  xs: '0 1px 2px rgba(0, 0, 0, 0.05)',
-  sm: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
-  md: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
-  lg: '0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05)',
-  xl: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04)',
-} as const;
-
-/**
- * Border radius tokens
- */
-export const RADIUS_TOKENS = {
-  none: 0,
-  xs: 2,
-  sm: 4,
-  md: 6,
-  lg: 8,
-  xl: 12,
-  '2xl': 16,
-  '3xl': 24,
-  full: 9999,
-} as const;
-
-/**
- * Spacing tokens
- */
-export const SPACING_TOKENS = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  '2xl': 24,
-  '3xl': 32,
-} as const;
-
-/**
- * Typography tokens
- */
-export const TYPOGRAPHY_TOKENS = {
-  fontSize: {
-    xs: 12,
-    sm: 14,
-    md: 16,
-    lg: 18,
-    xl: 20,
-    '2xl': 24,
-    '3xl': 30,
-  },
-  lineHeight: {
-    xs: 16,
-    sm: 20,
-    md: 24,
-    lg: 28,
-    xl: 32,
-    '2xl': 36,
-    '3xl': 42,
-  },
-  fontWeight: {
-    normal: '400',
-    medium: '500',
-    semibold: '600',
-    bold: '700',
-  },
-} as const;
-
-/** 
  * Interactive element tokens 
  */
 export const INTERACTIVE_TOKENS = {
-  // Consistent heights for interactive elements
+  // Consistent heights for interactive elements — the canonical control heights.
   height: {
-    xs: 28,
-    sm: 32,
-    md: 40,
-    lg: 44,
-    xl: 48,
-    '2xl': 52,
-    '3xl': 56,
+    xs: DEFAULT_CONTROL_SIZES.xs.height,
+    sm: DEFAULT_CONTROL_SIZES.sm.height,
+    md: DEFAULT_CONTROL_SIZES.md.height,
+    lg: DEFAULT_CONTROL_SIZES.lg.height,
+    xl: DEFAULT_CONTROL_SIZES.xl.height,
+    '2xl': DEFAULT_CONTROL_SIZES['2xl'].height,
+    '3xl': DEFAULT_CONTROL_SIZES['3xl'].height,
   },
   // Consistent padding for interactive elements
   padding: {
@@ -167,10 +102,10 @@ export const COMPONENT_TOKENS = {
 /**
  * Get design token value
  */
-export function getToken<T extends keyof typeof DESIGN_TOKENS>(
+export function getToken<T extends keyof typeof DESIGN_TOKENS, K extends keyof typeof DESIGN_TOKENS[T]>(
   category: T,
-  token: keyof typeof DESIGN_TOKENS[T]
-): any {
+  token: K
+): typeof DESIGN_TOKENS[T][K] {
   return DESIGN_TOKENS[category][token];
 }
 
@@ -179,10 +114,6 @@ export function getToken<T extends keyof typeof DESIGN_TOKENS>(
  */
 export const DESIGN_TOKENS = {
   motion: MOTION_TOKENS,
-  shadow: SHADOW_TOKENS,
-  radius: RADIUS_TOKENS,
-  spacing: SPACING_TOKENS,
-  typography: TYPOGRAPHY_TOKENS,
   interactive: INTERACTIVE_TOKENS,
   opacity: OPACITY_TOKENS,
   component: COMPONENT_TOKENS,

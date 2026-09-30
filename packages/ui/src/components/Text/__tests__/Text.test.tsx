@@ -49,7 +49,7 @@ jest.mock('../../../core/theme/ThemeProvider', () => ({
   })
 }));
 
-jest.mock('../../../core/i18n', () => ({
+jest.mock('../../../core/i18n/I18nContext', () => ({
   useI18n: () => ({
     t: (key: string, params?: Record<string, any>) => {
       if (params) {
@@ -183,124 +183,124 @@ describe('Text - Type Safety and Prop Validation', () => {
 
   describe('ColorVariant Types', () => {
     it('should accept the primary color', () => {
-      const { getByText } = render(<Text color="primary">Primary</Text>);
+      const { getByText } = render(<Text c="primary">Primary</Text>);
       expect(getByText('Primary')).toBeTruthy();
     });
 
     it('should accept the secondary color', () => {
-      const { getByText } = render(<Text color="secondary">Secondary</Text>);
+      const { getByText } = render(<Text c="secondary">Secondary</Text>);
       expect(getByText('Secondary')).toBeTruthy();
     });
 
     it('should accept the muted color', () => {
-      const { getByText } = render(<Text color="muted">Muted</Text>);
+      const { getByText } = render(<Text c="muted">Muted</Text>);
       expect(getByText('Muted')).toBeTruthy();
     });
 
     it('should accept the disabled color', () => {
-      const { getByText } = render(<Text color="disabled">Disabled</Text>);
+      const { getByText } = render(<Text c="disabled">Disabled</Text>);
       expect(getByText('Disabled')).toBeTruthy();
     });
 
     it('should accept the link color', () => {
-      const { getByText } = render(<Text color="link">Link</Text>);
+      const { getByText } = render(<Text c="link">Link</Text>);
       expect(getByText('Link')).toBeTruthy();
     });
 
     it('should accept the success color', () => {
-      const { getByText } = render(<Text color="success">Success</Text>);
+      const { getByText } = render(<Text c="success">Success</Text>);
       expect(getByText('Success')).toBeTruthy();
     });
 
     it('should accept the warning color', () => {
-      const { getByText } = render(<Text color="warning">Warning</Text>);
+      const { getByText } = render(<Text c="warning">Warning</Text>);
       expect(getByText('Warning')).toBeTruthy();
     });
 
     it('should accept the error color', () => {
-      const { getByText } = render(<Text color="error">Error</Text>);
+      const { getByText } = render(<Text c="error">Error</Text>);
       expect(getByText('Error')).toBeTruthy();
     });
 
     it('should accept the info color', () => {
-      const { getByText } = render(<Text color="info">Info</Text>);
+      const { getByText } = render(<Text c="info">Info</Text>);
       expect(getByText('Info')).toBeTruthy();
     });
   });
 
   describe('Weight Types', () => {
     it('should accept numeric weight 100', () => {
-      const { getByText } = render(<Text weight={100}>Weight 100</Text>);
+      const { getByText } = render(<Text fw={100}>Weight 100</Text>);
       expect(getByText('Weight 100')).toBeTruthy();
     });
 
     it('should accept numeric weight 200', () => {
-      const { getByText } = render(<Text weight={200}>Weight 200</Text>);
+      const { getByText } = render(<Text fw={200}>Weight 200</Text>);
       expect(getByText('Weight 200')).toBeTruthy();
     });
 
     it('should accept numeric weight 300', () => {
-      const { getByText } = render(<Text weight={300}>Weight 300</Text>);
+      const { getByText } = render(<Text fw={300}>Weight 300</Text>);
       expect(getByText('Weight 300')).toBeTruthy();
     });
 
     it('should accept numeric weight 400', () => {
-      const { getByText } = render(<Text weight={400}>Weight 400</Text>);
+      const { getByText } = render(<Text fw={400}>Weight 400</Text>);
       expect(getByText('Weight 400')).toBeTruthy();
     });
 
     it('should accept numeric weight 500', () => {
-      const { getByText } = render(<Text weight={500}>Weight 500</Text>);
+      const { getByText } = render(<Text fw={500}>Weight 500</Text>);
       expect(getByText('Weight 500')).toBeTruthy();
     });
 
     it('should accept numeric weight 600', () => {
-      const { getByText } = render(<Text weight={600}>Weight 600</Text>);
+      const { getByText } = render(<Text fw={600}>Weight 600</Text>);
       expect(getByText('Weight 600')).toBeTruthy();
     });
 
     it('should accept numeric weight 700', () => {
-      const { getByText } = render(<Text weight={700}>Weight 700</Text>);
+      const { getByText } = render(<Text fw={700}>Weight 700</Text>);
       expect(getByText('Weight 700')).toBeTruthy();
     });
 
     it('should accept numeric weight 800', () => {
-      const { getByText } = render(<Text weight={800}>Weight 800</Text>);
+      const { getByText } = render(<Text fw={800}>Weight 800</Text>);
       expect(getByText('Weight 800')).toBeTruthy();
     });
 
     it('should accept numeric weight 900', () => {
-      const { getByText } = render(<Text weight={900}>Weight 900</Text>);
+      const { getByText } = render(<Text fw={900}>Weight 900</Text>);
       expect(getByText('Weight 900')).toBeTruthy();
     });
 
     it('should accept named weight "normal"', () => {
-      const { getByText } = render(<Text weight="normal">Normal</Text>);
+      const { getByText } = render(<Text fw="normal">Normal</Text>);
       expect(getByText('Normal')).toBeTruthy();
     });
 
     it('should accept named weight "medium"', () => {
-      const { getByText } = render(<Text weight="medium">Medium</Text>);
+      const { getByText } = render(<Text fw="medium">Medium</Text>);
       expect(getByText('Medium')).toBeTruthy();
     });
 
     it('should accept named weight "semibold"', () => {
-      const { getByText } = render(<Text weight="semibold">Semibold</Text>);
+      const { getByText } = render(<Text fw="semibold">Semibold</Text>);
       expect(getByText('Semibold')).toBeTruthy();
     });
 
     it('should accept named weight "bold"', () => {
-      const { getByText } = render(<Text weight="bold">Bold</Text>);
+      const { getByText } = render(<Text fw="bold">Bold</Text>);
       expect(getByText('Bold')).toBeTruthy();
     });
 
     it('should accept named weight "light"', () => {
-      const { getByText } = render(<Text weight="light">Light</Text>);
+      const { getByText } = render(<Text fw="light">Light</Text>);
       expect(getByText('Light')).toBeTruthy();
     });
 
     it('should accept named weight "black"', () => {
-      const { getByText } = render(<Text weight="black">Black</Text>);
+      const { getByText } = render(<Text fw="black">Black</Text>);
       expect(getByText('Black')).toBeTruthy();
     });
   });
@@ -344,22 +344,22 @@ describe('Text - Type Safety and Prop Validation', () => {
 
   describe('Align Types', () => {
     it('should accept align="left"', () => {
-      const { getByText } = render(<Text align="left">Left</Text>);
+      const { getByText } = render(<Text ta="left">Left</Text>);
       expect(getByText('Left')).toBeTruthy();
     });
 
     it('should accept align="center"', () => {
-      const { getByText } = render(<Text align="center">Center</Text>);
+      const { getByText } = render(<Text ta="center">Center</Text>);
       expect(getByText('Center')).toBeTruthy();
     });
 
     it('should accept align="right"', () => {
-      const { getByText } = render(<Text align="right">Right</Text>);
+      const { getByText } = render(<Text ta="right">Right</Text>);
       expect(getByText('Right')).toBeTruthy();
     });
 
     it('should accept align="justify"', () => {
-      const { getByText } = render(<Text align="justify">Justify</Text>);
+      const { getByText } = render(<Text ta="justify">Justify</Text>);
       expect(getByText('Justify')).toBeTruthy();
     });
   });
@@ -409,12 +409,12 @@ describe('Text - Type Safety and Prop Validation', () => {
 
   describe('Color Props', () => {
     it('should accept direct color prop', () => {
-      const { getByText } = render(<Text color="#ff0000">Red Text</Text>);
+      const { getByText } = render(<Text c="#ff0000">Red Text</Text>);
       expect(getByText('Red Text')).toBeTruthy();
     });
 
     it('should accept theme token as color', () => {
-      const { getByText } = render(<Text color="primary">Primary Color</Text>);
+      const { getByText } = render(<Text c="primary">Primary Color</Text>);
       expect(getByText('Primary Color')).toBeTruthy();
     });
 
@@ -422,27 +422,27 @@ describe('Text - Type Safety and Prop Validation', () => {
 
   describe('Typography Props', () => {
     it('should accept lineHeight as multiplier', () => {
-      const { getByText } = render(<Text lineHeight={1.5}>Line Height</Text>);
+      const { getByText } = render(<Text lh={1.5}>Line Height</Text>);
       expect(getByText('Line Height')).toBeTruthy();
     });
 
     it('should accept lineHeight as absolute value', () => {
-      const { getByText } = render(<Text lineHeight={24}>Absolute</Text>);
+      const { getByText } = render(<Text lh={24}>Absolute</Text>);
       expect(getByText('Absolute')).toBeTruthy();
     });
 
     it('should accept tracking (letter spacing)', () => {
-      const { getByText } = render(<Text tracking={2}>Tracking</Text>);
+      const { getByText } = render(<Text lts={2}>Tracking</Text>);
       expect(getByText('Tracking')).toBeTruthy();
     });
 
-    it('should accept uppercase prop', () => {
-      const { getByText } = render(<Text uppercase>uppercase text</Text>);
+    it('should accept tt prop', () => {
+      const { getByText } = render(<Text tt="uppercase">uppercase text</Text>);
       expect(getByText('uppercase text')).toBeTruthy();
     });
 
     it('should accept fontFamily prop', () => {
-      const { getByText } = render(<Text fontFamily="Arial">Custom Font</Text>);
+      const { getByText } = render(<Text ff="Arial">Custom Font</Text>);
       expect(getByText('Custom Font')).toBeTruthy();
     });
   });
@@ -524,7 +524,7 @@ describe('Text - Type Safety and Prop Validation', () => {
   describe('Complex Prop Combinations', () => {
     it('should handle variant + size + weight + color', () => {
       const { getByText } = render(
-        <Text variant="h1" size="xl" weight="bold" color="#ff0000">
+        <Text variant="h1" size="xl" fw="bold" c="#ff0000">
           Complex
         </Text>
       );
@@ -536,8 +536,8 @@ describe('Text - Type Safety and Prop Validation', () => {
       const { getByText } = render(
         <Text 
           tx="common.button" 
-          weight="bold" 
-          color="primary"
+          fw="bold" 
+          c="primary"
           onPress={onPress}
         />
       );
@@ -548,11 +548,11 @@ describe('Text - Type Safety and Prop Validation', () => {
       const { getByText } = render(
         <Text 
           size={18} 
-          weight="semibold" 
-          lineHeight={1.6} 
-          tracking={1}
-          uppercase
-          align="center"
+          fw="semibold" 
+          lh={1.6} 
+          lts={1}
+          tt="uppercase"
+          ta="center"
         >
           All Typography
         </Text>
@@ -564,7 +564,7 @@ describe('Text - Type Safety and Prop Validation', () => {
       const { getByText } = render(
         <Text 
           variant="h2" 
-          color="success"
+          c="success"
           m={2}
           p={1}
         >

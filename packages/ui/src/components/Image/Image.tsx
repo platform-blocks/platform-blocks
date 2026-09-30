@@ -1,12 +1,22 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, ViewStyle, ImageStyle, Image as RNImage, DimensionValue, StyleSheet } from 'react-native';
-import { useTheme } from '../../core/theme';
-import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
-import { getBorderRadius, RADIUS_SCALE } from '../../core/theme/radius';
-import type { ImageProps } from './types';
-import { resolveImageSource } from '../../utils/imageSource';
+import { View, Image as RNImage, StyleSheet } from 'react-native';
+import type { DimensionValue, ImageErrorEventData, NativeSyntheticEvent, ViewStyle } from 'react-native';
 
-const IMAGE_SIZES = {
+import { factory } from '../../core/factory/factory';
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveRadius } from '../../core/theme/tokens';
+import { resolveStyleProps, useStyleProps } from '../../core/utils/spacing';
+import { getLayoutStyles } from '../../core/utils/layout';
+import { resolveImageSource } from '../../utils/imageSource';
+import type { ImageProps } from './types';
+
+/**
+ * Square box presets for `size`. These are image footprints (thumbnail /
+ * avatar-like sizes), not control heights, so they don't come from the
+ * control-size table.
+ */
+const IMAGE_PRESET_SIZES: Record<string, number> = {
   xs: 24,
   sm: 32,
   md: 40,
@@ -16,172 +26,168 @@ const IMAGE_SIZES = {
   '3xl': 96,
 };
 
-export function Image({
-  src,
-  source,
-  alt,
-  accessibilityLabel,
-  resizeMode = 'cover',
-  size,
-  w,
-  h,
-  aspectRatio,
-  borderWidth,
-  borderColor,
-  rounded,
-  circle,
-  fallback,
-  loading,
-  onLoad,
-  onError,
-  onLoadStart,
-  onLoadEnd,
-  containerStyle,
-  imageStyle,
-  testID,
-  style,
-  ...rest
-}: ImageProps) {
+const styles = StyleSheet.create({
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  overlay: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+    zIndex: 1,
+  },
+});
+
+function numericDimension(value: DimensionValue | undefined): number {
+  if (typeof value === 'number') return value;
+  return parseInt(String(value ?? ''), 10) || 0;
+}
+
+export const Image = factory<{ props: ImageProps; ref: View }>((props, ref) => {
+  const {
+    src,
+    source,
+    alt,
+    accessibilityLabel,
+    resizeMode = 'cover',
+    size,
+    w,
+    h,
+    aspectRatio,
+    borderWidth,
+    borderColor,
+    radius,
+    rounded,
+    circle,
+    fallback,
+    loading,
+    onLoad,
+    onError,
+    onLoadStart,
+    onLoadEnd,
+    containerStyle,
+    imageStyle,
+    testID,
+    style,
+    fullWidth,
+    ...rest
+  } = props;
+
   const theme = useTheme();
+  // `w` / `h` size the image too, so they are applied below (`sizeStyle`,
+  // `imageBoxStyle`) rather than with the other style props.
+  const propStyles = useStyleProps(rest);
   const [loadError, setLoadError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
-  const { spacingProps } = extractSpacingProps(rest);
-  
-  // Determine dimensions
-  let finalWidth: DimensionValue | undefined = w as DimensionValue;
-  let finalHeight: DimensionValue | undefined = h as DimensionValue;
-  
-  if (size && typeof size === 'string' && IMAGE_SIZES[size]) {
-    finalWidth = finalWidth || IMAGE_SIZES[size];
-    finalHeight = finalHeight || IMAGE_SIZES[size];
-  } else if (typeof size === 'number') {
-    finalWidth = finalWidth || size;
-    finalHeight = finalHeight || size;
+
+  // Dimensions: explicit w/h win over the size preset.
+  const box = resolveStyleProps({ w, h });
+  let finalWidth = box.width;
+  let finalHeight = box.height;
+  if (typeof size === 'number') {
+    finalWidth = finalWidth ?? size;
+    finalHeight = finalHeight ?? size;
+  } else if (size && IMAGE_PRESET_SIZES[size]) {
+    finalWidth = finalWidth ?? IMAGE_PRESET_SIZES[size];
+    finalHeight = finalHeight ?? IMAGE_PRESET_SIZES[size];
   }
-  
-  if (circle && finalWidth && !finalHeight) {
+  if (circle && finalWidth !== undefined && finalHeight === undefined) {
     finalHeight = finalWidth;
   }
-  
-  // Determine border radius
+
   let borderRadius: number | undefined;
-  if (circle && finalWidth) {
-    const dimension = typeof finalWidth === 'number' ? finalWidth : parseInt(String(finalWidth)) || 0;
-    borderRadius = dimension / 2;
+  if (circle && finalWidth !== undefined) {
+    borderRadius = numericDimension(finalWidth) / 2;
+  } else if (radius !== undefined) {
+    borderRadius = resolveRadius(theme, radius);
   } else if (rounded) {
-    borderRadius = RADIUS_SCALE.md;
+    borderRadius = resolveRadius(theme, 'md');
   }
-  
-  // Build styles
-  const spacingStyles = getSpacingStyles(spacingProps);
 
-  const flatContainerStyle = StyleSheet.flatten(containerStyle) as ViewStyle | undefined;
-  const flatStyle = StyleSheet.flatten(style) as ViewStyle | undefined;
+  // Read-only view of the caller's box styles: `style`/`containerStyle` size the
+  // wrapper, not the image. When a caller sizes the box that way instead of
+  // through `w`/`h`/`size`, the image fills the box on each constrained axis
+  // (otherwise it falls back to its intrinsic size and ignores `resizeMode`).
+  const callerBox = StyleSheet.flatten([containerStyle, style]) as ViewStyle | undefined;
+  const layoutStyles = getLayoutStyles({ fullWidth });
+  const boxWidth = callerBox?.width ?? layoutStyles.width;
+  const boxHeight = callerBox?.height;
 
-  const containerStyles: ViewStyle = {
-    ...spacingStyles,
-    ...flatContainerStyle,
-  };
+  const sizeStyle: ViewStyle = {};
+  if (finalWidth !== undefined) sizeStyle.width = finalWidth;
+  if (finalHeight !== undefined) sizeStyle.height = finalHeight;
+  if (aspectRatio !== undefined) sizeStyle.aspectRatio = aspectRatio;
+  if (borderRadius !== undefined) sizeStyle.borderRadius = borderRadius;
 
-  // `style`/`containerStyle` size the wrapper, not the image. When a caller sizes the box
-  // that way instead of through `w`/`h`/`size`, the inner image would otherwise fall back
-  // to its intrinsic dimensions and ignore `resizeMode` — fill the box on each axis the
-  // wrapper actually constrains.
-  const boxWidth = flatStyle?.width ?? flatContainerStyle?.width;
-  const boxHeight = flatStyle?.height ?? flatContainerStyle?.height;
+  // Rounded corners must clip the square image, whether the radius came from
+  // `rounded`/`circle`/`radius` or from the caller's style.
+  const needsClip =
+    (borderRadius !== undefined || callerBox?.borderRadius !== undefined) && callerBox?.overflow === undefined;
 
-  const imageStyles: ImageStyle = {
+  // Shared by the image and its loading/fallback boxes (valid as View and Image style).
+  const imageBoxStyle = {
     width: finalWidth ?? (boxWidth !== undefined ? '100%' : undefined),
     height: finalHeight ?? (boxHeight !== undefined ? '100%' : undefined),
     aspectRatio,
     borderWidth,
-    borderColor: borderColor || theme.colors.gray[3],
+    borderColor: borderColor || theme.backgrounds.border,
     borderRadius,
-    ...StyleSheet.flatten(imageStyle),
   };
 
-  if (finalWidth !== undefined) {
-    containerStyles.width = finalWidth;
-  }
+  const imageSource = useMemo(() => source ?? resolveImageSource(src), [source, src]);
 
-  if (finalHeight !== undefined) {
-    containerStyles.height = finalHeight;
-  }
-
-  if (aspectRatio !== undefined) {
-    containerStyles.aspectRatio = aspectRatio;
-  }
-
-  if (borderRadius !== undefined) {
-    containerStyles.borderRadius = borderRadius;
-    // Ensure rounded corners clip child image/overlays when applicable
-    if (containerStyles.overflow === undefined) {
-      containerStyles.overflow = 'hidden';
-    }
-  }
-  
-  const combinedStyles: ViewStyle = {
-    ...containerStyles,
-    ...style,
-  };
-
-  // A radius supplied through `style` needs the same clipping the `rounded`/`circle` props get,
-  // otherwise the square-cornered image bleeds past the rounded wrapper.
-  if (combinedStyles.borderRadius !== undefined && combinedStyles.overflow === undefined) {
-    combinedStyles.overflow = 'hidden';
-  }
-
-  // Determine image source (memoized to avoid re-triggering loads on each render)
-  const imageSource = useMemo(() => {
-    if (source) return source;
-    return resolveImageSource(src);
-  }, [source, src]);
-  
   const handleLoadStart = useCallback(() => {
     setIsLoading(true);
     onLoadStart?.();
   }, [onLoadStart]);
-  
+
   const handleLoad = useCallback(() => {
     setIsLoading(false);
     setLoadError(false);
     onLoad?.();
   }, [onLoad]);
-  
-  const handleError = useCallback((error: any) => {
-    setIsLoading(false);
-    setLoadError(true);
-    onError?.(error);
-  }, [onError]);
-  
+
+  const handleError = useCallback(
+    (error: NativeSyntheticEvent<ImageErrorEventData>) => {
+      setIsLoading(false);
+      setLoadError(true);
+      onError?.(error);
+    },
+    [onError]
+  );
+
   const handleLoadEnd = useCallback(() => {
     setIsLoading(false);
     onLoadEnd?.();
   }, [onLoadEnd]);
-  
+
   if (!imageSource && !fallback) {
     return null;
   }
-  
+
+  // `alt=""` (or no text alternative at all) marks the image decorative.
+  const label = accessibilityLabel ?? alt;
+  const imageA11y = label
+    ? a11yProps({ role: 'img', label, accessible: true })
+    : a11yProps({ hidden: true, accessible: false });
+
   return (
-    <View style={combinedStyles} testID={testID}>
-      {isLoading && loading && (
-        <View style={{ position: 'absolute', ...imageStyles, justifyContent: 'center', alignItems: 'center', zIndex: 1 }}>
-          {loading}
-        </View>
-      )}
-      
+    <View
+      ref={ref}
+      style={[propStyles, layoutStyles, containerStyle, sizeStyle, needsClip && { overflow: 'hidden' }, style]}
+      testID={testID}
+    >
+      {isLoading && loading ? <View style={[imageBoxStyle, styles.overlay]}>{loading}</View> : null}
+
       {loadError && fallback ? (
-        <View style={{ ...imageStyles, justifyContent: 'center', alignItems: 'center' }}>
-          {fallback}
-        </View>
+        <View style={[imageBoxStyle, styles.center]}>{fallback}</View>
       ) : imageSource ? (
         <RNImage
           source={imageSource}
           resizeMode={resizeMode}
-          style={imageStyles}
-          accessibilityLabel={accessibilityLabel || alt}
+          style={[imageBoxStyle, imageStyle]}
+          {...imageA11y}
           onLoadStart={handleLoadStart}
           onLoad={handleLoad}
           onError={handleError}
@@ -189,10 +195,8 @@ export function Image({
           testID={testID ? `${testID}-image` : undefined}
         />
       ) : fallback ? (
-        <View style={{ ...imageStyles, justifyContent: 'center', alignItems: 'center' }}>
-          {fallback}
-        </View>
+        <View style={[imageBoxStyle, styles.center]}>{fallback}</View>
       ) : null}
     </View>
   );
-}
+}, { displayName: 'Image' });

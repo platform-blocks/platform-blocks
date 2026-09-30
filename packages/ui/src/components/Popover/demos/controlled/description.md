@@ -3,9 +3,7 @@ title: Controlled State
 category: behavior
 order: 20
 tags: [popover, state]
-highlightLines: [12-34]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

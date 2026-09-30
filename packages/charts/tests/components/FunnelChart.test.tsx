@@ -26,7 +26,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, multiTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <FunnelChart series={SERIES} width={480} height={360} />
+        <FunnelChart series={SERIES} w={480} h={360} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );

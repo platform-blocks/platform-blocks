@@ -1,50 +1,31 @@
 import { useState } from 'react';
-import { Button, Card, Block, Row, Stepper, Text } from '@platform-blocks/ui';
-
-import { onboardingSteps as steps } from '../data';
-
-const totalSteps = steps.length;
+import { Block, Button, Row, Stepper } from '@plocks/ui';
 
 export function Demo() {
-  const [activeStep, setActiveStep] = useState(1);
-
-  const handleStepChange = (nextIndex: number) => {
-    if (nextIndex < 0 || nextIndex > totalSteps) {
-      return;
-    }
-    setActiveStep(nextIndex);
-  };
-
-  const goPrevious = () => handleStepChange(activeStep - 1);
-  const goNext = () => handleStepChange(activeStep + 1);
+  const [active, setActive] = useState(1);
 
   return (
     <Block fullWidth>
-      <Card p="md">
-        <Block>
-          <Text size="sm" color="secondary">
-            Control the current step with the `active` prop and provide completion content with `Stepper.Completed`.
-          </Text>
-          <Stepper active={activeStep} onStepClick={handleStepChange}>
-            {steps.map((step) => (
-              <Stepper.Step key={step.label} label={step.label} description={step.description}>
-                {step.details}
-              </Stepper.Step>
-            ))}
-            <Stepper.Completed>
-              All onboarding tasks are complete. You can continue to the dashboard.
-            </Stepper.Completed>
-          </Stepper>
-          <Row gap="sm" justify="space-between">
-            <Button variant="outline" onPress={goPrevious} disabled={activeStep === 0}>
-              Back
-            </Button>
-            <Button onPress={goNext} disabled={activeStep === totalSteps}>
-              {activeStep === totalSteps - 1 ? 'Finish' : 'Next step'}
-            </Button>
-          </Row>
-        </Block>
-      </Card>
+      <Stepper active={active} onStepClick={setActive}>
+        <Stepper.Step label="Account" description="Create your credentials">
+          Set up your sign-in information.
+        </Stepper.Step>
+        <Stepper.Step label="Verification" description="Confirm your email">
+          Check your inbox for a verification link.
+        </Stepper.Step>
+        <Stepper.Step label="Preferences" description="Adjust defaults">
+          Choose your notification defaults.
+        </Stepper.Step>
+        <Stepper.Completed>All steps complete.</Stepper.Completed>
+      </Stepper>
+      <Row gap="sm" justify="space-between">
+        <Button variant="outline" onPress={() => setActive(active - 1)} disabled={active === 0}>
+          Back
+        </Button>
+        <Button onPress={() => setActive(active + 1)} disabled={active === 3}>
+          Next
+        </Button>
+      </Row>
     </Block>
   );
 }

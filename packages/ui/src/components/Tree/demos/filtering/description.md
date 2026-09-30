@@ -5,7 +5,6 @@ order: 40
 tags: [tree, filtering]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

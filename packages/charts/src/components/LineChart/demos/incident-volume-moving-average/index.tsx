@@ -1,4 +1,4 @@
-import { LineChart } from '@platform-blocks/charts';
+import { LineChart } from '@plocks/charts';
 
 import { DAYS, MAJOR_OUTAGE_DAY, SERIES, STABILIZATION_END, STABILIZATION_START } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <LineChart
       title="Incident Volume with Moving Averages"
       subtitle="SRE daily incident intake and trailing trends"
-      height={440}
+      h={440}
       series={SERIES}
       smooth
       grid={{ show: true, style: 'solid' }}

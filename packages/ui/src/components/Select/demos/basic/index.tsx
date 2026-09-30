@@ -1,4 +1,4 @@
-import { Select } from '@platform-blocks/ui'
+import { Select } from '@plocks/ui'
 import { sports } from '../data'
 
 export function Demo() {

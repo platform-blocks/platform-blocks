@@ -1,57 +1,58 @@
-import React, { forwardRef, useContext } from 'react';
-import { View, type ViewProps } from 'react-native';
+import React, { useContext } from 'react';
+import { View, type ViewStyle } from 'react-native';
 
-import { getSpacing, type SizeValue } from '../../core/theme/sizes';
+import { factory } from '../../core/factory/factory';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveSpacing } from '../../core/theme/tokens';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
 import { CardContext } from './CardContext';
 import type { CardSectionProps } from './types';
 
-const resolvePad = (value: SizeValue | undefined): number | undefined => {
+const resolvePad = (theme: PlocksTheme, value: SizeValue | undefined): number | undefined => {
   if (value === undefined) return undefined;
   if (typeof value === 'number') return value;
-  return getSpacing(value);
+  const resolved = resolveSpacing(theme, value);
+  return typeof resolved === 'number' ? resolved : undefined;
 };
 
-// Forward arbitrary RN View props (testID, accessibilityLabel, onLayout…) so
-// users aren't artificially constrained by our explicit prop list.
-type FullCardSectionProps = CardSectionProps & Omit<ViewProps, keyof CardSectionProps>;
-
-const CardSectionComponent = forwardRef<View, FullCardSectionProps>(
+/**
+ * A region of a `Card` that escapes the card's padding (full-bleed images,
+ * banded rows). Arbitrary View props (testID, role, onLayout…) are forwarded.
+ */
+export const CardSection = factory<{ props: CardSectionProps; ref: View }>(
   ({ children, withBorder, inheritPadding, py, px, style, _isFirst, _isLast, ...rest }, ref) => {
+    const theme = useTheme();
     const ctx = useContext(CardContext);
     const padding = ctx?.paddingPx ?? 0;
-    const borderColor = ctx?.borderColor ?? 'rgba(0,0,0,0.08)';
+    const borderColor = ctx?.borderColor ?? theme.backgrounds.border;
 
     // Negative margins so the section escapes the parent Card's padding.
     // Only escape the edges that touch the Card's outer wall — a middle
     // section keeps the natural vertical flow, only going full-bleed
     // horizontally.
-    const escapeStyle = {
-      marginLeft: -padding,
-      marginRight: -padding,
+    const escapeStyle: ViewStyle = {
+      marginStart: -padding,
+      marginEnd: -padding,
       marginTop: _isFirst ? -padding : 0,
       marginBottom: _isLast ? -padding : 0,
     };
 
     // Optional inside padding overrides
-    const explicitPy = resolvePad(py);
-    const explicitPx = resolvePad(px);
-    const insidePadding = {
+    const explicitPy = resolvePad(theme, py);
+    const explicitPx = resolvePad(theme, px);
+    const insidePx = explicitPx ?? (inheritPadding ? padding : undefined);
+    const insidePadding: ViewStyle = {
       ...(explicitPy !== undefined && { paddingTop: explicitPy, paddingBottom: explicitPy }),
-      ...(inheritPadding && explicitPx === undefined && {
-        paddingLeft: padding,
-        paddingRight: padding,
-      }),
-      ...(explicitPx !== undefined && { paddingLeft: explicitPx, paddingRight: explicitPx }),
+      ...(insidePx !== undefined && { paddingStart: insidePx, paddingEnd: insidePx }),
     };
 
     // Conditional dividers when withBorder is set on the section
-    const dividers =
-      withBorder
-        ? {
-            ...(!_isFirst && { borderTopWidth: 1, borderTopColor: borderColor }),
-            ...(!_isLast && { borderBottomWidth: 1, borderBottomColor: borderColor }),
-          }
-        : null;
+    const dividers: ViewStyle | null = withBorder
+      ? {
+          ...(!_isFirst && { borderTopWidth: 1, borderTopColor: borderColor }),
+          ...(!_isLast && { borderBottomWidth: 1, borderBottomColor: borderColor }),
+        }
+      : null;
 
     return (
       <View ref={ref} {...rest} style={[escapeStyle, insidePadding, dividers, style]}>
@@ -59,12 +60,10 @@ const CardSectionComponent = forwardRef<View, FullCardSectionProps>(
       </View>
     );
   },
+  { displayName: 'CardSection' }
 );
 
-CardSectionComponent.displayName = 'CardSection';
-
-// Tag so the parent Card can identify Section children when walking
-// `React.Children` to inject first/last position metadata.
-(CardSectionComponent as any).__CARD_SECTION__ = true;
-
-export const CardSection = CardSectionComponent;
+/** Whether an element type is `Card.Section` (so the parent Card can tag first/last sections). */
+export function isCardSection(type: unknown): boolean {
+  return type === CardSection;
+}

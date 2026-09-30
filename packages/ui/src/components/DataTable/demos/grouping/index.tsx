@@ -1,5 +1,5 @@
-import { DataTable } from '@platform-blocks/ui';
-import type { DataTableColumn } from '@platform-blocks/ui';
+import { DataTable } from '@plocks/ui';
+import type { DataTableColumn } from '@plocks/ui';
 
 import { sales as rows, type Sale } from '../data';
 

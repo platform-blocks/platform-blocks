@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { Block, Knob, Text } from '@platform-blocks/ui';
+import { Block, Knob, Text } from '@plocks/ui';
 
 // The split arc reads the same on both sides of center: direction is carried by which way
 // the arc grows and by the L/R label, not by a color change.
@@ -16,7 +16,7 @@ export function Demo() {
 
   return (
     <Block align="center">
-      <Knob.Root
+      <Knob.Root accessibilityLabel="Pan"
         min={-100}
         max={100}
         value={pan}
@@ -47,7 +47,7 @@ export function Demo() {
           textStyle={{ fontSize: 30, fontWeight: '700', color: '#f8fafc' }}
         />
       </Knob.Root>
-      <Text size="sm" color="secondary">
+      <Text size="sm" c="secondary">
         Stereo balance · {readout}
       </Text>
     </Block>

@@ -5,7 +5,6 @@ order: 60
 tags: [segmented-control, colors, theming]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

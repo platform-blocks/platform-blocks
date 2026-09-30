@@ -66,8 +66,8 @@ export const ChartContainer: React.FC<BaseChartProps & {
   suppressPopover?: boolean;
 }> = (props) => {
   const {
-    width = 400,
-    height = 300,
+    w: width = 400,
+    h: height = 300,
     padding = { top: 20, right: 20, bottom: 40, left: 60 },
     animationDuration = 500,
     animationEasing = 'ease-out',

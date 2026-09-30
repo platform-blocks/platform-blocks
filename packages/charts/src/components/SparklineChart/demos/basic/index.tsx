@@ -1,11 +1,11 @@
-import { SparklineChart } from '@platform-blocks/charts';
+import { SparklineChart } from '@plocks/charts';
 
 import { DAILY_SIGNUPS } from './data';
 
 export function Demo() {
   return (
     <SparklineChart
-      height={72}
+      h={72}
       data={DAILY_SIGNUPS}
       fill
       fillOpacity={0.18}

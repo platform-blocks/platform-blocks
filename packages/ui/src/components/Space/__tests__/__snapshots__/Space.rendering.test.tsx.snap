@@ -1,0 +1,38 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Space - rendering matches snapshot for a horizontal spacer with custom styling 1`] = `
+<View
+  style={
+    [
+      {
+        "flexShrink": 0,
+        "height": undefined,
+        "width": 16,
+      },
+      {},
+      {
+        "backgroundColor": "#f0f0f0",
+        "borderRadius": 4,
+      },
+    ]
+  }
+  testID="space-horizontal"
+/>
+`;
+
+exports[`Space - rendering matches snapshot for the default spacer 1`] = `
+<View
+  style={
+    [
+      {
+        "flexShrink": 0,
+        "height": 12,
+        "width": undefined,
+      },
+      {},
+      undefined,
+    ]
+  }
+  testID="space-default"
+/>
+`;

@@ -1,5 +1,6 @@
 import { ShadowProps, ShadowValue, createShadowStyles, COMPONENT_SHADOW_DEFAULTS } from '../theme/shadow';
-import { PlatformBlocksTheme } from '../theme/types';
+import type { ViewStyle } from 'react-native';
+import { PlocksTheme } from '../theme/types';
 
 /**
  * Helper to extract shadow props from component props
@@ -24,9 +25,9 @@ export function extractShadowProps<T extends ShadowProps>(
  */
 export function getShadowStyles(
   shadowProps: ShadowProps,
-  theme: PlatformBlocksTheme,
+  theme: PlocksTheme,
   componentType?: keyof typeof COMPONENT_SHADOW_DEFAULTS
-): Record<string, any> {
+): ViewStyle {
   if (!shadowProps.shadow) {
     return {};
   }

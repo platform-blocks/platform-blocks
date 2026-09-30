@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { devWarn } from '../../core/utils/logger';
 
 /** A next-value or an updater function, mirroring `useState`'s setter argument. */
 export type ControllableStateAction<T> = T | ((previous: T) => T);
@@ -28,15 +29,19 @@ export interface UseControllableStateOptions<T> {
    * Called with every requested value, in both modes, synchronously from the
    * caller's event handler. Extra arguments passed to `setValue` are forwarded
    * after the value, so component-specific payloads survive.
+   *
+   * Declared with method syntax on purpose: method parameters are checked
+   * bivariantly, so a handler typed `(value: T, option: MyOption) => void`
+   * is accepted without the payload being `any`.
    */
-  onChange?: (value: T, ...payload: any[]) => void;
+  onChange?(value: T, ...payload: unknown[]): void;
 }
 
 export type UseControllableStateReturn<T> = readonly [
   /** The value to render — the controlled prop, or internal state. */
   T,
   /** Request a new value. Accepts a value or an updater function. */
-  (next: ControllableStateAction<T>, ...payload: any[]) => void,
+  (next: ControllableStateAction<T>, ...payload: unknown[]) => void,
   /** `true` while the `value` prop is driving the component. */
   boolean,
 ];
@@ -50,9 +55,6 @@ const resolveInitial = <T,>(defaultValue: T | (() => T) | undefined, finalValue:
       ? (defaultValue as () => T)()
       : defaultValue
     : finalValue) as T;
-
-/** `__DEV__` is a Metro global; guard it so web/SSR bundles don't blow up. */
-const IS_DEV = typeof __DEV__ !== 'undefined' ? __DEV__ : process.env.NODE_ENV !== 'production';
 
 /**
  * Single source of truth for the controlled / uncontrolled split that every
@@ -117,13 +119,11 @@ export function useControllableState<T>({
     const leavingControlled = wasControlledRef.current && !isControlled;
     wasControlledRef.current = isControlled;
 
-    if (IS_DEV) {
-      console.warn(
-        `[platform-blocks] A component switched from ${
-          isControlled ? 'uncontrolled to controlled' : 'controlled to uncontrolled'
-        }. Decide on one mode for the lifetime of the component: pass \`value\` for controlled, or \`defaultValue\` for uncontrolled.`,
-      );
-    }
+    devWarn(
+      `[plocks] A component switched from ${
+        isControlled ? 'uncontrolled to controlled' : 'controlled to uncontrolled'
+      }. Decide on one mode for the lifetime of the component: pass \`value\` for controlled, or \`defaultValue\` for uncontrolled.`,
+    );
 
     if (leavingControlled) {
       // Render-phase state update: React discards this render and immediately
@@ -137,7 +137,7 @@ export function useControllableState<T>({
   onChangeRef.current = onChange;
 
   const setValue = useCallback(
-    (next: ControllableStateAction<T>, ...payload: any[]) => {
+    (next: ControllableStateAction<T>, ...payload: unknown[]) => {
       const nextValue = isUpdater(next) ? next(resolvedRef.current) : next;
 
       // Advance the ref immediately so several updater calls inside one event

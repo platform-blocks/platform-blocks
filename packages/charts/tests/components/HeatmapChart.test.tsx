@@ -28,7 +28,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <HeatmapChart data={DATA} width={400} height={300} />
+        <HeatmapChart data={DATA} w={400} h={300} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );
@@ -107,5 +107,56 @@ describe('HeatmapChart (cell hit-test engine)', () => {
     });
 
     expect(countLabel(toJSON(), '1')).toBe(1);
+  });
+});
+
+describe('HeatmapChart shared color scales', () => {
+  const { resolveColorScaleColors } = require('../../src/utils/colorScale');
+  const { paletteDefaultLight } = require('../../src/colors');
+  const renderScale = (props: Partial<React.ComponentProps<typeof HeatmapChart>>) =>
+    render(
+      <ChartThemeProvider>
+        <HeatmapChart data={DATA} w={400} h={300} disableAnimation {...props} />
+      </ChartThemeProvider>
+    );
+  // react-native-svg is mocked to one component, so count elements by their props.
+  const countFill = (r: ReturnType<typeof renderScale>, fill: string) =>
+    r.UNSAFE_queryAllByProps({ fill }).length;
+
+  it('bands cells with a threshold scale', () => {
+    const r = renderScale({ colorScale: { type: 'threshold', thresholds: [3.5], colors: ['#00aa00', '#aa0000'] } });
+    // Values 1-3 and 4-6 fall either side of the breakpoint.
+    expect(countFill(r, '#00aa00')).toBeGreaterThan(0);
+    expect(countFill(r, '#aa0000')).toBe(countFill(r, '#00aa00'));
+  });
+
+  it('defaults to a single-hue ramp from the first palette color', () => {
+    const [low, , high] = resolveColorScaleColors({}, {
+      base: paletteDefaultLight[0],
+      background: '#ffffff',
+      ink: '#111',
+      palette: paletteDefaultLight,
+    });
+    const r = renderScale({});
+    expect(countFill(r, low)).toBeGreaterThan(0);
+    expect(countFill(r, high)).toBeGreaterThan(0);
+  });
+
+  it('splits the data extent into equal threshold bands', () => {
+    const r = renderScale({ colorScale: { type: 'threshold', colors: ['#010101', '#020202'] } });
+    expect(countFill(r, '#010101')).toBeGreaterThan(0);
+    expect(countFill(r, '#020202')).toBeGreaterThan(0);
+  });
+
+  it('gives a threshold legend hard band edges', () => {
+    const r = renderScale({
+      gradientLegend: { show: true },
+      colorScale: { type: 'threshold', thresholds: [3.5], colors: ['#00aa00', '#aa0000'] },
+    });
+    const offsets = (color: string) =>
+      Array.from(new Set(r.UNSAFE_queryAllByProps({ stopColor: color }).map((n) => Number(n.props.offset)))).sort();
+    // Values span 1-6, so the break at 3.5 sits halfway along the bar.
+    expect(offsets('#00aa00')).toEqual([0, 0.5]);
+    expect(offsets('#aa0000')).toEqual([0.5, 1]);
   });
 });

@@ -1,4 +1,4 @@
-import { ParetoChart } from '@platform-blocks/charts';
+import { ParetoChart } from '@plocks/charts';
 
 import { POSTMORTEM_CAUSES } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <ParetoChart
       title="Incident root causes"
       subtitle="Rolling twelve months"
-      height={420}
+      h={420}
       data={POSTMORTEM_CAUSES}
       valueSeriesLabel="Incidents"
       cumulativeSeriesLabel="Cumulative impact"

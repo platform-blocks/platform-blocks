@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native';
-import { SparklineChart } from '@platform-blocks/charts';
+import { SparklineChart } from '@plocks/charts';
 
 import { BUG_BACKLOG } from './data';
 
@@ -15,7 +15,7 @@ export function Demo() {
       </Text>
 
       <SparklineChart
-        height={86}
+        h={86}
         data={BUG_BACKLOG}
         color="#F03E3E"
         fill

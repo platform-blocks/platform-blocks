@@ -5,7 +5,6 @@ order: 30
 tags: [timeline, customization]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

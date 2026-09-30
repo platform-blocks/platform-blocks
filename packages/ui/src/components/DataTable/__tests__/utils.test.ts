@@ -1,4 +1,5 @@
 import {
+  buildCsv,
   computeAggregate,
   filterData,
   formatValue,
@@ -6,6 +7,7 @@ import {
   getColumnFilterType,
   getValue,
   isNumericType,
+  nextSort,
   sortData,
   toDayKey,
 } from '../utils';
@@ -25,10 +27,10 @@ const people: Person[] = [
 ];
 
 const columns: DataTableColumn<Person>[] = [
-  { key: 'name', title: 'Name', accessor: 'name' },
-  { key: 'age', title: 'Age', accessor: 'age', dataType: 'number' },
-  { key: 'joined', title: 'Joined', accessor: 'joined', dataType: 'date' },
-  { key: 'active', title: 'Active', accessor: 'active', dataType: 'boolean' },
+  { key: 'name', header: 'Name', accessor: 'name' },
+  { key: 'age', header: 'Age', accessor: 'age', dataType: 'number' },
+  { key: 'joined', header: 'Joined', accessor: 'joined', dataType: 'date' },
+  { key: 'active', header: 'Active', accessor: 'active', dataType: 'boolean' },
 ];
 
 const names = (rows: Person[]) => rows.map((row) => row.name);
@@ -252,5 +254,30 @@ describe('DataTable utils', () => {
       expect(names(filterData(people, [], columns, 'grace', pinFirstRow)))
         .toEqual(['Ada', 'Grace']);
     });
+  });
+});
+
+describe('buildCsv', () => {
+  it('writes a header line and one formatted line per row (CRLF)', () => {
+    expect(buildCsv(people.slice(0, 2), columns)).toBe(
+      ['Name,Age,Joined,Active', 'Ada,36,2024-01-15,Yes', 'Grace,45,2023-06-01,No'].join('\r\n')
+    );
+  });
+
+  it('quotes fields containing commas, quotes or newlines', () => {
+    const rows = [{ name: 'Lovelace, Ada', age: 1, joined: 'said "hi"', active: true }];
+    const [, line] = buildCsv(rows, columns).split('\r\n');
+    expect(line).toBe('"Lovelace, Ada",1,"said ""hi""",Yes');
+  });
+});
+
+describe('nextSort', () => {
+  it('cycles none → asc → desc → none and makes the column primary', () => {
+    const others = [{ column: 'age', direction: 'desc' as const }];
+    const asc = nextSort(others, 'name');
+    expect(asc).toEqual([{ column: 'name', direction: 'asc' }, ...others]);
+    const desc = nextSort(asc, 'name');
+    expect(desc).toEqual([{ column: 'name', direction: 'desc' }, ...others]);
+    expect(nextSort(desc, 'name')).toEqual(others);
   });
 });

@@ -3,9 +3,7 @@ title: Column Sizing
 category: layout
 order: 60
 tags: [table, columns]
-highlightLines: [22]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

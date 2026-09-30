@@ -17,7 +17,7 @@ import { DEFAULT_BREAKPOINTS, type Breakpoints, type ResponsiveProp } from '../.
  */
 
 /** Set on the grid, read by its cells. */
-const COLUMNS_VAR = '--pb-grid-cols';
+const COLUMNS_VAR = '--plocks-grid-cols';
 
 const ORDER: (keyof Breakpoints)[] = ['base', 'sm', 'md', 'lg', 'xl'];
 
@@ -73,7 +73,7 @@ const responsiveRules = (
 };
 
 export interface GridWebStyles {
-  /** Value for the grid's `data-pb-grid` attribute, and the rule's key. */
+  /** Value for the grid's `data-plocks-grid` attribute, and the rule's key. */
   name: string;
   css: string;
 }
@@ -89,7 +89,7 @@ export const gridColumnsCss = (
   for (const key of ORDER) {
     values[key] = `${COLUMNS_VAR}:${Math.max(1, Math.round(perBreakpoint[key]))}`;
   }
-  return { name, css: responsiveRules(`[data-pb-grid="${name}"]`, values, breakpoints) };
+  return { name, css: responsiveRules(`[data-plocks-grid="${name}"]`, values, breakpoints) };
 };
 
 /**
@@ -122,6 +122,6 @@ export const gridCellCss = (
   // attribute outranks the class without reaching for `!important`.
   return {
     name,
-    css: responsiveRules(`[data-pb-grid-cell="${name}"][data-pb-grid-cell="${name}"]`, values, breakpoints),
+    css: responsiveRules(`[data-plocks-grid-cell="${name}"][data-plocks-grid-cell="${name}"]`, values, breakpoints),
   };
 };

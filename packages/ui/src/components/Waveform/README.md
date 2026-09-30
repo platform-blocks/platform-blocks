@@ -17,7 +17,7 @@ An advanced, interactive audio waveform visualization component for React Native
 ## Basic Usage
 
 ```tsx
-import { Waveform } from '@platform-blocks/ui';
+import { Waveform } from '@plocks/ui';
 
 // Simple waveform
 <Waveform
@@ -162,9 +162,12 @@ import { Waveform } from '@platform-blocks/ui';
 ```
 
 ### Keyboard Navigation
-When the waveform is focused and interactive, users can:
-- Press **Space** to trigger a custom 'waveformSpacePress' event
-- Your app can listen for this event to implement play/pause functionality
+An interactive waveform with `onSeek` is a seek slider. When it has focus (web):
+- **Arrow keys** seek by 5 seconds when `duration` is set (else 1%); **Shift+arrow** 10×
+- **Page Up / Page Down** seek by 10%; **Home / End** jump to the start / end
+- **Space** dispatches a `waveformSpacePress` DOM event (for play/pause), unless your own `onKeyDown` handled it first
+
+Screen readers announce it as a slider whose value is the time ("1:05 of 3:20" with `duration`); on native the adjust gestures seek too.
 
 ```tsx
 // Listen for space bar events
@@ -201,7 +204,7 @@ The component includes comprehensive error handling:
 
 ## Accessibility Features
 
-- Proper `accessibilityRole` and `accessibilityLabel`
+- Announced as an image (non-interactive) or a seek slider with `aria-valuenow` / `aria-valuetext` (interactive)
 - Keyboard navigation support when interactive
 - Focus management for interactive elements
 - Screen reader compatible progress information
@@ -211,15 +214,6 @@ The component includes comprehensive error handling:
 - **Web**: Full support with keyboard events
 - **React Native**: Touch events only (no keyboard support)
 - **SVG**: Uses react-native-svg for cross-platform compatibility
-
-## Migration from Basic Version
-
-If upgrading from a basic waveform component:
-
-1. **Interactive**: Add `interactive={true}` and `onSeek` handler
-2. **Performance**: Add `maxVisibleBars` for large datasets
-3. **Progress**: Use `progress` and `progressColor` props
-4. **Responsive**: Add `fullWidth={true}` for responsive layouts
 
 ## Related Components
 

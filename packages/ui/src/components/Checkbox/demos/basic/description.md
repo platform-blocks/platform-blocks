@@ -3,9 +3,7 @@ title: Basics
 category: basics
 order: 10
 tags: [checkboxes]
-highlightLines: [17-28]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

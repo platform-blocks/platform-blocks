@@ -5,7 +5,6 @@ order: 50
 tags: [persistent, close-on-select, comparison]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

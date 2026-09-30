@@ -12,13 +12,15 @@ props:
   children: Body content
   icon: Override the leading icon (or set to null/false to hide)
   withCloseButton: Show a dismiss button
+  closeButtonLabel: Accessible name of the dismiss button (default "Close")
   onClose: Callback for the dismiss button
   fullWidth: Stretch the alert to fill its container
-  titleProps: Override props applied to the title `<Text>` (style, weight, ff, size, color)
+  titleProps: Override props applied to the title `<Text>` (style, fw, ff, size, c)
   bodyProps: Override props applied to the body `<Text>` (the children content)
 examples:
   - basic
   - variants
   - interactive
 ---
-The Alert component displays important messages to users with different severity levels, variants, and optional actions like dismissal. Title and body each accept full `<Text>` props via `titleProps` / `bodyProps`.
+
+Alert displays prominent messages with severity styles and optional actions.

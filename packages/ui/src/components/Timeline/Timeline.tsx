@@ -1,9 +1,14 @@
-import React, { createContext, useContext, forwardRef, useState, useCallback } from 'react';
-import { View, Text, ViewStyle, TextStyle, LayoutChangeEvent } from 'react-native';
-import { TimelineProps, TimelineItemProps, TimelineContextValue, TimelineSizeMetrics } from './types';
-import { useTheme } from '../../core/theme/ThemeProvider';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { Text, View } from 'react-native';
+import type { LayoutChangeEvent, StyleProp, TextStyle, ViewStyle } from 'react-native';
+
+import { factory, withStatics } from '../../core/factory';
 import { resolveAccentColor } from '../../core/theme/resolveColors';
-import { clampComponentSize, resolveComponentSize, type ComponentSize, type ComponentSizeValue } from '../../core/theme/componentSize';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getControlSize } from '../../core/theme/tokens';
+import type { PlocksTheme, SizeValue } from '../../core/theme/types';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
+import type { TimelineContextValue, TimelineItemProps, TimelineProps, TimelineSizeMetrics } from './types';
 
 // Context
 const TimelineContext = createContext<TimelineContextValue | null>(null);
@@ -13,46 +18,66 @@ const useTimelineContext = () => {
   return ctx;
 };
 
-const TIMELINE_ALLOWED_SIZES: ComponentSize[] = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
-
-const TIMELINE_SIZE_SCALE: Record<ComponentSize, TimelineSizeMetrics> = {
-  xs: { bulletSize: 16, lineWidth: 1, fontSize: 12, spacing: 8 },
-  sm: { bulletSize: 20, lineWidth: 2, fontSize: 14, spacing: 12 },
-  md: { bulletSize: 24, lineWidth: 2, fontSize: 16, spacing: 16 },
-  lg: { bulletSize: 28, lineWidth: 3, fontSize: 18, spacing: 20 },
-  xl: { bulletSize: 32, lineWidth: 3, fontSize: 20, spacing: 24 },
-  '2xl': { bulletSize: 36, lineWidth: 4, fontSize: 22, spacing: 28 },
-  '3xl': { bulletSize: 40, lineWidth: 4, fontSize: 24, spacing: 32 },
-};
-
-const BASE_TIMELINE_METRICS = TIMELINE_SIZE_SCALE.md;
-
-const resolveTimelineMetrics = (value: ComponentSizeValue): TimelineSizeMetrics => {
-  if (typeof value === 'number') {
-    const ratio = value / BASE_TIMELINE_METRICS.fontSize;
+/**
+ * Timeline proportions, derived from the shared control-size scale: bullets are
+ * 60% of the control height, labels one step above the control font. A numeric
+ * `size` is the title font size (px), scaled off the `md` proportions.
+ */
+function getTimelineMetrics(theme: PlocksTheme, size: SizeValue): TimelineSizeMetrics {
+  const fromControl = (token: SizeValue): TimelineSizeMetrics => {
+    const control = getControlSize(theme, token);
+    const bulletSize = Math.round(control.height * 0.6);
     return {
-      fontSize: value,
-      bulletSize: Math.max(12, Math.round(BASE_TIMELINE_METRICS.bulletSize * ratio)),
-      lineWidth: Math.max(1, Math.round(BASE_TIMELINE_METRICS.lineWidth * ratio)),
-      spacing: Math.max(8, Math.round(BASE_TIMELINE_METRICS.spacing * ratio)),
+      bulletSize,
+      lineWidth: Math.max(1, Math.round(bulletSize / 12)),
+      fontSize: control.fontSize + 2,
+      spacing: Math.round(control.height * 0.4),
     };
-  }
+  };
+  if (typeof size !== 'number') return fromControl(size);
 
-  const resolved = resolveComponentSize(value, TIMELINE_SIZE_SCALE, {
-    allowedSizes: TIMELINE_ALLOWED_SIZES,
-    fallback: 'md',
+  const base = fromControl('md');
+  const ratio = size / base.fontSize;
+  return {
+    fontSize: size,
+    bulletSize: Math.max(12, Math.round(base.bulletSize * ratio)),
+    lineWidth: Math.max(1, Math.round(base.lineWidth * ratio)),
+    spacing: Math.max(8, Math.round(base.spacing * ratio)),
+  };
+}
+
+interface TimelineItemInternalProps extends TimelineItemProps {
+  /** Position among the items (set by Timeline). */
+  itemIndex?: number;
+  /** Set by Timeline on the last item (no trailing line). */
+  isLastItem?: boolean;
+}
+
+type StyledChildProps = { style?: StyleProp<TextStyle>; children?: React.ReactNode };
+
+/** Applies `styleOverride` to text-like descendants (strings, Text elements). */
+function applyTextStyle(nodes: React.ReactNode, styleOverride?: TextStyle): React.ReactNode {
+  if (!styleOverride) return nodes;
+  return React.Children.map(nodes, (child): React.ReactNode => {
+    if (typeof child === 'string' || typeof child === 'number') {
+      return <Text style={styleOverride}>{child}</Text>;
+    }
+    if (!React.isValidElement<StyledChildProps>(child)) return child;
+    const props = child.props;
+    const typeName = typeof child.type === 'string' ? undefined : (child.type as { displayName?: string }).displayName;
+    const isTextLike = typeName === 'Text' || child.type === Text || typeof props.children === 'string';
+    if (isTextLike) {
+      return React.cloneElement(child, { style: [props.style, styleOverride] });
+    }
+    if (props.children) {
+      return React.cloneElement(child, { children: applyTextStyle(props.children, styleOverride) });
+    }
+    return child;
   });
+}
 
-  if (typeof resolved === 'number') {
-    return resolveTimelineMetrics(resolved);
-  }
-
-  return resolved;
-};
-
-// Token resolver (palette.shade or palette)
 // Item
-const TimelineItem = forwardRef<View, TimelineItemProps & { itemIndex?: number; isLastItem?: boolean }>(({
+const TimelineItem = factory<{ props: TimelineItemInternalProps; ref: View }>(({
   children,
   title,
   timestamp,
@@ -66,6 +91,7 @@ const TimelineItem = forwardRef<View, TimelineItemProps & { itemIndex?: number; 
   itemIndex = 0,
   isLastItem = false,
   itemAlign,
+  style,
   ...rest
 }, ref) => {
   const theme = useTheme();
@@ -76,69 +102,62 @@ const TimelineItem = forwardRef<View, TimelineItemProps & { itemIndex?: number; 
     bulletSize: contextBulletSize,
     align,
     reverseActive,
-    size,
     centerMode,
     metrics,
     titleColor: timelineTitleColor,
     descriptionColor: timelineDescriptionColor,
     timestampColor: timelineTimestampColor,
   } = useTimelineContext();
+  const { styleProps, otherProps } = extractStyleProps(rest);
+  const spacingStyle = useStyleProps(styleProps);
 
   const sizeConfig = metrics;
   const finalBulletSize = contextBulletSize || sizeConfig.bulletSize;
-  const showAllColored = timelineActive === undefined;
   const [patternHeight, setPatternHeight] = useState(0);
   const handlePatternLayout = useCallback((event: LayoutChangeEvent) => {
     const nextHeight = event.nativeEvent.layout.height;
-    if (nextHeight > 0 && Math.abs(nextHeight - patternHeight) > 0.5) {
-      setPatternHeight(nextHeight);
-    }
-  }, [patternHeight]);
+    setPatternHeight((previous) => (nextHeight > 0 && Math.abs(nextHeight - previous) > 0.5 ? nextHeight : previous));
+  }, []);
 
   const resolvedItemColor = resolveAccentColor(theme, color) ?? timelineColor;
+  // Inactive bullets and lines read as neutral chrome.
+  const inactiveColor = theme.backgrounds.borderStrong;
 
   const resolvedTitleColor = titleColor ?? timelineTitleColor;
   const resolvedDescriptionColor = descriptionColor ?? timelineDescriptionColor;
   const resolvedTimestampColor = timestampColor ?? timelineTimestampColor;
 
   // Active logic
-  const isActive = showAllColored
-    ? true
-    : (active !== undefined
-      ? active
-      : (timelineActive !== undefined
-        ? (reverseActive ? itemIndex > timelineActive : itemIndex <= timelineActive)
-        : true));
+  const isActive =
+    timelineActive === undefined
+      ? true
+      : active !== undefined
+        ? active
+        : reverseActive
+          ? itemIndex > timelineActive
+          : itemIndex <= timelineActive;
 
+  // `left` / `right` are the start / end sides: they flip under RTL.
   const effectiveAlign = itemAlign || align;
+  const atEnd = effectiveAlign === 'right';
 
-  const lineColor = showAllColored ? resolvedItemColor : (isActive ? resolvedItemColor : theme.colors.gray[3]);
+  const lineColor = isActive ? resolvedItemColor : inactiveColor;
 
   const getLine = () => {
     if (isLastItem) return null;
 
+    const inset = finalBulletSize / 2 - lineWidth / 2;
     const baseLinePosition: ViewStyle = {
       position: 'absolute',
-      left: effectiveAlign === 'right' ? undefined : (finalBulletSize / 2) - (lineWidth / 2),
-      right: effectiveAlign === 'right' ? (finalBulletSize / 2) - (lineWidth / 2) : undefined,
+      ...(atEnd ? { end: inset } : { start: inset }),
       top: finalBulletSize,
       bottom: -(finalBulletSize / 2),
       zIndex: 1,
     };
 
     if (lineVariant === 'solid') {
-      return (
-        <View
-          style={{
-            ...baseLinePosition,
-            width: lineWidth,
-            backgroundColor: lineColor,
-          }}
-        />
-      );
+      return <View style={[baseLinePosition, { width: lineWidth, backgroundColor: lineColor }]} />;
     }
-
-    const patternLinePosition: ViewStyle = { ...baseLinePosition };
 
     if (lineVariant === 'dashed') {
       const dashHeight = 6;
@@ -147,23 +166,24 @@ const TimelineItem = forwardRef<View, TimelineItemProps & { itemIndex?: number; 
       const segmentHeight = dashHeight + gapHeight;
       const dashCount = Math.max(1, Math.ceil(totalHeight / segmentHeight));
       return (
-        <View style={patternLinePosition} onLayout={handlePatternLayout}>
-          {patternHeight > 0 && Array.from({ length: dashCount }, (_, i) => {
-            const isLast = i === dashCount - 1;
-            const remaining = totalHeight - (i * segmentHeight);
-            const actualDashHeight = isLast && remaining < dashHeight ? Math.max(remaining, 2) : dashHeight;
-            return (
-              <View
-                key={i}
-                style={{
-                  width: lineWidth,
-                  height: actualDashHeight,
-                  backgroundColor: lineColor,
-                  marginBottom: isLast ? 0 : gapHeight,
-                }}
-              />
-            );
-          })}
+        <View style={baseLinePosition} onLayout={handlePatternLayout}>
+          {patternHeight > 0 &&
+            Array.from({ length: dashCount }, (_, i) => {
+              const isLast = i === dashCount - 1;
+              const remaining = totalHeight - i * segmentHeight;
+              const actualDashHeight = isLast && remaining < dashHeight ? Math.max(remaining, 2) : dashHeight;
+              return (
+                <View
+                  key={i}
+                  style={{
+                    width: lineWidth,
+                    height: actualDashHeight,
+                    backgroundColor: lineColor,
+                    marginBottom: isLast ? 0 : gapHeight,
+                  }}
+                />
+              );
+            })}
         </View>
       );
     }
@@ -176,145 +196,103 @@ const TimelineItem = forwardRef<View, TimelineItemProps & { itemIndex?: number; 
       const dotCount = Math.max(1, Math.ceil(totalHeight / segmentHeight));
       return (
         <View
-          style={{ ...patternLinePosition, alignItems: effectiveAlign === 'right' ? 'flex-end' : 'flex-start' }}
+          style={[baseLinePosition, { alignItems: atEnd ? 'flex-end' : 'flex-start' }]}
           onLayout={handlePatternLayout}
         >
-          {patternHeight > 0 && Array.from({ length: dotCount }, (_, i) => (
-            <View
-              key={i}
-              style={{
-                width: dotSize,
-                height: dotSize,
-                borderRadius: dotSize / 2,
-                backgroundColor: lineColor,
-                marginBottom: i === dotCount - 1 ? 0 : gapHeight,
-              }}
-            />
-          ))}
+          {patternHeight > 0 &&
+            Array.from({ length: dotCount }, (_, i) => (
+              <View
+                key={i}
+                style={{
+                  width: dotSize,
+                  height: dotSize,
+                  borderRadius: dotSize / 2,
+                  backgroundColor: lineColor,
+                  marginBottom: i === dotCount - 1 ? 0 : gapHeight,
+                }}
+              />
+            ))}
         </View>
       );
     }
     return null;
   };
 
-  const getBulletStyle = (): ViewStyle => ({
+  const bulletStyle: ViewStyle = {
     width: finalBulletSize,
     height: finalBulletSize,
     borderRadius: finalBulletSize / 2,
-    backgroundColor: showAllColored ? resolvedItemColor : (isActive ? resolvedItemColor : theme.colors.gray[3]),
+    backgroundColor: lineColor,
     borderWidth: lineWidth,
-    borderColor: showAllColored ? resolvedItemColor : (isActive ? resolvedItemColor : theme.colors.gray[3]),
+    borderColor: lineColor,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
     position: 'relative',
-  });
+  };
 
-  const getContentStyle = (): ViewStyle => ({
+  const contentStyle: ViewStyle = {
     flex: 1,
-  marginLeft: effectiveAlign === 'right' ? 0 : sizeConfig.spacing,
-  marginRight: effectiveAlign === 'right' ? sizeConfig.spacing : 0,
-  paddingBottom: sizeConfig.spacing * 2,
-    alignItems: effectiveAlign === 'right' ? 'flex-end' : 'flex-start',
-  });
+    marginStart: atEnd ? 0 : sizeConfig.spacing,
+    marginEnd: atEnd ? sizeConfig.spacing : 0,
+    paddingBottom: sizeConfig.spacing * 2,
+    alignItems: atEnd ? 'flex-end' : 'flex-start',
+  };
 
-  const getTitleStyle = (): TextStyle => ({
+  const titleStyle: TextStyle = {
     fontSize: sizeConfig.fontSize,
     fontWeight: '600',
     color: resolvedTitleColor ?? theme.text.primary,
     marginBottom: title && children ? 4 : 0,
-    textAlign: effectiveAlign === 'right' ? 'right' : 'left',
-  });
+    textAlign: atEnd ? 'right' : 'left',
+  };
 
-  const getTimestampStyle = (): TextStyle => ({
+  const timestampStyle: TextStyle = {
     fontSize: Math.max(10, Math.round(sizeConfig.fontSize * 0.8)),
     color: resolvedTimestampColor ?? theme.text.secondary,
-    marginBottom: (title || children) ? 4 : 0,
-    textAlign: effectiveAlign === 'right' ? 'right' : 'left',
-  });
-
-  const getItemWrapperStyle = (): ViewStyle => {
-    if (centerMode) {
-      return {
-        flexDirection: 'row',
-        position: 'relative',
-        alignItems: 'stretch',
-      width: '100%',
-      } as ViewStyle;
-    }
-    return {
-      flexDirection: effectiveAlign === 'right' ? 'row-reverse' : 'row',
-      position: 'relative',
-      alignItems: 'flex-start',
-    } as ViewStyle;
+    marginBottom: title || children ? 4 : 0,
+    textAlign: atEnd ? 'right' : 'left',
   };
 
-  const applyTextStyle = (nodes: React.ReactNode, styleOverride?: TextStyle): React.ReactNode => {
-    if (!styleOverride) return nodes;
-    return React.Children.map(nodes, (child): React.ReactNode => {
-      if (typeof child === 'string' || typeof child === 'number') {
-        return <Text style={styleOverride}>{child}</Text>;
-      }
-      if (!React.isValidElement(child)) return child;
-      const props: any = child.props || {};
-      const isTextLike = (child.type as any)?.displayName === 'Text' || child.type === Text || typeof props.children === 'string';
-      if (isTextLike) {
-        const mergedStyle = Array.isArray(props.style)
-          ? [...props.style, styleOverride]
-          : [props.style, styleOverride];
-        return React.cloneElement(child as any, { style: mergedStyle });
-      }
-      if (props.children) {
-        return React.cloneElement(child as any, { children: applyTextStyle(props.children, styleOverride) });
-      }
-      return child;
-    });
-  };
+  const bulletNode = <View style={bulletStyle}>{bullet}</View>;
 
   if (centerMode) {
-    // Three column layout: left content | bullet/line | right content
-    const leftContent = effectiveAlign === 'left' && (title || children);
-    const rightContent = effectiveAlign === 'right' && (title || children);
+    // Three column layout: start content | bullet/line | end content
+    const startContent = !atEnd && (title || children);
+    const endContent = atEnd && (title || children);
 
     // Helper to clone Text children with alignment
-    const alignChildText = (nodes: React.ReactNode, side: 'left' | 'right'): React.ReactNode => {
-      const styleOverride: TextStyle = {
+    const alignChildText = (nodes: React.ReactNode, side: 'left' | 'right'): React.ReactNode =>
+      applyTextStyle(nodes, {
         textAlign: side,
-        ...(resolvedDescriptionColor ? { color: resolvedDescriptionColor } : {}),
-      } as TextStyle;
-      return applyTextStyle(nodes, styleOverride);
-    };
+        ...(resolvedDescriptionColor ? { color: resolvedDescriptionColor } : null),
+      });
+
     return (
-      <View ref={ref} style={getItemWrapperStyle()} {...rest}>
-        {/* Left content placeholder */}
-  <View style={{ flex: 1, paddingRight: sizeConfig.spacing, alignItems: 'flex-end' }}>
-          {leftContent && (
+      <View
+        ref={ref}
+        style={[{ flexDirection: 'row', position: 'relative', alignItems: 'stretch', width: '100%' }, spacingStyle, style]}
+        {...otherProps}
+      >
+        <View style={{ flex: 1, paddingEnd: sizeConfig.spacing, alignItems: 'flex-end' }}>
+          {startContent && (
             <View style={{ width: '100%', alignItems: 'flex-end' }}>
-              {timestamp && (
-                <Text style={[getTimestampStyle(), { textAlign: 'right' }]}> 
-                  {timestamp}
-                </Text>
-              )}
-              {title && <Text style={[getTitleStyle(), { textAlign: 'right' }]}>{title}</Text>}
+              {timestamp && <Text style={[timestampStyle, { textAlign: 'right' }]}>{timestamp}</Text>}
+              {title && <Text style={[titleStyle, { textAlign: 'right' }]}>{title}</Text>}
               {alignChildText(children, 'right')}
             </View>
           )}
         </View>
         {/* Bullet & line column */}
-  <View style={{ width: finalBulletSize, alignItems: 'center', position: 'relative' }}>
+        <View style={{ width: finalBulletSize, alignItems: 'center', position: 'relative' }}>
           {getLine()}
-          <View style={getBulletStyle()}>{bullet}</View>
+          {bulletNode}
         </View>
-        {/* Right content placeholder */}
-  <View style={{ flex: 1, paddingLeft: sizeConfig.spacing, alignItems: 'flex-start' }}>
-          {rightContent && (
+        <View style={{ flex: 1, paddingStart: sizeConfig.spacing, alignItems: 'flex-start' }}>
+          {endContent && (
             <View style={{ width: '100%', alignItems: 'flex-start' }}>
-              {timestamp && (
-                <Text style={[getTimestampStyle(), { textAlign: 'left' }]}> 
-                  {timestamp}
-                </Text>
-              )}
-              {title && <Text style={[getTitleStyle(), { textAlign: 'left' }]}>{title}</Text>}
+              {timestamp && <Text style={[timestampStyle, { textAlign: 'left' }]}>{timestamp}</Text>}
+              {title && <Text style={[titleStyle, { textAlign: 'left' }]}>{title}</Text>}
               {alignChildText(children, 'left')}
             </View>
           )}
@@ -323,28 +301,35 @@ const TimelineItem = forwardRef<View, TimelineItemProps & { itemIndex?: number; 
     );
   }
 
+  const content = (title || children) ? (
+    <View style={contentStyle}>
+      {timestamp && <Text style={timestampStyle}>{timestamp}</Text>}
+      {title && <Text style={titleStyle}>{title}</Text>}
+      {resolvedDescriptionColor
+        ? applyTextStyle(children, { color: resolvedDescriptionColor, textAlign: atEnd ? 'right' : 'left' })
+        : children}
+    </View>
+  ) : null;
+
+  // An end-aligned item puts its content before the bullet (the row flips under RTL).
   return (
-    <View ref={ref} style={getItemWrapperStyle()} {...rest}>
+    <View
+      ref={ref}
+      style={[{ flexDirection: 'row', position: 'relative', alignItems: 'flex-start' }, atEnd && { justifyContent: 'flex-end' }, spacingStyle, style]}
+      {...otherProps}
+    >
       {getLine()}
-      <View style={getBulletStyle()}>{bullet}</View>
-      {(title || children) && (
-        <View style={getContentStyle()}>
-          {timestamp && <Text style={getTimestampStyle()}>{timestamp}</Text>}
-          {title && <Text style={getTitleStyle()}>{title}</Text>}
-          {resolvedDescriptionColor
-            ? applyTextStyle(children, {
-                color: resolvedDescriptionColor,
-                textAlign: effectiveAlign === 'right' ? 'right' : 'left',
-              })
-            : children}
-        </View>
-      )}
+      {atEnd ? content : bulletNode}
+      {atEnd ? bulletNode : content}
     </View>
   );
-});
+}, { displayName: 'Timeline.Item' });
+
+const isTimelineItem = (child: React.ReactNode): child is React.ReactElement<TimelineItemInternalProps> =>
+  React.isValidElement(child) && child.type === TimelineItem;
 
 // Root Timeline
-const Timeline = forwardRef<View, TimelineProps>(({
+const TimelineRoot = factory<{ props: TimelineProps; ref: View }>(({
   children,
   active,
   color,
@@ -357,67 +342,71 @@ const Timeline = forwardRef<View, TimelineProps>(({
   reverseActive = false,
   size = 'md',
   centerMode = false,
+  style,
   ...rest
 }, ref) => {
   const theme = useTheme();
-  const clampedSize = clampComponentSize(size, TIMELINE_ALLOWED_SIZES);
-  const baseMetrics = resolveTimelineMetrics(clampedSize);
+  const { styleProps, otherProps } = extractStyleProps(rest);
+  const spacingStyle = useStyleProps(styleProps);
 
+  const baseMetrics = useMemo(() => getTimelineMetrics(theme, size), [theme, size]);
   const resolvedTimelineColor = resolveAccentColor(theme, color) ?? theme.colors.primary[5];
-
   const effectiveLineWidth = lineWidth ?? baseMetrics.lineWidth;
   const effectiveBulletSize = bulletSize ?? baseMetrics.bulletSize;
-  const metrics: TimelineSizeMetrics = {
-    ...baseMetrics,
-    lineWidth: effectiveLineWidth,
-    bulletSize: effectiveBulletSize,
-  };
 
-  const contextValue: TimelineContextValue = {
-    active,
-    color: resolvedTimelineColor,
-    lineWidth: effectiveLineWidth,
-    bulletSize: effectiveBulletSize,
-    align,
-    reverseActive,
-    size: clampedSize,
-    metrics,
-    centerMode,
-    titleColor,
-    descriptionColor,
-    timestampColor,
-  };
+  const contextValue = useMemo<TimelineContextValue>(
+    () => ({
+      active,
+      color: resolvedTimelineColor,
+      lineWidth: effectiveLineWidth,
+      bulletSize: effectiveBulletSize,
+      align,
+      reverseActive,
+      size,
+      metrics: { ...baseMetrics, lineWidth: effectiveLineWidth, bulletSize: effectiveBulletSize },
+      centerMode,
+      titleColor,
+      descriptionColor,
+      timestampColor,
+    }),
+    [
+      active,
+      resolvedTimelineColor,
+      effectiveLineWidth,
+      effectiveBulletSize,
+      align,
+      reverseActive,
+      size,
+      baseMetrics,
+      centerMode,
+      titleColor,
+      descriptionColor,
+      timestampColor,
+    ]
+  );
 
-  const items: React.ReactElement[] = [];
-  React.Children.forEach(children, (child, index) => {
-    if (React.isValidElement(child) && (child.type === (TimelineItem as any))) {
-      items.push(React.cloneElement(child, { itemIndex: index, key: index } as any));
-    }
-  });
-
-  const processedItems = centerMode
-    ? items.map((item, idx) => {
-      const existingAlign = (item.props as any).itemAlign;
-      const autoAlign = existingAlign || (idx % 2 === 0 ? 'left' : 'right');
-      return React.cloneElement(item, { isLastItem: idx === items.length - 1, key: idx, itemAlign: autoAlign } as any);
+  // Items are numbered in item order (other children are ignored).
+  const items = React.Children.toArray(children).filter(isTimelineItem);
+  const processedItems = items.map((item, idx) =>
+    React.cloneElement(item, {
+      key: item.key ?? idx,
+      itemIndex: idx,
+      isLastItem: idx === items.length - 1,
+      // Center mode alternates sides unless an item picks one.
+      ...(centerMode ? { itemAlign: item.props.itemAlign || (idx % 2 === 0 ? 'left' : 'right') } : null),
     })
-    : items.map((item, idx) => React.cloneElement(item, { isLastItem: idx === items.length - 1, key: idx } as any));
+  );
 
   return (
     <TimelineContext.Provider value={contextValue}>
-      <View ref={ref} style={{ position: 'relative', width: '100%' }} {...rest}>
+      <View ref={ref} style={[{ position: 'relative', width: '100%' }, spacingStyle, style]} {...otherProps}>
         {processedItems}
       </View>
     </TimelineContext.Provider>
   );
-});
+}, { displayName: 'Timeline' });
 
-// Attach
-const TimelineWithItems = Timeline as typeof Timeline & { Item: typeof TimelineItem };
-TimelineWithItems.Item = TimelineItem;
+/** A vertical sequence of events with bullets and connecting lines. */
+export const Timeline = withStatics(TimelineRoot, { Item: TimelineItem });
 
-Timeline.displayName = 'Timeline';
-TimelineItem.displayName = 'Timeline.Item';
-
-export { TimelineWithItems as Timeline };
 export type { TimelineProps, TimelineItemProps };

@@ -382,49 +382,11 @@ export function createSmoothPath(points: { x: number; y: number }[]): string {
 /**
  * Default color schemes
  */
-// Validated categorical palette (light surface). The slot order is the CVD-safety
-// mechanism — see colors.ts `paletteDefaultLight`. Keep in sync with that export.
-const FALLBACK_DEFAULT_SCHEME = [
-  '#2a78d6', // blue
-  '#eb6834', // orange
-  '#1baf7a', // aqua
-  '#eda100', // yellow
-  '#e87ba4', // magenta
-  '#008300', // green
-  '#4a3aa7', // violet
-  '#e34948', // red
-] as const;
-
-export const colorSchemes: { default: string[]; pastel: string[] } = {
-  default: [...FALLBACK_DEFAULT_SCHEME],
-  pastel: [
-    '#93c5fd', // blue-300
-    '#fca5a5', // red-300
-    '#6ee7b7', // green-300
-    '#fcd34d', // amber-300
-    '#c4b5fd', // violet-300
-    '#fdba74', // orange-300
-    '#67e8f9', // cyan-300
-    '#f9a8d4', // pink-300
-  ],
-};
-
 /**
- * Replace the default categorical palette while preserving reference identity for consumers.
+ * The palette color for a slot, wrapping past the end. Charts pass the theme's
+ * `accentPalette`.
  */
-export function setDefaultColorScheme(palette?: string[]) {
-  const next = Array.isArray(palette) && palette.length ? palette : [...FALLBACK_DEFAULT_SCHEME];
-  colorSchemes.default = next.map(color => `${color}`);
-  return colorSchemes.default;
-}
-
-/**
- * Get color from scheme
- */
-export function getColorFromScheme(
-  index: number,
-  scheme: string[] = colorSchemes.default
-): string {
+export function getColorFromScheme(index: number, scheme: readonly string[]): string {
   return scheme[index % scheme.length];
 }
 
@@ -466,6 +428,94 @@ export function formatNumber(
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals,
   });
+}
+
+/**
+ * How charts render numbers they weren't given a formatter for.
+ * - `'compact'` (default): 9000 → "9K", 1,250,000 → "1.3M"
+ * - `'full'`: 9000 → "9,000"
+ * - a function: used as-is
+ */
+export type NumberFormat = 'compact' | 'full' | ((value: number) => string);
+
+// Largest first, so a value that rounds up into the next unit (999,950 → "1M")
+// lands there instead of rendering as "1000K".
+const COMPACT_UNITS: ReadonlyArray<readonly [number, string]> = [
+  [1e12, 'T'],
+  [1e9, 'B'],
+  [1e6, 'M'],
+  [1e3, 'K'],
+];
+
+const compactParts = (value: number, decimals: number): { scaled: number; unit: number; suffix: string } | null => {
+  const abs = Math.abs(value);
+  if (!Number.isFinite(value) || abs < 1000) return null;
+  for (const [unit, suffix] of COMPACT_UNITS) {
+    const scaled = Number((abs / unit).toFixed(decimals));
+    if (scaled >= 1) return { scaled, unit, suffix };
+  }
+  return null;
+};
+
+/**
+ * Format number with a magnitude suffix (K, M, B, T). Values under 1,000 render
+ * exactly as `formatNumber` does.
+ */
+export function formatCompactNumber(
+  value: number,
+  decimals: number = 1,
+  locale: string = 'en-US'
+): string {
+  const parts = compactParts(value, decimals);
+  if (!parts) return Number.isFinite(value) ? formatNumber(value, 2, locale) : String(value);
+  return `${formatNumber(value < 0 ? -parts.scaled : parts.scaled, decimals, locale)}${parts.suffix}`;
+}
+
+const fullNumber = (value: number) => (Number.isFinite(value) ? formatNumber(value) : String(value));
+
+/**
+ * Resolve a `NumberFormat` setting to a formatter for individual values
+ * (data labels, center values).
+ *
+ * `fallback` is the chart's own rendering for any number it doesn't abbreviate —
+ * values under 1,000, and every value under `'full'` — so opting out restores
+ * exactly what the chart drew before. Defaults to `formatNumber`.
+ */
+export function resolveNumberFormatter(
+  format: NumberFormat = 'compact',
+  fallback: (value: number) => string = fullNumber
+): (value: number) => string {
+  if (typeof format === 'function') return format;
+  if (format === 'full') return fallback;
+  return (value) => (compactParts(value, 1) ? formatCompactNumber(value, 1) : fallback(value));
+}
+
+/**
+ * Resolve a `NumberFormat` setting to a formatter for one axis's ticks.
+ *
+ * A tick label never rounds: compact labels are used only when every tick is
+ * exact at one decimal ("2.5K"), or at two once ticks are at least 1,000 apart
+ * ("1.05M"). Anything finer — a narrow range at a large magnitude, like a price
+ * axis stepping 1,200 / 1,210 / 1,220, or years — renders the whole axis with
+ * `fallback`, which reads better there than "1.2K" or "2.01K" on every tick.
+ * Pass the axis's previous rendering (e.g. `String`, so a year axis keeps
+ * reading "2019" rather than "2,019").
+ */
+export function createTickFormatter(
+  ticks: ReadonlyArray<number | string>,
+  format: NumberFormat = 'compact',
+  fallback: (value: number) => string = fullNumber
+): (value: number) => string {
+  if (format !== 'compact') return resolveNumberFormatter(format, fallback);
+  const numeric = Array.from(new Set(ticks.map(Number).filter(Number.isFinite))).sort((a, b) => a - b);
+  const step = numeric.reduce((min, tick, i) => (i > 0 ? Math.min(min, tick - numeric[i - 1]) : min), Infinity);
+  const exactAt = (decimals: number) => numeric.every((tick) => {
+    const parts = compactParts(tick, decimals);
+    return !parts || Math.abs(parts.scaled * parts.unit - Math.abs(tick)) <= Math.abs(tick) * 1e-9;
+  });
+  const decimals = exactAt(1) ? 1 : step >= 1000 && exactAt(2) ? 2 : null;
+  if (decimals === null) return fallback;
+  return (value) => (compactParts(value, decimals) ? formatCompactNumber(value, decimals) : fallback(value));
 }
 
 /**

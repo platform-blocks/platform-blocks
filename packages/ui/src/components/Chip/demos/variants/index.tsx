@@ -1,26 +1,14 @@
-import { Chip, Row } from '@platform-blocks/ui'
+import { Chip, Row } from '@plocks/ui';
 
 export function Demo() {
   return (
     <Row gap={8} wrap="wrap">
-      <Chip variant="filled" color="primary">
-        Filled
-      </Chip>
-      <Chip variant="outline" color="primary">
-        Outline
-      </Chip>
-      <Chip variant="light" color="primary">
-        Light
-      </Chip>
-      <Chip variant="subtle" color="primary">
-        Subtle
-      </Chip>
-      <Chip variant="surface">
-        Surface
-      </Chip>
-      <Chip variant="gradient" color="primary">
-        Gradient
-      </Chip>
+      <Chip variant="filled">Filled</Chip>
+      <Chip variant="outline">Outline</Chip>
+      <Chip variant="light">Light</Chip>
+      <Chip variant="subtle">Subtle</Chip>
+      <Chip variant="surface">Surface</Chip>
+      <Chip variant="gradient">Gradient</Chip>
     </Row>
-  )
+  );
 }

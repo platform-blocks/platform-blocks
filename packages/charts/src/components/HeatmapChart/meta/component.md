@@ -5,4 +5,5 @@ tags: [chart, heatmap, matrix]
 category: charts
 order: 9
 ---
-Color-coded matrix for intensity visualization across two dimensions.
+
+HeatmapChart shows values in a color-coded grid to reveal patterns across two dimensions.

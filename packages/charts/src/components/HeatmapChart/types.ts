@@ -6,6 +6,7 @@ import type {
   ChartLegend,
   ChartTooltip,
 } from '../../types/base';
+import type { ColorScaleConfig } from '../../utils/colorScale';
 
 // Heatmap Types
 export interface HeatmapCell {
@@ -41,20 +42,11 @@ export interface HeatmapCellSize {
   height?: number;
 }
 
-export interface HeatmapColorScaleConfig {
-  /** Strategy used to interpolate colors */
-  type?: 'linear' | 'log' | 'quantize';
-  /** Minimum value represented in the scale */
-  min?: number;
-  /** Maximum value represented in the scale */
-  max?: number;
-  /** Explicit color stops applied to the scale */
-  stops?: HeatmapColorStop[];
-  /** Gradient colors used when stops are not provided */
-  colors?: string[];
+/** Shared chart color scale with a color for empty cells. */
+export type HeatmapColorScaleConfig = ColorScaleConfig & {
   /** Color applied when the cell value is null */
   nullColor?: string;
-}
+};
 
 export interface HeatmapHoverHighlightConfig {
   /** Highlight entire row when hovering */
@@ -176,7 +168,7 @@ export interface HeatmapChartProps
     ChartInteractionCallbacks<HeatmapCell> {
   /** Heatmap data points or matrix-style input */
   data: HeatmapCell[] | HeatmapMatrixInput;
-  /** Color scale configuration */
+  /** Shared color scale. Defaults to a single-hue sequential ramp from the theme. */
   colorScale?: HeatmapColorScaleConfig;
   /** Explicit cell size overrides */
   cellSize?: HeatmapCellSize;

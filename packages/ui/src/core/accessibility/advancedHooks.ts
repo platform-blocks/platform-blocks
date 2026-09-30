@@ -1,21 +1,14 @@
 import React from 'react';
 import { AccessibilityInfo, findNodeHandle, Platform } from 'react-native';
-import { useOptionalAccessibility } from '../../core/accessibility/context';
+import type { View } from 'react-native';
+import { useAnnounce } from './context';
 
 /**
  * Hook for managing announcement queues with priorities
- * Gracefully handles cases where AccessibilityProvider is not available (e.g., in overlays)
+ * Works with or without an AccessibilityProvider.
  */
 export const useAnnouncementQueue = () => {
-  const accessibilityContext = useOptionalAccessibility();
-
-  React.useEffect(() => {
-    if (!accessibilityContext) {
-      console.warn('useAnnouncementQueue: AccessibilityProvider not available, announcements will be disabled');
-    }
-  }, [accessibilityContext]);
-
-  const announce = accessibilityContext?.announce ?? (() => {});
+  const announce = useAnnounce();
   const queueRef = React.useRef<Array<{ message: string; priority: 'low' | 'medium' | 'high' }>>([]);
   const processingRef = React.useRef(false);
 
@@ -65,80 +58,91 @@ export const useAnnouncementQueue = () => {
 export const FOCUSABLE_SELECTOR =
   'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
+/** A web node that can be searched for focusable descendants. */
+const isQueryableNode = (node: unknown): node is HTMLElement =>
+  typeof node === 'object' &&
+  node !== null &&
+  typeof (node as { querySelectorAll?: unknown }).querySelectorAll === 'function';
+
+/** The shapes animated/wrapper refs expose their host node through. */
+interface WrappedNodeRef {
+  getNode?: () => unknown;
+  _node?: unknown;
+  node?: unknown;
+}
+
 /**
  * Unwraps a ref value to the underlying DOM node on web. Refs handed back by
  * `Animated.View` and other wrappers are not always the host node itself, so
  * fall back to the shapes those wrappers expose.
  */
-export const resolveDomNode = (ref: any): any => {
+export const resolveDomNode = (ref: unknown): HTMLElement | null => {
   if (!ref || Platform.OS !== 'web') return null;
-  if (typeof ref.querySelectorAll === 'function') return ref;
-  const node = ref.getNode?.() ?? ref._node ?? ref.node;
-  return typeof node?.querySelectorAll === 'function' ? node : null;
+  if (isQueryableNode(ref)) return ref;
+  const wrapper = ref as WrappedNodeRef;
+  const node = wrapper.getNode?.() ?? wrapper._node ?? wrapper.node;
+  return isQueryableNode(node) ? node : null;
 };
 
 /**
  * Hook for managing focus trapping within a component
- * Gracefully handles cases where AccessibilityProvider is not available (e.g., in overlays)
+ * Works with or without an AccessibilityProvider.
+ *
+ * Web only: on native the returned ref is inert (native focus order is owned
+ * by the platform; modal surfaces use `accessibilityViewIsModal`).
  */
 export const useFocusTrap = (isActive: boolean = false) => {
-  const containerRef = React.useRef<any>(null);
-  const previousActiveElement = React.useRef<any>(null);
+  const containerRef = React.useRef<View>(null);
+  const previousActiveElement = React.useRef<HTMLElement | null>(null);
 
   React.useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || Platform.OS !== 'web') return;
 
     // Store the currently focused element
-    if (Platform.OS === 'web') {
-      previousActiveElement.current = document.activeElement;
-    }
+    previousActiveElement.current = document.activeElement as HTMLElement | null;
 
-    const container = Platform.OS === 'web'
-      ? resolveDomNode(containerRef.current)
-      : containerRef.current;
+    const container = resolveDomNode(containerRef.current);
     if (!container) return;
 
-    const handleKeyDown = (event: any) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Tab') return;
 
-      if (Platform.OS === 'web') {
-        const focusableElements = container.querySelectorAll(FOCUSABLE_SELECTOR);
+      const focusableElements = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
 
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
 
-        if (event.shiftKey) {
-          if (document.activeElement === firstElement) {
-            lastElement?.focus();
-            event.preventDefault();
-          }
-        } else {
-          if (document.activeElement === lastElement) {
-            firstElement?.focus();
-            event.preventDefault();
-          }
+      if (event.shiftKey) {
+        if (document.activeElement === firstElement) {
+          lastElement?.focus();
+          event.preventDefault();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          firstElement?.focus();
+          event.preventDefault();
         }
       }
     };
 
-    if (Platform.OS === 'web') {
-      container.addEventListener('keydown', handleKeyDown);
-    }
+    container.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      if (Platform.OS === 'web') {
-        container?.removeEventListener('keydown', handleKeyDown);
-        
-        // Restore previous focus
-        if (previousActiveElement.current) {
-          previousActiveElement.current.focus();
-        }
-      }
+      container.removeEventListener('keydown', handleKeyDown);
+
+      // Restore previous focus
+      previousActiveElement.current?.focus?.();
     };
   }, [isActive]);
 
   return { containerRef };
 };
+
+/** The part of a (DOM or React Native Web) key event `useKeyboardNavigation` reads. */
+interface NavigationKeyEvent {
+  key: string;
+  preventDefault: () => void;
+}
 
 /**
  * Hook for keyboard navigation within a list of items
@@ -147,7 +151,7 @@ export const useKeyboardNavigation = (items: string[], onSelect?: (id: string) =
   const [activeIndex, setActiveIndex] = React.useState(-1);
   const [isFocused, setIsFocused] = React.useState(false);
 
-  const handleKeyPress = React.useCallback((event: any) => {
+  const handleKeyPress = React.useCallback((event: NavigationKeyEvent) => {
     if (!isFocused) return;
 
     switch (event.key) {
@@ -202,22 +206,14 @@ export const useKeyboardNavigation = (items: string[], onSelect?: (id: string) =
 
 /**
  * Hook for managing accessible form validation
- * Gracefully handles cases where AccessibilityProvider is not available (e.g., in overlays)
+ * Works with or without an AccessibilityProvider.
  */
 export const useAccessibleValidation = (fieldId: string) => {
-  const accessibilityContext = useOptionalAccessibility();
-
-  React.useEffect(() => {
-    if (!accessibilityContext) {
-      console.warn('useAccessibleValidation: AccessibilityProvider not available, validation announcements will be disabled');
-    }
-  }, [accessibilityContext]);
-
-  const announce = accessibilityContext?.announce ?? (() => {});
+  const announce = useAnnounce();
   const [errors, setErrors] = React.useState<string[]>([]);
   const [hasBeenTouched, setHasBeenTouched] = React.useState(false);
 
-  const validate = React.useCallback((value: any, rules: ValidationRule[]) => {
+  const validate = React.useCallback(<T,>(value: T, rules: ValidationRule<T>[]) => {
     const newErrors: string[] = [];
     
     rules.forEach(rule => {
@@ -264,25 +260,17 @@ export const useAccessibleValidation = (fieldId: string) => {
   };
 };
 
-interface ValidationRule {
-  validator: (value: any) => boolean;
+interface ValidationRule<T = unknown> {
+  validator: (value: T) => boolean;
   message: string;
 }
 
 /**
  * Hook for managing accessible loading states
- * Gracefully handles cases where AccessibilityProvider is not available (e.g., in overlays)
+ * Works with or without an AccessibilityProvider.
  */
 export const useAccessibleLoading = (initialLoading: boolean = false) => {
-  const accessibilityContext = useOptionalAccessibility();
-
-  React.useEffect(() => {
-    if (!accessibilityContext) {
-      console.warn('useAccessibleLoading: AccessibilityProvider not available, loading announcements will be disabled');
-    }
-  }, [accessibilityContext]);
-
-  const announce = accessibilityContext?.announce ?? (() => {});
+  const announce = useAnnounce();
   const [isLoading, setIsLoading] = React.useState(initialLoading);
   const [loadingMessage, setLoadingMessage] = React.useState('Loading...');
   const [progress, setProgress] = React.useState<number | undefined>(undefined);
@@ -327,18 +315,10 @@ export const useAccessibleLoading = (initialLoading: boolean = false) => {
 
 /**
  * Hook for accessible toast notifications
- * Gracefully handles cases where AccessibilityProvider is not available (e.g., in overlays)
+ * Works with or without an AccessibilityProvider.
  */
 export const useAccessibleToast = () => {
-  const accessibilityContext = useOptionalAccessibility();
-
-  React.useEffect(() => {
-    if (!accessibilityContext) {
-      console.warn('useAccessibleToast: AccessibilityProvider not available, toast announcements will be disabled');
-    }
-  }, [accessibilityContext]);
-
-  const announce = accessibilityContext?.announce ?? (() => {});
+  const announce = useAnnounce();
   const [toasts, setToasts] = React.useState<Toast[]>([]);
 
   const showToast = React.useCallback((

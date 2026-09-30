@@ -24,7 +24,7 @@ import { useChartPointer } from '../../interaction/useChartPointer';
 import { RadarAxisHitTester } from '../../core/hittest/radarAxis';
 import type { HitSeries, Mark } from '../../core/hittest/types';
 import { useChartTheme } from '../../theme/ChartThemeContext';
-import { getColorFromScheme, colorSchemes } from '../../utils';
+import { getColorFromScheme } from '../../utils';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -250,7 +250,8 @@ const AnimatedRadarPoint: React.FC<{
     const progress = animationProgress.value;
     const currentScale = scale.value * highlightScale.value;
     return {
-      r: radius * currentScale * progress,
+      // Easing.back evaluates to ~-2e-16 at t=0, and SVG rejects a negative `r`.
+      r: Math.max(0, radius * currentScale * progress),
       fillOpacity: progress,
       strokeOpacity: progress,
     } as any;
@@ -272,8 +273,8 @@ AnimatedRadarPoint.displayName = 'AnimatedRadarPoint';
 export const RadarChart: React.FC<RadarChartProps> = (props) => {
   const {
     series,
-    width = 400,
-    height = 400,
+    w: width = 400,
+    h: height = 400,
     title,
     subtitle,
     maxValue: maxValueProp,
@@ -304,7 +305,7 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
   const theme = useChartTheme();
   const register = interaction?.register;
   const updateSeriesVisibility = interaction?.updateSeriesVisibility;
-  const defaultScheme = colorSchemes.default;
+  const defaultScheme = theme.colors.accentPalette;
 
   // Extract unique axes from all series
   const axisEntries = useMemo(() => {
@@ -332,11 +333,11 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
         const visible = override ? override.visible !== false : s.visible !== false;
         return {
           label: s.name || String(s.id || si),
-          color: s.color || getColorFromScheme(si, colorSchemes.default),
+          color: s.color || getColorFromScheme(si, theme.colors.accentPalette),
           visible,
         };
       }),
-    [series, interaction?.series]
+    [series, interaction?.series, theme.colors.accentPalette]
   );
 
   // ChartTitle and ChartLegend are absolutely positioned overlays on the container, so the
@@ -408,6 +409,7 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
 
   // Animation
   const animationProgress = useSharedValue(disabled ? 1 : 0);
+  const hasPlayedIntro = React.useRef(false);
   const dataSignature = useMemo(() => {
     return series
       .map(s => 
@@ -417,6 +419,10 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
   }, [series]);
 
   useEffect(() => {
+    if (hasPlayedIntro.current) {
+      return;
+    }
+    hasPlayedIntro.current = true;
     if (disabled) {
       animationProgress.value = 1;
       return;
@@ -604,8 +610,8 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
   return (
     <ChartContainer
       {...rest}
-      width={width}
-      height={height}
+      w={width}
+      h={height}
       style={style}
       interactionConfig={{
         enableCrosshair,
@@ -730,7 +736,7 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
                   cx={x}
                   cy={y}
                   radius={s.pointSize || 3}
-                  fill={s.color || getColorFromScheme(si, colorSchemes.default)}
+                  fill={s.color || getColorFromScheme(si, theme.colors.accentPalette)}
                   stroke="#fff"
                   strokeWidth={1}
                   animationProgress={animationProgress}

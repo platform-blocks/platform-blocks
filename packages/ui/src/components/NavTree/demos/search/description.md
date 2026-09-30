@@ -5,7 +5,6 @@ order: 25
 tags: [navtree, sidebar, search, filter]
 highlightLines: []
 status: stable
-since: 1.1.0
 hidden: false
 ---
 

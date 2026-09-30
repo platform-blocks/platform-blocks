@@ -5,7 +5,6 @@ order: 20
 tags: [xy, pad, square, filter]
 highlightLines: []
 status: stable
-since: 1.1.0
 hidden: false
 ---
 

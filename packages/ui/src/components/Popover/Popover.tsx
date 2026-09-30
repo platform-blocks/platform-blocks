@@ -5,29 +5,35 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import { Platform, View } from 'react-native';
+import { View } from 'react-native';
+import type { ViewProps, ViewStyle } from 'react-native';
 
-import { factory } from '../../core/factory';
-import { useTheme } from '../../core/theme';
+import { factory, withStatics } from '../../core/factory';
 import { resolveSurface } from '../../core/theme/surfaces';
-import { getSpacingStyles, extractSpacingProps } from '../../core/utils';
-import { measureElement } from '../../core/utils/positioning-enhanced';
-import { useDropdownPositioning } from '../../core/hooks/useDropdownPositioning';
+import { useStyleProps } from '../../core/utils/spacing';
+import { mergeRefs } from '../../core/utils/mergeRefs';
+import { isWeb, webProps } from '../../core/platform';
+import type { WebKeyboardEvent, WebMouseEvent } from '../../core/platform';
+import { useFloating } from '../../core/overlay/useFloating';
+import type { FloatingDismissReason } from '../../core/overlay/useFloating';
+import { sanitizeId } from '../../core/overlay/useLayer';
 import type { PlacementType } from '../../core/utils/positioning-enhanced';
 
 import { createPopoverStyles } from './styles';
 import type {
   PopoverProps,
+  PopoverFactoryPayload,
   PopoverTargetProps,
   PopoverDropdownProps,
   RegisteredDropdown,
   ArrowPosition,
 } from './types';
-import { PlatformBlocksThemeProvider } from '../../core/theme/ThemeProvider';
+import { ThemeScope, useTheme } from '../../core/theme/ThemeProvider';
 import { useControllableState } from '../../hooks/useControllableState';
 
 interface PopoverContextValue {
@@ -39,7 +45,11 @@ interface PopoverContextValue {
   hoverClose: () => void;
   registerDropdown: (dropdown: RegisteredDropdown) => void;
   unregisterDropdown: () => void;
-  anchorRef: React.MutableRefObject<any>;
+  /** Ref of the Target's wrapper view — the positioning anchor. */
+  anchorRef: React.MutableRefObject<unknown>;
+  setAnchor: (node: unknown) => void;
+  /** Trigger ARIA props from useFloating (aria-expanded; web: aria-haspopup, aria-controls). */
+  getTriggerAriaProps: () => Record<string, unknown>;
   targetId: string;
   dropdownId: string;
   withRoles: boolean;
@@ -49,6 +59,13 @@ interface PopoverContextValue {
 }
 
 const PopoverContext = createContext<PopoverContextValue | null>(null);
+
+/**
+ * Inline fallback dropdown (no OverlayProvider), rendered by the Target next
+ * to the trigger. A separate context so that a new element each render only
+ * re-renders the Target — not Popover.Dropdown, which re-registers its content.
+ */
+const PopoverInlineFloatingContext = createContext<React.ReactNode>(null);
 
 function usePopoverContext(component: string): PopoverContextValue {
   const context = useContext(PopoverContext);
@@ -61,6 +78,7 @@ function usePopoverContext(component: string): PopoverContextValue {
 type CloseReason = 'programmatic' | 'dismiss';
 
 const DEFAULT_ARROW_SIZE = 7;
+const HOVER_CLOSE_DELAY = 150;
 
 const PopoverBase = (props: PopoverProps, ref: React.Ref<View>) => {
   const {
@@ -75,29 +93,24 @@ const PopoverBase = (props: PopoverProps, ref: React.Ref<View>) => {
     disabled = false,
     closeOnClickOutside = true,
     closeOnEscape = true,
-    clickOutsideEvents, // currently not implemented
     trapFocus = false,
     keepMounted = false,
-    returnFocus = false,
-    withinPortal = true,
-    withOverlay = false,
-    overlayProps,
+    returnFocus = true,
     w,
-    minW,
-    minH,
-    maxW,
-    maxH,
+    miw: minW,
+    mih: minH,
+    maw: maxW,
+    mah: maxH,
     radius,
     shadow,
-    zIndex = 300,
+    zIndex,
     position = 'bottom',
     offset = 8,
     floatingStrategy = 'fixed',
     middlewares,
     preventPositionChangeWhenVisible = false,
-    hideDetached = true,
     viewport,
-  keyboardAvoidance = true,
+    keyboardAvoidance = true,
     fallbackPlacements,
     boundary,
     withRoles = true,
@@ -109,19 +122,12 @@ const PopoverBase = (props: PopoverProps, ref: React.Ref<View>) => {
     arrowPosition = 'center',
     onPositionChange,
     testID,
-    ...rest
+    style,
+    ...spacingProps
   } = props;
 
-  void clickOutsideEvents; // reserved for future implementation
   const theme = useTheme();
-  const { spacingProps } = extractSpacingProps(rest);
-
-  // Reserved props for future enhancements (portal, overlay behaviours, detached handling)
-  void withOverlay;
-  void overlayProps;
-  void withinPortal;
-  void hideDetached;
-  const spacingStyles = getSpacingStyles(spacingProps);
+  const spacingStyles = useStyleProps(spacingProps);
 
   const [opened, setOpened] = useControllableState<boolean>({
     value: controlledOpened,
@@ -131,8 +137,6 @@ const PopoverBase = (props: PopoverProps, ref: React.Ref<View>) => {
   });
   const [dropdownState, setDropdownState] = useState<RegisteredDropdown | null>(null);
   const openedRef = useRef(opened);
-  const closingReasonRef = useRef<CloseReason | null>(null);
-  const anchorMeasurementsRef = useRef<{ width: number; height: number } | null>(null);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -140,115 +144,13 @@ const PopoverBase = (props: PopoverProps, ref: React.Ref<View>) => {
   }, [opened]);
 
   // Cleanup hover timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-      }
-    };
+  useEffect(() => () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
   }, []);
 
   const resolvedOffset = typeof offset === 'number' ? offset : offset?.mainAxis ?? 8;
-  const resolvedFlip = preventPositionChangeWhenVisible
-    ? false
-    : middlewares?.flip === false
-      ? false
-      : true;
-  const resolvedShift = preventPositionChangeWhenVisible
-    ? false
-    : middlewares?.shift === false
-      ? false
-      : true;
-  const resolvedStrategy = floatingStrategy ?? 'fixed';
-
-  const { position: positioningResult, anchorRef, popoverRef, showOverlay, hideOverlay, updatePosition, isPositioning } = useDropdownPositioning({
-    isOpen: opened && !disabled && !!dropdownState,
-    placement: position,
-    offset: resolvedOffset,
-    strategy: resolvedStrategy,
-    flip: resolvedFlip,
-    shift: resolvedShift,
-    boundary,
-    keyboardAvoidance,
-    fallbackPlacements,
-    viewport,
-    onClose: () => handleOverlayClose('dismiss'),
-    closeOnClickOutside: trigger === 'hover' ? false : closeOnClickOutside,
-    closeOnEscape,
-  });
-
-  // Track if we've done measurement-based positioning to avoid flicker
-  const hasPositionedRef = useRef(false);
-  useEffect(() => {
-    // Only mark as positioned when we have a measurement-based position
-    if (opened && positioningResult && (positioningResult as any)._hasMeasuredPopover) {
-      hasPositionedRef.current = true;
-    }
-    if (!opened) {
-      hasPositionedRef.current = false;
-    }
-  }, [opened, positioningResult]);
-
-  const popoverStyles = useMemo(() => createPopoverStyles(theme)({
-    radius,
-    shadow,
-    arrowSize,
-  }), [theme, radius, shadow, arrowSize]);
-
-  const layoutUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hasMeasuredLayoutRef = useRef(false);
-
-  // Defer re-measuring to the next frame so overlay position uses final layout metrics
-  const schedulePositionUpdate = useCallback(() => {
-    if (layoutUpdateTimeoutRef.current) {
-      clearTimeout(layoutUpdateTimeoutRef.current);
-    }
-
-    layoutUpdateTimeoutRef.current = setTimeout(() => {
-      updatePosition();
-    }, 16);
-  }, [updatePosition]);
-
-  useEffect(() => {
-    return () => {
-      if (layoutUpdateTimeoutRef.current) {
-        clearTimeout(layoutUpdateTimeoutRef.current);
-        layoutUpdateTimeoutRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!opened) {
-      hasMeasuredLayoutRef.current = false;
-      if (layoutUpdateTimeoutRef.current) {
-        clearTimeout(layoutUpdateTimeoutRef.current);
-        layoutUpdateTimeoutRef.current = null;
-      }
-    }
-  }, [opened]);
-
-  useEffect(() => {
-    hasMeasuredLayoutRef.current = false;
-  }, [dropdownState]);
-
-  const handleDropdownLayout = useCallback(() => {
-    if (hasMeasuredLayoutRef.current) {
-      return;
-    }
-    hasMeasuredLayoutRef.current = true;
-    schedulePositionUpdate();
-  }, [schedulePositionUpdate]);
-
-  const updateAnchorMeasurements = useCallback(async () => {
-    if (!anchorRef.current) return;
-    try {
-      const rect = await measureElement(anchorRef);
-      anchorMeasurementsRef.current = { width: rect.width, height: rect.height };
-    } catch {
-      // noop – measurement failed (likely not mounted yet)
-    }
-  }, [anchorRef]);
+  const resolvedFlip = !preventPositionChangeWhenVisible && middlewares?.flip !== false;
+  const resolvedShift = !preventPositionChangeWhenVisible && middlewares?.shift !== false;
 
   const commitOpen = useCallback(() => {
     if (openedRef.current || disabled) return;
@@ -267,31 +169,26 @@ const PopoverBase = (props: PopoverProps, ref: React.Ref<View>) => {
     openedRef.current = false;
   }, [setOpened, onClose, onDismiss]);
 
-  const handleOverlayClose = useCallback((reason: CloseReason) => {
-    const closingReason = closingReasonRef.current ?? reason;
-    closingReasonRef.current = null;
-    commitClose(closingReason);
-  }, [commitClose]);
-
   const openPopover = useCallback(() => {
     if (disabled) return;
-    closingReasonRef.current = null;
     commitOpen();
   }, [commitOpen, disabled]);
 
-  const closePopover = useCallback((reason: CloseReason = 'programmatic') => {
-    if (!openedRef.current) return;
-    closingReasonRef.current = reason;
-    hideOverlay();
-  }, [hideOverlay]);
+  const closePopover = useCallback(() => {
+    commitClose('programmatic');
+  }, [commitClose]);
 
   const togglePopover = useCallback(() => {
     if (openedRef.current) {
-      closePopover('programmatic');
+      closePopover();
     } else {
       openPopover();
     }
   }, [closePopover, openPopover]);
+
+  const handleDismiss = useCallback((reason: FloatingDismissReason) => {
+    commitClose(reason === 'closed-externally' ? 'programmatic' : 'dismiss');
+  }, [commitClose]);
 
   // Hover-specific handlers with delay to prevent glitching when moving between target and dropdown
   const handleHoverOpen = useCallback(() => {
@@ -307,127 +204,131 @@ const PopoverBase = (props: PopoverProps, ref: React.Ref<View>) => {
       clearTimeout(hoverTimeoutRef.current);
     }
     hoverTimeoutRef.current = setTimeout(() => {
-      closePopover('programmatic');
+      closePopover();
       hoverTimeoutRef.current = null;
-    }, 150); // Delay to allow mouse to move to dropdown
+    }, HOVER_CLOSE_DELAY);
   }, [closePopover]);
 
-  // Store hover handlers in refs to avoid causing re-renders in useEffect
+  const generatedId = sanitizeId(useId());
+  const targetId = id ? `${id}-target` : `popover-target-${generatedId}`;
+  const dropdownId = id ? `${id}-dropdown` : `popover-dropdown-${generatedId}`;
+
+  const containerProps = dropdownState?.containerProps as (Record<string, unknown> & { role?: ViewProps['role'] }) | undefined;
+  const dropdownRole = containerProps?.role ?? 'dialog';
+  const focusTrapped = trapFocus || !!dropdownState?.trapFocus;
+  const isOpen = opened && !disabled && !!dropdownState;
+
+  const floating = useFloating({
+    opened: isOpen,
+    onDismiss: handleDismiss,
+    placement: position,
+    offset: resolvedOffset,
+    flip: resolvedFlip,
+    shift: resolvedShift,
+    matchWidth: w === 'target',
+    strategy: floatingStrategy === 'absolute' ? 'absolute' : 'fixed',
+    trigger,
+    role: dropdownRole,
+    withRoles,
+    id: dropdownId,
+    layer: 'popover',
+    zIndex,
+    closeOnEscape,
+    closeOnOutsidePress: trigger === 'hover' ? false : closeOnClickOutside,
+    trapFocus: focusTrapped,
+    // Click-opened popovers take focus so keyboard users can reach the content
+    // (it renders at the end of the tree). Without a trap, focus lands on the
+    // dropdown itself — Tab then enters it — and no input autofocuses.
+    autoFocus: trigger === 'click',
+    initialFocus: focusTrapped ? 'first-tabbable' : 'container',
+    restoreFocus: returnFocus,
+    boundary,
+    fallbackPlacements,
+    viewport,
+    keyboardAvoidance,
+  });
+
+  const positioningResult = floating.position;
+
+  const popoverStyles = useMemo(() => createPopoverStyles(theme)({
+    radius,
+    shadow,
+    arrowSize,
+  }), [theme, radius, shadow, arrowSize]);
+
   const hoverHandlersRef = useRef({ open: handleHoverOpen, close: handleHoverClose });
   useEffect(() => {
     hoverHandlersRef.current = { open: handleHoverOpen, close: handleHoverClose };
   }, [handleHoverOpen, handleHoverClose]);
 
+  // Report placement changes (e.g. after a flip) once the dropdown is placed.
+  const lastReportedPlacementRef = useRef<PlacementType | null>(null);
   useEffect(() => {
-    if (opened) {
-      updateAnchorMeasurements();
-    }
-  }, [opened, updateAnchorMeasurements]);
-
-  useEffect(() => {
-    if (!opened) {
-      closingReasonRef.current = null;
-      hideOverlay();
-      if (returnFocus && anchorRef.current && typeof anchorRef.current.focus === 'function') {
-        anchorRef.current.focus();
-      }
+    if (!isOpen) {
+      lastReportedPlacementRef.current = null;
       return;
     }
+    if (!positioningResult) return;
+    if (lastReportedPlacementRef.current === floating.placement) return;
+    lastReportedPlacementRef.current = floating.placement;
+    onPositionChange?.(floating.placement);
+  }, [isOpen, positioningResult, floating.placement, onPositionChange]);
 
-    if (!dropdownState) return;
+  // Same sizing as before the move to useFloating: an explicit `w`, the
+  // anchor width for 'target', otherwise the measured content width.
+  const computedFinalWidth = positioningResult?.finalWidth && positioningResult.finalWidth > 0
+    ? positioningResult.finalWidth
+    : undefined;
+  const widthOverride = typeof w === 'number' ? w : computedFinalWidth;
 
-    updatePosition();
-  }, [opened, dropdownState, updatePosition, hideOverlay, anchorRef, returnFocus]);
+  const computedMaxHeight = positioningResult?.maxHeight;
+  const resolvedMaxHeight = typeof maxH === 'number'
+    ? (typeof computedMaxHeight === 'number' ? Math.min(maxH, computedMaxHeight) : maxH)
+    : computedMaxHeight;
 
-  useEffect(() => {
-    if (!opened || !dropdownState) {
-      hideOverlay();
-      return;
-    }
-
-    if (!positioningResult) {
-      return;
-    }
-
-    const computedFinalWidth = positioningResult.finalWidth && positioningResult.finalWidth > 0
-      ? positioningResult.finalWidth
-      : undefined;
-
-    const widthOverride = (() => {
-      if (typeof w === 'number') return w;
-      if (w === 'target') {
-        return anchorMeasurementsRef.current?.width ?? computedFinalWidth;
-      }
-      return computedFinalWidth;
-    })();
-
+  let floatingElement: React.ReactNode = null;
+  if (dropdownState) {
     const sizeStyles: Record<string, number> = {};
     if (typeof minW === 'number') sizeStyles.minWidth = minW;
     if (typeof minH === 'number') sizeStyles.minHeight = minH;
     if (typeof maxW === 'number') sizeStyles.maxWidth = maxW;
-
-    const computedMaxHeight = positioningResult.maxHeight;
-    const resolvedMaxHeight = (() => {
-      if (typeof maxH === 'number') {
-        if (typeof computedMaxHeight === 'number') {
-          return Math.min(maxH, computedMaxHeight);
-        }
-        return maxH;
-      }
-      return typeof computedMaxHeight === 'number' ? computedMaxHeight : maxH;
-    })();
-
     if (typeof resolvedMaxHeight === 'number') sizeStyles.maxHeight = resolvedMaxHeight;
 
-    const dropdownStyle = [popoverStyles.dropdown, dropdownState.style, sizeStyles];
-
-    // Hover handlers for the dropdown to keep it open when mouse moves from target to dropdown
-    const dropdownHoverHandlers = trigger === 'hover' && Platform.OS === 'web'
-      ? {
+    // Hover handlers keep a hover popover open while the pointer moves onto it.
+    const dropdownHoverHandlers = trigger === 'hover'
+      ? webProps({
           onMouseEnter: () => hoverHandlersRef.current.open(),
           onMouseLeave: () => hoverHandlersRef.current.close(),
-        }
-      : {};
+        })
+      : null;
 
-    // Hide content until we have measurement-based positioning to prevent visual "snap"
-    const hasMeasuredPosition = (positioningResult as any)?._hasMeasuredPopover === true;
-    const visibilityStyle = !hasMeasuredPosition && Platform.OS === 'web'
-      ? { opacity: 0 } as const
-      : {};
+    const { role: _role, ...restContainerProps } = containerProps ?? {};
+    void _role;
+
+    const floatingProps = floating.getFloatingProps({
+      ...restContainerProps,
+      ...dropdownHoverHandlers,
+      testID: dropdownState.testID,
+      pointerEvents: trigger === 'hover' ? 'auto' : 'box-none',
+      style: [popoverStyles.wrapper, widthOverride ? { width: widthOverride } : null],
+    });
 
     const content = (
-      <View
-        ref={popoverRef}
-        style={[popoverStyles.wrapper, widthOverride ? { width: widthOverride } : null, visibilityStyle]}
-        pointerEvents={trigger === 'hover' ? 'auto' : (dropdownState.trapFocus ? 'auto' : 'box-none')}
-        testID={dropdownState.testID}
-        onLayout={handleDropdownLayout}
-        {...dropdownHoverHandlers}
-        {...dropdownState.containerProps}
-      >
-        <View style={dropdownStyle as any}>
+      <View {...(floatingProps as ViewProps)}>
+        <View style={[popoverStyles.dropdown, dropdownState.style, sizeStyles]}>
           {dropdownState.content}
         </View>
         {withArrow && (
-          <View style={getArrowStyle(positioningResult.placement, arrowSize, arrowRadius, arrowOffset, arrowPosition, theme) as any} />
+          <View style={getArrowStyle(floating.placement, arrowSize, arrowRadius, arrowOffset, arrowPosition, theme)} />
         )}
       </View>
     );
 
-    showOverlay(content, {
+    floatingElement = floating.renderFloating(content, {
       width: widthOverride,
       maxHeight: resolvedMaxHeight,
-      zIndex,
     });
-
-    onPositionChange?.(positioningResult.placement as PlacementType);
-  }, [opened, dropdownState, positioningResult, popoverRef, showOverlay, hideOverlay, popoverStyles.dropdown, popoverStyles.wrapper, w, maxH, minW, minH, maxW, withArrow, arrowSize, arrowRadius, arrowOffset, arrowPosition, theme, zIndex, onPositionChange, schedulePositionUpdate, trigger, isPositioning]);
-
-  useEffect(() => {
-    return () => {
-      hideOverlay();
-    };
-  }, [hideOverlay]);
+  }
 
   const registerDropdown = useCallback((dropdown: RegisteredDropdown) => {
     setDropdownState(dropdown);
@@ -439,141 +340,127 @@ const PopoverBase = (props: PopoverProps, ref: React.Ref<View>) => {
     }
   }, [keepMounted]);
 
-  const targetId = useMemo(() => id ? `${id}-target` : `popover-target-${Math.random().toString(36).slice(2)}`, [id]);
-  const dropdownId = useMemo(() => id ? `${id}-dropdown` : `popover-dropdown-${Math.random().toString(36).slice(2)}`, [id]);
+  const { getReferenceProps, refs } = floating;
+  const getTriggerAriaProps = useCallback(
+    () => getReferenceProps({}, { ref: false }),
+    [getReferenceProps]
+  );
+
+  // With an OverlayProvider the element above renders nothing where it is
+  // mounted; without one it is the inline dropdown, which the Target renders
+  // inside its wrapper so it sits next to the trigger.
+  const inlineFloating = floating.hasOverlayProvider ? null : floatingElement;
 
   const contextValue = useMemo<PopoverContextValue>(() => ({
     opened,
     open: openPopover,
-    close: () => closePopover('programmatic'),
+    close: closePopover,
     toggle: togglePopover,
     hoverOpen: handleHoverOpen,
     hoverClose: handleHoverClose,
     registerDropdown,
     unregisterDropdown,
-    anchorRef,
+    anchorRef: refs.reference,
+    setAnchor: refs.setReference,
+    getTriggerAriaProps,
     targetId,
     dropdownId,
     withRoles,
     disabled,
     returnFocus,
     trigger,
-  }), [opened, openPopover, closePopover, togglePopover, handleHoverOpen, handleHoverClose, registerDropdown, unregisterDropdown, anchorRef, targetId, dropdownId, withRoles, disabled, returnFocus, trigger]);
-
-  const setContainerRef = useCallback((node: View | null) => {
-    if (typeof ref === 'function') {
-      ref(node);
-    } else if (ref && 'current' in (ref as any)) {
-      (ref as any).current = node;
-    }
-  }, [ref]);
+  }), [opened, openPopover, closePopover, togglePopover, handleHoverOpen, handleHoverClose, registerDropdown, unregisterDropdown, refs, getTriggerAriaProps, targetId, dropdownId, withRoles, disabled, returnFocus, trigger]);
 
   return (
     <PopoverContext.Provider value={contextValue}>
-      <View ref={setContainerRef} style={spacingStyles} testID={testID}>
-        {children}
-      </View>
+      <PopoverInlineFloatingContext.Provider value={inlineFloating}>
+        <View ref={ref} style={[spacingStyles, style]} testID={testID}>
+          {children}
+          {floating.hasOverlayProvider ? floatingElement : null}
+        </View>
+      </PopoverInlineFloatingContext.Provider>
     </PopoverContext.Provider>
   );
 };
 
-function mergeRefs<T>(...refs: Array<React.Ref<T> | undefined>) {
-  return (value: T | null) => {
-    refs.forEach(ref => {
-      if (!ref) return;
-      if (typeof ref === 'function') {
-        ref(value);
-      } else if ('current' in ref) {
-        (ref as React.MutableRefObject<T | null>).current = value;
-      }
-    });
+type Handler = (...args: never[]) => void;
+
+/** Handlers the Target chains: the child's own, then `targetProps`', then the popover's. */
+interface TriggerHandlers {
+  onPress?: Handler;
+  onKeyDown?: (event: WebKeyboardEvent) => void;
+  onMouseEnter?: (event: WebMouseEvent) => void;
+  onMouseLeave?: (event: WebMouseEvent) => void;
+  role?: string;
+  ref?: React.Ref<unknown>;
+}
+
+function callAll<A extends unknown[]>(...handlers: Array<((...args: A) => void) | undefined>) {
+  return (...args: A) => {
+    handlers.forEach((handler) => handler?.(...args));
   };
 }
 
-const PopoverTargetBase = (props: PopoverTargetProps, ref: React.Ref<any>) => {
+const PopoverTargetBase = (props: PopoverTargetProps, ref: React.Ref<View>) => {
   const { children, popupType = 'dialog', refProp = 'ref', targetProps } = props;
   const context = usePopoverContext('Popover.Target');
+  const inlineFloating = useContext(PopoverInlineFloatingContext);
 
   if (!isValidElement(children)) {
     throw new Error('Popover.Target expects a single React element child');
   }
 
-  const childProps = children.props as Record<string, any>;
-  const sanitizedTargetProps = { ...(targetProps ?? {}) } as Record<string, any>;
+  const childProps = children.props as TriggerHandlers;
+  const sanitizedTargetProps: Record<string, unknown> & TriggerHandlers = { ...(targetProps ?? {}) };
 
-  let externalTargetRef: React.Ref<any> | undefined;
+  let externalTargetRef: React.Ref<unknown> | undefined;
   if (refProp && Object.prototype.hasOwnProperty.call(sanitizedTargetProps, refProp)) {
-    externalTargetRef = sanitizedTargetProps[refProp];
+    externalTargetRef = sanitizedTargetProps[refProp] as React.Ref<unknown>;
     delete sanitizedTargetProps[refProp];
   }
+  const targetHandlers = sanitizedTargetProps as TriggerHandlers;
 
-  const accessibilityProps = context.withRoles && Platform.OS === 'web'
+  // aria-expanded everywhere; on web also role, aria-haspopup and an
+  // aria-controls that points at the dropdown's real id while it is open.
+  const accessibilityProps: Record<string, unknown> = context.withRoles
     ? {
-      role: childProps.role ?? 'button',
-      'aria-haspopup': popupType,
-      'aria-expanded': context.opened,
-      'aria-controls': context.opened ? context.dropdownId : undefined,
-      id: context.targetId,
-    }
+        ...context.getTriggerAriaProps(),
+        ...(isWeb ? { role: childProps.role ?? 'button', 'aria-haspopup': popupType } : null),
+        id: context.targetId,
+      }
     : { id: context.targetId };
 
-  const composedRef = mergeRefs<any>((children as any).ref, externalTargetRef);
+  // React 19 made `ref` an ordinary prop; on 18 it still lives on the element and
+  // reading `element.ref` on 19 logs a deprecation warning, so pick by version
+  // (same as Tooltip) rather than probing both.
+  const childRef: React.Ref<unknown> | undefined = parseInt(React.version, 10) >= 19
+    ? childProps.ref
+    : (children as unknown as { ref?: React.Ref<unknown> }).ref;
+  const composedRef = mergeRefs<unknown>(childRef, externalTargetRef);
 
-  const triggerHandlers: Record<string, any> = {};
-  const wrapperHoverHandlers: Record<string, any> = {};
+  const triggerHandlers: TriggerHandlers = {};
+  let wrapperHoverHandlers: ReturnType<typeof webProps> | null = null;
 
   // Click trigger: toggle on press
   if (context.trigger === 'click') {
-    triggerHandlers.onPress = (...args: any[]) => {
-      const tgt = targetProps as Record<string, any> | undefined;
-      if (tgt && typeof tgt.onPress === 'function') {
-        tgt.onPress(...args);
-      }
-      if (typeof childProps.onPress === 'function') {
-        childProps.onPress(...args);
-      }
-      context.toggle();
-    };
+    triggerHandlers.onPress = callAll(targetHandlers.onPress, childProps.onPress, () => context.toggle());
   }
 
-  // Hover trigger: open/close on mouse enter/leave (web only)
-  // Applied to the wrapper View for reliable hover detection
-  if (context.trigger === 'hover' && Platform.OS === 'web') {
-    wrapperHoverHandlers.onMouseEnter = (...args: any[]) => {
-      const tgt = targetProps as Record<string, any> | undefined;
-      if (tgt && typeof tgt.onMouseEnter === 'function') {
-        tgt.onMouseEnter(...args);
-      }
-      if (typeof childProps.onMouseEnter === 'function') {
-        childProps.onMouseEnter(...args);
-      }
-      context.hoverOpen();
-    };
-    wrapperHoverHandlers.onMouseLeave = (...args: any[]) => {
-      const tgt = targetProps as Record<string, any> | undefined;
-      if (tgt && typeof tgt.onMouseLeave === 'function') {
-        tgt.onMouseLeave(...args);
-      }
-      if (typeof childProps.onMouseLeave === 'function') {
-        childProps.onMouseLeave(...args);
-      }
-      context.hoverClose();
-    };
+  // Hover trigger: open/close on pointer enter/leave (web), on the wrapper View
+  // so the whole target counts.
+  if (context.trigger === 'hover') {
+    wrapperHoverHandlers = webProps({
+      onMouseEnter: callAll(targetHandlers.onMouseEnter, childProps.onMouseEnter, () => context.hoverOpen()),
+      onMouseLeave: callAll(targetHandlers.onMouseLeave, childProps.onMouseLeave, () => context.hoverClose()),
+    });
   }
 
-  if (Platform.OS === 'web') {
-    triggerHandlers.onKeyDown = (event: any) => {
-      const tgt = targetProps as Record<string, any> | undefined;
-      if (tgt && typeof tgt.onKeyDown === 'function') {
-        tgt.onKeyDown(event);
-      }
-      if (typeof childProps.onKeyDown === 'function') {
-        childProps.onKeyDown(event);
-      }
+  // Escape is handled by the layer stack (topmost layer only), not here.
+  if (isWeb) {
+    triggerHandlers.onKeyDown = (event: WebKeyboardEvent) => {
+      targetHandlers.onKeyDown?.(event);
+      childProps.onKeyDown?.(event);
       if (event.defaultPrevented) return;
-      if (event.key === 'Escape' && context.opened) {
-        context.close();
-      }
       if ((event.key === 'Enter' || event.key === ' ') && !context.opened) {
         event.preventDefault();
         context.open();
@@ -581,48 +468,48 @@ const PopoverTargetBase = (props: PopoverTargetProps, ref: React.Ref<any>) => {
     };
   }
 
-  const dynamicRefProp: Record<string, any> = { [refProp]: composedRef };
-
   // Remove handlers that we're overriding from sanitizedTargetProps
-  if (context.trigger === 'click') {
-    delete sanitizedTargetProps.onPress;
-  }
+  if (context.trigger === 'click') delete sanitizedTargetProps.onPress;
   if (context.trigger === 'hover') {
     delete sanitizedTargetProps.onMouseEnter;
     delete sanitizedTargetProps.onMouseLeave;
   }
   delete sanitizedTargetProps.onKeyDown;
 
-  const mergedProps: Record<string, any> = {
+  const mergedProps: Record<string, unknown> = {
     ...sanitizedTargetProps,
     ...triggerHandlers,
     ...accessibilityProps,
-    ...dynamicRefProp,
+    [refProp]: composedRef,
   };
 
   if (context.disabled) {
     mergedProps.disabled = true;
   }
 
-  const anchorWrapperRef = mergeRefs(context.anchorRef, ref);
+  const anchorWrapperRef = mergeRefs<View>(context.setAnchor, ref);
 
   return (
     <View ref={anchorWrapperRef} collapsable={false} {...wrapperHoverHandlers}>
       {cloneElement(children, mergedProps)}
+      {inlineFloating}
     </View>
   );
 };
 
 const PopoverDropdownBase = (props: PopoverDropdownProps, _ref: React.Ref<View>) => {
-  const { children, trapFocus = false, keepMounted, style, testID, ...rest } = props;
+  const { children, trapFocus = false, keepMounted, style, testID, ...restProps } = props;
   const context = usePopoverContext('Popover.Dropdown');
   const theme = useTheme();
+  // `rest` is a new object every render; keep its identity while its contents
+  // are unchanged so an unrelated re-render doesn't re-register the dropdown.
+  const rest = useShallowStable(restProps);
 
   const dropdownValue = useMemo<RegisteredDropdown>(() => ({
     content: (
-      <PlatformBlocksThemeProvider theme={theme} inherit>
+      <ThemeScope theme={theme} inherit>
         {children}
-      </PlatformBlocksThemeProvider>
+      </ThemeScope>
     ),
     style,
     trapFocus,
@@ -647,6 +534,16 @@ const PopoverDropdownBase = (props: PopoverDropdownProps, _ref: React.Ref<View>)
   return null;
 };
 
+function useShallowStable<T extends Record<string, unknown>>(value: T): T {
+  const ref = useRef(value);
+  const previous = ref.current;
+  const keys = Object.keys(value);
+  const same = keys.length === Object.keys(previous).length
+    && keys.every((key) => Object.is(previous[key], value[key]));
+  if (!same) ref.current = value;
+  return same ? previous : value;
+}
+
 function getArrowStyle(
   placement: PlacementType,
   arrowSize: number,
@@ -654,28 +551,27 @@ function getArrowStyle(
   arrowOffset: number,
   arrowPosition: ArrowPosition,
   theme: ReturnType<typeof useTheme>
-): Record<string, any> {
-  if (Platform.OS !== 'web') {
-    return {
-      width: 0,
-      height: 0,
-      opacity: 0,
-    };
+): ViewStyle {
+  if (!isWeb) {
+    return HIDDEN_ARROW;
   }
+  // Web only, so CSS `calc()` offsets are fine here.
+  const edge = (value: string | number) => value as ViewStyle['left'];
   // Same level-2 token the dropdown uses — the arrow is a continuation of that
   // surface, so it has to resolve identically.
   const arrowSurface = resolveSurface(theme, 2);
-  const base = {
-    position: 'absolute' as const,
+  const base: ViewStyle = {
+    position: 'absolute',
     width: arrowSize * 2,
     height: arrowSize * 2,
     backgroundColor: arrowSurface.background,
-    transform: [{ rotate: '45deg' }] as const,
+    transform: [{ rotate: '45deg' }],
     borderRadius: arrowRadius,
     borderColor: arrowSurface.border,
     borderWidth: 1,
   };
 
+  // `placement` is physical (already mirrored for RTL by useFloating).
   const [side, alignment] = placement.split('-') as [PlacementType, string | undefined];
 
   switch (side) {
@@ -686,11 +582,11 @@ function getArrowStyle(
         borderTopWidth: 0,
         borderLeftWidth: 0,
         bottom: -arrowSize,
-        left: alignment === 'end'
+        left: edge(alignment === 'end'
           ? `calc(100% - ${(arrowPosition === 'side' ? arrowOffset : arrowSize)}px)`
           : alignment === 'start'
             ? (arrowPosition === 'side' ? arrowOffset : arrowSize)
-            : '50%',
+            : '50%'),
         marginLeft: alignment || arrowPosition === 'side' ? 0 : -arrowSize,
       };
     case 'bottom':
@@ -700,11 +596,11 @@ function getArrowStyle(
         borderBottomWidth: 0,
         borderRightWidth: 0,
         top: -arrowSize,
-        left: alignment === 'end'
+        left: edge(alignment === 'end'
           ? `calc(100% - ${(arrowPosition === 'side' ? arrowOffset : arrowSize)}px)`
           : alignment === 'start'
             ? (arrowPosition === 'side' ? arrowOffset : arrowSize)
-            : '50%',
+            : '50%'),
         marginLeft: alignment || arrowPosition === 'side' ? 0 : -arrowSize,
       };
     case 'left':
@@ -714,11 +610,11 @@ function getArrowStyle(
         borderBottomWidth: 0,
         borderLeftWidth: 0,
         right: -arrowSize,
-        top: alignment === 'end'
+        top: edge(alignment === 'end'
           ? `calc(100% - ${(arrowPosition === 'side' ? arrowOffset : arrowSize)}px)`
           : alignment === 'start'
             ? (arrowPosition === 'side' ? arrowOffset : arrowSize)
-            : '50%',
+            : '50%'),
         marginTop: alignment || arrowPosition === 'side' ? 0 : -arrowSize,
       };
     case 'right':
@@ -728,11 +624,11 @@ function getArrowStyle(
         borderTopWidth: 0,
         borderRightWidth: 0,
         left: -arrowSize,
-        top: alignment === 'end'
+        top: edge(alignment === 'end'
           ? `calc(100% - ${(arrowPosition === 'side' ? arrowOffset : arrowSize)}px)`
           : alignment === 'start'
             ? (arrowPosition === 'side' ? arrowOffset : arrowSize)
-            : '50%',
+            : '50%'),
         marginTop: alignment || arrowPosition === 'side' ? 0 : -arrowSize,
       };
     default:
@@ -740,21 +636,16 @@ function getArrowStyle(
   }
 }
 
-const PopoverComponent = factory<{ props: PopoverProps; ref: View }>(PopoverBase);
-const PopoverTarget = factory<{ props: PopoverTargetProps; ref: View }>(PopoverTargetBase);
-const PopoverDropdown = factory<{ props: PopoverDropdownProps; ref: View }>(PopoverDropdownBase);
+const HIDDEN_ARROW: ViewStyle = { width: 0, height: 0, opacity: 0 };
 
-type PopoverCompoundComponent = typeof PopoverComponent & {
-  Target: typeof PopoverTarget;
-  Dropdown: typeof PopoverDropdown;
-};
+const PopoverComponent = factory<PopoverFactoryPayload>(PopoverBase, { displayName: 'Popover' });
+const PopoverTarget = factory<{ props: PopoverTargetProps; ref: View }>(PopoverTargetBase, { displayName: 'Popover.Target' });
+const PopoverDropdown = factory<{ props: PopoverDropdownProps; ref: View }>(PopoverDropdownBase, { displayName: 'Popover.Dropdown' });
 
-const Popover = PopoverComponent as PopoverCompoundComponent;
-Popover.Target = PopoverTarget;
-Popover.Dropdown = PopoverDropdown;
-
-Popover.displayName = 'Popover';
-Popover.Target.displayName = 'Popover.Target';
-Popover.Dropdown.displayName = 'Popover.Dropdown';
+/** Floating content anchored to a target. Compound parts: `Popover.Target`, `Popover.Dropdown`. */
+const Popover = withStatics(PopoverComponent, {
+  Target: PopoverTarget,
+  Dropdown: PopoverDropdown,
+});
 
 export { Popover };

@@ -5,6 +5,7 @@ import { render } from '@testing-library/react-native';
 import { Indicator } from '../Indicator';
 
 const mockTheme = {
+  backgrounds: { surface: '#FFFFFF' },
   colors: {
     success: ['#E6F4EA', '#C1EAC5', '#A3D9A5', '#7BC47F', '#57AE5B', '#3F9142', '#2F8132', '#207227'],
     surface: ['#FFFFFF', '#F5F5F5'],
@@ -14,8 +15,8 @@ const mockTheme = {
   },
 };
 
-jest.mock('../../../core/theme', () => {
-  const actual = jest.requireActual('../../../core/theme');
+jest.mock('../../../core/theme/ThemeProvider', () => {
+  const actual = jest.requireActual('../../../core/theme/ThemeProvider');
   return {
     ...actual,
     useTheme: () => mockTheme,
@@ -26,7 +27,7 @@ describe('Indicator - rendering', () => {
   it('matches snapshot for default indicator with inline content', () => {
     const { toJSON } = render(
       <Indicator>
-        <Text accessibilityRole="text">3</Text>
+        <Text>3</Text>
       </Indicator>
     );
 

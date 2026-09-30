@@ -285,13 +285,18 @@ describe('PhoneInput', () => {
   describe('accessibility', () => {
     it('labels the field with the country and dial code', () => {
       const root = render(<PhoneInput country="GB" />);
-      expect(getInput(root).props.accessibilityLabel)
+      expect(getInput(root).props['aria-label'])
         .toBe('Phone number, United Kingdom, country code +44');
     });
 
     it('lets a caller override the label', () => {
       const root = render(<PhoneInput country="US" accessibilityLabel="Mobile" />);
-      expect(getInput(root).props.accessibilityLabel).toBe('Mobile');
+      expect(getInput(root).props['aria-label']).toBe('Mobile');
+    });
+
+    it('lets a visible label name the field instead of the country fallback', () => {
+      const root = render(<PhoneInput country="US" label="Mobile number" />);
+      expect(getInput(root).props['aria-label']).toBe('Mobile number');
     });
 
     it('uses a phone keypad', () => {

@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native';
-import { SparklineChart } from '@platform-blocks/charts';
+import { SparklineChart } from '@plocks/charts';
 
 import { QUEUE_DEPTH } from './data';
 
@@ -15,7 +15,7 @@ export function Demo() {
       </Text>
 
       <SparklineChart
-        height={82}
+        h={82}
         data={QUEUE_DEPTH}
         fill
         fillOpacity={0.14}

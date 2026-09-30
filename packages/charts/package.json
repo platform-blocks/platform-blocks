@@ -1,18 +1,23 @@
 {
-  "name": "@platform-blocks/charts",
-  "version": "1.1.0",
+  "name": "@plocks/charts",
+  "version": "0.1.0",
   "description": "Data visualization chart components for React Native and Web — bar, line, area, pie, scatter, radar, heatmap, and more",
   "type": "module",
-  "main": "lib/cjs/index.js",
+  "main": "lib/esm/index.js",
   "module": "lib/esm/index.js",
-  "types": "lib/index.d.ts",
+  "types": "lib/esm/index.d.ts",
   "react-native": "./lib/esm/index.js",
   "exports": {
     ".": {
-      "types": "./lib/index.d.ts",
-      "react-native": "./lib/esm/index.js",
-      "import": "./lib/esm/index.js",
-      "require": "./lib/cjs/index.js",
+      "react-native": {
+        "types": "./lib/esm/index.d.ts",
+        "default": "./lib/esm/index.js"
+      },
+      "import": {
+        "types": "./lib/esm/index.d.ts",
+        "default": "./lib/esm/index.js"
+      },
+      "require": null,
       "default": "./lib/esm/index.js"
     },
     "./package.json": "./package.json"
@@ -24,9 +29,8 @@
   ],
   "scripts": {
     "build": "npm run clean && rollup -c && npm run build:types",
-    "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build:types": "tsc -p tsconfig.json --emitDeclarationOnly",
+    "build:types": "tsc -p tsconfig.json --emitDeclarationOnly --outDir lib/.types && node ../ui/scripts/emit-types.mjs .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
@@ -71,9 +75,9 @@
     "eslint-plugin-unused-imports": "^4.3.0",
     "jest": "^30.2.0",
     "@react-native/babel-preset": "^0.86.0",
-    "@react-native/jest-preset": "^0.86.0",
+    "@react-native/jest-preset": "^0.86.3",
     "react": "19.2.3",
-    "react-native": "0.86.0",
+    "react-native": "0.86.3",
     "react-native-reanimated": "4.5.0",
     "react-native-svg": "15.15.4",
     "react-test-renderer": "19.2.3",
@@ -99,11 +103,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/platform-blocks/platform-blocks.git",
+    "url": "git+https://github.com/platform-blocks/plocks.git",
     "directory": "packages/charts"
   },
   "bugs": {
-    "url": "https://github.com/platform-blocks/platform-blocks/issues"
+    "url": "https://github.com/platform-blocks/plocks/issues"
   },
-  "homepage": "https://platform-blocks.com"
+  "homepage": "https://plocks.dev"
 }

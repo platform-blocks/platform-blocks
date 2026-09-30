@@ -110,4 +110,58 @@ describe('PinInput', () => {
     // non-focused cells still show it
     expect(focused[1].props.placeholder).toBe('○');
   });
+
+  it('fires onComplete once on the transition to complete, not on parent re-renders', () => {
+    const onComplete = jest.fn();
+    const Parent = ({ tick }: { tick: number }) => {
+      const [value, setValue] = useState('');
+      // An inline callback: a new identity on every render.
+      return <PinInput length={4} value={value} onChange={setValue} onComplete={(pin) => onComplete(pin, tick)} />;
+    };
+    const root = render(<Parent tick={0} />);
+    fireEvent.changeText(getCells(root)[0], '1234');
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onComplete).toHaveBeenCalledWith('1234', 0);
+
+    root.rerender(<Parent tick={1} />);
+    root.rerender(<Parent tick={2} />);
+    expect(onComplete).toHaveBeenCalledTimes(1);
+
+    // Changing a digit makes a new complete code.
+    fireEvent.changeText(getCells(root)[1], '9');
+    expect(onComplete).toHaveBeenCalledTimes(2);
+    expect(onComplete).toHaveBeenLastCalledWith('1934', 2);
+  });
+
+  it('does not fire onComplete for a value that is already complete on mount', () => {
+    const onComplete = jest.fn();
+    render(<PinInput length={4} defaultValue="1234" onComplete={onComplete} />);
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it('names each cell by the field label and its position', () => {
+    const root = render(<PinInput length={3} label="Code" />);
+    expect(getCells(root).map((cell) => cell.props['aria-label'])).toEqual([
+      'Code, digit 1 of 3',
+      'Code, digit 2 of 3',
+      'Code, digit 3 of 3',
+    ]);
+    const unnamed = render(<PinInput length={2} />);
+    expect(getCells(unnamed)[1].props['aria-label']).toBe('Digit 2 of 2');
+  });
+
+  it('sizes cells from the theme control height', () => {
+    const root = render(<PinInput length={2} size="lg" />);
+    const cellFrame = getCells(root)[0].parent?.parent;
+    const flat = require('react-native').StyleSheet.flatten(cellFrame?.props.style);
+    expect(flat.height).toBe(44);
+    expect(flat.width).toBe(44);
+  });
+
+  it('exposes a focus handle through its ref', () => {
+    const ref = React.createRef<import('../../../core/types/base').FieldHandle>();
+    render(<PinInput length={4} ref={ref} />);
+    expect(typeof ref.current?.focus).toBe('function');
+    expect(typeof ref.current?.clear).toBe('function');
+  });
 });

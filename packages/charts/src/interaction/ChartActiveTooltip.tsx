@@ -1,8 +1,7 @@
 // ChartActiveTooltip — the single tooltip for all charts (hit-test interaction engine).
 // Reads the normalized `activeTarget`/`activeSlice` from the store and renders a themed
 // box at its canonical pixel anchor (portal to document.body on web using page coords;
-// absolute-positioned on native). This is the only chart tooltip — the legacy
-// crosshair/series-driven ChartPopover was retired once every chart migrated here.
+// absolute-positioned on native).
 
 import React from 'react';
 import { View, Text, Animated } from 'react-native';
@@ -111,9 +110,8 @@ export const ChartActiveTooltip: React.FC<ChartActiveTooltipProps> = ({
   if (!liveTooltip || !activeTarget) return null;
 
   // Value shown for a row: chart-precomputed formattedValue wins, then the datum's
-  // own hints, then the raw value. Charts moving off the legacy aggregator set
-  // `formattedValue`/`customTooltip` on their marks instead of the tooltip
-  // re-deriving per chart type.
+  // own hints, then the raw value. Chart marks can provide formattedValue or
+  // customTooltip so the tooltip need not derive display text per chart type.
   const entryText = (t: ActiveTarget): React.ReactNode =>
     t.formattedValue ??
     (t.datum as any)?.formattedValue ??

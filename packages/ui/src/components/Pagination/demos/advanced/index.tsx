@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Block, Pagination, Text } from '@platform-blocks/ui';
+import { Block, Pagination, Text } from '@plocks/ui';
 
 export function Demo() {
   const [page1, setPage1] = useState(10);
@@ -11,7 +11,7 @@ export function Demo() {
     <Block>
       <Block>
         <Pagination
-          current={page1}
+          value={page1}
           total={30}
           onChange={setPage1}
           showFirst
@@ -19,28 +19,28 @@ export function Demo() {
           siblings={2}
           boundaries={2}
         />
-        <Text size="xs" color="secondary">
+        <Text size="xs" c="secondary">
           Includes first and last buttons. Page {page1} of 30.
         </Text>
       </Block>
 
       <Block>
         <Pagination
-          current={page2}
+          value={page2}
           total={40}
           onChange={setPage2}
           showPrevNext
           siblings={1}
           boundaries={1}
         />
-        <Text size="xs" color="secondary">
+        <Text size="xs" c="secondary">
           Minimal navigation with prev/next only. Page {page2} of 40.
         </Text>
       </Block>
 
       <Block>
         <Pagination
-          current={page3}
+          value={page3}
           total={50}
           onChange={setPage3}
           showPrevNext
@@ -48,7 +48,7 @@ export function Demo() {
           boundaries={1}
           size="sm"
         />
-        <Text size="xs" color="secondary">
+        <Text size="xs" c="secondary">
           Compact layout with tight siblings. Page {page3} of 50.
         </Text>
       </Block>

@@ -6,7 +6,7 @@ import type { TooltipConfig, TooltipPropValue } from './types';
  * Lets every component expose one prop that accepts the shorthand string
  * (`tooltip="Copy"`) or the full config (`tooltip={{ label: 'Copy', position: 'right' }}`)
  * without each one re-implementing the union. `defaults` carries the host's own
- * legacy props (e.g. `tooltipPosition`) and always loses to explicit config keys.
+ * props (e.g. CopyButton's `tooltipPosition`) and always loses to explicit config keys.
  *
  * Returns `null` when there is nothing to show, so callers can skip the wrapper.
  */

@@ -1,4 +1,4 @@
-import { Block, Button, Popover, Text } from '@platform-blocks/ui';
+import { Block, Button, Popover, Text } from '@plocks/ui';
 
 export function Demo() {
   return (
@@ -9,11 +9,8 @@ export function Demo() {
         </Button>
       </Popover.Target>
       <Popover.Dropdown>
-        <Block p="sm" style={{ maxWidth: 240 }}>
-          <Text weight="semibold">Hover popover</Text>
-          <Text variant="small" color="secondary">
-            This popover opens on hover, ideal for mouse users who want quick access to additional content.
-          </Text>
+        <Block p="sm">
+          <Text fw="semibold">Hover popover</Text>
         </Block>
       </Popover.Dropdown>
     </Popover>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Block, DataTable, Text } from '@platform-blocks/ui';
-import type { DataTableColumn } from '@platform-blocks/ui';
+import { Block, DataTable, Text } from '@plocks/ui';
+import type { DataTableColumn } from '@plocks/ui';
 
 import { projects, type Project } from '../data';
 
@@ -29,7 +29,7 @@ export function Demo() {
       onExpandedRowsChange={setExpandedRows}
       expandableRowRender={(project) => (
         <Block p="md">
-          <Text color="muted">{project.summary}</Text>
+          <Text c="muted">{project.summary}</Text>
         </Block>
       )}
       searchable={false}

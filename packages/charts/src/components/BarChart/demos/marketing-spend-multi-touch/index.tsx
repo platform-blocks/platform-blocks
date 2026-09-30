@@ -1,4 +1,4 @@
-import { BarChart } from '@platform-blocks/charts';
+import { BarChart } from '@plocks/charts';
 
 import { CAMPAIGN_SPEND, TOTAL_SPEND } from './data';
 
@@ -9,7 +9,7 @@ export function Demo() {
     <BarChart
       title="Marketing spend by channel"
       subtitle="Multi-touch journey campaign mix"
-      height={420}
+      h={420}
       data={CAMPAIGN_SPEND}
       barSpacing={0.28}
       legend={{ show: false }}

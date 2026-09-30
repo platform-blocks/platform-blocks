@@ -1,4 +1,4 @@
-import { BubbleChart } from '@platform-blocks/charts';
+import { BubbleChart } from '@plocks/charts';
 
 import { Category, categoryPalette, contracts } from './data';
 
@@ -9,7 +9,7 @@ export function Demo() {
     <BubbleChart
       title="Vendor Contract Health"
       subtitle="Compliance vs renewal probability — bubble area encodes annual spend"
-      height={420}
+      h={420}
       data={contracts}
       dataKey={{
         x: 'complianceScore',

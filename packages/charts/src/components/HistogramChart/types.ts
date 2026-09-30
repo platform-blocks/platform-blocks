@@ -7,6 +7,8 @@ import type {
   ChartLegend,
   ChartTooltip,
 } from '../../types/base';
+import type { ChartFill } from '../../core/ChartFill';
+import type { ColorScaleConfig } from '../../utils/colorScale';
 
 export interface HistogramBin {
   /** Inclusive lower bound of the bin */
@@ -36,6 +38,22 @@ export interface HistogramBinSummary extends HistogramBin {
   percentile: number;
 }
 
+/**
+ * Per-bin coloring. A config maps a bin value through a shared color scale; a
+ * function picks each bin's color itself (return undefined to fall back to
+ * `barColor`).
+ */
+export type HistogramColorScale =
+  | (ColorScaleConfig & {
+      /**
+       * What the scale reads from each bin:
+       * - `'x'` (default): the bin's midpoint on the x axis — color by *where* values fall.
+       * - `'count'`: the bin's sample count — color by *how many*.
+       */
+      by?: 'x' | 'count';
+    })
+  | ((bin: HistogramBinSummary) => string | undefined);
+
 // Histogram (with optional density overlay)
 export interface HistogramChartProps
   extends BaseChartProps,
@@ -52,11 +70,17 @@ export interface HistogramChartProps
   bandwidth?: number;
   /** Normalize histogram to probability density (area=1) */
   density?: boolean;
-  /** Color for bars */
-  barColor?: string;
+  /** Bar fill — a color or a gradient. Defaults to the theme's first palette slot. */
+  barColor?: ChartFill;
+  /** Color each bin by its position or count. Takes precedence over `barColor`. */
+  colorScale?: HistogramColorScale;
   /** Opacity for bars (0-1) */
   barOpacity?: number;
-  /** Density line color */
+  /** Bar outline color */
+  barStroke?: string;
+  /** Bar outline width in px (defaults to 1 when `barStroke` is set) */
+  barStrokeWidth?: number;
+  /** Density line color. Defaults to the theme's second palette slot. */
   densityColor?: string;
   /** Density line thickness */
   densityThickness?: number;

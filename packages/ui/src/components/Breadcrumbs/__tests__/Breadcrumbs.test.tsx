@@ -16,8 +16,8 @@ const mockTheme = {
 const mockIconRender = jest.fn();
 let mockIsRTL = false;
 
-jest.mock('../../../core/theme', () => {
-  const actual = jest.requireActual('../../../core/theme');
+jest.mock('../../../core/theme/ThemeProvider', () => {
+  const actual = jest.requireActual('../../../core/theme/ThemeProvider');
   return {
     ...actual,
     useTheme: () => mockTheme,
@@ -32,7 +32,7 @@ jest.mock('../../Text', () => {
   const React = require('react');
   const { Text } = require('react-native');
   return {
-    Text: ({ size, color, weight, style, children, ...rest }: any) => (
+    Text: ({ size, c, fw, style, children, ...rest }: any) => (
       React.createElement(
         Text,
         {
@@ -40,10 +40,10 @@ jest.mock('../../Text', () => {
           style: [
             {
               fontSize: size,
-              color: typeof color === 'string'
-                ? (mockTheme.text as Record<string, string>)[color] ?? color
-                : color,
-              fontWeight: weight,
+              color: typeof c === 'string'
+                ? (mockTheme.text as Record<string, string>)[c] ?? c
+                : c,
+              fontWeight: fw,
             },
             style,
           ].filter(Boolean),
@@ -85,7 +85,8 @@ describe('Breadcrumbs - behavior', () => {
       <Breadcrumbs items={items} separator="/" showIcons={false} />
     );
 
-    expect(getAllByText('/')).toHaveLength(items.length - 1);
+    // Separators are decorative (hidden from assistive technology).
+    expect(getAllByText('/', { includeHiddenElements: true })).toHaveLength(items.length - 1);
 
     const currentStyles = StyleSheet.flatten(getByText('Current').props.style);
     const previousStyles = StyleSheet.flatten(getByText('Home').props.style);
@@ -112,7 +113,7 @@ describe('Breadcrumbs - behavior', () => {
     expect(getByText('Desks')).toBeTruthy();
   });
 
-  it('reverses item order when direction context is RTL', () => {
+  it('keeps the reading order under RTL (the row flips, the items do not reverse)', () => {
     const items = [
       { label: 'Home', onPress: jest.fn() },
       { label: 'Library', onPress: jest.fn() },
@@ -149,7 +150,24 @@ describe('Breadcrumbs - behavior', () => {
     const rtl = renderSequence();
 
     expect(ltr).toEqual(['Home', 'Library', 'Chapter']);
-    expect(rtl).toEqual(['Chapter', 'Library', 'Home']);
+    expect(rtl).toEqual(['Home', 'Library', 'Chapter']);
+  });
+
+  it('is a navigation landmark whose last item is the current page', () => {
+    const items = [
+      { label: 'Home', onPress: jest.fn() },
+      { label: 'Current' },
+    ];
+    const { getByLabelText, getAllByRole, getByRole, UNSAFE_root } = render(
+      <Breadcrumbs items={items} showIcons={false} />
+    );
+    expect(getByLabelText('Breadcrumb').props.role).toBe('navigation');
+    expect(getAllByRole('link')).toHaveLength(1);
+    expect(getByRole('link', { name: 'Home' })).toBeTruthy();
+    const listItems = UNSAFE_root.findAll(
+      (node: any) => typeof node.type === 'string' && node.props.role === 'listitem'
+    );
+    expect(listItems).toHaveLength(2);
   });
 
   it('omits icon rendering when showIcons=false and supports numeric sizing', () => {

@@ -1,4 +1,4 @@
-import { Block, Text, Timeline } from '@platform-blocks/ui';
+import { Block, Text, Timeline } from '@plocks/ui';
 
 const launches = [
   { title: 'Announcement', description: 'Introduced the roadmap to stakeholders.' },
@@ -8,16 +8,12 @@ const launches = [
 
 export function Demo() {
   return (
-    <Block>
-      <Text size="sm" color="secondary">
-        Customize the connector line globally with the `color` and `lineWidth` props on `Timeline`.
-      </Text>
-
+    <Block fullWidth gap="lg">
       <Block>
-        <Text weight="semibold">Theme color</Text>
+        <Text fw="semibold">Theme color</Text>
         <Timeline color="primary.6">
           {launches.map((milestone) => (
-            <Timeline.Item key={`color-${milestone.title}`} title={milestone.title}>
+            <Timeline.Item key={milestone.title} title={milestone.title}>
               <Text size="sm">{milestone.description}</Text>
             </Timeline.Item>
           ))}
@@ -25,10 +21,10 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text weight="semibold">Thicker connector</Text>
+        <Text fw="semibold">Thicker connector</Text>
         <Timeline lineWidth={4}>
-          {launches.slice(0, 2).map((milestone) => (
-            <Timeline.Item key={`width-${milestone.title}`} title={milestone.title}>
+          {launches.map((milestone) => (
+            <Timeline.Item key={milestone.title} title={milestone.title}>
               <Text size="sm">{milestone.description}</Text>
             </Timeline.Item>
           ))}
@@ -36,10 +32,10 @@ export function Demo() {
       </Block>
 
       <Block>
-        <Text weight="semibold">Combined styling</Text>
+        <Text fw="semibold">Combined styling</Text>
         <Timeline color="success.6" lineWidth={3}>
-          {launches.slice(1).map((milestone) => (
-            <Timeline.Item key={`combined-${milestone.title}`} title={milestone.title}>
+          {launches.map((milestone) => (
+            <Timeline.Item key={milestone.title} title={milestone.title}>
               <Text size="sm">{milestone.description}</Text>
             </Timeline.Item>
           ))}
@@ -48,5 +44,3 @@ export function Demo() {
     </Block>
   );
 }
-
-

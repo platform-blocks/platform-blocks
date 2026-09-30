@@ -8,4 +8,5 @@ export const LOAD_TIMES = [
 
 export const SLO_TARGET = 2.5;
 
-export const AVERAGE_LOAD = LOAD_TIMES.reduce((sum, value) => sum + value, 0) / LOAD_TIMES.length;
+// Loads past this are breaching, not just at risk.
+export const BREACH_LIMIT = 3.2;

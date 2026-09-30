@@ -1,4 +1,4 @@
-import { Block, KeyCap, Row, Text } from '@platform-blocks/ui';
+import { Block, KeyCap, Row, Text } from '@plocks/ui';
 
 export function Demo() {
   return (

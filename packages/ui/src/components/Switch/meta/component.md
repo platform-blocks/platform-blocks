@@ -5,16 +5,15 @@ category: input
 subcategory: Form Controls
 tags: [input, form, toggle, switch, boolean]
 status: stable
-since: 1.0.0
 playground: true
 platform:
   web: true
   ios: true
   android: true
 accessibility:
-  - Keyboard navigation support
-  - Screen reader compatible
-  - ARIA attributes
+  - role="switch" with aria-checked; one tab stop, Space toggles
+  - The label is linked through aria-labelledby and toggles the same control when pressed
+  - helperText / error are linked through aria-describedby; errors are announced
 related:
   - Checkbox
   - Radio

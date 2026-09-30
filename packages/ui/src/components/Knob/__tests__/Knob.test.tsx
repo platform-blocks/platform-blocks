@@ -35,13 +35,6 @@ describe('Knob - Prop Contracts', () => {
     expect(<Knob {...props} />).toBeDefined();
   });
 
-  it('still accepts a behavior value on the deprecated variant alias', () => {
-    // Deliberately not typed as `KnobProps`: `variant` now only types the visual presets,
-    // so this is the JS-consumer path the runtime shim exists for.
-    const props = { variant: 'stepped', marks: [{ value: 0 }] } as unknown as KnobProps;
-    expect(<Knob {...props} />).toBeDefined();
-  });
-
   it('accepts structured valueLabel config', () => {
     const props: KnobProps = {
       valueLabel: {

@@ -1,4 +1,4 @@
-import { NetworkChart } from '@platform-blocks/charts';
+import { NetworkChart } from '@plocks/charts';
 
 import { LINKS, NODES } from './data';
 
@@ -33,7 +33,7 @@ export function Demo() {
     <NetworkChart
       title="Supply chain relationship map"
       subtitle="Tiered flow from suppliers to regional distribution"
-      height={440}
+      h={440}
       layout="coordinate"
       nodes={NODES}
       links={LINKS}

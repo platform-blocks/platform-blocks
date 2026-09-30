@@ -1,10 +1,8 @@
 import type { ReactNode } from 'react';
-import type { SpacingProps } from '../../core/utils';
-import type { ThemeColor } from '../../core/theme/resolveColors';
-// Using generic radius via style props; no dedicated BorderRadiusProps available
-interface RadiusProp { radius?: number | string; }
-import type { SizeValue } from '../../core/theme/sizes';
-import type { ViewStyle, TextStyle, StyleProp } from 'react-native';
+import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
+
+import type { BaseProps, ColorProp, RadiusValue } from '../../core/types/base';
+import type { SizeValue } from '../../core/theme/types';
 import type { TextProps } from '../Text';
 
 /**
@@ -21,7 +19,8 @@ export interface TabItem {
    */
   label: string | ReactNode;
   /**
-   * Optional secondary line displayed beneath the label when supplied.
+   * Optional secondary content beside the label. A string renders as a
+   * superscript; a node (e.g. a count `Badge`) renders as given.
    */
   subLabel?: string | ReactNode;
   /**
@@ -33,9 +32,15 @@ export interface TabItem {
    */
   disabled?: boolean;
   /**
-   * Optional icon rendered alongside the label.
+   * Optional icon rendered alongside the label (decorative: hidden from
+   * assistive technology).
    */
   icon?: ReactNode;
+  /**
+   * Accessible name for the tab. Required when `label` has no text (an
+   * icon-only tab); otherwise the name comes from the label.
+   */
+  accessibilityLabel?: string;
 }
 
 /**
@@ -48,11 +53,11 @@ export interface TabItem {
  *     { key: 'overview', label: 'Overview', content: <OverviewScreen /> },
  *     { key: 'activity', label: 'Activity', content: <ActivityScreen /> },
  *   ]}
- *   onTabChange={(key) => console.log('Active tab:', key)}
+ *   onChange={(key) => setTab(key)}
  * />
  * ```
  */
-export interface TabsProps extends SpacingProps, RadiusProp {
+export interface TabsProps extends BaseProps<ViewStyle> {
   /**
    * Array of tab definitions to render. The first item becomes active by default when uncontrolled.
    */
@@ -60,11 +65,24 @@ export interface TabsProps extends SpacingProps, RadiusProp {
   /**
    * Controlled active tab key. When omitted the component manages internal state.
    */
-  activeTab?: string;
+  value?: string;
   /**
-   * Called whenever the active tab changes. Fires for both controlled and uncontrolled usage.
+   * Initially active tab key when uncontrolled (a persisted selection wins).
+   * Defaults to the first item.
    */
-  onTabChange?: (tabKey: string) => void;
+  defaultValue?: string;
+  /**
+   * Called with the tab key whenever the active tab changes. Fires for both
+   * controlled and uncontrolled usage.
+   */
+  onChange?: (tabKey: string) => void;
+  /**
+   * Keyboard activation. `'automatic'` selects a tab as soon as arrow keys move
+   * focus to it; `'manual'` only moves focus, and Enter/Space selects.
+   *
+   * @default 'automatic'
+   */
+  activationMode?: 'automatic' | 'manual';
   /**
    * Invoked when a disabled tab is pressed, allowing custom messaging or recovery flows.
    */
@@ -86,7 +104,7 @@ export interface TabsProps extends SpacingProps, RadiusProp {
    *
    * @default 'primary'
    */
-  color?: ThemeColor;
+  color?: ColorProp;
   /**
    * Orientation of the tab list.
    *
@@ -124,10 +142,6 @@ export interface TabsProps extends SpacingProps, RadiusProp {
    */
   transitionDuration?: number;
   /**
-   * Style overrides for the outer container.
-   */
-  style?: StyleProp<ViewStyle>;
-  /**
    * Style overrides applied to each tab pressable.
    */
   tabStyle?: StyleProp<ViewStyle>;
@@ -140,7 +154,7 @@ export interface TabsProps extends SpacingProps, RadiusProp {
    */
   textStyle?: StyleProp<TextStyle>;
   /**
-   * Override props applied to each tab's label `<Text>` (style, weight, ff, size, color).
+   * Override props applied to each tab's label `<Text>` (style, fw, ff, size, c).
    * Applies to all tabs in the strip; per-tab styling can still be done via `TabItem.label` (custom node).
    */
   labelProps?: Omit<TextProps, 'children'>;
@@ -148,6 +162,11 @@ export interface TabsProps extends SpacingProps, RadiusProp {
    * Array of tab keys that should be rendered disabled.
    */
   disabledKeys?: string[];
+  /**
+   * Corner radius of every tab (chip, card and folder variants): a radius token,
+   * px number, `'none'` or `'full'`.
+   */
+  radius?: RadiusValue;
   /**
    * Corner radius applied to the tab elements (variant dependent).
    */

@@ -3,33 +3,16 @@ import { render } from '@testing-library/react-native';
 import { Slider, RangeSlider } from '../Slider';
 
 const palette = ['#111111', '#222222', '#333333', '#444444', '#555555', '#666666', '#777777'];
+// The real default theme (labels render through <Text>, which reads the same
+// mocked `useTheme`), with the palettes the slider paints with stubbed.
+const mockDefaultTheme = jest.requireActual('../../../core/theme/defaultTheme').DEFAULT_THEME;
 const mockTheme = {
-  colors: {
-    primary: palette,
-    gray: palette,
-  },
-  text: {
-    primary: '#101010',
-    secondary: '#505050',
-  },
-  semantic: {
-    borderSubtle: '#e5e5e5',
-  },
-  backgrounds: {
-    border: '#d0d0d0',
-  },
-  shadows: {
-    // `xs` is Card's component default shadow — without it the value-label
-    // Card renders shadowless and the snapshot stops covering the real path.
-    xs: '0px 1px 2px rgba(0,0,0,0.1)',
-    sm: '0px 1px 2px rgba(0,0,0,0.15)',
-    md: '0px 2px 4px rgba(0,0,0,0.2)',
-    lg: '0px 4px 10px rgba(0,0,0,0.25)',
-    xl: '0px 8px 20px rgba(0,0,0,0.3)',
-  },
+  ...mockDefaultTheme,
+  colors: { ...mockDefaultTheme.colors, primary: palette, gray: palette },
 };
 
-jest.mock('../../../core/theme', () => ({
+jest.mock('../../../core/theme/ThemeProvider', () => ({
+  ...jest.requireActual('../../../core/theme/ThemeProvider'),
   useTheme: () => mockTheme,
 }));
 
@@ -106,10 +89,11 @@ describe('Slider - rendering', () => {
         value={42}
         valueLabelAlwaysOn
         valueLabel={() => 'value-X'}
-        valueLabelProps={{ weight: '700', style: { letterSpacing: 1.5 } }}
+        valueLabelProps={{ fw: '700', style: { letterSpacing: 1.5 } }}
       />
     );
-    const flat = StyleSheet.flatten((getByText('value-X') as any).props.style) || {};
+    // The bubble is decorative (the thumb's aria-valuetext carries the value).
+    const flat = StyleSheet.flatten((getByText('value-X', { includeHiddenElements: true }) as any).props.style) || {};
     expect(flat).toMatchObject({ fontWeight: '700', letterSpacing: 1.5 });
   });
 
@@ -122,7 +106,7 @@ describe('Slider - rendering', () => {
         max={100}
         ticks={[0, 50, 100].map((value) => ({ value, label: `tick-${value}` }))}
         showTicks
-        tickLabelProps={{ weight: '600', style: { fontStyle: 'italic' } }}
+        tickLabelProps={{ fw: '600', style: { fontStyle: 'italic' } }}
       />
     );
     const flat = StyleSheet.flatten((getByText('tick-50') as any).props.style) || {};

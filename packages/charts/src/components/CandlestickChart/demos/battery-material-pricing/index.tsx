@@ -1,4 +1,4 @@
-import { CandlestickChart } from '@platform-blocks/charts';
+import { CandlestickChart } from '@plocks/charts';
 
 import { LITHIUM_SERIES, NICKEL_SERIES, negotiationMarkers } from './data';
 
@@ -12,7 +12,7 @@ export function Demo() {
     <CandlestickChart
       title="Battery Material Pricing"
       subtitle="Negotiation window tracked across lithium and nickel contracts"
-      height={420}
+      h={420}
       series={[
         {
           id: 'lithium',

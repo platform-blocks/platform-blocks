@@ -23,7 +23,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, multiTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <StackedBarChart series={SERIES} width={400} height={260} />
+        <StackedBarChart series={SERIES} w={400} h={260} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );

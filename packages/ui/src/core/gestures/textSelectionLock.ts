@@ -27,7 +27,7 @@ export const acquireTextSelectionLock = (): void => {
   if (lockCount > 1) return;
   savedUserSelect = body.style.userSelect ?? '';
   body.style.userSelect = 'none';
-  (body.style as any).webkitUserSelect = 'none';
+  body.style.webkitUserSelect = 'none';
 };
 
 /** Release (or decrement) the text-selection lock. No-op off web. */
@@ -39,7 +39,7 @@ export const releaseTextSelectionLock = (): void => {
   lockCount -= 1;
   if (lockCount > 0) return;
   body.style.userSelect = savedUserSelect ?? '';
-  (body.style as any).webkitUserSelect = savedUserSelect ?? '';
+  body.style.webkitUserSelect = savedUserSelect ?? '';
   savedUserSelect = null;
 };
 

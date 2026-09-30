@@ -1,37 +1,135 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { View, ViewStyle, Platform, LayoutChangeEvent, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Ref } from 'react';
+import { View } from 'react-native';
+import type { GestureResponderEvent, NativeSyntheticEvent, TargetedEvent, ViewStyle } from 'react-native';
+
 import { Text } from '../Text';
-
 import { factory } from '../../core/factory';
-import { getRadius, getSpacing } from '../../core/theme/sizes';
-import { createShadowStyles } from '../../core/theme/shadow';
 import { useTheme } from '../../core/theme/ThemeProvider';
-import { useDirection } from '../../core/providers/DirectionProvider';
-import { useOptionalOverlayApi } from '../../core/providers/OverlayProvider';
-import { mergeSlotProps, useMergedRef } from '../../core/utils';
-import { measureElement, calculateOverlayPositionEnhanced, getViewport } from '../../core/utils/positioning-enhanced';
-import type { PositionResult, Rect } from '../../core/utils/positioning-enhanced';
-import { TooltipProps, TooltipFactoryPayload, TooltipPositionType } from './types';
+import { onColor, resolveRadius, resolveShadow, resolveSpacing } from '../../core/theme/tokens';
+import { resolveAccentColor } from '../../core/theme/resolveColors';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { useStyleProps } from '../../core/utils/spacing';
+import { isWeb, webProps } from '../../core/platform';
+import type { WebMouseEvent } from '../../core/platform';
+import { useFloating } from '../../core/overlay/useFloating';
+import { resolvePlacementForDirection, useIsRTL } from '../../core/overlay/placement';
+import { getNodeText } from '../../core/accessibility/useA11yId';
+import { useLatestCallback } from '../../core/hooks/useLatestCallback';
+import type { PlacementType } from '../../core/utils/positioning-enhanced';
+import type { TooltipProps, TooltipFactoryPayload } from './types';
 
-const chainHandlers = (
-  existing?: (...args: any[]) => void,
-  next?: (...args: any[]) => void
-) => {
-  if (!existing) {
-    return next;
-  }
+const ARROW_SIZE = 5;
+const TOOLTIP_FONT_SIZE = 13;
+const TOOLTIP_LINE_HEIGHT = 16;
+const TOOLTIP_MIN_HEIGHT = 30;
+/**
+ * Grace period before a hover-opened tooltip hides, so the pointer can travel
+ * from the trigger onto the bubble (WCAG 1.4.13: hover content is hoverable).
+ */
+const HOVER_GRACE_MS = 100;
+const FALLBACK_PLACEMENTS: PlacementType[] = ['top', 'bottom', 'right', 'left'];
+const NO_POINTER: ViewStyle = { pointerEvents: 'none' };
 
-  if (!next) {
-    return existing;
-  }
+/** Handlers a trigger child may carry that the tooltip chains onto. */
+interface TriggerChildProps {
+  onPress?: (event: GestureResponderEvent) => void;
+  onFocus?: (event: NativeSyntheticEvent<TargetedEvent>) => void;
+  onBlur?: (event: NativeSyntheticEvent<TargetedEvent>) => void;
+  onHoverIn?: (event: unknown) => void;
+  onHoverOut?: (event: unknown) => void;
+  onMouseEnter?: (event: WebMouseEvent) => void;
+  onMouseLeave?: (event: WebMouseEvent) => void;
+  'aria-describedby'?: string;
+  accessibilityHint?: string;
+  'aria-label'?: string;
+  accessibilityLabel?: string;
+}
 
-  return (...args: any[]) => {
-    existing(...args);
-    next(...args);
+const normalizeName = (text: string) => text.trim().replace(/\s+/g, ' ').toLowerCase();
+
+function chain<A extends unknown[]>(
+  first: ((...args: A) => void) | undefined,
+  second: (...args: A) => void
+): (...args: A) => void {
+  if (!first) return second;
+  return (...args: A) => {
+    first(...args);
+    second(...args);
   };
-};
+}
 
-function TooltipBase(props: TooltipProps, ref: React.Ref<View>) {
+/**
+ * Arrow drawn as a border triangle on the bubble's edge facing the trigger.
+ * `placement` is physical (already RTL-mirrored by useFloating); mirroring is
+ * its own inverse, so mirroring it again gives the logical side, which maps
+ * onto start/end style keys that RN's RTL swap and the web's `dir` both honour.
+ */
+function getArrowStyle(placement: PlacementType, color: string, isRTL: boolean): ViewStyle {
+  const side = resolvePlacementForDirection(placement, isRTL).split('-')[0];
+  const base: ViewStyle = { position: 'absolute', width: 0, height: 0 };
+
+  switch (side) {
+    case 'bottom':
+      return {
+        ...base,
+        bottom: '100%',
+        start: '50%',
+        marginStart: -ARROW_SIZE,
+        borderStartWidth: ARROW_SIZE,
+        borderEndWidth: ARROW_SIZE,
+        borderBottomWidth: ARROW_SIZE,
+        borderStartColor: 'transparent',
+        borderEndColor: 'transparent',
+        borderBottomColor: color,
+      };
+    case 'left':
+      // Bubble on the trigger's start side: the arrow sits past its end edge.
+      return {
+        ...base,
+        start: '100%',
+        top: '50%',
+        marginTop: -ARROW_SIZE,
+        borderTopWidth: ARROW_SIZE,
+        borderBottomWidth: ARROW_SIZE,
+        borderStartWidth: ARROW_SIZE,
+        borderTopColor: 'transparent',
+        borderBottomColor: 'transparent',
+        borderStartColor: color,
+      };
+    case 'right':
+      // Bubble on the trigger's end side: the arrow sits past its start edge.
+      return {
+        ...base,
+        end: '100%',
+        top: '50%',
+        marginTop: -ARROW_SIZE,
+        borderTopWidth: ARROW_SIZE,
+        borderBottomWidth: ARROW_SIZE,
+        borderEndWidth: ARROW_SIZE,
+        borderTopColor: 'transparent',
+        borderBottomColor: 'transparent',
+        borderEndColor: color,
+      };
+    case 'top':
+    default:
+      return {
+        ...base,
+        top: '100%',
+        start: '50%',
+        marginStart: -ARROW_SIZE,
+        borderStartWidth: ARROW_SIZE,
+        borderEndWidth: ARROW_SIZE,
+        borderTopWidth: ARROW_SIZE,
+        borderStartColor: 'transparent',
+        borderEndColor: 'transparent',
+        borderTopColor: color,
+      };
+  }
+}
+
+function TooltipBase(props: TooltipProps, ref: Ref<View>) {
   const {
     label,
     position = 'top',
@@ -39,547 +137,253 @@ function TooltipBase(props: TooltipProps, ref: React.Ref<View>) {
     color,
     radius = 'md',
     offset = 8,
-    width,
-    maxWidth = 280,
+    w: width,
+    maw: maxWidth = 280,
     lineClamp,
     opened: controlledOpened,
+    defaultOpened = false,
+    onOpen,
+    onClose,
     openDelay = 0,
     closeDelay = 0,
     events,
+    disabled = false,
     children,
     style,
     testID,
     labelProps,
+    ...spacingProps
   } = props;
 
-  const [isVisible, setIsVisible] = useState(false);
-  const [overlaySize, setOverlaySize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
-  const [positionResult, setPositionResult] = useState<PositionResult | null>(null);
-  const [resolvedPlacement, setResolvedPlacement] = useState<TooltipPositionType>(position);
-  const [overlayStyle, setOverlayStyle] = useState<ViewStyle | null>(null);
-
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const containerRef = useRef<View | null>(null);
-  const overlayIdRef = useRef<string | null>(null);
-  // The bubble is anchored to the *trigger*, not to the wrapper around it. The
-  // wrapper is a plain View, so inside a column it stretches across the whole
-  // cross axis — anchoring to it centres the bubble on the row rather than on the
-  // control, which reads as the tooltip drifting far off to one side. Neither is
-  // walking the wrapper's first child enough: components commonly render a
-  // full-width outer box around a hugged control (Button does exactly this).
-  //
-  // So the trigger reports its own box, best source first:
-  //   1. a ref forwarded to the element the child considers its root, and
-  //   2. a chained `onLayout`, for children that don't forward refs.
-  const triggerRef = useRef<View | null>(null);
-  const triggerLayoutRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
-
   const theme = useTheme();
-  const { isRTL } = useDirection();
-  // When an OverlayProvider is available (the default via PlatformBlocksProvider),
-  // render the popup through the root portal so it floats above the whole UI and is
-  // never clipped by an ancestor's overflow/stacking context. Falls back to inline
-  // rendering when no provider is present (e.g. standalone usage / tests).
-  const overlayApi = useOptionalOverlayApi();
-  const usePortal = overlayApi !== null;
-  // Latest api captured in a ref so the unmount cleanup can close a lingering overlay
-  // without re-subscribing the effect on every render.
-  const overlayApiRef = useRef(overlayApi);
-  overlayApiRef.current = overlayApi;
+  const isRTL = useIsRTL();
+  const spacingStyles = useStyleProps(spacingProps);
 
   const eventSettings = {
-    hover: true,
-    focus: false,
-    touch: true,
-    ...(events || {}),
+    hover: events?.hover ?? true,
+    // On by default: keyboard users would otherwise never see the tooltip.
+    focus: events?.focus ?? true,
+    touch: events?.touch ?? true,
   };
 
-  const isOpened = controlledOpened !== undefined ? controlledOpened : isVisible;
+  const [uncontrolledOpened, setUncontrolledOpened] = useState(defaultOpened);
+  const isControlled = controlledOpened !== undefined;
+  const opened = isControlled ? controlledOpened : uncontrolledOpened;
+  const hasLabel = label !== null && label !== undefined && label !== false && label !== '';
+  const isOpen = opened && !disabled && hasLabel;
 
+  const onOpenLatest = useLatestCallback(onOpen);
+  const onCloseLatest = useLatestCallback(onClose);
+  const openedRef = useRef(opened);
   useEffect(() => {
-    if (!isOpened) {
-      setOverlayStyle(null);
-      setPositionResult(null);
-      setResolvedPlacement(position);
-    }
-  }, [isOpened, position]);
+    openedRef.current = opened;
+  });
 
-  const showTooltip = useCallback(() => {
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearTimer = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
-
-    if (openDelay > 0) {
-      timeoutRef.current = setTimeout(() => setIsVisible(true), openDelay);
-    } else {
-      setIsVisible(true);
-    }
-  }, [openDelay]);
-
-  const hideTooltip = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    if (closeDelay > 0) {
-      timeoutRef.current = setTimeout(() => setIsVisible(false), closeDelay);
-    } else {
-      setIsVisible(false);
-    }
-  }, [closeDelay]);
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
   }, []);
+  useEffect(() => clearTimer, [clearTimer]);
 
-  const resolveBasePlacement = useCallback((): TooltipPositionType => {
-    if (position === 'left') return isRTL ? 'right' : 'left';
-    if (position === 'right') return isRTL ? 'left' : 'right';
-    return position;
-  }, [position, isRTL]);
+  const setOpened = useCallback((next: boolean) => {
+    if (openedRef.current === next) return;
+    openedRef.current = next;
+    if (!isControlled) setUncontrolledOpened(next);
+    if (next) onOpenLatest();
+    else onCloseLatest();
+  }, [isControlled, onOpenLatest, onCloseLatest]);
 
-  const getFallbackPosition = useCallback((): ViewStyle => {
-    const gap = offset + (withArrow ? 8 : 0);
-    const fallbackWidth = overlaySize.width || width;
-    const basePlacement = resolveBasePlacement();
-
-    switch (basePlacement) {
-      case 'top':
-        return {
-          bottom: '100%' as any,
-          left: '50%' as any,
-          marginLeft: fallbackWidth ? -fallbackWidth / 2 : undefined,
-          marginBottom: gap,
-        };
-      case 'bottom':
-        return {
-          top: '100%' as any,
-          left: '50%' as any,
-          marginLeft: fallbackWidth ? -fallbackWidth / 2 : undefined,
-          marginTop: gap,
-        };
-      case 'left':
-        return {
-          right: '100%' as any,
-          top: '50%' as any,
-          marginRight: gap,
-          marginTop: -15,
-        };
-      case 'right':
-        return {
-          left: '100%' as any,
-          top: '50%' as any,
-          marginLeft: gap,
-          marginTop: -15,
-        };
-      default:
-        return {
-          bottom: '100%' as any,
-          left: '50%' as any,
-          marginLeft: fallbackWidth ? -fallbackWidth / 2 : undefined,
-          marginBottom: gap,
-        };
+  const show = useCallback(() => {
+    if (disabled) return;
+    clearTimer();
+    if (openDelay > 0) {
+      timeoutRef.current = setTimeout(() => {
+        timeoutRef.current = null;
+        setOpened(true);
+      }, openDelay);
+    } else {
+      setOpened(true);
     }
-  }, [offset, overlaySize.width, resolveBasePlacement, width, withArrow]);
+  }, [disabled, clearTimer, openDelay, setOpened]);
 
-  const childProps = (children.props || {}) as any;
+  const hide = useCallback((delay: number = closeDelay) => {
+    clearTimer();
+    if (delay > 0) {
+      timeoutRef.current = setTimeout(() => {
+        timeoutRef.current = null;
+        setOpened(false);
+      }, delay);
+    } else {
+      setOpened(false);
+    }
+  }, [clearTimer, closeDelay, setOpened]);
 
+  const hideNow = useCallback(() => hide(0), [hide]);
+  const hideAfterHover = useCallback(() => hide(Math.max(closeDelay, HOVER_GRACE_MS)), [hide, closeDelay]);
+
+  const floating = useFloating({
+    opened: isOpen,
+    // Escape (WCAG 1.4.13: dismissible without moving pointer or focus).
+    onDismiss: hideNow,
+    placement: position,
+    offset: offset + (withArrow ? ARROW_SIZE : 0),
+    fallbackPlacements: FALLBACK_PLACEMENTS,
+    boundary: 4,
+    trigger: 'hover',
+    role: 'tooltip',
+    layer: 'tooltip',
+    autoFocus: false,
+    restoreFocus: false,
+    closeOnEscape: true,
+    closeOnOutsidePress: false,
+  });
+
+  // --- anchor: the trigger when it forwards a ref, else the wrapper -------------
+  // Refs attach child-first, so the trigger's wins when it exists. The wrapper
+  // can be wider than the control it wraps (it stretches in a column), which
+  // would centre the bubble on the row rather than on the control.
+  const { refs } = floating;
+  const triggerNodeRef = useRef<unknown>(null);
+  const setTriggerNode = useCallback((node: unknown) => {
+    triggerNodeRef.current = node;
+    if (node) refs.setReference(node);
+  }, [refs]);
+  const setWrapperNode = useCallback((node: unknown) => {
+    if (node && !triggerNodeRef.current) refs.setReference(node);
+  }, [refs]);
+  const wrapperRef = useMergedRef<View>(ref, setWrapperNode);
+
+  const childProps = (children.props ?? {}) as TriggerChildProps;
   // React 19 made `ref` an ordinary prop; on 18 it still lives on the element and
   // reading `element.ref` on 19 logs a deprecation warning, so pick by version
   // rather than probing both.
-  const childRef: React.Ref<View> | undefined = parseInt(React.version, 10) >= 19
-    ? childProps.ref
-    : (children as any).ref;
-  const setTriggerNode = useMergedRef<View>(triggerRef, childRef);
+  const childRef: Ref<unknown> | undefined = parseInt(React.version, 10) >= 19
+    ? (childProps as { ref?: Ref<unknown> }).ref
+    : (children as unknown as { ref?: Ref<unknown> }).ref;
+  const triggerRef = useMergedRef<unknown>(childRef, setTriggerNode);
 
-  const handlePress = (...args: any[]) => {
-    if (childProps.onPress) {
-      childProps.onPress(...args);
+  const labelText = typeof label === 'string' || typeof label === 'number' ? String(label) : getNodeText(label);
+
+  // A tooltip that only repeats the trigger's accessible name (an icon button
+  // labelled by its tooltip, a Progress section named after it) would be read
+  // twice; the name already carries it.
+  const triggerName = childProps['aria-label'] ?? childProps.accessibilityLabel;
+  const repeatsTriggerName =
+    !!labelText && typeof triggerName === 'string' && normalizeName(triggerName) === normalizeName(labelText);
+
+  const triggerOverrides: Record<string, unknown> = { ref: triggerRef };
+  if (hasLabel && !disabled && !repeatsTriggerName) {
+    if (isWeb) {
+      // The trigger is described by the tooltip (read when it gets focus).
+      const describedBy = [childProps['aria-describedby'], floating.floatingId].filter(Boolean).join(' ');
+      triggerOverrides['aria-describedby'] = describedBy;
+    } else if (labelText && !childProps.accessibilityHint) {
+      // Native screen readers never reach the bubble; they get it as the hint.
+      triggerOverrides.accessibilityHint = labelText;
     }
-
-    if (!eventSettings.touch) {
-      return;
-    }
-
-    if (Platform.OS === 'web' && eventSettings.hover) {
-      showTooltip();
-      return;
-    }
-
-    if (isVisible) {
-      hideTooltip();
-    } else {
-      showTooltip();
-    }
-  };
-
-  const handleMouseEnter = () => {
-    showTooltip();
-  };
-
-  const handleMouseLeave = () => {
-    hideTooltip();
-  };
-
-  const handleFocus = () => {
-    showTooltip();
-  };
-
-  const handleBlur = () => {
-    hideTooltip();
-  };
-
-  const handleTriggerLayout = useCallback((event: LayoutChangeEvent) => {
-    const { x, y, width: layoutWidth, height: layoutHeight } = event.nativeEvent.layout;
-    triggerLayoutRef.current = { x, y, width: layoutWidth, height: layoutHeight };
-  }, []);
-
-  /**
-   * `trigger` is what the bubble is positioned against; `container` is the wrapper
-   * the inline (no-portal) fallback is absolutely positioned within. They differ
-   * whenever the wrapper is wider/taller than the element it wraps.
-   */
-  const measureAnchorRects = useCallback(async (): Promise<{ trigger: Rect; container: Rect }> => {
-    const container = await measureElement(containerRef);
-
-    if (triggerRef.current) {
-      const trigger = await measureElement(triggerRef);
-      if (trigger.width > 0 || trigger.height > 0) {
-        return { trigger, container };
-      }
-    }
-
-    const layout = triggerLayoutRef.current;
-    if (layout && (layout.width > 0 || layout.height > 0)) {
-      return {
-        trigger: {
-          x: container.x + layout.x,
-          y: container.y + layout.y,
-          width: layout.width,
-          height: layout.height,
-        },
-        container,
-      };
-    }
-
-    return { trigger: container, container };
-  }, []);
-
-  const updateOverlayPosition = useCallback(async () => {
-    if (!isOpened || !containerRef.current) {
-      return;
-    }
-
-    const overlayWidth = overlaySize.width || width || 0;
-    const overlayHeight = overlaySize.height || 0;
-
-    if (!overlayWidth || !overlayHeight) {
-      return;
-    }
-
-    try {
-      const { trigger: anchorRect, container: containerRect } = await measureAnchorRects();
-      const basePlacement = resolveBasePlacement();
-
-      const result = calculateOverlayPositionEnhanced(
-        anchorRect,
-        { width: overlayWidth, height: overlayHeight },
-        {
-          placement: basePlacement,
-          offset,
-          viewport: getViewport(),
-          strategy: Platform.OS === 'web' ? 'fixed' : 'absolute',
-          fallbackPlacements: ['top', 'bottom', 'right', 'left'],
-          boundary: 4,
-        }
-      );
-
-      if (!isOpened) {
+  }
+  if (eventSettings.touch) {
+    triggerOverrides.onPress = chain(childProps.onPress, () => {
+      if (isWeb && eventSettings.hover) {
+        show();
         return;
       }
-
-      setPositionResult(result);
-      setOverlayStyle({
-        left: result.x - containerRect.x,
-        top: result.y - containerRect.y,
-      });
-      setResolvedPlacement((result.placement.split('-')[0] as TooltipPositionType) || basePlacement);
-    } catch (error) {
-      const fallbackStyle = getFallbackPosition();
-      setOverlayStyle(fallbackStyle);
-      setPositionResult(null);
-      setResolvedPlacement(resolveBasePlacement());
-    }
-  }, [getFallbackPosition, isOpened, measureAnchorRects, overlaySize.height, overlaySize.width, offset, resolveBasePlacement, width]);
-
-  useEffect(() => {
-    if (!isOpened) {
-      return;
-    }
-
-    updateOverlayPosition();
-  }, [isOpened, overlaySize.height, overlaySize.width, updateOverlayPosition]);
-
-  useEffect(() => {
-    if (Platform.OS !== 'web' || !isOpened) {
-      return;
-    }
-
-    // Coalesced to one reposition per frame.
-    //
-    // The scroll listener is registered in the capture phase, so it fires for
-    // every scrolling ancestor, and each call did an async measure plus three
-    // state updates. A single flick of the wheel could queue dozens of them,
-    // all landing in the same frame and all but the last immediately stale.
-    let frame: number | null = null;
-    const handleUpdate = () => {
-      if (frame !== null) return;
-      frame = requestAnimationFrame(() => {
-        frame = null;
-        updateOverlayPosition();
-      });
-    };
-
-    window.addEventListener('resize', handleUpdate);
-    window.addEventListener('scroll', handleUpdate, true);
-
-    return () => {
-      if (frame !== null) cancelAnimationFrame(frame);
-      window.removeEventListener('resize', handleUpdate);
-      window.removeEventListener('scroll', handleUpdate, true);
-    };
-  }, [isOpened, updateOverlayPosition]);
-
-  const positionalStyle = overlayStyle ?? getFallbackPosition();
-  const isOverlayReady = overlayStyle !== null;
-  // Bubbles size to their content and wrap at `maxWidth` (or the fixed `width`
-  // when one is given), then clamp again to whatever the viewport actually allows.
-  const requestedWidth = width ?? maxWidth;
-  const computedMaxWidth = positionResult?.maxWidth !== undefined
-    ? Math.min(requestedWidth, positionResult.maxWidth)
-    : requestedWidth;
-  const computedMaxHeight = positionResult?.maxHeight;
-  const arrowPlacement = resolvedPlacement;
-
-  const setContainerNode = useCallback((node: View | null) => {
-    containerRef.current = node;
-
-    if (typeof ref === 'function') {
-      ref(node);
-    } else if (ref && typeof ref !== 'function') {
-      (ref as React.MutableRefObject<View | null>).current = node;
-    }
-  }, [ref]);
-
-  const enhancedChild = React.cloneElement(children, {
-    ref: setTriggerNode,
-    onLayout: chainHandlers(childProps.onLayout, handleTriggerLayout),
-    ...(eventSettings.touch && {
-      onPress: handlePress,
-    }),
-    ...(Platform.OS === 'web' && eventSettings.hover && {
-      onMouseEnter: chainHandlers(childProps.onMouseEnter, handleMouseEnter),
-      onMouseLeave: chainHandlers(childProps.onMouseLeave, handleMouseLeave),
-      onHoverIn: chainHandlers(childProps.onHoverIn, handleMouseEnter),
-      onHoverOut: chainHandlers(childProps.onHoverOut, handleMouseLeave),
-    }),
-    ...(eventSettings.focus && {
-      onFocus: chainHandlers(childProps.onFocus, handleFocus),
-      onBlur: chainHandlers(childProps.onBlur, handleBlur),
-    }),
-  } as any);
-
-  const tooltipBackgroundColor = color || (theme.colorScheme === 'dark' ? theme.colors.surface[2] : theme.colors.gray[9]);
-  const tooltipTextColor = '#fff';
-  // Subtle hairline edge + theme-aware layered elevation so the tooltip reads as a
-  // crisp floating surface rather than a flat block.
-  const tooltipBorderColor = theme.colorScheme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.08)';
-  const elevatedShadow = useMemo(() => createShadowStyles('lg', theme) as ViewStyle, [theme]);
-
-  const handlePopupLayout = useCallback((event: LayoutChangeEvent) => {
-    const { width: layoutWidth, height: layoutHeight } = event.nativeEvent.layout;
-    setOverlaySize((prev) => {
-      if (prev.width === layoutWidth && prev.height === layoutHeight) {
-        return prev;
-      }
-      return { width: layoutWidth, height: layoutHeight };
+      if (openedRef.current) hideNow();
+      else show();
     });
-  }, []);
-
-  // Renders the tooltip bubble. When `portaled`, positioning is handled by the
-  // OverlayRenderer via the anchor rect, so the bubble carries no positional style;
-  // inline, it is absolutely positioned relative to its wrapper.
-  const buildPopup = useCallback((portaled: boolean) => {
-    const ready = portaled ? (!!positionResult && overlaySize.width > 0) : isOverlayReady;
-    return (
-      <View
-        style={[
-          {
-            ...(portaled ? null : { position: 'absolute' as const }),
-            backgroundColor: tooltipBackgroundColor,
-            borderRadius: getRadius(radius),
-            paddingHorizontal: getSpacing('sm'),
-            paddingVertical: getSpacing('xs'),
-            minHeight: 30,
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 999999,
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: tooltipBorderColor,
-            ...elevatedShadow,
-            width: width !== undefined ? Math.min(width, computedMaxWidth) : undefined,
-            maxWidth: computedMaxWidth,
-            maxHeight: computedMaxHeight,
-            opacity: ready ? 1 : 0,
-          },
-          portaled ? null : positionalStyle,
-        ]}
-        pointerEvents="none"
-        onLayout={handlePopupLayout}
-      >
-        <Text
-          {...mergeSlotProps(
-            {
-              weight: '500' as const,
-              // Wrap by default — clamping to one line silently truncated any
-              // label longer than the bubble. Opt back in with `lineClamp`.
-              numberOfLines: lineClamp,
-              style: {
-                color: tooltipTextColor,
-                fontSize: 13,
-                textAlign: 'center' as const,
-                lineHeight: 16,
-              },
-            },
-            labelProps,
-          )}
-        >
-          {label}
-        </Text>
-
-        {withArrow && (
-          <View
-            style={{
-              position: 'absolute',
-              width: 0,
-              height: 0,
-              ...(arrowPlacement === 'top' && {
-                top: '100%',
-                left: '50%',
-                marginLeft: -5,
-                borderLeftWidth: 5,
-                borderRightWidth: 5,
-                borderTopWidth: 5,
-                borderLeftColor: 'transparent',
-                borderRightColor: 'transparent',
-                borderTopColor: tooltipBackgroundColor,
-              }),
-              ...(arrowPlacement === 'bottom' && {
-                bottom: '100%',
-                left: '50%',
-                marginLeft: -5,
-                borderLeftWidth: 5,
-                borderRightWidth: 5,
-                borderBottomWidth: 5,
-                borderLeftColor: 'transparent',
-                borderRightColor: 'transparent',
-                borderBottomColor: tooltipBackgroundColor,
-              }),
-              ...(arrowPlacement === 'left' && {
-                left: '100%',
-                top: '50%',
-                marginTop: -5,
-                borderTopWidth: 5,
-                borderBottomWidth: 5,
-                borderLeftWidth: 5,
-                borderTopColor: 'transparent',
-                borderBottomColor: 'transparent',
-                borderLeftColor: tooltipBackgroundColor,
-              }),
-              ...(arrowPlacement === 'right' && {
-                right: '100%',
-                top: '50%',
-                marginTop: -5,
-                borderTopWidth: 5,
-                borderBottomWidth: 5,
-                borderRightWidth: 5,
-                borderTopColor: 'transparent',
-                borderBottomColor: 'transparent',
-                borderRightColor: tooltipBackgroundColor,
-              }),
-            }}
-          />
-        )}
-      </View>
+  }
+  if (isWeb && eventSettings.hover) {
+    Object.assign(
+      triggerOverrides,
+      webProps({
+        onMouseEnter: chain(childProps.onMouseEnter, () => show()),
+        onMouseLeave: chain(childProps.onMouseLeave, () => hideAfterHover()),
+      })
     );
-  }, [positionResult, overlaySize.width, isOverlayReady, tooltipBackgroundColor, tooltipTextColor, tooltipBorderColor, elevatedShadow, radius, width, lineClamp, computedMaxWidth, computedMaxHeight, positionalStyle, handlePopupLayout, labelProps, label, withArrow, arrowPlacement]);
+    triggerOverrides.onHoverIn = chain(childProps.onHoverIn, () => show());
+    triggerOverrides.onHoverOut = chain(childProps.onHoverOut, () => hideAfterHover());
+  }
+  if (eventSettings.focus) {
+    triggerOverrides.onFocus = chain(childProps.onFocus, () => show());
+    triggerOverrides.onBlur = chain(childProps.onBlur, () => hide());
+  }
 
-  // Sync the portaled tooltip with the overlay layer. Opens on first show, keeps the
-  // content + anchor updated as position/size/label change, and closes when hidden.
-  useEffect(() => {
-    if (!usePortal || !overlayApi) return;
+  const enhancedChild = React.cloneElement(children, triggerOverrides);
 
-    if (isOpened) {
-      // Open on `isOpened` even before a position is computed so the portaled bubble
-      // mounts and can measure itself (positioning needs the measured size). Until
-      // `positionResult` resolves the bubble renders at opacity 0 via `buildPopup`.
-      // Position only — deliberately no size. The renderer treats `anchor.width`
-      // as a hard width on the overlay host, and the measured width is rounded
-      // down a sub-pixel from what the text needs, which was enough to push short
-      // labels onto a second line.
-      const anchor = {
-        x: positionResult?.x ?? 0,
-        y: positionResult?.y ?? 0,
-        width: 0,
-        height: 0,
-      };
-      const content = buildPopup(true);
-      if (overlayIdRef.current) {
-        overlayApi.updateOverlay(overlayIdRef.current, { content, anchor });
-      } else {
-        overlayIdRef.current = overlayApi.openOverlay({
-          content,
-          anchor,
-          placement: resolvedPlacement,
-          trigger: 'hover',
-          closeOnClickOutside: false,
-          closeOnEscape: false,
-          strategy: Platform.OS === 'web' ? 'fixed' : 'portal',
-          zIndex: 999999,
-        });
-      }
-    } else if (overlayIdRef.current) {
-      overlayApi.closeOverlay(overlayIdRef.current);
-      overlayIdRef.current = null;
-    }
-  }, [usePortal, overlayApi, isOpened, positionResult, overlaySize.width, overlaySize.height, resolvedPlacement, width, buildPopup]);
+  // --- bubble --------------------------------------------------------------------
+  // An inverted surface by default: the page's text color as the fill, with the
+  // label picked for contrast (so an explicit `color` always stays readable too).
+  const background = resolveAccentColor(theme, color) ?? theme.text.primary;
+  const foreground = onColor(theme, background);
 
-  // Close any lingering overlay on unmount.
-  useEffect(() => () => {
-    if (overlayIdRef.current && overlayApiRef.current) {
-      overlayApiRef.current.closeOverlay(overlayIdRef.current);
-      overlayIdRef.current = null;
-    }
-  }, []);
+  const bubbleStyle = useMemo<ViewStyle>(() => ({
+    backgroundColor: background,
+    borderRadius: resolveRadius(theme, radius),
+    paddingHorizontal: resolveSpacing(theme, 'sm') as number,
+    paddingVertical: resolveSpacing(theme, 'xs') as number,
+    minHeight: TOOLTIP_MIN_HEIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...resolveShadow(theme, 'lg'),
+  }), [background, theme, radius]);
+
+  // Bubbles size to their content and wrap at `maw` (or the fixed `w` when one
+  // is given), then clamp again to whatever the viewport allows.
+  const requestedWidth = width ?? maxWidth;
+  const positionMaxWidth = floating.position?.maxWidth;
+  const computedMaxWidth = typeof positionMaxWidth === 'number'
+    ? Math.min(requestedWidth, positionMaxWidth)
+    : requestedWidth;
+
+  const hoverable = isWeb && eventSettings.hover;
+  const floatingProps = floating.getFloatingProps({
+    style: [
+      bubbleStyle,
+      {
+        width: width !== undefined ? Math.min(width, computedMaxWidth) : undefined,
+        maxWidth: computedMaxWidth,
+        maxHeight: floating.position?.maxHeight,
+      },
+      hoverable ? null : NO_POINTER,
+    ],
+    // Hoverable: the pointer may move onto the bubble without it vanishing.
+    ...(hoverable ? webProps({ onMouseEnter: clearTimer, onMouseLeave: hideAfterHover }) : null),
+  });
+
+  const bubble = isOpen ? (
+    <View {...floatingProps}>
+      <Text
+        {...mergeSlotProps(
+          {
+            fw: '500' as const,
+            // Wrap by default — clamping to one line silently truncated any
+            // label longer than the bubble. Opt back in with `lineClamp`.
+            numberOfLines: lineClamp,
+            style: {
+              color: foreground,
+              fontSize: TOOLTIP_FONT_SIZE,
+              textAlign: 'center' as const,
+              lineHeight: TOOLTIP_LINE_HEIGHT,
+            },
+          },
+          labelProps,
+        )}
+      >
+        {label}
+      </Text>
+      {withArrow && <View style={getArrowStyle(floating.placement, background, isRTL)} />}
+    </View>
+  ) : null;
 
   return (
-    <View
-      ref={setContainerNode}
-      style={[{ position: 'relative', }, style]}
-      testID={testID}
-    >
+    <View ref={wrapperRef} style={[{ position: 'relative' }, spacingStyles, style]} testID={testID}>
       {enhancedChild}
-
-      {/* Inline fallback popup — only when no OverlayProvider is available. */}
-      {!usePortal && isOpened && buildPopup(false)}
+      {floating.renderFloating(bubble)}
     </View>
   );
 }
 
-export const Tooltip = factory<TooltipFactoryPayload>(TooltipBase);
-
-Tooltip.displayName = 'Tooltip';
+export const Tooltip = factory<TooltipFactoryPayload>(TooltipBase, { displayName: 'Tooltip' });

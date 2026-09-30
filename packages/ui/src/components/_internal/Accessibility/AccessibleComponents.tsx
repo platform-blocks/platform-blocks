@@ -1,135 +1,146 @@
-import React from 'react';
-import { View, Text } from 'react-native';
-import { useFocus, useAnnouncer } from '../../../core/accessibility/hooks';
-import { useFocusTrap } from '../../../core/accessibility/advancedHooks';
-import { createAccessibilityProps } from '../../../core/accessibility/utils';
-import { DESIGN_TOKENS } from '../../../core';
-import { useTheme } from '../../../core/theme';
+import React, { useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
-interface AccessibleAnnouncerProps {
+import { a11yProps } from '../../../core/accessibility/a11yProps';
+import { announce } from '../../../core/accessibility/announce';
+import { useA11yId } from '../../../core/accessibility/useA11yId';
+import { useThemedStyles } from '../../../core/hooks/useThemedStyles';
+import { LayerScope, useLayer } from '../../../core/overlay/useLayer';
+import { isIOS } from '../../../core/platform/flags';
+import { resolveSurface } from '../../../core/theme/surfaces';
+import { resolveFontSize, resolveRadius, resolveScrim, resolveShadow, resolveSpacing } from '../../../core/theme/tokens';
+import { getZIndex } from '../../../core/theme/zIndices';
+
+/**
+ * Type-checks a style table like `StyleSheet.create` (without registering it:
+ * useThemedStyles already memoizes it per theme).
+ */
+function namedStyles<T extends StyleSheet.NamedStyles<T>>(table: T): T {
+  return table;
+}
+
+/** Off-screen but still in the accessibility tree (the "sr-only" recipe). */
+export const VISUALLY_HIDDEN_STYLE: ViewStyle = {
+  position: 'absolute',
+  start: -10000,
+  width: 1,
+  height: 1,
+  overflow: 'hidden',
+};
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  hidden: VISUALLY_HIDDEN_STYLE,
+});
+
+export interface AccessibleAnnouncerProps {
   children: React.ReactNode;
+  /** Messages for screen readers; each new last entry is announced politely. */
   announcements: string[];
 }
 
 /**
- * Component that provides live region for announcements
+ * Wraps `children` with a visually hidden polite live region listing
+ * `announcements` (web `aria-live`, Android live region). iOS has no live
+ * regions, so the newest entry is spoken with `announce()` there.
  */
-export const AccessibleAnnouncer: React.FC<AccessibleAnnouncerProps> = ({
-  children,
-  announcements,
-}) => {
-  const theme = useTheme();
+export const AccessibleAnnouncer: React.FC<AccessibleAnnouncerProps> = ({ children, announcements }) => {
+  const count = announcements.length;
+  const latest = count > 0 ? announcements[count - 1] : undefined;
+
+  useEffect(() => {
+    if (isIOS && latest) announce(latest, { politeness: 'polite' });
+    // `count` re-announces a repeated message appended again.
+  }, [count, latest]);
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.fill}>
       {children}
-      
-      {/* Live region for announcements */}
-      <View
-        style={{
-          position: 'absolute',
-          left: -10000,
-          width: 1,
-          height: 1,
-          overflow: 'hidden',
-        }}
-        {...createAccessibilityProps({
-          role: 'alert',
-        })}
-        accessibilityLiveRegion="polite"
-      >
+      <View style={styles.hidden} {...a11yProps({ role: 'status', live: 'polite' })}>
         {announcements.map((announcement, index) => (
-          <Text key={`${announcement}-${index}`}>
-            {announcement}
-          </Text>
+          <Text key={`${announcement}-${index}`}>{announcement}</Text>
         ))}
       </View>
     </View>
   );
 };
 
-interface AccessibleModalProps {
+export interface AccessibleModalProps {
+  /** Whether the dialog is shown. */
   visible: boolean;
+  /** Dialog title; it names the dialog for assistive technology. */
   title?: string;
   children: React.ReactNode;
+  /** Called on Escape (web) / hardware back (Android). */
   onDismiss?: () => void;
 }
 
 /**
- * Accessible modal with focus management
+ * Modal dialog rendered in place over its container: role `dialog` +
+ * `aria-modal`, named by its title, registered as a modal layer (focus moves in
+ * and is trapped and restored on web; Escape / Android back call `onDismiss`).
  */
-export const AccessibleModal: React.FC<AccessibleModalProps> = ({
-  visible,
-  title,
-  children,
-  onDismiss,
-}) => {
-  const theme = useTheme();
-  const { announce } = useAnnouncer();
-  const { containerRef: trapRef } = useFocusTrap(visible);
+export const AccessibleModal: React.FC<AccessibleModalProps> = ({ visible, title, children, onDismiss }) => {
+  const containerRef = useRef<View>(null);
+  const titleId = useA11yId(undefined, 'plocks-modal-title');
+  const { id: layerId } = useLayer({
+    active: visible,
+    modal: true,
+    onDismiss: () => onDismiss?.(),
+    containerRef,
+    initialFocus: 'container',
+  });
 
-  React.useEffect(() => {
-    if (visible && title) {
-      announce(`${title} dialog opened`);
-    }
-  }, [visible, title, announce]);
+  const themed = useThemedStyles((theme) =>
+    namedStyles({
+      backdrop: {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        start: 0,
+        end: 0,
+        // Scrim behind the modal card — the theme's backdrop, like DropdownSheet's.
+        backgroundColor: resolveScrim(theme),
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: getZIndex(theme, 'modal'),
+      },
+      card: {
+        backgroundColor: resolveSurface(theme, 3).background,
+        borderRadius: resolveRadius(theme, 'lg'),
+        padding: resolveSpacing(theme, 'xl'),
+        margin: resolveSpacing(theme, 'lg'),
+        minWidth: 280,
+        maxWidth: '90%',
+        ...resolveShadow(theme, resolveSurface(theme, 3).shadow),
+      },
+      title: {
+        fontSize: resolveFontSize(theme, 'lg'),
+        fontWeight: '600',
+        color: theme.text.primary,
+        marginBottom: resolveSpacing(theme, 'md'),
+      },
+    })
+  );
 
   if (!visible) return null;
 
   return (
-    <View
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 1000,
-      }}
-      {...createAccessibilityProps({
-        role: 'alert',
-        label: title ? `${title} dialog` : 'Dialog',
-      })}
-      accessibilityModal={true}
-      accessibilityViewIsModal={true}
-    >
-      <View
-        ref={trapRef}
-        style={{
-          backgroundColor: theme.colors.surface[0],
-          borderRadius: DESIGN_TOKENS.radius.lg,
-          padding: DESIGN_TOKENS.spacing.xl,
-          margin: DESIGN_TOKENS.spacing.lg,
-          minWidth: 280,
-          maxWidth: '90%',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.25,
-          shadowRadius: 8,
-          elevation: 8,
-        }}
-      >
-        {title && (
-          <Text
-            style={{
-              fontSize: DESIGN_TOKENS.typography.fontSize.lg,
-              fontWeight: DESIGN_TOKENS.typography.fontWeight.semibold,
-              color: theme.colors.gray[9],
-              marginBottom: DESIGN_TOKENS.spacing.md,
-            }}
-            {...createAccessibilityProps({
-              role: 'header',
-            })}
-          >
-            {title}
-          </Text>
-        )}
-        
-        {children}
-      </View>
+    <View style={themed.backdrop}>
+      <LayerScope id={layerId}>
+        <View
+          ref={containerRef}
+          style={themed.card}
+          {...a11yProps({ role: 'dialog', modal: true, labelledBy: title ? titleId : undefined })}
+        >
+          {title ? (
+            <Text style={themed.title} {...a11yProps({ role: 'heading', id: titleId })}>
+              {title}
+            </Text>
+          ) : null}
+          {children}
+        </View>
+      </LayerScope>
     </View>
   );
 };

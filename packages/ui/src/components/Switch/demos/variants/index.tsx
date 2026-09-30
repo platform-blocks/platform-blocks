@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, Row, Switch, Text } from '@platform-blocks/ui';
+import { Block, Row, Switch, Text } from '@plocks/ui';
 
 const VARIANTS = [
   { variant: 'filled', hint: 'filled (default) — solid track fills with the active color' },
@@ -20,7 +20,7 @@ export function Demo() {
     <Block>
       {VARIANTS.map(({ variant, hint }) => (
         <Block key={variant}>
-          <Text variant="small" color="muted">
+          <Text variant="small" c="muted">
             {hint}
           </Text>
           <Row gap="lg" wrap="wrap" align="center">

@@ -1,4 +1,4 @@
-import { Badge, Icon, Row, Text, Tree, type TreeNode } from '@platform-blocks/ui';
+import { Badge, Icon, Row, Text, Tree, type TreeNode } from '@plocks/ui';
 
 import { STATUS_BADGES, TREE_DATA, TYPE_ICONS, type CustomNodeData } from './data';
 
@@ -13,7 +13,7 @@ export function Demo() {
         <Text size="sm" style={{ flex: 1 }}>
           {node.label}
         </Text>
-        <Badge variant="outline" color={status.color}>
+        <Badge variant="outline" c={status.color}>
           {status.label}
         </Badge>
       </Row>

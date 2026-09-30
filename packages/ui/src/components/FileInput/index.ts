@@ -1,2 +1,9 @@
 export { FileInput } from './FileInput';
-export type { FileInputProps, FileInputFile } from './types';
+export type {
+  FileInputProps,
+  FileInputFile,
+  FileInputSource,
+  FileInputUploadSettings,
+  FileUploadHelpers,
+  DocumentPickerAssetLike,
+} from './types';

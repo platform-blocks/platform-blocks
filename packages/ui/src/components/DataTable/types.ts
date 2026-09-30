@@ -1,16 +1,28 @@
-import React from 'react';
-import { SpacingProps } from '../../core/utils';
+import type React from 'react';
+import type { ViewStyle } from 'react-native';
+
+import type { BaseProps } from '../../core/types/base';
 import type { TextProps } from '../Text';
 import type { PaginationProps } from '../Pagination';
 import type { TooltipPropValue } from '../Tooltip';
+
+/**
+ * A cell / filter / aggregate value. Row shapes are consumer-defined, so the
+ * table cannot know these types; `unknown` would force a cast in every cell
+ * renderer (`cell: (value) => value.toFixed(1)`), which is why this one alias
+ * stays `any`.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- consumer-defined row values (see above)
+export type DataTableValue = any;
 
 // Core type aliases
 export type SortDirection = 'asc' | 'desc' | null;
 export type FilterType = 'text' | 'number' | 'select' | 'date' | 'boolean';
 export type ColumnDataType = 'text' | 'number' | 'date' | 'boolean' | 'currency' | 'percentage';
+export type DataTableRowId = string | number;
 
 /** Built-in aggregation, or a custom reducer over the group's rows. */
-export type AggregateType<T = any> =
+export type AggregateType<T = unknown> =
   | 'sum'
   | 'avg'
   | 'min'
@@ -18,25 +30,25 @@ export type AggregateType<T = any> =
   | 'count'
   | ((rows: T[]) => number | string);
 
-export interface DataTableColumn<T = any> {
+export interface DataTableColumn<T = DataTableValue> {
   /** Unique identifier for the column */
   key: string;
   /** Display header for the column */
   header: React.ReactNode;
   /** Accessor function or key path */
-  accessor: keyof T | ((row: T) => any);
+  accessor: keyof T | ((row: T) => DataTableValue);
   /** Custom cell renderer */
-  cell?: (value: any, row: T, index: number) => React.ReactNode;
+  cell?: (value: DataTableValue, row: T, index: number) => React.ReactNode;
   /** Whether column is sortable */
   sortable?: boolean;
   /** Optional custom comparison function overriding default sorting */
-  compare?: (a: any, b: any, rowA: T, rowB: T) => number;
+  compare?: (a: DataTableValue, b: DataTableValue, rowA: T, rowB: T) => number;
   /** Whether column is filterable */
   filterable?: boolean;
   /** Filter type for this column */
   filterType?: FilterType;
   /** Filter options for select filter type */
-  filterOptions?: Array<{ label: string; value: any }>;
+  filterOptions?: Array<{ label: string; value: DataTableValue }>;
   /** Preferred width */
   width?: number | string;
   /** Minimum width */
@@ -48,12 +60,18 @@ export interface DataTableColumn<T = any> {
   /** Whether cells in this column are editable (when table in edit mode) */
   editable?: boolean;
   /** Validation function returning an error message or null */
-  validate?: (value: any) => string | null;
+  validate?: (value: DataTableValue) => string | null;
   /** Data type for formatting & validation */
   dataType?: ColumnDataType;
-  /** Text alignment */
+  /**
+   * Content alignment. `left` / `right` are the leading / trailing edges, so
+   * they follow the layout direction in RTL.
+   */
   align?: 'left' | 'center' | 'right';
-  /** Sticky positioning */
+  /**
+   * Pin the column during horizontal scroll (web). `left` pins it to the
+   * leading edge and `right` to the trailing edge (mirrored in RTL).
+   */
   sticky?: 'left' | 'right';
   /**
    * Aggregation for this column, shown in group-header rows (per group) and the
@@ -67,7 +85,7 @@ export interface DataTableColumn<T = any> {
 
 export interface DataTableFilter {
   column: string;
-  value: any;
+  value: DataTableValue;
   operator: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte' | 'contains' | 'startsWith' | 'endsWith';
 }
 
@@ -82,7 +100,52 @@ export interface DataTablePagination {
   total: number;
 }
 
-export interface DataTableProps<T = any> extends SpacingProps {
+/** Per-row feature overrides returned by `rowFeatureToggle`. */
+export interface DataTableRowFeatures {
+  selectable?: boolean;
+  editable?: boolean;
+  sortable?: boolean;
+  filterable?: boolean;
+  searchable?: boolean;
+}
+
+export interface DataTableBulkAction<T = DataTableValue> {
+  /** Unique key */
+  key: string;
+  /** Button label */
+  label: string;
+  /** Optional icon */
+  icon?: React.ReactNode;
+  /** Action invoked with selected row ids & full data */
+  action: (selectedRows: DataTableRowId[], data: T[]) => void;
+}
+
+export interface DataTableRowAction<T = DataTableValue> {
+  /** Unique action key */
+  key: string;
+  /** Icon to display (icon-only buttons recommended) */
+  icon?: React.ReactNode;
+  /** Accessible name for the icon button (falls back to the tooltip text, then the key) */
+  label?: string;
+  /** Action handler */
+  onPress?: (row: T, index: number) => void;
+  /** Disable this action */
+  disabled?: boolean;
+  /** Whether to hide this action */
+  hidden?: boolean;
+  /** Tooltip shown on hover/long-press: text, or a full Tooltip config. */
+  tooltip?: TooltipPropValue;
+}
+
+export interface DataTableGroupHeaderInfo<T = DataTableValue> {
+  value: DataTableValue;
+  rows: T[];
+  count: number;
+  expanded: boolean;
+  toggle: () => void;
+}
+
+export interface DataTableProps<T = DataTableValue> extends BaseProps<ViewStyle> {
   /** Stable id for user preference persistence */
   id?: string;
   /** Data rows */
@@ -141,57 +204,55 @@ export interface DataTableProps<T = any> extends SpacingProps {
    * you can also disable the built-in total (`showTotal={false}`) or size
    * changer (`showSizeChanger={false}`).
    */
-  paginationProps?: Omit<PaginationProps, 'current' | 'total' | 'onChange'>;
+  paginationProps?: Omit<PaginationProps, 'value' | 'defaultValue' | 'current' | 'total' | 'onChange'>;
   /** Enable row selection */
   selectable?: boolean;
-  /** Selected row identifiers */
-  selectedRows?: (string | number)[];
+  /** Show the per-column options menu in each header. */
+  showColumnMenu?: boolean;
+  /**
+   * Selected row identifiers (controlled). Leave undefined to let the table
+   * manage selection itself; `onSelectionChange` fires in both modes.
+   */
+  selectedRows?: DataTableRowId[];
   /** Selection change handler */
-  onSelectionChange?: (selected: (string | number)[]) => void;
-  /** Function to extract a stable id for each row */
-  getRowId?: (row: T, index: number) => string | number;
-  /** Row click handler */
+  onSelectionChange?: (selected: DataTableRowId[]) => void;
+  /** Stable row ID; required for selection, expansion, and edit mode. */
+  getRowId?: (row: T, index: number) => DataTableRowId;
+  /**
+   * Row activation handler: fires when a body cell is pressed / clicked, or
+   * activated with Enter / Space from the keyboard (web). In edit mode an
+   * editable cell starts editing instead.
+   */
   onRowClick?: (row: T, index: number) => void;
   /** Whether table is in edit mode */
   editMode?: boolean;
   /** Edit mode toggle callback */
   onEditModeChange?: (editMode: boolean) => void;
-  /** Commit cell edit */
-  onCellEdit?: (rowIndex: number, columnKey: string, newValue: any) => void;
+  /** Commit cell edit. The index is the current visible index; rowId and row identify the record. */
+  onCellEdit?: (rowIndex: number, columnKey: string, newValue: DataTableValue, rowId: DataTableRowId, row: T) => void;
   /** Bulk action definitions */
-  bulkActions?: Array<{
-    /** Unique key */
-    key: string;
-    /** Button label */
-    label: string;
-    /** Optional icon */
-    icon?: React.ReactNode;
-    /** Action invoked with selected row ids & full data */
-    action: (selectedRows: (string | number)[], data: T[]) => void;
-  }>;
+  bulkActions?: DataTableBulkAction<T>[];
   /** Visual table variant */
   variant?: 'default' | 'striped' | 'bordered';
   /** Row density */
   density?: 'compact' | 'normal' | 'comfortable';
-  /** Fixed table height (enables internal scroll) */
-  height?: number;
-  /** Enable FlashList-powered virtualization for large datasets */
+  /**
+   * Height of the table frame in px; the body scrolls inside it. The toolbar
+   * and pagination sit outside it, so it does not size the root.
+   */
+  h?: number;
+  /**
+   * Enable FlashList-powered virtualization for large datasets. The list is
+   * bounded by `h` (420 by default), so only the visible rows mount.
+   */
   virtual?: boolean;
-  /** Container style override */
-  style?: any;
   /** Enable interactive column resizing */
   enableColumnResizing?: boolean;
   /** Per-row feature overrides */
-  rowFeatureToggle?: (row: T, index: number) => ({
-    selectable?: boolean;
-    editable?: boolean;
-    sortable?: boolean;
-    filterable?: boolean;
-    searchable?: boolean;
-  } | null | undefined);
+  rowFeatureToggle?: (row: T, index: number) => DataTableRowFeatures | null | undefined;
   /** Initially hidden column keys */
   initialHiddenColumns?: string[];
-  /** Hidden column change callback */
+  /** Called with the hidden column keys whenever the set changes (not on mount). */
   onColumnVisibilityChange?: (hidden: string[]) => void;
   /** Show built-in column visibility manager button */
   showColumnVisibilityManager?: boolean;
@@ -200,39 +261,31 @@ export interface DataTableProps<T = any> extends SpacingProps {
   /** Show rows-per-page selector */
   showRowsPerPageControl?: boolean;
   /** Per-row action icon buttons (renders trailing actions column when provided) */
-  rowActions?: (row: T, index: number) => Array<{
-    /** Unique action key */
-    key: string;
-    /** Icon to display (icon-only buttons recommended) */
-    icon?: React.ReactNode;
-    /** Optional text label (not typically shown in compact cell) */
-    label?: string;
-    /** Action handler */
-    onPress?: (row: T, index: number) => void;
-    /** Disable this action */
-    disabled?: boolean;
-    /** Whether to hide this action */
-    hidden?: boolean;
-    /** Tooltip shown on hover/long-press: text, or a full Tooltip config. */
-    tooltip?: TooltipPropValue;
-  }>;
+  rowActions?: (row: T, index: number) => DataTableRowAction<T>[];
   /** Width of the actions column */
   actionsColumnWidth?: number;
   /** Force striped row backgrounds regardless of variant */
   striped?: boolean;
-  
+
   // Enhanced styling options
-  /** Custom header background color */
+  /** Header row background. Defaults to `theme.backgrounds.subtle`. */
   headerBackgroundColor?: string;
-  /** Show enhanced loading skeletons instead of basic loading text */
+  /**
+   * Show skeleton rows while `loading` (default). `false` shows a single
+   * "Loading…" row instead.
+   */
   enhancedLoading?: boolean;
-  /** Show enhanced empty state with icon and description */
+  /**
+   * Show the illustrated empty state (icon, title and `emptyMessage`) —
+   * default. `false` shows `emptyMessage` as a plain row.
+   */
   enhancedEmptyState?: boolean;
-  /** Enable enhanced hover effects */
-  enhancedHover?: boolean;
-  /** Custom row hover color */
+  /** Row hover fill. Defaults to `theme.backgrounds.hover`. */
   hoverColor?: string;
-  /** Enable enhanced selection styling */
+  /**
+   * Draw an accent bar on the leading edge of selected rows (default). `false`
+   * marks selection with the row fill only.
+   */
   enhancedSelection?: boolean;
   /**
    * Horizontal hairlines between rows. Defaults to on for `variant="bordered"`
@@ -240,13 +293,16 @@ export interface DataTableProps<T = any> extends SpacingProps {
    * takes precedence when provided.
    */
   showRowDividers?: boolean;
-  /** Custom border color for enhanced styling */
+  /**
+   * Default color for the outer border, row dividers and column dividers
+   * (each can still be overridden by its own `*BorderColor` prop).
+   */
   borderColor?: string;
   /** Enable simple row background hover highlight */
   hoverHighlight?: boolean;
   /** Make table take full width of container */
   fullWidth?: boolean;
-  
+
   // Border styling options
   /** Row border width. Overrides `showRowDividers` / the variant default, including at 0. */
   rowBorderWidth?: number;
@@ -270,16 +326,16 @@ export interface DataTableProps<T = any> extends SpacingProps {
   outerBorderWidth?: number;
   /** Outer border color */
   outerBorderColor?: string;
-  
+
   // Expandable rows
   /** Function to render expanded row content */
   expandableRowRender?: (row: T, index: number) => React.ReactNode;
   /** Initially expanded row identifiers */
-  initialExpandedRows?: (string | number)[];
+  initialExpandedRows?: DataTableRowId[];
   /** Controlled expanded rows */
-  expandedRows?: (string | number)[];
+  expandedRows?: DataTableRowId[];
   /** Expanded rows change handler */
-  onExpandedRowsChange?: (expanded: (string | number)[]) => void;
+  onExpandedRowsChange?: (expanded: DataTableRowId[]) => void;
   /** Allow multiple rows to be expanded at once */
   allowMultipleExpanded?: boolean;
   /** Custom expand/collapse icons */
@@ -292,8 +348,8 @@ export interface DataTableProps<T = any> extends SpacingProps {
   cellTextProps?: Omit<TextProps, 'children'>;
 
   /**
-   * Accessible name for the grid, exposed as `aria-label` on web (screen
-   * readers announce it when entering the table). Defaults to "Data table".
+   * Accessible name for the table, exposed as `aria-label` (screen readers
+   * announce it when entering the table). No name is set when omitted.
    */
   ariaLabel?: string;
 
@@ -327,13 +383,7 @@ export interface DataTableProps<T = any> extends SpacingProps {
   /** Whether groups start expanded (default: true). */
   groupsDefaultExpanded?: boolean;
   /** Custom renderer for the group-header label cell. */
-  renderGroupHeader?: (info: {
-    value: any;
-    rows: T[];
-    count: number;
-    expanded: boolean;
-    toggle: () => void;
-  }) => React.ReactNode;
+  renderGroupHeader?: (info: DataTableGroupHeaderInfo<T>) => React.ReactNode;
   /** Render a footer row with grand-total aggregates for aggregate columns. */
   showFooterTotals?: boolean;
   /** Label shown in the first cell of the footer totals row (default: "Total"). */

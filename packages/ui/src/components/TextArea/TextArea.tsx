@@ -1,285 +1,235 @@
-import React, { forwardRef, useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { TextInput, View, Text, Pressable, Platform } from 'react-native';
-import { useTheme } from '../../core/theme';
-import { getSpacingStyles, extractSpacingProps, getLayoutStyles, extractLayoutProps } from '../../core/utils';
-import { createRadiusStyles } from '../../core/theme/radius';
+import React, { useCallback, useRef, useState } from 'react';
+import { Text, TextInput, View } from 'react-native';
+import { ClearButton } from '../../core/components/ClearButton';
 import { factory } from '../../core/factory/factory';
-import { useTextAreaStyles } from './styles';
-import { FieldHeader } from '../_internal/FieldHeader';
-import { useDisclaimer, extractDisclaimerProps } from '../_internal/Disclaimer';
-import { useControllableState } from '../../hooks/useControllableState';
-import { TextAreaProps, TextAreaStyleProps } from './types';
-import { Icon } from '../Icon';
-import { DESIGN_TOKENS } from '../../core/design-tokens';
+import { webProps } from '../../core/platform/webProps';
+import { webStyle } from '../../core/platform/webStyle';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { getLayoutStyles, extractLayoutProps } from '../../core/utils/layout';
+import { useMergedRef } from '../../core/utils/mergeRefs';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { resolveStyleProps, extractStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState/useControllableState';
+import { useDisclaimer, extractDisclaimerProps } from '../_internal/Disclaimer/disclaimerUtils';
+import { Field, FieldBoundary } from '../_internal/Field/Field';
+import { getFieldFrameStyles } from '../_internal/Field/fieldFrameStyles';
+import { getTextAreaStyles } from './styles';
+import type { TextAreaProps } from './types';
 
-interface TextAreaLabelProps {
-  required?: boolean;
-  children: React.ReactNode;
-}
+const PLOCKS_INPUT_DATASET = { plocksInput: 'true' } as const;
 
-const TextAreaLabel: React.FC<TextAreaLabelProps> = ({ required, children }) => {
-  const theme = useTheme();
-  const { getTextAreaStyles } = useTextAreaStyles({ theme } as any);
-  const styles = getTextAreaStyles({ size: 'md' } as any);
-
-  return (
-    <Text style={styles.label}>
-      {children}
-      {required && (
-        <Text style={styles.required} accessibilityLabel="required">
-          {' *'}
-        </Text>
-      )}
-    </Text>
-  );
-};
-
+/**
+ * Multi-line text field. Label, description, error and helper text come from
+ * the shared `Field` frame (linked to the text area for assistive technology,
+ * errors announced); the box matches Input, including the focus ring.
+ * `ref` points at the TextInput.
+ */
 export const TextArea = factory<{
   props: TextAreaProps;
   ref: TextInput;
-}>((props, ref) => {
-  const { spacingProps, otherProps: propsAfterSpacing } = extractSpacingProps(props);
-  const { layoutProps, otherProps: propsAfterLayout } = extractLayoutProps(propsAfterSpacing);
-  const { disclaimerProps: disclaimerData, otherProps } = extractDisclaimerProps(propsAfterLayout as TextAreaProps);
+}>(
+  (props, ref) => {
+    // `h` sizes the text box, not the root, so it is taken off before the style props.
+    const { h, ...propsWithoutH } = props;
+    const { styleProps, otherProps: propsAfterSpacing } = extractStyleProps(propsWithoutH);
+    const { layoutProps, otherProps: propsAfterLayout } = extractLayoutProps(propsAfterSpacing);
+    const { disclaimerProps: disclaimerData, otherProps } = extractDisclaimerProps(propsAfterLayout);
 
-  const {
-    value,
-    defaultValue = '',
-    onChangeText,
-    label,
-    disabled = false,
-    required = false,
-    placeholder,
-    error,
-    helperText,
-    description,
-    size = 'md',
-    // Undefined by design — the `input` radius token supplies the default.
-    radius,
-    rows = 3,
-    minRows = 1,
-    maxRows,
-    autoResize = false,
-    maxLength,
-    showCharCounter = false,
-    resize = 'none',
-    textInputProps = {},
-    style,
-    testID,
-    clearable,
-    clearButtonLabel,
-    onClear,
-    labelProps,
-    descriptionProps,
-    ...rest
-  } = otherProps;
+    const {
+      id,
+      value,
+      defaultValue,
+      onChangeText,
+      label,
+      description,
+      error,
+      helperText,
+      disabled = false,
+      readOnly = false,
+      required = false,
+      withAsterisk,
+      placeholder,
+      placeholderTextColor,
+      size = 'md',
+      variant = 'default',
+      // Undefined by design — the `input` radius token supplies the default.
+      radius,
+      rows = 3,
+      minRows = 1,
+      maxRows,
+      autoResize = false,
+      maxLength,
+      showCharCounter = false,
+      resize = 'none',
+      textInputProps,
+      style,
+      testID,
+      clearable,
+      clearButtonLabel,
+      onClear,
+      labelProps,
+      descriptionProps,
+      accessibilityLabel,
+      accessibilityHint,
+      startSection,
+      endSection,
+      startSectionProps,
+      endSectionProps,
+      onFocus,
+      onBlur,
+      editable: editableProp,
+      scrollEnabled,
+      // Form integration / keyboard hand-off ids: nothing to wire on a text area.
+      name: _name,
+      keyboardFocusId: _keyboardFocusId,
+      ...nativeProps
+    } = otherProps;
 
-  const { h } = layoutProps;
+    const theme = useTheme();
+    const renderDisclaimer = useDisclaimer(disclaimerData.disclaimer, disclaimerData.disclaimerProps);
+    const [focused, setFocused] = useState(false);
+    const textInputRef = useRef<TextInput>(null);
+    const mergedRef = useMergedRef<TextInput>(textInputRef, ref);
 
-  const theme = useTheme();
-  const renderDisclaimer = useDisclaimer(disclaimerData.disclaimer, disclaimerData.disclaimerProps);
-  const { getTextAreaStyles } = useTextAreaStyles({ theme } as any);
-  const [focused, setFocused] = useState(false);
-  const [currentRows, setCurrentRows] = useState(rows);
-  const textInputRef = useRef<TextInput>(null);
-  const assignRef = useCallback((node: TextInput | null) => {
-    textInputRef.current = node;
+    const { rowHeight, styles } = getTextAreaStyles(theme, size);
 
-    if (typeof ref === 'function') {
-      ref(node);
-    } else if (ref && 'current' in (ref as any)) {
-      (ref as any).current = node;
-    }
-  }, [ref]);
+    const [currentValue, setCurrentValue] = useControllableState<string>({
+      value,
+      defaultValue,
+      finalValue: '',
+      onChange: onChangeText,
+    });
 
-  const [currentValue, setCurrentValue] = useControllableState<string>({
-    value,
-    defaultValue,
-    finalValue: '',
-    onChange: onChangeText,
-  });
+    // Rows follow the content while auto-resizing; derived during render.
+    const lineCount = currentValue ? currentValue.split('\n').length : rows;
+    const visibleRows = autoResize
+      ? Math.max(minRows, maxRows ? Math.min(lineCount, maxRows) : lineCount)
+      : rows;
 
-  // Calculate dynamic rows for autoResize
-  useEffect(() => {
-    if (autoResize && currentValue) {
-      const lines = currentValue.split('\n').length;
-      const calculatedRows = Math.max(
-        minRows,
-        maxRows ? Math.min(lines, maxRows) : lines
-      );
-      setCurrentRows(calculatedRows);
-    }
-  }, [currentValue, autoResize, minRows, maxRows]);
+    const handleFocus = useCallback(() => {
+      setFocused(true);
+      onFocus?.();
+    }, [onFocus]);
 
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-  }, []);
+    const handleBlur = useCallback(() => {
+      setFocused(false);
+      onBlur?.();
+    }, [onBlur]);
 
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-  }, []);
+    const handleChangeText = useCallback(
+      (text: string) => {
+        if (maxLength && text.length > maxLength) return;
+        setCurrentValue(text);
+      },
+      [maxLength, setCurrentValue]
+    );
 
-  const handleChangeText = useCallback((text: string) => {
-    if (maxLength && text.length > maxLength) {
-      return;
-    }
-    setCurrentValue(text);
-  }, [maxLength, setCurrentValue]);
+    const showClearButton = !!clearable && !disabled && !readOnly && currentValue.length > 0;
 
-  const styleProps: TextAreaStyleProps = {
-    size,
-    focused,
-    disabled,
-    error: !!error,
-    rows: autoResize ? currentRows : rows,
-  };
+    const handleClear = useCallback(() => {
+      if (disabled) return;
+      setCurrentValue('');
+      textInputRef.current?.clear?.();
+      requestAnimationFrame(() => textInputRef.current?.focus?.());
+      onClear?.();
+    }, [disabled, setCurrentValue, onClear]);
 
-  const styles = getTextAreaStyles(styleProps);
-  const spacingStyles = getSpacingStyles(spacingProps);
-  const layoutStyles = getLayoutStyles(layoutProps);
-  const radiusStyles = createRadiusStyles(radius, undefined, 'input');
+    const charCount = currentValue.length;
+    const isCharCountError = maxLength ? charCount > maxLength : false;
+    const inputHeight = typeof h === 'number' ? h : visibleRows * rowHeight;
 
-  const containerStyles = [
-    styles.container,
-    spacingStyles,
-    layoutStyles,
-    style
-  ];
+    const { style: textInputStyle, ...restTextInputProps } = textInputProps ?? {};
+    const editable = !disabled && !readOnly && editableProp !== false;
 
-  const inputContainerStyles = [
-    styles.inputContainer,
-    radiusStyles,
-    { height: h }
-  ];
+    return (
+      <Field
+        id={id}
+        label={label}
+        description={description}
+        error={error}
+        helperText={helperText}
+        required={required}
+        withAsterisk={withAsterisk}
+        disabled={disabled}
+        readOnly={readOnly}
+        size={size}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        labelProps={labelProps}
+        descriptionProps={descriptionProps}
+        testID={testID}
+        // `fullWidth` first, so an explicit `w` wins.
+        style={[styles.root, getLayoutStyles(layoutProps), resolveStyleProps(styleProps, theme), style]}
+      >
+        {({ controlProps, invalid }) => {
+          const frame = getFieldFrameStyles(theme, size, variant, radius, invalid, focused, disabled);
+          return (
+            <>
+              <View style={[frame.frame, styles.frame]}>
+                {focused && !disabled ? <View style={frame.focusRing} /> : null}
+                {startSection ? (
+                  <FieldBoundary>
+                    <View {...mergeSlotProps({ style: frame.startSection }, startSectionProps)}>{startSection}</View>
+                  </FieldBoundary>
+                ) : null}
 
-  const textInputStyles = [
-    styles.textInput,
-    
-    { height: h || (autoResize ? currentRows * 24 : rows * 24), // Approximate row height
-      textAlignVertical: resize === 'none' ? 'top' : undefined,
-      // Disable resizing by user if resize is 'none'
-      ...(resize === 'none' ? { resizeMode: 'none' } : {})
-    }
-  ];
+                <View style={frame.control}>
+                  <TextInput
+                    ref={mergedRef}
+                    {...controlProps}
+                    value={currentValue}
+                    onChangeText={handleChangeText}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    placeholder={placeholder}
+                    placeholderTextColor={placeholderTextColor ?? theme.text.muted}
+                    multiline
+                    numberOfLines={visibleRows}
+                    maxLength={maxLength}
+                    textAlignVertical="top"
+                    scrollEnabled={scrollEnabled ?? !autoResize}
+                    {...nativeProps}
+                    {...restTextInputProps}
+                    {...webProps({ dataSet: PLOCKS_INPUT_DATASET })}
+                    editable={editable}
+                    style={[
+                      frame.input,
+                      styles.input,
+                      { height: inputHeight, paddingEnd: showClearButton ? 32 : 0 },
+                      webStyle({ resize }),
+                      textInputStyle,
+                    ]}
+                  />
+                </View>
 
-  const charCount = currentValue?.length || 0;
-  const isCharCountError = maxLength ? charCount > maxLength : false;
+                {endSection ? (
+                  <FieldBoundary>
+                    <View {...mergeSlotProps({ style: frame.endSection }, endSectionProps)}>{endSection}</View>
+                  </FieldBoundary>
+                ) : null}
 
-  const showClearButton = useMemo(() => {
-    if (!clearable || disabled) return false;
-    return !!currentValue && currentValue.length > 0;
-  }, [clearable, disabled, currentValue]);
+                {showClearButton ? (
+                  <ClearButton
+                    onPress={handleClear}
+                    size={size}
+                    accessibilityLabel={clearButtonLabel ?? 'Clear'}
+                    style={styles.clearButton}
+                  />
+                ) : null}
+              </View>
 
-  const handleClear = useCallback(() => {
-    if (disabled) return;
+              {showCharCounter && maxLength ? (
+                <Text style={[styles.counter, isCharCountError && styles.counterError]}>
+                  {charCount}/{maxLength}
+                </Text>
+              ) : null}
 
-    setCurrentValue('');
-
-    textInputRef.current?.clear?.();
-    requestAnimationFrame(() => textInputRef.current?.focus?.());
-
-    onClear?.();
-  }, [disabled, setCurrentValue, onClear]);
-
-  const clearLabel = clearButtonLabel || 'Clear input';
-
-  return (
-    <View style={containerStyles} testID={testID}>
-      {(label || description) ? (
-        <FieldHeader
-          label={label}
-          description={description}
-          required={required}
-          disabled={disabled}
-          error={!!error}
-          size={size}
-          labelProps={labelProps}
-          descriptionProps={descriptionProps}
-        />
-      ) : null}
-      
-      <View style={[inputContainerStyles, { position: 'relative' }]}>
-        <TextInput
-          ref={assignRef}
-          // style={]}
-          style={{height: h || (autoResize ? currentRows * 24 : rows * 24), // Approximate row height
-            ...textInputStyles.reduce((acc, style) => ({ ...acc, ...style }), {}),
-            textAlignVertical: resize === 'none' ? 'top' : undefined,
-            // Disable resizing by user if resize is 'none'
-            ...(resize === 'none' ? { resizeMode: 'none' } : {}),
-            paddingRight: showClearButton ? 32 : undefined,
-          }}
-          
-          value={currentValue}
-          onChangeText={handleChangeText}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          placeholder={placeholder}
-          placeholderTextColor={theme.text.muted}
-          editable={!disabled}
-          multiline={true}
-          numberOfLines={autoResize ? currentRows : rows}
-          maxLength={maxLength}
-          textAlignVertical="top"
-          scrollEnabled={!autoResize}
-          accessibilityLabel={typeof label === 'string' ? label : undefined}
-          accessibilityHint={helperText}
-          accessibilityState={{
-            disabled,
-          }}
-          {...textInputProps}
-          {...rest}
-        />
-
-        {showClearButton && (
-          <Pressable
-            onPress={handleClear}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={clearLabel}
-            style={({ pressed }) => ([
-              {
-                position: 'absolute',
-                top: Platform.OS === 'web' ? DESIGN_TOKENS.spacing.xs : DESIGN_TOKENS.spacing.sm,
-                right: Platform.OS === 'web' ? DESIGN_TOKENS.spacing.xs : DESIGN_TOKENS.spacing.sm,
-                padding: DESIGN_TOKENS.component.clearButton.padding,
-                borderRadius: DESIGN_TOKENS.component.clearButton.borderRadius,
-                backgroundColor: 'transparent',
-              },
-              Platform.OS === 'web' ? { cursor: 'pointer' } : null,
-              pressed ? { opacity: DESIGN_TOKENS.opacity.pressed } : null,
-            ])}
-          >
-            <Icon name="close" size={DESIGN_TOKENS.component.clearButton.size} color={theme.text.muted} />
-          </Pressable>
-        )}
-      </View>
-
-      {/* Character Counter */}
-      {showCharCounter && maxLength ? (
-        <Text
-          style={[
-            styles.charCounter,
-            isCharCountError && styles.charCounterError
-          ]}
-        >
-          {charCount}/{maxLength}
-        </Text>
-      ) : null}
-
-      {renderDisclaimer()}
-
-      {/* Helper Text */}
-      {helperText && !error ? (
-        <Text style={styles.helperText}>{helperText}</Text>
-      ) : null}
-
-      {/* Error Text */}
-      {error ? (
-        <Text style={styles.errorText}>{error}</Text>
-      ) : null}
-    </View>
-  );
-});
-
-TextArea.displayName = 'TextArea';
+              {renderDisclaimer()}
+            </>
+          );
+        }}
+      </Field>
+    );
+  },
+  { displayName: 'TextArea' }
+);

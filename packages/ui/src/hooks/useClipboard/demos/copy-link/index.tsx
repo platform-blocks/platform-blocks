@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Badge, Block, Button, Input, useClipboard } from '@platform-blocks/ui';
+import { Badge, Block, Button, Input, useClipboard } from '@plocks/ui';
 
 const INVITE_URL = 'https://app.example.com/invite/engineering';
 
@@ -8,7 +8,7 @@ export function Demo() {
   const [value, setValue] = useState(INVITE_URL);
 
   return (
-    <Block align="flex-start" maxW={460} fullWidth>
+    <Block align="flex-start" maw={460} fullWidth>
       <Input
         label="Invite URL"
         value={value}
@@ -21,7 +21,7 @@ export function Demo() {
         {copied ? 'Copied!' : 'Copy link'}
       </Button>
       {lastValue ? (
-        <Badge variant="subtle" color={copied ? 'success' : 'gray'}>
+        <Badge variant="subtle" c={copied ? 'success' : 'gray'}>
           Last copied: {lastValue}
         </Badge>
       ) : null}

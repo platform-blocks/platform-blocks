@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Block, ColorPicker, Row, Text } from '@platform-blocks/ui';
+import { Block, ColorPicker, Row, Text } from '@plocks/ui';
 
 export function Demo() {
   const [color, setColor] = useState('#4ECDC4');
@@ -8,13 +8,13 @@ export function Demo() {
     <Block>
       <Row gap="sm" align="center">
         <ColorPicker value={color} onChange={setColor} />
-        <Text size="sm" color="secondary">
+        <Text size="sm" c="secondary">
           Selected: {color}
         </Text>
       </Row>
 
       <Block>
-        <Text size="sm" weight="semibold">
+        <Text size="sm" fw="semibold">
           Larger, custom swatches
         </Text>
         <ColorPicker

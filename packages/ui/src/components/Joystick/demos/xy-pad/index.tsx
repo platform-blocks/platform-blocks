@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Flex, Joystick, Text } from '@platform-blocks/ui';
+import { Flex, Joystick, Text } from '@plocks/ui';
 
 export function Demo() {
   const [value, setValue] = useState({ x: -0.4, y: 0.6 });
@@ -18,7 +18,7 @@ export function Demo() {
         showCrosshair
         label="Filter"
       />
-      <Text size="sm" c="dimmed">Cutoff {cutoff} Hz · Resonance {resonance}</Text>
+      <Text size="sm" c="muted">Cutoff {cutoff} Hz · Resonance {resonance}</Text>
     </Flex>
   );
 }

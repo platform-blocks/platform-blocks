@@ -1,34 +1,42 @@
 import React, { useCallback } from 'react';
-import { View } from 'react-native';
-import { Chip } from '../Chip';
-import { useTheme } from '../../core/theme';
+import { View, type ViewStyle } from 'react-native';
+
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { factory } from '../../core/factory';
 import type { SizeValue } from '../../core/theme/sizes';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import type { BaseProps, ColorProp } from '../../core/types/base';
+import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState';
+import { Chip } from '../Chip/Chip';
 
 export interface ToggleBarOption {
   /** Display label for the option */
   label: string;
   /** Value for the option */
   value: string | number;
-  /** Optional left icon */
-  startIcon?: React.ReactNode;
-  /** Optional right icon */
-  endIcon?: React.ReactNode;
+  /** Optional leading content */
+  startSection?: React.ReactNode;
+  /** Optional trailing content */
+  endSection?: React.ReactNode;
   /** Color for the chip when selected */
-  color?: string; 
-  /** Override default chip variant */
+  color?: ColorProp;
+  /** Override the unselected chip variant */
   chipVariant?: 'filled' | 'outline' | 'light';
   /** Disable this option */
   disabled?: boolean;
 }
 
-export interface ToggleBarProps {
-  /** Selected values */
-  value: (string | number)[];
+export interface ToggleBarProps extends BaseProps<ViewStyle> {
+  /** Selected values (controlled) */
+  value?: (string | number)[];
+  /** Initial selected values (uncontrolled) */
+  defaultValue?: (string | number)[];
   /** Called with updated values */
   onChange?: (vals: (string | number)[]) => void;
   /** Options to render */
   options: ToggleBarOption[];
-  /** Allow multiple selection. If false acts like exclusive */
+  /** Allow multiple selection (checkboxes). If false acts like a radio group. */
   multiple?: boolean;
   /** Require at least one selection */
   required?: boolean;
@@ -38,72 +46,94 @@ export interface ToggleBarProps {
   chipVariant?: 'filled' | 'outline' | 'light';
   /** Variant to use when selected (defaults to 'filled') */
   selectedVariant?: 'filled' | 'outline' | 'light';
-  /** Gap between chips */
+  /** Gap between chips (px) */
   gap?: number;
-  /** Row wrapping container style */
-  style?: any;
+  /** Accessible name of the group */
+  accessibilityLabel?: string;
 }
 
-export const ToggleBar = React.forwardRef<View, ToggleBarProps>(({
-  value,
-  onChange,
-  options,
-  multiple = true,
-  required = false,
-  size = 'sm',
-  chipVariant = 'outline',
-  selectedVariant = 'filled',
-  gap = 8,
-  style,
-}, ref) => {
-  const theme = useTheme();
+const EMPTY: (string | number)[] = [];
 
-  const handleToggle = useCallback((val: string | number) => {
-    if (!onChange) return;
-    const isSelected = value.includes(val);
-    if (multiple) {
-      if (isSelected) {
-        const next = value.filter(v => v !== val);
-        if (required && next.length === 0) return;
-        onChange(next);
-      } else {
-        onChange([...value, val]);
+/**
+ * A wrapping row of selectable chips: a checkbox group (`multiple`, the
+ * default) or a radio group.
+ */
+export const ToggleBar = factory<{ props: ToggleBarProps; ref: View }>((props, ref) => {
+  const {
+    value: valueProp,
+    defaultValue,
+    onChange,
+    options,
+    multiple = true,
+    required = false,
+    size = 'sm',
+    chipVariant = 'outline',
+    selectedVariant = 'filled',
+    gap = 8,
+    style,
+    testID,
+    accessibilityLabel,
+    ...rest
+  } = props;
+
+  const theme = useTheme();
+  const { styleProps } = extractStyleProps(rest);
+  const [value, setValue] = useControllableState<(string | number)[]>({
+    value: valueProp,
+    defaultValue,
+    finalValue: EMPTY,
+    onChange,
+  });
+
+  const handleToggle = useCallback(
+    (val: string | number) => {
+      const isSelected = value.includes(val);
+      if (multiple) {
+        if (isSelected) {
+          const next = value.filter((v) => v !== val);
+          if (required && next.length === 0) return;
+          setValue(next);
+        } else {
+          setValue([...value, val]);
+        }
+        return;
       }
-    } else {
       if (isSelected) {
         if (required) return; // keep selected
-        onChange([]);
+        setValue([]);
       } else {
-        onChange([val]);
+        setValue([val]);
       }
-    }
-  }, [onChange, value, multiple, required]);
+    },
+    [value, multiple, required, setValue]
+  );
 
   return (
-    <View ref={ref} style={[{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -(gap/2) }, style]}>
-      {options.map(opt => {
-        const selected = value.includes(opt.value);
-        const variant = selected ? selectedVariant : (opt.chipVariant || chipVariant);
-        return (
-          <View key={opt.value} style={{ paddingHorizontal: gap/2, paddingBottom: gap/2 }}>
-            <Chip
-              size={size}
-              variant={variant}
-              color={opt.color as any || 'primary'}
-              startIcon={opt.startIcon}
-              endIcon={opt.endIcon}
-              disabled={opt.disabled}
-              onPress={() => handleToggle(opt.value)}
-            >
-              {opt.label}
-            </Chip>
-          </View>
-        );
-      })}
+    <View
+      ref={ref}
+      testID={testID}
+      style={[{ flexDirection: 'row', flexWrap: 'wrap', gap }, resolveStyleProps(styleProps, theme), style]}
+      {...a11yProps({ role: multiple ? 'group' : 'radiogroup', label: accessibilityLabel })}
+    >
+      {options.map((opt) => (
+        <Chip
+          key={opt.value}
+          size={size}
+          variant={selectedVariant}
+          uncheckedVariant={opt.chipVariant || chipVariant}
+          color={opt.color || 'primary'}
+          startSection={opt.startSection}
+          endSection={opt.endSection}
+          disabled={opt.disabled}
+          checked={value.includes(opt.value)}
+          onChange={() => handleToggle(opt.value)}
+          {...(multiple ? null : { role: 'radio' as const })}
+        >
+          {opt.label}
+        </Chip>
+      ))}
     </View>
   );
-});
-
-ToggleBar.displayName = 'ToggleBar';
+}, { displayName: 'ToggleBar' });
 
 export default ToggleBar;

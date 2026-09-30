@@ -1,4 +1,4 @@
-import { Block, Button, Flex, Select, useI18n } from '@platform-blocks/ui';
+import { Button, Flex, Select, useI18n } from '@plocks/ui';
 
 const LOCALES = [
   { label: 'English', value: 'en' },
@@ -16,10 +16,7 @@ export function Demo() {
         value={locale}
         onChange={(value) => { if (value) setLocale(value); }}
       />
-      <Button
-        title={t('button.demo.submit')}
-        w={200}
-      />
+      <Button title={t('button.demo.submit')} />
     </Flex>
   );
 }

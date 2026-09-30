@@ -1,13 +1,22 @@
-import React from 'react';
-import { View, ViewProps, ViewStyle, StyleProp, DimensionValue } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, type DimensionValue, type ViewProps, type ViewStyle } from 'react-native';
 
-import { factory, Factory } from '../../core/factory';
-import { SpacingProps, getSpacingStyles, LayoutProps, getLayoutStyles, extractSpacingProps, extractLayoutProps } from '../../core/utils';
-import { SizeValue, getSpacing } from '../../core/theme/sizes';
-import { useDirection } from '../../core/providers/DirectionProvider';
+import { factory } from '../../core/factory/factory';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveSpacing } from '../../core/theme/tokens';
+import type { SizeValue } from '../../core/theme/types';
+import type { BaseProps } from '../../core/types/base';
+import { extractLayoutProps, getLayoutStyles, type LayoutProps } from '../../core/utils/layout';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
 
-export interface FlexProps extends SpacingProps, LayoutProps, Omit<ViewProps, 'style'> {
-  /** Flex direction */
+export interface FlexProps
+  extends BaseProps<ViewStyle>,
+    LayoutProps,
+    Omit<ViewProps, 'style' | 'testID' | 'children'> {
+  /**
+   * Flex direction. `row` already follows the layout direction (it runs
+   * right-to-left in RTL on both React Native and the web).
+   */
   direction?: 'row' | 'column' | 'row-reverse' | 'column-reverse';
 
   /** Align items on the cross axis */
@@ -40,22 +49,25 @@ export interface FlexProps extends SpacingProps, LayoutProps, Omit<ViewProps, 's
   /** Children elements */
   children?: React.ReactNode;
 
-  /** Custom styles */
-  style?: StyleProp<ViewStyle>;
-
-  /** Test ID for testing */
-  testID?: string;
-
-  /** Disable automatic RTL mirroring for row direction */
+  /**
+   * Keep left-to-right order even in right-to-left layouts (e.g. media
+   * controls, number pads). Lays this container's subtree out LTR.
+   */
   disableRTLMirroring?: boolean;
 }
 
-export const Flex = factory<Factory<{ props: FlexProps; ref: View }>>(
+const gapValue = (theme: Parameters<typeof resolveSpacing>[0], value: SizeValue | undefined) => {
+  if (value === undefined) return undefined;
+  const resolved = resolveSpacing(theme, value);
+  return typeof resolved === 'number' ? resolved : undefined;
+};
+
+export const Flex = factory<{ props: FlexProps; ref: View }>(
   (props, ref) => {
-    const { isRTL } = useDirection();
-    const { spacingProps, otherProps: propsAfterSpacing } = extractSpacingProps(props);
+    const theme = useTheme();
+    const { styleProps, otherProps: propsAfterSpacing } = extractStyleProps(props);
     const { layoutProps, otherProps } = extractLayoutProps(propsAfterSpacing);
-    
+
     const {
       direction = 'row',
       align = 'flex-start',
@@ -71,55 +83,41 @@ export const Flex = factory<Factory<{ props: FlexProps; ref: View }>>(
       style,
       testID,
       disableRTLMirroring = false,
-      // Everything Flex doesn't own — onLayout, accessibility props, nativeID,
+      // Everything Flex doesn't own — onLayout, role / aria-*, nativeID,
       // pointerEvents, dataSet — forwards to the underlying View untouched.
       ...rest
     } = otherProps;
 
-    // Mirror row direction in RTL unless explicitly disabled
-    const getFlexDirection = (): ViewStyle['flexDirection'] => {
-      if (disableRTLMirroring || !isRTL) {
-        return direction;
-      }
+    const flexStyle = useMemo((): ViewStyle => {
+      const style: ViewStyle = {
+        display: 'flex',
+        flexDirection: direction,
+        alignItems: align,
+        justifyContent: justify,
+        flexWrap: wrap,
+      };
+      if (grow !== undefined) style.flexGrow = grow;
+      if (shrink !== undefined) style.flexShrink = shrink;
+      if (basis !== undefined) style.flexBasis = basis;
+      const g = gapValue(theme, gap);
+      if (g !== undefined) style.gap = g;
+      const rg = gapValue(theme, rowGap);
+      if (rg !== undefined) style.rowGap = rg;
+      const cg = gapValue(theme, columnGap);
+      if (cg !== undefined) style.columnGap = cg;
+      if (disableRTLMirroring) style.direction = 'ltr';
+      return style;
+    }, [theme, direction, align, justify, wrap, grow, shrink, basis, gap, rowGap, columnGap, disableRTLMirroring]);
 
-      // Mirror row directions in RTL
-      switch (direction) {
-        case 'row':
-          return 'row-reverse';
-        case 'row-reverse':
-          return 'row';
-        default:
-          // column and column-reverse are not affected by RTL
-          return direction;
-      }
-    };
-
-    const flexStyle: ViewStyle = {
-      display: 'flex',
-      flexDirection: getFlexDirection(),
-      alignItems: align,
-      justifyContent: justify,
-      flexWrap: wrap,
-      ...(grow !== undefined && { flexGrow: grow }),
-      ...(shrink !== undefined && { flexShrink: shrink }),
-      ...(basis !== undefined && { flexBasis: basis }),
-      ...(gap !== undefined && { gap: getSpacing(gap) }),
-      ...(rowGap !== undefined && { rowGap: getSpacing(rowGap) }),
-      ...(columnGap !== undefined && { columnGap: getSpacing(columnGap) })
-    };
-
-    const spacingStyle = getSpacingStyles(spacingProps);
+    const spacingStyle = useStyleProps(styleProps);
     const layoutStyle = getLayoutStyles(layoutProps);
 
     return (
-      <View
-        {...rest}
-        ref={ref}
-        style={[flexStyle, spacingStyle, layoutStyle, style]}
-        testID={testID}
-      >
+      // `fullWidth` before the style props, so an explicit `w` wins.
+      <View {...rest} ref={ref} style={[flexStyle, layoutStyle, spacingStyle, style]} testID={testID}>
         {children}
       </View>
     );
-  }
+  },
+  { displayName: 'Flex' }
 );

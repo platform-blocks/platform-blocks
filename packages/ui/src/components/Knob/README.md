@@ -30,8 +30,6 @@ Variants take their colors from the theme and the accent rather than shipping pa
 <Knob variant="retro" appearance={{ ring: { color: '#b45309' } }} />
 ```
 
-`variant` used to carry the behavior values. Passing one there still works and warns in development; rename `variant="stepped"` to `behavior="stepped"`.
-
 ## Tick layers
 
 Configure `appearance.ticks` with one or more layers derived from marks, steps, explicit values, or a fixed count:
@@ -116,7 +114,7 @@ Available parts:
 
 ## Keyboard & assistive tech
 
-The knob takes focus on web (`tabIndex=0`) and reports itself as an adjustable slider with its current value, so it is operable without a pointer:
+The knob takes focus on web (`tabIndex=0`) and reports itself as a slider (`role="slider"`, native adjustable) with `aria-valuemin/max/now` — bounds are omitted on endless knobs — so it is operable without a pointer. It is named by `label` (or `accessibilityLabel`) and described by `description`. The keyboard and accessibility actions come from the shared `useAdjustable` primitive:
 
 | Key | Effect |
 | --- | --- |

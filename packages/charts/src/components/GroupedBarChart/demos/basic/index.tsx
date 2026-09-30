@@ -1,4 +1,4 @@
-import { GroupedBarChart } from '@platform-blocks/charts';
+import { GroupedBarChart } from '@plocks/charts';
 
 import { SERIES } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
 		<GroupedBarChart
 			title="Product revenue by segment"
 			subtitle="Comparison vs targets"
-			height={320}
+			h={320}
 			series={SERIES}
 			barSpacing={0.15}
 			innerBarSpacing={0.2}

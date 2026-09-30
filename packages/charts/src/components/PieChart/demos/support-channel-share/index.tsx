@@ -1,4 +1,4 @@
-import { PieChart, type PieChartDataPoint } from '@platform-blocks/charts';
+import { PieChart, type PieChartDataPoint } from '@plocks/charts';
 
 import { SUPPORT_CHANNELS, TOTAL_INTERACTIONS } from './data';
 
@@ -16,8 +16,8 @@ export function Demo() {
     <PieChart
       title="Support contact mix"
       subtitle="Last 30 days"
-      maxWidth={580}
-      height={380}
+      maw={580}
+      h={380}
       data={SUPPORT_CHANNELS}
       innerRadius={80}
       outerRadius={150}

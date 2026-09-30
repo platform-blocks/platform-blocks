@@ -1,8 +1,8 @@
-import { Block, Button, Row, Text, useToast } from '@platform-blocks/ui';
+import { Button, Row, useToast } from '@plocks/ui';
 
 const toastPositions = [
   'top-left',
-  'top-center', 
+  'top-center',
   'top-right',
   'bottom-left',
   'bottom-center',
@@ -21,19 +21,12 @@ export function Demo() {
   };
 
   return (
-    <Block>
-      <Text size="xs" color="secondary">
-        Pass `position` to align the toast container with your layout.
-      </Text>
-      <Row gap="xs" wrap="wrap">
-        {toastPositions.map((position) => (
-          <Button key={position} size="sm" onPress={() => showToastAtPosition(position)}>
-            {position}
-          </Button>
-        ))}
-      </Row>
-    </Block>
+    <Row gap="xs" wrap="wrap">
+      {toastPositions.map((position) => (
+        <Button key={position} size="sm" onPress={() => showToastAtPosition(position)}>
+          {position}
+        </Button>
+      ))}
+    </Row>
   );
 }
-
-

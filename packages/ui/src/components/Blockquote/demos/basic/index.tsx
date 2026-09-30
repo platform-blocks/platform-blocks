@@ -1,4 +1,4 @@
-import { Blockquote } from '@platform-blocks/ui';
+import { Blockquote } from '@plocks/ui';
 
 const AUTHOR = {
   name: 'Jamie Ortega',

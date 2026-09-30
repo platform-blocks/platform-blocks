@@ -12,7 +12,7 @@
  * - Size rendering
  * - Alignment
  * - Translation (tx/txParams)
- * - Typography (lineHeight, tracking, uppercase)
+ * - Typography (lh, lts, tt, fs, td)
  * - Spacing integration
  * - Interaction (onPress, selectable)
  * - RTL support
@@ -52,7 +52,7 @@ jest.mock('../../../core/theme/ThemeProvider', () => ({
   })
 }));
 
-jest.mock('../../../core/i18n', () => ({
+jest.mock('../../../core/i18n/I18nContext', () => ({
   useI18n: () => ({
     t: (key: string, params?: Record<string, any>) => {
       if (params) {
@@ -198,7 +198,7 @@ describe('Text - Rendering and Behavior', () => {
 
   describe('Color Rendering', () => {
     it('should apply direct color prop', () => {
-      const { getByText } = render(<Text color="#ff0000">Red</Text>);
+      const { getByText } = render(<Text c="#ff0000">Red</Text>);
       const element = getByText('Red');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -207,14 +207,14 @@ describe('Text - Rendering and Behavior', () => {
     });
 
     it('should apply the primary color', () => {
-      const { getByText } = render(<Text color="primary">Primary</Text>);
+      const { getByText } = render(<Text c="primary">Primary</Text>);
       const element = getByText('Primary');
       const style = flattenStyle(element.props.style);
       expect(style.color).toBeTruthy();
     });
 
     it('should apply the success color', () => {
-      const { getByText } = render(<Text color="success">Success</Text>);
+      const { getByText } = render(<Text c="success">Success</Text>);
       const element = getByText('Success');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -223,7 +223,7 @@ describe('Text - Rendering and Behavior', () => {
     });
 
     it('should apply the error color', () => {
-      const { getByText } = render(<Text color="error">Error</Text>);
+      const { getByText } = render(<Text c="error">Error</Text>);
       const element = getByText('Error');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -232,7 +232,7 @@ describe('Text - Rendering and Behavior', () => {
     });
 
     it('should apply the warning color', () => {
-      const { getByText } = render(<Text color="warning">Warning</Text>);
+      const { getByText } = render(<Text c="warning">Warning</Text>);
       const element = getByText('Warning');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -241,7 +241,7 @@ describe('Text - Rendering and Behavior', () => {
     });
 
     it('should apply the info color', () => {
-      const { getByText } = render(<Text color="info">Info</Text>);
+      const { getByText } = render(<Text c="info">Info</Text>);
       const element = getByText('Info');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -261,7 +261,7 @@ describe('Text - Rendering and Behavior', () => {
 
   describe('Weight Rendering', () => {
     it('should apply numeric weight 300', () => {
-      const { getByText } = render(<Text weight={300}>Light</Text>);
+      const { getByText } = render(<Text fw={300}>Light</Text>);
       const element = getByText('Light');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -270,7 +270,7 @@ describe('Text - Rendering and Behavior', () => {
     });
 
     it('should apply numeric weight 700', () => {
-      const { getByText } = render(<Text weight={700}>Bold</Text>);
+      const { getByText } = render(<Text fw={700}>Bold</Text>);
       const element = getByText('Bold');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -279,7 +279,7 @@ describe('Text - Rendering and Behavior', () => {
     });
 
     it('should apply named weight "semibold"', () => {
-      const { getByText } = render(<Text weight="semibold">Semibold</Text>);
+      const { getByText } = render(<Text fw="semibold">Semibold</Text>);
       const element = getByText('Semibold');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -288,7 +288,7 @@ describe('Text - Rendering and Behavior', () => {
     });
 
     it('should apply named weight "black"', () => {
-      const { getByText } = render(<Text weight="black">Black</Text>);
+      const { getByText } = render(<Text fw="black">Black</Text>);
       const element = getByText('Black');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -335,7 +335,7 @@ describe('Text - Rendering and Behavior', () => {
 
   describe('Alignment', () => {
     it('should apply left alignment', () => {
-      const { getByText } = render(<Text align="left">Left</Text>);
+      const { getByText } = render(<Text ta="left">Left</Text>);
       const element = getByText('Left');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -344,7 +344,7 @@ describe('Text - Rendering and Behavior', () => {
     });
 
     it('should apply center alignment', () => {
-      const { getByText } = render(<Text align="center">Center</Text>);
+      const { getByText } = render(<Text ta="center">Center</Text>);
       const element = getByText('Center');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -353,7 +353,7 @@ describe('Text - Rendering and Behavior', () => {
     });
 
     it('should apply right alignment', () => {
-      const { getByText } = render(<Text align="right">Right</Text>);
+      const { getByText } = render(<Text ta="right">Right</Text>);
       const element = getByText('Right');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -362,7 +362,7 @@ describe('Text - Rendering and Behavior', () => {
     });
 
     it('should apply justify alignment', () => {
-      const { getByText } = render(<Text align="justify">Justify</Text>);
+      const { getByText } = render(<Text ta="justify">Justify</Text>);
       const element = getByText('Justify');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -404,21 +404,21 @@ describe('Text - Rendering and Behavior', () => {
 
   describe('Typography Props', () => {
     it('should apply lineHeight as multiplier', () => {
-      const { getByText } = render(<Text lineHeight={2}>Double Height</Text>);
+      const { getByText } = render(<Text lh={2}>Double Height</Text>);
       const element = getByText('Double Height');
       const style = flattenStyle(element.props.style);
       expect(style.lineHeight).toBe(32); // 16 * 2
     });
 
     it('should apply lineHeight as absolute value', () => {
-      const { getByText } = render(<Text lineHeight={24}>24px Height</Text>);
+      const { getByText } = render(<Text lh={24}>24px Height</Text>);
       const element = getByText('24px Height');
       const style = flattenStyle(element.props.style);
       expect(style.lineHeight).toBe(24);
     });
 
     it('should apply tracking (letterSpacing)', () => {
-      const { getByText } = render(<Text tracking={2}>Tracking</Text>);
+      const { getByText } = render(<Text lts={2}>Tracking</Text>);
       const element = getByText('Tracking');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -426,17 +426,40 @@ describe('Text - Rendering and Behavior', () => {
       });
     });
 
-    it('should apply uppercase transformation', () => {
-      const { getByText } = render(<Text uppercase>lowercase</Text>);
-      const element = getByText('lowercase');
-      const style = flattenStyle(element.props.style);
-      expect(style).toMatchObject({
-        textTransform: 'uppercase'
-      });
+    it.each(['uppercase', 'lowercase', 'capitalize', 'none'] as const)('should apply tt="%s"', (tt) => {
+      const { getByText } = render(<Text tt={tt}>Transform</Text>);
+      const style = flattenStyle(getByText('Transform').props.style);
+      expect(style.textTransform).toBe(tt);
+    });
+
+    it('should apply fs (fontStyle)', () => {
+      const { getByText } = render(<Text fs="italic">Slanted</Text>);
+      expect(flattenStyle(getByText('Slanted').props.style).fontStyle).toBe('italic');
+    });
+
+    it('should let fs="normal" undo an italic variant', () => {
+      const { getByText } = render(<Text variant="em" fs="normal">Upright</Text>);
+      expect(flattenStyle(getByText('Upright').props.style).fontStyle).toBe('normal');
+    });
+
+    it.each(['underline', 'line-through', 'underline line-through'] as const)('should apply td="%s"', (td) => {
+      const { getByText } = render(<Text td={td}>Decorated</Text>);
+      expect(flattenStyle(getByText('Decorated').props.style).textDecorationLine).toBe(td);
+    });
+
+    it('should let td="none" undo the underline variant', () => {
+      const { getByText } = render(<Text variant="u" td="none">Plain</Text>);
+      expect(flattenStyle(getByText('Plain').props.style).textDecorationLine).toBe('none');
+    });
+
+    it('should let tt override a text role that uppercases', () => {
+      const { getByText } = render(<Text textRole="sectionLabel" tt="none">Section</Text>);
+      const style = flattenStyle(getByText('Section').props.style);
+      expect(style.textTransform).toBe('none');
     });
 
     it('should apply custom fontFamily', () => {
-      const { getByText } = render(<Text fontFamily="Arial">Custom Font</Text>);
+      const { getByText } = render(<Text ff="Arial">Custom Font</Text>);
       const element = getByText('Custom Font');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
@@ -452,9 +475,9 @@ describe('Text - Rendering and Behavior', () => {
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
         marginTop: 2,
-        marginRight: 2,
+        marginEnd: 2,
         marginBottom: 2,
-        marginLeft: 2
+        marginStart: 2
       });
     });
 
@@ -464,9 +487,9 @@ describe('Text - Rendering and Behavior', () => {
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
         paddingTop: 1,
-        paddingRight: 1,
+        paddingEnd: 1,
         paddingBottom: 1,
-        paddingLeft: 1
+        paddingStart: 1
       });
     });
 
@@ -485,8 +508,8 @@ describe('Text - Rendering and Behavior', () => {
       const element = getByText('Axis');
       const style = flattenStyle(element.props.style);
       expect(style).toMatchObject({
-        marginLeft: 2,
-        marginRight: 2,
+        marginStart: 2,
+        marginEnd: 2,
         paddingTop: 1,
         paddingBottom: 1
       });
@@ -585,7 +608,7 @@ describe('Text - Rendering and Behavior', () => {
   describe('Complex Combinations', () => {
     it('should handle variant + weight + color + spacing', () => {
       const { getByText } = render(
-        <Text variant="h2" weight="bold" color="success" m={2}>
+        <Text variant="h2" fw="bold" c="success" m={2}>
           Complex
         </Text>
       );
@@ -596,15 +619,15 @@ describe('Text - Rendering and Behavior', () => {
         fontWeight: '700',
         color: '#4caf50',
         marginTop: 2,
-        marginRight: 2,
+        marginEnd: 2,
         marginBottom: 2,
-        marginLeft: 2
+        marginStart: 2
       });
     });
 
-    it('should handle size + lineHeight + tracking + uppercase', () => {
+    it('should handle size + lh + lts + tt', () => {
       const { getByText } = render(
-        <Text size={18} lineHeight={1.5} tracking={1} uppercase>
+        <Text size={18} lh={1.5} lts={1} tt="uppercase">
           Typography
         </Text>
       );
@@ -623,8 +646,8 @@ describe('Text - Rendering and Behavior', () => {
       const { getByText } = render(
         <Text 
           tx="common.button" 
-          weight="semibold" 
-          color="primary"
+          fw="semibold" 
+          c="primary"
           onPress={onPress}
         />
       );

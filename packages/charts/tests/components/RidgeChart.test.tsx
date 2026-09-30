@@ -24,7 +24,7 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
     <ChartThemeProvider>
       <ChartInteractionProvider config={{ liveTooltip: true, pointerRAF: false }}>
         <InteractionSpy onRender={onContext} />
-        <RidgeChart series={SERIES} width={400} height={300} />
+        <RidgeChart series={SERIES} w={400} h={300} />
       </ChartInteractionProvider>
     </ChartThemeProvider>
   );

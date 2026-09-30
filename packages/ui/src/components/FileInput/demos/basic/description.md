@@ -1,11 +1,10 @@
 ---
-title: Basic
+title: Basics
 category: basics
 order: 10
 tags: [basic, upload, files]
 highlightLines: []
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

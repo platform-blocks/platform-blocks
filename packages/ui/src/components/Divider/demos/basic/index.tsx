@@ -1,9 +1,9 @@
-import { Block, Divider, Text } from '@platform-blocks/ui';
+import { Block, Divider, Text } from '@plocks/ui';
 
 export function Demo() {
   return (
-    <Block>
-      <Text variant="p" weight="medium">
+    <Block fullWidth>
+      <Text variant="p" fw="medium">
         Q1 Highlights
       </Text>
       <Text variant="p">Revenue grew 12% year over year.</Text>
@@ -14,5 +14,3 @@ export function Demo() {
     </Block>
   );
 }
-
-

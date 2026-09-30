@@ -29,14 +29,23 @@ props:
     description: Server-side pagination — render `data` as the current page verbatim and use `pagination.total` as the authoritative count (no client slicing/filtering/sorting)
     default: false
   - name: paginationProps
-    type: "Omit<PaginationProps, 'current' | 'total' | 'onChange'>"
+    type: "Omit<PaginationProps, 'value' | 'defaultValue' | 'current' | 'total' | 'onChange'>"
     description: Props forwarded to the footer Pagination component (siblings, boundaries, variant, size, showFirst, labels, etc.)
   - name: selectedRows
     type: (string|number)[]
-    description: Array of selected row IDs
-  - name: onRowSelectionChange
-    type: function
-    description: Callback when row selection changes
+    description: Selected row IDs (controlled). Omit it to let the table manage selection
+  - name: getRowId
+    type: (row, index) => string | number
+    description: Stable row ID; required when selection, expandable rows, or edit mode is enabled
+  - name: onSelectionChange
+    type: (selected) => void
+    description: Called with the selected row IDs when the selection changes
+  - name: onRowClick
+    type: (row, index) => void
+    description: Fires when a body cell is pressed, or activated with Enter / Space. Ungrouped, non-virtual web tables use ARIA grid navigation
+  - name: onCellEdit
+    type: (index, columnKey, value, rowId, row) => void
+    description: Commits an edit against the current visible row; rowId and row identify the record even after sorting
   - name: loading
     type: boolean
     description: Whether table is in loading state
@@ -45,20 +54,49 @@ props:
     type: boolean
     description: Whether to show striped rows
     default: false
-  - name: highlightOnHover
+  - name: hoverHighlight
     type: boolean
     description: Whether to highlight rows on hover
     default: true
-  - name: verticalSpacing
+  - name: hoverColor
     type: string
-    description: Vertical spacing between rows
-    default: md
+    description: Row hover fill (defaults to the theme's hover background)
+  - name: headerBackgroundColor
+    type: string
+    description: Header row background (defaults to the theme's subtle background)
+  - name: borderColor
+    type: string
+    description: Default color for the outer border, row dividers and column dividers
+  - name: density
+    type: "'compact' | 'normal' | 'comfortable'"
+    description: Row density
+    default: normal
+  - name: enhancedLoading
+    type: boolean
+    description: Skeleton rows while loading; `false` shows a plain "Loading…" row
+    default: true
+  - name: enhancedEmptyState
+    type: boolean
+    description: Illustrated empty state; `false` shows `emptyMessage` as a plain row
+    default: true
+  - name: enhancedSelection
+    type: boolean
+    description: Accent bar on the leading edge of selected rows
+    default: true
+  - name: virtual
+    type: boolean
+    description: Virtualize rows with @shopify/flash-list inside a bounded viewport (`h`, 420 by default)
+    default: false
   - name: headerTextProps
     type: "Omit<TextProps, 'children'>"
-    description: Override props applied to every column header `<Text>` (style, weight, ff, size, color)
+    description: Override props applied to every column header `<Text>` (style, fw, ff, size, c)
   - name: cellTextProps
     type: "Omit<TextProps, 'children'>"
     description: Override props applied to default-rendered cell text (cells without a custom `cell` renderer)
+  - name: showColumnMenu
+    type: boolean
+    description: Show the options menu in each column header
+    default: true
 examples:
   - basic
   - advanced-filtering
@@ -70,4 +108,4 @@ examples:
   - server-side
 ---
 
-The DataTable component provides a feature-rich interface for displaying tabular data with sorting, pagination, row selection, and customizable columns.
+DataTable displays tabular data with sorting, pagination, selection, and editable cells.

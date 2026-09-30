@@ -1,17 +1,18 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CHART_DOCS } from '../apps/platform-blocks.com/config/charts';
+import { CHART_DOCS } from '../apps/docs/config/charts';
+import { componentRoute } from '../apps/docs/utils/componentRoute';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
-const docsDir = path.join(repoRoot, 'apps', 'platform-blocks.com');
+const docsDir = path.join(repoRoot, 'apps', 'docs');
 const publicDir = path.join(docsDir, 'public');
 const generatedDir = path.join(docsDir, 'data', 'generated');
 const outputPath = path.join(publicDir, 'sitemap.xml');
 
-const BASE_URL = 'https://platform-blocks.com';
+const BASE_URL = 'https://plocks.dev';
 
 interface SitemapUrl {
   loc: string;
@@ -104,9 +105,9 @@ async function generateSitemap(): Promise<void> {
 
   if (componentsMeta) {
     const componentNames = Object.keys(componentsMeta).sort();
-    componentNames.forEach(name => {
+    componentNames.filter(name => componentsMeta[name]?.packageName !== '@plocks/charts').forEach(name => {
       urls.push({
-        loc: `${BASE_URL}/components/${name}`,
+        loc: `${BASE_URL}${componentRoute(name)}`,
         lastmod: currentDate,
         changefreq: 'monthly',
         priority: 0.8,

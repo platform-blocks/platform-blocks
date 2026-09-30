@@ -4,7 +4,7 @@ import { StyleSheet } from 'react-native';
 
 import { ToggleButton, ToggleGroup } from '../Toggle';
 
-const mockTheme = {
+const mockPalette = {
   colors: {
     primary: ['#F0F5FF', '#D6E4FF', '#ADC6FF', '#85A5FF', '#597EF7', '#2F54EB', '#1D39C4', '#10239E'],
     gray: ['#F9FAFB', '#F3F4F6', '#E5E7EB', '#D1D5DB', '#9CA3AF', '#6B7280', '#4B5563', '#374151'],
@@ -15,11 +15,14 @@ const mockTheme = {
 
 const getStyle = (node: any) => StyleSheet.flatten(node.props.style) || {};
 
-jest.mock('../../../core/theme', () => {
-  const actual = jest.requireActual('../../../core/theme');
+jest.mock('../../../core/theme/ThemeProvider', () => {
+  const actual = jest.requireActual('../../../core/theme/ThemeProvider');
+  const { DEFAULT_THEME } = jest.requireActual('../../../core/theme/defaultTheme');
+  let theme: unknown;
   return {
     ...actual,
-    useTheme: () => mockTheme,
+    // Built lazily: this factory runs before the module-scope palette is initialized.
+    useTheme: () => (theme ??= { ...DEFAULT_THEME, colors: { ...DEFAULT_THEME.colors, ...mockPalette.colors } }),
   };
 });
 
@@ -44,10 +47,12 @@ describe('Toggle - rendering', () => {
     const unselectedStyle = getStyle(getByTestId('seg-secondary'));
 
     expect(selectedStyle.backgroundColor).toBe('#38A169');
-    expect(selectedStyle.borderTopLeftRadius).toBeGreaterThan(0);
+    // Logical corners/borders, so the segmented group mirrors under RTL.
+    expect(selectedStyle.borderTopStartRadius).toBeGreaterThan(0);
+    expect(selectedStyle.borderTopEndRadius).toBe(0);
     expect(unselectedStyle.backgroundColor).toBe('transparent');
-    expect(selectedStyle.borderRightWidth).toBe(0);
-    expect(unselectedStyle.borderTopRightRadius).toBeGreaterThan(0);
+    expect(selectedStyle.borderEndWidth).toBe(0);
+    expect(unselectedStyle.borderTopEndRadius).toBeGreaterThan(0);
   });
 
   it('uses ghost variant neutrals for selected buttons', () => {
@@ -61,7 +66,7 @@ describe('Toggle - rendering', () => {
     const selectedStyle = getStyle(getByTestId('ghost-selected'));
     const idleStyle = getStyle(getByTestId('ghost-idle'));
 
-    expect(selectedStyle.backgroundColor).toBe('#E5E7EB');
+    expect(selectedStyle.backgroundColor).toBe('#DBEAFE'); // theme.backgrounds.selected
     expect(selectedStyle.borderWidth).toBe(0);
     expect(idleStyle.backgroundColor).toBe('transparent');
   });
@@ -90,7 +95,16 @@ describe('Toggle - rendering', () => {
     expect(getStyle(getByTestId('vertical-top')).borderBottomWidth).toBe(0);
   });
 
-  it('applies size tokens to standalone toggles', () => {
+  it('fills a selected standalone toggle (its label is on a filled background)', () => {
+    const { getByTestId } = render(
+      <ToggleButton value="on" selected testID="standalone-on">
+        On
+      </ToggleButton>
+    );
+    expect(getStyle(getByTestId('standalone-on')).backgroundColor).toBe('#2F54EB');
+  });
+
+  it('applies control size tokens to standalone toggles', () => {
     const { getByTestId } = render(
       <ToggleButton
         value="large"
@@ -102,9 +116,10 @@ describe('Toggle - rendering', () => {
       </ToggleButton>
     );
 
+    // getControlSize('lg'): the same height as a Button / Input of that size.
     const style = getStyle(getByTestId('size-lg'));
     expect(style.height).toBe(44);
-    expect(style.paddingHorizontal).toBe(16);
-    expect(style.borderRadius).toBe(6);
+    expect(style.paddingHorizontal).toBe(14);
+    expect(style.borderRadius).toBe(10);
   });
 });

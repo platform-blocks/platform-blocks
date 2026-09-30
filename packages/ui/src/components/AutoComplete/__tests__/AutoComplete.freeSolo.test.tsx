@@ -20,26 +20,6 @@ jest.mock('../../Highlight', () => {
   const { Text } = require('react-native');
   return { Highlight: ({ children }: any) => <Text>{children}</Text> };
 });
-jest.mock('../../MenuItemButton', () => {
-  const { View } = require('react-native');
-  return { MenuItemButton: (props: any) => <View {...props} /> };
-});
-jest.mock('../../ListGroup', () => {
-  const { View } = require('react-native');
-  return {
-    ListGroup: ({ children, ...props }: any) => <View {...props}>{children}</View>,
-    ListGroupDivider: (props: any) => <View {...props} />,
-  };
-});
-jest.mock('../../_internal/FieldHeader', () => {
-  const { Text } = require('react-native');
-  return { FieldHeader: ({ label }: any) => <Text>{label}</Text> };
-});
-jest.mock('../../../core/components/ClearButton', () => {
-  const { View } = require('react-native');
-  return { ClearButton: (props: any) => <View {...props} /> };
-});
-
 import { OverlayProvider } from '../../../core/providers/OverlayProvider';
 import { AutoComplete } from '../AutoComplete';
 

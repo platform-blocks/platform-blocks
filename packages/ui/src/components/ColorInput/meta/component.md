@@ -1,7 +1,7 @@
 ---
 playground: true
 title: ColorInput
-description: A color selection component with various input methods and preset swatches
+description: A hex color field with a live preview and a swatch palette
 source: ui/src/components/ColorInput
 status: stable
 category: input
@@ -13,44 +13,64 @@ props:
     type: string
     description: Initial color value for uncontrolled usage
   - name: onChange
-    type: function
-    description: Callback when color changes
+    type: "(color: string) => void"
+    description: Called with complete hex values while typing, the normalized `#RRGGBB` value on blur / submit / swatch selection, and `''` when cleared
   - name: placeholder
     type: string
-    description: Placeholder text for the input
+    description: Placeholder text for the hex input
+    default: Select color
   - name: label
-    type: string
-    description: Label for the color picker
+    type: ReactNode
+    description: Field label (linked to the hex input)
+  - name: description
+    type: ReactNode
+    description: Description under the label
   - name: helperText
-    type: string
-    description: Additional help text
+    type: ReactNode
+    description: Helper text under the field (hidden while there is an error)
+  - name: error
+    type: ReactNode
+    description: Error message; marks the field invalid and is announced
+  - name: required
+    type: boolean
+    description: Marks the field required
+    default: false
   - name: disabled
     type: boolean
-    description: Whether the picker is disabled
+    description: Whether the field is disabled
+    default: false
+  - name: readOnly
+    type: boolean
+    description: Shows the value without allowing edits or swatch picks
+    default: false
+  - name: clearable
+    type: boolean
+    description: Show a clear button while there is a value
     default: false
   - name: withSwatches
     type: boolean
-    description: Whether to show color swatches
+    description: Whether to show the swatch dropdown and its toggle button
     default: true
   - name: swatches
     type: string[]
     description: Custom color swatches array
+  - name: swatchLabels
+    type: Record<string, string>
+    description: Readable names for the swatches, keyed by color (defaults to the color string)
   - name: size
-    type: string
-    description: Size variant
+    type: SizeValue
+    description: Control size (theme control-size table)
     default: md
   - name: variant
-    type: string
-    description: Visual variant
+    type: "'default' | 'filled' | 'outline' | 'unstyled'"
+    description: Visual variant of the field frame
     default: default
-  - name: error
-    type: string
-    description: Error message to display
+  - name: radius
+    type: RadiusValue
+    description: Corner radius of the field frame
 examples:
   - basic
   - swatches
-  - states
-  - variants
 ---
 
-The ColorInput component provides an intuitive interface for selecting colors through various input methods including color wheel, hex input, and preset swatches.
+ColorInput combines a hex field with a palette of preset colors.

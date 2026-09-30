@@ -1,4 +1,4 @@
-import { LineChart } from '@platform-blocks/charts';
+import { LineChart } from '@plocks/charts';
 
 import { SERIES } from './data';
 
@@ -7,7 +7,7 @@ export function Demo() {
     <LineChart
       title="Product engagement"
       subtitle="Scroll to zoom · drag to pan · Shift-drag to box-zoom · double-click to reset"
-      height={340}
+      h={340}
       series={SERIES}
       xAxis={{ show: true, title: 'Week', labelFormatter: (value) => `W${value}` }}
       yAxis={{ show: true, title: 'Count' }}

@@ -1,4 +1,4 @@
-import { ScatterChart } from '@platform-blocks/charts';
+import { ScatterChart } from '@plocks/charts';
 
 import { QUADRANTS, SERIES } from './data';
 
@@ -19,7 +19,7 @@ export function Demo() {
     <ScatterChart
       title="Campaign spend vs. attributed revenue"
       subtitle="Ad set performance, each marker sized by budget grouping"
-      height={360}
+      h={360}
       data={SERIES.flatMap((serie) => serie.data)}
       series={SERIES}
       quadrants={QUADRANTS}

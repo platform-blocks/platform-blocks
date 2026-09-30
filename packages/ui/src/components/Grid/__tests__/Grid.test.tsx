@@ -110,8 +110,9 @@ describe('Grid - behavior', () => {
     const containerStyle = flattenStyle(getByTestId('grid-root').props.style);
 
     expect(containerStyle.width).toBe('100%');
-    expect(containerStyle.paddingLeft).toBe(16);
-    expect(containerStyle.paddingRight).toBe(16);
+    // Spacing props resolve to logical (RTL-aware) properties on every platform.
+    expect(containerStyle.paddingStart).toBe(16);
+    expect(containerStyle.paddingEnd).toBe(16);
     // The container no longer cancels a cell gutter with a negative margin.
     expect(containerStyle.marginHorizontal).toBeUndefined();
   });

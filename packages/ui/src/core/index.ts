@@ -1,3 +1,7 @@
+// Internal core barrel — NOT a package entry point and not imported by any
+// module in the package (components import the specific core module instead,
+// so a subpath import does not drag in sound, i18n, a11y, gestures, ...).
+// Kept for in-repo consumers such as the docs app.
 // Core exports
 export * from './theme';
 export * from './factory';
@@ -5,16 +9,14 @@ export * from './providers';
 export * from './responsive';
 export * from './i18n';
 export * from './accessibility';
-export * from './sound';
 
 // Utils exports (avoiding conflicts)
 export {
-  getSpacingStyles,
-  extractSpacingProps,
+  resolveStyleProps,
+  extractStyleProps,
+  useStyleProps,
   getLayoutStyles,
-  extractLayoutProps,
-  UniversalProps,
-  ResponsiveProps
+  extractLayoutProps
 } from './utils';
 
 // Unified styling system
@@ -34,19 +36,6 @@ export {
   type InteractiveStateConfig
 } from './interactive-states';
 
-export {
-  createComponentStyles,
-  type StyleFactoryConfig
-} from './style-factory';
-
-export {
-  COMPONENT_SIZES as UNIFIED_COMPONENT_SIZES,
-  getComponentSize as getUnifiedComponentSize,
-  createInteractiveStyles as createUnifiedInteractiveStyles,
-  getIconSize as getUnifiedIconSize,
-  getSectionSpacing as getUnifiedSectionSpacing
-} from './theme/unified-sizing';
-
 // Shared gesture plumbing for draggable value controls
 export {
   useDragGesture,
@@ -65,13 +54,11 @@ export {
 
 // Reusable components
 export { ClearButton, type ClearButtonProps } from './components/ClearButton';
-export { InputContainer, type InputContainerProps } from './components/InputContainer';
 
 // Utils exports (excluding conflicting names)
 export {
   rem,
   px,
   getSize,
-  getShadow,
   getColor
 } from './utils';

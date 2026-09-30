@@ -1,39 +1,37 @@
-import { Block, Text } from '@platform-blocks/ui';
+import { Block, Text } from '@plocks/ui';
 
 export function Demo() {
   return (
-    <Block w="100%" maxW={420}>
+    <Block w="100%" maw={420}>
       <Block bg="#111827" radius="lg" p="lg">
-        <Block>
-          <Text weight="semibold" color="white">
-            Release summary
-          </Text>
-          <Text size="sm" color="rgba(255,255,255,0.75)">
-            Apply `bg`, `p`, and `radius` props on `Block` to build a card without custom stylesheets.
-          </Text>
-        </Block>
+        <Text fw="semibold" c="white">
+          Release summary
+        </Text>
+        <Text size="sm" c="rgba(255,255,255,0.75)">
+          Version 2.4 is live in every region.
+        </Text>
       </Block>
 
       <Block direction="row">
         <Block grow bg="#2563eb" radius="md" p="md">
-          <Text weight="semibold" color="white">
+          <Text fw="semibold" c="white">
             Velocity
           </Text>
-          <Text size="sm" color="rgba(255,255,255,0.8)">
-            Use `grow` so sibling Blocks share remaining space.
+          <Text size="sm" c="rgba(255,255,255,0.8)">
+            42 points
           </Text>
         </Block>
         <Block w={140} bg="#f9fafb" radius="md" p="md">
-          <Text weight="semibold">Backlog</Text>
-          <Text size="sm" color="muted">
-            Combine fixed widths with flexible layouts via the `w` prop.
+          <Text fw="semibold">Backlog</Text>
+          <Text size="sm" c="muted">
+            18 items
           </Text>
         </Block>
       </Block>
 
       <Block direction="row">
         <Block component="button" bg="#2563eb" radius="md" px="lg" py="sm">
-          <Text color="white" weight="semibold">
+          <Text c="white" fw="semibold">
             Create project
           </Text>
         </Block>
@@ -45,7 +43,7 @@ export function Demo() {
           borderWidth={1}
           borderColor="#2563eb"
         >
-          <Text color="#2563eb" weight="semibold">
+          <Text c="#2563eb" fw="semibold">
             View roadmap
           </Text>
         </Block>

@@ -1,42 +1,34 @@
-import { useState } from 'react'
+import { AutoComplete, Block } from '@plocks/ui';
 
-import { AutoComplete, Block } from '@platform-blocks/ui';
-import type { AutoCompleteOption } from '@platform-blocks/ui';
-import { programmingLanguages } from '../data'
+const languages = [
+  { label: 'JavaScript', value: 'javascript' },
+  { label: 'TypeScript', value: 'typescript' },
+  { label: 'Python', value: 'python' },
+  { label: 'Java', value: 'java' },
+  { label: 'C++', value: 'cpp' },
+  { label: 'C#', value: 'csharp' },
+  { label: 'Go', value: 'go' },
+  { label: 'Rust', value: 'rust' },
+  { label: 'Swift', value: 'swift' },
+  { label: 'Kotlin', value: 'kotlin' },
+];
 
-const searchLanguages = async (query: string): Promise<AutoCompleteOption[]> => {
-  await new Promise((resolve) => setTimeout(resolve, 400))
+const searchLanguages = async (query: string) => {
+  await new Promise((resolve) => setTimeout(resolve, 400));
 
-  const normalized = query.toLowerCase()
-  return programmingLanguages.filter((language) =>
-    language.label.toLowerCase().includes(normalized),
-  )
-}
+  const normalized = query.toLowerCase();
+  return languages.filter((language) => language.label.toLowerCase().includes(normalized));
+};
 
 export function Demo() {
-  const [inputValue, setInputValue] = useState('')
-  const [selectedLanguage, setSelectedLanguage] = useState<AutoCompleteOption | null>(null)
-
   return (
-    <Block w={400}>
+    <Block fullWidth>
       <AutoComplete
         label="Search programming languages"
         placeholder="Start typing..."
         onSearch={searchLanguages}
-        value={inputValue}
-        onChangeText={(value) => {
-          setInputValue(value)
-          if (!value) setSelectedLanguage(null)
-        }}
-        onSelect={(item) => {
-          setSelectedLanguage(item)
-          setInputValue(item.label)
-        }}
-        minSearchLength={2}
-        searchDelay={300}
-        highlightMatches
         fullWidth
       />
     </Block>
-  )
+  );
 }

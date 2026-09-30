@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Joystick } from '@platform-blocks/ui';
+import { Joystick } from '@plocks/ui';
 
 export function Demo() {
   const [value, setValue] = useState({ x: 0, y: 0 });
 
   return (
-    <Joystick
+    <Joystick accessibilityLabel="Joystick"
       value={value}
       onChange={setValue}
       showCrosshair

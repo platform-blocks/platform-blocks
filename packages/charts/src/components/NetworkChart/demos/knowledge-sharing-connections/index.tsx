@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Text } from 'react-native';
-import { NetworkChart } from '@platform-blocks/charts';
+import { NetworkChart } from '@plocks/charts';
 
 import { MENTORSHIPS, TEAMS } from './data';
 
@@ -44,7 +44,7 @@ export function Demo() {
       <NetworkChart
         title="Knowledge sharing mentorship graph"
         subtitle="Monthly mentorship hours across guild programs"
-        height={440}
+        h={440}
         layout="radial"
         nodes={TEAMS}
         links={MENTORSHIPS}

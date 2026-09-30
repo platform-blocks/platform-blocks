@@ -1,11 +1,11 @@
 ---
 title: Tabs
 description: A tab navigation component for organizing content into switchable sections with support for multiple variants and orientations.
-source: "@platform-blocks/ui"
+source: "@plocks/ui"
 status: "stable"
 category: navigation
 playground: true
-accessibility: "Supports keyboard navigation, ARIA attributes, and screen readers with proper tab management"
+accessibility: "WAI-ARIA tabs pattern: tablist/tab/tabpanel roles, aria-selected and aria-controls/aria-labelledby wiring, one tab stop with Arrow (RTL-aware), Home and End keys"
 variants:
   - name: "basic"
     description: "Standard tab navigation with simple content switching"
@@ -20,7 +20,7 @@ variants:
   - name: "animated"
     description: "Smooth transitions and animations between tab content"
 dependencies:
-  - "@platform-blocks/core"
+  - "@plocks/core"
 related:
   - "Navigation"
   - "Menu"
@@ -35,15 +35,18 @@ props:
   - name: "orientation"
     type: "'horizontal' | 'vertical'"
     description: "Layout orientation of the tabs"
-  - name: "defaultActiveKey"
+  - name: "defaultValue"
     type: "string"
-    description: "Default active tab key"
-  - name: "activeKey"
+    description: "Initially active tab key when uncontrolled"
+  - name: "value"
     type: "string"
     description: "Controlled active tab key"
   - name: "onChange"
     type: "(key: string) => void"
-    description: "Callback when active tab changes"
+    description: "Callback when the active tab changes"
+  - name: "activationMode"
+    type: "'automatic' | 'manual'"
+    description: "Whether arrow keys select the focused tab immediately or only move focus (Enter/Space selects)"
   - name: "animated"
     type: "boolean"
     description: "Whether to animate content transitions"

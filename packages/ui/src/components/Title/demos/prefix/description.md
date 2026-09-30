@@ -3,9 +3,7 @@ title: Prefix Styles
 category: theming
 order: 30
 tags: [prefix, decoration]
-highlightLines: [7-13]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

@@ -1,4 +1,10 @@
 import type { ComponentSize, ComponentSizeValue } from './componentSize';
+import type { ControlSizeMetrics, ControlSizes } from './scales';
+import type { ZIndices } from './zIndices';
+import type { ThemeColor } from './resolveColors';
+
+export type { ControlSizeMetrics, ControlSizes } from './scales';
+export type { ZIndices, ZIndexLayer } from './zIndices';
 
 // Common type aliases
 export type SizeToken = ComponentSize;
@@ -27,6 +33,38 @@ export type SurfaceLevel = 0 | 1 | 2 | 3;
 /** Shadow tokens available on `theme.shadows`, plus the explicit opt-out. */
 export type SurfaceShadowToken = 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
+/**
+ * Built-in text roles — typography for text that *labels* a group of items
+ * rather than being one of them:
+ *
+ * - `panelTitle` — the title of a sheet, drawer or popover that holds a list
+ *   (Select / AutoComplete mobile sheet, DrawerNavigator, DataTable filters)
+ * - `sectionLabel` — a group header inside a list (Menu.Label, AutoComplete
+ *   groups, Spotlight groups, ControlField.Group, nested Tree headings)
+ *
+ * Both step back from the items they label (secondary color, one size down)
+ * so a title never reads as one more option. Themes can add their own names.
+ */
+export type TextRoleName = 'panelTitle' | 'sectionLabel';
+
+/**
+ * One text role. Every field is optional in a theme: unset fields fall back to
+ * the built-in role (`DEFAULT_TEXT_ROLES`).
+ */
+export interface TextRoleStyle {
+  /** A `theme.text` role (`'primary'`, `'secondary'`, `'muted'`…), a palette token, `'primary.6'`, or any CSS color. */
+  color?: string;
+  /** Size token (`'xs'`–`'xl'`) or px. */
+  fontSize?: SizeValue;
+  fontWeight?: '400' | '500' | '600' | '700' | '800' | '900' | 'normal' | 'bold';
+  /** Tracking in px. */
+  letterSpacing?: number;
+  uppercase?: boolean;
+}
+
+/** `theme.textRoles`: the built-in roles, partially overridable, plus any the app adds. */
+export type TextRoles = Partial<Record<TextRoleName, TextRoleStyle>> & Record<string, TextRoleStyle | undefined>;
+
 /** The resolved appearance of a single elevation step. */
 export interface SurfaceToken {
   /** Background fill. */
@@ -43,19 +81,30 @@ export type SurfaceScale = Record<SurfaceLevel, SurfaceToken>;
 // Import design tokens type
 import type { DESIGN_TOKENS } from '../design-tokens';
 
-// Spacing and layout props
+/**
+ * Margin / padding shorthand props accepted by every component.
+ *
+ * This is the ONE definition — `core/utils/spacing.ts` and `core/types/base.ts`
+ * re-export it. It is pure spacing: the visibility props (`lightHidden`,
+ * `darkHidden`, `hiddenFrom`, `visibleFrom`) live in `VisibilityProps`
+ * (`core/types/base.ts`) and are implemented by the component factory.
+ *
+ * Horizontal props resolve to logical properties (`marginStart` / `marginEnd`,
+ * `paddingStart` / `paddingEnd`), so `ml` / `pl` sit on the *leading* edge and
+ * flip automatically in RTL.
+ */
 export interface SpacingProps {
   /** Margin on all sides */
   m?: SpacingValue;
   /** Margin top */
   mt?: SpacingValue;
-  /** Margin right */
+  /** Margin on the trailing edge (right in LTR, left in RTL) */
   mr?: SpacingValue;
   /** Margin bottom */
   mb?: SpacingValue;
-  /** Margin left */
+  /** Margin on the leading edge (left in LTR, right in RTL) */
   ml?: SpacingValue;
-  /** Margin horizontal (left and right) */
+  /** Margin horizontal (both inline edges) */
   mx?: SpacingValue;
   /** Margin vertical (top and bottom) */
   my?: SpacingValue;
@@ -64,19 +113,91 @@ export interface SpacingProps {
   p?: SpacingValue;
   /** Padding top */
   pt?: SpacingValue;
-  /** Padding right */
+  /** Padding on the trailing edge (right in LTR, left in RTL) */
   pr?: SpacingValue;
   /** Padding bottom */
   pb?: SpacingValue;
-  /** Padding left */
+  /** Padding on the leading edge (left in LTR, right in RTL) */
   pl?: SpacingValue;
-  /** Padding horizontal (left and right) */
+  /** Padding horizontal (both inline edges) */
   px?: SpacingValue;
   /** Padding vertical (top and bottom) */
   py?: SpacingValue;
 }
 
-export interface PlatformBlocksTheme {
+/**
+ * A size for the box props: px, a percentage, `'auto'`, `'full'` (100%), or —
+ * on web — any CSS length (`'50vw'`, `'calc(100% - 2rem)'`).
+ */
+export type DimensionProp = number | 'auto' | 'full' | `${number}%` | (string & {});
+
+/**
+ * Box props — the size, background and opacity of a component's root, set on
+ * the same element as the spacing props. Every public component takes them
+ * (through `BaseProps`); the short names match Mantine's style props.
+ */
+export interface BoxProps {
+  /** Width */
+  w?: DimensionProp;
+  /** Height */
+  h?: DimensionProp;
+  /** Minimum width */
+  miw?: DimensionProp;
+  /** Maximum width */
+  maw?: DimensionProp;
+  /** Minimum height */
+  mih?: DimensionProp;
+  /** Maximum height */
+  mah?: DimensionProp;
+  /**
+   * Background: a `theme.backgrounds` token (`'surface'`, `'subtle'`,
+   * `'elevated'`…), a palette name (its subtle tint), `'primary.5'` shade
+   * syntax, or any CSS color.
+   */
+  bg?: ThemeColor;
+  /** Opacity, `0`–`1` */
+  opacity?: number;
+}
+
+/** Spacing + box props: every style shorthand a component root accepts. */
+export type StyleProps = SpacingProps & BoxProps;
+
+/** Semantic background & surface colors (`theme.backgrounds`). */
+export interface ThemeBackgrounds {
+  /** Main app/page background */
+  base: string;
+  /** Subtle background sections (stripes, alternate rows) */
+  subtle: string;
+  /** Standard surface (cards, containers) */
+  surface: string;
+  /** Elevated surface (modals, popovers) */
+  elevated: string;
+  /** Border / hairline color for separators */
+  border: string;
+  /** Border that must stay visible: input frames, dividers between controls. */
+  borderStrong: string;
+  /** Row / item hover fill. Translucent in the built-in themes so it works at every elevation. */
+  hover: string;
+  /** Row / item pressed fill. */
+  pressed: string;
+  /** Selected row / item fill. */
+  selected: string;
+  /** Disabled control fill. */
+  disabled: string;
+  /** Highlighted (`<mark>`) text background; readable under `text.primary`. */
+  mark: string;
+  /**
+   * Modal backdrop behind dialogs, drawers, sheets and lightboxes — a
+   * translucent color (its alpha is the dimming strength). Optional in
+   * overrides; filled from the built-in theme of the same scheme.
+   */
+  scrim: string;
+}
+
+/** Background roles — optional in overrides, filled from the built-in theme of the same scheme. */
+export type ThemeBackgroundRole = keyof ThemeBackgrounds;
+
+export interface PlocksTheme {
   /** Primary color used for buttons, links, etc. */
   primaryColor: string;
 
@@ -125,18 +246,7 @@ export interface PlatformBlocksTheme {
   };
 
   /** Semantic background & surface colors */
-  backgrounds: {
-    /** Main app/page background */
-    base: string;
-    /** Subtle background sections (stripes, alternate rows) */
-    subtle: string;
-    /** Standard surface (cards, containers) */
-    surface: string;
-    /** Elevated surface (modals, popovers) */
-    elevated: string;
-    /** Border / hairline color for separators */
-    border: string;
-  };
+  backgrounds: ThemeBackgrounds;
 
   /**
    * The literal colors behind `text`, `backgrounds` and `surfaces` when those
@@ -147,8 +257,8 @@ export interface PlatformBlocksTheme {
    * literal; `literalText` / `literalBackgrounds` handle both cases.
    */
   literalColors?: {
-    text: PlatformBlocksTheme['text'];
-    backgrounds: PlatformBlocksTheme['backgrounds'];
+    text: PlocksTheme['text'];
+    backgrounds: PlocksTheme['backgrounds'];
     surfaces?: SurfaceScale;
   };
 
@@ -158,6 +268,14 @@ export interface PlatformBlocksTheme {
    * from `backgrounds`, so existing custom themes keep working.
    */
   surfaces?: SurfaceScale;
+
+  /**
+   * Typography for titles and group labels (see `TextRoleName`), read through
+   * `resolveTextRole` and `Text`'s `textRole` prop. Optional and per-field:
+   * a theme that sets only `sectionLabel: { uppercase: false }` keeps the
+   * built-in color, size and weight.
+   */
+  textRoles?: TextRoles;
 
   /** Semantic interactive state colors */
   states?: {
@@ -169,6 +287,21 @@ export interface PlatformBlocksTheme {
 
   /** Font family */
   fontFamily: string;
+
+  /**
+   * Monospace font family (code, kbd, tabular numbers). Defaults per platform:
+   * iOS `Menlo`, Android `monospace`, web `ui-monospace, SFMono-Regular, …`.
+   */
+  fontFamilyMono: string;
+
+  /**
+   * The control-size table used by Button, IconButton, Input and every other
+   * fixed-height control — read it through `getControlSize(theme, size)`.
+   */
+  controlSizes: ControlSizes;
+
+  /** Stacking layers for overlays and sticky chrome — read through `getZIndex(theme, layer)`. */
+  zIndices: ZIndices;
 
   /** Font sizes - extended with new size system */
   fontSizes: {
@@ -240,36 +373,59 @@ export interface PlatformBlocksTheme {
     };
   };
 
-  /** Semantic color aliases */
-  semantic: {
-    /** Accent color (usually primary[6]) */
-    accent: string;
-    /** Default border color */
-    borderDefault: string;
-    /** Subtle border color */
-    borderSubtle: string;
-    /** Elevated surface color */
-    surfaceElevated: string;
-    /** Card surface color */
-    surfaceCard: string;
-    /** Focus outline color */
-    focusRing: string;
-  };
-
   /** Component default props and styles (override point) */
   components: Record<string, ComponentTokenOverride>;
 
-  /** Any additional custom theme properties */
-  other: Record<string, any>;
+  /** Any additional custom theme properties (see `PlocksThemeOther`) */
+  other: PlocksThemeOther;
 }
 
-export type PlatformBlocksThemeOverride = Partial<PlatformBlocksTheme>;
+/**
+ * The app's own values carried on `theme.other`. Open-ended by default; augment
+ * it to type your keys:
+ *
+ * ```ts
+ * declare module '@plocks/ui' {
+ *   interface PlocksThemeOther {
+ *     brandGradient: string[];
+ *   }
+ * }
+ * ```
+ */
+export interface PlocksThemeOther {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- app-owned extension bag read directly by consumers (`theme.other.brand` as a style value); `unknown` would force a cast at every read. Augment the interface for precise types.
+  [key: string]: any;
+}
+
+/**
+ * A partial theme: every top-level key is optional, and `backgrounds` roles,
+ * `controlSizes` and `zIndices` are partial too. Missing values are filled from
+ * the built-in theme of the same color scheme by `mergeTheme` / `normalizeTheme`.
+ */
+export type PlocksThemeOverride = Partial<
+  Omit<PlocksTheme, 'backgrounds' | 'controlSizes' | 'zIndices' | 'fontFamilyMono'>
+> & {
+  backgrounds?: Partial<ThemeBackgrounds>;
+  controlSizes?: Partial<Record<SizeToken, Partial<ControlSizeMetrics>>>;
+  zIndices?: Partial<ZIndices>;
+  fontFamilyMono?: string;
+};
+
+/**
+ * Separate overrides for each color scheme, accepted by `PlocksProvider`'s
+ * `theme` prop so a custom theme keeps light/dark switching. Each side is merged
+ * onto the built-in theme of that scheme; a missing side uses the built-in theme.
+ */
+export interface PlocksThemePair {
+  light?: PlocksThemeOverride;
+  dark?: PlocksThemeOverride;
+}
 
 // Generic token override shape for any component
 export interface ComponentTokenOverride {
-  defaults?: Record<string, any>;
-  variants?: Record<string, any>;
-  sizes?: Record<string, any>;
+  defaults?: Record<string, unknown>;
+  variants?: Record<string, unknown>;
+  sizes?: Record<string, unknown>;
   // Additional arbitrary extension buckets
-  [key: string]: any;
+  [key: string]: unknown;
 }

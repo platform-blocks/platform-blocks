@@ -1,146 +1,170 @@
-import React, { useState, useEffect } from 'react';
-import { View, Pressable, LayoutChangeEvent, Platform } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import { Text } from '../Text';
-import { useTheme } from '../../core/theme';
-import { extractSpacingProps, getSpacingStyles, SpacingProps, mergeSlotProps } from '../../core/utils';
-import { getFontSize } from '../../core/theme/sizes';
-import { SpoilerProps } from './types';
-import { Collapse } from '../Collapse';
-import { useControllableState } from '../../hooks/useControllableState';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Pressable, View } from 'react-native';
+import type { LayoutChangeEvent, ViewStyle } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
-/** Simple height-based spoiler (collapsible) component */
-export const Spoiler = React.forwardRef<View, SpoilerProps>((allProps, ref) => {
-  const { spacingProps, otherProps } = extractSpacingProps(allProps);
+import { a11yProps } from '../../core/accessibility/a11yProps';
+import { useA11yId } from '../../core/accessibility/useA11yId';
+import { factory } from '../../core/factory';
+import { useTransitionDuration } from '../../core/motion/useTransitionDuration';
+import { isAndroid, isWeb, webStyle } from '../../core/platform';
+import { useTheme } from '../../core/theme/ThemeProvider';
+import { resolveFontSize } from '../../core/theme/tokens';
+import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
+import { extractStyleProps, useStyleProps } from '../../core/utils/spacing';
+import { useControllableState } from '../../hooks/useControllableState';
+import { Collapse } from '../Collapse';
+import { Text } from '../Text';
+import type { SpoilerProps } from './types';
+
+/** Web-only CSS mask, built inside the animated-style worklet. */
+function maskImage(value: string): ViewStyle {
+  'worklet';
+  return { WebkitMaskImage: value } as unknown as ViewStyle;
+}
+
+const HIDDEN: ViewStyle = { opacity: 0 };
+const WRAPPER: ViewStyle = { position: 'relative' };
+const CONTROL: ViewStyle = { marginTop: 8, marginEnd: 20, alignSelf: 'flex-end' };
+
+/**
+ * Clamps content to `mah` with a "Show more" / "Hide" toggle. The toggle
+ * is a button with `aria-expanded` / `aria-controls` pointing at the content.
+ */
+export const Spoiler = factory<{ props: SpoilerProps; ref: View }>((allProps, ref) => {
+  // `mah` clamps the content, so it is taken out before the root's style props.
+  const { mah: maxHeight = 120, ...propsWithoutMah } = allProps;
+  const { styleProps, otherProps } = extractStyleProps(propsWithoutMah);
   const {
     children,
-    maxHeight = 120,
-    initiallyOpen = false,
+    expanded: expandedProp,
+    defaultExpanded,
+    onExpandedChange,
     showLabel = 'Show more',
     hideLabel = 'Hide',
-    transitionDuration = 180,
+    transitionDuration: transitionDurationProp,
     size = 'sm',
-    opened: openedProp,
-    onToggle,
     disabled,
     style,
-  renderControl,
-  transparentFade = true,
-  fadeColor,
-  disableFadeAnimation = false,
-  controlProps,
+    testID,
+    renderControl,
+    transparentFade = true,
+    fadeColor,
+    disableFadeAnimation = false,
+    controlProps,
   } = otherProps;
 
   const theme = useTheme();
-  const spacingStyles = getSpacingStyles(spacingProps);
+  const spacingStyles = useStyleProps(styleProps);
+  const contentId = useA11yId(undefined, 'plocks-spoiler');
+  // Reduced motion (or `transitionDuration={0}`) → 0: jump to the end state.
+  const transitionDuration = useTransitionDuration(transitionDurationProp, 180);
 
-  const [opened, setOpened] = useControllableState<boolean>({
-    value: openedProp,
-    defaultValue: initiallyOpen,
+  const [expanded, setExpanded] = useControllableState<boolean>({
+    value: expandedProp,
+    defaultValue: defaultExpanded,
     finalValue: false,
-    onChange: onToggle,
+    onChange: onExpandedChange,
   });
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
   const [hasMeasured, setHasMeasured] = useState(false);
-  // Seed from the resolved state, not `initiallyOpen` — a controlled `opened`
+  // Seed from the resolved state, not the default — a controlled `expanded`
   // would otherwise start at the wrong end and animate on mount.
-  const fadeProgress = useSharedValue<number>(opened ? 1 : 0);
+  const fadeProgress = useSharedValue<number>(expanded ? 1 : 0);
 
   // measure after first layout
-  const onContentLayout = (e: LayoutChangeEvent) => {
+  const onContentLayout = useCallback((e: LayoutChangeEvent) => {
     const h = e.nativeEvent.layout.height;
-    setMeasuredHeight(prev => {
-      if (prev === null || Math.abs(prev - h) > 0.5) {
-        return h;
-      }
-      return prev;
-    });
-  };
+    setMeasuredHeight((prev) => (prev === null || Math.abs(prev - h) > 0.5 ? h : prev));
+  }, []);
 
-  const toggle = () => {
-    if(disabled) return;
-    setOpened((previous) => !previous);
-  };
+  const toggle = useCallback(() => {
+    if (disabled) return;
+    setExpanded((previous) => !previous);
+  }, [disabled, setExpanded]);
 
-  const isClamped = measuredHeight != null && measuredHeight > maxHeight && !opened;
   useEffect(() => {
     if (measuredHeight == null) return;
 
-    // `transitionDuration={0}` means no transition — jump to the end state.
     const shouldAnimateFade = !disableFadeAnimation && transitionDuration > 0 && measuredHeight > maxHeight && transparentFade;
-    const targetFade = opened ? 1 : 0;
+    const targetFade = expanded ? 1 : 0;
 
-    fadeProgress.value = shouldAnimateFade
-      ? withTiming(targetFade, { duration: transitionDuration })
-      : targetFade;
+    fadeProgress.value = shouldAnimateFade ? withTiming(targetFade, { duration: transitionDuration }) : targetFade;
+  }, [measuredHeight, expanded, maxHeight, transitionDuration, disableFadeAnimation, transparentFade, fadeProgress]);
 
-    if (!hasMeasured) {
-      if (Platform.OS === 'android') {
-        setTimeout(() => setHasMeasured(true), 16);
-      } else {
-        requestAnimationFrame(() => setHasMeasured(true));
-      }
+  // Reveal the content one frame after the first measurement, so the initial
+  // clamp is never seen mid-layout.
+  useEffect(() => {
+    if (measuredHeight == null || hasMeasured) return;
+    if (isAndroid) {
+      const timer = setTimeout(() => setHasMeasured(true), 16);
+      return () => clearTimeout(timer);
     }
-  }, [measuredHeight, opened, maxHeight, transitionDuration, disableFadeAnimation, transparentFade, hasMeasured, fadeProgress]);
+    const frame = requestAnimationFrame(() => setHasMeasured(true));
+    return () => cancelAnimationFrame(frame);
+  }, [measuredHeight, hasMeasured]);
 
   const shouldClamp = measuredHeight != null && measuredHeight > maxHeight;
   const collapsedHeight = measuredHeight != null ? Math.min(measuredHeight, maxHeight) : maxHeight;
+  const useMask = isWeb && transparentFade;
 
-  // Always return the key: dropping it from the returned object leaves the last
-  // applied mask on the node rather than clearing it, so the fully-open state
-  // has to say `none` explicitly.
+  // Always return the key on web: dropping it from the returned object leaves
+  // the last applied mask on the node rather than clearing it, so the fully-open
+  // state has to say `none` explicitly.
   const animatedWrapperStyle = useAnimatedStyle(() => {
+    if (!useMask) return {};
     const progress = fadeProgress.value;
-    if (!shouldClamp || Platform.OS !== 'web' || !transparentFade || progress >= 1) {
-      return { WebkitMaskImage: 'none' } as any;
+    if (!shouldClamp || progress >= 1) {
+      return maskImage('none');
     }
     const startStop = 75 + 25 * progress;
-    return {
-      WebkitMaskImage: `linear-gradient(to bottom, black ${startStop}%, transparent 100%)`,
-    } as any;
-  }, [shouldClamp, transparentFade]);
+    return maskImage(`linear-gradient(to bottom, black ${startStop}%, transparent 100%)`);
+  }, [shouldClamp, useMask]);
 
-  const animatedFadeStyle = useAnimatedStyle(() => ({
-    opacity: fadeProgress.value < 1 ? 1 - fadeProgress.value : 0,
-  }), []);
+  const animatedFadeStyle = useAnimatedStyle(
+    () => ({
+      opacity: fadeProgress.value < 1 ? 1 - fadeProgress.value : 0,
+    }),
+    []
+  );
 
-  const fontSize = getFontSize(size);
+  const fontSize = resolveFontSize(theme, size);
+  const controlLabel = expanded ? hideLabel : showLabel;
 
   return (
-    <View ref={ref} style={[spacingStyles, style]}>      
-      <Animated.View
-        style={[
-          { position: 'relative' },
-          !hasMeasured && Platform.OS !== 'android' && { opacity: 0 },
-          animatedWrapperStyle,
-        ]}
-      >
+    <View ref={ref} testID={testID} style={[spacingStyles, style]}>
+      <Animated.View style={[WRAPPER, !hasMeasured && !isAndroid && HIDDEN, animatedWrapperStyle]}>
         <Collapse
-          isCollapsed={shouldClamp && !opened}
-          duration={transitionDuration}
+          isCollapsed={shouldClamp && !expanded}
+          transitionDuration={transitionDuration}
           collapsedHeight={collapsedHeight}
           fadeContent={false}
-          style={{ overflow: 'hidden' }}
         >
           <View
+            {...a11yProps({ id: contentId })}
             onLayout={onContentLayout}
-            style={Platform.OS === 'android' && !hasMeasured ? { opacity: 0 } : undefined}
+            style={isAndroid && !hasMeasured ? HIDDEN : undefined}
           >
             {children}
           </View>
         </Collapse>
-        {shouldClamp && !opened && Platform.OS === 'web' && !transparentFade && (
+        {shouldClamp && !expanded && isWeb && !transparentFade && (
           <Animated.View
-            style={[{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: 48,
-              justifyContent: 'flex-end',
-              paddingTop: 24,
-              background: `linear-gradient(rgba(0,0,0,0), ${fadeColor || theme.colors.gray[0]})`,
-            } as any, !disableFadeAnimation && animatedFadeStyle]}
+            style={[
+              {
+                position: 'absolute',
+                start: 0,
+                end: 0,
+                bottom: 0,
+                height: 48,
+                justifyContent: 'flex-end',
+                paddingTop: 24,
+              },
+              webStyle({
+                backgroundImage: `linear-gradient(rgba(0,0,0,0), ${fadeColor || theme.backgrounds.base})`,
+              }),
+              !disableFadeAnimation && animatedFadeStyle,
+            ]}
             pointerEvents="none"
           />
         )}
@@ -149,33 +173,35 @@ export const Spoiler = React.forwardRef<View, SpoilerProps>((allProps, ref) => {
         <Pressable
           onPress={toggle}
           disabled={disabled}
-          style={{ marginTop: 8, marginRight: 20, alignSelf: 'flex-end' }}
-          accessibilityRole="button"
-          accessibilityState={{ expanded: opened, disabled: !!disabled }}
-          accessibilityLabel={opened ? hideLabel : showLabel}
+          style={CONTROL}
+          {...a11yProps({
+            role: 'button',
+            label: controlLabel,
+            expanded,
+            controls: contentId,
+            disabled: !!disabled,
+          })}
         >
           {renderControl ? (
-            renderControl({ opened, toggle, showLabel, hideLabel })
+            renderControl({ expanded, toggle, showLabel, hideLabel })
           ) : (
             <Text
               {...mergeSlotProps(
                 {
                   variant: 'small' as const,
-                  weight: '500' as const,
+                  fw: '500' as const,
                   style: { color: theme.colors.primary[6], fontSize },
                 },
-                controlProps,
+                controlProps
               )}
             >
-              {opened ? hideLabel : showLabel}
+              {controlLabel}
             </Text>
           )}
         </Pressable>
       )}
     </View>
   );
-});
-
-Spoiler.displayName = 'Spoiler';
+}, { displayName: 'Spoiler' });
 
 export default Spoiler;

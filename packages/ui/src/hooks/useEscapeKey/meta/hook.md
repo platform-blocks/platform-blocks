@@ -4,7 +4,6 @@ category: keyboard
 order: 30
 tags: [keyboard, escape]
 status: stable
-since: 1.0.0
 hidden: false
 ---
 

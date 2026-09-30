@@ -1,5 +1,10 @@
-import { SegmentedControl, Text } from '@platform-blocks/ui';
-import { frameworks } from '../data';
+import { SegmentedControl } from '@plocks/ui';
+
+const frameworks = [
+  { label: 'React', value: 'react' },
+  { label: 'Angular', value: 'angular' },
+  { label: 'Vue', value: 'vue' },
+];
 
 export function Demo() {
   return (
