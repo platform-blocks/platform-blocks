@@ -43,8 +43,8 @@ jobs:
         run: npm ci
         working-directory: plocks
 
-      - name: Build plocks UI
-        run: npm run ui:build
+      - name: Build plocks packages
+        run: npm run packages:build
         working-directory: plocks
 
       - name: Install example app dependencies

@@ -88,7 +88,7 @@ export const EXTENSIONS: ExtensionEntry[] = [
   {
     name: '@plocks/charts',
     description:
-      '25 chart types — line, bar, area, pie, heatmap, sankey, candlestick, and more — themed by the same tokens as the UI components.',
+      '24 chart types — line, bar, area, pie, heatmap, sankey, candlestick, and more — themed by the same tokens as the UI components.',
     official: true,
     npmUrl: 'https://www.npmjs.com/package/@plocks/charts',
     repoUrl: 'https://github.com/platform-blocks/plocks/tree/main/packages/charts',

@@ -34,11 +34,11 @@ export interface ContributeRepoPath {
 export const CONTRIBUTE_REPO_LAYOUT: ContributeRepoPath[] = [
   {
     path: 'packages/ui',
-    description: 'The core library published as `@plocks/ui` — 90+ components, hooks, and the theming system',
+    description: 'The core library published as `@plocks/ui` — 100+ components, hooks, and the theming system',
   },
   {
     path: 'packages/charts',
-    description: 'The charting package published as `@plocks/charts` — 25 chart types on that same theming',
+    description: 'The charting package published as `@plocks/charts` — 24 chart types on that same theming',
   },
   {
     path: 'packages/{dates,code,media,carousel,spotlight}',

@@ -16,7 +16,7 @@ Data visualization components for React Native and React Native Web. Part of the
 
 ## Features
 
-- **25 chart types** — Bar, Line, Area, Pie, Scatter, Radar, Heatmap, Candlestick, Funnel, Donut, Gauge, Sparkline, and more
+- **24 chart types** — Bar, Line, Area, Pie, Scatter, Radar, Heatmap, Candlestick, Funnel, Donut, Sparkline, and more
 - **Responsive by default** — a chart fills the box it is placed in and redraws when that box changes
 - **Animated** — Smooth transitions powered by `react-native-reanimated`
 - **Interactive** — Built-in tooltips, popovers, pan & zoom, and streaming data support
@@ -48,13 +48,17 @@ Ensure the following are installed in your project:
 ```tsx
 import { AreaChart } from '@plocks/charts';
 
-export function RevenueChart({ data }) {
+const data = [
+  { x: 1, y: 120 },
+  { x: 2, y: 180 },
+  { x: 3, y: 165 },
+];
+
+export function RevenueChart() {
   return (
     <AreaChart
       height={220}
       data={data}
-      xKey="month"
-      yKey="value"
     />
   );
 }

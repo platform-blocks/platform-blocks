@@ -22,7 +22,7 @@ export interface NavItem {
    * Sub-group inside the section, rendered as a collapsible branch in the
    * sidebar. Components carry their `coreComponents` category here — the
    * grouping already existed for the /components filter chips and was the
-   * only thing keeping a 97-row alphabetical wall from being navigable.
+   * only thing keeping a long alphabetical list from being navigable.
    */
   group?: string;
 }

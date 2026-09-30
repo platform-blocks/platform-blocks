@@ -4,6 +4,7 @@ import { CHART_DOCS } from './charts';
 import { GITHUB_REPO, TWITTER_PROFILE, NPM_PACKAGE, DISCORD_INVITE, SITE_URL } from './urls';
 import { FAQ_ITEMS } from './faq';
 import { componentMatchesPackage, componentRoute } from '../utils/componentRoute';
+import { CATALOG_COUNTS } from './catalogCounts';
 
 export { SITE_URL };
 export const SITE_NAME = 'plocks';
@@ -58,12 +59,12 @@ const STATIC_ROUTES: Record<string, RouteMeta> = {
   '/components': {
     title: 'Components',
     description:
-      'Browse 140+ accessible, themeable, cross-platform React Native components — inputs, layout, navigation, feedback, data display, and more.',
+      `Browse ${CATALOG_COUNTS.components} accessible, themeable, cross-platform React Native components — inputs, layout, navigation, feedback, data display, and more.`,
   },
   '/charts': {
     title: 'Charts',
     description:
-      'A cross-platform charting library for React Native and Web — line, bar, area, pie, scatter, and 30+ more chart types with a shared theming system.',
+      `A cross-platform charting library for React Native and Web — ${CATALOG_COUNTS.charts} chart types, including line, bar, area, pie, and scatter, with a shared theming system.`,
   },
   '/hooks': {
     title: 'Hooks',

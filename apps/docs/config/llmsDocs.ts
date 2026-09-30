@@ -69,7 +69,7 @@ curl ${SITE_URL}/ui/Button.md                # any docs URL + .md`;
 export const LLMS_SKILLS_TITLE = 'Agent skills';
 
 export const LLMS_SKILLS_INTRO =
-  'Five installable skills — setup, theming, layout, forms, and charts — teach agents the working patterns and pitfalls of the library, verified against the source.';
+  'Eight installable skills cover setup, theming, layout, forms, charts, feedback and overlays, data display, and navigation. Their API references are checked against the source.';
 
 export const LLMS_SKILLS_REPO_URL = 'https://github.com/platform-blocks/skills';
 

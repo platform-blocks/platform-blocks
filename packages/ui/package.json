@@ -1,7 +1,7 @@
 {
   "name": "@plocks/ui",
   "version": "0.1.0",
-  "description": "A comprehensive React Native UI component library — 140+ accessible, themeable, cross-platform components for iOS, Android, and Web",
+  "description": "A comprehensive React Native UI component library — 100+ accessible, themeable, cross-platform components for iOS, Android, and Web",
   "type": "module",
   "main": "lib/esm/index.js",
   "module": "lib/esm/index.js",

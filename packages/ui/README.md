@@ -16,7 +16,7 @@ A comprehensive React Native UI component library for building accessible, theme
 
 ## Features
 
-- **90+ components** — Inputs, navigation, data display, overlays, layout, and more
+- **100+ components** — Inputs, navigation, data display, overlays, layout, and more
 - **Cross-platform** — iOS, Android, and Web from a single codebase
 - **Themeable** — Built-in light and dark themes with full customization via `createTheme`
 - **Accessible** — Screen reader, keyboard navigation, and RTL support out of the box
@@ -80,7 +80,7 @@ import { PlocksProvider, Button } from '@plocks/ui';
 export function App() {
   return (
     <PlocksProvider>
-      <Button label="Hello" />
+      <Button title="Hello" />
     </PlocksProvider>
   );
 }
@@ -128,7 +128,7 @@ Every name below links to its documentation page, with live examples and a full 
 Ready-made buttons and badges for App Store, Google Play, Microsoft Store, Amazon, Spotify, Apple Music, YouTube, Discord, GitHub, and 20+ more — see [`BrandButton`](https://plocks.dev/components/BrandButton) and [`BrandIcon`](https://plocks.dev/components/BrandIcon).
 
 ### Charts
-25 chart types (line, bar, area, pie, donut, candlestick, sankey, heatmap, and more) ship in the companion [`@plocks/charts`](https://www.npmjs.com/package/@plocks/charts) package — browse them at [plocks.dev/charts](https://plocks.dev/charts).
+24 chart types (line, bar, area, pie, donut, candlestick, sankey, heatmap, and more) ship in the companion [`@plocks/charts`](https://www.npmjs.com/package/@plocks/charts) package — browse them at [plocks.dev/charts](https://plocks.dev/charts).
 
 ## Hooks
 

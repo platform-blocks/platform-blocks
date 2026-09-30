@@ -9,6 +9,7 @@ import ComponentGallery from '../components/home/ComponentGallery';
 import { HeroMark } from '../components/home/HeroMark';
 import { BrandIcon } from "../../../packages/brands/src/components/BrandIcon";
 import { componentRoute } from '../utils/componentRoute';
+import { CATALOG_COUNTS } from '../config/catalogCounts';
 
 const CHART_TYPES = [
   ['Bar', 'chart-bar', 'BarChart'], ['Line', 'chart-line', 'LineChart'],
@@ -69,7 +70,7 @@ export default function HomeScreen() {
           </Block>
           <Block direction="row" align="center" justify="center" wrap="wrap" gap="sm">
             <Button title="Start building" color="secondary" variant="gradient" endSection={<Icon name="arrow-right" />} onPress={() => router.push('/getting-started')} />
-            <Button title="140+ components" variant="gradient" onPress={() => router.push('/components')} />
+            <Button title={`${CATALOG_COUNTS.components} components`} variant="gradient" onPress={() => router.push('/components')} />
           </Block>
           <Text size="sm" c="secondary">TypeScript ready · Web and native · Designed to be customized</Text>
         </Block>
@@ -78,14 +79,14 @@ export default function HomeScreen() {
 
         <Block direction="row" justify="center" wrap="wrap" gap="md">
           {[
-            { value: 100, label: 'components' },
-            { value: 25, label: 'chart types' },
-            { value: 20, label: 'React hooks' },
+            { value: CATALOG_COUNTS.components, label: 'components' },
+            { value: CATALOG_COUNTS.charts, label: 'chart types' },
+            { value: CATALOG_COUNTS.hooks, label: 'React hooks' },
           ].map(({ value, label }) => (
             <Block key={label} grow basis="30%" miw={180}>
               <Card p="md">
                 <Block align="center" gap="xs">
-                  <RollingNumber value={value} suffix="+" size={32} fw="bold" animateOnMount />
+                  <RollingNumber value={value} size={32} fw="bold" animateOnMount />
                   <Text c="secondary">{label}</Text>
                 </Block>
               </Card>
