@@ -246,11 +246,10 @@ export const NetworkChart: React.FC<NetworkChartProps> = (props) => {
     linksRef.current = simulation.links;
   }, [simulation.nodes, simulation.links]);
 
-  // Use optimized rendering hook that throttles updates
+  // Resolve links against the current simulation nodes
   const { renderNodes, renderLinks } = useAnimatedNetworkRendering({
     nodes: simulation.nodes,
     links: simulation.links,
-    tick: simulation.tick,
   });
 
   const nodeValueFn = React.useMemo(() => {
