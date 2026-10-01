@@ -53,6 +53,7 @@ const spacingToStyle = (s: SpacingProps) => {
 const ChartTitleBandContext = React.createContext<{
   band: number;
   setBand: (band: number) => void;
+  width: number;
 } | null>(null);
 
 // Base Chart Container Component
@@ -90,7 +91,7 @@ export const ChartContainer: React.FC<BaseChartProps & {
   const effectiveSuppressPopover = suppressPopover ?? (!useOwnInteractionProvider || parentInteraction != null);
 
   const content = (
-    <TitleBandProvider>
+    <TitleBandProvider width={width}>
     <View
       style={[
         {
@@ -124,9 +125,9 @@ export const ChartContainer: React.FC<BaseChartProps & {
 };
 
 /** Holds the title band so the legend can stack below it. */
-const TitleBandProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const TitleBandProvider: React.FC<{ children: React.ReactNode; width: number }> = ({ children, width }) => {
   const [band, setBand] = React.useState(0);
-  const value = React.useMemo(() => ({ band, setBand }), [band]);
+  const value = React.useMemo(() => ({ band, setBand, width }), [band, width]);
   return <ChartTitleBandContext.Provider value={value}>{children}</ChartTitleBandContext.Provider>;
 };
 
@@ -191,14 +192,18 @@ export const estimateChartTextWidth = (text: string, fontSize: number): number =
 export const measureChartTitleBand = (
   title?: string,
   subtitle?: string,
-  options?: { titleSize?: number; subtitleSize?: number; gap?: number },
+  options?: { titleSize?: number; subtitleSize?: number; gap?: number; containerWidth?: number },
 ): number => {
   if (!title && !subtitle) return 0;
   const titleSize = options?.titleSize ?? CHART_TITLE_FONT_SIZE;
   const subtitleSize = options?.subtitleSize ?? CHART_SUBTITLE_FONT_SIZE;
   let band = TITLE_PADDING_VERTICAL * 2;
-  if (title) band += Math.round(titleSize * 1.35);
-  if (subtitle) band += (title ? TITLE_SUBTITLE_GAP : 0) + Math.round(subtitleSize * 1.35);
+  const available = options?.containerWidth != null && options.containerWidth < 480
+    ? Math.max(options.containerWidth - 20, 1)
+    : Infinity;
+  const lines = (value: string, fontSize: number) => Math.min(Math.max(Math.ceil(estimateChartTextWidth(value, fontSize) / available), 1), 2);
+  if (title) band += Math.round(titleSize * 1.35) * lines(title, titleSize);
+  if (subtitle) band += (title ? TITLE_SUBTITLE_GAP : 0) + Math.round(subtitleSize * 1.35) * lines(subtitle, subtitleSize);
   return band + (options?.gap ?? 8);
 };
 
@@ -208,6 +213,15 @@ export interface ChartLegendBand {
   bottom: number;
   left: number;
 }
+
+/** Side legends consume too much of a narrow plot; stack them below it instead. */
+export const resolveChartLegendPosition = (
+  position: 'top' | 'right' | 'bottom' | 'left' | undefined,
+  containerWidth: number,
+): 'top' | 'right' | 'bottom' | 'left' => {
+  const requested = position ?? 'bottom';
+  return containerWidth < 480 && (requested === 'left' || requested === 'right') ? 'bottom' : requested;
+};
 
 /**
  * Space ChartLegend occupies on the edge it is pinned to. Horizontal legends are packed
@@ -224,7 +238,7 @@ export const measureChartLegendBand = (options: {
   const { items, containerWidth } = options;
   if (!items || items.length === 0) return empty;
 
-  const position = options.position ?? 'bottom';
+  const position = resolveChartLegendPosition(options.position, containerWidth);
   const fontSize = options.fontSize ?? LEGEND_FONT_SIZE;
   const itemWidths = items.map(
     (item) => LEGEND_SWATCH_SIZE + LEGEND_SWATCH_GAP + estimateChartTextWidth(item.label, fontSize),
@@ -289,7 +303,7 @@ export const withChartBandPadding = (
     topAllowance?: number;
   },
 ): ChartPadding => {
-  const titleBand = measureChartTitleBand(options.title, options.subtitle);
+  const titleBand = measureChartTitleBand(options.title, options.subtitle, { containerWidth: options.containerWidth });
   const legendBand = measureChartLegendBand({
     items: options.legendItems,
     containerWidth: options.containerWidth,
@@ -329,7 +343,8 @@ export const ChartTitle: React.FC<{
 
   const theme = useChartTheme();
   const titleBandCtx = React.useContext(ChartTitleBandContext);
-  const band = measureChartTitleBand(title, subtitle, { titleSize, subtitleSize });
+  const chartWidth = titleBandCtx?.width;
+  const band = measureChartTitleBand(title, subtitle, { titleSize, subtitleSize, containerWidth: chartWidth });
   React.useEffect(() => {
     titleBandCtx?.setBand(band);
     return () => titleBandCtx?.setBand(0);
@@ -361,6 +376,7 @@ export const ChartTitle: React.FC<{
     >
       {title && (
         <Text
+          numberOfLines={chartWidth != null && chartWidth < 480 ? 2 : undefined}
           style={{
             fontSize: titleSize,
             fontWeight: '600',
@@ -373,6 +389,7 @@ export const ChartTitle: React.FC<{
       )}
       {subtitle && (
         <Text
+          numberOfLines={chartWidth != null && chartWidth < 480 ? 2 : undefined}
           style={{
             fontSize: subtitleSize,
             fontWeight: '400',
@@ -410,7 +427,10 @@ export const ChartLegend: React.FC<{
   } = props;
 
   const theme = useChartTheme();
-  const titleBand = React.useContext(ChartTitleBandContext)?.band ?? 0;
+  const titleBandContext = React.useContext(ChartTitleBandContext);
+  const titleBand = titleBandContext?.band ?? 0;
+  const chartWidth = titleBandContext?.width ?? Infinity;
+  const resolvedPosition = resolveChartLegendPosition(position, chartWidth);
   // Pressable's onPress event (RN / RN Web) often omits modifier keys; capture last pointerdown globally (web only)
   const lastMods = React.useRef<{ altKey: boolean; metaKey: boolean; shiftKey: boolean; ctrlKey: boolean }>({ altKey: false, metaKey: false, shiftKey: false, ctrlKey: false });
   React.useEffect(() => {
@@ -430,7 +450,7 @@ export const ChartLegend: React.FC<{
 
   if (!items || items.length === 0) return null;
 
-  const isHorizontal = position === 'top' || position === 'bottom';
+  const isHorizontal = resolvedPosition === 'top' || resolvedPosition === 'bottom';
   const alignStyle = {
     start: 'flex-start',
     center: 'center',
@@ -444,7 +464,7 @@ export const ChartLegend: React.FC<{
     bottom: { bottom: 0, left: 0, right: 0 },
     left: { left: 0, top: titleBand, bottom: 0 },
     right: { right: 0, top: titleBand, bottom: 0 },
-  }[position];
+  }[resolvedPosition];
 
   // Determine an accessible legend text color when host theme background is dark
   const computeReadable = React.useCallback((fallback: string) => {
@@ -494,6 +514,14 @@ export const ChartLegend: React.FC<{
           style={{
             flexDirection: isRTL ? 'row-reverse' : 'row',
             alignItems: 'center',
+            flexShrink: 0,
+            maxWidth: '100%',
+            width: isHorizontal
+              ? Math.min(
+                  LEGEND_SWATCH_SIZE + LEGEND_SWATCH_GAP + estimateChartTextWidth(item.label, fontSize),
+                  Math.max(chartWidth - CHART_LEGEND_PADDING * 2 - LEGEND_ITEM_MARGIN_H * 2, 32),
+                )
+              : undefined,
             marginHorizontal: isHorizontal ? LEGEND_ITEM_MARGIN_H : 0,
             marginVertical: isHorizontal ? 0 : LEGEND_ITEM_MARGIN_V,
             opacity: item.visible !== false ? 1 : 0.5,
@@ -509,10 +537,12 @@ export const ChartLegend: React.FC<{
             }}
           />
           <Text
+            numberOfLines={chartWidth < 480 ? 1 : undefined}
             style={{
               fontSize,
               color: textColor || computeReadable(theme.colors.textPrimary),
               fontFamily: theme.fontFamily,
+              flexShrink: 1,
             }}
           >
             {item.label}

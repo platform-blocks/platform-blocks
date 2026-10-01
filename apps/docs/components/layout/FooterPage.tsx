@@ -1,21 +1,21 @@
 import { Linking, View } from 'react-native';
-import { Text, Flex, Block, useI18n, Grid, GridItem, Link, IconButton } from '@plocks/ui';
+import { useDeviceInfo, useBreakpoint, Text, Flex, Block, useI18n, Grid, GridItem, Link, IconButton } from '@plocks/ui';
 import { BrandIcon } from '@plocks/brands';
 import { useRouter } from 'expo-router';
-import { Platform } from 'react-native';
 import { DISCORD_INVITE, GITHUB_REPO, NPM_PACKAGE, TWITTER_PROFILE } from 'config/urls';
 import { LLMS_SKILLS_REPO_URL } from '../../config/llmsDocs';
-import { useResponsive } from '../../hooks/useResponsive';
 import { PlocksLogo } from './PlocksLogo';
 
 export function FooterContent() {
+  const { platform: { isWeb } } = useDeviceInfo();
   const { t } = useI18n();
   const router = useRouter();
-  const responsive = useResponsive();
+  const breakpoint = useBreakpoint();
+  const isMobile = breakpoint === 'base' || breakpoint === 'xs' || breakpoint === 'sm';
 
   const handleLinkPress = (href: string, isRoute: boolean = false) => {
     if (isRoute) router.push(href); else {
-      if (Platform.OS === 'web') window.open(href, '_blank');
+      if (isWeb) window.open(href, '_blank');
       else Linking.openURL(href).catch(err => console.error('Failed to open URL:', href, err));
     }
   };
@@ -26,19 +26,19 @@ export function FooterContent() {
    * The footer is the one navigation surface that survives static prerendering —
    * the sidebar and header nav are client-only — so these anchors are how a
    * crawler gets from any page to the rest of the site. `href` has to be a real
-   * URL for that; `Link` calls `onPress` after `preventDefault()`, so left-clicks
+   * URL for that; `Link` calls `onNavigate` after `preventDefault()`, so left-clicks
    * still route client-side.
    */
   const routeLink = (href: string) => ({
     href,
-    onPress: () => handleLinkPress(href, true),
+    onNavigate: () => handleLinkPress(href, true),
   });
 
   return (
     <Block mt={64}>
-      <Flex direction="column" gap="2xl" px={responsive.isMobile ? 12 : 28}>
-        <Grid columns={12} gap={responsive.isMobile ? 'xs' : 'xl'} style={{ width: '100%', rowGap: responsive.isMobile ? 32 : 48 }}>
-          <GridItem span={responsive.isMobile ? 12 : 4}>
+      <Flex direction="column" gap="2xl" px={isMobile ? 12 : 28}>
+        <Grid columns={12} gap={isMobile ? 'xs' : 'xl'} style={{ width: '100%', rowGap: isMobile ? 32 : 48 }}>
+          <GridItem span={isMobile ? 12 : 4}>
             <View role="heading" aria-level={2} aria-label={t('footer.app.title')} style={{ marginBottom: 12 }}>
               <PlocksLogo size={48} />
             </View>
@@ -55,7 +55,7 @@ export function FooterContent() {
           </GridItem>
 
           {/* Quick Links */}
-          <GridItem span={responsive.isMobile ? 6 : 2}>
+          <GridItem span={isMobile ? 6 : 2}>
             <Flex direction="column" gap="sm">
               <Text size="xs" fw="semibold" c="info" lts={1} tt="uppercase">Quick Links</Text>
               <Flex direction="column" gap="xs">
@@ -70,7 +70,7 @@ export function FooterContent() {
           </GridItem>
 
           {/* Docs */}
-          <GridItem span={responsive.isMobile ? 6 : 2}>
+          <GridItem span={isMobile ? 6 : 2}>
             <Flex direction="column" gap="sm">
               <Text size="xs" fw="semibold" c="info" lts={1} tt="uppercase">Docs</Text>
               <Flex direction="column" gap="xs">
@@ -83,7 +83,7 @@ export function FooterContent() {
           </GridItem>
 
           {/* Agents */}
-          <GridItem span={responsive.isMobile ? 6 : 2}>
+          <GridItem span={isMobile ? 6 : 2}>
             <Flex direction="column" gap="sm">
               <Text size="xs" fw="semibold" c="info" lts={1} tt="uppercase">Agents</Text>
               <Flex direction="column" gap="xs">
@@ -95,7 +95,7 @@ export function FooterContent() {
           </GridItem>
 
           {/* Resources */}
-          <GridItem span={responsive.isMobile ? 6 : 2}>
+          <GridItem span={isMobile ? 6 : 2}>
             <Flex direction="column" gap="sm">
               <Text size="xs" fw="semibold" c="info" lts={1} tt="uppercase">Resources</Text>
               <Flex direction="column" gap="xs">

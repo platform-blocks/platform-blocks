@@ -191,7 +191,7 @@ describe('useVisibility', () => {
     expect(result.current).toBe(true);
   });
 
-  it('isHiddenBy matches Mantine semantics', () => {
+  it('isHiddenBy matches semantics', () => {
     expect(isHiddenBy({ hiddenFrom: 'md' }, 'light', 'md')).toBe(true);
     expect(isHiddenBy({ hiddenFrom: 'md' }, 'light', 'sm')).toBe(false);
     expect(isHiddenBy({ visibleFrom: 'md' }, 'light', 'lg')).toBe(false);

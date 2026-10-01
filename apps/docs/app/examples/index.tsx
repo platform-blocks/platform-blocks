@@ -1,24 +1,23 @@
-import React from 'react';
 import { router } from 'expo-router';
-import { Linking, Platform } from 'react-native';
-import { Button, Card, Chip, Column, Flex, Link, Text, Title } from '@plocks/ui';
+import { Linking } from 'react-native';
+import { hasDOM, Button, Card, Chip, Column, Flex, IconButton, Link, Popover, Text, Title } from '@plocks/ui';
 import { QRCode } from '@plocks/qrcode';
 
 import { DocsPage } from '../../components/DocsPage';
 import { DocsPageHeader } from '../../components/DocsPageHeader';
+import { GithubIcon } from '../../components/GithubIcon';
 import { EXAMPLE_APPS } from '../../config/exampleApps';
 import { EXAMPLES, EXAMPLES_SUBTITLE, EXAMPLES_TITLE } from '../../config/examples';
 import { EXAMPLE_APPS_REPO, EXAMPLE_APPS_REPO_PUBLISHED, GITHUB_REPO, SITE_URL } from '../../config/urls';
-import { APP_SNACK_READY, buildAppSnackUrl } from '../../utils/appSnackUrl';
+import { buildAppSnackUrl } from '../../utils/appSnackUrl';
 import { useBrowserTitle, formatPageTitle } from 'hooks/useBrowserTitle';
 
 export default function ExamplesScreen() {
   useBrowserTitle(formatPageTitle(EXAMPLES_TITLE));
-  const [phonePreview, setPhonePreview] = React.useState<string | null>(null);
   const demosBundled = process.env.EXPO_PUBLIC_DEMOS_BUNDLED === 'true';
-  const openDemoPage = (slug: string, source = false) => {
-    const origin = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : SITE_URL;
-    const pathname = `/demos/${encodeURIComponent(slug)}/${source ? 'source.html' : ''}`;
+  const openDemoPage = (slug: string) => {
+    const origin = hasDOM ? window.location.origin : SITE_URL;
+    const pathname = `/demos/${encodeURIComponent(slug)}/`;
     Linking.openURL(`${origin}${pathname}`);
   };
 
@@ -31,7 +30,7 @@ export default function ExamplesScreen() {
 
         <Flex direction="row" wrap="wrap" align="stretch" gap="md">
           {EXAMPLE_APPS.map(example => {
-            const snackUrl = EXAMPLE_APPS_REPO_PUBLISHED && APP_SNACK_READY
+            const snackUrl = EXAMPLE_APPS_REPO_PUBLISHED
               ? buildAppSnackUrl(example.slug)
               : null;
             const demoUrl = `${SITE_URL}/demos/${encodeURIComponent(example.slug)}/`;
@@ -44,7 +43,6 @@ export default function ExamplesScreen() {
               >
                 <Flex direction="column" justify="space-between" gap="md" style={{ flex: 1 }}>
                   <Column gap="sm">
-                    <Chip size="sm" variant="surface">{example.category}</Chip>
                     <Title order={3}>{example.title}</Title>
                     <Text c="secondary">{example.description}</Text>
                   </Column>
@@ -56,44 +54,42 @@ export default function ExamplesScreen() {
                       onPress={() => openDemoPage(example.slug)}
                     />
                     {demosBundled && (
-                      <Button
-                        title={phonePreview === example.slug ? 'Hide QR code' : 'Open on phone'}
-                        variant="light"
-                        size="sm"
-                        onPress={() => setPhonePreview(current => current === example.slug ? null : example.slug)}
-                      />
+                      <Popover position="bottom-start" w={228}>
+                        <Popover.Target>
+                          <Button title="Web demo QR code" variant="light" size="sm" />
+                        </Popover.Target>
+                        <Popover.Dropdown accessibilityLabel={`${example.title} web demo QR code`}>
+                          <Column align="center" gap="xs" p="md">
+                            <QRCode
+                              value={demoUrl}
+                              size={164}
+                              quietZone={4}
+                              color="#111827"
+                              bg="#FFFFFF"
+                              accessibilityLabel={`QR code to open the ${example.title} web demo on a phone`}
+                            />
+                            <Text variant="small" c="secondary" ta="center">
+                              Scan to open the web demo in your phone’s browser.
+                            </Text>
+                            <Link href={demoUrl} target="_blank" external size="xs">
+                              Open demo link
+                            </Link>
+                          </Column>
+                        </Popover.Dropdown>
+                      </Popover>
                     )}
-                    <Button
-                      title="View source"
-                      variant="subtle"
+                    <IconButton
+                      icon={<GithubIcon />}
+                      variant="ghost"
                       size="sm"
-                      disabled={!demosBundled && !EXAMPLE_APPS_REPO_PUBLISHED}
-                      onPress={() => demosBundled
-                        ? openDemoPage(example.slug, true)
-                        : router.push(`${EXAMPLE_APPS_REPO}/tree/main/apps/${example.slug}`)}
+                      accessibilityLabel={`View ${example.title} source on GitHub`}
+                      tooltip={`View ${example.title} source on GitHub`}
+                      onPress={() => Linking.openURL(`${EXAMPLE_APPS_REPO}/tree/main/apps/${example.slug}`)}
                     />
                     {snackUrl && (
-                      <Button title="Open in Snack" variant="light" size="sm" onPress={() => router.push(snackUrl)} />
+                      <Button title="Try native in Snack" variant="light" size="sm" onPress={() => Linking.openURL(snackUrl)} />
                     )}
                   </Flex>
-                  {phonePreview === example.slug && demosBundled && (
-                    <Column align="center" gap="xs">
-                      <QRCode
-                        value={demoUrl}
-                        size={164}
-                        quietZone={4}
-                        color="#111827"
-                        bg="#FFFFFF"
-                        accessibilityLabel={`QR code to open the ${example.title} web demo on a phone`}
-                      />
-                      <Text variant="small" c="secondary" ta="center">
-                        Scan to open the web demo in your phone’s browser.
-                      </Text>
-                      <Link href={demoUrl} target="_blank" external size="xs">
-                        Open demo link
-                      </Link>
-                    </Column>
-                  )}
                 </Flex>
               </Card>
             );
@@ -101,7 +97,7 @@ export default function ExamplesScreen() {
         </Flex>
 
         <Text variant="small" c="secondary">
-          Phone QR codes open the web demos. Expo Go previews are not available yet.
+          Web QR codes open browser demos. For apps with a native Snack preview, open Snack on a computer and scan its Expo Go QR code.
         </Text>
 
         {!demosBundled && (
@@ -140,11 +136,13 @@ export default function ExamplesScreen() {
                     size="sm"
                     onPress={() => router.push(`/examples/${example.slug}`)}
                   />
-                  <Button
-                    title="View source"
-                    variant="subtle"
+                  <IconButton
+                    icon={<GithubIcon />}
+                    variant="ghost"
                     size="sm"
-                    onPress={() => router.push(`${GITHUB_REPO}/blob/main/${example.sourcePath}`)}
+                    accessibilityLabel={`View ${example.title} source on GitHub`}
+                    tooltip={`View ${example.title} source on GitHub`}
+                    onPress={() => Linking.openURL(`${GITHUB_REPO}/blob/main/${example.sourcePath}`)}
                   />
                 </Flex>
               </Flex>

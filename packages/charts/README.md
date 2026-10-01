@@ -57,7 +57,7 @@ const data = [
 export function RevenueChart() {
   return (
     <AreaChart
-      height={220}
+      h={220}
       data={data}
     />
   );
@@ -66,28 +66,71 @@ export function RevenueChart() {
 
 ## Sizing
 
-Leave `width` off and the chart measures the space it was given, fills it, and
+Leave `w` off and the chart measures the space it was given, fills it, and
 redraws when that space changes — in a flex row, a resizing window, a phone in
 landscape. Nothing else is required to make a chart responsive.
 
 ```tsx
 <View style={{ flex: 1, padding: 16 }}>
-  <LineChart data={data} height={240} />   {/* as wide as the padded box */}
+  <LineChart data={data} h={240} />   {/* as wide as the padded box */}
 </View>
 ```
 
 | Prop | Effect |
 | --- | --- |
-| `width` | Pins the width. Still capped by the container — a chart never draws wider than the box it is in. |
-| `height` | Pins the height. Defaults to the chart's resting height. |
-| `aspectRatio` | Height as `width / aspectRatio`, when `height` is omitted. `2` stays twice as wide as it is tall at every size. |
-| `maxWidth` / `minWidth` | Bounds on the resolved width. `maxWidth` is the usual way to keep a radial chart from stretching across a wide column. |
-| `maxHeight` / `minHeight` | Bounds on a height derived from `aspectRatio`. |
+| `w` | Pins the width. Still capped by the container — a chart never draws wider than the box it is in. |
+| `h` | Pins the height. Defaults to the chart's resting height. |
+| `aspectRatio` | Height as `w / aspectRatio`, when `h` is omitted. `2` stays twice as wide as it is tall at every size. |
+| `maw` / `miw` | Bounds on the resolved width. `maw` is the usual way to keep a radial chart from stretching across a wide column. |
+| `mah` / `mih` | Bounds on a height derived from `aspectRatio`. |
 
 Margins are measured, not fixed: the space reserved for tick labels, axis titles,
 legends, and the chart title comes from the text that will actually be drawn. A
 chart with `$0`–`$500k` on its value axis spends less width on the axis than one
-labelled `1,250,000`, and neither wraps or clips.
+labelled `1,250,000`.
+
+### Narrow chart behavior
+
+These rules use the chart's **measured width**, so they also apply to a narrow
+dashboard column on a large screen:
+
+- Below 480 px, side legends move below the plot. Titles and subtitles use at
+  most two lines, and the second title on a dual-axis chart is omitted while
+  its series remains identified by the legend and tooltip.
+- Long single-word tick labels are truncated instead of breaking mid-word;
+  multiword labels may wrap onto two lines. Annotation labels stay within the
+  plot and stagger when several markers are close together. Grouped bars omit
+  value labels that cannot fit within their bars; their values remain in tooltips.
+- Below 400 px, PieChart hides outside slice labels when tooltips are enabled
+  and reveals the selected slice in a contained tooltip. Set
+  `showLabelsOnNarrow` to keep outside labels.
+- Below 400 px, RadialBarChart puts values in its visible legend instead of
+  crowding the center with arc-tip labels. Set `showValueLabelsOnNarrow` to
+  keep the tip labels. Ring thickness and gaps shrink together when needed
+  to keep every series visible and leave room for the center readout.
+- Below 400 px, RadarChart numbers its spokes and adds a full-name axis key
+  when long labels would reduce the web below a readable size. The tooltip
+  also includes the full axis name. Set `radialGrid.showFullLabelsOnNarrow`
+  to keep the original spoke labels.
+- Heatmap cell text and Bar value labels are omitted when they cannot fit.
+  Narrow heatmaps retain at least 24 px row height when the requested cell
+  height and available vertical space allow it.
+  On charts below 400 px, Scatter quadrant captions move into point tooltips;
+  Violin statistic labels move into the selected distribution's tooltip when
+  live tooltips are enabled. The plotted fills and statistic markers remain.
+- On touch devices, chart tooltips stay visible for eight seconds after
+  release so values can be read without keeping a finger over the chart.
+
+Run `npm run docs:visual:charts-mobile` from the repository root to check
+all 24 chart types at 320 px and 390 px in light and dark mode. The suite
+compares every public demo at 320 px, the first demo of each chart at 390 px,
+and a selected-value state for each chart at both widths. Touch checks also
+verify that tooltips stay near their chart and dismiss after eight seconds.
+
+Gallery images are written to
+`test-results/visual-gallery/charts-mobile/<Chart>/<light|dark>/`.
+Reference images live beside the Playwright specs in
+`apps/docs/tests/*spec.ts-snapshots/`.
 
 ## Available charts
 

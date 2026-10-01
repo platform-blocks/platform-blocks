@@ -42,15 +42,16 @@ import {
   ToggleButton,
   ToggleGroup,
   Tooltip,
+  Waveform,
   useBreakpoint,
   useToast,
 } from '@plocks/ui';
 import { Calendar, DatePickerInput, TimePickerInput } from '@plocks/dates';
 import { Video } from '@plocks/media';
-import ChartDemos from './ChartDemos';
+import { getHomeChartExamples } from './ChartDemos';
+import GalleryDemo from './GalleryDemo';
+import { GALLERY_TABS, getGalleryComponents, type GalleryTab } from './galleryCatalog';
 
-type GalleryTab = 'Essentials' | 'Forms' | 'Selection' | 'Feedback' | 'Data' | 'Media' | 'Charts';
-const GALLERY_TABS: GalleryTab[] = ['Essentials', 'Forms', 'Selection', 'Feedback', 'Data', 'Media', 'Charts'];
 const SELECT_OPTIONS = [
   { label: 'React Native', value: 'rn' },
   { label: 'Expo', value: 'expo' },
@@ -61,6 +62,9 @@ const MEDIA_IMAGES = [
   { id: 'aurora', uri: require('../../assets/images/scene-aurora.webp'), title: 'Aurora over the mountains' },
   { id: 'desert', uri: require('../../assets/images/scene-desert.webp'), title: 'Desert dunes' },
 ];
+const WAVEFORM_PEAKS = Array.from({ length: 96 }, (_, index) =>
+  0.12 + Math.abs(Math.sin(index * 0.47) * Math.cos(index * 0.13)) * 0.88
+);
 
 export default function ComponentGallery() {
   const [tab, setTab] = useState<GalleryTab>('Essentials');
@@ -81,6 +85,7 @@ export default function ComponentGallery() {
   const [page, setPage] = useState(2);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [waveformProgress, setWaveformProgress] = useState(0.35);
   const toast = useToast();
   const selectLayout = (value: string | number | (string | number)[]) => {
     setLayout(Array.isArray(value) ? String(value[0]) : String(value));
@@ -93,23 +98,25 @@ export default function ComponentGallery() {
         value={tab}
         onChange={(next) => setTab(next as GalleryTab)}
         navigationOnly
+        scrollable
         mb="md"
       />
-      {tab === 'Charts' && <ChartDemos cols={{ base: 1, md: 2, lg: 3 }} />}
+      {tab === 'Charts' && <ComponentColumns tab={tab}>{getHomeChartExamples()}</ComponentColumns>}
 
-      {tab === 'Essentials' && <ComponentColumns>
+      {tab === 'Essentials' && <ComponentColumns tab={tab}>
         <Button title="Create project" onPress={() => toast.success({ title: 'Project created', message: 'Your new project is ready.' })} />
         <Button title="Secondary action" variant="outline" onPress={() => setPage((value) => value + 1)} />
         <Button title="Quiet action" variant="subtle" onPress={() => toast.info({ title: 'A little update', message: 'Subtle buttons still do the work.' })} />
         <IconButton icon={<Icon name="settings" size="sm" />} accessibilityLabel="Settings" variant="outline" />
         <Tooltip label="Helpful context, right where you need it" withArrow><Button title="Hover for a tooltip" size="sm" variant="ghost" /></Tooltip>
         <ToggleGroup value={layout} exclusive required onChange={selectLayout}>
-          <ToggleButton value="grid"><Icon name="grid" size="sm" /></ToggleButton>
-          <ToggleButton value="list"><Icon name="list" size="sm" /></ToggleButton>
-          <ToggleButton value="analytics"><Icon name="chart-line" size="sm" /></ToggleButton>
+          <ToggleButton value="grid" accessibilityLabel="Grid view"><Icon name="grid" size="sm" /></ToggleButton>
+          <ToggleButton value="list" accessibilityLabel="List view"><Icon name="list" size="sm" /></ToggleButton>
+          <ToggleButton value="analytics" accessibilityLabel="Analytics view"><Icon name="chart-line" size="sm" /></ToggleButton>
         </ToggleGroup>
         <Title order={4} size="md">A clear, useful heading</Title>
         <Text c="secondary">Readable text styles make hierarchy easy to scan.</Text>
+        <Card p="md"><Text>A place for your project details.</Text></Card>
         <Code>npm install @plocks/ui</Code>
         <Block direction="row" align="center" gap="xs"><KeyCap>⌘</KeyCap><Text c="secondary">+</Text><KeyCap>K</KeyCap><Text c="secondary">opens search</Text></Block>
         <Avatar fallback="JS" />
@@ -121,7 +128,7 @@ export default function ComponentGallery() {
         <Chip color="success">Web</Chip>
       </ComponentColumns>}
 
-      {tab === 'Forms' && <ComponentColumns>
+      {tab === 'Forms' && <ComponentColumns tab={tab}>
         <Input label="Name" value={name} onChangeText={setName} placeholder="Your name" />
         <Input label="Email" placeholder="you@example.com" keyboardType="email-address" />
         <PasswordInput label="Password" value={password} onChangeText={setPassword} placeholder="Create a password" />
@@ -135,7 +142,7 @@ export default function ComponentGallery() {
         <TimePickerInput label="Release time" />
       </ComponentColumns>}
 
-      {tab === 'Selection' && <ComponentColumns>
+      {tab === 'Selection' && <ComponentColumns tab={tab}>
         <Switch label="Product updates" description="A short line of helpful context" checked={subscribed} onChange={setSubscribed} />
         <Checkbox label="Remember this device" checked={checked} onChange={setChecked} />
         <RadioGroup label="Team role" value={role} onChange={(value) => setRole(String(value))} options={[{ label: 'Designer', value: 'designer' }, { label: 'Developer', value: 'developer' }, { label: 'Product', value: 'product' }]} />
@@ -147,7 +154,7 @@ export default function ComponentGallery() {
         <Block direction="row" align="center" gap="sm"><Rating value={rating} onChange={setRating} /><Text c="secondary">{rating} out of 5</Text></Block>
       </ComponentColumns>}
 
-      {tab === 'Feedback' && <ComponentColumns>
+      {tab === 'Feedback' && <ComponentColumns tab={tab}>
         <Alert severity="success" title="All caught up">Your workspace is looking good.</Alert>
         <Alert severity="info" title="New version available">A fresh update is ready to explore.</Alert>
         <Alert severity="warning" title="Action needed">Review your project settings.</Alert>
@@ -159,7 +166,7 @@ export default function ComponentGallery() {
         <Button title="Show an info toast" variant="subtle" onPress={() => toast.info({ title: 'Tip', message: 'Toasts keep feedback close to the action.' })} />
       </ComponentColumns>}
 
-      {tab === 'Data' && <ComponentColumns>
+      {tab === 'Data' && <ComponentColumns tab={tab}>
         <Calendar defaultDate={new Date()} onChange={(date) => setSelectedDate(date as Date)} />
         <Pagination value={page} total={8} onChange={setPage} />
         <Tabs items={[{ key: 'overview', label: 'Overview', content: <Text c="secondary">A live tab panel.</Text> }, { key: 'activity', label: 'Activity', content: <Text c="secondary">Recent activity appears here.</Text> }]} />
@@ -174,40 +181,49 @@ export default function ComponentGallery() {
       </ComponentColumns>}
 
       {tab === 'Media' && <>
-        <ComponentColumns>
-          <Card p="md">
-            <Block gap="sm">
-              <Text fw="semibold">Image gallery</Text>
-              <Image src={MEDIA_IMAGES[0].uri} alt="Lake at sunrise" w="100%" h={180} resizeMode="cover" rounded />
-              <Button title="Open lightbox" size="sm" variant="outline" onPress={() => setLightboxOpen(true)} />
-            </Block>
-          </Card>
-          <Card p="md">
-            <Block gap="sm">
-              <Text fw="semibold">Video player</Text>
-              <Video source={{ url: Asset.fromModule(require('../../assets/video/demo-clip.mp4')).uri }} poster={Asset.fromModule(MEDIA_IMAGES[0].uri).uri} w="100%" h={180} controls />
-            </Block>
-          </Card>
+        <ComponentColumns tab={tab}>
+          <Block gap="sm">
+            <Image src={MEDIA_IMAGES[0].uri} alt="Lake at sunrise" w="100%" h={180} resizeMode="cover" rounded />
+            <Button title="Open lightbox" size="sm" variant="outline" onPress={() => setLightboxOpen(true)} />
+          </Block>
+          <Video source={{ url: Asset.fromModule(require('../../assets/video/demo-clip.mp4')).uri }} poster={Asset.fromModule(MEDIA_IMAGES[0].uri).uri} w="100%" h={180} controls />
+          <Waveform
+            peaks={WAVEFORM_PEAKS}
+            progress={waveformProgress}
+            onSeek={setWaveformProgress}
+            interactive
+            variant="rounded"
+            h={96}
+            fullWidth
+            showProgressLine
+            accessibilityLabel="Waveform progress"
+          />
         </ComponentColumns>
         <Lightbox opened={lightboxOpen} images={MEDIA_IMAGES} onClose={() => setLightboxOpen(false)} />
       </>}
+      {(['Navigation', 'Overlays', 'Layout'] as GalleryTab[]).includes(tab) && <ComponentColumns key={tab} tab={tab} />}
     </Block>
   );
 }
 
-function ComponentColumns({ children }: { children: React.ReactNode }) {
+function ComponentColumns({ children, tab }: { children?: React.ReactNode; tab: GalleryTab }) {
   const breakpoint = useBreakpoint();
   const columnCount = breakpoint === 'lg' || breakpoint === 'xl' ? 3 : breakpoint === 'md' ? 2 : 1;
-  const examples = React.Children.toArray(children);
+  const examples = [
+    ...React.Children.toArray(children),
+    ...getGalleryComponents(tab).map(component => (
+      <GalleryDemo key={component.name} name={component.name} isChart={component.category === 'charts'} />
+    )),
+  ];
   const columns: React.ReactNode[][] = Array.from({ length: columnCount }, () => []);
   examples.forEach((example, index) => columns[index % columnCount].push(example));
   const columnBasis = columnCount === 1 ? '100%' : columnCount === 2 ? '45%' : '30%';
   const minColumnWidth = columnCount === 1 ? '100%' : 220;
 
   return (
-    <Block direction="row" wrap="wrap" gap="md">
+    <Block direction="row" wrap="wrap" gap="md" testID="gallery-columns">
       {columns.map((column, columnIndex) => (
-        <Block key={columnIndex} direction="column" gap="md" grow basis={columnBasis} miw={minColumnWidth}>
+        <Block key={columnIndex} direction="column" gap="md" grow basis={columnBasis} miw={minColumnWidth} testID={`gallery-column-${columnIndex}`}>
           {column.map((example, exampleIndex) => <Block key={exampleIndex} fullWidth>{example}</Block>)}
         </Block>
       ))}

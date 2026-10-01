@@ -42,15 +42,20 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Joystick', category: 'input', icon: 'target', description: 'Two-axis stick and XY pad input with dead zone, stepping, and axis locking' },
   { name: 'TextArea', category: 'input', icon: 'textarea', description: 'Multi-line text input with auto-resize and character counter' },
   { name: 'AutoComplete', category: 'input', icon: 'autocomplete', description: 'Predictive text input with keyboard-aware suggestions and async loading' },
+  { name: 'ComboboxPopover', category: 'input', icon: 'search', description: 'Searchable option list anchored to any trigger' },
+  { name: 'TreeSelect', category: 'input', icon: 'tree', description: 'Select values from a nested tree' },
+  { name: 'Cascader', category: 'input', icon: 'tree', description: 'Select a path through cascading columns' },
   { name: 'ColorInput', category: 'input', icon: 'colors', description: 'Color selection input with swatches and hex input' },
   { name: 'ColorPicker', category: 'input', icon: 'colors', description: 'Color selection input with swatches' },
   { name: 'EmojiPicker', category: 'input', icon: 'emoji', description: 'Searchable Unicode emoji picker for chats and reactions' },
   { name: 'EmojiPickerInput', category: 'input', icon: 'emoji', description: 'Form field that opens the searchable emoji picker' },
   { name: 'ControlField', category: 'input', icon: 'check', description: 'Pressable row combining a label, description, and a switch/checkbox/radio control' },
   { name: 'Form', category: 'input', icon: 'form', description: 'Manages values, validation, and submission state for a group of inputs' },
-  { name: 'FormLayout', category: 'form', icon: 'form', description: 'Layout for grouped form sections and fields' },
   { name: 'SegmentedControl', category: 'input', icon: 'splitTrack' },
   { name: 'CopyButton', category: 'input', icon: 'copy', description: 'Utility to copy content to clipboard with feedback' },
+
+  // Form Components
+  { name: 'FormLayout', category: 'form', icon: 'form', description: 'Layout for grouped form sections and fields' },
 
   // Date Components
   { name: 'Calendar', category: 'dates', icon: 'calendar', description: 'A versatile calendar component for selecting dates, months, and years with customizable styles and behaviors.' },
@@ -66,6 +71,8 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
 
   // Display Components
   { name: 'Avatar', category: 'display', icon: 'avatar' },
+  { name: 'Card', category: 'display', icon: 'card' },
+  { name: 'StickyNote', category: 'display', icon: 'file', description: 'Colorful paper note for reminders and pinboards' },
   { name: 'Collapse', category: 'display', icon: 'accordion', description: 'Animated height collapse/expand container for showing/hiding content' },
   { name: 'Carousel', category: 'display', icon: 'carousel' },
   { name: 'Spoiler', category: 'display', icon: 'spoiler', description: 'Hides content until clicked' },
@@ -73,11 +80,13 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Accordion', category: 'display', icon: 'accordion' },
   { name: 'ListGroup', category: 'display', icon: 'list', description: 'Grouped list rows with headers, dividers, and pressable items' },
   { name: 'RollingNumber', category: 'display', icon: 'number', description: 'Animated number readout that rolls each changed digit into place' },
-
+  { name: 'Marquee', category: 'display', icon: 'badge', description: 'Continuously scrolling repeated content' },
+  { name: 'FloatingIndicator', category: 'display', icon: 'indicator', description: 'Animated highlight for an active target' },
 
   // Typography Components
   { name: 'Text', category: 'typography', icon: 'text' },
   { name: 'Title', category: 'typography', icon: 'title', description: 'Semantic heading component with size & level mapping' },
+  { name: 'Blockquote', category: 'typography', icon: 'quote', description: 'Stylized blockquote for highlighting quotes or important text' },
   { name: 'Highlight', category: 'typography', icon: 'highlight', description: 'Highlight text with background color for emphasis' },
   { name: 'CodeBlock', category: 'typography', icon: 'code' },
   { name: 'KeyCap', category: 'typography', icon: 'keycap', description: 'Display keyboard shortcuts with press animations' },
@@ -93,6 +102,9 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Table', category: 'data', icon: 'table' },
   { name: 'DataTable', category: 'data', icon: 'datatable', description: 'Data grid with sorting, filtering, and pagination' },
   { name: 'DataList', category: 'data', icon: 'list', description: 'Display label/value pairs in a semantic description list' },
+  { name: 'ReorderableList', category: 'data', icon: 'list', description: 'Drag or use keyboard controls to reorder a list' },
+  { name: 'SwipeableRow', category: 'data', icon: 'list', description: 'Reveal contextual row actions by swiping or opening an action menu' },
+  { name: 'Gauge', category: 'data', icon: 'speedometer', description: 'Radial measurement with ranges, ticks, labels, and a needle' },
   { name: 'QRCode', category: 'data', icon: 'qrcode' },
   { name: 'Markdown', category: 'data', icon: 'markdown' },
   { name: 'Timeline', category: 'data', icon: 'timeline', description: 'Display sequence of events in chronological order' },
@@ -101,8 +113,6 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'AppShell', category: 'layout', icon: 'paddingFrame', description: 'Application frame with header, navbar, aside, footer, and mobile bottom navigation' },
   { name: 'Block', category: 'layout', icon: 'block' },
   { name: 'Surface', category: 'layout', icon: 'layers', description: 'Elevation primitive Card, Menu, Popover and Dialog are built on' },
-  { name: 'Card', category: 'display', icon: 'card' },
-  { name: 'StickyNote', category: 'display', icon: 'file', description: 'Colorful paper note for reminders and pinboards' },
   { name: 'Flex', category: 'layout', icon: 'flex' },
   { name: 'Layout', category: 'layout', icon: 'flex', description: 'Row and Column layout helpers' },
   { name: 'Grid', category: 'layout', icon: 'grid' },
@@ -115,15 +125,16 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'KeyboardAvoidingArea', category: 'layout', icon: 'paddingFrame', description: 'Layout container that clears the mobile keyboard' },
   { name: 'KeyboardAwareLayout', category: 'layout', icon: 'paddingFrame', description: 'Scrollable layout that responds to the on-screen keyboard' },
   { name: 'ScrollArea', category: 'layout', icon: 'list', description: 'Scrollable layout container' },
-  { name: 'TableOfContents', category: 'navigation', icon: 'tableofcontents', description: 'Auto-generated document outline with anchor navigation' },
+  { name: 'OverflowList', category: 'layout', icon: 'list', description: 'Collapses entries that do not fit' },
+  { name: 'Scroller', category: 'layout', icon: 'tabs', description: 'Horizontal scroll area with edge controls' },
+  { name: 'Splitter', category: 'layout', icon: 'flex', description: 'Resizable adjacent panes' },
 
   // Feedback Components
   { name: 'Alert', category: 'feedback', icon: 'info', description: 'Prominent inline message tied to a semantic status' },
-  { name: 'Blockquote', category: 'typography', icon: 'quote', description: 'Stylized blockquote for highlighting quotes or important text' },
+  { name: 'EmptyState', category: 'feedback', icon: 'search', description: 'Placeholder for empty results and first-run screens' },
   { name: 'Toast', category: 'feedback', icon: 'toast' },
   { name: 'Progress', category: 'feedback', icon: 'progress' },
   { name: 'Ring', category: 'feedback', icon: 'chart-donut', description: 'Circular progress indicator with configurable labels, color stops, and custom center content.' },
-  { name: 'Gauge', category: 'data', icon: 'speedometer', description: 'Radial measurement with ranges, ticks, labels, and a needle' },
   { name: 'Loader', category: 'feedback', icon: 'loader' },
   { name: 'Skeleton', category: 'feedback', icon: 'bone' },
   { name: 'LoadingOverlay', category: 'feedback', icon: 'progress-shield', description: 'Overlay with centered loader for pending operations' },
@@ -133,12 +144,14 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Link', category: 'navigation', icon: 'link' },
   { name: 'Menu', category: 'navigation', icon: 'menu' },
   { name: 'MenuItemButton', category: 'navigation', icon: 'menu', description: 'Actionable menu list item with consistent styling' },
+  { name: 'Menubar', category: 'navigation', icon: 'menu', description: 'Horizontal application command menus' },
   { name: 'Breadcrumbs', category: 'navigation', icon: 'breadcrumbs' },
   { name: 'Pagination', category: 'navigation', icon: 'pagination' },
   { name: 'Stepper', category: 'navigation', icon: 'stepper', description: 'Step-by-step navigation component for multi-step processes' },
   { name: 'Spotlight', category: 'navigation', icon: 'spotlight', description: 'Command palette / global action search interface' },
   { name: 'Tree', category: 'navigation', icon: 'tree', description: 'Hierarchical tree view with expansion, selection, checkboxes, and filtering' },
   { name: 'NavTree', category: 'navigation', icon: 'tree', description: 'Sidebar navigation that nests a flat list of routes into a collapsible tree' },
+  { name: 'TableOfContents', category: 'navigation', icon: 'tableofcontents', description: 'Auto-generated document outline with anchor navigation' },
 
   // Overlay Components
   { name: 'Dialog', category: 'overlay', icon: 'dialog' },
@@ -148,6 +161,8 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'HoverCard', category: 'overlay', icon: 'popover', description: 'Floating preview card shown on hover or focus, for profile and link previews' },
   { name: 'ContextMenu', category: 'overlay', icon: 'menu', description: 'Menu opened by right-click on web or long-press on native' },
   { name: 'FloatingActions', category: 'overlay', icon: 'button', description: 'Floating speed dial for related actions' },
+  { name: 'ActionBar', category: 'overlay', icon: 'popover', description: 'Viewport-pinned actions for a selection' },
+  { name: 'FloatingWindow', category: 'overlay', icon: 'dialog', description: 'Draggable and resizable viewport window' },
 
   // Chart Components
   { name: 'AreaChart', category: 'charts', icon: 'chart-area' },
@@ -183,20 +198,6 @@ export const CORE_COMPONENTS: CoreComponentConfig[] = [
   { name: 'Video', category: 'media', icon: 'play', description: 'Video player for YouTube, MP4, and other formats with timeline synchronization' },
   { name: 'Waveform', category: 'media', icon: 'waveform', description: 'Audio waveform visualization component' },
   { name: 'AudioPlayer', category: 'media', icon: 'music', description: 'Audio player with a seekable waveform, transport controls, and progress callbacks' },
-
-  // Mantine-inspired components
-  { name: 'ActionBar', category: 'overlay', icon: 'popover', description: 'Viewport-pinned actions for a selection' },
-  { name: 'Menubar', category: 'navigation', icon: 'menu', description: 'Horizontal application command menus' },
-  { name: 'EmptyState', category: 'feedback', icon: 'search', description: 'Placeholder for empty results and first-run screens' },
-  { name: 'ComboboxPopover', category: 'input', icon: 'search', description: 'Searchable option list anchored to any trigger' },
-  { name: 'TreeSelect', category: 'input', icon: 'tree', description: 'Select values from a nested tree' },
-  { name: 'FloatingWindow', category: 'overlay', icon: 'dialog', description: 'Draggable and resizable viewport window' },
-  { name: 'OverflowList', category: 'layout', icon: 'list', description: 'Collapses entries that do not fit' },
-  { name: 'Marquee', category: 'display', icon: 'badge', description: 'Continuously scrolling repeated content' },
-  { name: 'Scroller', category: 'layout', icon: 'tabs', description: 'Horizontal scroll area with edge controls' },
-  { name: 'Splitter', category: 'layout', icon: 'flex', description: 'Resizable adjacent panes' },
-  { name: 'Cascader', category: 'input', icon: 'tree', description: 'Select a path through cascading columns' },
-  { name: 'FloatingIndicator', category: 'display', icon: 'indicator', description: 'Animated highlight for an active target' },
 ];
 
 /**

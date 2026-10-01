@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo } from 'react';
-import { Platform, ScrollView } from 'react-native';
+import { ScrollView } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import {
+  useDeviceInfo,
   Block,
   Icon,
   NavTree,
@@ -21,6 +22,7 @@ import {
 const DEFAULT_OPEN_GROUPS = ['Overview'];
 
 export const AppNavigation: React.FC = () => {
+  const { platform: { isNative } } = useDeviceInfo();
   const { navbarWidth } = useAppShellLayout();
   const hovering = useNavbarHover?.() || false;
   const pathname = usePathname();
@@ -68,7 +70,7 @@ export const AppNavigation: React.FC = () => {
       <ScrollView
         style={{ flex: 1, width: '100%' }}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 }}
-        showsVerticalScrollIndicator={Platform.OS !== 'web'}
+        showsVerticalScrollIndicator={isNative}
       >
         <Block w="full" align={railCollapsed ? 'center' : undefined}>
           <NavTree

@@ -2,7 +2,7 @@
 // This provides search functionality across components, demos, and documentation
 
 import React from 'react';
-import { Platform, Linking } from 'react-native';
+import { Linking } from 'react-native';
 import { NAV_SECTIONS } from '../config/navigationConfig';
 import {
   getAllNewComponents,
@@ -11,7 +11,7 @@ import {
 } from './demosLoader';
 import { getCoreComponentConfig } from '../config/coreComponents';
 import { componentRoute } from './componentRoute';
-import { useThemeMode } from '@plocks/ui';
+import { hasDOM, useThemeMode } from '@plocks/ui';
 import { GITHUB_REPO } from 'config/urls';
 
 // Define additional interfaces for Spotlight
@@ -115,7 +115,7 @@ function createNavigationActions(router: any, cycleColorScheme: () => void): Spo
       onPress: () => {
         const url = GITHUB_REPO;
         try {
-          if (Platform.OS === 'web') {
+          if (hasDOM) {
             if (typeof window !== 'undefined' && typeof (window as any).open === 'function') {
               (window as any).open(url, '_blank', 'noopener,noreferrer');
               return;

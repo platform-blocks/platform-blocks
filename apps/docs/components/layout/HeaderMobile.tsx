@@ -1,7 +1,10 @@
 import React from 'react';
 import { Flex, IconButton, useAppShellApi, useTheme } from '@plocks/ui';
+import { Linking } from 'react-native';
 import { BrandLink } from './BrandLink';
 import { MobileThemeToggle } from './ToggleTheme';
+import { GITHUB_REPO } from '../../config/urls';
+import { GithubIcon } from '../GithubIcon';
 
 /**
  * Compact header variant tailored for mobile layouts. Shows a menu toggle,
@@ -45,6 +48,13 @@ export const DocsHeaderMobile: React.FC = () => {
       <BrandLink />
 
       <Flex direction="row" align="center">
+        <IconButton
+          icon={<GithubIcon />}
+          variant="ghost"
+          size="lg"
+          accessibilityLabel="View plocks on GitHub"
+          onPress={() => Linking.openURL(GITHUB_REPO)}
+        />
         <MobileThemeToggle />
       </Flex>
     </Flex>

@@ -391,7 +391,7 @@ function DialogBase(props: DialogProps, ref: Ref<View>) {
 
       {hasHeader && (
         <View style={styles.header}>
-          <Text variant="h3" c="text" nativeID={titleId} {...titleProps}>
+          <Text variant="h3" c="primary" nativeID={titleId} {...titleProps}>
             {title || ''}
           </Text>
           {closable && variant !== 'bottomsheet' && (
@@ -426,24 +426,26 @@ function DialogBase(props: DialogProps, ref: Ref<View>) {
       {/* Nested floating content (Select, Popover, Menu, Tooltip…) opened from
           inside the dialog renders in this host, above the dialog. */}
       <OverlayHost>
-        <LayerScope id={layerId}>
-          <Animated.View style={[styles.backdrop, backdropAnimatedStyle]}>
-            {backdrop && backdropClosable && (
-              <Pressable
-                testID="dialog-backdrop"
-                style={StyleSheet.absoluteFill}
-                onPress={() => handleClose()}
-                // The close button / Escape / back are the accessible ways out;
-                // the scrim is a pointer affordance only.
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-                aria-hidden
-                tabIndex={-1}
-              />
-            )}
-            {content}
-          </Animated.View>
-        </LayerScope>
+        <View style={{ flex: 1 }}>
+          <LayerScope id={layerId}>
+            <Animated.View style={[styles.backdrop, backdropAnimatedStyle]}>
+              {backdrop && backdropClosable && (
+                <Pressable
+                  testID="dialog-backdrop"
+                  style={StyleSheet.absoluteFill}
+                  onPress={() => handleClose()}
+                  // The close button / Escape / back are the accessible ways out;
+                  // the scrim is a pointer affordance only.
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  aria-hidden
+                  tabIndex={-1}
+                />
+              )}
+              {content}
+            </Animated.View>
+          </LayerScope>
+        </View>
       </OverlayHost>
     </Modal>
   );

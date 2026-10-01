@@ -1,0 +1,99 @@
+// Typecheck docs and imported demos separately from package test suites.
+{
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "strict": true,
+    "jsx": "react-jsx",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "plocks": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "plocks/*": [
+        "../../packages/ui/src/*"
+      ],
+      "@plocks/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@plocks/ui/*": [
+        "../../packages/ui/src/*"
+      ],
+      "@plocks/charts": [
+        "../../packages/charts/src/index.ts"
+      ],
+      "@plocks/charts/*": [
+        "../../packages/charts/src/*"
+      ],
+      "@plocks/dates": [
+        "../../packages/dates/src/index.ts"
+      ],
+      "@plocks/code": [
+        "../../packages/code/src/index.ts"
+      ],
+      "@plocks/media": [
+        "../../packages/media/src/index.ts"
+      ],
+      "@plocks/carousel": [
+        "../../packages/carousel/src/index.ts"
+      ],
+      "@plocks/spotlight": [
+        "../../packages/spotlight/src/index.ts"
+      ],
+      "@plocks/brands": [
+        "../../packages/brands/src/index.ts"
+      ],
+      "@plocks/qrcode": [
+        "../../packages/qrcode/src/index.ts"
+      ],
+      "@plocks/emoji-picker": [
+        "../../packages/emoji-picker/src/index.ts"
+      ],
+      "@plocks/charts-types": [
+        "../../packages/charts/src/types.ts"
+      ]
+    },
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "esnext",
+    "types": [
+      "node"
+    ],
+    "allowJs": false,
+    "noEmit": true,
+    "lib": [
+      "DOM",
+      "ESNext"
+    ],
+    "target": "ESNext"
+  },
+  "include": [
+    "components/**/*",
+    "screens/**/*",
+    "utils/**/*",
+    "hooks/**/*",
+    "data/**/*",
+    "app/**/*",
+    "_layout.tsx",
+    "config/navigationConfig.ts",
+    "config/docsLayout.tsx",
+    "config/**/*",
+    "../../packages/ui/src/core/platform/react-native-web.d.ts",
+    "../../packages/code/src/markdown.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".expo",
+    "dist",
+    "build",
+    "examples",
+    "examples/**/*",
+    "../../packages/**/__tests__/**",
+    "../../packages/**/__web_tests__/**",
+    "../../packages/**/*.test.ts",
+    "../../packages/**/*.test.tsx"
+  ]
+}

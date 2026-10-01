@@ -17,12 +17,15 @@ export const createPopoverStyles = (theme: PlocksTheme) => (params: CreateStyles
   // Level 2 — floating over content, same step as menus and select dropdowns,
   // so the two never disagree about what "a thing on top of the page" looks like.
   const surface = resolveSurface(theme, 2);
+  const borderRadius = resolveRadius(theme, params.radius);
 
   return StyleSheet.create({
     wrapper: {
       position: 'relative',
       alignSelf: 'flex-start',
       overflow: 'visible',
+      backgroundColor: 'transparent',
+      borderRadius,
       ...shadowStyles,
     },
     dropdown: {
@@ -30,7 +33,7 @@ export const createPopoverStyles = (theme: PlocksTheme) => (params: CreateStyles
       borderColor: surface.border,
       borderWidth: 1,
       color: theme.text.primary,
-      borderRadius: resolveRadius(theme, params.radius),
+      borderRadius,
       overflow: 'hidden',
       minWidth: 0,
     },

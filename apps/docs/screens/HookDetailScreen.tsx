@@ -1,7 +1,8 @@
 import React, { isValidElement, useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
+  useBreakpoint,
   Button,
   Card,
   Flex,
@@ -11,7 +12,6 @@ import {
   useI18n,
 } from '@plocks/ui';
 import { Markdown } from '@plocks/code';
-import { BREAKPOINTS } from '@plocks/ui/core/responsive';
 import { PageLayout } from '../components/PageLayout';
 import { DemoRenderer } from '../components/DemoRenderer';
 import { DemoHeading } from '../components/DemoHeading';
@@ -73,14 +73,14 @@ const HookDemoSection: React.FC<HookDemoSectionProps> = ({ demo, preview, descri
 const HookDetailScreen: React.FC<HookDetailScreenProps> = ({ hook }) => {
   const router = useRouter();
   const { locale } = useI18n();
-  const { width } = useWindowDimensions();
+  const breakpoint = useBreakpoint();
   // Narrow viewports take their gutter from PageLayout; stacking a second one
   // here inset the page twice. Wide ones get none from PageLayout, so the inset
   // is this page's to supply — 16px, the same content column every other docs
   // page sits in.
   const containerStyle = [
     styles.container,
-    { paddingHorizontal: width < BREAKPOINTS.md ? 0 : 16 },
+    { paddingHorizontal: breakpoint === 'base' || breakpoint === 'xs' || breakpoint === 'sm' ? 0 : 16 },
   ];
   const artifactsReady = hasHookDemosArtifacts();
   const meta = useMemo(() => (hook && artifactsReady ? getHookMeta(hook) : null), [artifactsReady, hook]);

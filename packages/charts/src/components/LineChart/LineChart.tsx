@@ -189,7 +189,7 @@ const createFillPath = (points: Array<{ chartX: number; chartY: number }>, plotH
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ChartGradientDef, isChartGradient, type ChartGradient } from '../../core/ChartFill';
 import { LineChartProps, ChartInteractionEvent, ChartDataPoint, LineChartSeries } from '../../types';
-import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
+import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding, estimateChartTextWidth } from '../../ChartBase';
 import { resolveCartesianPadding } from '../../core/axisLayout';
 import { useChartInteractionContext, usePointer } from '../../interaction/ChartInteractionContext';
 import { ChartGrid } from '../../core/ChartGrid';
@@ -214,6 +214,7 @@ import {
 import { PointSeriesHitTester } from '../../core/hittest/point';
 import type { HitSeries, Mark } from '../../core/hittest/types';
 import { usePanZoom } from '../../hooks/usePanZoom';
+import { CHART_TOUCH_HOLD_MS, isChartTouchInput } from '../../interaction/touchInput';
 // Removed per-series hook-based decimation to avoid nested hook calls; using pure helper instead.
 
 export const LineChart: React.FC<LineChartProps> = (props) => {
@@ -262,6 +263,14 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
   const animationProgress = useSharedValue(0);
   const hasPlayedIntro = React.useRef(false);
   const [selectedPoint, setSelectedPoint] = useState<ChartDataPoint | null>(null);
+  const [singleTooltipSize, setSingleTooltipSize] = useState({ width: 140, height: 40 });
+  const lastWebPressRef = React.useRef<{ x: number; y: number } | null>(null);
+  const touchSelectionTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearTouchSelectionTimer = useCallback(() => {
+    if (touchSelectionTimerRef.current) clearTimeout(touchSelectionTimerRef.current);
+    touchSelectionTimerRef.current = null;
+  }, []);
+  useEffect(() => () => clearTouchSelectionTimer(), [clearTouchSelectionTimer]);
   // Store the full chart-space point (with chartX/chartY & color) for rendering highlight even when showPoints=false
   const [highlightPoint, setHighlightPoint] = useState<{ chartX: number; chartY: number; color: string; id?: any; seriesId?: any } | null>(null);
   // use shared interaction context (optional if not wrapped by provider externally)
@@ -277,6 +286,17 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
   // mode keeps LineChart's own selectedPoint tooltip; feeding activeTarget only in
   // multi mode avoids doubling with the built-in tooltip.
   const feedShared = !!sharedConfig?.multiTooltip;
+  const holdTouchSelection = useCallback(() => {
+    if (feedShared) {
+      interaction?.holdTouchTarget();
+      return;
+    }
+    clearTouchSelectionTimer();
+    touchSelectionTimerRef.current = setTimeout(() => {
+      setSelectedPoint(null);
+      touchSelectionTimerRef.current = null;
+    }, CHART_TOUCH_HOLD_MS);
+  }, [feedShared, interaction, clearTouchSelectionTimer]);
   const updateSeriesVisibility = interaction?.updateSeriesVisibility;
   const setPointer = interaction?.setPointer;
   const initializeDomains = interaction?.initializeDomains;
@@ -611,6 +631,7 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
       }
     } else {
       setHighlightPoint(null);
+      if (fireCallbacks) setSelectedPoint(null);
       if (feedShared) { setActiveTarget?.(null); setActiveSlice?.([]); }
       if (fireCallbacks && pointer) {
         setPointer?.({ ...pointer, inside: true });
@@ -621,10 +642,15 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
   const handlePress = (event: any) => {
     if (disabled) return;
 
-    const { locationX, locationY } = event.nativeEvent;
-    const chartX = locationX - padding.left;
-    const chartY = locationY - padding.top;
+    const { locationX, locationY } = event.nativeEvent ?? {};
+    const chartX = isWeb && lastWebPressRef.current
+      ? lastWebPressRef.current.x
+      : locationX - padding.left;
+    const chartY = isWeb && lastWebPressRef.current
+      ? lastWebPressRef.current.y
+      : locationY - padding.top;
     evaluateNearestPoint(chartX, chartY, event, true);
+    if (isChartTouchInput(event)) holdTouchSelection();
     const interactionEvent: ChartInteractionEvent = {
       nativeEvent: event,
       chartX,
@@ -666,6 +692,8 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
     onPanResponderGrant: (e, gestureState) => {
+      clearTouchSelectionTimer();
+      interaction?.cancelTouchHold();
       const native: any = e.nativeEvent || {};
       const touches = native.touches || [];
       // Record drag start for tap vs drag detection
@@ -746,17 +774,17 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
       }
     },
     onPanResponderRelease: (e) => {
+      const native: any = e.nativeEvent || {};
+      const endX = typeof native.locationX === 'number' ? native.locationX : (dragStartRef.current?.x ?? 0);
+      const endY = typeof native.locationY === 'number' ? native.locationY : (dragStartRef.current?.y ?? 0);
+      const startPt = dragStartRef.current;
+      const wasTap = !!startPt && Math.hypot(endX - startPt.x, endY - startPt.y) < 10;
+      if (wasTap) {
+        evaluateNearestPoint(endX - padding.left, endY - padding.top, e, false);
+        holdTouchSelection();
+      }
       // Double tap / click reset detection — only count taps, not drags
       if (props.resetOnDoubleTap) {
-        const native: any = e.nativeEvent || {};
-        const endX = typeof native.locationX === 'number' ? native.locationX : (dragStartRef.current?.x ?? 0);
-        const endY = typeof native.locationY === 'number' ? native.locationY : (dragStartRef.current?.y ?? 0);
-        const startPt = dragStartRef.current;
-        const dragDistance = startPt
-          ? Math.sqrt(Math.pow(endX - startPt.x, 2) + Math.pow(endY - startPt.y, 2))
-          : 0;
-        const wasTap = dragDistance < 10;
-
         if (wasTap) {
           const now = Date.now();
           if (now - lastTapTimeRef.current < 300) { // double within 300ms
@@ -956,8 +984,31 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
             console.warn('LineChart: onMouseDown event handling failed')
           }
         }}
-        // @ts-expect-error web-only mouse event prop not in RN types
-        onMouseLeave={(e) => { if (isMousePanning) { setIsMousePanning(false); setLastPan(null); } if (pointer) { setPointer?.({ ...pointer, inside: false }); } setActiveTarget?.(null); setActiveSlice?.([]); setHighlightPoint(null); setSelectedPoint(null); setBrushStart(null); setBrushCurrent(null); }}
+        {...{ onMouseLeave: () => { if (isMousePanning) { setIsMousePanning(false); setLastPan(null); } if (pointer) { setPointer?.({ ...pointer, inside: false }); } setActiveTarget?.(null); setActiveSlice?.([]); setHighlightPoint(null); if (!touchSelectionTimerRef.current) setSelectedPoint(null); setBrushStart(null); setBrushCurrent(null); } }}
+        {...(isWeb ? {
+          onPointerDown: (event: any) => {
+            const rect = event.currentTarget?.getBoundingClientRect?.();
+            if (!rect) return;
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            lastWebPressRef.current = { x, y };
+            if (isChartTouchInput(event)) {
+              clearTouchSelectionTimer();
+              interaction?.cancelTouchHold();
+              evaluateNearestPoint(x, y, event, false);
+            }
+          },
+          onPointerUp: (event: any) => {
+            if (!isChartTouchInput(event)) return;
+            const rect = event.currentTarget?.getBoundingClientRect?.();
+            if (!rect) return;
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            lastWebPressRef.current = { x, y };
+            evaluateNearestPoint(x, y, event, false);
+            holdTouchSelection();
+          },
+        } : {})}
         // @ts-expect-error web-only mouse event prop not in RN types
         onMouseUp={(e) => {
           if (props.enableBrushZoom && brushStart && brushCurrent) {
@@ -1099,7 +1150,7 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
           </Svg>
 
           {/* Annotation overlays */}
-          {annotations?.map((annotation) => {
+          {annotations?.map((annotation, annotationIndex) => {
             if (!annotation || plotWidth <= 0 || plotHeight <= 0) return null;
             if (annotation.shape === 'vertical-line' && annotation.x != null) {
               const pixelX = xScaleFn(Number(annotation.x), xDomain, [0, plotWidth]);
@@ -1110,6 +1161,7 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
               const label = annotation.label;
               const textColor = annotation.textColor || theme.colors.textSecondary;
               const fontSize = annotation.fontSize ?? 10;
+              const labelWidth = label ? Math.min(Math.ceil(estimateChartTextWidth(label, fontSize)) + 8, Math.max(plotWidth - 8, 24)) : 0;
               return (
                 <React.Fragment key={`annotation-${annotation.id}`}>
                   <View
@@ -1125,10 +1177,13 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
                   />
                   {label ? (
                     <Text
+                      numberOfLines={2}
                       style={{
                         position: 'absolute',
-                        left: pixelX + 4,
-                        top: 4,
+                        left: Math.min(pixelX + 4, Math.max(plotWidth - labelWidth - 4, 4)),
+                        top: width < 480 ? 4 + (annotationIndex % 3) * 32 : 4,
+                        width: labelWidth,
+                        maxWidth: labelWidth,
                         color: textColor,
                         fontSize,
                         backgroundColor: annotation.backgroundColor || theme.colors.background,
@@ -1168,6 +1223,7 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
                   />
                   {label ? (
                     <Text
+                      numberOfLines={2}
                       style={{
                         position: 'absolute',
                         left: 4,
@@ -1196,6 +1252,9 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
               if (width <= 0) return null;
               const backgroundColor = annotation.backgroundColor || `${theme.colors.accentPalette[2] ?? '#22d3ee'}33`;
               const opacity = annotation.opacity ?? 0.35;
+              const labelWidth = annotation.label
+                ? Math.min(Math.ceil(estimateChartTextWidth(annotation.label, annotation.fontSize ?? 10)) + 8, Math.max(plotWidth - 8, 24))
+                : 0;
               return (
                 <React.Fragment key={`annotation-${annotation.id}`}>
                   <View
@@ -1213,8 +1272,10 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
                     <Text
                       style={{
                         position: 'absolute',
-                        left: left + 8,
+                        left: Math.max(4, Math.min(left + 8, Math.max(plotWidth - labelWidth - 4, 4))),
                         top: 8,
+                        width: labelWidth,
+                        maxWidth: labelWidth,
                         color: annotation.textColor || theme.colors.textSecondary,
                         fontSize: annotation.fontSize ?? 10,
                         backgroundColor: (annotation.backgroundColor && annotation.backgroundColor !== backgroundColor)
@@ -1260,10 +1321,18 @@ export const LineChart: React.FC<LineChartProps> = (props) => {
           {/* Single-point tooltip (multi-series slice handled globally by ChartActiveTooltip) */}
           {tooltip?.show !== false && selectedPoint && !sharedConfig?.multiTooltip && (
             <View
+              testID="line-chart-tooltip"
+              onLayout={(event) => {
+                const { width: nextWidth, height: nextHeight } = event.nativeEvent.layout;
+                if (Math.abs(nextWidth - singleTooltipSize.width) > 1 || Math.abs(nextHeight - singleTooltipSize.height) > 1) {
+                  setSingleTooltipSize({ width: nextWidth, height: nextHeight });
+                }
+              }}
               style={{
                 position: 'absolute',
-                left: (xScaleFn(selectedPoint.x, xDomain, [0, plotWidth])) - 20,
-                top: (yScaleFn(selectedPoint.y, yDomain, [plotHeight, 0])) - 40,
+                left: Math.min(Math.max(8, xScaleFn(selectedPoint.x, xDomain, [0, plotWidth]) - 20), Math.max(8, plotWidth - singleTooltipSize.width - 8)),
+                top: Math.min(Math.max(8, yScaleFn(selectedPoint.y, yDomain, [plotHeight, 0]) - 40), Math.max(8, plotHeight - singleTooltipSize.height - 8)),
+                maxWidth: Math.max(80, plotWidth - 16),
                 backgroundColor: tooltip?.backgroundColor || theme.colors.background,
                 padding: tooltip?.padding || 8,
                 borderRadius: tooltip?.borderRadius || 4,

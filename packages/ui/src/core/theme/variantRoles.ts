@@ -1,6 +1,6 @@
 import type { PlocksTheme } from './types';
 import { adjustHexColor, withAlpha, readableTextOn, composite, pickReadable, relativeLuminance, contrastRatio } from './colorUtils';
-import { literalBackgrounds } from './cssVariableTheme';
+import { literalBackgrounds, literalText, themeColorForFirstPaint, themeVariantFillForFirstPaint } from './cssVariableTheme';
 
 /**
  * The canonical, component-agnostic variant vocabulary. Chip, Badge, Tabs, Pill,
@@ -46,7 +46,7 @@ const PERCEPTIBLE_STEP = 1.1;
  * their own theme — take the nearest candidate that's genuinely darker, and fall
  * back to darkening the surface directly if a theme offers nothing below it.
  */
-const pickRecessed = (theme: PlocksTheme, surface: string): string => {
+const pickRecessed = (theme: PlocksTheme, surface: string): { rendered: string; literal: string } => {
   const surfaceLum = relativeLuminance(surface);
   // Choose against the literal colors — `var(--x)` has no luminance — but return
   // whatever `theme.backgrounds` renders for the winner, so the fill still tracks
@@ -59,13 +59,15 @@ const pickRecessed = (theme: PlocksTheme, surface: string): string => {
       Boolean(c.value) && relativeLuminance(c.value as string) < surfaceLum);
 
   const clears = candidates.find((c) => contrastRatio(c.value, surface) >= PERCEPTIBLE_STEP);
-  if (clears) return rendered?.[clears.token] ?? clears.value;
+  if (clears) return { rendered: rendered?.[clears.token] ?? clears.value, literal: clears.value };
 
   // Nothing is a full step down: take the darkest of what's on offer, or make one.
   const darkest = candidates
     .slice()
     .sort((a, b) => relativeLuminance(a.value) - relativeLuminance(b.value))[0];
-  return darkest ? rendered?.[darkest.token] ?? darkest.value : adjustHexColor(surface, -14);
+  if (darkest) return { rendered: rendered?.[darkest.token] ?? darkest.value, literal: darkest.value };
+  const adjusted = adjustHexColor(surface, -14);
+  return { rendered: adjusted, literal: adjusted };
 };
 
 /**
@@ -109,27 +111,35 @@ export const resolveVariantRoles = (
 
   // Alpha weights: dark surfaces need a touch more tint to register.
   const tintLight = isDark ? 0.22 : 0.14;
-  const tintSubtle = isDark ? 0.14 : 0.08;
-  const tintBorder = isDark ? 0.38 : 0.3;
+
+  const firstPaint = (roles: VariantRoles, tintedLight = false): VariantRoles => {
+    if (!theme.literalColors) return roles;
+    return {
+      fill: tintedLight
+        ? themeVariantFillForFirstPaint(theme, 'light-fill', color, roles.fill)
+        : themeColorForFirstPaint(theme, roles.fill) ?? roles.fill,
+      border: themeColorForFirstPaint(theme, roles.border) ?? roles.border,
+      text: themeColorForFirstPaint(theme, roles.text) ?? roles.text,
+    };
+  };
 
   switch (variant) {
     case 'outline':
-      return { fill: 'transparent', border: strong, text: pickReadable(textCandidates, surface) };
+      return firstPaint({ fill: 'transparent', border: strong, text: pickReadable(textCandidates, surface) });
     case 'light': {
       const compositedBg = composite(strong, surface, tintLight);
-      return {
+      return firstPaint({
         fill: withAlpha(strong, tintLight),
-        border: withAlpha(strong, tintBorder),
-        text: pickReadable(textCandidates, compositedBg),
-      };
-    }
-    case 'subtle': {
-      const compositedBg = composite(strong, surface, tintSubtle);
-      return {
-        fill: withAlpha(strong, tintSubtle),
         border: 'transparent',
         text: pickReadable(textCandidates, compositedBg),
-      };
+      }, true);
+    }
+    case 'subtle': {
+      return firstPaint({
+        fill: 'transparent',
+        border: 'transparent',
+        text: pickReadable(textCandidates, surface),
+      });
     }
     case 'surface': {
       // Neutral by design: the fill comes from the theme's background tokens
@@ -138,28 +148,47 @@ export const resolveVariantRoles = (
       // It always sits *darker* than the surface it's on — the recessed-well look
       // — in both schemes, so a chip inside an input stays readable as a token.
       const fill = pickRecessed(theme, surface);
-      const border = theme.backgrounds?.border ?? withAlpha(fill, 0.5);
-      return {
-        fill,
+      const border = theme.backgrounds?.border ?? withAlpha(fill.literal, 0.5);
+      const textTokens = literalText(theme);
+      const chosenText = pickReadable(
+        [textTokens?.primary, textTokens?.secondary, isDark ? '#FFFFFF' : '#1A1A1A'].filter(Boolean) as string[],
+        fill.literal,
+      );
+      const text = chosenText === textTokens?.primary
+        ? theme.text?.primary ?? chosenText
+        : chosenText === textTokens?.secondary
+          ? theme.text?.secondary ?? chosenText
+          : chosenText;
+      return firstPaint({
+        fill: fill.rendered,
         border,
-        text: pickReadable(
-          [theme.text?.primary, theme.text?.secondary, isDark ? '#FFFFFF' : '#1A1A1A'].filter(Boolean) as string[],
-          fill,
-        ),
-      };
+        text,
+      });
     }
     case 'gradient': {
       const gradientFill = gradientStops?.[0] ?? strong;
-      return {
+      return firstPaint({
         fill: gradientFill,
-        border: gradientStops?.[1] ?? strong,
+        border: 'transparent',
         text: readableTextOn(gradientFill),
-      };
+      });
     }
     case 'filled':
     default:
-      return { fill: strong, border: strong, text: readableTextOn(strong) };
+      return firstPaint({ fill: strong, border: 'transparent', text: readableTextOn(strong) });
   }
+};
+
+/** The interaction wash for a subtle control, which is clear at rest. */
+export const resolveSubtleHoverFill = (theme: PlocksTheme, color: string = 'primary'): string => {
+  const palette = (theme.colors as Record<string, string[] | undefined>)[color];
+  const strong = palette?.[5] ?? palette?.[Math.floor(palette.length / 2)] ?? palette?.[0] ?? color;
+  return themeVariantFillForFirstPaint(
+    theme,
+    'subtle-hover',
+    color,
+    withAlpha(strong, theme.colorScheme === 'dark' ? 0.14 : 0.08),
+  );
 };
 
 /**

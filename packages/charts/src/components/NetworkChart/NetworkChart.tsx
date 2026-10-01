@@ -408,7 +408,7 @@ export const NetworkChart: React.FC<NetworkChartProps> = (props) => {
         distance: 0,
         label: node.name ?? node.id,
         color: node.color,
-        formattedValue: node.name ?? node.id,
+        formattedValue: typeof node.value === 'number' ? String(node.value) : node.name ?? node.id,
       };
       setActiveTarget?.(target);
       setActiveSlice?.([target]);
@@ -509,6 +509,7 @@ export const NetworkChart: React.FC<NetworkChartProps> = (props) => {
             return (
               <AnimatedLink
                 key={`${link.source.id}-${link.target.id}-${link.index}`}
+                testID={`network-link-${link.index}`}
                 sourceX={link.source.x}
                 sourceY={link.source.y}
                 targetX={link.target.x}
@@ -522,9 +523,32 @@ export const NetworkChart: React.FC<NetworkChartProps> = (props) => {
                 curveStrength={resolvedLinkCurveStrength}
                 parallelIndex={link.parallelIndex}
                 parallelCount={link.parallelCount}
-                onFocus={linkPayload && onLinkFocus ? () => onLinkFocus(linkPayload) : undefined}
-                onBlur={linkPayload && onLinkBlur ? () => onLinkBlur(linkPayload) : undefined}
+                onFocus={() => {
+                  const sourceName = sourceMeta?.node?.name ?? link.source.id;
+                  const targetName = targetMeta?.node?.name ?? link.target.id;
+                  const target: ActiveTarget = {
+                    seriesId: 'network-links',
+                    markId: link.index,
+                    kind: 'point',
+                    datum: originalLink ?? link,
+                    pixel: { x: (link.source.x + link.target.x) / 2 + padding.left, y: (link.source.y + link.target.y) / 2 + padding.top },
+                    value: link.weight,
+                    distance: 0,
+                    label: `${sourceName} → ${targetName}`,
+                    color,
+                    formattedValue: String(link.weight),
+                  };
+                  setActiveTarget?.(target);
+                  setActiveSlice?.([target]);
+                  if (linkPayload && onLinkFocus) onLinkFocus(linkPayload);
+                }}
+                onBlur={() => {
+                  handleNodeBlur();
+                  if (linkPayload && onLinkBlur) onLinkBlur(linkPayload);
+                }}
                 onPress={linkPayload && onLinkPress ? () => onLinkPress(linkPayload) : undefined}
+                onTouchStart={() => interaction?.cancelTouchHold()}
+                onTouchRelease={() => interaction?.holdTouchTarget()}
               />
             );
           })}
@@ -563,6 +587,8 @@ export const NetworkChart: React.FC<NetworkChartProps> = (props) => {
                   if (nodePayload && onNodeBlur) onNodeBlur(nodePayload);
                 }}
                 onPress={nodePayload && onNodePress ? () => onNodePress(nodePayload) : undefined}
+                onTouchStart={() => interaction?.cancelTouchHold()}
+                onTouchRelease={() => interaction?.holdTouchTarget()}
               />
             );
           })}

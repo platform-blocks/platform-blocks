@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CHART_DOCS } from '../apps/docs/config/charts';
+import { EXAMPLE_APPS } from '../apps/docs/config/exampleApps';
 import { componentRoute } from '../apps/docs/utils/componentRoute';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -16,22 +17,13 @@ const BASE_URL = 'https://plocks.dev';
 
 interface SitemapUrl {
   loc: string;
-  lastmod?: string;
   changefreq?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
   priority?: number;
 }
 
-async function readJSONIfExists<T = any>(filePath: string): Promise<T | null> {
-  try {
-    const raw = await fs.readFile(filePath, 'utf8');
-    return JSON.parse(raw) as T;
-  } catch {
-    return null;
-  }
-}
-
-function getCurrentDate(): string {
-  return new Date().toISOString().split('T')[0];
+async function readJSON<T>(filePath: string): Promise<T> {
+  const raw = await fs.readFile(filePath, 'utf8');
+  return JSON.parse(raw) as T;
 }
 
 function escapeXml(str: string): string {
@@ -46,9 +38,6 @@ function escapeXml(str: string): string {
 function createUrlEntry(url: SitemapUrl): string {
   let entry = '  <url>\n';
   entry += `    <loc>${escapeXml(url.loc)}</loc>\n`;
-  if (url.lastmod) {
-    entry += `    <lastmod>${url.lastmod}</lastmod>\n`;
-  }
   if (url.changefreq) {
     entry += `    <changefreq>${url.changefreq}</changefreq>\n`;
   }
@@ -61,12 +50,10 @@ function createUrlEntry(url: SitemapUrl): string {
 
 async function generateSitemap(): Promise<void> {
   const urls: SitemapUrl[] = [];
-  const currentDate = getCurrentDate();
 
   // Homepage
   urls.push({
     loc: `${BASE_URL}/`,
-    lastmod: currentDate,
     changefreq: 'weekly',
     priority: 1.0,
   });
@@ -92,28 +79,40 @@ async function generateSitemap(): Promise<void> {
   mainSections.forEach(section => {
     urls.push({
       loc: `${BASE_URL}${section.path}`,
-      lastmod: currentDate,
       changefreq: 'weekly',
       priority: section.priority,
     });
   });
 
-  // Load components from meta
-  const componentsMeta = await readJSONIfExists<Record<string, any>>(
-    path.join(generatedDir, 'components-meta.json')
-  );
-
-  if (componentsMeta) {
-    const componentNames = Object.keys(componentsMeta).sort();
-    componentNames.filter(name => componentsMeta[name]?.packageName !== '@plocks/charts').forEach(name => {
+  // The full app demos are published only by build-web-with-demos.
+  if (process.env.EXPO_PUBLIC_DEMOS_BUNDLED === 'true') {
+    EXAMPLE_APPS.forEach(({ slug }) => {
       urls.push({
-        loc: `${BASE_URL}${componentRoute(name)}`,
-        lastmod: currentDate,
+        loc: `${BASE_URL}/demos/${slug}/`,
         changefreq: 'monthly',
-        priority: 0.8,
+        priority: 0.6,
+      });
+      urls.push({
+        loc: `${BASE_URL}/demos/${slug}/source.html`,
+        changefreq: 'monthly',
+        priority: 0.5,
       });
     });
   }
+
+  // Load components from meta
+  const componentsMeta = await readJSON<Record<string, any>>(
+    path.join(generatedDir, 'components-meta.json')
+  );
+
+  const componentNames = Object.keys(componentsMeta).sort();
+  componentNames.filter(name => componentsMeta[name]?.packageName !== '@plocks/charts').forEach(name => {
+    urls.push({
+      loc: `${BASE_URL}${componentRoute(name)}`,
+      changefreq: 'monthly',
+      priority: 0.8,
+    });
+  });
 
   // Charts (sourced from the docs app chart registry).
   CHART_DOCS.map((chart) => chart.slug)
@@ -121,29 +120,25 @@ async function generateSitemap(): Promise<void> {
     .forEach((slug) => {
       urls.push({
         loc: `${BASE_URL}/charts/${slug}`,
-        lastmod: currentDate,
         changefreq: 'monthly',
         priority: 0.8,
       });
     });
 
 
-  // Load hooks from meta (if exists)
-  const hooksMeta = await readJSONIfExists<Record<string, any>>(
+  // Load hooks from meta
+  const hooksMeta = await readJSON<Record<string, any>>(
     path.join(generatedDir, 'hooks-meta.json')
   );
 
-  if (hooksMeta) {
-    const hookNames = Object.keys(hooksMeta).sort();
-    hookNames.forEach(name => {
-      urls.push({
-        loc: `${BASE_URL}/hooks/${name}`,
-        lastmod: currentDate,
-        changefreq: 'monthly',
-        priority: 0.7,
-      });
+  const hookNames = Object.keys(hooksMeta).sort();
+  hookNames.forEach(name => {
+    urls.push({
+      loc: `${BASE_URL}/hooks/${name}`,
+      changefreq: 'monthly',
+      priority: 0.7,
     });
-  }
+  });
 
   // Generate XML
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';

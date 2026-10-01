@@ -1,0 +1,164 @@
+{
+  "componentPreviews": [
+    {
+      "name": "AreaChart",
+      "route": "/charts/AreaChart"
+    },
+    {
+      "name": "BackgroundImage",
+      "route": "/components/BackgroundImage"
+    },
+    {
+      "name": "BarChart",
+      "route": "/charts/BarChart"
+    },
+    {
+      "name": "BubbleChart",
+      "route": "/charts/BubbleChart"
+    },
+    {
+      "name": "CandlestickChart",
+      "route": "/charts/CandlestickChart"
+    },
+    {
+      "name": "ComboChart",
+      "route": "/charts/ComboChart"
+    },
+    {
+      "name": "DonutChart",
+      "route": "/charts/DonutChart"
+    },
+    {
+      "name": "Flex",
+      "route": "/components/Flex"
+    },
+    {
+      "name": "FormLayout",
+      "route": "/components/FormLayout"
+    },
+    {
+      "name": "FunnelChart",
+      "route": "/charts/FunnelChart"
+    },
+    {
+      "name": "Gradient",
+      "route": "/components/Gradient"
+    },
+    {
+      "name": "GroupedBarChart",
+      "route": "/charts/GroupedBarChart"
+    },
+    {
+      "name": "HeatmapChart",
+      "route": "/charts/HeatmapChart"
+    },
+    {
+      "name": "HistogramChart",
+      "route": "/charts/HistogramChart"
+    },
+    {
+      "name": "KeyboardAvoidingArea",
+      "route": "/components/KeyboardAvoidingArea"
+    },
+    {
+      "name": "KeyboardAwareLayout",
+      "route": "/components/KeyboardAwareLayout"
+    },
+    {
+      "name": "Layout",
+      "route": "/components/Layout"
+    },
+    {
+      "name": "LineChart",
+      "route": "/charts/LineChart"
+    },
+    {
+      "name": "MarimekkoChart",
+      "route": "/charts/MarimekkoChart"
+    },
+    {
+      "name": "Masonry",
+      "route": "/components/Masonry"
+    },
+    {
+      "name": "MotionBlock",
+      "route": "/components/MotionBlock"
+    },
+    {
+      "name": "NetworkChart",
+      "route": "/charts/NetworkChart"
+    },
+    {
+      "name": "ParetoChart",
+      "route": "/charts/ParetoChart"
+    },
+    {
+      "name": "PieChart",
+      "route": "/charts/PieChart"
+    },
+    {
+      "name": "RadarChart",
+      "route": "/charts/RadarChart"
+    },
+    {
+      "name": "RadialBarChart",
+      "route": "/charts/RadialBarChart"
+    },
+    {
+      "name": "RidgeChart",
+      "route": "/charts/RidgeChart"
+    },
+    {
+      "name": "SafeArea",
+      "route": "/components/SafeArea"
+    },
+    {
+      "name": "SankeyChart",
+      "route": "/charts/SankeyChart"
+    },
+    {
+      "name": "ScatterChart",
+      "route": "/charts/ScatterChart"
+    },
+    {
+      "name": "ScrollArea",
+      "route": "/components/ScrollArea"
+    },
+    {
+      "name": "SoundButton",
+      "route": "/components/SoundButton"
+    },
+    {
+      "name": "Space",
+      "route": "/components/Space"
+    },
+    {
+      "name": "SparklineChart",
+      "route": "/charts/SparklineChart"
+    },
+    {
+      "name": "StackedAreaChart",
+      "route": "/charts/StackedAreaChart"
+    },
+    {
+      "name": "StackedBarChart",
+      "route": "/charts/StackedBarChart"
+    },
+    {
+      "name": "StickyNote",
+      "route": "/components/StickyNote"
+    },
+    {
+      "name": "Surface",
+      "route": "/components/Surface"
+    },
+    {
+      "name": "Timeline",
+      "route": "/components/Timeline"
+    },
+    {
+      "name": "ViolinChart",
+      "route": "/charts/ViolinChart"
+    }
+  ]
+}

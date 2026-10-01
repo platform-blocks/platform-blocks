@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import {
+  useDeviceInfo,
   Card,
   Text,
   Flex,
@@ -136,8 +137,7 @@ class PreviewErrorBoundary extends React.Component<
 }
 
 export function ComponentPlayground({ component, propsMeta, config }: ComponentPlaygroundProps) {
-  const { width, height } = useWindowDimensions();
-  const isStacked = width < 1100;
+  const { screen: { width, height } } = useDeviceInfo();
   const targetName = config.component || component;
   const blockComponent = COMPONENT_MODULES
     .map((mod) => mod[targetName] as React.ComponentType | undefined)
@@ -147,6 +147,10 @@ export function ComponentPlayground({ component, propsMeta, config }: ComponentP
   // Charts live in @plocks/charts and need a ChartsProvider (GlobalChartsRoot)
   // around them for shared crosshair/tooltip behavior — mirror the demo host.
   const isChart = !blockComponent && !!chartComponent;
+  // The docs sidebar leaves less room than the viewport width suggests. Keep
+  // the chart preview full width so its configured canvas is not clipped by
+  // the controls column.
+  const isStacked = isChart || width < 1100;
 
   const { controls, defaults } = useMemo(() => deriveControls(propsMeta, config), [propsMeta, config]);
   const defaultsKey = useMemo(() => serializeDefaults(defaults), [defaults]);
@@ -172,13 +176,21 @@ export function ComponentPlayground({ component, propsMeta, config }: ComponentP
   if (targetComponent) {
     const node = React.createElement(targetComponent, previewProps);
     const wrapped = config.previewWrapper ? config.previewWrapper(node, previewProps) : node;
+    const chartWidth = typeof previewProps.w === 'number' ? previewProps.w : undefined;
     renderedComponent = isChart ? (
-      <GlobalChartsRoot
-        style={{ width: '100%', alignItems: 'center' }}
-        config={DOCS_CHART_INTERACTION_CONFIG}
+      <ScrollView
+        horizontal
+        style={styles.chartPreviewScroll}
+        contentContainerStyle={{ minWidth: chartWidth, alignItems: 'center', justifyContent: 'center' }}
+        showsHorizontalScrollIndicator
       >
-        {wrapped}
-      </GlobalChartsRoot>
+        <GlobalChartsRoot
+          style={{ width: chartWidth ?? '100%', alignItems: 'center' }}
+          config={DOCS_CHART_INTERACTION_CONFIG}
+        >
+          {wrapped}
+        </GlobalChartsRoot>
+      </ScrollView>
     ) : wrapped;
   }
 
@@ -230,7 +242,7 @@ export function ComponentPlayground({ component, propsMeta, config }: ComponentP
         <View style={styles.controlGroup}>
           <Flex direction="row" wrap="wrap" gap={12}>
             {toggleControls.map(control => (
-              <View key={control.name} style={isStacked ? styles.fullWidth : styles.toggleCell}>
+              <View key={control.name} style={isStacked && !isChart ? styles.fullWidth : styles.toggleCell}>
                 {renderControlFor(control)}
               </View>
             ))}
@@ -890,6 +902,9 @@ const styles = StyleSheet.create({
     minHeight: 280,
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  chartPreviewScroll: {
+    width: '100%'
   },
   snippetCard: {
     padding: 20

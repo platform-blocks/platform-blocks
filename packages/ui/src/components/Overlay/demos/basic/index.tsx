@@ -4,7 +4,7 @@ import { Block, Overlay, Text } from '@plocks/ui';
 export function Demo() {
   return (
     <Block fullWidth maw={520}>
-      <ImageBackground source={require('../../../../assets/images/scene-city.png')} style={styles.image}>
+      <ImageBackground source={require('../../../../assets/images/scene-city.png')} style={styles.image} imageStyle={styles.backgroundImage}>
         <Overlay color="#000" backgroundOpacity={0.5} center>
           <Text fw="semibold" c="white">
             Dim
@@ -12,7 +12,7 @@ export function Demo() {
         </Overlay>
       </ImageBackground>
 
-      <ImageBackground source={require('../../../../assets/images/scene-aurora.png')} style={styles.image}>
+      <ImageBackground source={require('../../../../assets/images/scene-aurora.png')} style={styles.image} imageStyle={styles.backgroundImage}>
         <Overlay gradient="linear-gradient(145deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0) 75%)" center>
           <Text fw="semibold" c="white">
             Gradient
@@ -20,7 +20,7 @@ export function Demo() {
         </Overlay>
       </ImageBackground>
 
-      <ImageBackground source={require('../../../../assets/images/scene-desert.png')} style={styles.image}>
+      <ImageBackground source={require('../../../../assets/images/scene-desert.png')} style={styles.image} imageStyle={styles.backgroundImage}>
         <Overlay color="#000" backgroundOpacity={0.35} blur={18} center>
           <Text fw="semibold" c="white">
             Blur
@@ -34,8 +34,12 @@ export function Demo() {
 const styles = StyleSheet.create({
   image: {
     width: '100%',
-    aspectRatio: 16 / 9,
+    aspectRatio: 3 / 2,
     borderRadius: 24,
     overflow: 'hidden',
+  },
+  backgroundImage: {
+    width: '100%',
+    height: '100%',
   },
 });

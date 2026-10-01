@@ -12,9 +12,9 @@ import {
   Search,
   useHover,
   useTheme,
+  useBreakpoint,
 } from '@plocks/ui';
-import { useWindowDimensions, View, type DimensionValue, type LayoutChangeEvent } from 'react-native';
-import { BREAKPOINTS } from '@plocks/ui/core/responsive';
+import { View, type DimensionValue, type LayoutChangeEvent } from 'react-native';
 import { useBrowserTitle, formatPageTitle } from '../hooks/useBrowserTitle';
 import { PageLayout, RouteLink } from '../components';
 import { PackageInstallCommand } from '../components/PackageInstallCommand';
@@ -188,8 +188,8 @@ const CategoryCard: React.FC<{ group: CategoryGroup; itemColumns: number }> = ({
 
 export default function ComponentListScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const isNarrow = width < BREAKPOINTS.md;
+  const breakpoint = useBreakpoint();
+  const isNarrow = breakpoint === 'base' || breakpoint === 'xs' || breakpoint === 'sm';
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   // Measured rather than derived from the window: the docs sidebar takes a
@@ -308,15 +308,9 @@ export default function ComponentListScreen() {
   // there are, so filtering down to one category widens that card instead of
   // stranding it beside three empty tracks.
   const columnCount = useMemo(() => {
-    // A static render has no window to measure, and `useWindowDimensions`
-    // reports 0 there. Assume desktop, the same call the UI package's
-    // breakpoint provider makes, so the prerendered HTML carries the full
-    // layout and a desktop client hydrates onto matching markup.
-    const effectiveWidth = width || BREAKPOINTS.xl;
-    const byViewport =
-      effectiveWidth >= BREAKPOINTS.xl ? 4 : effectiveWidth >= BREAKPOINTS.lg ? 3 : effectiveWidth >= BREAKPOINTS.sm ? 2 : 1;
+    const byViewport = breakpoint === 'xl' ? 4 : breakpoint === 'lg' ? 3 : breakpoint === 'sm' || breakpoint === 'md' ? 2 : 1;
     return Math.max(1, Math.min(byViewport, columnGroups.length));
-  }, [width, columnGroups.length]);
+  }, [breakpoint, columnGroups.length]);
 
   // A wider card holds more component tracks — the same reason a 4-up catalog
   // reads as a list and a single filtered card reads as a grid.
@@ -331,10 +325,9 @@ export default function ComponentListScreen() {
     [columnGroups, columnCount, itemColumns]
   );
   const addonColumnCount = useMemo(() => {
-    const effectiveWidth = width || BREAKPOINTS.xl;
-    const byViewport = effectiveWidth >= BREAKPOINTS.lg ? 3 : effectiveWidth >= BREAKPOINTS.sm ? 2 : 1;
+    const byViewport = breakpoint === 'xl' || breakpoint === 'lg' ? 3 : breakpoint === 'sm' || breakpoint === 'md' ? 2 : 1;
     return Math.max(1, Math.min(byViewport, addonGroups.length));
-  }, [width, addonGroups.length]);
+  }, [breakpoint, addonGroups.length]);
   const addonColumns = useMemo(
     () => distributeGroups(addonGroups, addonColumnCount, 1),
     [addonGroups, addonColumnCount]

@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Text, Badge, Block, Button, Card, Code, Flex, Loader, Tabs, useI18n, TableOfContents, Link, useBreakpoint } from '@plocks/ui';
+import { Text, Badge, Block, Button, Card, Chip, Flex, Loader, Tabs, useI18n, TableOfContents, Link, useBreakpoint, useDeviceInfo } from '@plocks/ui';
 import { Markdown } from '@plocks/code';
 import { GlobalChartsRoot } from '@plocks/charts';
+import { RouteLink } from '../components/RouteLink';
+import { getChartDoc, getRelatedCharts } from '../config/charts';
+import { DOCS_CHART_INTERACTION_CONFIG } from '../config/chartInteraction';
 import { useBrowserTitle, formatPageTitle } from '../hooks/useBrowserTitle';
 import { useFragmentScroll } from '../hooks/useFragmentScroll';
 import { DemoRenderer } from '../components/DemoRenderer';
@@ -38,7 +41,6 @@ interface DemoSectionProps {
   demo: any;
   preview: React.ReactNode;
   description?: string;
-  hideTitle?: boolean;
   /** Fragment id that deep-links to this demo. */
   anchorId: string;
 }
@@ -46,16 +48,14 @@ interface DemoSectionProps {
 /** Matches the `opacity: 0.7` the page-level description is dimmed with. */
 const DEMO_DESCRIPTION_STYLE = { opacity: 0.7 };
 
-function DemoSection({ demo, preview, description, hideTitle, anchorId }: DemoSectionProps) {
+function DemoSection({ demo, preview, description, anchorId }: DemoSectionProps) {
   const sectionChildren: React.ReactNode[] = [];
 
-  if (!hideTitle) {
-    sectionChildren.push(
-      <DemoHeading key="title" id={anchorId}>
-        {demo.title}
-      </DemoHeading>
-    );
-  }
+  sectionChildren.push(
+    <DemoHeading key="title" id={anchorId}>
+      {demo.title}
+    </DemoHeading>
+  );
 
   if (description) {
     sectionChildren.push(
@@ -78,16 +78,6 @@ function DemoSection({ demo, preview, description, hideTitle, anchorId }: DemoSe
     </Block>
   );
 }
-// Extract content rendering into a separate component for reuse
-const DOCS_CHART_INTERACTION_CONFIG = {
-  enableCrosshair: true,
-  multiTooltip: true,
-  liveTooltip: true,
-  popoverPortal: true,
-  pointerPixelThreshold: 3,
-  aggregatorMaxSeries: 8,
-};
-
 interface ComponentContentProps {
   component: string;
   newMeta: ComponentMeta | null;
@@ -140,6 +130,7 @@ const ComponentContent = React.memo(function ComponentContent({
   onTabChange,
   showToc,
 }: ComponentContentProps) {
+  const { platform: { isWeb, isNative } } = useDeviceInfo();
   // Fragment id per demo, so every example heading is its own permalink.
   const demoAnchors = React.useMemo(() => buildDemoAnchors(effectiveDemos), [effectiveDemos]);
 
@@ -147,6 +138,7 @@ const ComponentContent = React.memo(function ComponentContent({
   const resourceLinks = Array.isArray(newMeta?.resources)
     ? (newMeta?.resources as Array<{ label?: string; href?: string }>).filter((entry) => typeof entry?.href === 'string')
     : [];
+  const relatedCharts = newMeta?.category === 'charts' ? getRelatedCharts(component) : [];
 
   tabItems.push({
     key: 'demos',
@@ -222,7 +214,6 @@ const ComponentContent = React.memo(function ComponentContent({
                 demo={demo}
                 preview={preview}
                 description={getLocalizedDescription(demo)}
-                hideTitle={newMeta?.category === 'charts'}
                 anchorId={demoAnchors[demo.id]}
               />
             );
@@ -289,18 +280,26 @@ const ComponentContent = React.memo(function ComponentContent({
   return (
     <>
       <DocsPageHeader
-        action={(
-          <Flex direction="row" align="center" gap={8} wrap="wrap" justify="flex-end">
-            <CopyPageMenu
-              pageTitle={newMeta?.title || component}
-              targetSelector={`#main-content-${component}`}
-              markdown={componentMarkdown || undefined}
-            />
-          </Flex>
-        )}
+        action={isWeb ? (
+          <CopyPageMenu
+            pageTitle={newMeta?.title || component}
+            targetSelector={`#main-content-${component}`}
+            markdown={componentMarkdown || undefined}
+          />
+        ) : undefined}
       >
         {newMeta?.title || component}
       </DocsPageHeader>
+
+      {isNative && (
+        <Flex direction="row" justify="flex-end">
+          <CopyPageMenu
+            pageTitle={newMeta?.title || component}
+            targetSelector={`#main-content-${component}`}
+            markdown={componentMarkdown || undefined}
+          />
+        </Flex>
+      )}
 
       <Block style={{ opacity: 0.7 }}>
         {newMeta?.description ? (
@@ -345,6 +344,19 @@ const ComponentContent = React.memo(function ComponentContent({
           </Block>
         )}
       </Block>
+
+      {relatedCharts.length > 0 && (
+        <Card style={{ padding: 20, marginTop: 24, gap: 12 }}>
+          <Text variant="h2" fw="semibold">Related charts</Text>
+          <Flex direction="row" gap={8} wrap="wrap">
+            {relatedCharts.map((related) => (
+              <RouteLink key={related.slug} href={`/charts/${related.slug}`} accessibilityLabel={related.title}>
+                <Chip size="sm" variant="outline">{related.title}</Chip>
+              </RouteLink>
+            ))}
+          </Flex>
+        </Card>
+      )}
 
       {resourceLinks.length > 0 && (
         <Card style={{ padding: 20, marginTop: 24, gap: 12 }}>
@@ -441,7 +453,14 @@ export default function ComponentDetailScreen({ component = 'Unknown' }: Compone
   const componentProps = useMemo(() => getComponentProps(component), [component]);
   const hasProps = componentProps.length > 0;
   const newMeta = useMemo(
-    () => (hasNewDemosArtifacts() ? getNewComponentMeta(component) : null),
+    () => {
+      if (!hasNewDemosArtifacts()) return null;
+      const meta = getNewComponentMeta(component);
+      const chartDoc = meta?.category === 'charts' ? getChartDoc(component) : null;
+      return chartDoc && meta
+        ? { ...meta, description: chartDoc.summary, resources: chartDoc.resources }
+        : meta;
+    },
     [component]
   );
   const componentMarkdown = useMemo(

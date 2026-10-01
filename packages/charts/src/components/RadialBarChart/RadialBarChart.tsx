@@ -145,6 +145,7 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
     startAngle = -90,
     endAngle = 270,
     showValueLabels = true,
+    showValueLabelsOnNarrow = false,
     valueFormatter,
     legend,
     style,
@@ -162,6 +163,17 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
   } = props;
 
   const theme = useChartTheme();
+  const renderValueLabels = showValueLabels && (width >= 400 || showValueLabelsOnNarrow || tooltip?.show === false || legend?.show !== true);
+  const values = data.map(d => d.value);
+  const maxDatumValue = Math.max(...values, 1);
+  const globalMax = Math.max(maxDatumValue, ...data.map(d => d.max || 0));
+  const legendLabels = data.map((d, index) => {
+    const label = d.label || String(d.id ?? index);
+    if (renderValueLabels || width >= 400) return label;
+    const percentage = (d.max || globalMax) > 0 ? d.value / (d.max || globalMax) : 0;
+    const value = valueFormatter?.(d.value, d, index) ?? `${Math.round(percentage * 100)}%`;
+    return `${label} · ${value}`;
+  });
   let interaction: ReturnType<typeof useChartInteractionContext> | null = null;
   try {
     interaction = useChartInteractionContext();
@@ -181,9 +193,9 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
   // Reserve space for the (absolutely positioned) title and legend bands so the outer
   // ring doesn't overlap them. Measured rather than guessed — a wrapping legend or a
   // long side label needs more room than a fixed constant can know about.
-  const titleInset = measureChartTitleBand(title, subtitle);
+  const titleInset = measureChartTitleBand(title, subtitle, { containerWidth: width });
   const legendInset = measureChartLegendBand({
-    items: legend?.show ? data.map((d, i) => ({ label: d.label || String(d.id ?? i) })) : undefined,
+    items: legend?.show ? legendLabels.map(label => ({ label })) : undefined,
     containerWidth: width,
     position: legend?.position,
     fontSize: legend?.fontSize,
@@ -221,6 +233,13 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
     ? radius + barThickness / 2
     : Math.min(availW / spanX, availH / spanY);
   const maxRadius = Math.max(0, outerExtent - barThickness / 2);
+  // Keep every ring visible when the requested thickness and gaps exceed the
+  // available radius. Preserve a hole for the center readout on narrow charts.
+  const innerReserve = (centerLabel || centerSubLabel) ? maxRadius * 0.35 : 1;
+  const requestedBand = data.length * barThickness + Math.max(0, data.length - 1) * gap;
+  const ringScale = requestedBand > 0 ? Math.min(1, Math.max(0, maxRadius - innerReserve) / requestedBand) : 1;
+  const resolvedThickness = barThickness * ringScale;
+  const resolvedGap = gap * ringScale;
   // Center so the arc's bounding box is centered in the available plot area.
   const centerX = plotLeft + plotW / 2 - ((arcExtent.uxMin + arcExtent.uxMax) / 2) * outerExtent;
   const centerY = plotTop + plotH / 2
@@ -228,10 +247,6 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
   // Visual middle of the arc's bounding box (used for the center readout so it
   // sits in the bowl of a partial sweep rather than on the geometric center).
   const layoutCenterY = plotTop + plotH / 2;
-
-  const values = data.map(d => d.value);
-  const maxDatumValue = Math.max(...values, 1);
-  const globalMax = Math.max(maxDatumValue, ...data.map(d => d.max || 0));
 
   // Animation
   const animationProgress = useSharedValue(disabled ? 1 : 0);
@@ -267,7 +282,7 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
       const override = interaction?.series.find(s => s.id === (d.id ?? i));
       const visible = override ? override.visible !== false : true;
       
-      const ringRadius = maxRadius - i * (barThickness + gap) - barThickness / 2;
+      const ringRadius = maxRadius - i * (resolvedThickness + resolvedGap) - resolvedThickness / 2;
       const color = d.color || getColorFromScheme(i, theme.colors.accentPalette);
       const trackColor = d.trackColor || theme.colors.background || '#f1f5f9';
       
@@ -278,10 +293,10 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
         color,
         trackColor,
         visible,
-        isValid: ringRadius - barThickness / 2 > 0,
+        isValid: ringRadius - resolvedThickness / 2 > 0,
       };
     });
-  }, [data, maxRadius, barThickness, gap, theme.colors.background, theme.colors.accentPalette, interaction?.series]);
+  }, [data, maxRadius, resolvedThickness, resolvedGap, theme.colors.background, theme.colors.accentPalette, interaction?.series]);
 
   // New interaction engine: each ring is a single angular-sector mark (annular band
   // at the ring's radius across the full track). The angular hit-tester resolves
@@ -305,8 +320,8 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
         slice: {
           startAngle,
           endAngle,
-          innerRadius: Math.max(0, ring.radius - barThickness / 2),
-          outerRadius: ring.radius + barThickness / 2,
+          innerRadius: Math.max(0, ring.radius - resolvedThickness / 2),
+          outerRadius: ring.radius + resolvedThickness / 2,
         },
         ringIndex: ring.index,
       },
@@ -322,7 +337,7 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
       visible: ring.visible !== false,
       marks: [mark],
     };
-  }), [rings, globalMax, startAngle, endAngle, centerX, centerY, barThickness, valueFormatter, tooltip]);
+  }), [rings, globalMax, startAngle, endAngle, centerX, centerY, resolvedThickness, valueFormatter, tooltip]);
 
   const tester = useMemo(() => new AngularSliceHitTester(centerX, centerY, hitSeries), [centerX, centerY, hitSeries]);
 
@@ -381,7 +396,7 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
                 centerX={centerX}
                 centerY={centerY}
                 radius={ring.radius}
-                thickness={barThickness}
+                thickness={resolvedThickness}
                 startAngle={startAngle}
                 endAngle={endAngle}
                 globalMax={globalMax}
@@ -395,7 +410,7 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
           })}
 
           {/* Value labels at the tip of each filled arc */}
-          {showValueLabels && (
+          {renderValueLabels && (
             <AnimatedG animatedProps={labelOpacityProps}>
               {rings.map(ring => {
                 if (!ring.visible || !ring.isValid) return null;
@@ -405,7 +420,7 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
                 const tipAngle = startAngle + (endAngle - startAngle) * percentage;
                 // Sit just beyond the bar tip so inner-ring labels clear the
                 // center readout rather than overlapping it.
-                const labelRadius = ring.radius + barThickness / 2 + 4;
+                const labelRadius = ring.radius + resolvedThickness / 2 + 4;
                 const tip = polarToCartesian(centerX, centerY, labelRadius, tipAngle);
                 const text = valueFormatter
                   ? valueFormatter(d.value, d, ring.index)
@@ -486,7 +501,7 @@ export const RadialBarChart: React.FC<RadialBarChartProps> = (props) => {
             const override = interaction?.series.find(s => s.id === (d.id ?? i));
             const visible = override ? override.visible !== false : true;
             return {
-              label: d.label || String(d.id || i),
+              label: legendLabels[i],
               color: d.color || getColorFromScheme(i, theme.colors.accentPalette),
               visible,
             };

@@ -5,7 +5,7 @@ import { roundedBarPath, barCornerMask } from '../../utils/barPath';
 import Animated, { useSharedValue, useAnimatedProps, withTiming, Easing, SharedValue } from 'react-native-reanimated';
 
 import { GroupedBarChartProps } from './types';
-import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
+import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding, estimateChartTextWidth } from '../../ChartBase';
 import { resolveCartesianPadding, domainTickLabels } from '../../core/axisLayout';
 import { useChartTheme, useNumberFormatter } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
@@ -501,7 +501,7 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
       interactionConfig={interactionConfig}
       {...rest}
     >
-      {(title || subtitle) && <ChartTitle title={title} subtitle={subtitle} style={{ top: -24 }} />}
+      {(title || subtitle) && <ChartTitle title={title} subtitle={subtitle} />}
 
       {grid?.show !== false && (
         <ChartGrid
@@ -565,6 +565,9 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
           if (label == null) return null;
           const labelText = String(label).trim();
           if (!labelText) return null;
+          // In a narrow group, a label wider than its bar collides with its neighbors.
+          // The full value remains available in the chart tooltip.
+          if (width < 480 && bar.width < estimateChartTextWidth(labelText, valueLabelFontSize) + 4) return null;
 
           const canFitInside = bar.height >= minBarHeightForInside;
           let useInside = valueLabelPosition === 'inside' || (valueLabelPosition === 'auto' && canFitInside);
@@ -638,6 +641,8 @@ export const GroupedBarChart: React.FC<GroupedBarChartProps> = (props) => {
           tickSize={xAxis?.tickLength ?? 4}
           tickPadding={8}
           tickFormat={(value: string) => (xAxis?.labelFormatter ? xAxis.labelFormatter(categoryIndexMap.get(value) ?? 0) : String(value))}
+          tickLabelWidth={basePadding.xTickLabelWidth}
+          tickLabelLines={basePadding.xTickLabelLines}
           label={xAxis?.title}
           stroke={xAxis?.color || theme.colors.grid}
           strokeWidth={xAxis?.thickness ?? 1}

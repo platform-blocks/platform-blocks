@@ -355,7 +355,7 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
   const xTitleBand = showXAxis && xAxis?.title ? (xAxis?.titleFontSize ?? 12) + 10 : 0;
   const xAxisBand = showXAxis ? X_TICK_BAND + xTitleBand : 0;
   const legendBand = gradientLegendEnabled ? LEGEND_GAP + legendBarThickness + 20 : 0;
-  const titleBand = measureChartTitleBand(title, subtitle);
+  const titleBand = measureChartTitleBand(title, subtitle, { containerWidth: width });
 
   const basePadding = React.useMemo(() => ({
     top: Math.max(16, titleBand),
@@ -382,14 +382,16 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
    *
    * A pinned cell size is a request, not a licence to overflow: on a phone, a
    * 90px cell across seven columns drew a chart twice as wide as the screen.
-   * Both dimensions scale by the same factor so the cells keep the aspect ratio
-   * that was asked for.
+   * Scale down to fit, retaining enough row height to tap when vertical space
+   * is available on a narrow chart.
    */
   const cellScale = React.useMemo(() => {
     if (!cellSize?.width || !uniqueX) return 1;
-    const requested = cellSize.width * uniqueX + gap * Math.max(uniqueX - 1, 0);
-    if (requested <= availablePlotWidth || requested <= 0) return 1;
-    return Math.max(availablePlotWidth / requested, 0.1);
+    const requested = cellSize.width * uniqueX;
+    // Gaps stay fixed when cells shrink, so remove their space before scaling.
+    const cellSpace = Math.max(0, availablePlotWidth - gap * Math.max(uniqueX - 1, 0));
+    if (requested <= cellSpace || requested <= 0) return 1;
+    return Math.max(cellSpace / requested, 0);
   }, [cellSize?.width, uniqueX, gap, availablePlotWidth]);
 
   const cellW = React.useMemo(() => {
@@ -401,8 +403,11 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = (props) => {
 
   const cellH = React.useMemo(() => {
     if (!uniqueY) return 0;
-    return Math.max(1, (cellSize?.height ?? fallbackCellHeight) * (cellSize?.height ? cellScale : 1));
-  }, [cellSize?.height, fallbackCellHeight, uniqueY, cellScale]);
+    const requested = cellSize?.height ?? fallbackCellHeight;
+    const scaled = requested * (cellSize?.height ? cellScale : 1);
+    const minimumRowHeight = width < 400 && cellScale < 1 ? Math.min(24, requested, fallbackCellHeight) : 1;
+    return Math.max(1, scaled, minimumRowHeight);
+  }, [cellSize?.height, fallbackCellHeight, uniqueY, cellScale, width]);
 
   const shouldShowCellLabel = React.useCallback(
     (cell: HeatmapCell, rowPercent: number, columnPercent: number, overallPercent: number) => {

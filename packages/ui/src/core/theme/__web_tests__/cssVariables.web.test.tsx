@@ -14,6 +14,7 @@ import { DARK_THEME } from '../darkTheme';
 import { DEFAULT_THEME } from '../defaultTheme';
 import { BUILT_IN_DARK_THEME, PlocksProvider } from '../PlocksProvider';
 import { useTheme } from '../ThemeProvider';
+import { resolveSubtleHoverFill, resolveVariantRoles } from '../variantRoles';
 import { generateUniversalCSS } from '../../utils/UniversalCSS';
 
 const html = () => document.documentElement;
@@ -55,6 +56,24 @@ describe('CSS variable generator', () => {
     expect(themeColorVariables(BUILT_IN_DARK_THEME)['--plocks-focus-ring']).toBe(DARK_THEME.states?.focusRing);
     const css = createThemeColorVariablesCss(DEFAULT_THEME, BUILT_IN_DARK_THEME);
     expect(css).toContain(`--plocks-focus-ring: ${DARK_THEME.states?.focusRing}`);
+  });
+
+  it('publishes scheme-specific fills for light and subtle interactions', () => {
+    const light = themeColorVariables(DEFAULT_THEME);
+    const dark = themeColorVariables(BUILT_IN_DARK_THEME);
+    expect(light['--plocks-variant-primary-light-fill']).toContain('0.14)');
+    expect(dark['--plocks-variant-primary-light-fill']).toContain('0.22)');
+    expect(light['--plocks-variant-primary-subtle-hover']).toContain('0.08)');
+    expect(dark['--plocks-variant-primary-subtle-hover']).toContain('0.14)');
+
+    const theme = withCssVariableColors(DEFAULT_THEME);
+    expect(resolveVariantRoles(theme, { variant: 'light', color: 'primary' }).fill)
+      .toMatch(/^var\(--plocks-variant-primary-light-fill,/);
+    expect(resolveSubtleHoverFill(theme, 'primary'))
+      .toMatch(/^var\(--plocks-variant-primary-subtle-hover,/);
+    const surface = resolveVariantRoles(theme, { variant: 'surface' });
+    expect(surface.fill).toMatch(/^var\(--plocks-bg-/);
+    expect(surface.text).toMatch(/^var\(--plocks-text-/);
   });
 
   it('reads literal colors — no self-referencing var() cycles', () => {

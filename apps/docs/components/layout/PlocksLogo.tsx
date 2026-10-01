@@ -1,7 +1,7 @@
 import React from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Svg, { G, Path, Rect } from 'react-native-svg';
-import { useTheme } from '@plocks/ui';
+import { useDeviceInfo, useTheme } from '@plocks/ui';
 
 export interface PlocksLogoProps {
   /** The mark's height in px. The wordmark is sized from it. */
@@ -57,6 +57,7 @@ const WORDMARK = 'M60 165L60-570L245-570L245-398L238-374L238-226L245-182L245 165
  * font loaded, so it draws the outlines from brand/svg/wordmark.svg instead.
  */
 export function PlocksLogo({ size, markOnly = false }: PlocksLogoProps) {
+  const { platform: { isWeb } } = useDeviceInfo();
   const theme = useTheme();
   const ink = theme.text.primary;
   const scale = size / MARK_HEIGHT;
@@ -65,7 +66,7 @@ export function PlocksLogo({ size, markOnly = false }: PlocksLogoProps) {
     <Rect key={`${column}${row}`} x={column * STEP} y={row * STEP} width={CELL} height={CELL} rx={RADIUS} fill={fill} />
   ));
 
-  if (markOnly || Platform.OS === 'web') {
+  if (markOnly || isWeb) {
     return (
       <View aria-hidden style={styles.row}>
         <Svg width={MARK_WIDTH * scale} height={size} viewBox={`0 0 ${MARK_WIDTH} ${MARK_HEIGHT}`}>

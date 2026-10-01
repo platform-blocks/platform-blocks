@@ -8,7 +8,7 @@ export function Demo() {
   const [focusedBin, setFocusedBin] = useState<HistogramBinSummary | null>(null);
 
   return (
-  <View>
+  <View style={{ width: '100%', maxWidth: '100%' }}>
       <HistogramChart
         title="Page load time distribution"
         subtitle="Bins colored by SLO status"

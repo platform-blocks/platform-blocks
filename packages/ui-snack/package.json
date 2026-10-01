@@ -1,6 +1,6 @@
 {
   "name": "@plocks/ui-snack",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Curated single-file plocks UI entry for Expo Snack",
   "type": "module",
   "main": "./lib/index.js",
@@ -33,7 +33,7 @@
     "prepare": "sh -c 'if [ \"$BUILD_ON_PREPARE\" = \"1\" ]; then npm run build; fi'"
   },
   "peerDependencies": {
-    "@plocks/ui": "^0.1.0",
+    "@plocks/ui": "^0.2.0",
     "@react-native-async-storage/async-storage": ">=1.17.0",
     "@react-native-masked-view/masked-view": ">=0.3.0",
     "@shopify/flash-list": ">=1.6.0",

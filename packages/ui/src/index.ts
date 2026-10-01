@@ -191,7 +191,9 @@ export type {
   FloatingRenderOptions,
 } from './core/overlay/useFloating';
 export { OverlayHost } from './core/overlay/OverlayHost';
+export { ViewportPortal } from './core/overlay';
 export type { OverlayHostProps } from './core/overlay/OverlayHost';
+export type { ViewportPortalProps } from './core/overlay';
 export type { OverlayConfig, OverlayLayerOptions } from './core/providers/OverlayProvider';
 
 // Breakpoints
@@ -232,6 +234,9 @@ export type { UseHapticsOptions, UseHapticsReturn } from './hooks';
 
 // Layout Components
 export { KeyboardAwareLayout } from './components/KeyboardAwareLayout';
+export { OverflowList } from './components/OverflowList';
+export { Scroller, useScroller } from './components/Scroller';
+export { Splitter, SplitterPane, useSplitter } from './components/Splitter';
 export { Flex } from './components/Flex';
 export { Grid, GridItem } from './components/Grid';
 export { Masonry } from './components/Masonry';
@@ -287,6 +292,9 @@ export { Joystick } from './components/Joystick';
 export { Search } from './components/Search';
 export { Select } from './components/Select';
 export { AutoComplete } from './components/AutoComplete';
+export { ComboboxPopover, ComboboxPopoverTarget } from './components/ComboboxPopover';
+export { TreeSelect } from './components/TreeSelect';
+export { Cascader } from './components/Cascader';
 export { FileInput } from './components/FileInput';
 export { Wheel } from './components/Wheel';
 export { PhoneInput } from './components/PhoneInput';
@@ -300,7 +308,9 @@ export { Form, useFormContext, useOptionalFormContext } from './components/Form'
 // Navigation Components
 export { Breadcrumbs } from './components/Breadcrumbs';
 export { Menu, MenuItem, MenuLabel, MenuDivider, MenuDropdown, MenuSub } from './components/Menu';
+export { MenuCheckboxItem, MenuRadioGroup, MenuRadioItem } from './components/Menu';
 export { MenuItemButton } from './components/MenuItemButton';
+export { Menubar, MenubarMenu, MenubarTarget, MenubarDropdown } from './components/Menubar';
 export { Tabs } from './components/Tabs';
 export { Pagination } from './components/Pagination';
 export { Stepper } from './components/Stepper';
@@ -326,13 +336,18 @@ export { Disclaimer, ComponentWithDisclaimer, useDisclaimer, withDisclaimer, ext
 export { Table } from './components/Table';
 export { Timeline } from './components/Timeline';
 export { DataList } from './components/DataList';
+export { ReorderableList } from './components/ReorderableList';
+export { SwipeableRow } from './components/SwipeableRow';
 export { ListGroup, ListGroupItem, ListGroupDivider, ListGroupBody } from './components/ListGroup';
+export { Marquee } from './components/Marquee';
+export { FloatingIndicator } from './components/FloatingIndicator';
 export { TableOfContents } from './components/TableOfContents';
 export { Tree, useTreeState } from './components/Tree';
 export { NavTree, buildNavTree } from './components/NavTree';
 
 // Feedback Components
 export { Alert } from './components/Alert';
+export { EmptyState, EmptyStateIndicator, EmptyStateTitle, EmptyStateDescription, EmptyStateActions } from './components/EmptyState';
 export { Progress, ProgressRoot, ProgressSection, ProgressLabel } from './components/Progress';
 export { Skeleton } from './components/Skeleton';
 export { Loader } from './components/Loader';
@@ -359,6 +374,8 @@ export { ContextMenu } from './components/ContextMenu';
 export { Popover } from './components/Popover';
 export { HoverCard } from './components/HoverCard';
 export { FloatingActions } from './components/FloatingActions';
+export { ActionBar, ActionBarDivider, ActionBarCloseButton } from './components/ActionBar';
+export { FloatingWindow, FloatingWindowDragHandle, FloatingWindowResizeHandle, useFloatingWindow } from './components/FloatingWindow';
 
 // Permission Components
 
@@ -374,7 +391,7 @@ export { Waveform } from './components/Waveform';
 export { Collapse } from './components/Collapse';
 export { Divider } from './components/Divider';
 export { Space } from './components/Space';
-export { Link } from './components/Link';
+export { Link, LinkBox } from './components/Link';
 export { CopyButton } from './components/CopyButton/CopyButton';
 export { KeyCap } from './components/KeyCap';
 export { Spoiler } from './components/Spoiler';
@@ -453,6 +470,9 @@ export type { HighlightProps } from './components/Highlight';
 export type { OverlayProps } from './components/Overlay';
 export type { TitleProps } from './components/Title/types';
 export type { KeyboardAwareLayoutProps } from './components/KeyboardAwareLayout';
+export type { OverflowListProps } from './components/OverflowList';
+export type { ScrollerProps, UseScrollerOptions, UseScrollerReturn } from './components/Scroller';
+export type { SplitterProps, SplitterPaneProps, SplitterPaneSize, SplitterHandle, SplitterPanelOptions, UseSplitterOptions, UseSplitterReturn } from './components/Splitter';
 export type { FlexProps } from './components/Flex';
 export type { GridProps, GridItemProps } from './components/Grid';
 export type { MasonryProps, MasonryItem } from './components/Masonry';
@@ -477,6 +497,9 @@ export type { JoystickProps, JoystickValue, JoystickShape, JoystickVariant } fro
 export type { SearchProps } from './components/Search';
 export type { SelectProps, SelectOption } from './components/Select';
 export type { AutoCompleteProps, AutoCompleteOption } from './components/AutoComplete';
+export type { ComboboxPopoverProps, ComboboxPopoverSingleProps, ComboboxPopoverMultipleProps, ComboboxPopoverItem, ComboboxPopoverGroup, ComboboxPopoverData, ComboboxPopoverOption, ComboboxPopoverTargetProps, ComboboxPopoverFilter, ComboboxPopoverFilterInput, ComboboxPopoverRenderOptionInput } from './components/ComboboxPopover';
+export type { TreeSelectProps, TreeSelectSingleProps, TreeSelectMultipleProps } from './components/TreeSelect';
+export type { CascaderProps, CascaderOption } from './components/Cascader';
 export type { FileInputProps, FileInputFile } from './components/FileInput';
 export type { WheelItem, WheelProps, WheelValue } from './components/Wheel';
 export type { PhoneInputProps } from './components/PhoneInput';
@@ -487,6 +510,8 @@ export type { RollingNumberProps, RollingNumberTimingFunction, RollingNumberTren
 export type { FormProps } from './components/Form';
 export type { BreadcrumbsProps } from './components/Breadcrumbs';
 export type { MenuProps, MenuItemProps, MenuSubProps } from './components/Menu';
+export type { MenubarProps, MenubarMenuProps, MenubarTargetProps, MenubarDropdownProps } from './components/Menubar';
+export type { MenuCheckboxItemProps, MenuRadioGroupProps, MenuRadioItemProps } from './components/Menu';
 export type { TabsProps, TabItem } from './components/Tabs';
 export type { PaginationProps } from './components/Pagination';
 export type { StepperProps } from './components/Stepper';
@@ -506,6 +531,10 @@ export type { DisclaimerProps, WithDisclaimerProps, ComponentWithDisclaimerProps
 export type { TableProps } from './components/Table';
 export type { TimelineProps } from './components/Timeline';
 export type { DataListProps, DataListItemProps, DataListItemLabelProps, DataListItemValueProps, DataListDataItem, DataListOrientation } from './components/DataList';
+export type { ReorderableListProps, ReorderResult } from './components/ReorderableList';
+export type { SwipeableRowProps, SwipeableRowAction } from './components/SwipeableRow';
+export type { MarqueeProps } from './components/Marquee';
+export type { FloatingIndicatorProps } from './components/FloatingIndicator';
 export type { TableOfContentsProps } from './components/TableOfContents';
 export type {
   AlertProps,
@@ -520,6 +549,7 @@ export type {
   ProgressOrientation,
 } from './components/Progress';
 export type { SkeletonProps } from './components/Skeleton';
+export type { EmptyStateProps, EmptyStateIndicatorProps, EmptyStateTitleProps, EmptyStateDescriptionProps, EmptyStateActionsProps } from './components/EmptyState';
 export type { LoaderProps } from './components/Loader';
 export type { LoadingOverlayProps } from './components/LoadingOverlay';
 export type { GaugeProps } from './components/Gauge';
@@ -538,11 +568,13 @@ export type { ImageProps } from './components/Image';
 export type { WaveformProps } from './components/Waveform';
 export type { DividerProps } from './components/Divider';
 export type { SpaceProps } from './components/Space';
-export type { LinkProps } from './components/Link';
+export type { LinkProps, LinkBoxProps } from './components/Link';
 export type { CopyButtonProps } from './components/CopyButton/types';
 export type { KeyCapProps } from './components/KeyCap';
 export type { SpoilerProps } from './components/Spoiler';
 export type { FloatingActionsProps, FloatingActionItem } from './components/FloatingActions';
+export type { ActionBarProps, ActionBarDividerProps, ActionBarCloseButtonProps } from './components/ActionBar';
+export type { FloatingWindowProps, FloatingWindowDragHandleProps, FloatingWindowResizeHandleProps, FloatingWindowPosition, FloatingWindowInitialPosition, FloatingWindowDimensions, FloatingWindowHandle, UseFloatingWindowOptions, UseFloatingWindowReturn } from './components/FloatingWindow';
 export type { PressAnimationProps } from './components/_internal/PressAnimation/PressAnimation';
 export type { AccordionProps, AccordionItemType } from './components/Accordion';
 export type { AppShellProps } from './components/AppShell';
@@ -665,33 +697,3 @@ export { resolveOptionalModule } from './utils/optionalModule';
 export type { ResolveOptionalModuleOptions } from './utils/optionalModule';
 // Dev-only logging (silent in production builds).
 export { devLog, devWarn, devError, warnOnce } from './core/utils/logger';
-
-// New Mantine-inspired components
-export { ActionBar, ActionBarDivider, ActionBarCloseButton } from './components/ActionBar';
-export type { ActionBarProps, ActionBarDividerProps, ActionBarCloseButtonProps } from './components/ActionBar';
-export { Menubar, MenubarMenu, MenubarTarget, MenubarDropdown } from './components/Menubar';
-export type { MenubarProps, MenubarMenuProps, MenubarTargetProps, MenubarDropdownProps } from './components/Menubar';
-export { EmptyState, EmptyStateIndicator, EmptyStateTitle, EmptyStateDescription, EmptyStateActions } from './components/EmptyState';
-export type { EmptyStateProps, EmptyStateIndicatorProps, EmptyStateTitleProps, EmptyStateDescriptionProps, EmptyStateActionsProps } from './components/EmptyState';
-export { ComboboxPopover, ComboboxPopoverTarget } from './components/ComboboxPopover';
-export type { ComboboxPopoverProps, ComboboxPopoverSingleProps, ComboboxPopoverMultipleProps, ComboboxPopoverItem, ComboboxPopoverGroup, ComboboxPopoverData, ComboboxPopoverOption, ComboboxPopoverTargetProps, ComboboxPopoverFilter, ComboboxPopoverFilterInput, ComboboxPopoverRenderOptionInput } from './components/ComboboxPopover';
-export { TreeSelect } from './components/TreeSelect';
-export type { TreeSelectProps, TreeSelectSingleProps, TreeSelectMultipleProps } from './components/TreeSelect';
-export { FloatingWindow, FloatingWindowDragHandle, FloatingWindowResizeHandle, useFloatingWindow } from './components/FloatingWindow';
-export type { FloatingWindowProps, FloatingWindowDragHandleProps, FloatingWindowResizeHandleProps, FloatingWindowPosition, FloatingWindowInitialPosition, FloatingWindowDimensions, FloatingWindowHandle, UseFloatingWindowOptions, UseFloatingWindowReturn } from './components/FloatingWindow';
-export { OverflowList } from './components/OverflowList';
-export type { OverflowListProps } from './components/OverflowList';
-export { Marquee } from './components/Marquee';
-export type { MarqueeProps } from './components/Marquee';
-export { Scroller, useScroller } from './components/Scroller';
-export type { ScrollerProps, UseScrollerOptions, UseScrollerReturn } from './components/Scroller';
-export { Splitter, SplitterPane, useSplitter } from './components/Splitter';
-export type { SplitterProps, SplitterPaneProps, SplitterPaneSize, SplitterHandle, SplitterPanelOptions, UseSplitterOptions, UseSplitterReturn } from './components/Splitter';
-export { Cascader } from './components/Cascader';
-export type { CascaderProps, CascaderOption } from './components/Cascader';
-export { FloatingIndicator } from './components/FloatingIndicator';
-export type { FloatingIndicatorProps } from './components/FloatingIndicator';
-export { MenuCheckboxItem, MenuRadioGroup, MenuRadioItem } from './components/Menu';
-export type { MenuCheckboxItemProps, MenuRadioGroupProps, MenuRadioItemProps } from './components/Menu';
-export { ViewportPortal } from './core/overlay';
-export type { ViewportPortalProps } from './core/overlay';

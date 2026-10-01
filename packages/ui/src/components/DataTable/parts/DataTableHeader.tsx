@@ -121,6 +121,8 @@ function HeaderCell<T>({
         {
           variant: 'p' as const,
           fw: 'semibold' as const,
+          numberOfLines: 1,
+          ellipsizeMode: 'tail' as const,
           style: { color: colors.text, fontSize: resolveFontSize(theme, 'md') },
         },
         headerTextProps
@@ -483,6 +485,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexShrink: 1,
     minWidth: 0,
+    overflow: 'hidden',
   },
   iconButton: {
     borderRadius: 4,

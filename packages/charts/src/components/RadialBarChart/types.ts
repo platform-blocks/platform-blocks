@@ -39,6 +39,8 @@ export interface RadialBarChartProps
   endAngle?: number;
   /** Show value labels at the tip of each arc */
   showValueLabels?: boolean;
+  /** Keep tip labels visible below 400 px even when they crowd the center readout. */
+  showValueLabelsOnNarrow?: boolean;
   /** Format value for label */
   valueFormatter?: (value: number, datum: RadialBarDatum, index: number) => string;
   /** Primary text rendered in the empty center (e.g. an aggregate value) */

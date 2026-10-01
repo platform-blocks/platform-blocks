@@ -14,7 +14,7 @@ import { roundedBarPath, barCornerMask } from '../../utils/barPath';
 import { useChartTheme, useNumberFormatter } from '../../theme/ChartThemeContext';
 import { BarChartProps, BarChartDataPoint, BarChartSeries } from './types';
 import { ChartInteractionEvent } from '../../types';
-import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding } from '../../ChartBase';
+import { ChartContainer, ChartTitle, ChartLegend , withChartBandPadding, estimateChartTextWidth } from '../../ChartBase';
 import { resolveCartesianPadding } from '../../core/axisLayout';
 import { Axis } from '../../core/Axis';
 import { ChartGrid as Grid } from '../../core/ChartGrid';
@@ -1232,6 +1232,13 @@ export const BarChart: React.FC<BarChartProps> = React.memo((props) => {
                   textAnchor = 'start';
                 }
               }
+
+              const labelWidth = estimateChartTextWidth(String(labelText), valueLabelFontSize);
+              const labelLeft = textAnchor === 'middle' ? x - labelWidth / 2 : textAnchor === 'end' ? x - labelWidth : x;
+              // Full values remain in the tooltip when the label cannot fit.
+              if (labelLeft < 0 || labelLeft + labelWidth > plotWidth) return null;
+              if (isVertical && labelWidth > bar.width) return null;
+              if (useInside && labelWidth + valueLabelOffset > bar.width) return null;
 
               return (
                 <SvgText

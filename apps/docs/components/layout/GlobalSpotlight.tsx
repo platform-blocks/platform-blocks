@@ -1,12 +1,12 @@
 import React from 'react';
-import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Spotlight, directSpotlight, useDirectSpotlightState } from '@plocks/spotlight';
-import { useGlobalHotkeys, Icon } from '@plocks/ui';
+import { useDeviceInfo, hasDOM, useGlobalHotkeys, useListNavigation, Icon } from '@plocks/ui';
 import { useSpotlightData, type SpotlightAction } from '../../utils/spotlightIntegration';
 import { useI18n } from '@plocks/ui';
 
 export const GlobalSpotlight: React.FC = () => {
+  const { platform: { isWeb } } = useDeviceInfo();
   const router = useRouter();
   const { getSpotlightActions } = useSpotlightData(router);
   const { state, close, setQuery } = useDirectSpotlightState();
@@ -28,18 +28,24 @@ export const GlobalSpotlight: React.FC = () => {
     return out;
   }, [spotlightActions]);
 
-  const navigateUp = React.useCallback(() => { if (!flatActions.length) return; setSelectedIndex(i => (i <= 0 ? flatActions.length - 1 : i - 1)); }, [flatActions.length]);
-  const navigateDown = React.useCallback(() => { if (!flatActions.length) return; setSelectedIndex(i => (i === -1 || i >= flatActions.length - 1 ? 0 : i + 1)); }, [flatActions.length]);
-  const selectAction = React.useCallback(() => {
-    let idx = selectedIndex;
-    if (idx === -1 && flatActions.length) idx = 0;
-    const action = flatActions[idx];
-    if (action) {
+  const navigation = useListNavigation({
+    count: flatActions.length,
+    activeIndex: selectedIndex,
+    onActiveChange: setSelectedIndex,
+    getId: (index) => flatActions[index]?.id ?? `spotlight-${index}`,
+    onSelect: (index) => {
+      const action = flatActions[index];
+      if (!action) return;
       action.onPress?.();
       setQuery('');
       close();
-    }
-  }, [selectedIndex, flatActions, setQuery, close]);
+    },
+    opened: state.opened,
+    onClose: () => { setQuery(''); close(); },
+  });
+  const navigateUp = navigation.movePrevious;
+  const navigateDown = navigation.moveNext;
+  const selectAction = React.useCallback(() => navigation.selectActive(true), [navigation.selectActive]);
 
   // Clear the highlight whenever the query changes, since the index only means
   // anything relative to the current `flatActions`. Adjusted during render
@@ -54,7 +60,7 @@ export const GlobalSpotlight: React.FC = () => {
     setSelectedIndex(-1);
   }
 
-  React.useEffect(() => { if (Platform.OS !== 'web') return; if (!state.opened) return; const onKeyDown = (e: KeyboardEvent) => { if (e.isComposing) return; const tag = (e.target as HTMLElement)?.tagName; const isInput = tag === 'INPUT' || tag === 'TEXTAREA'; switch (e.key) { case 'ArrowDown': if (isInput) return; e.preventDefault(); navigateDown(); break; case 'ArrowUp': if (isInput) return; e.preventDefault(); navigateUp(); break; case 'Enter': e.preventDefault(); selectAction(); break; case 'Escape': e.preventDefault(); setQuery(''); close(); break; } }; window.addEventListener('keydown', onKeyDown); return () => window.removeEventListener('keydown', onKeyDown); }, [state.opened, navigateDown, navigateUp, selectAction, setQuery, close]);
+  React.useEffect(() => { if (!isWeb || !hasDOM) return; if (!state.opened) return; const onKeyDown = (e: KeyboardEvent) => { if (e.isComposing) return; const tag = (e.target as HTMLElement)?.tagName; const isInput = tag === 'INPUT' || tag === 'TEXTAREA'; switch (e.key) { case 'ArrowDown': if (isInput) return; e.preventDefault(); navigateDown(); break; case 'ArrowUp': if (isInput) return; e.preventDefault(); navigateUp(); break; case 'Enter': e.preventDefault(); selectAction(); break; case 'Escape': e.preventDefault(); setQuery(''); close(); break; } }; window.addEventListener('keydown', onKeyDown); return () => window.removeEventListener('keydown', onKeyDown); }, [isWeb, state.opened, navigateDown, navigateUp, selectAction, setQuery, close]);
 
   return (
     <Spotlight.Root query={state.query} onQueryChange={setQuery} opened={state.opened} onClose={() => { setQuery(''); close(); }}>

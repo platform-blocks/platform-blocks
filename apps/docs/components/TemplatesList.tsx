@@ -1,10 +1,9 @@
 import React from 'react';
-import { Linking, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { Button, Chip, Divider, Icon, Text } from '@plocks/ui';
+import { Linking, StyleSheet, View } from 'react-native';
+import { useBreakpoint, Button, Chip, Divider, Icon, Text } from '@plocks/ui';
 import { BrandIcon } from '@plocks/brands';
 import type { IconProps, SizeValue } from '@plocks/ui';
 import type { BrandName } from '@plocks/brands';
-import { BREAKPOINTS } from '@plocks/ui/core/responsive';
 import { CodeBlock } from '@plocks/code';
 import { STARTER_TEMPLATES, getTemplateCreateCommand, type StarterTemplate } from '../config/templates';
 
@@ -44,10 +43,10 @@ const Mark: React.FC<{ source: MarkSource; size: SizeValue }> = ({ source, size 
  * A row keeps the starters easy to scan without splitting them into a card grid.
  */
 export const TemplatesList: React.FC = () => {
-  const { width } = useWindowDimensions();
+  const breakpoint = useBreakpoint();
   // Below tablet width the three cells cannot sit side by side without
   // squeezing the description to a couple of words per line, so the row stacks.
-  const stacked = width < BREAKPOINTS.md;
+  const stacked = breakpoint === 'base' || breakpoint === 'xs' || breakpoint === 'sm';
 
   return (
     <View>

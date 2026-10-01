@@ -5,7 +5,7 @@ module.exports = {
   rootDir: __dirname,
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   testMatch: ['<rootDir>/**/*.test.(ts|tsx|js)', '<rootDir>/**/*.spec.(ts|tsx|js)'],
-  testPathIgnorePatterns: ['/node_modules/', '/lib/'],
+  testPathIgnorePatterns: ['/node_modules/', '/lib/', '/__web_tests__/'],
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './babel.config.cjs' }],
   },

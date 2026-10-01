@@ -59,11 +59,10 @@ describe('Alert - rendering', () => {
       <Alert severity="warning" title="Check" testID="alert-warning" />
     );
 
-    // Colors come from the shared variant system (alpha tint composited over the
-    // surface), so `light` fills/borders are translucent rgba of the color's [5] shade.
+    // The light fill is translucent, while its border remains invisible.
     expect(getStyle(getByTestId('alert-warning'))).toMatchObject({
       backgroundColor: 'rgba(245, 158, 11, 0.14)',
-      borderColor: 'rgba(245, 158, 11, 0.3)',
+      borderColor: 'transparent',
     });
   });
 
@@ -127,7 +126,7 @@ describe('Alert - rendering', () => {
     // Custom colors flow through the same alpha-tint path → translucent rgba.
     expect(getStyle(getByTestId('custom-color-alert'))).toMatchObject({
       backgroundColor: 'rgba(51, 102, 153, 0.14)',
-      borderColor: 'rgba(51, 102, 153, 0.3)',
+      borderColor: 'transparent',
     });
   });
 

@@ -20,6 +20,7 @@ import {
   WheelGesture,
 } from './pointerNormalize';
 import { ActiveTarget, HitTester } from '../core/hittest/types';
+import { CHART_TOUCH_HOLD_MS } from './touchInput';
 
 export interface UseChartPointerOptions {
   padding: { top: number; right: number; bottom: number; left: number };
@@ -65,9 +66,18 @@ export function useChartPointer(opts: UseChartPointerOptions): ChartPointerHandl
   } = opts;
 
   const store = useOptionalChartInteraction();
+  const storeRef = useRef(store);
+  storeRef.current = store;
   const { offset, measure, onLayout, ref } = useElementOffset();
   const web = isWeb();
   const measuredOnce = useRef(false);
+  const releasedTouchRef = useRef(false);
+  const heldTouchTargetRef = useRef<ActiveTarget | null>(null);
+  const touchHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearTouchHoldTimer = useCallback(() => {
+    if (touchHoldTimerRef.current != null) clearTimeout(touchHoldTimerRef.current);
+    touchHoldTimerRef.current = null;
+  }, []);
 
   const ctxFor = useCallback(
     (phase: PointerPhase): NormalizeContext => ({
@@ -96,12 +106,32 @@ export function useChartPointer(opts: UseChartPointerOptions): ChartPointerHandl
   const process = useCallback(
     (e: NormalizedPointerEvent, phase: PointerPhase) => {
       const target = hover ? resolveTarget(e) : null;
+      if (phase === 'down') {
+        clearTouchHoldTimer();
+        heldTouchTargetRef.current = null;
+        releasedTouchRef.current = false;
+      }
+      if (phase === 'up' && e.source === 'touch' && target && feedStore && store) {
+        releasedTouchRef.current = true;
+        heldTouchTargetRef.current = target;
+        clearTouchHoldTimer();
+        touchHoldTimerRef.current = setTimeout(() => {
+          store.clearActiveTargetIf(target);
+          heldTouchTargetRef.current = null;
+          touchHoldTimerRef.current = null;
+        }, CHART_TOUCH_HOLD_MS);
+      }
+      const keepTouchTarget = phase === 'leave' && e.source === 'touch' && releasedTouchRef.current;
 
       if (feedStore && store) {
         if (phase === 'leave' || phase === 'cancel') {
-          store.setPointer?.({ x: e.containerX, y: e.containerY, inside: false, insideX: false, pageX: e.pageX, pageY: e.pageY });
-          store.setActiveTarget?.(null);
-          store.setActiveSlice?.([]);
+          if (!keepTouchTarget) {
+            clearTouchHoldTimer();
+            heldTouchTargetRef.current = null;
+            store.setPointer?.({ x: e.containerX, y: e.containerY, inside: false, insideX: false, pageX: e.pageX, pageY: e.pageY });
+            store.setActiveTarget?.(null);
+            store.setActiveSlice?.([]);
+          }
         } else {
           store.setPointer?.({
             x: e.containerX,
@@ -124,13 +154,14 @@ export function useChartPointer(opts: UseChartPointerOptions): ChartPointerHandl
       }
 
       if (phase === 'leave' || phase === 'cancel') {
+        releasedTouchRef.current = false;
         opts.onLeave?.(e);
         return;
       }
       if (phase === 'press') opts.onPress?.(e, target);
       opts.onPointer?.(e, target);
     },
-    [hover, resolveTarget, feedStore, store, tester, maxDistance, opts],
+    [hover, resolveTarget, feedStore, store, tester, maxDistance, opts, clearTouchHoldTimer],
   );
 
   // rAF coalescing for `move`: many raw pointer moves can fire per frame (120–1000 Hz
@@ -183,12 +214,14 @@ export function useChartPointer(opts: UseChartPointerOptions): ChartPointerHandl
 
   useEffect(
     () => () => {
+      clearTouchHoldTimer();
+      if (heldTouchTargetRef.current) storeRef.current?.clearActiveTargetIf(heldTouchTargetRef.current);
       if (moveRafRef.current != null) {
         cancelAnimationFrame(moveRafRef.current);
         moveRafRef.current = null;
       }
     },
-    [],
+    [clearTouchHoldTimer],
   );
 
   const handlers = useMemo(() => {

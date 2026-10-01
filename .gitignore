@@ -97,3 +97,4 @@ docs/assets/chart-baselines/*.png
 # that isn't committed, so they must be tracked.
 !packages/ui/src/**/__snapshots__/*.snap
 design-review/
+# Playwright screenshot baselines are committed for visual CI.

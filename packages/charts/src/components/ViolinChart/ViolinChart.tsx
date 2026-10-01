@@ -203,6 +203,8 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
     console.warn('ViolinChart: useChartInteractionContext failed, ensure it is rendered inside a ChartInteractionProvider');
   }
   const register = interaction?.register;
+  const compactStatsLabels = width < 400 && Boolean(interaction) && interaction?.config.liveTooltip !== false;
+  const showStatsLabels = statsMarkers?.showLabels && !compactStatsLabels;
 
   const allValues = React.useMemo(() => series.flatMap((s) => s.values), [series]);
   const { min: minValue, max: maxValue } = React.useMemo(() => {
@@ -458,10 +460,18 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
         color: v.color,
         extent: { rect, cell: { row: 0, col: i } },
         formattedValue: median != null ? formatNumber(median) : undefined,
+        ...(compactStatsLabels && showStatsMarkers && statsMarkers?.showLabels && v.stats ? {
+          customTooltip: [
+            statsMarkers.showMedian ? `Median: ${toFixed(v.stats.median)}` : null,
+            statsMarkers.showMean ? `Mean: ${toFixed(v.stats.mean)}` : null,
+            statsMarkers.showQuartiles ? `Q1–Q3: ${toFixed(v.stats.q1)}–${toFixed(v.stats.q3)}` : null,
+            statsMarkers.showWhiskers ? `Range: ${toFixed(v.stats.min)}–${toFixed(v.stats.max)}` : null,
+          ].filter(Boolean).join('\n'),
+        } : {}),
       });
     });
     return [{ id: 'violin', name: 'Violin', color: theme.colors.accentPalette?.[0], visible: true, marks }];
-  }, [densData, categoryCenters, categoryBandwidth, isHorizontal, padding.left, padding.top, plotWidth, plotHeight, theme.colors.accentPalette]);
+  }, [densData, categoryCenters, categoryBandwidth, isHorizontal, padding.left, padding.top, plotWidth, plotHeight, theme.colors.accentPalette, compactStatsLabels, showStatsMarkers, statsMarkers]);
 
   const tester = React.useMemo(
     () => new BandCategoryHitTester(hitSeries, { orientation: isHorizontal ? 'y' : 'x' }),
@@ -694,7 +704,7 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
                 yPosition: number,
                 color: string
               ) => {
-                if (!statsMarkers?.showLabels) return null;
+                if (!showStatsLabels) return null;
                 const content = formatLabel(stat, value);
                 const xPosition =
                   anchor === 'start'
@@ -722,7 +732,7 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
                 xPosition: number,
                 color: string
               ) => {
-                if (!statsMarkers?.showLabels) return null;
+                if (!showStatsLabels) return null;
                 const content = formatLabel(stat, value);
                 const yBase =
                   position === 'top'
@@ -799,7 +809,7 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
                   if (labelQ1) elements.push(labelQ1);
                   const labelQ3 = createHorizontalLabel('q3', stats.q3, 'bottom', xQ3, labelColor);
                   if (labelQ3) elements.push(labelQ3);
-                  if (statsMarkers.showLabels) {
+                  if (showStatsLabels) {
                     elements.push(
                       <SvgText
                         key={`${v.id}-iqr-label`}
@@ -948,7 +958,7 @@ export const ViolinChart: React.FC<ViolinChartProps> = ({
                   if (labelQ1) elements.push(labelQ1);
                   const labelQ3 = createVerticalLabel('q3', stats.q3, 'end', yQ3, labelColor);
                   if (labelQ3) elements.push(labelQ3);
-                  if (statsMarkers.showLabels) {
+                  if (showStatsLabels) {
                     elements.push(
                       <SvgText
                         key={`${v.id}-iqr-label`}

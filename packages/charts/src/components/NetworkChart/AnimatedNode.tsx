@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Circle, G, Text as SvgText } from 'react-native-svg';
 import type { useChartTheme } from '../../theme/ChartThemeContext';
+import { isChartTouchInput } from '../../interaction/touchInput';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedText = Animated.createAnimatedComponent(SvgText);
@@ -28,6 +29,8 @@ export interface AnimatedNodeProps {
   onFocus?: () => void;
   onBlur?: () => void;
   onPress?: () => void;
+  onTouchStart?: () => void;
+  onTouchRelease?: () => void;
   testID?: string;
 }
 
@@ -46,6 +49,8 @@ export const AnimatedNode: React.FC<AnimatedNodeProps> = React.memo(
     onFocus,
     onBlur,
     onPress,
+    onTouchStart,
+    onTouchRelease,
     testID,
   }) => {
     const cx = useSharedValue(x);
@@ -103,10 +108,20 @@ export const AnimatedNode: React.FC<AnimatedNodeProps> = React.memo(
           ? {
               onMouseEnter: onFocus ? handleFocus : undefined,
               onMouseLeave: onBlur ? handleBlur : undefined,
+              onPointerDown: (event: any) => {
+                if (!isChartTouchInput(event)) return;
+                onTouchStart?.();
+                handleFocus();
+              },
+              onPointerUp: (event: any) => {
+                if (!isChartTouchInput(event)) return;
+                handleFocus();
+                onTouchRelease?.();
+              },
             }
           : {
-              onPressIn: onFocus ? handleFocus : undefined,
-              onPressOut: onBlur ? handleBlur : undefined,
+              onPressIn: () => { onTouchStart?.(); handleFocus(); },
+              onPressOut: () => { onTouchRelease?.(); handleBlur(); },
             }) as Record<string, any>)}
       >
         <AnimatedCircle

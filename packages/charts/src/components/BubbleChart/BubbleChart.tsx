@@ -12,6 +12,7 @@ import { createColorScale } from '../../utils/colorScale';
 import type { Scale } from '../../utils/scales';
 import { AnimatedBubble } from './AnimatedBubble';
 import type { ActiveTarget } from '../../core/hittest/types';
+import { isChartTouchInput } from '../../interaction/touchInput';
 
 const clamp01 = (value: number) => {
   if (!Number.isFinite(value)) return 0;
@@ -668,6 +669,8 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
   const setPointer = interactionContext?.setPointer;
   const setActiveTarget = interactionContext?.setActiveTarget;
   const setActiveSlice = interactionContext?.setActiveSlice;
+  const holdTouchTarget = interactionContext?.holdTouchTarget;
+  const cancelTouchHold = interactionContext?.cancelTouchHold;
 
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -808,7 +811,7 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
       style={style}
       animationDuration={animationDuration}
       interactionConfig={tooltipEnabled ? { multiTooltip: true, enableCrosshair: true, pointerRAF: true } : { multiTooltip: false, enableCrosshair: false }}
-      suppressPopover={!tooltipEnabled}
+      suppressPopover={tooltipEnabled ? undefined : true}
       {...rest}
     >
       {(title || subtitle) && (
@@ -996,6 +999,7 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
               handlePointer(mapWebPointerEvent(event));
             },
             onPointerDown: (event: any) => {
+              cancelTouchHold?.();
               event.preventDefault?.();
               event.currentTarget?.setPointerCapture?.(event.pointerId);
               handlePointer(mapWebPointerEvent(event));
@@ -1003,6 +1007,7 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
             onPointerUp: (event: any) => {
               event.currentTarget?.releasePointerCapture?.(event.pointerId);
               handlePointer(mapWebPointerEvent(event), true);
+              if (isChartTouchInput(event)) holdTouchTarget?.();
               handlePointerEnd();
             },
             onPointerLeave: () => {
@@ -1015,10 +1020,11 @@ export const BubbleChart: React.FC<BubbleChartProps> = (props) => {
           : {
             onStartShouldSetResponder: () => !disabled,
             onMoveShouldSetResponder: () => !disabled,
-            onResponderGrant: (e: any) => handlePointer(e.nativeEvent),
+            onResponderGrant: (e: any) => { cancelTouchHold?.(); handlePointer(e.nativeEvent); },
             onResponderMove: (e: any) => handlePointer(e.nativeEvent),
             onResponderRelease: (e: any) => {
               handlePointer(e.nativeEvent, true);
+              holdTouchTarget?.();
               handlePointerEnd();
             },
             onResponderTerminate: handlePointerEnd,

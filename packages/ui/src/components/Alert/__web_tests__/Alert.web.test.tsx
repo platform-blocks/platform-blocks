@@ -32,6 +32,20 @@ function declaredStyle(element: HTMLElement): Record<string, string> {
 }
 
 describe('Alert (react-native-web DOM)', () => {
+  it('keeps the light tint but reserves the colored border for outline', () => {
+    render(
+      <>
+        <Alert testID="light-alert" variant="light" title="Light" />
+        <Alert testID="outline-alert" variant="outline" title="Outline" />
+      </>
+    );
+    const light = screen.getByTestId('light-alert');
+    const outline = screen.getByTestId('outline-alert');
+    expect(light.style.backgroundColor).toMatch(/^rgba\(/);
+    expect(light.style.borderTopColor).toBe('rgba(0, 0, 0, 0)');
+    expect(outline.style.borderTopColor).not.toBe('rgba(0, 0, 0, 0)');
+  });
+
   it('is an urgent alert for error and warning severities', () => {
     render(
       <>

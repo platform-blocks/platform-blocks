@@ -36,6 +36,7 @@
     "lib",
     "**/*.test.ts",
     "**/*.test.tsx",
+    "src/**/__web_tests__/**/*",
     "src/**/demos/**/*",
     "src/**/__examples__/**/*",
     "index.ts"

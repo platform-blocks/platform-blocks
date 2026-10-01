@@ -8,7 +8,7 @@ export function Demo() {
   const [email, setEmail] = useState('');
 
   return (
-    <Block>
+    <Block fullWidth>
       <Input
         type="email"
         label="Email address"

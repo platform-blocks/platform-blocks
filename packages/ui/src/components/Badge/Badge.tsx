@@ -67,7 +67,7 @@ export const Badge = factory<{ props: BadgeProps; ref: View }>((props, ref) => {
   const { styleProps, otherProps: a11yRest } = extractStyleProps(rest);
 
   // The canonical name wins over its shorthand, matching Text and RollingNumber.
-  const requestedVariant: BadgeVariant = variant ?? v ?? 'subtle';
+  const requestedVariant: BadgeVariant = variant ?? v ?? 'filled';
   const resolvedColor = color ?? c ?? 'primary';
   const shouldUseGradient = requestedVariant === 'gradient' && hasLinearGradient;
   const effectiveVariant: BadgeVariant =

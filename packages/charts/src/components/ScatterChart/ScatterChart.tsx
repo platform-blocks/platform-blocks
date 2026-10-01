@@ -108,6 +108,7 @@ const AnimatedScatterPoint: React.FC<{
 
   return (
     <Animated.View
+      testID="scatter-point"
       style={[
         {
           position: 'absolute',
@@ -281,19 +282,28 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
     name: s.name,
     color: s.pointColor || s.color,
     visible: s.visible !== false,
-    marks: s.chartPoints.map((p, i): Mark => ({
-      id: p.id ?? i,
-      pixel: { x: p.chartX + padding.left, y: p.chartY + padding.top },
-      value: p.y,
-      datum: p,
-      dataX: p.x,
-      dataY: p.y,
-      label: p.label,
-      // Chart-precomputed tooltip value (mirrors the selected-point readout):
-      // "(x, y)", or "label" when the point carries one.
-      formattedValue: p.label ? String(p.label) : `(${formatNumber(p.x)}, ${formatNumber(p.y)})`,
-    })),
-  })), [chartSeries, padding.left, padding.top]);
+    marks: s.chartPoints.map((p, i): Mark => {
+      const custom = tooltip?.formatter?.(p);
+      const quadrantLabel = quadrants?.x != null && quadrants.y != null ? quadrants.labels?.[
+        p.y >= quadrants.y
+          ? p.x >= quadrants.x ? 'topRight' : 'topLeft'
+          : p.x >= quadrants.x ? 'bottomRight' : 'bottomLeft'
+      ] : undefined;
+      const fallback = p.label ? String(p.label) : `(${formatNumber(p.x)}, ${formatNumber(p.y)})`;
+      return {
+        id: p.id ?? i,
+        pixel: { x: p.chartX + padding.left, y: p.chartY + padding.top },
+        value: p.y,
+        datum: p,
+        dataX: p.x,
+        dataY: p.y,
+        label: p.label,
+        formattedValue: typeof custom === 'string' ? custom : fallback,
+        ...(custom != null && typeof custom !== 'string' ? { customTooltip: custom } : {}),
+        ...(custom == null && width < 400 && quadrantLabel ? { formattedValue: `${fallback} · ${quadrantLabel}` } : {}),
+      };
+    }),
+  })), [chartSeries, padding.left, padding.top, tooltip, quadrants, width]);
 
   const tester = useMemo(() => new PointSeriesHitTester(hitSeries), [hitSeries]);
   const register = interaction?.register;
@@ -853,7 +863,7 @@ const ScatterChartInner: React.FC<ScatterChartProps> = (props) => {
                 </>
               )}
 
-              {quadrantLayout.labels && (
+              {(width >= 400 || tooltip?.show === false) && quadrantLayout.labels && (
                 <>
                   {quadrantLayout.labels.topLeft && (
                     <Text

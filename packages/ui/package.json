@@ -1,6 +1,6 @@
 {
   "name": "@plocks/ui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A comprehensive React Native UI component library — 100+ accessible, themeable, cross-platform components for iOS, Android, and Web",
   "type": "module",
   "main": "lib/esm/index.js",
@@ -934,6 +934,18 @@
       "require": null,
       "default": "./lib/esm/components/Rating/index.js"
     },
+    "./ReorderableList": {
+      "react-native": {
+        "types": "./lib/esm/components/ReorderableList/index.d.ts",
+        "default": "./lib/esm/components/ReorderableList/index.js"
+      },
+      "import": {
+        "types": "./lib/esm/components/ReorderableList/index.d.ts",
+        "default": "./lib/esm/components/ReorderableList/index.js"
+      },
+      "require": null,
+      "default": "./lib/esm/components/ReorderableList/index.js"
+    },
     "./Ring": {
       "react-native": {
         "types": "./lib/esm/components/Ring/index.d.ts",
@@ -1138,6 +1150,18 @@
       "require": null,
       "default": "./lib/esm/components/Surface/index.js"
     },
+    "./SwipeableRow": {
+      "react-native": {
+        "types": "./lib/esm/components/SwipeableRow/index.d.ts",
+        "default": "./lib/esm/components/SwipeableRow/index.js"
+      },
+      "import": {
+        "types": "./lib/esm/components/SwipeableRow/index.d.ts",
+        "default": "./lib/esm/components/SwipeableRow/index.js"
+      },
+      "require": null,
+      "default": "./lib/esm/components/SwipeableRow/index.js"
+    },
     "./Switch": {
       "react-native": {
         "types": "./lib/esm/components/Switch/index.d.ts",
@@ -1331,11 +1355,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
     "generate:llms": "tsx ../../scripts/generate-llms.ts",
     "prepare": "sh -c 'if [ \"$BUILD_ON_PREPARE\" = \"1\" ]; then npm run build; else echo \"ui: skipping build on prepare (set BUILD_ON_PREPARE=1 to enable)\"; fi'",
-    "test": "jest",
+    "test": "jest --maxWorkers=2",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --maxWorkers=2",
-    "test:web": "jest -c jest.web.config.cjs",
+    "test:web": "jest -c jest.web.config.cjs --maxWorkers=2",
     "test:update": "jest --updateSnapshot",
     "test:component": "jest",
     "lint": "eslint src",
@@ -1410,11 +1434,11 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
-    "react-native-reanimated": "4.5.0",
+    "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-svg": "15.15.4",
     "react-native-web": "^0.21.3",
-    "react-native-worklets": "0.10.0",
+    "react-native-worklets": "0.10.1",
     "react-test-renderer": "19.2.3",
     "rollup": "^4.57.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
@@ -1473,5 +1497,8 @@
     "react-native-worklets": {
       "optional": true
     }
+  },
+  "dependencies": {
+    "react-native-draggable-flatlist": "^4.0.3"
   }
 }

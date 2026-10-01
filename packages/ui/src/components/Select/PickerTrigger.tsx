@@ -126,7 +126,7 @@ export function PickerTrigger({
         testID={testID}
         style={[
           styles.frame,
-          { gap: metrics.gap },
+          { width: '100%', gap: metrics.gap },
           clearSlot ? { paddingEnd: metrics.paddingX + clearSlot } : null,
           webStyle({ cursor: disabled ? 'not-allowed' : readOnly ? 'default' : 'pointer', userSelect: 'none' }),
           frameStyle,

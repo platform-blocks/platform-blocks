@@ -2,6 +2,7 @@ import React, { useEffect, useCallback } from 'react';
 import { Platform } from 'react-native';
 import Animated, { useSharedValue, useAnimatedProps } from 'react-native-reanimated';
 import { Path } from 'react-native-svg';
+import { isChartTouchInput } from '../../interaction/touchInput';
 
 const AnimatedSvgPath = Animated.createAnimatedComponent(Path);
 
@@ -22,6 +23,9 @@ export interface AnimatedLinkProps {
   onFocus?: () => void;
   onBlur?: () => void;
   onPress?: () => void;
+  onTouchStart?: () => void;
+  onTouchRelease?: () => void;
+  testID?: string;
 }
 
 export const AnimatedLink: React.FC<AnimatedLinkProps> = React.memo(
@@ -41,6 +45,9 @@ export const AnimatedLink: React.FC<AnimatedLinkProps> = React.memo(
     onFocus,
     onBlur,
     onPress,
+    onTouchStart,
+    onTouchRelease,
+    testID,
   }) => {
     const x1 = useSharedValue(sourceX);
     const y1 = useSharedValue(sourceY);
@@ -102,6 +109,7 @@ export const AnimatedLink: React.FC<AnimatedLinkProps> = React.memo(
 
     return (
       <AnimatedSvgPath
+        testID={testID}
         animatedProps={animatedProps}
         stroke={color}
         strokeWidth={resolvedWidth}
@@ -117,10 +125,20 @@ export const AnimatedLink: React.FC<AnimatedLinkProps> = React.memo(
           ? {
               onMouseEnter: onFocus ? handleFocus : undefined,
               onMouseLeave: onBlur ? handleBlur : undefined,
+              onPointerDown: (event: any) => {
+                if (!isChartTouchInput(event)) return;
+                onTouchStart?.();
+                handleFocus();
+              },
+              onPointerUp: (event: any) => {
+                if (!isChartTouchInput(event)) return;
+                handleFocus();
+                onTouchRelease?.();
+              },
             }
           : {
-              onPressIn: onFocus ? handleFocus : undefined,
-              onPressOut: onBlur ? handleBlur : undefined,
+              onPressIn: () => { onTouchStart?.(); handleFocus(); },
+              onPressOut: () => { onTouchRelease?.(); handleBlur(); },
             }) as Record<string, any>)}
       />
     );

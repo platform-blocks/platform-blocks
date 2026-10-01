@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
-import { Title, Text, Chip, Column, Divider, Icon, Search, useHover, useTheme } from '@plocks/ui';
-import { BREAKPOINTS } from '@plocks/ui/core/responsive';
+import { StyleSheet, View } from 'react-native';
+import { useBreakpoint, Title, Text, Chip, Column, Divider, Icon, Search, useHover, useTheme } from '@plocks/ui';
 import { PageLayout, RouteLink } from '../components';
 import { useBrowserTitle, formatPageTitle } from '../hooks/useBrowserTitle';
 import { getAllHooks, getHookMeta, hasHookDemosArtifacts } from '../utils/hooksLoader';
@@ -79,8 +78,8 @@ const HookRow: React.FC<{ hook: HookListItem; narrow: boolean }> = ({ hook, narr
 };
 
 const HookListScreen: React.FC = () => {
-  const { width } = useWindowDimensions();
-  const isNarrow = width < BREAKPOINTS.md;
+  const breakpoint = useBreakpoint();
+  const isNarrow = breakpoint === 'base' || breakpoint === 'xs' || breakpoint === 'sm';
   const [searchQuery, setSearchQuery] = useState('');
   const artifactsReady = hasHookDemosArtifacts();
 

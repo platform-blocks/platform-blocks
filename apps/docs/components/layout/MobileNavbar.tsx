@@ -1,6 +1,7 @@
 import React from 'react';
-import { Platform, ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import {
+  useDeviceInfo,
   Dialog,
   Flex,
   IconButton,
@@ -22,6 +23,7 @@ import { MobileNavigation } from './MobileNavigation';
  * thumb that opened it.
  */
 export const MobileNavbar: React.FC = () => {
+  const { platform: { isNative } } = useDeviceInfo();
   const theme = useTheme();
   const { isMobile, navbarOpen, headerHeightStyle } = useAppShell();
   const { closeNavbar } = useAppShellApi();
@@ -83,7 +85,7 @@ export const MobileNavbar: React.FC = () => {
         <ScrollView
           style={{ flex: 1, width: '100%' }}
           contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 16 }}
-          showsVerticalScrollIndicator={Platform.OS !== 'web'}
+          showsVerticalScrollIndicator={isNative}
         >
           <MobileNavigation onItemPress={closeNavbar} />
         </ScrollView>

@@ -4,7 +4,7 @@ import Svg, { Rect } from 'react-native-svg';
 import Animated, { SharedValue, useAnimatedProps, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 
 import { MarimekkoChartProps, MarimekkoCategory, MarimekkoSegment, MarimekkoDataPoint } from './types';
-import { ChartContainer, ChartTitle, ChartLegend } from '../../ChartBase';
+import { ChartContainer, ChartTitle, ChartLegend, measureChartTitleBand } from '../../ChartBase';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { ChartGrid } from '../../core/ChartGrid';
 import { Axis } from '../../core/Axis';
@@ -13,6 +13,7 @@ import type { ActiveTarget } from '../../core/hittest/types';
 import { ChartInteractionEvent } from '../../types';
 import { linearScale, type Scale } from '../../utils/scales';
 import { createColorAssigner } from '../../colors';
+import { isChartTouchInput } from '../../interaction/touchInput';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
@@ -24,6 +25,7 @@ const toNativePointerEvent = (event: any) => {
       locationY: rect ? event.clientY - rect.top : 0,
       pageX: event?.pageX ?? event?.clientX,
       pageY: event?.pageY ?? event?.clientY,
+      pointerType: event?.pointerType,
     },
   };
 };
@@ -137,6 +139,7 @@ const AnimatedMarimekkoSegment: React.FC<{
             onPointerLeave: () => onHoverOut(segment),
             onPointerDown: (event: any) => {
               if (disabled) return;
+              onHoverIn(segment, event);
               event.currentTarget?.setPointerCapture?.(event.pointerId);
             },
             onPointerUp: (event: any) => {
@@ -272,7 +275,10 @@ export const MarimekkoChart: React.FC<MarimekkoChartProps> = (props) => {
     }));
   }, [segmentLabelOrder, colorAssignments, assignColor]);
 
-  const padding = paddingProp ?? DEFAULT_PADDING;
+  const padding = paddingProp ?? {
+    ...DEFAULT_PADDING,
+    top: Math.max(DEFAULT_PADDING.top, measureChartTitleBand(title, subtitle, { containerWidth: width })),
+  };
   const plotWidth = Math.max(0, width - padding.left - padding.right);
   const plotHeight = Math.max(0, height - padding.top - padding.bottom);
   const gap = Math.max(0, columnGap);
@@ -533,6 +539,7 @@ export const MarimekkoChart: React.FC<MarimekkoChartProps> = (props) => {
   const hoverRef = useRef<string | null>(null);
 
   const handleHoverIn = useCallback((segment: ComputedSegment, event?: any) => {
+    if (event && isChartTouchInput(event)) interaction?.cancelTouchHold();
     hoverRef.current = segment.id;
     const pointerX = padding.left + segment.center.x;
     const pointerY = padding.top + segment.center.y;
@@ -560,7 +567,7 @@ export const MarimekkoChart: React.FC<MarimekkoChartProps> = (props) => {
     };
     setActiveTarget?.(target);
     setActiveSlice?.([target]);
-  }, [padding.left, padding.top, setPointer, setActiveTarget, setActiveSlice]);
+  }, [padding.left, padding.top, setPointer, setActiveTarget, setActiveSlice, interaction]);
 
   const handleHoverOut = useCallback((segment: ComputedSegment) => {
     if (hoverRef.current !== segment.id) {
@@ -573,6 +580,10 @@ export const MarimekkoChart: React.FC<MarimekkoChartProps> = (props) => {
   }, [setPointer, setActiveTarget, setActiveSlice]);
 
   const handlePress = useCallback((segment: ComputedSegment, pressEvent: any) => {
+    if (isChartTouchInput(pressEvent)) {
+      handleHoverIn(segment, pressEvent);
+      interaction?.holdTouchTarget();
+    }
     const absoluteX = padding.left + segment.center.x;
     const absoluteY = padding.top + segment.center.y;
     const chartX = width ? absoluteX / width : 0;
@@ -589,7 +600,7 @@ export const MarimekkoChart: React.FC<MarimekkoChartProps> = (props) => {
 
     onDataPointPress?.(segment.dataPoint, interactionEvent);
     onPress?.(interactionEvent);
-  }, [height, width, onDataPointPress, onPress, padding.left, padding.top]);
+  }, [height, width, onDataPointPress, onPress, padding.left, padding.top, handleHoverIn, interaction]);
 
   const legendItems = useMemo(() => {
     if (legend?.items && legend.items.length) {

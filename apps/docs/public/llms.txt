@@ -1,6 +1,6 @@
 # plocks
 
-> A cross-platform React Native UI library — 129 components, 24 charts,
+> A cross-platform React Native UI library — 131 components, 24 charts,
 > and 48 hooks that render natively on iOS and Android and as real DOM on the web,
 > from one themeable component model.
 
@@ -9,13 +9,13 @@ Each link points to a standalone Markdown file under the /llms path; any docs UR
 with `.md` appended (https://plocks.dev/ui/Button.md) serves the same file.
 
 Whole-library files:
-- https://plocks.dev/llms-small.txt (~175k tokens) — every component, chart and hook: imports, own props, one example each. Loads the whole API at once.
-- https://plocks.dev/llms-full.txt (~430k tokens) — every page in full, nothing truncated. Larger than most context windows; suited to search and embedding.
+- https://plocks.dev/llms-small.txt (~180k tokens) — every component, chart and hook: imports, own props, one example each. Loads the whole API at once.
+- https://plocks.dev/llms-full.txt (~445k tokens) — every page in full, nothing truncated. Larger than most context windows; suited to search and embedding.
 
 Agent skills for Claude Code, Cursor and others: https://github.com/platform-blocks/skills (`npx skills add https://github.com/platform-blocks/skills --skill plocks-setup`)
 
 Install: `npm install @plocks/ui` — separate packages, installed alongside it: `@plocks/brands`, `@plocks/carousel`, `@plocks/charts`, `@plocks/code`, `@plocks/dates`, `@plocks/emoji-picker`, `@plocks/media`, `@plocks/qrcode`, `@plocks/spotlight`. A component page's Import line names the package it comes from.
-Version: generated from the `main` branch — `@plocks/ui` 0.1.0, `@plocks/brands` 0.1.0, `@plocks/carousel` 0.1.0, `@plocks/charts` 0.1.0, `@plocks/code` 0.1.0, `@plocks/dates` 0.1.0, `@plocks/emoji-picker` 0.1.0, `@plocks/media` 0.1.0, `@plocks/qrcode` 0.1.0, `@plocks/spotlight` 0.1.0. The branch can be ahead of the latest npm release; if an API here is missing from your installed version, check the changelog: https://github.com/platform-blocks/plocks/tree/main/changelog
+Version: generated from the `main` branch — `@plocks/ui` 0.2.0, `@plocks/brands` 0.2.0, `@plocks/carousel` 0.2.0, `@plocks/charts` 0.2.0, `@plocks/code` 0.2.0, `@plocks/dates` 0.2.0, `@plocks/emoji-picker` 0.2.0, `@plocks/media` 0.2.0, `@plocks/qrcode` 0.2.0, `@plocks/spotlight` 0.2.0. The branch can be ahead of the latest npm release; if an API here is missing from your installed version, check the changelog: https://github.com/platform-blocks/plocks/tree/main/changelog
 Website: https://plocks.dev • GitHub: https://github.com/platform-blocks/plocks • npm: https://www.npmjs.com/package/@plocks/ui
 
 **Conventions**
@@ -79,7 +79,7 @@ Website: https://plocks.dev • GitHub: https://github.com/platform-blocks/plock
 - [ColorInput](https://plocks.dev/llms/components/ColorInput.md): ColorInput combines a hex field with a palette of preset colors
 - [ColorPicker](https://plocks.dev/llms/components/ColorPicker.md): ColorPicker opens a compact palette for choosing a preset color
 - [ColorSwatch](https://plocks.dev/llms/components/ColorSwatch.md): A simple square component for displaying colors, designed as a building block for color pickers and palette interfaces
-- [ComboboxPopover](https://plocks.dev/llms/components/ComboboxPopover.md): Use a ref-forwarding child inside Target. On phones the list opens in a bottom sheet. Also: `ComboboxPopoverTarget`, `ComboboxPopover.Target`
+- [ComboboxPopover](https://plocks.dev/llms/components/ComboboxPopover.md): Use a ref-forwarding child inside Target. On phones the list opens in a centered dialog. Also: `ComboboxPopoverTarget`, `ComboboxPopover.Target`
 - [ContextMenu](https://plocks.dev/llms/components/ContextMenu.md): ContextMenu shows actions for a target on right-click or long-press
 - [ControlField](https://plocks.dev/llms/components/ControlField.md): ControlField combines a label, description, and a control (Switch, Checkbox, or Radio) into a single pressable row. Also: `ControlFieldGroup`, `ControlField.Description`, `ControlField.Group`, `ControlField.Indicator`, `ControlField.Label`, `useControlField`, `useControlFieldContext`, `useControlFieldGroup`
 - [CopyButton](https://plocks.dev/llms/components/CopyButton.md): Small utility component for copying text values to the clipboard with optional toast feedback
@@ -94,7 +94,7 @@ Website: https://plocks.dev • GitHub: https://github.com/platform-blocks/plock
 - [EmptyState](https://plocks.dev/llms/components/EmptyState.md): Use shorthand content for a simple placeholder, or compound members for custom layout and actions. Also: `EmptyStateIndicator`, `EmptyStateTitle`, `EmptyStateDescription`, `EmptyStateActions`, `EmptyState.Actions`, …
 - [FileInput](https://plocks.dev/llms/components/FileInput.md): Provides a user-friendly interface for file uploads with drag-and-drop functionality, file validation, and preview capabilities
 - [Flex](https://plocks.dev/llms/components/Flex.md): Flex provides a powerful and intuitive way to create flexible layouts using CSS Flexbox principles. Also: `Row`, `Column`
-- [FloatingActions](https://plocks.dev/llms/components/FloatingActions.md): FloatingActions groups related commands in a floating speed dial
+- [FloatingActions](https://plocks.dev/llms/components/FloatingActions.md): FloatingActions places related commands above a trigger or fans them out in a flower layout
 - [FloatingIndicator](https://plocks.dev/llms/components/FloatingIndicator.md): Give the parent position: 'relative'. On native, placement updates when the target or parent changes or the screen dimensions change
 - [FloatingWindow](https://plocks.dev/llms/components/FloatingWindow.md): Use DragHandle when controls inside the window need their own pointer interactions. Also: `FloatingWindowDragHandle`, `FloatingWindowResizeHandle`, `FloatingWindow.DragHandle`, `FloatingWindow.ResizeHandle`, `useFloatingWindow`
 - [Form](https://plocks.dev/llms/components/Form.md): Form manages values, validation, and submission state for a group of inputs. Also: `Form.Field`, `Form.Input`, `Form.Submit`, `useFormContext`, `useOptionalFormContext`
@@ -115,9 +115,9 @@ Website: https://plocks.dev • GitHub: https://github.com/platform-blocks/plock
 - [KeyboardAwareLayout](https://plocks.dev/llms/components/KeyboardAwareLayout.md): KeyboardAwareLayout adjusts screen content when the on-screen keyboard appears
 - [KeyCap](https://plocks.dev/llms/components/KeyCap.md): A visual component for displaying keyboard keys, shortcuts, and key combinations with proper styling. Also: `useKeyCapStyles`
 - [Knob](https://plocks.dev/llms/components/Knob.md): Knob provides a rotary control for selecting a value within a range. Also: `Knob.Fill`, `Knob.Pointer`, `Knob.Progress`, `Knob.Ring`, `Knob.RingSegment`, …
-- [Layout](https://plocks.dev/llms/components/Layout.md): Provides horizontal layout with responsive alignment and spacing options
+- [Layout](https://plocks.dev/llms/components/Layout.md): Row and Column arrange content horizontally and vertically with Flex alignment, spacing, and sizing props
 - [Lightbox](https://plocks.dev/llms/components/Lightbox.md): Lightbox displays images in a full-screen viewer with navigation and optional metadata
-- [Link](https://plocks.dev/llms/components/Link.md): A versatile component for creating styled hyperlinks and navigation elements with hover states and accessibility features
+- [Link](https://plocks.dev/llms/components/Link.md): A versatile component for creating styled hyperlinks and navigation elements with hover states and accessibility features. Also: `LinkBox`
 - [ListGroup](https://plocks.dev/llms/components/ListGroup.md): Provides an organized list structure with items, dividers, and sections for displaying grouped content. Also: `ListGroupItem`, `ListGroupDivider`, `ListGroupBody`
 - [Loader](https://plocks.dev/llms/components/Loader.md): A animated loading component for indicating ongoing processes and loading states with various sizes and styles
 - [LoadingOverlay](https://plocks.dev/llms/components/LoadingOverlay.md): LoadingOverlay covers content with a loading indicator while work is in progress
@@ -143,6 +143,7 @@ Website: https://plocks.dev • GitHub: https://github.com/platform-blocks/plock
 - [QRCode](https://plocks.dev/llms/components/QRCode.md): `@plocks/qrcode` — Generates QR codes for encoding text, URLs, or other data. Also: `QRCodeSVG`
 - [Radio](https://plocks.dev/llms/components/Radio.md): Radio lets users select one option from a group of choices. Also: `RadioGroup`
 - [Rating](https://plocks.dev/llms/components/Rating.md): An interactive component for displaying star ratings and allowing users to provide ratings with customizable appearance
+- [ReorderableList](https://plocks.dev/llms/components/ReorderableList.md): ReorderableList accepts an ordered data array and calls onReorder({ data, from, to }) after a move
 - [Ring](https://plocks.dev/llms/components/Ring.md): Ring displays progress or status in a circular indicator
 - [RollingNumber](https://plocks.dev/llms/components/RollingNumber.md): RollingNumber animates changing digits in a numeric readout
 - [SafeArea](https://plocks.dev/llms/components/SafeArea.md): SafeArea extends a layout container through the device safe area
@@ -162,6 +163,7 @@ Website: https://plocks.dev • GitHub: https://github.com/platform-blocks/plock
 - [Stepper](https://plocks.dev/llms/components/Stepper.md): Step-by-step navigation interface, perfect for multi-step forms, wizards, and progress tracking. Also: `Stepper.Completed`, `Stepper.Step`
 - [StickyNote](https://plocks.dev/llms/components/StickyNote.md): StickyNote displays reminders and annotations on a colorful paper-like surface
 - [Surface](https://plocks.dev/llms/components/Surface.md): Surface provides the base container for the library's elevated components. Also: `useSurfaceLevel`
+- [SwipeableRow](https://plocks.dev/llms/components/SwipeableRow.md): SwipeableRow reveals actions when swiped and provides an action button for keyboard and touch discovery
 - [Switch](https://plocks.dev/llms/components/Switch.md): Switch components provide a way to toggle between two states, typically representing on/off or enabled/disabled states
 - [Table](https://plocks.dev/llms/components/Table.md): Table provides semantic rows, columns, and cells for simple tabular content. Also: `TableTh`, `TableTd`, `TableTr`, `TableThead`, `TableTbody`, …
 - [TableOfContents](https://plocks.dev/llms/components/TableOfContents.md): TableOfContents builds a navigable outline from page headings

@@ -12,8 +12,7 @@ export function Demo() {
       cellSize={{ width: 48, height: 44 }}
       gap={4}
       colorScale={{
-        min: 0,
-        max: 30,
+        domain: [0, 30],
         colors: ['#EBF4FF', '#60A5FA', '#1D4ED8'],
       }}
       xAxis={{

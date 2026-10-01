@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 
+import { withAlpha } from './colorUtils';
 import type { PlocksTheme, SurfaceLevel, SurfaceScale } from './types';
 
 /**
@@ -202,6 +203,11 @@ export const themeColorVariables = (theme: PlocksTheme): Record<string, string> 
     shades.forEach((value, index) => {
       variables[`--plocks-palette-${palette}-${index}`] = value;
     });
+    const strong = shades[5] ?? shades[Math.floor(shades.length / 2)] ?? shades[0];
+    if (strong) {
+      variables[`--plocks-variant-${palette}-light-fill`] = withAlpha(strong, theme.colorScheme === 'dark' ? 0.22 : 0.14);
+      variables[`--plocks-variant-${palette}-subtle-hover`] = withAlpha(strong, theme.colorScheme === 'dark' ? 0.14 : 0.08);
+    }
   });
 
   const chrome = shellChromeColors(theme);
@@ -376,23 +382,29 @@ export const literalSurfaces = (theme: PlocksTheme): SurfaceScale | undefined =>
 
 /** Return a scheme-aware CSS color when a rendered color comes from a theme palette. */
 export const themeColorForFirstPaint = (theme: PlocksTheme, value: string | undefined): string | undefined => {
-  if (Platform.OS !== 'web' || !value || value === 'transparent') return value;
+  if (Platform.OS !== 'web' || !theme.literalColors || !value || value === 'transparent') return value;
 
-  const rgba = value.match(/^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)$/i);
-  const rgb = rgba ? rgba.slice(1, 4).map(Number) : null;
+  const rgba = /^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*[\d.]+\s*\)$/i.test(value);
+  // React Native Web drops color-mix() from inline background/border styles,
+  // leaving the browser's black button border visible. Keep translucent colors
+  // as rgba() so they survive its style normalization.
+  if (rgba) return value;
   for (const [palette, shades] of Object.entries(theme.colors ?? {})) {
-    const index = shades.findIndex((shade) => {
-      if (!rgba) return shade.toLowerCase() === value.toLowerCase();
-      const hex = shade.replace(/^#/, '');
-      if (!/^[\da-f]{6}$/i.test(hex)) return false;
-      return [0, 2, 4].every((offset, channel) => parseInt(hex.slice(offset, offset + 2), 16) === rgb?.[channel]);
-    });
+    const index = shades.findIndex((shade) => shade.toLowerCase() === value.toLowerCase());
     if (index >= 0) {
-      const reference = `var(--plocks-palette-${palette}-${index}, ${shades[index]})`;
-      return rgba
-        ? `color-mix(in srgb, ${reference} ${Number(rgba[4]) * 100}%, transparent)`
-        : reference;
+      return `var(--plocks-palette-${palette}-${index}, ${shades[index]})`;
     }
   }
   return value;
+};
+
+/** Resolve a translucent palette tint through the active CSS color scheme. */
+export const themeVariantFillForFirstPaint = (
+  theme: PlocksTheme,
+  variant: 'light-fill' | 'subtle-hover',
+  color: string,
+  fallback: string,
+): string => {
+  if (Platform.OS !== 'web' || !theme.literalColors || !(theme.colors as Record<string, string[] | undefined>)[color]) return fallback;
+  return `var(--plocks-variant-${color}-${variant}, ${fallback})`;
 };

@@ -1,18 +1,18 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
+  useDeviceInfo,
+  hasDOM,
   HapticsProvider,
   PlocksProvider,
   DialogProvider,
   ToastProvider,
   DialogRenderer,
-  onDialogsRequested,
-  onToastsRequested,
   useTheme,
   AccessibilityProvider,
   KeyboardManagerProvider,
   DirectionProvider,
   useThemeMode,
+  usePersistedState,
   literalText,
   literalBackgrounds,
   type ThemeModeConfig,
@@ -27,7 +27,7 @@ interface Props {
 }
 
 const getSafeBrowserStorage = (): Storage | null => {
-  if (typeof window === 'undefined') {
+  if (!hasDOM) {
     return null;
   }
 
@@ -43,39 +43,8 @@ const getSafeBrowserStorage = (): Storage | null => {
   }
 };
 
-const ConditionalDialogProvider = React.memo<{ enabled: boolean; children: React.ReactNode }>(({ enabled, children }) => {
-  if (!enabled) {
-    return <>{children}</>;
-  }
-
-  return (
-    <DialogProvider>
-      {children}
-      <DialogRenderer />
-    </DialogProvider>
-  );
-});
-
-ConditionalDialogProvider.displayName = 'ConditionalDialogProvider';
-
-const ConditionalToastProvider = React.memo<{ enabled: boolean; children: React.ReactNode }>(({ enabled, children }) => {
-  if (!enabled) {
-    return <>{children}</>;
-  }
-
-  return (
-    <ToastProvider>
-      {children}
-    </ToastProvider>
-  );
-});
-
-ConditionalToastProvider.displayName = 'ConditionalToastProvider';
-
 export const AppProviders: React.FC<Props> = React.memo(({ children }) => {
-  const isDev = process.env.NODE_ENV !== 'production';
-  const [dialogsEnabled, setDialogsEnabled] = useState<boolean>(isDev);
-  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(isDev);
+  const { platform: { isWeb } } = useDeviceInfo();
   const browserStorage = useMemo(() => getSafeBrowserStorage(), []);
   const directionMemoryRef = useRef<Record<string, string>>({});
   const keyboardManagerEnabled = useMemo(() => {
@@ -86,52 +55,9 @@ export const AppProviders: React.FC<Props> = React.memo(({ children }) => {
     return true;
   }, []);
 
-  useEffect(() => {
-    const detachDialog = onDialogsRequested(() => setDialogsEnabled(true));
-    const detachNotifications = onToastsRequested(() => setNotificationsEnabled(true));
-    return () => {
-      detachDialog();
-      detachNotifications();
-    };
-  }, []);
-
-  // Enhanced theme mode configuration that matches the docs app's current behavior
-  const themeModeConfig: ThemeModeConfig | undefined = useMemo(() => {
-    if (Platform.OS === 'web' && browserStorage) {
-      return {
-        initialMode: 'auto',
-        persistence: {
-          get: () => {
-            try {
-              const stored = browserStorage.getItem('plocks-theme-mode');
-              if (stored === 'light' || stored === 'dark' || stored === 'auto') return stored;
-            } catch {
-              return null;
-            }
-            return null;
-          },
-          set: (mode) => {
-            try {
-              browserStorage.setItem('plocks-theme-mode', mode);
-            } catch {
-              /* noop */
-            }
-          }
-        },
-        domConfig: {
-          selector: 'html',
-          lightClass: 'plocks-light',
-          darkClass: 'plocks-dark',
-          attribute: 'data-plocks-manual'
-        }
-      };
-    }
-
-    // Native platforms still need the provider, but can rely on default persistence.
-    return {
-      initialMode: 'auto'
-    };
-  }, [browserStorage]);
+  // ThemeModeProvider already persists the web mode with the same key and DOM
+  // marker that app/+html.tsx reads before hydration.
+  const themeModeConfig: ThemeModeConfig = useMemo(() => ({ initialMode: 'auto' }), []);
 
   const readDirectionMemory = (key: string) => directionMemoryRef.current[key] ?? null;
   const writeDirectionMemory = (key: string, value: string) => {
@@ -140,7 +66,7 @@ export const AppProviders: React.FC<Props> = React.memo(({ children }) => {
 
   // Direction storage controller for RTL support
   const directionStorage = useMemo(() => {
-    if (Platform.OS === 'web' && browserStorage) {
+    if (isWeb && browserStorage) {
       return {
         getItem: async (key: string) => {
           try {
@@ -161,7 +87,7 @@ export const AppProviders: React.FC<Props> = React.memo(({ children }) => {
 
     return {
       getItem: async (key: string) => {
-        if (Platform.OS === 'web') {
+        if (isWeb) {
           return readDirectionMemory(key);
         }
 
@@ -179,7 +105,7 @@ export const AppProviders: React.FC<Props> = React.memo(({ children }) => {
       setItem: async (key: string, value: string) => {
         writeDirectionMemory(key, value);
 
-        if (Platform.OS !== 'web') {
+        if (!isWeb) {
           try {
             await AsyncStorage.setItem(key, value);
           } catch {
@@ -188,20 +114,22 @@ export const AppProviders: React.FC<Props> = React.memo(({ children }) => {
         }
       }
     };
-  }, [browserStorage]);
+  }, [browserStorage, isWeb]);
 
-  // Memoize providers to avoid unnecessary re-renders when only color scheme changes
+  // Keep provider types stable: inserting one on first use remounts the router
+  // and resets the current page, including the home gallery tab.
   const content = useMemo(() => (
-    <ConditionalDialogProvider enabled={dialogsEnabled}>
+    <DialogProvider>
       <SpotlightProvider>
-        <ConditionalToastProvider enabled={notificationsEnabled}>
+        <ToastProvider>
           <AccessibilityProvider>
             {children}
           </AccessibilityProvider>
-        </ConditionalToastProvider>
+        </ToastProvider>
       </SpotlightProvider>
-    </ConditionalDialogProvider>
-  ), [children, dialogsEnabled, notificationsEnabled]);
+      <DialogRenderer />
+    </DialogProvider>
+  ), [children]);
 
   return (
     <HapticsProvider>
@@ -291,61 +219,37 @@ const ChartThemeBridge: React.FC<{ children: React.ReactNode }> = ({ children })
 ChartThemeBridge.displayName = 'ChartThemeBridge';
 
 const ThemeModeHydrator: React.FC = () => {
+  const { platform: { isWeb } } = useDeviceInfo();
   const { mode, setMode } = useThemeMode();
-  const hydratedRef = React.useRef(Platform.OS === 'web');
-  const latestModeRef = React.useRef(mode);
+  const [storedMode, setStoredMode, { ready }] = usePersistedState<'light' | 'dark' | 'auto'>(
+    'plocks-theme-mode',
+    'auto',
+    {
+      serialize: (value) => value,
+      deserialize: (value) => {
+        if (value === 'light' || value === 'dark' || value === 'auto') return value;
+        throw new Error('Invalid theme mode');
+      },
+    }
+  );
+  const hydratedRef = React.useRef(false);
+  const skipWriteRef = React.useRef(false);
 
   useEffect(() => {
-    latestModeRef.current = mode;
-  }, [mode]);
+    if (isWeb || !ready || hydratedRef.current) return;
+    hydratedRef.current = true;
+    skipWriteRef.current = true;
+    if (storedMode !== mode) setMode(storedMode);
+  }, [isWeb, ready, storedMode, mode, setMode]);
 
   useEffect(() => {
-    if (Platform.OS === 'web' || hydratedRef.current) {
+    if (isWeb || !ready || !hydratedRef.current) return;
+    if (skipWriteRef.current) {
+      skipWriteRef.current = false;
       return;
     }
-
-    let cancelled = false;
-
-    AsyncStorage.getItem('plocks-theme-mode')
-      .then((stored: string | null) => {
-        if (cancelled) {
-          return;
-        }
-
-        const persistedMode = stored === 'light' || stored === 'dark' || stored === 'auto' ? stored : null;
-        hydratedRef.current = true; // Unlock writes only after the initial read completes
-
-        if (persistedMode && persistedMode !== latestModeRef.current) {
-          setMode(persistedMode);
-        }
-      })
-      .catch(() => {
-        if (cancelled) {
-          return;
-        }
-
-        hydratedRef.current = true;
-        // Ignore read errors
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [setMode]);
-
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      return;
-    }
-
-    if (!hydratedRef.current) {
-      return;
-    }
-
-    AsyncStorage.setItem('plocks-theme-mode', mode).catch(() => {
-      // Ignore write errors
-    });
-  }, [mode]);
+    if (storedMode !== mode) setStoredMode(mode);
+  }, [isWeb, ready, mode, storedMode, setStoredMode]);
 
   return null;
 };

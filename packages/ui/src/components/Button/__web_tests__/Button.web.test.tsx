@@ -46,6 +46,38 @@ describe('Button (react-native-web DOM)', () => {
     expect(screen.getByRole('tab', { name: 'Overview' }).getAttribute('aria-selected')).toBe('true');
   });
 
+  it('renders a tinted light button without a browser-default outline', () => {
+    render(<Button title="Light action" variant="light" />);
+    const button = screen.getByRole('button', { name: 'Light action' }) as HTMLButtonElement;
+
+    expect(button.style.backgroundColor).toMatch(/^rgba\(/);
+    expect(button.style.borderTopColor).toBe('rgba(0, 0, 0, 0)');
+    expect(button.style.borderTopWidth).toBe('1px');
+  });
+
+  it('keeps filled and subtle borders clear while outline has a colored stroke', () => {
+    render(
+      <>
+        <Button title="Filled action" variant="filled" />
+        <Button title="Subtle action" variant="subtle" />
+        <Button title="Outline action" variant="outline" />
+      </>
+    );
+
+    const filled = screen.getByRole('button', { name: 'Filled action' }) as HTMLButtonElement;
+    const subtle = screen.getByRole('button', { name: 'Subtle action' }) as HTMLButtonElement;
+    const outline = screen.getByRole('button', { name: 'Outline action' }) as HTMLButtonElement;
+    expect(filled.style.borderTopColor).toBe('rgba(0, 0, 0, 0)');
+    expect(subtle.style.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(subtle.style.borderTopColor).toBe('rgba(0, 0, 0, 0)');
+    expect(outline.style.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(outline.style.borderTopColor).not.toBe('rgba(0, 0, 0, 0)');
+
+    fireEvent.mouseEnter(subtle);
+    expect(subtle.style.backgroundColor).toMatch(/^rgba\(/);
+    expect(subtle.style.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+  });
+
   it('renders startSection / endSection', () => {
     render(
       <>

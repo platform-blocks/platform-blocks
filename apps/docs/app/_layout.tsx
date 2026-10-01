@@ -1,6 +1,7 @@
 import React from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack, useGlobalSearchParams, usePathname, router } from 'expo-router';
-import { AppLayoutProvider, AppLayoutRenderer } from '@plocks/ui';
+import { AppLayoutProvider, AppLayoutRenderer, useOverlayApi } from '@plocks/ui';
 import { AppProviders } from '../components/layout/Providers';
 import { ToastShellOffsetBridge } from '../components/layout/ToastShellOffsetBridge';
 import { docsLayout } from '../config/docsLayout';
@@ -17,6 +18,15 @@ const PureStackNavigator = React.memo(() => (
 function RootLayoutInner() {
   const params = useGlobalSearchParams();
   const pathname = usePathname();
+  const { closeAllOverlays } = useOverlayApi();
+  const previousPathname = React.useRef(pathname);
+
+  React.useEffect(() => {
+    if (previousPathname.current !== pathname) {
+      closeAllOverlays();
+      previousPathname.current = pathname;
+    }
+  }, [pathname, closeAllOverlays]);
 
   const query = React.useMemo(() => {
     return Object.fromEntries(Object.entries(params ?? {}));
@@ -47,8 +57,10 @@ function RootLayoutInner() {
 
 export default function RootLayout() {
   return (
-    <AppProviders>
-      <RootLayoutInner />
-    </AppProviders>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AppProviders>
+        <RootLayoutInner />
+      </AppProviders>
+    </GestureHandlerRootView>
   );
 }

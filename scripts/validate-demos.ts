@@ -57,6 +57,11 @@ function main() {
     }
   }
   validateCategories(componentsMeta);
+  const props = JSON.parse(fs.readFileSync(path.join(OUTPUT_DIR, 'components-props.json'), 'utf8'));
+  for (const [name, meta] of Object.entries(componentsMeta)) {
+    if ((meta as any).name !== name) fail(`${name}: metadata name differs from catalog key`);
+    if (!props[name]?.some((prop: any) => !prop.internal)) fail(`${name}: generated public prop table is empty`);
+  }
   validatePackageImports(componentsMeta, demos);
   validateDemoSources();
   console.log(`✔ validate-demos: ${demos.length} demos OK (${Object.keys(componentsMeta).length} components meta)`);

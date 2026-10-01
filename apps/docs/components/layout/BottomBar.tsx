@@ -1,11 +1,11 @@
 import React from 'react';
-import { Platform } from 'react-native';
 import { usePathname, router } from 'expo-router';
-import { AppShell, useTheme, useAppShellApi } from '@plocks/ui';
+import { useDeviceInfo, AppShell, useTheme, useAppShellApi } from '@plocks/ui';
 import { BOTTOM_NAV_ITEMS } from '../../config/navigationConfig';
 import { Icon } from '@plocks/ui';
 
 export const MobileBottomBar: React.FC = () => {
+  const { platform: { isWeb } } = useDeviceInfo();
   const theme = useTheme();
   const pathname = usePathname();
   const { openNavbar } = useAppShellApi();
@@ -46,7 +46,7 @@ export const MobileBottomBar: React.FC = () => {
     return match?.key;
   }, [baseItems, pathname]);
   
-  if (Platform.OS === 'web') return null;
+  if (isWeb) return null;
   
   return <AppShell.BottomAppBar items={items} activeKey={activeKey} variant="solid" showLabels />;
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { type LayoutChangeEvent } from 'react-native';
-import { Block, Card, Grid, GridItem, type ResponsiveProp } from '@plocks/ui';
+import { Block, Grid, GridItem, type ResponsiveProp } from '@plocks/ui';
 import { AreaChart, BarChart, PieChart } from '@plocks/charts';
 
 const AREA_DATA = [
@@ -27,7 +27,7 @@ const PIE_DATA = [
 
 const CHART_CARD_HEIGHT = 180;
 
-function ChartCard({ children }: { title: string; children: (width: number) => React.ReactNode }) {
+function ChartPreview({ children }: { children: (width: number) => React.ReactNode }) {
   const [width, setWidth] = React.useState(0);
 
   const handleLayout = React.useCallback((event: LayoutChangeEvent) => {
@@ -36,11 +36,9 @@ function ChartCard({ children }: { title: string; children: (width: number) => R
   }, []);
 
   return (
-    <Card variant="ghost">
-      <Block {...({ onLayout: handleLayout } as any)} gap={0} w="full" h={CHART_CARD_HEIGHT}>
-        {width > 0 ? children(width) : null}
-      </Block>
-    </Card>
+    <Block onLayout={handleLayout} gap={0} w="full" h={CHART_CARD_HEIGHT}>
+      {width > 0 ? children(width) : null}
+    </Block>
   );
 }
 
@@ -48,54 +46,52 @@ export interface ChartDemosProps {
   cols: ResponsiveProp<number>;
 }
 
+export function getHomeChartExamples() {
+  return [
+    <ChartPreview key="AreaChart">
+      {(width) => (
+        <AreaChart
+          w={width}
+          h={CHART_CARD_HEIGHT}
+          data={AREA_DATA}
+          xAxis={{ show: true, labelFormatter: (v) => AREA_DATA[v]?.label ?? '' }}
+          yAxis={{ show: true }}
+          liveTooltip
+        />
+      )}
+    </ChartPreview>,
+    <ChartPreview key="BarChart">
+      {(width) => (
+        <BarChart
+          w={width}
+          h={CHART_CARD_HEIGHT}
+          data={BAR_DATA}
+          xAxis={{ show: true }}
+          yAxis={{ show: true }}
+          liveTooltip
+          enableCrosshair
+        />
+      )}
+    </ChartPreview>,
+    <ChartPreview key="PieChart">
+      {(width) => (
+        <PieChart
+          w={width}
+          h={CHART_CARD_HEIGHT}
+          data={PIE_DATA}
+          legend={{ show: true }}
+        />
+      )}
+    </ChartPreview>,
+  ];
+}
+
 export default function ChartDemos({ cols }: ChartDemosProps) {
   return (
     <Grid columns={cols} gap="lg" fullWidth mb="xl">
-
-      <GridItem span={1}>
-        <ChartCard title="Revenue trend">
-          {(width) => (
-            <AreaChart
-              w={width}
-              h={CHART_CARD_HEIGHT}
-              data={AREA_DATA}
-              xAxis={{ show: true, labelFormatter: (v) => AREA_DATA[v]?.label ?? '' }}
-              yAxis={{ show: true }}
-              liveTooltip
-            />
-          )}
-        </ChartCard>
-      </GridItem>
-
-      <GridItem span={1}>
-        <ChartCard title="Quarterly results">
-          {(width) => (
-            <BarChart
-              w={width}
-              h={CHART_CARD_HEIGHT}
-              data={BAR_DATA}
-              xAxis={{ show: true }}
-              yAxis={{ show: true }}
-              liveTooltip
-              enableCrosshair
-            />
-          )}
-        </ChartCard>
-      </GridItem>
-
-      <GridItem span={1} {...({ dataSet: { plocksShellDesktopOnly: 'true' } } as any)}>
-        <ChartCard title="Traffic sources">
-          {(width) => (
-            <PieChart
-              w={width}
-              h={CHART_CARD_HEIGHT}
-              data={PIE_DATA}
-              legend={{ show: true }}
-            />
-          )}
-        </ChartCard>
-      </GridItem>
-
+      {getHomeChartExamples().map(example => (
+        <GridItem key={example.key} span={1}>{example}</GridItem>
+      ))}
     </Grid>
   );
 }

@@ -2,56 +2,57 @@ import React, { useState } from 'react';
 import { View, ScrollView } from 'react-native';
 import { 
   Button, 
-  Input, 
+  Form,
   FormLayout, 
   FormSection, 
-  FormField, 
   FormGroup,
   Text,
   Flex,
   DataTable,
-} from '../../../../packages/ui/src/components';
+  Dialog,
+  useAccessibility,
+  useFormContext,
+  resolveSpacing,
+  useTheme,
+} from '@plocks/ui';
 import { DatePickerInput } from '@plocks/dates';
-import { AccessibleAnnouncer, AccessibleModal } from '../../../../packages/ui/src/components/_internal/Accessibility';
-import { useAccessibility } from '../../../../packages/ui/src/core/accessibility/context';
-import { resolveSpacing, useTheme } from '../../../../packages/ui/src/core';
+
+const initialValues = { firstName: '', lastName: '', email: '', phone: '', birthDate: null as Date | null };
+const validationSchema = {
+  firstName: [{ type: 'required' as const, message: 'First name is required' }],
+  email: [
+    { type: 'required' as const, message: 'Email is required' },
+    { type: 'pattern' as const, value: /\S+@\S+\.\S+/, message: 'Email address is invalid' },
+  ],
+};
+
+function BirthDateField() {
+  const form = useFormContext();
+  return (
+    <Form.Field name="birthDate" label="Birth Date" description="Used for age verification">
+      <DatePickerInput
+        value={form.values.birthDate as Date | null}
+        onChange={(date) => form.setFieldValue('birthDate', date)}
+        placeholder="Select birth date"
+      />
+    </Form.Field>
+  );
+}
+
+function FormActions() {
+  const form = useFormContext();
+  return (
+    <Flex direction="row" gap="md" justify="flex-end">
+      <Button variant="outline" onPress={form.resetForm}>Clear Form</Button>
+      <Form.Submit variant="filled">Submit Form</Form.Submit>
+    </Flex>
+  );
+}
 
 const AccessibilityDemo: React.FC = () => {
   const theme = useTheme();
-  const { announcements } = useAccessibility();
-
+  const { announce } = useAccessibility();
   const [modalVisible, setModalVisible] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    birthDate: null as Date | null,
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-    }
-    
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email address is invalid';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = () => {
-    if (validateForm()) {
-      setModalVisible(true);
-    }
-  };
 
   const sampleData = [
     { id: 1, name: 'John Doe', email: 'john@example.com', status: 'Active' },
@@ -66,7 +67,6 @@ const AccessibilityDemo: React.FC = () => {
   ];
 
   return (
-    <AccessibleAnnouncer announcements={announcements}>
       <ScrollView style={{ flex: 1, }}>
         <View style={{ padding: resolveSpacing(theme, 'lg') }}>
           <Text size="xl" fw="bold" style={{ marginBottom: resolveSpacing(theme, 'xl') }}>
@@ -95,84 +95,33 @@ const AccessibilityDemo: React.FC = () => {
           description="Components support proper focus behavior and keyboard navigation"
           spacing="lg"
         >
-          <FormLayout variant="card" spacing="md">
-            <FormGroup direction="row" columns={2} spacing="md">
-              <FormField 
-                label="First Name" 
-                required 
-                error={errors.firstName}
-              >
-                <Input
-                  value={formData.firstName}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, firstName: text }))}
-                  placeholder="Enter first name"
-                />
-              </FormField>
-
-              <FormField 
-                label="Last Name" 
-                required={false}
-              >
-                <Input
-                  value={formData.lastName}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, lastName: text }))}
-                  placeholder="Enter last name"
-                />
-              </FormField>
-            </FormGroup>
-
-            <FormField 
-              label="Email Address" 
-              required 
-              error={errors.email}
-              description="We'll use this to send you important updates"
-            >
-              <Input
-                value={formData.email}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
-                placeholder="Enter email address"
-                textInputProps={{ keyboardType: 'email-address' }}
-              />
-            </FormField>
-
-            <FormField 
-              label="Phone Number"
-              description="Optional - for account recovery"
-            >
-              <Input
-                value={formData.phone}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, phone: text }))}
-                placeholder="Enter phone number"
-                textInputProps={{ keyboardType: 'phone-pad' }}
-              />
-            </FormField>
-
-            <FormField 
-              label="Birth Date"
-              description="Used for age verification"
-            >
-              <DatePickerInput
-                value={formData.birthDate}
-                onChange={(date) => setFormData(prev => ({ ...prev, birthDate: date as Date | null }))}
-                placeholder="Select birth date"
-              />
-            </FormField>
-
-            <Flex direction="row" gap="md" justify="flex-end" style={{ marginTop: resolveSpacing(theme, 'lg') }}>
-              <Button variant="outline" onPress={() => setFormData({
-                firstName: '',
-                lastName: '',
-                email: '',
-                phone: '',
-                birthDate: null,
-              })}>
-                Clear Form
-              </Button>
-              <Button variant="filled" onPress={handleSubmit}>
-                Submit Form
-              </Button>
-            </Flex>
-          </FormLayout>
+          <Form
+            initialValues={initialValues}
+            validationSchema={validationSchema}
+            onSubmit={() => {
+              announce('Form submitted successfully');
+              setModalVisible(true);
+            }}
+          >
+            <FormLayout variant="card" spacing="md">
+              <FormGroup direction="row" columns={2} spacing="md">
+                <Form.Field name="firstName" label="First Name" required>
+                  <Form.Input placeholder="Enter first name" />
+                </Form.Field>
+                <Form.Field name="lastName" label="Last Name">
+                  <Form.Input placeholder="Enter last name" />
+                </Form.Field>
+              </FormGroup>
+              <Form.Field name="email" label="Email Address" required description="We'll use this to send you important updates">
+                <Form.Input placeholder="Enter email address" textInputProps={{ keyboardType: 'email-address' }} />
+              </Form.Field>
+              <Form.Field name="phone" label="Phone Number" description="Optional - for account recovery">
+                <Form.Input placeholder="Enter phone number" textInputProps={{ keyboardType: 'phone-pad' }} />
+              </Form.Field>
+              <BirthDateField />
+              <FormActions />
+            </FormLayout>
+          </Form>
         </FormSection>
 
         {/* Screen Reader Support Demo */}
@@ -188,10 +137,10 @@ const AccessibilityDemo: React.FC = () => {
         </FormSection>
 
         {/* Modal with Focus Trap */}
-        <AccessibleModal
-          visible={modalVisible}
+        <Dialog
+          opened={modalVisible}
           title="Form Submitted Successfully"
-          onDismiss={() => setModalVisible(false)}
+          onClose={() => setModalVisible(false)}
         >
           <Text style={{ marginBottom: resolveSpacing(theme, 'md') }}>
             Thank you for submitting the form! Your information has been saved.
@@ -206,10 +155,9 @@ const AccessibilityDemo: React.FC = () => {
               Close
             </Button>
           </Flex>
-        </AccessibleModal>
+        </Dialog>
       </View>
     </ScrollView>
-    </AccessibleAnnouncer>
   );
 };
 

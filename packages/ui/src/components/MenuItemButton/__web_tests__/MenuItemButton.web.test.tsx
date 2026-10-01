@@ -19,4 +19,13 @@ describe('MenuItemButton (react-native-web DOM)', () => {
     const item = screen.getByRole('menuitem', { name: 'Archive' });
     expect(item.getAttribute('aria-disabled')).toBe('true');
   });
+
+  it('keeps an accent wash on hover', () => {
+    render(<MenuItemButton title="Delete" hoverColor="error" />);
+    const item = screen.getByRole('button', { name: 'Delete' });
+    expect(item.style.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    fireEvent.mouseEnter(item);
+    expect(item.style.backgroundColor).toMatch(/^rgba\(/);
+    expect(item.style.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+  });
 });

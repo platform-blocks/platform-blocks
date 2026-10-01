@@ -66,4 +66,50 @@ describe('RadarChart (axis hit-test engine)', () => {
       expect(ctxRef?.activeSlice?.length).toBe(0);
     });
   });
+
+  it('keeps a touched spoke selected briefly after release', async () => {
+    let ctxRef: ReturnType<typeof useChartInteractionContext> | null = null;
+    const { getByTestId } = renderChart((ctx) => { ctxRef = ctx; });
+    const surface = getByTestId('radar-gesture-surface');
+    const touch = { nativeEvent: { locationX: 150, locationY: 40, pageX: 150, pageY: 40, touches: [] } };
+
+    fireEvent(surface, 'responderGrant', touch);
+    fireEvent(surface, 'responderRelease', touch);
+
+    await waitFor(() => {
+      expect(ctxRef?.activeTarget?.axisIndex).toBe(0);
+      expect(ctxRef?.activeSlice?.length).toBe(2);
+    });
+  });
+});
+
+describe('RadarChart compact spoke labels', () => {
+  const longSeries = [{
+    name: 'Guild',
+    data: [
+      'Code quality', 'Delivery speed', 'Testing coverage',
+      'Observability', 'Collaboration', 'Innovation',
+    ].map((axis, index) => ({ axis, value: index + 2 })),
+  }];
+
+  it('shows a numbered key with complete axis names when labels would shrink a phone plot', () => {
+    const chart = render(
+      <ChartThemeProvider>
+        <RadarChart series={longSeries} w={280} h={400} />
+      </ChartThemeProvider>
+    );
+    expect(chart.getByTestId('radar-axis-key')).toBeTruthy();
+    expect(chart.getByText('1.')).toBeTruthy();
+    expect(chart.getByText('Code quality')).toBeTruthy();
+    expect(chart.getByText('Testing coverage')).toBeTruthy();
+  });
+
+  it('allows full labels to be kept on a narrow chart', () => {
+    const chart = render(
+      <ChartThemeProvider>
+        <RadarChart series={longSeries} w={280} h={400} radialGrid={{ showFullLabelsOnNarrow: true }} />
+      </ChartThemeProvider>
+    );
+    expect(chart.queryByTestId('radar-axis-key')).toBeNull();
+  });
 });

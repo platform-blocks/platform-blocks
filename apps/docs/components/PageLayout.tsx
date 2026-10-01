@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, StyleSheet, Platform, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, StyleSheet, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { usePathname } from 'expo-router';
 import { usePersistentScroll, getSavedScroll } from '../utils/usePersistentScroll';
-import { KeyboardAwareLayout, useBreakpoint, useTheme } from '@plocks/ui';
+import { useDeviceInfo, KeyboardAwareLayout, useBreakpoint, useTheme } from '@plocks/ui';
 import { FooterContent } from './layout/FooterPage';
 
 /**
@@ -26,8 +26,9 @@ export const PAGE_CONTENT_INSET_VAR = '--plocks-page-content-inset';
 
 /** The gutter, deferred to the cascade on web and measured on native. */
 export const usePageGutter = (): number | string => {
+  const { platform: { isWeb } } = useDeviceInfo();
   const breakpoint = useBreakpoint();
-  if (Platform.OS === 'web') return `var(${PAGE_GUTTER_VAR}, ${NARROW_PAGE_GUTTER}px)`;
+  if (isWeb) return `var(${PAGE_GUTTER_VAR}, ${NARROW_PAGE_GUTTER}px)`;
   return breakpoint === 'base' || breakpoint === 'xs' || breakpoint === 'sm'
     ? NARROW_PAGE_GUTTER
     : 0;
@@ -35,8 +36,9 @@ export const usePageGutter = (): number | string => {
 
 /** Its complement: 0 while the gutter is on, 16 once it is off. */
 export const usePageContentInset = (): number | string => {
+  const { platform: { isWeb } } = useDeviceInfo();
   const breakpoint = useBreakpoint();
-  if (Platform.OS === 'web') return `var(${PAGE_CONTENT_INSET_VAR}, 0px)`;
+  if (isWeb) return `var(${PAGE_CONTENT_INSET_VAR}, 0px)`;
   return breakpoint === 'base' || breakpoint === 'xs' || breakpoint === 'sm'
     ? 0
     : NARROW_PAGE_GUTTER;
@@ -49,6 +51,7 @@ interface PageLayoutProps {
 }
 
 export function PageLayout({ children, style, contentContainerStyle }: PageLayoutProps) {
+  const { platform: { isWeb } } = useDeviceInfo();
   const theme = useTheme();
   const gutter = usePageGutter();
 
@@ -63,13 +66,13 @@ export function PageLayout({ children, style, contentContainerStyle }: PageLayou
     },
     contentContainer: {
       flexGrow: 1,
-      paddingBottom: Platform.OS === 'web' ? 0 : 20, // Add padding for mobile
+      paddingBottom: isWeb ? 0 : 20, // Add padding for mobile
     },
    
     footerWrapper: {
       marginTop: 'auto', // This pushes footer to bottom when content is short
     },
-  }), [theme.colorScheme]);
+  }), [theme.colorScheme, isWeb]);
 
   // Track scroll position persistently
   const handleScroll = React.useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {

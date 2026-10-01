@@ -80,7 +80,7 @@ export interface TableProps extends BaseProps, TableHostProps {
   captionSide?: 'top' | 'bottom';
   /** Table layout mode */
   layout?: 'auto' | 'fixed';
-  /** Variant of table layout */
+  /** `vertical` places data headers down the first column (`data` mode). */
   variant?: 'default' | 'vertical';
   /** Enable tabular numbers for better number alignment */
   tabularNums?: boolean;
@@ -370,7 +370,7 @@ const TableRoot = factory<{ props: TableProps; ref: View }>((allProps, ref) => {
     withRowBorders = false,
     captionSide = 'bottom',
     layout: _layout = 'auto',
-    variant: _variant = 'default',
+    variant = 'default',
     tabularNums = false,
     fullWidth = false,
     columns,
@@ -405,6 +405,42 @@ const TableRoot = factory<{ props: TableProps; ref: View }>((allProps, ref) => {
     const columnBorder = (index: number, count: number): ViewStyle | null =>
       withColumnBorders && index < count - 1 ? { borderEndWidth: 1, borderEndColor: theme.backgrounds.border } : null;
     const ariaLabel = rest['aria-label'] ?? (typeof caption === 'string' ? caption : undefined);
+
+    if (variant === 'vertical' && head?.length) {
+      const valueRows = [...(body ?? []), ...(foot ? [foot] : [])];
+      return (
+        <TableContext.Provider value={contextValue}>
+          <View ref={ref} role={role ?? 'table'} {...rest} aria-label={ariaLabel} style={tableStyle}>
+            {caption && captionSide === 'top' && <TableCaption>{caption}</TableCaption>}
+            <TableTbody>
+              {head.map((label, rowIndex) => (
+                <TableTr
+                  key={rowIndex}
+                  style={{
+                    backgroundColor: striped && rowIndex % 2 === 1 ? theme.backgrounds.subtle : 'transparent',
+                    borderBottomWidth: withRowBorders ? 1 : 0,
+                    borderColor: theme.backgrounds.border,
+                  }}
+                >
+                  <TableTh role="rowheader" style={[cellPadding, columnBorder(0, valueRows.length + 1)]}>
+                    {label}
+                  </TableTh>
+                  {valueRows.map((row, valueIndex) => (
+                    <TableTd
+                      key={valueIndex}
+                      style={[cellPadding, columnBorder(valueIndex + 1, valueRows.length + 1)]}
+                    >
+                      {row[rowIndex]}
+                    </TableTd>
+                  ))}
+                </TableTr>
+              ))}
+            </TableTbody>
+            {caption && captionSide === 'bottom' && <TableCaption>{caption}</TableCaption>}
+          </View>
+        </TableContext.Provider>
+      );
+    }
 
     const headerCells = (cells: React.ReactNode[], cellRole: 'columnheader' | 'cell') =>
       cells.map((cell, index) => {

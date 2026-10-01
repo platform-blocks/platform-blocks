@@ -1,7 +1,9 @@
-import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { DocsPage } from '../../components/DocsPage';
 import {
+  useDeviceInfo,
+  useBreakpoint,
   Button,
   Column,
   Flex,
@@ -10,7 +12,6 @@ import {
   Title,
 } from '@plocks/ui';
 import { CodeBlock } from '@plocks/code';
-import { BREAKPOINTS } from '@plocks/ui/core/responsive';
 import { DocsPageHeader } from '../../components/DocsPageHeader';
 import { PrerequisitesList } from '../../components/PrerequisitesList';
 import { Prose } from '../../components/Prose';
@@ -46,11 +47,12 @@ const TOC_SCROLL_SPY = { selector: 'h2' };
 export default function GettingStartedScreen() {
   useBrowserTitle(formatPageTitle('Getting Started'));
 
-  const { width } = useWindowDimensions();
+  const { platform: { isWeb } } = useDeviceInfo();
+  const breakpoint = useBreakpoint();
   // Web-only: the rail is a DOM scan under `position: sticky`, and neither has
   // a native equivalent. Below the desktop breakpoint the 280px column would
   // eat the prose, so the page falls back to a single column.
-  const showToc = Platform.OS === 'web' && width >= BREAKPOINTS.lg;
+  const showToc = isWeb && (breakpoint === 'lg' || breakpoint === 'xl');
 
   return (
     <DocsPage id={TOC_CONTAINER_ID}>

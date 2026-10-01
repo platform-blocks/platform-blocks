@@ -1,8 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { Linking, Platform } from 'react-native';
+import { Linking } from 'react-native';
 import { usePathname } from 'expo-router';
-import * as Clipboard from 'expo-clipboard';
 import {
+  useClipboard,
+  hasDOM,
   Button,
   Icon,
   Menu,
@@ -28,7 +29,6 @@ const CLAUDE_BASE_URL = 'https://claude.ai/new';
 const SITE_URL = 'https://plocks.dev';
 const GITHUB_URL = 'https://github.com/platform-blocks/plocks';
 const NPM_URL = 'https://www.npmjs.com/package/@plocks/ui';
-const isWeb = Platform.OS === 'web';
 
 /**
  * Context header prepended to copied Markdown so an LLM (or a human reading it
@@ -58,6 +58,7 @@ export const CopyPageMenu: React.FC<CopyPageMenuProps> = ({
   markdown,
 }) => {
   const toast = useToast();
+  const { copy } = useClipboard();
   const [copying, setCopying] = useState(false);
   // Router state, not `window.location`. expo-router syncs the browser URL in an
   // effect that runs *after* the render triggered by a client-side navigation,
@@ -68,7 +69,7 @@ export const CopyPageMenu: React.FC<CopyPageMenuProps> = ({
   const pageUrl = pathname ? `${SITE_URL}${pathname}` : SITE_URL;
 
   const buildFallbackPayload = useCallback(() => {
-    if (typeof document === 'undefined') {
+    if (!hasDOM) {
       return '';
     }
 
@@ -105,11 +106,6 @@ export const CopyPageMenu: React.FC<CopyPageMenuProps> = ({
   }, [markdown, buildFallbackPayload, pageTitle, pageUrl]);
 
   const handleCopy = useCallback(async () => {
-    if (!isWeb) {
-      toast.info?.('Copy page is only available on the web docs for now.');
-      return;
-    }
-
     const payload = buildCopyPayload();
     if (!payload) {
       toast.warning?.('Nothing to copy yet—try again after the page finishes loading.');
@@ -118,15 +114,18 @@ export const CopyPageMenu: React.FC<CopyPageMenuProps> = ({
 
     try {
       setCopying(true);
-      await Clipboard.setStringAsync(payload);
-      toast.success?.('Copied Markdown to your clipboard.');
+      if (await copy(payload)) {
+        toast.success?.('Copied Markdown to your clipboard.');
+      } else {
+        toast.error?.('Unable to copy the page. Please try again.');
+      }
     } catch (error) {
       console.error('[CopyPageMenu] Failed to copy page', error);
       toast.error?.('Unable to copy the page. Please try again.');
     } finally {
       setCopying(false);
     }
-  }, [buildCopyPayload, toast]);
+  }, [buildCopyPayload, copy, toast]);
 
   const buildChatPrompt = useCallback(() => (
     `Help me understand the plocks documentation page "${pageTitle}".` +
@@ -136,7 +135,7 @@ export const CopyPageMenu: React.FC<CopyPageMenuProps> = ({
 
   const openChat = useCallback((baseUrl: string, label: string) => {
     const url = `${baseUrl}?q=${encodeURIComponent(buildChatPrompt())}`;
-    if (typeof window !== 'undefined') {
+    if (hasDOM) {
       window.open(url, '_blank', 'noopener,noreferrer');
       return;
     }

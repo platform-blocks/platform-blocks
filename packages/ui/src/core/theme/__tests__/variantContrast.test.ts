@@ -4,7 +4,7 @@
  * "True to their name regardless of theme" is only real if it's enforced. This
  * walks every (theme × color × variant) combination the Chip can produce and
  * asserts the resolved text clears a legible contrast ratio against the *actual*
- * background it sits on (composited tint for light/subtle, fill for filled).
+ * background it sits on (composited tint for light, surface for subtle, fill for filled).
  *
  * If a future theme edit breaks legibility, this test fails instead of shipping.
  */
@@ -28,13 +28,12 @@ const CORE_COLORS: string[] = [
 // A few adversarial custom colors, including the classic "pale color, white text?" trap.
 const CUSTOM_COLORS = ['#7C3AED', '#FFE066', '#0A0A0A', '#00E5FF'];
 
-const TINTED_VARIANTS: VariantRole[] = ['light', 'subtle'];
+const TINTED_VARIANTS: VariantRole[] = ['light'];
 const ALL_VARIANTS: VariantRole[] = ['filled', 'outline', 'light', 'subtle', 'surface'];
 
 // Tint alphas must mirror resolveVariantRoles so we reconstruct the same bg.
 const tintAlpha = (variant: string, isDark: boolean): number => {
   if (variant === 'light') return isDark ? 0.22 : 0.14;
-  if (variant === 'subtle') return isDark ? 0.14 : 0.08;
   return 0;
 };
 
@@ -64,7 +63,7 @@ describe('Chip variant contrast is theme-independent', () => {
 
           const bg = TINTED_VARIANTS.includes(variant)
             ? composite(strongOf(theme, color as string), surface, tintAlpha(variant, isDark))
-            : variant === 'outline'
+            : variant === 'outline' || variant === 'subtle'
               ? surface
               : roles.fill; // filled
 
@@ -75,6 +74,21 @@ describe('Chip variant contrast is theme-independent', () => {
         });
       }
     }
+  }
+});
+
+describe('variant strokes and fills', () => {
+  for (const [schemeName, theme] of THEMES) {
+    it(`${schemeName} reserves the colored border for outline`, () => {
+      for (const variant of ['filled', 'light', 'subtle', 'gradient'] as const) {
+        expect(resolveVariantRoles(theme, { variant }).border).toBe('transparent');
+      }
+      expect(resolveVariantRoles(theme, { variant: 'outline' }).border).not.toBe('transparent');
+    });
+
+    it(`${schemeName} starts subtle transparent`, () => {
+      expect(resolveVariantRoles(theme, { variant: 'subtle' }).fill).toBe('transparent');
+    });
   }
 });
 

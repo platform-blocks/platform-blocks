@@ -1,12 +1,12 @@
+import { hasDOM } from '@plocks/ui';
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
 
 /**
  * Hook to update the browser title on web platform
  */
 export function useBrowserTitle(title: string) {
   useEffect(() => {
-    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    if (hasDOM) {
       const previousTitle = document.title;
       document.title = title;
       

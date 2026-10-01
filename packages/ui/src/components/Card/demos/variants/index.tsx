@@ -7,7 +7,7 @@ export function Demo() {
     <Block fullWidth>
       {VARIANTS.map((variant) => (
         <Card key={variant} variant={variant} p="lg" radius="lg">
-          <Text>{variant}</Text>
+          <Text c={variant === 'gradient' ? 'white' : undefined}>{variant}</Text>
         </Card>
       ))}
     </Block>

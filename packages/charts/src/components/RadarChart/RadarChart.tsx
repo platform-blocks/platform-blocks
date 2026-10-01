@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useRef } from 'react';
-import { View } from 'react-native';
+import { View, Text } from 'react-native';
 import Svg, { Path, Circle, Line as SvgLine, G, Rect, Text as SvgText, TSpan } from 'react-native-svg';
 import Animated, {
   useSharedValue,
@@ -18,6 +18,7 @@ import {
   estimateChartTextWidth,
   measureChartLegendBand,
   measureChartTitleBand,
+  resolveChartLegendPosition,
 } from '../../ChartBase';
 import { useChartInteractionContext, usePointer } from '../../interaction/ChartInteractionContext';
 import { useChartPointer } from '../../interaction/useChartPointer';
@@ -76,9 +77,25 @@ const RING_LABEL_PLATE_PAD_Y = 2;
 const RADAR_EPS = 1e-6;
 /** Above this much upward lean, a label is treated as sitting above the web. */
 const RADAR_VERTICAL_LABEL_THRESHOLD = -0.35;
+const RADAR_COMPACT_WIDTH = 400;
+const RADAR_MIN_READABLE_RADIUS = 76;
+const RADAR_AXIS_KEY_GAP = 8;
 
 const radarAngleFor = (idx: number, axisCount: number) =>
   (Math.PI * 2 * idx / axisCount) - Math.PI / 2;
+
+const wrapNarrowAxisLabel = (label: string): string => {
+  if (label.includes('\n') || label.length <= 11) return label;
+  const words = label.split(/\s+/);
+  if (words.length < 2) return label;
+  const lines: string[] = [];
+  words.forEach((word) => {
+    const last = lines.length - 1;
+    if (last >= 0 && lines[last].length + word.length + 1 <= 11) lines[last] += ` ${word}`;
+    else lines.push(word);
+  });
+  return lines.join('\n');
+};
 
 /**
  * Largest web radius whose axis labels still fit inside the plot box. What a label costs
@@ -343,8 +360,8 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
   // ChartTitle and ChartLegend are absolutely positioned overlays on the container, so the
   // web has to reserve their bands or it draws straight underneath them.
   const legendShown = legend?.show !== false;
-  const legendPosition = legend?.position ?? 'bottom';
-  const titleBand = useMemo(() => measureChartTitleBand(title, subtitle), [title, subtitle]);
+  const legendPosition = resolveChartLegendPosition(legend?.position, width);
+  const titleBand = useMemo(() => measureChartTitleBand(title, subtitle, { containerWidth: width }), [title, subtitle, width]);
   const legendBand = useMemo(
     () =>
       measureChartLegendBand({
@@ -355,7 +372,7 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
     [legendShown, legendItems, legendPosition, width]
   );
 
-  const plotBox = useMemo(
+  const fullPlotBox = useMemo(
     () => ({
       left: legendBand.left,
       top: titleBand + legendBand.top,
@@ -375,29 +392,63 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
   );
   const axisLabelFormatter = radialGrid?.axisLabelFormatter;
 
-  const axisLabels = useMemo(
+  const fullAxisLabels = useMemo(
     () =>
       axes.map((a, ai) => {
         const axisEntry = axisEntries[ai];
         const formatted = axisLabelFormatter
           ? axisLabelFormatter(a, { index: ai, total: axes.length, label: axisEntry?.label })
           : axisEntry?.label ?? a;
-        return formatted == null ? '' : String(formatted);
+        const label = formatted == null ? '' : String(formatted);
+        return width < 480 && axisLabelPlacement !== 'inside' ? wrapNarrowAxisLabel(label) : label;
       }),
-    [axes, axisEntries, axisLabelFormatter]
+    [axes, axisEntries, axisLabelFormatter, width, axisLabelPlacement]
   );
 
-  // Use radar grid geometry hook
-  const fittedRadius = useMemo(
+  const fullLabelRadius = useMemo(
     () =>
       fitRadarRadius({
-        plot: plotBox,
-        labels: axisLabels,
+        plot: fullPlotBox,
+        labels: fullAxisLabels,
         axisCount,
         fontSize: theme.fontSize.sm,
         labelOffset: axisLabelOffset,
         placement: axisLabelPlacement,
       }),
+    [fullPlotBox, fullAxisLabels, axisCount, theme.fontSize.sm, axisLabelOffset, axisLabelPlacement]
+  );
+
+  // Long labels can make the web too small to read on a phone. Number the spokes and
+  // keep the complete names in a key below the web only when this actually occurs.
+  const compactAxisLabels = width < RADAR_COMPACT_WIDTH &&
+    axisLabelPlacement !== 'inside' &&
+    !radialGrid?.showFullLabelsOnNarrow &&
+    fullLabelRadius < RADAR_MIN_READABLE_RADIUS;
+  const [measuredAxisKeyHeight, setMeasuredAxisKeyHeight] = React.useState(0);
+  const estimatedAxisKeyHeight = Math.ceil(axes.length / 2) * 22 + 4;
+  const axisKeyHeight = compactAxisLabels
+    ? Math.max(measuredAxisKeyHeight, estimatedAxisKeyHeight)
+    : 0;
+  const plotBox = useMemo(
+    () => ({
+      ...fullPlotBox,
+      height: Math.max(fullPlotBox.height - axisKeyHeight - RADAR_AXIS_KEY_GAP, 1),
+    }),
+    [fullPlotBox, axisKeyHeight]
+  );
+  const axisLabels = useMemo(
+    () => compactAxisLabels ? axes.map((_, index) => String(index + 1)) : fullAxisLabels,
+    [compactAxisLabels, axes, fullAxisLabels]
+  );
+  const fittedRadius = useMemo(
+    () => fitRadarRadius({
+      plot: plotBox,
+      labels: axisLabels,
+      axisCount,
+      fontSize: theme.fontSize.sm,
+      labelOffset: axisLabelOffset,
+      placement: axisLabelPlacement,
+    }),
     [plotBox, axisLabels, axisCount, theme.fontSize.sm, axisLabelOffset, axisLabelPlacement]
   );
 
@@ -466,14 +517,23 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
         ?? (typeof custom === 'string' || typeof custom === 'number' ? custom
           : typeof tf === 'string' ? tf
           : val);
-      const formattedValue = rawFormatted == null ? undefined : String(rawFormatted);
+      let formattedValue = rawFormatted == null ? undefined : String(rawFormatted);
+      if (compactAxisLabels && formattedValue) {
+        const valueText = formattedValue;
+        const displayedAxis = fullAxisLabels[ai].replace(/\n/g, ' ');
+        const prefixes = [displayedAxis, point?.label, String(a)].filter(Boolean);
+        const repeated = prefixes.find((prefix) => valueText.startsWith(`${prefix}: `));
+        if (repeated) formattedValue = valueText.slice(repeated.length + 2);
+      }
       return {
         id: ai,
         pixel: { x: centerX + Math.cos(ang) * rr, y: centerY + Math.sin(ang) * rr },
         value: val,
         dataX: (360 * ai) / axisCount,
         datum,
-        label: s.name || `Series ${si + 1}`,
+        label: compactAxisLabels
+          ? `${fullAxisLabels[ai].replace(/\n/g, ' ')} · ${s.name || `Series ${si + 1}`}`
+          : s.name || `Series ${si + 1}`,
         color,
         extent: { axisIndex: ai },
         formattedValue,
@@ -483,7 +543,7 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
       };
     });
     return { id: s.id ?? si, name: s.name || `Series ${si + 1}`, color, visible, marks };
-  }), [series, axes, centerX, centerY, angleFor, valueToRadius, maxValue, axisCount, defaultScheme, interaction?.series, tooltip]);
+  }), [series, axes, centerX, centerY, angleFor, valueToRadius, maxValue, axisCount, defaultScheme, interaction?.series, tooltip, compactAxisLabels, fullAxisLabels]);
 
   const tester = useMemo(() => new RadarAxisHitTester(centerX, centerY, hitSeries), [centerX, centerY, hitSeries]);
 
@@ -780,11 +840,16 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
               const fontSize = theme.fontSize.xs;
               const plateWidth = estimateChartTextWidth(text, fontSize) + RING_LABEL_PLATE_PAD_X * 2;
               const plateHeight = fontSize + RING_LABEL_PLATE_PAD_Y * 2;
+              // The compact spoke number sits at the top of the web. Shift scale
+              // labels beside that spoke so the outer ring label cannot cover it.
+              const labelX = compactAxisLabels
+                ? Math.min(centerX + 12, width - plateWidth + RING_LABEL_PLATE_PAD_X - 4)
+                : centerX;
 
               return (
                 <G key={`ring-label-${index}`}>
                   <Rect
-                    x={centerX - plateWidth / 2}
+                    x={compactAxisLabels ? labelX - RING_LABEL_PLATE_PAD_X : labelX - plateWidth / 2}
                     y={labelY - fontSize * 0.8 - RING_LABEL_PLATE_PAD_Y}
                     width={plateWidth}
                     height={plateHeight}
@@ -793,12 +858,12 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
                     opacity={0.85}
                   />
                   <SvgText
-                    x={centerX}
+                    x={labelX}
                     y={labelY}
                     fill={theme.colors.textSecondary}
                     fontSize={fontSize}
                     fontFamily={theme.fontFamily}
-                    textAnchor="middle"
+                    textAnchor={compactAxisLabels ? 'start' : 'middle'}
                   >
                     {text}
                   </SvgText>
@@ -854,10 +919,44 @@ export const RadarChart: React.FC<RadarChartProps> = (props) => {
         </G>
       </Svg>
 
+      {compactAxisLabels && (
+        <View
+          testID="radar-axis-key"
+          onLayout={(event) => {
+            const nextHeight = Math.ceil(event.nativeEvent.layout.height);
+            if (nextHeight !== measuredAxisKeyHeight) setMeasuredAxisKeyHeight(nextHeight);
+          }}
+          style={{
+            position: 'absolute',
+            left: 8,
+            right: 8,
+            bottom: legendBand.bottom + 4,
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+          }}
+        >
+          {fullAxisLabels.map((label, index) => (
+            <View
+              key={`${String(axes[index])}-${index}`}
+              style={{ width: '50%', flexDirection: 'row', paddingRight: 6, paddingBottom: 4 }}
+              accessible
+              accessibilityLabel={`${index + 1}. ${label.replace(/\n/g, ' ')}`}
+            >
+              <Text style={{ color: theme.colors.textSecondary, fontSize: theme.fontSize.xs, minWidth: 16 }}>
+                {index + 1}.
+              </Text>
+              <Text style={{ color: theme.colors.textPrimary, fontSize: theme.fontSize.xs, flexShrink: 1 }}>
+                {label.replace(/\n/g, ' ')}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
       {legendShown && (
         <ChartLegend
           items={legendItems}
-          position={legend?.position}
+          position={legendPosition}
           align={legend?.align}
           // Pin the legend to the band the plot box was shrunk by, and start it below the
           // title so a side legend centres against the web rather than the container.

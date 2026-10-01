@@ -61,7 +61,8 @@ describe('CandlestickChart (point engine-swap)', () => {
 
     fireEvent(surface, 'responderRelease', { nativeEvent: {} });
     await waitFor(() => {
-      expect(ctxRef?.activeTarget).toBeNull();
+      expect(ctxRef?.activeTarget?.formattedValue).toContain('O ');
+      expect(ctxRef?.activeSlice?.length).toBeGreaterThan(0);
     });
   });
 });

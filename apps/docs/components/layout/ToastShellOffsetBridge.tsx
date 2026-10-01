@@ -1,7 +1,5 @@
 import React from 'react';
-import { Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppShell, useToastViewportOffset } from '@plocks/ui';
+import { useDeviceInfo, useAppShell, useToastViewportOffset } from '@plocks/ui';
 
 const coerce = (value: number | string, fallback = 0): number => {
   if (typeof value === 'number') return value;
@@ -19,7 +17,7 @@ const coerce = (value: number | string, fallback = 0): number => {
  * content-offset math (header + safe-area inset on mobile).
  */
 export const ToastShellOffsetBridge: React.FC = () => {
-  const insets = useSafeAreaInsets();
+  const { platform: { isWeb }, safeArea: insets } = useDeviceInfo();
   const {
     headerHeight,
     footerHeight,
@@ -30,8 +28,8 @@ export const ToastShellOffsetBridge: React.FC = () => {
   } = useAppShell();
 
   // Safe-area insets are zeroed on web, matching AppShell's own behavior.
-  const topInset = Platform.OS === 'web' ? 0 : insets.top || 0;
-  const bottomInset = Platform.OS === 'web' ? 0 : insets.bottom || 0;
+  const topInset = isWeb ? 0 : insets.top || 0;
+  const bottomInset = isWeb ? 0 : insets.bottom || 0;
 
   const top = coerce(headerHeight, 60) + (isMobile ? topInset : 0);
   const bottom = isMobile

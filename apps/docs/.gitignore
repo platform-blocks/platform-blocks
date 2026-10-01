@@ -43,3 +43,6 @@ generated/
 
 # generated markdown mirror served at /llms/components/*.md
 public/llms/
+
+# tests
+*.ts-snapshots/

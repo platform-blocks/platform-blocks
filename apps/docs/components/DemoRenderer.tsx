@@ -49,6 +49,7 @@ export const DemoRenderer: React.FC<DemoRendererProps> = ({ demo, preview }) => 
       <Card.Section withBorder>
 
         <Block
+          testID={`demo-preview-${demo.fullId}`}
           direction="column"
           justify="center"
           align={centerPreview ? 'center' : 'stretch'}

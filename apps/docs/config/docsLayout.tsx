@@ -127,7 +127,9 @@ export const docsLayout = defineAppLayout({
           ...baseProps,
           maw: '100%',
           centerContent: false,
-          style: { backgroundColor: 'transparent' },
+          // The static shell stylesheet reserves header and rail space even
+          // when this route hides both. Route-specific insets fill the viewport.
+          style: { top: 0, bottom: 0, start: 0, end: 0, backgroundColor: 'transparent' },
         };
       }
 

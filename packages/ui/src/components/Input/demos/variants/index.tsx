@@ -2,7 +2,7 @@ import { Block, Input } from '@plocks/ui';
 
 export function Demo() {
   return (
-    <Block>
+    <Block fullWidth>
       <Input variant="default" label="Default" placeholder="user@example.com" />
       <Input variant="filled" label="Filled" placeholder="user@example.com" />
       <Input variant="outline" label="Outline" placeholder="user@example.com" />
