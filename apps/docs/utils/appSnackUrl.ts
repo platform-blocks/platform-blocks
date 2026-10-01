@@ -8,8 +8,8 @@ interface AppSnackEntry {
   dependencies: string[];
 }
 
-/** Enable after the plocks packages needed by Snack exist on npm. */
-export const APP_SNACK_PACKAGES_PUBLISHED = false;
+/** Enable after a representative app resolves its dependencies and runs in Snack. */
+export const APP_SNACK_READY = false;
 
 /** The example-apps repository hosts Snack-ready copies of the app source. */
 export function buildAppSnackUrl(

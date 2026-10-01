@@ -11,7 +11,7 @@ export const GITHUB_REPO = 'https://github.com/platform-blocks/plocks';
 
 /** Standalone Expo applications and their Snack-ready source. */
 export const EXAMPLE_APPS_REPO = 'https://github.com/platform-blocks/examples';
-export const EXAMPLE_APPS_REPO_PUBLISHED = false;
+export const EXAMPLE_APPS_REPO_PUBLISHED = true;
 
 /**
  * Figma design link
