@@ -4,14 +4,28 @@
   "packages": 12,
   "localValidation": {
     "typesAndLint": "Package and docs typechecks passed; package lint and CI lint checks passed.",
-    "uiUnit": { "suites": 225, "tests": 2548, "snapshots": 29, "coverageThresholds": "passed" },
-    "uiWeb": { "suites": 137, "tests": 522 },
-    "charts": { "unitSuites": 40, "unitTests": 184, "webSuites": 24, "webTests": 24 },
+    "uiUnit": {
+      "suites": 225,
+      "tests": 2548,
+      "snapshots": 29,
+      "coverageThresholds": "passed"
+    },
+    "uiWeb": {
+      "suites": 137,
+      "tests": 522
+    },
+    "charts": {
+      "unitSuites": 40,
+      "unitTests": 184,
+      "webSuites": 24,
+      "webTests": 24
+    },
     "addonsAndCli": "All add-on unit and DOM suites and the CLI suite passed.",
     "artifacts": "All twelve builds and tarball checks passed; publint and CI published-type checks passed.",
     "productionBrowser": "The initial 718-test run passed 670 tests. After reviewing missing baselines and fixing production provider remounting, all 96 affected and neighboring checks passed, including both home-gallery viewport tests.",
     "examples": "All 28 example apps exported; all example-app browser captures passed.",
-    "starters": "All five app starters typechecked. A fresh minimal starter installed the UI tarball, typechecked, and exported for web."
+    "starters": "All five app starters typechecked. All twelve release tarballs installed together in a fresh starter, which typechecked, exported for web, and rendered without browser console errors. The packaged CLI reports 0.2.0.",
+    "ciFollowup": "Hosted CI passed all package jobs and 715 of 718 browser checks. Fixed the three remaining test-timing failures: pause the Playwright clock at an explicit future time and complete NetworkChart force simulations before capturing screenshots. Reviewed two updated risk-propagation baselines. All 42 NetworkChart checks across three repeated runs and all 112 other chart touch checks passed locally."
   },
   "nativeSmoke": {
     "device": "iPhone 17 Pro simulator, iOS 26.3, Expo Go SDK 57",

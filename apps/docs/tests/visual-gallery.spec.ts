@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pauseChartClock, settleNetworkLayout } from './chart-clock';
 import { EXAMPLE_APPS } from '../config/exampleApps';
 import { EXAMPLES } from '../config/examples';
 
@@ -74,12 +75,14 @@ test.describe('Visual gallery: charts in phone-sized columns', () => {
             test(component, async ({ page }, testInfo) => {
               await page.goto(`/charts/${component}`, { waitUntil: 'networkidle' });
               await settle(page);
+              if (component === 'NetworkChart') await pauseChartClock(page);
               const demosToCheck = viewportWidth === 320 ? entries : [entries[0]];
               for (const [index, demo] of demosToCheck.entries()) {
                 const preview = page.getByTestId(`demo-preview-${demo.id}`).first();
                 await expect(preview).toBeVisible();
                 await preview.scrollIntoViewIfNeeded();
                 await page.waitForTimeout(index === 0 ? 900 : 350);
+                if (component === 'NetworkChart') await settleNetworkLayout(page);
                 const { clientWidth, scrollWidth } = await preview.evaluate((element) => ({
                   clientWidth: element.clientWidth,
                   scrollWidth: element.scrollWidth,

@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pauseChartClock, settleNetworkLayout } from './chart-clock';
 
 const chartCases: readonly { chart: string; target: string; demo?: string }[] = [
   { chart: 'BubbleChart', target: 'bubble' },
@@ -86,8 +87,8 @@ for (const scheme of ['light', 'dark'] as const) {
           await page.waitForTimeout(900);
 
           await page.addStyleTag({ content: '[aria-label="Open actions"] { visibility: hidden !important; }' });
-          await page.clock.install();
-          await page.clock.pauseAt(new Date());
+          await pauseChartClock(page);
+          if (chart === 'NetworkChart') await settleNetworkLayout(page);
           const tooltip = page.getByTestId(target === 'line' ? 'line-chart-tooltip' : target === 'pie-gesture-surface' ? 'pie-chart-tooltip' : 'chart-active-tooltip');
           if (target === 'bubble') {
             const surface = preview.getByTestId('bubble-gesture-surface');
