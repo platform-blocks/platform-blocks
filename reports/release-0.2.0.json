@@ -1,0 +1,37 @@
+{
+  "version": "0.2.0",
+  "reviewedAt": "2026-10-01",
+  "packages": 12,
+  "localValidation": {
+    "typesAndLint": "Package and docs typechecks passed; package lint and CI lint checks passed.",
+    "uiUnit": { "suites": 225, "tests": 2548, "snapshots": 29, "coverageThresholds": "passed" },
+    "uiWeb": { "suites": 137, "tests": 522 },
+    "charts": { "unitSuites": 40, "unitTests": 184, "webSuites": 24, "webTests": 24 },
+    "addonsAndCli": "All add-on unit and DOM suites and the CLI suite passed.",
+    "artifacts": "All twelve builds and tarball checks passed; publint and CI published-type checks passed.",
+    "productionBrowser": "The initial 718-test run passed 670 tests. After reviewing missing baselines and fixing production provider remounting, all 96 affected and neighboring checks passed, including both home-gallery viewport tests.",
+    "examples": "All 28 example apps exported; all example-app browser captures passed.",
+    "starters": "All five app starters typechecked. A fresh minimal starter installed the UI tarball, typechecked, and exported for web."
+  },
+  "nativeSmoke": {
+    "device": "iPhone 17 Pro simulator, iOS 26.3, Expo Go SDK 57",
+    "verified": [
+      "Home page renders and gallery tabs switch",
+      "Dialog opens, has a readable dark-theme title, and closes",
+      "Waveform accessibility seeking changes progress",
+      "ReorderableList accessibility action changes row order with visible labels",
+      "SwipeableRow action menu opens and Archive updates its status"
+    ],
+    "limits": [
+      "Android device testing remains deferred; no connected Android device was available.",
+      "Native long-press dragging and physical-device touch behavior were not covered by this simulator smoke check."
+    ]
+  },
+  "dependencyAudit": {
+    "critical": 0,
+    "high": 0,
+    "moderate": 3,
+    "remaining": "One upstream docs dependency chain: expo-router -> query-string -> decode-uri-component (GHSA-vcc3-ghjq-m6fr). npm's proposed automatic fix downgrades Expo Router across SDK generations; the patched decoder is ESM-only and cannot safely replace query-string 7's CommonJS import.",
+    "metroOverride": "Constrain the vulnerable Metro 0.84.4 copy to compatible patch 0.84.6. Expo's separately pinned Metro 0.84.5 is unchanged."
+  }
+}

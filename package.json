@@ -84,7 +84,8 @@
     "@rollup/rollup-darwin-arm64": "^4.52.3"
   },
   "overrides": {
-    "uuid": "^11.1.1"
+    "uuid": "^11.1.1",
+    "metro@0.84.4": "0.84.6"
   },
   "author": "Josh Stovall",
   "license": "MIT",

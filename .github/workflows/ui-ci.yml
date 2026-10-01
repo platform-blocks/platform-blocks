@@ -206,6 +206,9 @@ jobs:
       - name: Typecheck docs and browser tests
         run: npm run docs:typecheck
 
+      - name: Build workspace packages for example apps
+        run: npm run packages:build
+
       - name: Checkout example apps
         run: git clone --depth 1 https://github.com/platform-blocks/examples.git ../examples
 
