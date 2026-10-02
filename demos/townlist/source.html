@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Townlist demo source | plocks</title><meta name="description" content="Browse the source code for the Townlist demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/townlist/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>townlist source</h1><nav><a href="/demos/townlist/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useState } from &#39;react&#39;;
+import { StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import AsyncStorage from &#39;@react-native-async-storage/async-storage&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import {
+  TextArea,
+  Input,
+  ScrollArea,
+  SafeArea,
+  Block,
+  Button,
+  Chip,
+  Dialog,
+  Image,
+  Icon,
+  IconButton,
+  Tabs,
+  Lightbox,
+  PlocksProvider,
+  Text,
+} from &#39;@plocks/ui&#39;;
+import type { LightboxItem } from &#39;@plocks/ui&#39;;
+
+const C = {
+  purple: &#39;#5D3291&#39;,
+  link: &#39;#315AA6&#39;,
+  ink: &#39;#202020&#39;,
+  muted: &#39;#6D6D6D&#39;,
+  line: &#39;#DADADA&#39;,
+  pale: &#39;#F5F3F8&#39;,
+  white: &#39;#FFF&#39;,
+  green: &#39;#24724C&#39;,
+};
+const CATEGORIES = [&#39;All&#39;, &#39;For sale&#39;, &#39;Housing&#39;, &#39;Jobs&#39;, &#39;Services&#39;, &#39;Community&#39;];
+type Category = (typeof CATEGORIES)[number];
+type Listing = {
+  id: string;
+  title: string;
+  price: number;
+  category: Category;
+  location: string;
+  posted: string;
+  description: string;
+  emoji: string;
+  seller: string;
+};
+type Inquiry = { id: string; listingId: string; text: string; when: string };
+const INITIAL: Listing[] = [
+  {
+    id: &#39;bike&#39;,
+    title: &#39;Commuter bike, excellent condition&#39;,
+    price: 220,
+    category: &#39;For sale&#39;,
+    location: &#39;Downtown&#39;,
+    posted: &#39;today&#39;,
+    description: &#39;Reliable city bike with a comfortable seat and new tires. Ready to ride. Pickup near the library.&#39;,
+    emoji: &#39;🚲&#39;,
+    seller: &#39;Alex&#39;,
+  },
+  {
+    id: &#39;chair&#39;,
+    title: &#39;Mid century lounge chair&#39;,
+    price: 145,
+    category: &#39;For sale&#39;,
+    location: &#39;Northside&#39;,
+    posted: &#39;today&#39;,
+    description: &#39;Solid wood lounge chair with fresh upholstery. A few small signs of use, otherwise lovely.&#39;,
+    emoji: &#39;🪑&#39;,
+    seller: &#39;Morgan&#39;,
+  },
+  {
+    id: &#39;apartment&#39;,
+    title: &#39;Sunny 1 bedroom near the park&#39;,
+    price: 1350,
+    category: &#39;Housing&#39;,
+    location: &#39;Midtown&#39;,
+    posted: &#39;today&#39;,
+    description: &#39;Bright one bedroom with balcony, in-unit laundry, and a short walk to the park. Monthly rent shown.&#39;,
+    emoji: &#39;🏡&#39;,
+    seller: &#39;Dana&#39;,
+  },
+  {
+    id: &#39;camera&#39;,
+    title: &#39;Film camera and two lenses&#39;,
+    price: 310,
+    category: &#39;For sale&#39;,
+    location: &#39;West End&#39;,
+    posted: &#39;yesterday&#39;,
+    description: &#39;Well cared for 35mm film camera. Includes a 50mm lens, wide lens, strap, and carrying case.&#39;,
+    emoji: &#39;📷&#39;,
+    seller: &#39;Jamie&#39;,
+  },
+  {
+    id: &#39;desk&#39;,
+    title: &#39;Writing desk with drawers&#39;,
+    price: 85,
+    category: &#39;For sale&#39;,
+    location: &#39;East Village&#39;,
+    posted: &#39;yesterday&#39;,
+    description: &#39;Compact wood desk with two smooth drawers. Perfect for a small workspace.&#39;,
+    emoji: &#39;🪵&#39;,
+    seller: &#39;Riley&#39;,
+  },
+  {
+    id: &#39;job&#39;,
+    title: &#39;Part time café team member&#39;,
+    price: 18,
+    category: &#39;Jobs&#39;,
+    location: &#39;Downtown&#39;,
+    posted: &#39;yesterday&#39;,
+    description: &#39;Neighborhood café looking for a friendly part time teammate. Pay shown per hour. Flexible mornings.&#39;,
+    emoji: &#39;☕&#39;,
+    seller: &#39;Little Corner Café&#39;,
+  },
+  {
+    id: &#39;plant&#39;,
+    title: &#39;Large monstera with ceramic pot&#39;,
+    price: 45,
+    category: &#39;For sale&#39;,
+    location: &#39;Northside&#39;,
+    posted: &#39;2 days ago&#39;,
+    description: &#39;Healthy monstera with lots of new growth. Comes with the ceramic pot pictured in the demo.&#39;,
+    emoji: &#39;🪴&#39;,
+    seller: &#39;Taylor&#39;,
+  },
+  {
+    id: &#39;room&#39;,
+    title: &#39;Room in friendly shared house&#39;,
+    price: 790,
+    category: &#39;Housing&#39;,
+    location: &#39;Riverside&#39;,
+    posted: &#39;2 days ago&#39;,
+    description: &#39;Private room in a bright shared home. Utilities included. Monthly rent shown.&#39;,
+    emoji: &#39;🛏️&#39;,
+    seller: &#39;Casey&#39;,
+  },
+  {
+    id: &#39;repair&#39;,
+    title: &#39;Bike tune ups and repairs&#39;,
+    price: 35,
+    category: &#39;Services&#39;,
+    location: &#39;Midtown&#39;,
+    posted: &#39;3 days ago&#39;,
+    description: &#39;Local bicycle tune ups, tire replacements, and simple repairs. Starting price shown.&#39;,
+    emoji: &#39;🔧&#39;,
+    seller: &#39;Sam&#39;,
+  },
+  {
+    id: &#39;books&#39;,
+    title: &#39;Weekend neighborhood book swap&#39;,
+    price: 0,
+    category: &#39;Community&#39;,
+    location: &#39;Riverside&#39;,
+    posted: &#39;3 days ago&#39;,
+    description: &#39;Bring a book, take a book, meet your neighbors. Saturday from 10 AM to noon at the community table.&#39;,
+    emoji: &#39;📚&#39;,
+    seller: &#39;Neighborhood Library&#39;,
+  },
+  {
+    id: &#39;speaker&#39;,
+    title: &#39;Portable Bluetooth speaker&#39;,
+    price: 38,
+    category: &#39;For sale&#39;,
+    location: &#39;Downtown&#39;,
+    posted: &#39;4 days ago&#39;,
+    description: &#39;Compact speaker with a long battery life. Includes charging cable.&#39;,
+    emoji: &#39;🔊&#39;,
+    seller: &#39;Chris&#39;,
+  },
+  {
+    id: &#39;tutor&#39;,
+    title: &#39;Friendly math tutoring&#39;,
+    price: 30,
+    category: &#39;Services&#39;,
+    location: &#39;Online / local&#39;,
+    posted: &#39;4 days ago&#39;,
+    description: &#39;Patient tutoring for middle and high school math. Hourly rate shown.&#39;,
+    emoji: &#39;✏️&#39;,
+    seller: &#39;Pat&#39;,
+  },
+];
+const STORAGE = &#39;plocks-townlist-example:v1&#39;;
+const money = (value: number) =&gt; (value === 0 ? &#39;free&#39; : &#39;$&#39; + value.toLocaleString());
+const TINTS: Record&lt;string, string&gt; = {
+  &#39;For sale&#39;: &#39;#ECE8E2&#39;,
+  Housing: &#39;#E1EAE6&#39;,
+  Jobs: &#39;#E6E6F0&#39;,
+  Services: &#39;#E7EBF3&#39;,
+  Community: &#39;#F2E9E7&#39;,
+};
+const PHOTOS = {
+  bicycle: require(&#39;./assets/listings/bicycle.webp&#39;),
+  chairRoom: require(&#39;./assets/listings/chair-room.webp&#39;),
+  livingRoom: require(&#39;./assets/listings/living-room.webp&#39;),
+  apartment: require(&#39;./assets/listings/apartment.webp&#39;),
+  balcony: require(&#39;./assets/listings/balcony.webp&#39;),
+  desk: require(&#39;./assets/listings/desk.webp&#39;),
+  studio: require(&#39;./assets/listings/studio.webp&#39;),
+  cafe: require(&#39;./assets/listings/cafe.webp&#39;),
+};
+const photo = (id: string, uri: LightboxItem[&#39;uri&#39;], title: string): LightboxItem =&gt; ({ id, uri, title });
+const GALLERIES: Record&lt;string, LightboxItem[]&gt; = {
+  bike: [photo(&#39;bike&#39;, PHOTOS.bicycle, &#39;Commuter bike&#39;)],
+  chair: [
+    photo(&#39;chair-room&#39;, PHOTOS.chairRoom, &#39;Lounge chair in a reading nook&#39;),
+    photo(&#39;chair-living&#39;, PHOTOS.livingRoom, &#39;Lounge chair in a living room&#39;),
+  ],
+  apartment: [
+    photo(&#39;apartment-room&#39;, PHOTOS.apartment, &#39;Bright living room&#39;),
+    photo(&#39;apartment-balcony&#39;, PHOTOS.balcony, &#39;Balcony with greenery&#39;),
+    photo(&#39;apartment-living&#39;, PHOTOS.livingRoom, &#39;Living area&#39;),
+  ],
+  camera: [photo(&#39;camera-studio&#39;, PHOTOS.studio, &#39;Camera on a studio desk&#39;)],
+  desk: [photo(&#39;desk&#39;, PHOTOS.desk, &#39;Writing desk&#39;), photo(&#39;desk-studio&#39;, PHOTOS.studio, &#39;Desk in a studio&#39;)],
+  job: [photo(&#39;cafe&#39;, PHOTOS.cafe, &#39;Neighborhood café&#39;)],
+  plant: [photo(&#39;plant&#39;, PHOTOS.balcony, &#39;Balcony plants&#39;)],
+  room: [photo(&#39;room&#39;, PHOTOS.livingRoom, &#39;Shared living room&#39;), photo(&#39;room-detail&#39;, PHOTOS.apartment, &#39;Interior&#39;)],
+  repair: [photo(&#39;repair-bike&#39;, PHOTOS.bicycle, &#39;Bicycle&#39;)],
+  books: [photo(&#39;books&#39;, PHOTOS.chairRoom, &#39;Reading corner&#39;)],
+};
+
+function TownlistScreen() {
+  const { width } = useWindowDimensions();
+  const wide = width &gt;= 880;
+  const [tab, setTab] = useState&lt;&#39;browse&#39; | &#39;saved&#39; | &#39;post&#39; | &#39;inbox&#39;&gt;(&#39;browse&#39;);
+  const [category, setCategory] = useState&lt;Category&gt;(&#39;All&#39;);
+  const [query, setQuery] = useState(&#39;&#39;);
+  const [location, setLocation] = useState(&#39;&#39;);
+  const [listings, setListings] = useState&lt;Listing[]&gt;(INITIAL);
+  const [saved, setSaved] = useState&lt;string[]&gt;([]);
+  const [inquiries, setInquiries] = useState&lt;Inquiry[]&gt;([]);
+  const [selected, setSelected] = useState&lt;string | null&gt;(null);
+  const [lightboxIndex, setLightboxIndex] = useState&lt;number | null&gt;(null);
+  const [message, setMessage] = useState(&#39;&#39;);
+  const [title, setTitle] = useState(&#39;&#39;);
+  const [price, setPrice] = useState(&#39;&#39;);
+  const [postCategory, setPostCategory] = useState&lt;Category&gt;(&#39;For sale&#39;);
+  const [postLocation, setPostLocation] = useState(&#39;&#39;);
+  const [description, setDescription] = useState(&#39;&#39;);
+  const [postEmoji, setPostEmoji] = useState(&#39;📦&#39;);
+  const [ready, setReady] = useState(false);
+  const listing = listings.find((item) =&gt; item.id === selected);
+  const listingPhotos = listing ? GALLERIES[listing.id] ?? [] : [];
+  const results = listings.filter(
+    (item) =&gt;
+      (tab === &#39;saved&#39; ? saved.includes(item.id) : category === &#39;All&#39; || item.category === category) &amp;&amp;
+      `${item.title} ${item.description}`.toLowerCase().includes(query.toLowerCase()) &amp;&amp;
+      item.location.toLowerCase().includes(location.toLowerCase()),
+  );
+
+  useEffect(() =&gt; {
+    AsyncStorage.getItem(STORAGE)
+      .then((raw) =&gt; {
+        if (!raw) return;
+        const data = JSON.parse(raw) as { listings?: Listing[]; saved?: string[]; inquiries?: Inquiry[] };
+        if (Array.isArray(data.listings)) setListings(data.listings);
+        if (Array.isArray(data.saved)) setSaved(data.saved);
+        if (Array.isArray(data.inquiries)) setInquiries(data.inquiries);
+      })
+      .catch(() =&gt; {})
+      .finally(() =&gt; setReady(true));
+  }, []);
+  useEffect(() =&gt; {
+    if (ready) AsyncStorage.setItem(STORAGE, JSON.stringify({ listings, saved, inquiries })).catch(() =&gt; {});
+  }, [listings, saved, inquiries, ready]);
+  function createListing() {
+    if (!title.trim() || !postLocation.trim() || !description.trim() || !price.trim()) return;
+    const amount = Number(price);
+    if (!Number.isFinite(amount) || amount &lt; 0) return;
+    const next: Listing = {
+      id: `local-${Date.now()}`,
+      title: title.trim(),
+      price: amount,
+      category: postCategory,
+      location: postLocation.trim(),
+      description: description.trim(),
+      emoji: postEmoji,
+      seller: &#39;You&#39;,
+      posted: &#39;just now&#39;,
+    };
+    setListings((old) =&gt; [next, ...old]);
+    setTitle(&#39;&#39;);
+    setPrice(&#39;&#39;);
+    setPostLocation(&#39;&#39;);
+    setDescription(&#39;&#39;);
+    setCategory(&#39;All&#39;);
+    setQuery(&#39;&#39;);
+    setLocation(&#39;&#39;);
+    setTab(&#39;browse&#39;);
+    setSelected(next.id);
+  }
+  function sendInquiry() {
+    if (!listing || !message.trim()) return;
+    setInquiries((old) =&gt; [
+      { id: `inquiry-${Date.now()}`, listingId: listing.id, text: message.trim(), when: &#39;just now&#39; },
+      ...old,
+    ]);
+    setMessage(&#39;&#39;);
+    setSelected(null);
+    setTab(&#39;inbox&#39;);
+  }
+  const listingRow = (item: Listing) =&gt; (
+    &lt;Block
+      key={item.id}
+      onPress={() =&gt; setSelected(item.id)}
+      accessibilityRole=&quot;button&quot;
+      accessibilityLabel={`View ${item.title}`}
+      direction=&quot;row&quot;
+      gap={14}
+      py={13}
+      borderBottomWidth={1}
+      borderBottomColor={C.line}
+    &gt;
+      {GALLERIES[item.id]?.length ? (
+        &lt;Image
+          src={GALLERIES[item.id][0].uri}
+          w={wide ? 110 : 94}
+          h={wide ? 88 : 77}
+          radius={7}
+          resizeMode=&quot;cover&quot;
+          alt=&quot;&quot;
+        /&gt;
+      ) : (
+        &lt;Block
+          gap={0}
+          w={wide ? 110 : 94}
+          h={wide ? 88 : 77}
+          radius={7}
+          bg={TINTS[item.category]}
+          align=&quot;center&quot;
+          justify=&quot;center&quot;
+        &gt;
+          &lt;Text size={wide ? 43 : 38}&gt;{item.emoji}&lt;/Text&gt;
+        &lt;/Block&gt;
+      )}
+      &lt;Block flex={1} miw={0} gap={4}&gt;
+        &lt;Text c={C.link} fw=&quot;semibold&quot; size={15} numberOfLines={2}&gt;
+          {item.title}
+        &lt;/Text&gt;
+        &lt;Text c={C.ink} fw=&quot;bold&quot; size={16}&gt;
+          {money(item.price)}
+          {item.category === &#39;Housing&#39; ? &#39;/mo&#39; : item.category === &#39;Jobs&#39; || item.category === &#39;Services&#39; ? &#39;/hr&#39; : &#39;&#39;}
+        &lt;/Text&gt;
+        &lt;Text c={C.muted} size={12}&gt;
+          {item.location} · {item.posted}
+        &lt;/Text&gt;
+      &lt;/Block&gt;
+      &lt;Block
+        gap={0}
+        onPress={(event) =&gt; {
+          event.stopPropagation();
+          setSaved((old) =&gt; (old.includes(item.id) ? old.filter((id) =&gt; id !== item.id) : [...old, item.id]));
+        }}
+        accessibilityRole=&quot;button&quot;
+        accessibilityLabel={saved.includes(item.id) ? &#39;Remove saved listing&#39; : &#39;Save listing&#39;}
+        p={7}
+        alignSelf=&quot;flex-start&quot;
+      &gt;
+        &lt;Icon
+          name=&quot;heart&quot;
+          variant={saved.includes(item.id) ? &#39;filled&#39; : &#39;outlined&#39;}
+          color={saved.includes(item.id) ? C.purple : C.muted}
+          size={20}
+        /&gt;
+      &lt;/Block&gt;
+    &lt;/Block&gt;
+  );
+  const nav = (
+    &lt;Tabs
+      navigationOnly
+      orientation={wide ? &#39;vertical&#39; : &#39;horizontal&#39;}
+      variant=&quot;chip&quot;
+      color={C.purple}
+      value={tab}
+      onChange={(item) =&gt; {
+        setTab(item as typeof tab);
+        setSelected(null);
+      }}
+      items={([&#39;browse&#39;, &#39;saved&#39;, &#39;post&#39;, &#39;inbox&#39;] as const).map((item) =&gt; ({
+        key: item,
+        label: item[0].toUpperCase() + item.slice(1),
+        subLabel: item === &#39;inbox&#39; &amp;&amp; inquiries.length ? String(inquiries.length) : undefined,
+        icon: (
+          &lt;Icon
+            name={item === &#39;browse&#39; ? &#39;search&#39; : item === &#39;saved&#39; ? &#39;heart&#39; : item === &#39;post&#39; ? &#39;plus&#39; : &#39;message&#39;}
+            color={tab === item ? C.white : C.muted}
+            size={wide ? 20 : 19}
+          /&gt;
+        ),
+        content: null,
+      }))}
+    /&gt;
+  );
+
+  return (
+    &lt;SafeArea gap={0} flex={1} bg={C.white}&gt;
+      &lt;StatusBar barStyle=&quot;dark-content&quot; /&gt;
+      &lt;Block gap={0} flex={1} direction={wide ? &#39;row&#39; : &#39;column&#39;} w=&quot;100%&quot; maw={1250} alignSelf=&quot;center&quot;&gt;
+        {wide &amp;&amp; (
+          &lt;Block w={220} p={18} borderRightWidth={1} borderRightColor={C.line} gap={20}&gt;
+            &lt;Text c={C.purple} fw=&quot;bold&quot; size={27}&gt;
+              townlist
+            &lt;/Text&gt;
+            {nav}
+            &lt;Block gap={0} h={1} bg={C.line} /&gt;
+            &lt;Text c={C.muted} fw=&quot;bold&quot; size={11}&gt;
+              CATEGORIES
+            &lt;/Text&gt;
+            {CATEGORIES.map((item) =&gt; (
+              &lt;Block key={item} gap={0} align=&quot;flex-start&quot;&gt;
+                &lt;Chip
+                  onPress={() =&gt; {
+                    setCategory(item);
+                    setTab(&#39;browse&#39;);
+                  }}
+                  pressed={category === item}
+                  variant={category === item ? &#39;light&#39; : &#39;subtle&#39;}
+                  color={C.purple}
+                  size=&quot;sm&quot;
+                &gt;
+                  {item}
+                &lt;/Chip&gt;
+              &lt;/Block&gt;
+            ))}
+            &lt;Block gap={0} flex={1} /&gt;
+            &lt;Text c={C.muted} size={11}&gt;
+              A local classifieds demo
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+        )}
+        &lt;Block gap={0} flex={1}&gt;
+          {!wide &amp;&amp; (
+            &lt;Block
+              gap={0}
+              h={58}
+              direction=&quot;row&quot;
+              align=&quot;center&quot;
+              justify=&quot;space-between&quot;
+              px={18}
+              borderBottomWidth={1}
+              borderBottomColor={C.line}
+            &gt;
+              &lt;Text c={C.purple} fw=&quot;bold&quot; size={25}&gt;
+                townlist
+              &lt;/Text&gt;
+              &lt;Text c={C.muted} size={12}&gt;
+                Your neighborhood
+              &lt;/Text&gt;
+            &lt;/Block&gt;
+          )}
+          &lt;ScrollArea flex={1} keyboardShouldPersistTaps=&quot;handled&quot; contentProps={{ align: &#39;center&#39;, p: 20, pb: 40 }}&gt;
+            &lt;Block gap={0} w=&quot;100%&quot; maw={850}&gt;
+              {(tab === &#39;browse&#39; || tab === &#39;saved&#39;) &amp;&amp; (
+                &lt;&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={27}&gt;
+                    {tab === &#39;saved&#39; ? &#39;Saved listings&#39; : category === &#39;All&#39; ? &#39;Find it around the corner&#39; : category}
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={13} mt={3}&gt;
+                    {tab === &#39;saved&#39; ? &#39;Listings you want to revisit.&#39; : &#39;Local finds, people, and possibilities.&#39;}
+                  &lt;/Text&gt;
+                  &lt;Block direction={wide ? &#39;row&#39; : &#39;column&#39;} gap={9} mt={19}&gt;
+                    &lt;Input
+                      variant=&quot;outline&quot;
+                      value={query}
+                      onChangeText={setQuery}
+                      placeholder=&quot;Search listings&quot;
+                      mb={0}
+                      flex={1}
+                      mih={43}
+                      radius={7}
+                      inputColor={C.ink}
+                    /&gt;
+                    &lt;Input
+                      variant=&quot;outline&quot;
+                      value={location}
+                      onChangeText={setLocation}
+                      placeholder=&quot;Location&quot;
+                      mb={0}
+                      w={wide ? 180 : &#39;100%&#39;}
+                      mih={43}
+                      radius={7}
+                      inputColor={C.ink}
+                    /&gt;
+                  &lt;/Block&gt;
+                  {!wide &amp;&amp; tab === &#39;browse&#39; &amp;&amp; (
+                    &lt;ScrollArea horizontal showsHorizontalScrollIndicator={false} contentProps={{ gap: 8, py: 17 }}&gt;
+                      {CATEGORIES.map((item) =&gt; (
+                        &lt;Chip
+                          key={item}
+                          onPress={() =&gt; setCategory(item)}
+                          pressed={category === item}
+                          variant={category === item ? &#39;filled&#39; : &#39;surface&#39;}
+                          color={C.purple}
+                          size=&quot;sm&quot;
+                        &gt;
+                          {item}
+                        &lt;/Chip&gt;
+                      ))}
+                    &lt;/ScrollArea&gt;
+                  )}
+                  &lt;Block
+                    gap={0}
+                    direction=&quot;row&quot;
+                    justify=&quot;space-between&quot;
+                    mt={wide ? 21 : 4}
+                    pb={7}
+                    borderBottomWidth={1}
+                    borderBottomColor={C.line}
+                  &gt;
+                    &lt;Text c={C.muted} size={12}&gt;
+                      {results.length} {results.length === 1 ? &#39;result&#39; : &#39;results&#39;}
+                    &lt;/Text&gt;
+                    &lt;Text c={C.muted} size={12}&gt;
+                      newest first
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  {results.length ? (
+                    results.map(listingRow)
+                  ) : (
+                    &lt;Block p={50} align=&quot;center&quot; gap={8}&gt;
+                      &lt;Icon name=&quot;search&quot; color={C.muted} size={29} /&gt;
+                      &lt;Text c={C.muted} ta=&quot;center&quot;&gt;
+                        No listings match. Try another search or category.
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                  )}
+                &lt;/&gt;
+              )}
+              {tab === &#39;post&#39; &amp;&amp; (
+                &lt;Block gap={14}&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={27}&gt;
+                    Create a listing
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={13}&gt;
+                    Share something with your neighborhood.
+                  &lt;/Text&gt;
+                  &lt;Text c={C.ink} fw=&quot;semibold&quot; size={13}&gt;
+                    Title
+                  &lt;/Text&gt;
+                  &lt;Input
+                    variant=&quot;outline&quot;
+                    value={title}
+                    onChangeText={setTitle}
+                    placeholder=&quot;What are you posting?&quot;
+                    mb={0}
+                    radius={7}
+                    inputColor={C.ink}
+                  /&gt;
+                  &lt;Text c={C.ink} fw=&quot;semibold&quot; size={13}&gt;
+                    Category
+                  &lt;/Text&gt;
+                  &lt;ScrollArea horizontal showsHorizontalScrollIndicator={false} contentProps={{ gap: 8 }}&gt;
+                    {CATEGORIES.filter((item) =&gt; item !== &#39;All&#39;).map((item) =&gt; (
+                      &lt;Block
+                        gap={0}
+                        key={item}
+                        onPress={() =&gt; setPostCategory(item)}
+                        px={13}
+                        py={8}
+                        radius={16}
+                        bg={postCategory === item ? C.purple : C.pale}
+                      &gt;
+                        &lt;Text c={postCategory === item ? C.white : C.purple} size={12} fw=&quot;semibold&quot;&gt;
+                          {item}
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                    ))}
+                  &lt;/ScrollArea&gt;
+                  &lt;Block direction=&quot;row&quot; gap={10}&gt;
+                    &lt;Block flex={1} gap={7}&gt;
+                      &lt;Text c={C.ink} fw=&quot;semibold&quot; size={13}&gt;
+                        Price
+                      &lt;/Text&gt;
+                      &lt;Input
+                        variant=&quot;outline&quot;
+                        value={price}
+                        onChangeText={setPrice}
+                        keyboardType=&quot;decimal-pad&quot;
+                        placeholder=&quot;0&quot;
+                        mb={0}
+                        radius={7}
+                        inputColor={C.ink}
+                      /&gt;
+                    &lt;/Block&gt;
+                    &lt;Block flex={1} gap={7}&gt;
+                      &lt;Text c={C.ink} fw=&quot;semibold&quot; size={13}&gt;
+                        Location
+                      &lt;/Text&gt;
+                      &lt;Input
+                        variant=&quot;outline&quot;
+                        value={postLocation}
+                        onChangeText={setPostLocation}
+                        placeholder=&quot;Neighborhood&quot;
+                        mb={0}
+                        radius={7}
+                        inputColor={C.ink}
+                      /&gt;
+                    &lt;/Block&gt;
+                  &lt;/Block&gt;
+                  &lt;Text c={C.ink} fw=&quot;semibold&quot; size={13}&gt;
+                    Choose an icon
+                  &lt;/Text&gt;
+                  &lt;Block direction=&quot;row&quot; gap={11}&gt;
+                    {[&#39;📦&#39;, &#39;🚲&#39;, &#39;🪑&#39;, &#39;🏡&#39;, &#39;📚&#39;].map((item) =&gt; (
+                      &lt;Block
+                        gap={0}
+                        key={item}
+                        onPress={() =&gt; setPostEmoji(item)}
+                        w={48}
+                        h={48}
+                        radius={8}
+                        align=&quot;center&quot;
+                        justify=&quot;center&quot;
+                        bg={postEmoji === item ? &#39;#E8DDF2&#39; : C.pale}
+                        borderWidth={postEmoji === item ? 2 : 0}
+                        borderColor={C.purple}
+                      &gt;
+                        &lt;Text size={27}&gt;{item}&lt;/Text&gt;
+                      &lt;/Block&gt;
+                    ))}
+                  &lt;/Block&gt;
+                  &lt;Text c={C.ink} fw=&quot;semibold&quot; size={13}&gt;
+                    Description
+                  &lt;/Text&gt;
+                  &lt;TextArea
+                    variant=&quot;outline&quot;
+                    value={description}
+                    onChangeText={setDescription}
+                    placeholder=&quot;Describe the details...&quot;
+                    mb={0}
+                    rows={4}
+                    radius={7}
+                  /&gt;
+                  &lt;Button
+                    title=&quot;Publish listing&quot;
+                    color={C.purple}
+                    onPress={createListing}
+                    disabled={
+                      !title.trim() ||
+                      !price.trim() ||
+                      !postLocation.trim() ||
+                      !description.trim() ||
+                      !Number.isFinite(Number(price)) ||
+                      Number(price) &lt; 0
+                    }
+                  /&gt;
+                  &lt;Text c={C.muted} size={11}&gt;
+                    Your listing stays on this device.
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+              )}
+              {tab === &#39;inbox&#39; &amp;&amp; (
+                &lt;Block gap={13}&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={27}&gt;
+                    Inbox
+                  &lt;/Text&gt;
+                  {inquiries.length === 0 &amp;&amp; &lt;Text c={C.muted}&gt;Messages you send to sellers will appear here.&lt;/Text&gt;}
+                  {inquiries.map((inquiry) =&gt; {
+                    const item = listings.find((entry) =&gt; entry.id === inquiry.listingId);
+                    return (
+                      &lt;Block
+                        key={inquiry.id}
+                        onPress={() =&gt; setSelected(inquiry.listingId)}
+                        p={15}
+                        borderWidth={1}
+                        borderColor={C.line}
+                        radius={8}
+                        gap={6}
+                      &gt;
+                        &lt;Text c={C.link} fw=&quot;semibold&quot; size={14}&gt;
+                          {item?.title ?? &#39;Listing&#39;}
+                        &lt;/Text&gt;
+                        &lt;Text c={C.ink} size={13}&gt;
+                          You: {inquiry.text}
+                        &lt;/Text&gt;
+                        &lt;Text c={C.muted} size={11}&gt;
+                          {inquiry.when} · Demo message stored locally
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                    );
+                  })}
+                &lt;/Block&gt;
+              )}
+            &lt;/Block&gt;
+          &lt;/ScrollArea&gt;
+          {!wide &amp;&amp; (
+            &lt;Block gap={0} borderTopWidth={1} borderTopColor={C.line} bg={C.white}&gt;
+              {nav}
+            &lt;/Block&gt;
+          )}
+        &lt;/Block&gt;
+      &lt;/Block&gt;
+      {!!listing &amp;&amp; (
+        &lt;Dialog opened accessibilityLabel={listing.title} onClose={() =&gt; {
+          setSelected(null);
+          setLightboxIndex(null);
+        }}&gt;
+          &lt;Block gap={0}&gt;
+            &lt;ScrollArea contentProps={{ p: 18, gap: 12 }}&gt;
+              &lt;Block gap={0} direction=&quot;row&quot; justify=&quot;space-between&quot; align=&quot;center&quot;&gt;
+                &lt;Text c={C.muted} size={12}&gt;
+                  {listing.posted} · {listing.location}
+                &lt;/Text&gt;
+                &lt;IconButton
+                  icon=&quot;x&quot;
+                  variant=&quot;ghost&quot;
+                  iconColor={C.ink}
+                  accessibilityLabel=&quot;Close listing&quot;
+                  onPress={() =&gt; setSelected(null)}
+                /&gt;
+              &lt;/Block&gt;
+              {listingPhotos.length ? (
+                &lt;&gt;
+                  &lt;Block
+                    gap={0}
+                    onPress={() =&gt; setLightboxIndex(0)}
+                    accessibilityRole=&quot;button&quot;
+                    accessibilityLabel={`View photos of ${listing.title}`}
+                  &gt;
+                    &lt;Image src={listingPhotos[0].uri} w=&quot;100%&quot; h={240} radius={7} resizeMode=&quot;cover&quot; alt=&quot;&quot; /&gt;
+                  &lt;/Block&gt;
+                  {listingPhotos.length &gt; 1 &amp;&amp; (
+                    &lt;ScrollArea horizontal showsHorizontalScrollIndicator={false} contentProps={{ gap: 8 }}&gt;
+                      {listingPhotos.map((item, index) =&gt; (
+                        &lt;Block
+                          key={item.id}
+                          gap={0}
+                          onPress={() =&gt; setLightboxIndex(index)}
+                          accessibilityRole=&quot;button&quot;
+                          accessibilityLabel={`Open photo ${index + 1} of ${listingPhotos.length}`}
+                        &gt;
+                          &lt;Image src={item.uri} w={84} h={68} radius={5} resizeMode=&quot;cover&quot; alt=&quot;&quot; /&gt;
+                        &lt;/Block&gt;
+                      ))}
+                    &lt;/ScrollArea&gt;
+                  )}
+                &lt;/&gt;
+              ) : (
+                &lt;Block gap={0} h={170} bg={TINTS[listing.category]} radius={7} align=&quot;center&quot; justify=&quot;center&quot;&gt;
+                  &lt;Text size={86}&gt;{listing.emoji}&lt;/Text&gt;
+                &lt;/Block&gt;
+              )}
+              &lt;Text c={C.link} fw=&quot;bold&quot; size={23}&gt;
+                {listing.title}
+              &lt;/Text&gt;
+              &lt;Text c={C.ink} fw=&quot;bold&quot; size={22}&gt;
+                {money(listing.price)}
+                {listing.category === &#39;Housing&#39;
+                  ? &#39;/mo&#39;
+                  : listing.category === &#39;Jobs&#39; || listing.category === &#39;Services&#39;
+                    ? &#39;/hr&#39;
+                    : &#39;&#39;}
+              &lt;/Text&gt;
+              &lt;Text c={C.muted} size={12}&gt;
+                {listing.category} · posted by {listing.seller}
+              &lt;/Text&gt;
+              &lt;Block gap={0} h={1} bg={C.line} /&gt;
+              &lt;Text c={C.ink} size={14} lh={22}&gt;
+                {listing.description}
+              &lt;/Text&gt;
+              &lt;Block
+                onPress={() =&gt;
+                  setSaved((old) =&gt;
+                    old.includes(listing.id) ? old.filter((id) =&gt; id !== listing.id) : [...old, listing.id],
+                  )
+                }
+                direction=&quot;row&quot;
+                align=&quot;center&quot;
+                gap={8}
+                py={8}
+              &gt;
+                &lt;Icon
+                  name=&quot;heart&quot;
+                  variant={saved.includes(listing.id) ? &#39;filled&#39; : &#39;outlined&#39;}
+                  color={C.purple}
+                  size={19}
+                /&gt;
+                &lt;Text c={C.purple} fw=&quot;semibold&quot;&gt;
+                  {saved.includes(listing.id) ? &#39;Saved&#39; : &#39;Save listing&#39;}
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+              {listing.seller !== &#39;You&#39; &amp;&amp; (
+                &lt;Block gap={9} pt={8}&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={15}&gt;
+                    Message {listing.seller}
+                  &lt;/Text&gt;
+                  &lt;TextArea
+                    variant=&quot;outline&quot;
+                    value={message}
+                    onChangeText={setMessage}
+                    placeholder=&quot;Hi, is this still available?&quot;
+                    mb={0}
+                    rows={3}
+                    radius={7}
+                  /&gt;
+                  &lt;Button title=&quot;Send demo message&quot; color={C.purple} disabled={!message.trim()} onPress={sendInquiry} /&gt;
+                  &lt;Text c={C.muted} size={11}&gt;
+                    Messages stay on this device and are not sent to sellers.
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+              )}
+            &lt;/ScrollArea&gt;
+          &lt;/Block&gt;
+          &lt;Lightbox
+            opened={lightboxIndex !== null &amp;&amp; listingPhotos.length &gt; 0}
+            images={listingPhotos}
+            initialIndex={lightboxIndex ?? 0}
+            onClose={() =&gt; setLightboxIndex(null)}
+            showDownloadButton={false}
+            accessibilityLabel={`${listing.title} photos`}
+          /&gt;
+        &lt;/Dialog&gt;
+      )}
+    &lt;/SafeArea&gt;
+  );
+}
+export default function App() {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;light&#39; }}&gt;
+        &lt;TownlistScreen /&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

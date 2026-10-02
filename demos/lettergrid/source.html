@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Lettergrid demo source | plocks</title><meta name="description" content="Browse the source code for the Lettergrid demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/lettergrid/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>lettergrid source</h1><nav><a href="/demos/lettergrid/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useState } from &#39;react&#39;;
+import type { ReactNode } from &#39;react&#39;;
+import { StatusBar } from &#39;react-native&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+
+import {
+  Block,
+  Button,
+  Card,
+  Column,
+  Input,
+  PlocksProvider,
+  SafeArea,
+  ScrollArea,
+  Text,
+  Title,
+} from &#39;@plocks/ui&#39;;
+
+type Palette = {
+  background: string;
+  surface: string;
+  ink: string;
+  muted: string;
+  accent: string;
+  border: string;
+};
+
+function AppFrame({
+  name,
+  subtitle,
+  palette,
+  children,
+  dark = false,
+  showHeader = true,
+}: {
+  name: string;
+  subtitle: string;
+  palette: Palette;
+  children: ReactNode;
+  dark?: boolean;
+  showHeader?: boolean;
+}) {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: dark ? &#39;dark&#39; : &#39;light&#39; }}&gt;
+        &lt;SafeArea gap={0} flex={1} bg={palette.background}&gt;
+          &lt;StatusBar barStyle={dark ? &#39;light-content&#39; : &#39;dark-content&#39;} /&gt;
+          &lt;ScrollArea
+            contentProps={{ w: &#39;100%&#39;, maw: 720, alignSelf: &#39;center&#39;, p: 20, pb: 64, gap: 18 }}
+          &gt;
+            {showHeader &amp;&amp; (
+              &lt;Column gap=&quot;xs&quot;&gt;
+                &lt;Text c={palette.accent} size={11} fw=&quot;bold&quot; lts={2}&gt;
+                  PLOCKS EXAMPLE
+                &lt;/Text&gt;
+                &lt;Title order={1} c={palette.ink} size={34}&gt;
+                  {name}
+                &lt;/Title&gt;
+                &lt;Text c={palette.muted}&gt;{subtitle}&lt;/Text&gt;
+              &lt;/Column&gt;
+            )}
+            {children}
+          &lt;/ScrollArea&gt;
+        &lt;/SafeArea&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+
+function Panel({
+  children,
+  palette,
+  onPress,
+}: {
+  children: ReactNode;
+  palette: Palette;
+  onPress?: () =&gt; void;
+}) {
+  return (
+    &lt;Card
+      onPress={onPress}
+      bg={palette.surface}
+      borderColor={palette.border}
+      borderWidth={1}
+      radius=&quot;lg&quot;
+      padding=&quot;lg&quot;
+    &gt;
+      &lt;Column gap=&quot;sm&quot;&gt;{children}&lt;/Column&gt;
+    &lt;/Card&gt;
+  );
+}
+
+function Action({
+  title,
+  palette,
+  onPress,
+  outline = false,
+  disabled = false,
+}: {
+  title: string;
+  palette: Palette;
+  onPress: () =&gt; void;
+  outline?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    &lt;Button
+      title={title}
+      onPress={onPress}
+      disabled={disabled}
+      size=&quot;sm&quot;
+      variant={outline ? &#39;outline&#39; : &#39;filled&#39;}
+      color={palette.accent}
+      textColor={outline ? palette.accent : palette.background}
+    /&gt;
+  );
+}
+
+function Actions({ children }: { children: ReactNode }) {
+  return (
+    &lt;Block direction=&quot;row&quot; wrap=&quot;wrap&quot; align=&quot;center&quot; gap={8}&gt;
+      {children}
+    &lt;/Block&gt;
+  );
+}
+
+const P: Palette = {
+  background: &#39;#F6F6F3&#39;,
+  surface: &#39;#FFFFFF&#39;,
+  ink: &#39;#202124&#39;,
+  muted: &#39;#6D7275&#39;,
+  accent: &#39;#538D4E&#39;,
+  border: &#39;#D9DCE0&#39;,
+};
+const WORDS = [&#39;PLANT&#39;, &#39;LIGHT&#39;, &#39;STONE&#39;, &#39;BREAD&#39;, &#39;TRAIN&#39;, &#39;OCEAN&#39;, &#39;MUSIC&#39;];
+const pick = () =&gt; WORDS[Math.floor(Math.random() * WORDS.length)];
+function marks(guess: string, answer: string) {
+  const result = Array(5).fill(&#39;absent&#39;) as string[];
+  const pool = answer.split(&#39;&#39;);
+  for (let i = 0; i &lt; 5; i++)
+    if (guess[i] === answer[i]) {
+      result[i] = &#39;correct&#39;;
+      pool[i] = &#39;&#39;;
+    }
+  for (let i = 0; i &lt; 5; i++)
+    if (result[i] !== &#39;correct&#39;) {
+      const index = pool.indexOf(guess[i]);
+      if (index &gt;= 0) {
+        result[i] = &#39;present&#39;;
+        pool[index] = &#39;&#39;;
+      }
+    }
+  return result;
+}
+export default function App() {
+  const [answer, setAnswer] = useState(pick);
+  const [guess, setGuess] = useState(&#39;&#39;);
+  const [guesses, setGuesses] = useState&lt;string[]&gt;([]);
+  const [message, setMessage] = useState(&#39;Guess the five-letter word in six tries.&#39;);
+  const won = guesses.includes(answer),
+    ended = won || guesses.length === 6;
+  function submit() {
+    const word = guess.trim().toUpperCase();
+    if (word.length !== 5 || !/^[A-Z]{5}$/.test(word)) {
+      setMessage(&#39;Enter exactly five letters.&#39;);
+      return;
+    }
+    setGuesses((old) =&gt; [...old, word]);
+    setGuess(&#39;&#39;);
+    setMessage(
+      word === answer
+        ? &#39;You got it!&#39;
+        : guesses.length === 5
+          ? `The word was ${answer}.`
+          : &#39;Keep trying.&#39;,
+    );
+  }
+  function reset() {
+    setAnswer(pick());
+    setGuess(&#39;&#39;);
+    setGuesses([]);
+    setMessage(&#39;New puzzle ready.&#39;);
+  }
+  return (
+    &lt;AppFrame name=&quot;Lettergrid&quot; subtitle=&quot;A small word puzzle with familiar color clues.&quot; palette={P}&gt;
+      &lt;Panel palette={P}&gt;
+        &lt;Text c={P.ink}&gt;{message}&lt;/Text&gt;
+      &lt;/Panel&gt;
+      &lt;Block gap={6} align=&quot;center&quot;&gt;
+        {Array.from({ length: 6 }, (_, row) =&gt; (
+          &lt;Block key={row} direction=&quot;row&quot; gap={6}&gt;
+            {Array.from({ length: 5 }, (_, col) =&gt; {
+              const letter =
+                guesses[row]?.[col] ??
+                (row === guesses.length &amp;&amp; !ended ? guess.toUpperCase()[col] : &#39;&#39;) ??
+                &#39;&#39;;
+              const mark = guesses[row] ? marks(guesses[row], answer)[col] : &#39;&#39;;
+              const bg =
+                mark === &#39;correct&#39;
+                  ? &#39;#538D4E&#39;
+                  : mark === &#39;present&#39;
+                    ? &#39;#B59F3B&#39;
+                    : mark
+                      ? &#39;#787C7E&#39;
+                      : P.surface;
+              return (
+                &lt;Block
+                  gap={0}
+                  key={col}
+                  w={51}
+                  h={51}
+                  justify=&quot;center&quot;
+                  align=&quot;center&quot;
+                  borderWidth={2}
+                  borderColor={mark ? bg : P.border}
+                  bg={bg}
+                &gt;
+                  &lt;Text c={mark ? &#39;#FFF&#39; : P.ink} fw=&quot;bold&quot; size={24}&gt;
+                    {letter}
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+              );
+            })}
+          &lt;/Block&gt;
+        ))}
+      &lt;/Block&gt;
+      {!ended &amp;&amp; (
+        &lt;Actions&gt;
+          &lt;Block gap={0} flex={1} miw={190}&gt;
+            &lt;Input
+              label=&quot;Your guess&quot;
+              value={guess}
+              maxLength={5}
+              autoCapitalize=&quot;characters&quot;
+              onChangeText={setGuess}
+            /&gt;
+          &lt;/Block&gt;
+          &lt;Action title=&quot;Guess&quot; palette={P} onPress={submit} /&gt;
+        &lt;/Actions&gt;
+      )}
+      &lt;Action title=&quot;New puzzle&quot; palette={P} outline onPress={reset} /&gt;
+    &lt;/AppFrame&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

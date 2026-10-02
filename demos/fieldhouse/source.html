@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Fieldhouse demo source | plocks</title><meta name="description" content="Browse the source code for the Fieldhouse demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/fieldhouse/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>fieldhouse source</h1><nav><a href="/demos/fieldhouse/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useState } from &#39;react&#39;;
+import { StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import AsyncStorage from &#39;@react-native-async-storage/async-storage&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import { Chip, Dialog, Input, ScrollArea, SafeArea, Block, Button, Icon, IconButton, PlocksProvider, Tabs, Text } from &#39;@plocks/ui&#39;;
+
+const C = {
+  navy: &#39;#0D1D3B&#39;,
+  blue: &#39;#1767D5&#39;,
+  sky: &#39;#EAF3FF&#39;,
+  white: &#39;#FFF&#39;,
+  ink: &#39;#17243C&#39;,
+  muted: &#39;#6D7C93&#39;,
+  line: &#39;#E5EAF1&#39;,
+  green: &#39;#21815E&#39;,
+};
+const GAMES = [
+  {
+    id: &#39;hoops1&#39;,
+    league: &#39;Basketball&#39;,
+    away: &#39;Metro Comets&#39;,
+    home: &#39;Harbor Waves&#39;,
+    time: &#39;Tonight · 7:30 PM&#39;,
+    awayOdds: 125,
+    homeOdds: -145,
+    live: true,
+    score: &#39;62 – 58&#39;,
+    emoji: &#39;🏀&#39;,
+  },
+  {
+    id: &#39;hoops2&#39;,
+    league: &#39;Basketball&#39;,
+    away: &#39;Canyon Solars&#39;,
+    home: &#39;Summit Bears&#39;,
+    time: &#39;Tomorrow · 6:00 PM&#39;,
+    awayOdds: -110,
+    homeOdds: 105,
+    live: false,
+    score: &#39;&#39;,
+    emoji: &#39;🏀&#39;,
+  },
+  {
+    id: &#39;football1&#39;,
+    league: &#39;Football&#39;,
+    away: &#39;Coastal Hawks&#39;,
+    home: &#39;Valley Foxes&#39;,
+    time: &#39;Sunday · 1:00 PM&#39;,
+    awayOdds: 115,
+    homeOdds: -135,
+    live: false,
+    score: &#39;&#39;,
+    emoji: &#39;🏈&#39;,
+  },
+  {
+    id: &#39;football2&#39;,
+    league: &#39;Football&#39;,
+    away: &#39;Northern Lights&#39;,
+    home: &#39;Desert Owls&#39;,
+    time: &#39;Sunday · 4:25 PM&#39;,
+    awayOdds: -120,
+    homeOdds: 110,
+    live: false,
+    score: &#39;&#39;,
+    emoji: &#39;🏈&#39;,
+  },
+  {
+    id: &#39;hockey1&#39;,
+    league: &#39;Hockey&#39;,
+    away: &#39;Ice Harbor&#39;,
+    home: &#39;River Wolves&#39;,
+    time: &#39;Tonight · 8:00 PM&#39;,
+    awayOdds: 135,
+    homeOdds: -155,
+    live: true,
+    score: &#39;2 – 2&#39;,
+    emoji: &#39;🏒&#39;,
+  },
+  {
+    id: &#39;soccer1&#39;,
+    league: &#39;Soccer&#39;,
+    away: &#39;Union City&#39;,
+    home: &#39;Blue Coast FC&#39;,
+    time: &#39;Saturday · 5:00 PM&#39;,
+    awayOdds: -105,
+    homeOdds: 120,
+    live: false,
+    score: &#39;&#39;,
+    emoji: &#39;⚽&#39;,
+  },
+];
+type Game = (typeof GAMES)[number];
+type Selection = { gameId: string; side: &#39;away&#39; | &#39;home&#39; };
+type Pick = { id: string; selections: Selection[]; stake: number; payout: number; placed: string };
+type Tab = &#39;sports&#39; | &#39;live&#39; | &#39;picks&#39;;
+const STORAGE = &#39;plocks-fieldhouse-example:v1&#39;;
+const money = (value: number) =&gt; &#39;$&#39; + value.toFixed(2);
+const oddsText = (value: number) =&gt; (value &gt; 0 ? `+${value}` : String(value));
+const decimalOdds = (value: number) =&gt; (value &gt; 0 ? 1 + value / 100 : 1 + 100 / Math.abs(value));
+const selectionOdds = (selection: Selection) =&gt; {
+  const game = GAMES.find((item) =&gt; item.id === selection.gameId)!;
+  return selection.side === &#39;away&#39; ? game.awayOdds : game.homeOdds;
+};
+
+function FieldhouseScreen() {
+  const { width } = useWindowDimensions();
+  const wide = width &gt;= 960;
+  const [tab, setTab] = useState&lt;Tab&gt;(&#39;sports&#39;);
+  const [league, setLeague] = useState(&#39;All&#39;);
+  const [slip, setSlip] = useState&lt;Selection[]&gt;([]);
+  const [stake, setStake] = useState(&#39;10&#39;);
+  const [balance, setBalance] = useState(1000);
+  const [picks, setPicks] = useState&lt;Pick[]&gt;([]);
+  const [showSlip, setShowSlip] = useState(false);
+  const [ready, setReady] = useState(false);
+  const amount = Number(stake);
+  const combined = slip.reduce((result, selection) =&gt; result * decimalOdds(selectionOdds(selection)), 1);
+  const payout = amount * combined;
+  const valid = slip.length &gt; 0 &amp;&amp; Number.isFinite(amount) &amp;&amp; amount &gt; 0 &amp;&amp; amount &lt;= balance;
+  const visible = GAMES.filter((game) =&gt; (tab !== &#39;live&#39; || game.live) &amp;&amp; (league === &#39;All&#39; || game.league === league));
+
+  useEffect(() =&gt; {
+    AsyncStorage.getItem(STORAGE)
+      .then((raw) =&gt; {
+        if (!raw) return;
+        const data = JSON.parse(raw) as { balance?: number; picks?: Pick[] };
+        if (typeof data.balance === &#39;number&#39;) setBalance(data.balance);
+        if (Array.isArray(data.picks)) setPicks(data.picks);
+      })
+      .catch(() =&gt; {})
+      .finally(() =&gt; setReady(true));
+  }, []);
+  useEffect(() =&gt; {
+    if (ready) AsyncStorage.setItem(STORAGE, JSON.stringify({ balance, picks })).catch(() =&gt; {});
+  }, [balance, picks, ready]);
+  function choose(gameId: string, side: Selection[&#39;side&#39;]) {
+    setSlip((old) =&gt;
+      old.some((item) =&gt; item.gameId === gameId &amp;&amp; item.side === side)
+        ? old.filter((item) =&gt; item.gameId !== gameId)
+        : [...old.filter((item) =&gt; item.gameId !== gameId), { gameId, side }],
+    );
+    if (!wide) setShowSlip(true);
+  }
+  function placePick() {
+    if (!valid) return;
+    setBalance((old) =&gt; old - amount);
+    setPicks((old) =&gt; [
+      { id: `pick-${Date.now()}`, selections: slip, stake: amount, payout, placed: new Date().toLocaleString() },
+      ...old,
+    ]);
+    setSlip([]);
+    setStake(&#39;10&#39;);
+    setShowSlip(false);
+    setTab(&#39;picks&#39;);
+  }
+  const nav = (
+    &lt;Tabs
+      navigationOnly
+      variant=&quot;chip&quot;
+      value={tab}
+      onChange={(item) =&gt; setTab(item as Tab)}
+      color={C.blue}
+      activeTabTextColor={C.white}
+      textStyle={{ color: &#39;#C4D5EF&#39; }}
+      labelProps={{ size: wide ? 15 : 13 }}
+      items={[
+        { key: &#39;sports&#39;, label: &#39;Sports&#39;, content: null },
+        { key: &#39;live&#39;, label: &#39;Live&#39;, content: null },
+        { key: &#39;picks&#39;, label: &#39;My Picks&#39;, content: null },
+      ]}
+    /&gt;
+  );
+  const market = (game: Game, side: &#39;away&#39; | &#39;home&#39;) =&gt; {
+    const chosen = slip.some((item) =&gt; item.gameId === game.id &amp;&amp; item.side === side);
+    const team = side === &#39;away&#39; ? game.away : game.home;
+    const odds = side === &#39;away&#39; ? game.awayOdds : game.homeOdds;
+    return (
+      &lt;Block
+        onPress={() =&gt; choose(game.id, side)}
+        accessibilityRole=&quot;button&quot;
+        accessibilityLabel={`Pick ${team} at ${oddsText(odds)}`}
+        flex={1}
+        bg={chosen ? C.blue : C.sky}
+        radius={9}
+        p={11}
+        align=&quot;center&quot;
+        gap={3}
+      &gt;
+        &lt;Text c={chosen ? C.white : C.ink} fw=&quot;semibold&quot; size={12} numberOfLines={1}&gt;
+          {team}
+        &lt;/Text&gt;
+        &lt;Text c={chosen ? C.white : C.blue} fw=&quot;bold&quot; size={16}&gt;
+          {oddsText(odds)}
+        &lt;/Text&gt;
+      &lt;/Block&gt;
+    );
+  };
+  const gameCard = (game: Game) =&gt; (
+    &lt;Block key={game.id} bg={C.white} borderWidth={1} borderColor={C.line} radius={15} p={16} mb={12} gap={12}&gt;
+      &lt;Block gap={0} direction=&quot;row&quot; justify=&quot;space-between&quot; align=&quot;center&quot;&gt;
+        &lt;Text c={C.muted} fw=&quot;bold&quot; size={11}&gt;
+          {game.emoji} {game.league.toUpperCase()} · {game.time}
+        &lt;/Text&gt;
+        {game.live &amp;&amp; (
+          &lt;Text c=&quot;#D44545&quot; fw=&quot;bold&quot; size={11}&gt;
+            ● LIVE
+          &lt;/Text&gt;
+        )}
+      &lt;/Block&gt;
+      &lt;Block gap={0} direction=&quot;row&quot; justify=&quot;space-between&quot; align=&quot;center&quot;&gt;
+        &lt;Block gap={0} flex={1}&gt;
+          &lt;Text c={C.ink} fw=&quot;bold&quot; size={16}&gt;
+            {game.away}
+          &lt;/Text&gt;
+          &lt;Text c={C.ink} fw=&quot;bold&quot; size={16}&gt;
+            {game.home}
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+        {!!game.score &amp;&amp; (
+          &lt;Text c={C.blue} fw=&quot;bold&quot; size={19}&gt;
+            {game.score}
+          &lt;/Text&gt;
+        )}
+      &lt;/Block&gt;
+      &lt;Text c={C.muted} size={11}&gt;
+        Moneyline · choose the winner
+      &lt;/Text&gt;
+      &lt;Block direction=&quot;row&quot; gap={9}&gt;
+        {market(game, &#39;away&#39;)}
+        {market(game, &#39;home&#39;)}
+      &lt;/Block&gt;
+    &lt;/Block&gt;
+  );
+  const slipContent = (
+    &lt;Block gap={13}&gt;
+      &lt;Block gap={0} direction=&quot;row&quot; justify=&quot;space-between&quot; align=&quot;center&quot;&gt;
+        &lt;Text c={C.ink} fw=&quot;bold&quot; size={21}&gt;
+          Pick slip
+        &lt;/Text&gt;
+        &lt;Text c={C.muted} size={12}&gt;
+          {slip.length} {slip.length === 1 ? &#39;selection&#39; : &#39;selections&#39;}
+        &lt;/Text&gt;
+      &lt;/Block&gt;
+      {slip.length === 0 ? (
+        &lt;Block align=&quot;center&quot; gap={8} py={40}&gt;
+          &lt;Text size={40}&gt;🎟️&lt;/Text&gt;
+          &lt;Text c={C.muted} ta=&quot;center&quot;&gt;
+            Choose a moneyline to start a demo pick.
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+      ) : (
+        &lt;&gt;
+          {slip.map((selection) =&gt; {
+            const game = GAMES.find((item) =&gt; item.id === selection.gameId)!;
+            const team = selection.side === &#39;away&#39; ? game.away : game.home;
+            return (
+              &lt;Block key={game.id} borderBottomWidth={1} borderBottomColor={C.line} pb={11} direction=&quot;row&quot; gap={8}&gt;
+                &lt;Block gap={0} flex={1}&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={13}&gt;
+                    {team}
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={11}&gt;
+                    {game.away} vs {game.home}
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+                &lt;Text c={C.blue} fw=&quot;bold&quot;&gt;
+                  {oddsText(selectionOdds(selection))}
+                &lt;/Text&gt;
+                &lt;Block
+                  gap={0}
+                  onPress={() =&gt; setSlip((old) =&gt; old.filter((item) =&gt; item.gameId !== game.id))}
+                  accessibilityLabel={`Remove ${team}`}
+                &gt;
+                  &lt;Icon name=&quot;x&quot; color={C.muted} size={17} /&gt;
+                &lt;/Block&gt;
+              &lt;/Block&gt;
+            );
+          })}
+          &lt;Text c={C.ink} fw=&quot;bold&quot; size={13}&gt;
+            Demo stake
+          &lt;/Text&gt;
+          &lt;Input
+            variant=&quot;outline&quot;
+            value={stake}
+            onChangeText={setStake}
+            keyboardType=&quot;decimal-pad&quot;
+            placeholder=&quot;Amount&quot;
+            mb={0}
+            radius={9}
+            inputColor={C.ink}
+            inputFontSize={16}
+          /&gt;
+          &lt;Block gap={0} direction=&quot;row&quot; justify=&quot;space-between&quot;&gt;
+            &lt;Text c={C.muted} size={13}&gt;
+              Potential return
+            &lt;/Text&gt;
+            &lt;Text c={C.green} fw=&quot;bold&quot; size={17}&gt;
+              {Number.isFinite(payout) ? money(payout) : &#39;—&#39;}
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+          &lt;Text c={C.muted} size={12}&gt;
+            Demo credits available: {money(balance)}
+          &lt;/Text&gt;
+          &lt;Button title=&quot;Place simulated pick&quot; color={C.blue} disabled={!valid} onPress={placePick} /&gt;
+          &lt;Text c={C.muted} size={11}&gt;
+            Fictional games and odds. No real money or wager is involved.
+          &lt;/Text&gt;
+        &lt;/&gt;
+      )}
+    &lt;/Block&gt;
+  );
+
+  return (
+    &lt;SafeArea gap={0} flex={1} bg=&quot;#F6F8FB&quot;&gt;
+      &lt;StatusBar barStyle=&quot;light-content&quot; /&gt;
+      &lt;Block gap={0} w=&quot;100%&quot; maw={1300} alignSelf=&quot;center&quot; flex={1}&gt;
+        &lt;Block gap={0} bg={C.navy} px={wide ? 28 : 17} pt={11} direction=&quot;row&quot; align=&quot;center&quot; justify=&quot;space-between&quot;&gt;
+          &lt;Text c={C.white} fw=&quot;bold&quot; size={wide ? 26 : 20}&gt;
+            FIELDHOUSE
+          &lt;/Text&gt;
+          &lt;Text c={C.white} fw=&quot;bold&quot; size={wide ? 14 : 12}&gt;
+            ◈ {money(balance)} demo
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+        &lt;Block gap={0} bg={C.navy} px={wide ? 28 : 17}&gt;
+          {nav}
+        &lt;/Block&gt;
+        &lt;Block gap={0} flex={1} direction=&quot;row&quot;&gt;
+          &lt;ScrollArea flex={1} contentProps={{ p: wide ? 24 : 16, pb: 50 }}&gt;
+            &lt;Block gap={0} maw={840} w=&quot;100%&quot; alignSelf=&quot;center&quot;&gt;
+              {tab === &#39;picks&#39; ? (
+                &lt;&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={27}&gt;
+                    My Picks
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={13} mt={4} mb={20}&gt;
+                    Your simulated picks stay on this device.
+                  &lt;/Text&gt;
+                  {picks.length === 0 &amp;&amp; (
+                    &lt;Block bg={C.white} p={30} radius={14} align=&quot;center&quot; gap={10}&gt;
+                      &lt;Text size={50}&gt;🎟️&lt;/Text&gt;
+                      &lt;Text c={C.ink} fw=&quot;bold&quot; size={18}&gt;
+                        No picks yet
+                      &lt;/Text&gt;
+                      &lt;Button title=&quot;Explore games&quot; color={C.blue} onPress={() =&gt; setTab(&#39;sports&#39;)} /&gt;
+                    &lt;/Block&gt;
+                  )}
+                  {picks.map((pick) =&gt; (
+                    &lt;Block key={pick.id} bg={C.white} p={17} radius={13} mb={11} gap={8}&gt;
+                      &lt;Block gap={0} direction=&quot;row&quot; justify=&quot;space-between&quot;&gt;
+                        &lt;Text c={C.ink} fw=&quot;bold&quot;&gt;
+                          Demo pick
+                        &lt;/Text&gt;
+                        &lt;Text c={C.blue} fw=&quot;bold&quot; size={12}&gt;
+                          PENDING
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                      {pick.selections.map((selection) =&gt; {
+                        const game = GAMES.find((item) =&gt; item.id === selection.gameId)!;
+                        return (
+                          &lt;Text key={game.id} c={C.ink} size={13}&gt;
+                            {selection.side === &#39;away&#39; ? game.away : game.home} · {oddsText(selectionOdds(selection))}
+                          &lt;/Text&gt;
+                        );
+                      })}
+                      &lt;Block gap={0} h={1} bg={C.line} /&gt;
+                      &lt;Text c={C.muted} size={12}&gt;
+                        Stake {money(pick.stake)} · Potential return {money(pick.payout)}
+                      &lt;/Text&gt;
+                      &lt;Text c={C.muted} size={11}&gt;
+                        {pick.placed}
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                  ))}
+                &lt;/&gt;
+              ) : (
+                &lt;&gt;
+                  &lt;Block gap={0} bg={C.navy} radius={16} p={21} mb={21}&gt;
+                    &lt;Text c=&quot;#76B6FF&quot; fw=&quot;bold&quot; size={11}&gt;
+                      FIELDHOUSE SPORTSBOOK · DEMO
+                    &lt;/Text&gt;
+                    &lt;Text c={C.white} fw=&quot;bold&quot; size={27} mt={5}&gt;
+                      Make your picks.
+                    &lt;/Text&gt;
+                    &lt;Text c=&quot;#CDD9EB&quot; size={13} mt={5}&gt;
+                      Explore fictional matchups with demo credits.
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;ScrollArea horizontal showsHorizontalScrollIndicator={false} contentProps={{ gap: 8, mb: 20 }}&gt;
+                    {[&#39;All&#39;, &#39;Basketball&#39;, &#39;Football&#39;, &#39;Hockey&#39;, &#39;Soccer&#39;].map((item) =&gt; (
+                      &lt;Chip
+                        key={item}
+                        onPress={() =&gt; setLeague(item)}
+                        pressed={league === item}
+                        variant={league === item ? &#39;filled&#39; : &#39;surface&#39;}
+                        color={C.blue}
+                        size=&quot;md&quot;
+                      &gt;
+                        {item}
+                      &lt;/Chip&gt;
+                    ))}
+                  &lt;/ScrollArea&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={21} mb={12}&gt;
+                    {tab === &#39;live&#39; ? &#39;Live demo games&#39; : &#39;Featured games&#39;}
+                  &lt;/Text&gt;
+                  {visible.map(gameCard)}
+                &lt;/&gt;
+              )}
+            &lt;/Block&gt;
+          &lt;/ScrollArea&gt;
+          {wide &amp;&amp; (
+            &lt;Block gap={0} w={310} bg={C.white} borderLeftWidth={1} borderLeftColor={C.line} p={20}&gt;
+              {slipContent}
+            &lt;/Block&gt;
+          )}
+        &lt;/Block&gt;
+        {!wide &amp;&amp; slip.length &gt; 0 &amp;&amp; !showSlip &amp;&amp; (
+          &lt;Block
+            gap={0}
+            onPress={() =&gt; setShowSlip(true)}
+            bg={C.blue}
+            m={12}
+            radius={11}
+            p={13}
+            direction=&quot;row&quot;
+            justify=&quot;space-between&quot;
+          &gt;
+            &lt;Text c={C.white} fw=&quot;bold&quot;&gt;
+              Pick slip · {slip.length}
+            &lt;/Text&gt;
+            &lt;Text c={C.white} fw=&quot;bold&quot;&gt;
+              View ↑
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+        )}
+      &lt;/Block&gt;
+      {!wide &amp;&amp; showSlip &amp;&amp; (
+        &lt;Dialog opened variant=&quot;bottomsheet&quot; accessibilityLabel=&quot;Pick slip&quot; onClose={() =&gt; setShowSlip(false)}&gt;
+          &lt;Block gap={0}&gt;
+            &lt;Block gap={0} alignSelf=&quot;flex-end&quot;&gt;
+              &lt;IconButton
+                icon=&quot;x&quot;
+                variant=&quot;ghost&quot;
+                iconColor={C.ink}
+                accessibilityLabel=&quot;Close pick slip&quot;
+                onPress={() =&gt; setShowSlip(false)}
+              /&gt;
+            &lt;/Block&gt;
+            &lt;ScrollArea&gt;{slipContent}&lt;/ScrollArea&gt;
+          &lt;/Block&gt;
+        &lt;/Dialog&gt;
+      )}
+    &lt;/SafeArea&gt;
+  );
+}
+export default function App() {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;light&#39; }}&gt;
+        &lt;FieldhouseScreen /&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Flight tracker demo source | plocks</title><meta name="description" content="Browse the source code for the Flight tracker demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/flight-tracker/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>flight-tracker source</h1><nav><a href="/demos/flight-tracker/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useState } from &#39;react&#39;;
+import type { ReactNode } from &#39;react&#39;;
+import { StatusBar } from &#39;react-native&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+
+import {
+  Block,
+  Button,
+  Card,
+  Column,
+  Input,
+  PlocksProvider,
+  SafeArea,
+  ScrollArea,
+  Text,
+  Title,
+} from &#39;@plocks/ui&#39;;
+
+type Palette = {
+  background: string;
+  surface: string;
+  ink: string;
+  muted: string;
+  accent: string;
+  border: string;
+};
+
+function AppFrame({
+  name,
+  subtitle,
+  palette,
+  children,
+  dark = false,
+  showHeader = true,
+}: {
+  name: string;
+  subtitle: string;
+  palette: Palette;
+  children: ReactNode;
+  dark?: boolean;
+  showHeader?: boolean;
+}) {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: dark ? &#39;dark&#39; : &#39;light&#39; }}&gt;
+        &lt;SafeArea gap={0} flex={1} bg={palette.background}&gt;
+          &lt;StatusBar barStyle={dark ? &#39;light-content&#39; : &#39;dark-content&#39;} /&gt;
+          &lt;ScrollArea
+            contentProps={{ w: &#39;100%&#39;, maw: 720, alignSelf: &#39;center&#39;, p: 20, pb: 64, gap: 18 }}
+          &gt;
+            {showHeader &amp;&amp; (
+              &lt;Column gap=&quot;xs&quot;&gt;
+                &lt;Text c={palette.accent} size={11} fw=&quot;bold&quot; lts={2}&gt;
+                  PLOCKS EXAMPLE
+                &lt;/Text&gt;
+                &lt;Title order={1} c={palette.ink} size={34}&gt;
+                  {name}
+                &lt;/Title&gt;
+                &lt;Text c={palette.muted}&gt;{subtitle}&lt;/Text&gt;
+              &lt;/Column&gt;
+            )}
+            {children}
+          &lt;/ScrollArea&gt;
+        &lt;/SafeArea&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+
+function Panel({
+  children,
+  palette,
+  onPress,
+}: {
+  children: ReactNode;
+  palette: Palette;
+  onPress?: () =&gt; void;
+}) {
+  return (
+    &lt;Card
+      onPress={onPress}
+      bg={palette.surface}
+      borderColor={palette.border}
+      borderWidth={1}
+      radius=&quot;lg&quot;
+      padding=&quot;lg&quot;
+    &gt;
+      &lt;Column gap=&quot;sm&quot;&gt;{children}&lt;/Column&gt;
+    &lt;/Card&gt;
+  );
+}
+
+function Action({
+  title,
+  palette,
+  onPress,
+  outline = false,
+  disabled = false,
+}: {
+  title: string;
+  palette: Palette;
+  onPress: () =&gt; void;
+  outline?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    &lt;Button
+      title={title}
+      onPress={onPress}
+      disabled={disabled}
+      size=&quot;sm&quot;
+      variant={outline ? &#39;outline&#39; : &#39;filled&#39;}
+      color={palette.accent}
+      textColor={outline ? palette.accent : palette.background}
+    /&gt;
+  );
+}
+
+function Actions({ children }: { children: ReactNode }) {
+  return (
+    &lt;Block direction=&quot;row&quot; wrap=&quot;wrap&quot; align=&quot;center&quot; gap={8}&gt;
+      {children}
+    &lt;/Block&gt;
+  );
+}
+
+function Label({ children, palette }: { children: ReactNode; palette: Palette }) {
+  return (
+    &lt;Text c={palette.muted} size={11} fw=&quot;bold&quot; lts={1.2}&gt;
+      {children}
+    &lt;/Text&gt;
+  );
+}
+
+function Stat({ label, value, palette }: { label: string; value: string; palette: Palette }) {
+  return (
+    &lt;Block gap={0} miw={100} grow={1}&gt;
+      &lt;Label palette={palette}&gt;{label}&lt;/Label&gt;
+      &lt;Text c={palette.ink} size={22} fw=&quot;bold&quot;&gt;
+        {value}
+      &lt;/Text&gt;
+    &lt;/Block&gt;
+  );
+}
+
+const P: Palette = {
+  background: &#39;#EFF5FA&#39;,
+  surface: &#39;#FFFFFF&#39;,
+  ink: &#39;#163149&#39;,
+  muted: &#39;#60788A&#39;,
+  accent: &#39;#2377B8&#39;,
+  border: &#39;#D3E2ED&#39;,
+};
+const FLIGHTS = [
+  {
+    number: &#39;PB102&#39;,
+    from: &#39;PHX&#39;,
+    to: &#39;SEA&#39;,
+    origin: &#39;Phoenix&#39;,
+    destination: &#39;Seattle&#39;,
+    depart: &#39;09:20&#39;,
+    arrive: &#39;12:10&#39;,
+    status: &#39;In air&#39;,
+    progress: 0.62,
+    gate: &#39;A12&#39;,
+  },
+  {
+    number: &#39;PB218&#39;,
+    from: &#39;JFK&#39;,
+    to: &#39;LAX&#39;,
+    origin: &#39;New York&#39;,
+    destination: &#39;Los Angeles&#39;,
+    depart: &#39;11:45&#39;,
+    arrive: &#39;15:05&#39;,
+    status: &#39;Boarding&#39;,
+    progress: 0.08,
+    gate: &#39;B7&#39;,
+  },
+  {
+    number: &#39;PB340&#39;,
+    from: &#39;SFO&#39;,
+    to: &#39;DEN&#39;,
+    origin: &#39;San Francisco&#39;,
+    destination: &#39;Denver&#39;,
+    depart: &#39;14:15&#39;,
+    arrive: &#39;17:48&#39;,
+    status: &#39;Scheduled&#39;,
+    progress: 0,
+    gate: &#39;C21&#39;,
+  },
+];
+export default function App() {
+  const [query, setQuery] = useState(&#39;&#39;),
+    [selected, setSelected] = useState&lt;string | null&gt;(null);
+  const flight = FLIGHTS.find((f) =&gt; f.number === selected);
+  const shown = FLIGHTS.filter((f) =&gt;
+    `${f.number} ${f.from} ${f.to} ${f.origin} ${f.destination}`
+      .toLowerCase()
+      .includes(query.toLowerCase()),
+  );
+  return (
+    &lt;AppFrame name=&quot;Flight Tracker&quot; subtitle=&quot;Explore sample routes and flight status.&quot; palette={P}&gt;
+      &lt;Panel palette={P}&gt;
+        &lt;Input
+          variant=&quot;outline&quot;
+          value={query}
+          onChangeText={setQuery}
+          placeholder=&quot;Flight number or airport&quot;
+          accessibilityLabel=&quot;Search flights&quot;
+          autoCapitalize=&quot;characters&quot;
+          mb={0}
+          radius={9}
+          inputColor={P.ink}
+        /&gt;
+      &lt;/Panel&gt;
+      {flight ? (
+        &lt;Panel palette={P}&gt;
+          &lt;Action title=&quot;← All flights&quot; palette={P} outline onPress={() =&gt; setSelected(null)} /&gt;
+          &lt;Label palette={P}&gt;
+            {flight.number} · {flight.status.toUpperCase()}
+          &lt;/Label&gt;
+          &lt;Actions&gt;
+            &lt;Stat label={flight.origin.toUpperCase()} value={flight.from} palette={P} /&gt;
+            &lt;Text c={P.accent} size={26}&gt;
+              ✈ →
+            &lt;/Text&gt;
+            &lt;Stat label={flight.destination.toUpperCase()} value={flight.to} palette={P} /&gt;
+          &lt;/Actions&gt;
+          &lt;Block gap={0} h={10} bg={P.border} radius={5}&gt;
+            &lt;Block gap={0} w={`${flight.progress * 100}%`} h={10} bg={P.accent} radius={5} /&gt;
+          &lt;/Block&gt;
+          &lt;Actions&gt;
+            &lt;Stat label=&quot;DEPART&quot; value={flight.depart} palette={P} /&gt;
+            &lt;Stat label=&quot;ARRIVE&quot; value={flight.arrive} palette={P} /&gt;
+            &lt;Stat label=&quot;GATE&quot; value={flight.gate} palette={P} /&gt;
+          &lt;/Actions&gt;
+          &lt;Text c={P.muted}&gt;Route progress is a static illustration for this sample flight.&lt;/Text&gt;
+        &lt;/Panel&gt;
+      ) : (
+        &lt;&gt;
+          &lt;Label palette={P}&gt;FLIGHTS&lt;/Label&gt;
+          {shown.map((f) =&gt; (
+            &lt;Panel key={f.number} palette={P} onPress={() =&gt; setSelected(f.number)}&gt;
+              &lt;Actions&gt;
+                &lt;Text c={P.ink} fw=&quot;bold&quot; size={18}&gt;
+                  {f.number}
+                &lt;/Text&gt;
+                &lt;Text c={P.accent}&gt;{f.status}&lt;/Text&gt;
+              &lt;/Actions&gt;
+              &lt;Text c={P.ink} size={22} fw=&quot;bold&quot;&gt;
+                {f.from} ✈ {f.to}
+              &lt;/Text&gt;
+              &lt;Text c={P.muted}&gt;
+                {f.depart} → {f.arrive} · Gate {f.gate}
+              &lt;/Text&gt;
+            &lt;/Panel&gt;
+          ))}
+          {!shown.length &amp;&amp; (
+            &lt;Panel palette={P}&gt;
+              &lt;Text c={P.muted}&gt;No matching sample flight.&lt;/Text&gt;
+            &lt;/Panel&gt;
+          )}
+        &lt;/&gt;
+      )}
+      &lt;Text c={P.muted} size={12}&gt;
+        Fictional flights and static status. No live tracking service is connected.
+      &lt;/Text&gt;
+    &lt;/AppFrame&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

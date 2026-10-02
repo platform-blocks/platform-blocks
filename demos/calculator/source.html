@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Calculator demo source | plocks</title><meta name="description" content="Browse the source code for the Calculator demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/calculator/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>calculator source</h1><nav><a href="/demos/calculator/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useState } from &#39;react&#39;;
+import { StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+
+import { Block, Button, PlocksProvider, SafeArea, Text } from &#39;@plocks/ui&#39;;
+
+const COLORS = {
+  background: &#39;#15191E&#39;,
+  surface: &#39;#252B32&#39;,
+  ink: &#39;#F7F9FA&#39;,
+  muted: &#39;#A6B0BA&#39;,
+  accent: &#39;#E9A33C&#39;,
+} as const;
+
+const KEYS = [
+  [&#39;AC&#39;, &#39;±&#39;, &#39;%&#39;, &#39;÷&#39;],
+  [&#39;7&#39;, &#39;8&#39;, &#39;9&#39;, &#39;×&#39;],
+  [&#39;4&#39;, &#39;5&#39;, &#39;6&#39;, &#39;−&#39;],
+  [&#39;1&#39;, &#39;2&#39;, &#39;3&#39;, &#39;+&#39;],
+  [&#39;0&#39;, &#39;.&#39;, &#39;=&#39;],
+] as const;
+const KEY_INSET = 5;
+
+type Operator = &#39;+&#39; | &#39;−&#39; | &#39;×&#39; | &#39;÷&#39;;
+
+const isOperator = (key: string): key is Operator =&gt; [&#39;+&#39;, &#39;−&#39;, &#39;×&#39;, &#39;÷&#39;].includes(key);
+const format = (value: number) =&gt; Number.isFinite(value) ? String(Number(value.toPrecision(11))) : &#39;Error&#39;;
+const formatDisplay = (value: string) =&gt;
+  value.replace(/^-?\d+/, integer =&gt; integer.replace(/\B(?=(\d{3})+(?!\d))/g, &#39;,&#39;));
+const evaluate = (left: number, right: number, operator: Operator) =&gt; {
+  switch (operator) {
+    case &#39;+&#39;: return left + right;
+    case &#39;−&#39;: return left - right;
+    case &#39;×&#39;: return left * right;
+    case &#39;÷&#39;: return left / right;
+  }
+};
+
+export default function App() {
+  const { width, height } = useWindowDimensions();
+  const [display, setDisplay] = useState(&#39;0&#39;);
+  const [stored, setStored] = useState&lt;number | null&gt;(null);
+  const [operator, setOperator] = useState&lt;Operator | null&gt;(null);
+  const [fresh, setFresh] = useState(false);
+  const [keypadHeight, setKeypadHeight] = useState(0);
+  const fontScale = Math.sqrt((width * height) / (390 * 844));
+  const keyHeight = keypadHeight ? keypadHeight / KEYS.length - KEY_INSET * 2 : 60;
+  const keyFontSize = Math.max(18, Math.min(56, 24 * fontScale, keyHeight * 0.45));
+  const displayFontSize = Math.max(44, Math.min(112, 52 * fontScale));
+  const historyFontSize = Math.max(16, Math.min(34, 18 * fontScale));
+
+  function press(key: string) {
+    if (key === &#39;AC&#39;) {
+      setDisplay(&#39;0&#39;);
+      setStored(null);
+      setOperator(null);
+      setFresh(false);
+      return;
+    }
+
+    if (/^\d$/.test(key) || key === &#39;.&#39;) {
+      const starting = fresh || display === &#39;Error&#39;;
+      if (key === &#39;.&#39; &amp;&amp; !starting &amp;&amp; display.includes(&#39;.&#39;)) return;
+      setDisplay(starting ? (key === &#39;.&#39; ? &#39;0.&#39; : key) : display === &#39;0&#39; &amp;&amp; key !== &#39;.&#39; ? key : display + key);
+      setFresh(false);
+      return;
+    }
+
+    if (display === &#39;Error&#39;) return;
+    if (key === &#39;±&#39; || key === &#39;%&#39;) {
+      setDisplay(format(key === &#39;±&#39; ? -Number(display) : Number(display) / 100));
+      return;
+    }
+
+    if (key === &#39;=&#39;) {
+      if (operator &amp;&amp; stored !== null) {
+        setDisplay(format(evaluate(stored, Number(display), operator)));
+        setStored(null);
+        setOperator(null);
+        setFresh(true);
+      }
+      return;
+    }
+
+    if (isOperator(key)) {
+      const next = operator &amp;&amp; stored !== null &amp;&amp; !fresh
+        ? evaluate(stored, Number(display), operator)
+        : Number(display);
+      setStored(next);
+      setDisplay(format(next));
+      setOperator(key);
+      setFresh(true);
+    }
+  }
+
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;dark&#39; }}&gt;
+        &lt;SafeArea flex={1} gap={0} bg={COLORS.background}&gt;
+          &lt;StatusBar barStyle=&quot;light-content&quot; /&gt;
+          &lt;Block flex={1} gap={0} p={12}&gt;
+            &lt;Block flex={1} gap={4} px={5} pb={12} align=&quot;flex-end&quot; justify=&quot;flex-end&quot;&gt;
+              &lt;Text c={COLORS.muted} size={historyFontSize} ta=&quot;right&quot;&gt;
+                {stored !== null &amp;&amp; operator ? `${formatDisplay(format(stored))} ${operator}` : &#39; &#39;}
+              &lt;/Text&gt;
+              &lt;Text c={COLORS.ink} size={displayFontSize} ta=&quot;right&quot; numberOfLines={1}&gt;
+                {formatDisplay(display)}
+              &lt;/Text&gt;
+            &lt;/Block&gt;
+
+            &lt;Block flex={3} gap={0} onLayout={({ nativeEvent: { layout } }) =&gt; setKeypadHeight(layout.height)}&gt;
+              {KEYS.map((row, rowIndex) =&gt; (
+                &lt;Block key={rowIndex} flex={1} direction=&quot;row&quot; gap={0}&gt;
+                  {row.map((key) =&gt; (
+                    &lt;Block key={key} flex={key === &#39;0&#39; ? 2 : 1} gap={0} p={KEY_INSET}&gt;
+                      &lt;Button
+                        title={key}
+                        onPress={() =&gt; press(key)}
+                        variant=&quot;filled&quot;
+                        color={isOperator(key) || key === &#39;=&#39; ? COLORS.accent : COLORS.surface}
+                        textColor={COLORS.ink}
+                        labelProps={{ size: keyFontSize, fw: &#39;600&#39; }}
+                        radius={18}
+                        fullWidth
+                        h={keyHeight}
+                      /&gt;
+                    &lt;/Block&gt;
+                  ))}
+                &lt;/Block&gt;
+              ))}
+            &lt;/Block&gt;
+          &lt;/Block&gt;
+        &lt;/SafeArea&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Threadit demo source | plocks</title><meta name="description" content="Browse the source code for the Threadit demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/threadit/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>threadit source</h1><nav><a href="/demos/threadit/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useState } from &#39;react&#39;;
+import { StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import AsyncStorage from &#39;@react-native-async-storage/async-storage&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import {
+  TextArea,
+  Input,
+  ScrollArea,
+  SafeArea,
+  Block,
+  Button,
+  Dialog,
+  Icon,
+  IconButton,
+  PlocksProvider,
+  Text,
+} from &#39;@plocks/ui&#39;;
+
+const C = {
+  orange: &#39;#F65335&#39;,
+  ink: &#39;#1A1A1B&#39;,
+  muted: &#39;#74787A&#39;,
+  line: &#39;#E5E7E9&#39;,
+  bg: &#39;#F6F7F8&#39;,
+  white: &#39;#FFF&#39;,
+  blue: &#39;#2969B1&#39;,
+};
+const COMMUNITIES = [
+  { id: &#39;cozyspaces&#39;, label: &#39;Cozy Spaces&#39;, emoji: &#39;🛋️&#39;, members: &#39;42k&#39;, description: &#39;Small corners, big comfort.&#39; },
+  { id: &#39;askhere&#39;, label: &#39;Ask Here&#39;, emoji: &#39;💬&#39;, members: &#39;87k&#39;, description: &#39;Curious questions and kind answers.&#39; },
+  { id: &#39;photography&#39;, label: &#39;Photography&#39;, emoji: &#39;📷&#39;, members: &#39;61k&#39;, description: &#39;The world through your lens.&#39; },
+  { id: &#39;cooking&#39;, label: &#39;Home Cooking&#39;, emoji: &#39;🍳&#39;, members: &#39;53k&#39;, description: &#39;Everyday food worth sharing.&#39; },
+  { id: &#39;design&#39;, label: &#39;Design&#39;, emoji: &#39;✦&#39;, members: &#39;35k&#39;, description: &#39;Make, share, and discuss.&#39; },
+];
+type Post = {
+  id: string;
+  community: string;
+  author: string;
+  title: string;
+  body: string;
+  time: string;
+  votes: number;
+  comments: number;
+  emoji?: string;
+};
+type Comment = { id: string; author: string; text: string; time: string };
+const INITIAL: Post[] = [
+  {
+    id: &#39;p1&#39;,
+    community: &#39;cozyspaces&#39;,
+    author: &#39;softcorner&#39;,
+    title: &#39;I finally made my tiny reading nook feel like home&#39;,
+    body: &#39;A thrifted chair, a warm lamp, and a stack of books. Sometimes the small changes do the most.&#39;,
+    time: &#39;2 hr. ago&#39;,
+    votes: 842,
+    comments: 48,
+    emoji: &#39;📚&#39;,
+  },
+  {
+    id: &#39;p2&#39;,
+    community: &#39;askhere&#39;,
+    author: &#39;curiousbird&#39;,
+    title: &#39;What is one small habit that made your days better?&#39;,
+    body: &#39;Looking for little ideas that are easy to actually stick with.&#39;,
+    time: &#39;3 hr. ago&#39;,
+    votes: 526,
+    comments: 132,
+  },
+  {
+    id: &#39;p3&#39;,
+    community: &#39;photography&#39;,
+    author: &#39;bluehour&#39;,
+    title: &#39;Caught the last light on my walk home&#39;,
+    body: &#39;No special camera, just good timing and a little luck.&#39;,
+    time: &#39;5 hr. ago&#39;,
+    votes: 1204,
+    comments: 73,
+    emoji: &#39;🌅&#39;,
+  },
+  {
+    id: &#39;p4&#39;,
+    community: &#39;cooking&#39;,
+    author: &#39;panandspoon&#39;,
+    title: &#39;A one pot dinner I keep coming back to&#39;,
+    body: &#39;Tomatoes, beans, greens, and a lot of lemon. It is flexible, affordable, and even better the next day.&#39;,
+    time: &#39;7 hr. ago&#39;,
+    votes: 379,
+    comments: 29,
+    emoji: &#39;🍲&#39;,
+  },
+  {
+    id: &#39;p5&#39;,
+    community: &#39;design&#39;,
+    author: &#39;marlowmakes&#39;,
+    title: &#39;Sharing a few icons from my latest project&#39;,
+    body: &#39;I wanted them to feel friendly at very small sizes. Feedback welcome!&#39;,
+    time: &#39;10 hr. ago&#39;,
+    votes: 689,
+    comments: 61,
+    emoji: &#39;🎨&#39;,
+  },
+  {
+    id: &#39;p6&#39;,
+    community: &#39;askhere&#39;,
+    author: &#39;justwondering&#39;,
+    title: &#39;What movie do you wish you could watch for the first time again?&#39;,
+    body: &#39;I need something good for a rainy weekend.&#39;,
+    time: &#39;Yesterday&#39;,
+    votes: 912,
+    comments: 204,
+  },
+];
+const STORAGE = &#39;plocks-threadit-example:v1&#39;;
+const compact = (value: number) =&gt; (value &gt;= 1000 ? (value / 1000).toFixed(1) + &#39;k&#39; : String(value));
+
+function ThreaditScreen() {
+  const { width } = useWindowDimensions();
+  const wide = width &gt;= 950;
+  const [posts, setPosts] = useState&lt;Post[]&gt;(INITIAL);
+  const [votes, setVotes] = useState&lt;Record&lt;string, -1 | 0 | 1&gt;&gt;({});
+  const [saved, setSaved] = useState&lt;string[]&gt;([]);
+  const [joined, setJoined] = useState&lt;string[]&gt;([&#39;cozyspaces&#39;, &#39;design&#39;]);
+  const [comments, setComments] = useState&lt;Record&lt;string, Comment[]&gt;&gt;({});
+  const [community, setCommunity] = useState&lt;string | null&gt;(null);
+  const [sort, setSort] = useState&lt;&#39;Best&#39; | &#39;New&#39; | &#39;Top&#39;&gt;(&#39;Best&#39;);
+  const [query, setQuery] = useState(&#39;&#39;);
+  const [selected, setSelected] = useState&lt;string | null&gt;(null);
+  const [creating, setCreating] = useState(false);
+  const [newCommunity, setNewCommunity] = useState(&#39;cozyspaces&#39;);
+  const [newTitle, setNewTitle] = useState(&#39;&#39;);
+  const [newBody, setNewBody] = useState(&#39;&#39;);
+  const [commentDraft, setCommentDraft] = useState(&#39;&#39;);
+  const [ready, setReady] = useState(false);
+  const active = posts.find((item) =&gt; item.id === selected);
+  const filtered = posts.filter(
+    (item) =&gt;
+      (community === &#39;__saved__&#39; ? saved.includes(item.id) : !community || item.community === community) &amp;&amp;
+      `${item.title} ${item.body} ${item.community}`.toLowerCase().includes(query.toLowerCase()),
+  );
+  const shown = [...filtered].sort((a, b) =&gt;
+    sort === &#39;Top&#39;
+      ? b.votes + (votes[b.id] ?? 0) - (a.votes + (votes[a.id] ?? 0))
+      : sort === &#39;New&#39;
+        ? posts.indexOf(a) - posts.indexOf(b)
+        : 0,
+  );
+  const selectedCommunity = COMMUNITIES.find((item) =&gt; item.id === community);
+
+  useEffect(() =&gt; {
+    AsyncStorage.getItem(STORAGE)
+      .then((raw) =&gt; {
+        if (!raw) return;
+        const data = JSON.parse(raw) as {
+          posts?: Post[];
+          votes?: Record&lt;string, -1 | 0 | 1&gt;;
+          saved?: string[];
+          joined?: string[];
+          comments?: Record&lt;string, Comment[]&gt;;
+        };
+        if (Array.isArray(data.posts)) setPosts(data.posts);
+        if (data.votes &amp;&amp; typeof data.votes === &#39;object&#39;) setVotes(data.votes);
+        if (Array.isArray(data.saved)) setSaved(data.saved);
+        if (Array.isArray(data.joined)) setJoined(data.joined);
+        if (data.comments &amp;&amp; typeof data.comments === &#39;object&#39;) setComments(data.comments);
+      })
+      .catch(() =&gt; {})
+      .finally(() =&gt; setReady(true));
+  }, []);
+  useEffect(() =&gt; {
+    if (ready) AsyncStorage.setItem(STORAGE, JSON.stringify({ posts, votes, saved, joined, comments })).catch(() =&gt; {});
+  }, [posts, votes, saved, joined, comments, ready]);
+  function vote(id: string, direction: -1 | 1) {
+    setVotes((old) =&gt; ({ ...old, [id]: old[id] === direction ? 0 : direction }));
+  }
+  function createPost() {
+    if (!newTitle.trim() || !newBody.trim()) return;
+    const post: Post = {
+      id: `local-${Date.now()}`,
+      community: newCommunity,
+      author: &#39;you&#39;,
+      title: newTitle.trim(),
+      body: newBody.trim(),
+      time: &#39;Just now&#39;,
+      votes: 1,
+      comments: 0,
+    };
+    setPosts((old) =&gt; [post, ...old]);
+    setNewTitle(&#39;&#39;);
+    setNewBody(&#39;&#39;);
+    setCreating(false);
+    setCommunity(null);
+    setSelected(post.id);
+  }
+  function addComment() {
+    if (!selected || !commentDraft.trim()) return;
+    const item: Comment = { id: `comment-${Date.now()}`, author: &#39;you&#39;, text: commentDraft.trim(), time: &#39;Just now&#39; };
+    setComments((old) =&gt; ({ ...old, [selected]: [...(old[selected] ?? []), item] }));
+    setCommentDraft(&#39;&#39;);
+  }
+  const voteBar = (post: Post) =&gt; (
+    &lt;Block direction=&quot;row&quot; align=&quot;center&quot; bg=&quot;#F2F3F5&quot; radius={18} gap={8} px={8} py={5}&gt;
+      &lt;Block
+        gap={0}
+        onPress={(event) =&gt; {
+          event.stopPropagation();
+          vote(post.id, 1);
+        }}
+        accessibilityLabel=&quot;Upvote&quot;
+      &gt;
+        &lt;Icon name=&quot;arrowUp&quot; color={votes[post.id] === 1 ? C.orange : C.muted} size={19} /&gt;
+      &lt;/Block&gt;
+      &lt;Text c={votes[post.id] ? C.orange : C.ink} fw=&quot;bold&quot; size={12}&gt;
+        {compact(post.votes + (votes[post.id] ?? 0))}
+      &lt;/Text&gt;
+      &lt;Block
+        gap={0}
+        onPress={(event) =&gt; {
+          event.stopPropagation();
+          vote(post.id, -1);
+        }}
+        accessibilityLabel=&quot;Downvote&quot;
+      &gt;
+        &lt;Icon name=&quot;arrowDown&quot; color={votes[post.id] === -1 ? C.blue : C.muted} size={19} /&gt;
+      &lt;/Block&gt;
+    &lt;/Block&gt;
+  );
+  const postCard = (post: Post) =&gt; {
+    const group = COMMUNITIES.find((item) =&gt; item.id === post.community)!;
+    return (
+      &lt;Block
+        key={post.id}
+        onPress={() =&gt; setSelected(post.id)}
+        accessibilityRole=&quot;button&quot;
+        accessibilityLabel={`Open ${post.title}`}
+        bg={C.white}
+        borderWidth={1}
+        borderColor={C.line}
+        radius={13}
+        p={16}
+        mb={11}
+        gap={11}
+      &gt;
+        &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={7}&gt;
+          &lt;Block gap={0} w={28} h={28} radius={14} bg=&quot;#FFE6DF&quot; align=&quot;center&quot; justify=&quot;center&quot;&gt;
+            &lt;Text size={15}&gt;{group.emoji}&lt;/Text&gt;
+          &lt;/Block&gt;
+          &lt;Text c={C.ink} fw=&quot;bold&quot; size={12}&gt;
+            r/{post.community}
+          &lt;/Text&gt;
+          &lt;Text c={C.muted} size={11}&gt;
+            · u/{post.author} · {post.time}
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+        &lt;Text c={C.ink} fw=&quot;bold&quot; size={19}&gt;
+          {post.title}
+        &lt;/Text&gt;
+        &lt;Text c={C.ink} size={13} numberOfLines={3} lh={20}&gt;
+          {post.body}
+        &lt;/Text&gt;
+        {!!post.emoji &amp;&amp; (
+          &lt;Block gap={0} h={145} radius={9} bg=&quot;#F4EEE9&quot; align=&quot;center&quot; justify=&quot;center&quot;&gt;
+            &lt;Text size={72}&gt;{post.emoji}&lt;/Text&gt;
+          &lt;/Block&gt;
+        )}
+        &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={12}&gt;
+          {voteBar(post)}
+          &lt;Block
+            onPress={(event) =&gt; {
+              event.stopPropagation();
+              setSelected(post.id);
+            }}
+            direction=&quot;row&quot;
+            align=&quot;center&quot;
+            gap={5}
+          &gt;
+            &lt;Icon name=&quot;message&quot; color={C.muted} size={17} /&gt;
+            &lt;Text c={C.muted} fw=&quot;semibold&quot; size={11}&gt;
+              {post.comments + (comments[post.id]?.length ?? 0)}
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+          &lt;Block
+            gap={0}
+            onPress={(event) =&gt; {
+              event.stopPropagation();
+              setSaved((old) =&gt; (old.includes(post.id) ? old.filter((id) =&gt; id !== post.id) : [...old, post.id]));
+            }}
+            accessibilityLabel={saved.includes(post.id) ? &#39;Remove saved post&#39; : &#39;Save post&#39;}
+            ml=&quot;auto&quot;
+          &gt;
+            &lt;Icon
+              name=&quot;bookmark&quot;
+              variant={saved.includes(post.id) ? &#39;filled&#39; : &#39;outlined&#39;}
+              color={saved.includes(post.id) ? C.orange : C.muted}
+              size={18}
+            /&gt;
+          &lt;/Block&gt;
+        &lt;/Block&gt;
+      &lt;/Block&gt;
+    );
+  };
+
+  return (
+    &lt;SafeArea gap={0} flex={1} bg={C.bg}&gt;
+      &lt;StatusBar barStyle=&quot;dark-content&quot; /&gt;
+      &lt;Block
+        h={60}
+        bg={C.white}
+        borderBottomWidth={1}
+        borderBottomColor={C.line}
+        direction=&quot;row&quot;
+        align=&quot;center&quot;
+        px={wide ? 25 : 13}
+        gap={16}
+      &gt;
+        &lt;Text c={C.orange} fw=&quot;bold&quot; size={wide ? 26 : 21}&gt;
+          ● threadit
+        &lt;/Text&gt;
+        &lt;Block gap={0} flex={1} maw={700} bg={C.bg} radius={19} direction=&quot;row&quot; align=&quot;center&quot; px={12}&gt;
+          &lt;Icon name=&quot;search&quot; color={C.muted} size={18} /&gt;
+          &lt;Input
+            variant=&quot;unstyled&quot;
+            value={query}
+            onChangeText={setQuery}
+            placeholder=&quot;Search posts&quot;
+            mb={0}
+            flex={1}
+            inputColor={C.ink}
+          /&gt;
+        &lt;/Block&gt;
+        {wide &amp;&amp; &lt;Button title=&quot;Create post&quot; color={C.orange} onPress={() =&gt; setCreating(true)} /&gt;}
+        {!wide &amp;&amp; (
+          &lt;IconButton
+            icon=&quot;plus&quot;
+            variant=&quot;filled&quot;
+            color={C.orange}
+            iconColor={C.white}
+            accessibilityLabel=&quot;Create post&quot;
+            onPress={() =&gt; setCreating(true)}
+          /&gt;
+        )}
+      &lt;/Block&gt;
+      &lt;Block gap={0} flex={1} direction=&quot;row&quot; maw={1350} alignSelf=&quot;center&quot; w=&quot;100%&quot;&gt;
+        {wide &amp;&amp; (
+          &lt;Block gap={0} w={230} p={17} borderRightWidth={1} borderRightColor={C.line} bg={C.white}&gt;
+            &lt;Block onPress={() =&gt; setCommunity(null)} direction=&quot;row&quot; align=&quot;center&quot; gap={11} py={11}&gt;
+              &lt;Icon name=&quot;home&quot; color={C.orange} size={20} /&gt;
+              &lt;Text c={C.ink} fw={!community ? &#39;bold&#39; : &#39;normal&#39;}&gt;
+                Home
+              &lt;/Text&gt;
+            &lt;/Block&gt;
+            &lt;Block gap={0} h={1} bg={C.line} my={12} /&gt;
+            &lt;Text c={C.muted} fw=&quot;bold&quot; size={11}&gt;
+              COMMUNITIES
+            &lt;/Text&gt;
+            {COMMUNITIES.map((item) =&gt; (
+              &lt;Block
+                key={item.id}
+                onPress={() =&gt; setCommunity(item.id)}
+                direction=&quot;row&quot;
+                align=&quot;center&quot;
+                gap={10}
+                py={10}
+              &gt;
+                &lt;Text size={19}&gt;{item.emoji}&lt;/Text&gt;
+                &lt;Text
+                  c={community === item.id ? C.orange : C.ink}
+                  fw={community === item.id ? &#39;bold&#39; : &#39;normal&#39;}
+                  size={13}
+                &gt;
+                  r/{item.id}
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+            ))}
+            &lt;Block gap={0} h={1} bg={C.line} my={12} /&gt;
+            &lt;Block gap={0} onPress={() =&gt; setCommunity(&#39;__saved__&#39;)}&gt;
+              &lt;Text c={C.ink} fw={community === &#39;__saved__&#39; ? &#39;bold&#39; : &#39;normal&#39;}&gt;
+                🔖 Saved posts
+              &lt;/Text&gt;
+            &lt;/Block&gt;
+          &lt;/Block&gt;
+        )}
+        &lt;ScrollArea flex={1} contentProps={{ p: wide ? 20 : 12, pb: 40 }}&gt;
+          &lt;Block gap={0} maw={720} w=&quot;100%&quot; alignSelf=&quot;center&quot;&gt;
+            {!wide &amp;&amp; (
+              &lt;ScrollArea horizontal showsHorizontalScrollIndicator={false} contentProps={{ gap: 7, mb: 12 }}&gt;
+                {[
+                  { id: null, label: &#39;Home&#39;, emoji: &#39;⌂&#39; },
+                  ...COMMUNITIES,
+                  { id: &#39;__saved__&#39;, label: &#39;Saved&#39;, emoji: &#39;🔖&#39; },
+                ].map((item) =&gt; (
+                  &lt;Block
+                    key={item.id ?? &#39;home&#39;}
+                    onPress={() =&gt; setCommunity(item.id)}
+                    direction=&quot;row&quot;
+                    gap={5}
+                    radius={16}
+                    px={11}
+                    py={8}
+                    bg={community === item.id ? &#39;#FFE9E2&#39; : C.white}
+                  &gt;
+                    &lt;Text c={C.ink} size={12}&gt;
+                      {item.emoji} {item.id &amp;&amp; item.id !== &#39;__saved__&#39; ? `r/${item.id}` : item.label}
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                ))}
+              &lt;/ScrollArea&gt;
+            )}
+            &lt;Text c={C.ink} fw=&quot;bold&quot; size={25} mb={13}&gt;
+              {community === &#39;__saved__&#39;
+                ? &#39;Saved posts&#39;
+                : selectedCommunity
+                  ? `r/${selectedCommunity.id}`
+                  : &#39;Your feed&#39;}
+            &lt;/Text&gt;
+            {selectedCommunity &amp;&amp; (
+              &lt;Block bg={C.white} radius={11} p={15} mb={12} direction=&quot;row&quot; align=&quot;center&quot; gap={11}&gt;
+                &lt;Text size={31}&gt;{selectedCommunity.emoji}&lt;/Text&gt;
+                &lt;Block gap={0} flex={1}&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot;&gt;
+                    {selectedCommunity.label}
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={11}&gt;
+                    {selectedCommunity.description} · {selectedCommunity.members} members
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+                &lt;Button
+                  title={joined.includes(selectedCommunity.id) ? &#39;Joined&#39; : &#39;Join&#39;}
+                  variant={joined.includes(selectedCommunity.id) ? &#39;outline&#39; : &#39;filled&#39;}
+                  color={C.orange}
+                  size=&quot;sm&quot;
+                  onPress={() =&gt;
+                    setJoined((old) =&gt;
+                      old.includes(selectedCommunity.id)
+                        ? old.filter((id) =&gt; id !== selectedCommunity.id)
+                        : [...old, selectedCommunity.id],
+                    )
+                  }
+                /&gt;
+              &lt;/Block&gt;
+            )}
+            &lt;Block
+              bg={C.white}
+              radius={11}
+              borderWidth={1}
+              borderColor={C.line}
+              p={10}
+              direction=&quot;row&quot;
+              align=&quot;center&quot;
+              gap={9}
+              mb={12}
+            &gt;
+              &lt;Block gap={0} w={32} h={32} radius={16} bg=&quot;#F8C7B8&quot; align=&quot;center&quot; justify=&quot;center&quot;&gt;
+                &lt;Text c={C.white} fw=&quot;bold&quot;&gt;
+                  Y
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+              &lt;Block gap={0} onPress={() =&gt; setCreating(true)} flex={1} bg={C.bg} radius={16} p={9}&gt;
+                &lt;Text c={C.muted} size={12}&gt;
+                  Create a post
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+            &lt;/Block&gt;
+            &lt;Block direction=&quot;row&quot; gap={8} mb={14}&gt;
+              {([&#39;Best&#39;, &#39;New&#39;, &#39;Top&#39;] as const).map((item) =&gt; (
+                &lt;Block
+                  gap={0}
+                  key={item}
+                  onPress={() =&gt; setSort(item)}
+                  bg={sort === item ? &#39;#FFE9E2&#39; : C.white}
+                  px={13}
+                  py={8}
+                  radius={17}
+                &gt;
+                  &lt;Text c={sort === item ? C.orange : C.muted} fw=&quot;bold&quot; size={12}&gt;
+                    {item}
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+              ))}
+            &lt;/Block&gt;
+            {shown.map(postCard)}
+            {community === &#39;__saved__&#39; &amp;&amp; saved.length === 0 &amp;&amp; &lt;Text c={C.muted}&gt;Saved posts will show up here.&lt;/Text&gt;}
+            {!shown.length &amp;&amp; community !== &#39;__saved__&#39; &amp;&amp; &lt;Text c={C.muted}&gt;No posts found.&lt;/Text&gt;}
+          &lt;/Block&gt;
+        &lt;/ScrollArea&gt;
+        {wide &amp;&amp; (
+          &lt;Block gap={0} w={275} p={17}&gt;
+            &lt;Block gap={0} bg={C.white} radius={12} overflow=&quot;hidden&quot; borderWidth={1} borderColor={C.line}&gt;
+              &lt;Block gap={0} bg={C.orange} p={15}&gt;
+                &lt;Text c={C.white} fw=&quot;bold&quot;&gt;
+                  Home
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+              &lt;Block p={15} gap={12}&gt;
+                &lt;Text c={C.ink} size={13}&gt;
+                  A place to catch up with communities and find good conversations.
+                &lt;/Text&gt;
+                &lt;Button title=&quot;Create post&quot; color={C.orange} fullWidth onPress={() =&gt; setCreating(true)} /&gt;
+              &lt;/Block&gt;
+            &lt;/Block&gt;
+            &lt;Text c={C.muted} size={11} p={10}&gt;
+              Local discussion demo · no public posts
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+        )}
+      &lt;/Block&gt;
+      {(!!active || creating) &amp;&amp; (
+        &lt;Dialog opened accessibilityLabel={creating ? &#39;Create a post&#39; : &#39;Post details&#39;} onClose={() =&gt; {
+          setSelected(null);
+          setCreating(false);
+        }}&gt;
+          &lt;Block gap={0}&gt;
+            &lt;Block
+              gap={0}
+              p={13}
+              borderBottomWidth={1}
+              borderBottomColor={C.line}
+              direction=&quot;row&quot;
+              align=&quot;center&quot;
+              justify=&quot;space-between&quot;
+            &gt;
+              &lt;Text c={C.ink} fw=&quot;bold&quot; size={17}&gt;
+                {creating ? &#39;Create a post&#39; : `r/${active?.community}`}
+              &lt;/Text&gt;
+              &lt;IconButton
+                icon=&quot;x&quot;
+                variant=&quot;ghost&quot;
+                iconColor={C.ink}
+                accessibilityLabel=&quot;Close&quot;
+                onPress={() =&gt; {
+                  setSelected(null);
+                  setCreating(false);
+                }}
+              /&gt;
+            &lt;/Block&gt;
+            {creating ? (
+              &lt;ScrollArea contentProps={{ p: 18, gap: 14 }}&gt;
+                &lt;Text c={C.muted} size={12}&gt;
+                  Choose a community
+                &lt;/Text&gt;
+                &lt;ScrollArea horizontal showsHorizontalScrollIndicator={false} contentProps={{ gap: 7 }}&gt;
+                  {COMMUNITIES.map((item) =&gt; (
+                    &lt;Block
+                      gap={0}
+                      key={item.id}
+                      onPress={() =&gt; setNewCommunity(item.id)}
+                      bg={newCommunity === item.id ? &#39;#FFE8DF&#39; : C.bg}
+                      radius={16}
+                      px={10}
+                      py={8}
+                    &gt;
+                      &lt;Text c={newCommunity === item.id ? C.orange : C.ink} size={12}&gt;
+                        {item.emoji} r/{item.id}
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                  ))}
+                &lt;/ScrollArea&gt;
+                &lt;Input
+                  variant=&quot;outline&quot;
+                  value={newTitle}
+                  onChangeText={setNewTitle}
+                  placeholder=&quot;An interesting title&quot;
+                  mb={0}
+                  radius={8}
+                  inputColor={C.ink}
+                /&gt;
+                &lt;TextArea
+                  variant=&quot;outline&quot;
+                  value={newBody}
+                  onChangeText={setNewBody}
+                  placeholder=&quot;What is on your mind?&quot;
+                  mb={0}
+                  rows={5}
+                  radius={8}
+                /&gt;
+                &lt;Button
+                  title=&quot;Post locally&quot;
+                  color={C.orange}
+                  disabled={!newTitle.trim() || !newBody.trim()}
+                  onPress={createPost}
+                /&gt;
+                &lt;Text c={C.muted} size={11}&gt;
+                  This example saves posts on your device only.
+                &lt;/Text&gt;
+              &lt;/ScrollArea&gt;
+            ) : (
+              active &amp;&amp; (
+                &lt;ScrollArea contentProps={{ p: 20, gap: 15 }}&gt;
+                  &lt;Text c={C.muted} size={12}&gt;
+                    u/{active.author} · {active.time}
+                  &lt;/Text&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={24}&gt;
+                    {active.title}
+                  &lt;/Text&gt;
+                  &lt;Text c={C.ink} size={15} lh={23}&gt;
+                    {active.body}
+                  &lt;/Text&gt;
+                  {!!active.emoji &amp;&amp; (
+                    &lt;Block gap={0} h={150} radius={8} bg=&quot;#F4EEE9&quot; align=&quot;center&quot; justify=&quot;center&quot;&gt;
+                      &lt;Text size={85}&gt;{active.emoji}&lt;/Text&gt;
+                    &lt;/Block&gt;
+                  )}
+                  &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={12}&gt;
+                    {voteBar(active)}
+                    &lt;Text c={C.muted} size={12}&gt;
+                      {active.comments + (comments[active.id]?.length ?? 0)} comments
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;Block gap={0} h={1} bg={C.line} /&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={16}&gt;
+                    Join the conversation
+                  &lt;/Text&gt;
+                  &lt;TextArea
+                    variant=&quot;outline&quot;
+                    value={commentDraft}
+                    onChangeText={setCommentDraft}
+                    placeholder=&quot;Write a comment&quot;
+                    mb={0}
+                    rows={2}
+                    radius={8}
+                  /&gt;
+                  &lt;Block gap={0} alignSelf=&quot;flex-end&quot;&gt;
+                    &lt;Button title=&quot;Comment&quot; color={C.orange} disabled={!commentDraft.trim()} onPress={addComment} /&gt;
+                  &lt;/Block&gt;
+                  {(comments[active.id] ?? []).map((item) =&gt; (
+                    &lt;Block key={item.id} borderTopWidth={1} borderTopColor={C.line} pt={13} gap={5}&gt;
+                      &lt;Text c={C.muted} fw=&quot;bold&quot; size={11}&gt;
+                        u/{item.author} · {item.time}
+                      &lt;/Text&gt;
+                      &lt;Text c={C.ink} size={13}&gt;
+                        {item.text}
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                  ))}
+                  {!comments[active.id]?.length &amp;&amp; (
+                    &lt;Text c={C.muted} size={12}&gt;
+                      Be the first to add a local comment.
+                    &lt;/Text&gt;
+                  )}
+                &lt;/ScrollArea&gt;
+              )
+            )}
+          &lt;/Block&gt;
+        &lt;/Dialog&gt;
+      )}
+    &lt;/SafeArea&gt;
+  );
+}
+export default function App() {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;light&#39; }}&gt;
+        &lt;ThreaditScreen /&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

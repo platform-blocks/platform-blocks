@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Sproutfolio demo source | plocks</title><meta name="description" content="Browse the source code for the Sproutfolio demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/sproutfolio/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>sproutfolio source</h1><nav><a href="/demos/sproutfolio/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useState } from &#39;react&#39;;
+import { StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import AsyncStorage from &#39;@react-native-async-storage/async-storage&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import { LineChart } from &#39;@plocks/charts&#39;;
+import { Input, ScrollArea, SafeArea, Block, Button, Dialog, Icon, IconButton, PlocksProvider, SegmentedControl, Tabs, Text } from &#39;@plocks/ui&#39;;
+
+const C = {
+  ink: &#39;#101616&#39;,
+  muted: &#39;#6F7C79&#39;,
+  green: &#39;#00B67A&#39;,
+  darkGreen: &#39;#007C56&#39;,
+  line: &#39;#E6ECE9&#39;,
+  pale: &#39;#E9F8F1&#39;,
+  white: &#39;#FFF&#39;,
+  red: &#39;#D45B5B&#39;,
+};
+const STOCKS = [
+  { ticker: &#39;ASTR&#39;, name: &#39;Aster Devices&#39;, price: 192.45, change: 1.82, color: &#39;#242424&#39;, initials: &#39;A&#39; },
+  { ticker: &#39;NIVA&#39;, name: &#39;Nivara Graphics&#39;, price: 128.74, change: 3.47, color: &#39;#74B900&#39;, initials: &#39;N&#39; },
+  { ticker: &#39;MERA&#39;, name: &#39;Meridian Systems&#39;, price: 421.36, change: -0.64, color: &#39;#2777BD&#39;, initials: &#39;M&#39; },
+  { ticker: &#39;VYLT&#39;, name: &#39;Vyltra Motors&#39;, price: 251.08, change: -1.25, color: &#39;#DF3434&#39;, initials: &#39;V&#39; },
+  { ticker: &#39;NORT&#39;, name: &#39;Northway Commerce&#39;, price: 185.62, change: 0.93, color: &#39;#F5A623&#39;, initials: &#39;N&#39; },
+  { ticker: &#39;BASK&#39;, name: &#39;Market Basket Fund&#39;, price: 548.21, change: 0.71, color: &#39;#555C6C&#39;, initials: &#39;B&#39; },
+];
+const SERIES: Record&lt;string, number[]&gt; = {
+  &#39;1D&#39;: [31, 32, 30, 34, 33, 36, 34, 39, 38, 42, 40, 41, 45, 44, 48, 47, 51, 50, 53, 55],
+  &#39;1W&#39;: [22, 25, 23, 29, 27, 33, 32, 30, 37, 42, 40, 39, 45, 48, 46, 51, 53, 50, 54, 56],
+  &#39;1M&#39;: [18, 22, 25, 21, 28, 32, 30, 36, 33, 38, 42, 40, 45, 43, 48, 52, 49, 54, 52, 57],
+  &#39;3M&#39;: [15, 18, 23, 20, 25, 27, 32, 30, 35, 39, 36, 41, 44, 47, 45, 49, 51, 50, 54, 57],
+  &#39;1Y&#39;: [10, 14, 18, 21, 19, 24, 27, 31, 29, 33, 36, 40, 38, 43, 45, 46, 49, 51, 53, 57],
+  ALL: [7, 10, 13, 17, 15, 21, 24, 23, 30, 28, 34, 37, 35, 41, 44, 42, 48, 50, 53, 57],
+};
+type Tab = &#39;home&#39; | &#39;search&#39; | &#39;watchlist&#39; | &#39;account&#39;;
+type Holding = Record&lt;string, number&gt;;
+type Activity = { id: string; side: &#39;Buy&#39; | &#39;Sell&#39;; ticker: string; shares: number; total: number };
+const STORAGE = &#39;plocks-sproutfolio-example:v1&#39;;
+const money = (value: number) =&gt;
+  &#39;$&#39; + value.toLocaleString(&#39;en-US&#39;, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function TrendChart({ values, height = 180 }: { values: number[]; height?: number }) {
+  const [width, setWidth] = useState(0);
+  return (
+    &lt;Block gap={0} w=&quot;100%&quot; h={height} onLayout={(event) =&gt; setWidth(event.nativeEvent.layout.width)}&gt;
+      {width &gt; 0 &amp;&amp; (
+        &lt;LineChart
+          data={values.map((value, index) =&gt; ({ x: index, y: value }))}
+          w={width}
+          h={height}
+          lineColor={C.green}
+          lineThickness={3}
+          fill
+          fillColor={C.green}
+          fillOpacity={0.22}
+          showPoints={false}
+          xAxis={{ show: false }}
+          yAxis={{ show: false }}
+          grid={{ show: false }}
+          accessibilityLabel=&quot;Portfolio value chart&quot;
+        /&gt;
+      )}
+    &lt;/Block&gt;
+  );
+}
+
+function StockMark({ stock }: { stock: (typeof STOCKS)[number] }) {
+  return (
+    &lt;Block gap={0} w={42} h={42} radius={21} bg={stock.color} align=&quot;center&quot; justify=&quot;center&quot;&gt;
+      &lt;Text c=&quot;#fff&quot; fw=&quot;bold&quot; size={17}&gt;
+        {stock.initials}
+      &lt;/Text&gt;
+    &lt;/Block&gt;
+  );
+}
+
+function SproutfolioScreen() {
+  const { width } = useWindowDimensions();
+  const wide = width &gt;= 860;
+  const [tab, setTab] = useState&lt;Tab&gt;(&#39;home&#39;);
+  const [range, setRange] = useState(&#39;1D&#39;);
+  const [holdings, setHoldings] = useState&lt;Holding&gt;({ ASTR: 8, NIVA: 5, BASK: 3 });
+  const [cash, setCash] = useState(2450);
+  const [watchlist, setWatchlist] = useState&lt;string[]&gt;([&#39;VYLT&#39;, &#39;NORT&#39;]);
+  const [activity, setActivity] = useState&lt;Activity[]&gt;([]);
+  const [selected, setSelected] = useState&lt;string | null&gt;(null);
+  const [ticket, setTicket] = useState&lt;&#39;Buy&#39; | &#39;Sell&#39; | null&gt;(null);
+  const [quantity, setQuantity] = useState(&#39;1&#39;);
+  const [query, setQuery] = useState(&#39;&#39;);
+  const [ready, setReady] = useState(false);
+  const stock = STOCKS.find((item) =&gt; item.ticker === selected);
+  const shares = stock ? (holdings[stock.ticker] ?? 0) : 0;
+  const count = Number(quantity);
+  const total = stock ? count * stock.price : 0;
+  const validOrder =
+    !!stock &amp;&amp; Number.isInteger(count) &amp;&amp; count &gt; 0 &amp;&amp; (ticket === &#39;Buy&#39; ? total &lt;= cash : count &lt;= shares);
+  const equity = STOCKS.reduce((sum, item) =&gt; sum + (holdings[item.ticker] ?? 0) * item.price, 0);
+  const portfolio = cash + equity;
+
+  useEffect(() =&gt; {
+    AsyncStorage.getItem(STORAGE)
+      .then((raw) =&gt; {
+        if (!raw) return;
+        const data = JSON.parse(raw) as {
+          holdings?: Holding;
+          cash?: number;
+          watchlist?: string[];
+          activity?: Activity[];
+        };
+        if (data.holdings &amp;&amp; typeof data.holdings === &#39;object&#39;) setHoldings(data.holdings);
+        if (typeof data.cash === &#39;number&#39;) setCash(data.cash);
+        if (Array.isArray(data.watchlist)) setWatchlist(data.watchlist);
+        if (Array.isArray(data.activity)) setActivity(data.activity);
+      })
+      .catch(() =&gt; {})
+      .finally(() =&gt; setReady(true));
+  }, []);
+  useEffect(() =&gt; {
+    if (ready) AsyncStorage.setItem(STORAGE, JSON.stringify({ holdings, cash, watchlist, activity })).catch(() =&gt; {});
+  }, [holdings, cash, watchlist, activity, ready]);
+
+  function submitOrder() {
+    if (!validOrder || !stock || !ticket) return;
+    setHoldings((old) =&gt; ({ ...old, [stock.ticker]: (old[stock.ticker] ?? 0) + (ticket === &#39;Buy&#39; ? count : -count) }));
+    setCash((old) =&gt; old + (ticket === &#39;Buy&#39; ? -total : total));
+    setActivity((old) =&gt; [
+      { id: `trade-${Date.now()}`, side: ticket, ticker: stock.ticker, shares: count, total },
+      ...old,
+    ]);
+    setTicket(null);
+    setQuantity(&#39;1&#39;);
+  }
+  const stockRow = (item: (typeof STOCKS)[number]) =&gt; (
+    &lt;Block
+      key={item.ticker}
+      onPress={() =&gt; setSelected(item.ticker)}
+      accessibilityRole=&quot;button&quot;
+      accessibilityLabel={`View ${item.name}`}
+      direction=&quot;row&quot;
+      align=&quot;center&quot;
+      gap={13}
+      py={13}
+      borderBottomWidth={1}
+      borderBottomColor={C.line}
+    &gt;
+      &lt;StockMark stock={item} /&gt;
+      &lt;Block gap={0} flex={1}&gt;
+        &lt;Text c={C.ink} fw=&quot;bold&quot; size={15}&gt;
+          {item.ticker}
+        &lt;/Text&gt;
+        &lt;Text c={C.muted} size={12}&gt;
+          {item.name}
+        &lt;/Text&gt;
+      &lt;/Block&gt;
+      &lt;Block gap={0} align=&quot;flex-end&quot;&gt;
+        &lt;Text c={C.ink} fw=&quot;semibold&quot; size={14}&gt;
+          {money(item.price)}
+        &lt;/Text&gt;
+        &lt;Text c={item.change &gt;= 0 ? C.darkGreen : C.red} size={12}&gt;
+          {item.change &gt;= 0 ? &#39;+&#39; : &#39;&#39;}
+          {item.change.toFixed(2)}%
+        &lt;/Text&gt;
+      &lt;/Block&gt;
+    &lt;/Block&gt;
+  );
+  const nav = (
+    &lt;Tabs
+      navigationOnly
+      orientation={wide ? &#39;vertical&#39; : &#39;horizontal&#39;}
+      variant={wide ? &#39;chip&#39; : &#39;line&#39;}
+      color={C.darkGreen}
+      value={tab}
+      onChange={(item) =&gt; {
+        setTab(item as Tab);
+        setSelected(null);
+      }}
+      items={([&#39;home&#39;, &#39;search&#39;, &#39;watchlist&#39;, &#39;account&#39;] as const).map((item) =&gt; ({
+        key: item,
+        label: item[0].toUpperCase() + item.slice(1),
+        icon: (
+          &lt;Icon
+            name={item === &#39;home&#39; ? &#39;home&#39; : item === &#39;search&#39; ? &#39;search&#39; : item === &#39;watchlist&#39; ? &#39;bookmark&#39; : &#39;avatar&#39;}
+            color={tab === item &amp;&amp; wide ? C.white : tab === item ? C.darkGreen : C.muted}
+            size={wide ? 21 : 20}
+          /&gt;
+        ),
+        content: null,
+      }))}
+    /&gt;
+  );
+
+  return (
+    &lt;SafeArea gap={0} flex={1} bg={C.white}&gt;
+      &lt;StatusBar barStyle=&quot;dark-content&quot; /&gt;
+      &lt;Block gap={0} flex={1} direction={wide ? &#39;row&#39; : &#39;column&#39;} maw={1200} w=&quot;100%&quot; alignSelf=&quot;center&quot;&gt;
+        {wide &amp;&amp; (
+          &lt;Block w={218} p={18} borderRightWidth={1} borderRightColor={C.line} gap={26}&gt;
+            &lt;Text c={C.green} fw=&quot;bold&quot; size={28}&gt;
+              sprout ↗
+            &lt;/Text&gt;
+            {nav}
+            &lt;Block gap={0} flex={1} /&gt;
+            &lt;Text c={C.muted} size={11}&gt;
+              Simulated prices and trades
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+        )}
+        &lt;Block gap={0} flex={1}&gt;
+          {!wide &amp;&amp; (
+            &lt;Block
+              gap={0}
+              h={60}
+              px={18}
+              direction=&quot;row&quot;
+              justify=&quot;space-between&quot;
+              align=&quot;center&quot;
+              borderBottomWidth={1}
+              borderBottomColor={C.line}
+            &gt;
+              &lt;Text c={C.green} fw=&quot;bold&quot; size={25}&gt;
+                sprout ↗
+              &lt;/Text&gt;
+              &lt;Text c={C.muted} size={12}&gt;
+                Demo portfolio
+              &lt;/Text&gt;
+            &lt;/Block&gt;
+          )}
+          &lt;ScrollArea flex={1} contentProps={{ align: &#39;center&#39;, px: 20, pb: 35 }}&gt;
+            &lt;Block gap={0} w=&quot;100%&quot; maw={820}&gt;
+              {tab === &#39;home&#39; &amp;&amp; (
+                &lt;&gt;
+                  &lt;Block gap={0} pt={27}&gt;
+                    &lt;Text c={C.muted} fw=&quot;semibold&quot; size={13}&gt;
+                      Portfolio value
+                    &lt;/Text&gt;
+                    &lt;Text c={C.ink} fw=&quot;bold&quot; size={38} mt={2}&gt;
+                      {money(portfolio)}
+                    &lt;/Text&gt;
+                    &lt;Text c={C.darkGreen} fw=&quot;semibold&quot; size={13}&gt;
+                      ↗ $142.38 (1.42%) today
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;Block gap={0} my={22}&gt;
+                    &lt;TrendChart values={SERIES[range]} /&gt;
+                  &lt;/Block&gt;
+                  &lt;SegmentedControl
+                    data={Object.keys(SERIES)}
+                    value={range}
+                    onChange={setRange}
+                    color={C.darkGreen}
+                    variant=&quot;ghost&quot;
+                    size=&quot;sm&quot;
+                    fullWidth
+                    accessibilityLabel=&quot;Portfolio time range&quot;
+                  /&gt;
+                  &lt;Block gap={0} bg=&quot;#F7FAF8&quot; radius={15} p={17} mt={20} direction=&quot;row&quot; justify=&quot;space-between&quot;&gt;
+                    &lt;Block gap={0}&gt;
+                      &lt;Text c={C.muted} size={12}&gt;
+                        Buying power
+                      &lt;/Text&gt;
+                      &lt;Text c={C.ink} fw=&quot;bold&quot; size={20}&gt;
+                        {money(cash)}
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                    &lt;Block gap={0} alignSelf=&quot;center&quot;&gt;
+                      &lt;Icon name=&quot;chevronRight&quot; color={C.muted} size={20} /&gt;
+                    &lt;/Block&gt;
+                  &lt;/Block&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={21} mt={30} mb={6}&gt;
+                    Your stocks
+                  &lt;/Text&gt;
+                  {STOCKS.filter((item) =&gt; (holdings[item.ticker] ?? 0) &gt; 0).map(stockRow)}
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={21} mt={30} mb={6}&gt;
+                    Watchlist
+                  &lt;/Text&gt;
+                  {STOCKS.filter((item) =&gt; watchlist.includes(item.ticker)).map(stockRow)}
+                &lt;/&gt;
+              )}
+              {tab === &#39;search&#39; &amp;&amp; (
+                &lt;Block gap={0} pt={24}&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={26}&gt;
+                    Search
+                  &lt;/Text&gt;
+                  &lt;Input
+                    variant=&quot;filled&quot;
+                    value={query}
+                    onChangeText={setQuery}
+                    placeholder=&quot;Search stocks and ETFs&quot;
+                    mb={0}
+                    radius={12}
+                    my={18}
+                    inputColor={C.ink}
+                    inputFontSize={15}
+                  /&gt;
+                  &lt;Text c={C.muted} fw=&quot;bold&quot; size={12}&gt;
+                    {query ? &#39;RESULTS&#39; : &#39;POPULAR TODAY&#39;}
+                  &lt;/Text&gt;
+                  {STOCKS.filter((item) =&gt;
+                    `${item.ticker} ${item.name}`.toLowerCase().includes(query.toLowerCase()),
+                  ).map(stockRow)}
+                &lt;/Block&gt;
+              )}
+              {tab === &#39;watchlist&#39; &amp;&amp; (
+                &lt;Block gap={0} pt={24}&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={26}&gt;
+                    Watchlist
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={13} mt={5} mb={20}&gt;
+                    Keep an eye on what interests you.
+                  &lt;/Text&gt;
+                  {watchlist.length ? (
+                    STOCKS.filter((item) =&gt; watchlist.includes(item.ticker)).map(stockRow)
+                  ) : (
+                    &lt;Text c={C.muted}&gt;Open a stock and tap the bookmark to add it here.&lt;/Text&gt;
+                  )}
+                &lt;/Block&gt;
+              )}
+              {tab === &#39;account&#39; &amp;&amp; (
+                &lt;Block gap={0} pt={24}&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={26}&gt;
+                    Account
+                  &lt;/Text&gt;
+                  &lt;Block bg=&quot;#F7FAF8&quot; radius={16} p={18} my={20} gap={10}&gt;
+                    &lt;Text c={C.muted} size={12}&gt;
+                      Demo account
+                    &lt;/Text&gt;
+                    &lt;Text c={C.ink} fw=&quot;bold&quot; size={24}&gt;
+                      {money(portfolio)}
+                    &lt;/Text&gt;
+                    &lt;Text c={C.muted} size={13}&gt;
+                      Invested {money(equity)} · Cash {money(cash)}
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={19}&gt;
+                    Recent activity
+                  &lt;/Text&gt;
+                  {activity.length ? (
+                    activity.map((item) =&gt; (
+                      &lt;Block
+                        gap={0}
+                        key={item.id}
+                        direction=&quot;row&quot;
+                        justify=&quot;space-between&quot;
+                        py={13}
+                        borderBottomWidth={1}
+                        borderBottomColor={C.line}
+                      &gt;
+                        &lt;Text c={C.ink} fw=&quot;semibold&quot;&gt;
+                          {item.side} {item.shares} {item.ticker}
+                        &lt;/Text&gt;
+                        &lt;Text c={C.muted}&gt;{money(item.total)}&lt;/Text&gt;
+                      &lt;/Block&gt;
+                    ))
+                  ) : (
+                    &lt;Text c={C.muted} mt={14}&gt;
+                      No trades yet. Explore a stock to try a simulated order.
+                    &lt;/Text&gt;
+                  )}
+                  &lt;Text c={C.muted} size={12} mt={30}&gt;
+                    Educational UI example. Prices are fictional and no real orders are placed.
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+              )}
+            &lt;/Block&gt;
+          &lt;/ScrollArea&gt;
+          {!wide &amp;&amp; (
+            &lt;Block gap={0} borderTopWidth={1} borderTopColor={C.line} bg={C.white}&gt;
+              {nav}
+            &lt;/Block&gt;
+          )}
+        &lt;/Block&gt;
+      &lt;/Block&gt;
+      {!!stock &amp;&amp; (
+        &lt;Dialog opened accessibilityLabel={`${stock.name} details`} onClose={() =&gt; {
+          setSelected(null);
+          setTicket(null);
+        }}&gt;
+          &lt;Block gap={0}&gt;
+            &lt;ScrollArea contentProps={{ p: 20 }}&gt;
+              &lt;Block gap={0} direction=&quot;row&quot; justify=&quot;space-between&quot; align=&quot;center&quot;&gt;
+                &lt;StockMark stock={stock} /&gt;
+                &lt;IconButton
+                  icon=&quot;x&quot;
+                  variant=&quot;ghost&quot;
+                  iconColor={C.ink}
+                  accessibilityLabel=&quot;Close stock details&quot;
+                  onPress={() =&gt; {
+                    setSelected(null);
+                    setTicket(null);
+                  }}
+                /&gt;
+              &lt;/Block&gt;
+              &lt;Text c={C.ink} fw=&quot;bold&quot; size={27} mt={15}&gt;
+                {stock.name}
+              &lt;/Text&gt;
+              &lt;Text c={C.muted} size={13}&gt;
+                {stock.ticker}
+              &lt;/Text&gt;
+              &lt;Text c={C.ink} fw=&quot;bold&quot; size={32} mt={17}&gt;
+                {money(stock.price)}
+              &lt;/Text&gt;
+              &lt;Text c={stock.change &gt;= 0 ? C.darkGreen : C.red} size={13}&gt;
+                {stock.change &gt;= 0 ? &#39;+&#39; : &#39;&#39;}
+                {stock.change.toFixed(2)}% today
+              &lt;/Text&gt;
+              &lt;Block gap={0} my={15}&gt;
+                &lt;TrendChart values={SERIES[&#39;1D&#39;]} height={140} /&gt;
+              &lt;/Block&gt;
+              &lt;Text c={C.muted} size={13}&gt;
+                Your position: {shares} {shares === 1 ? &#39;share&#39; : &#39;shares&#39;} · {money(shares * stock.price)}
+              &lt;/Text&gt;
+              &lt;Block
+                onPress={() =&gt;
+                  setWatchlist((old) =&gt;
+                    old.includes(stock.ticker) ? old.filter((id) =&gt; id !== stock.ticker) : [...old, stock.ticker],
+                  )
+                }
+                direction=&quot;row&quot;
+                align=&quot;center&quot;
+                gap={8}
+                py={16}
+              &gt;
+                &lt;Icon
+                  name=&quot;bookmark&quot;
+                  variant={watchlist.includes(stock.ticker) ? &#39;filled&#39; : &#39;outlined&#39;}
+                  color={C.darkGreen}
+                  size={20}
+                /&gt;
+                &lt;Text c={C.darkGreen} fw=&quot;semibold&quot;&gt;
+                  {watchlist.includes(stock.ticker) ? &#39;Remove from watchlist&#39; : &#39;Add to watchlist&#39;}
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+              {ticket ? (
+                &lt;Block gap={11} pt={7} borderTopWidth={1} borderTopColor={C.line}&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={18}&gt;
+                    {ticket} {stock.ticker}
+                  &lt;/Text&gt;
+                  &lt;Input
+                    variant=&quot;outline&quot;
+                    value={quantity}
+                    onChangeText={setQuantity}
+                    keyboardType=&quot;number-pad&quot;
+                    placeholder=&quot;Number of shares&quot;
+                    mb={0}
+                    radius={10}
+                    inputColor={C.ink}
+                  /&gt;
+                  &lt;Text c={C.muted} size={13}&gt;
+                    Estimated total: {Number.isFinite(total) ? money(total) : &#39;—&#39;}
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={12}&gt;
+                    Available: {ticket === &#39;Buy&#39; ? money(cash) : `${shares} shares`}
+                  &lt;/Text&gt;
+                  &lt;Button
+                    title={`Confirm simulated ${ticket.toLowerCase()}`}
+                    color={C.green}
+                    disabled={!validOrder}
+                    onPress={submitOrder}
+                  /&gt;
+                  &lt;Button title=&quot;Cancel&quot; variant=&quot;subtle&quot; color={C.ink} onPress={() =&gt; setTicket(null)} /&gt;
+                &lt;/Block&gt;
+              ) : (
+                &lt;Block direction=&quot;row&quot; gap={10} mt={8}&gt;
+                  &lt;Block gap={0} flex={1}&gt;
+                    &lt;Button
+                      title=&quot;Buy&quot;
+                      color={C.green}
+                      fullWidth
+                      onPress={() =&gt; {
+                        setQuantity(&#39;1&#39;);
+                        setTicket(&#39;Buy&#39;);
+                      }}
+                    /&gt;
+                  &lt;/Block&gt;
+                  &lt;Block gap={0} flex={1}&gt;
+                    &lt;Button
+                      title=&quot;Sell&quot;
+                      variant=&quot;outline&quot;
+                      color={C.darkGreen}
+                      fullWidth
+                      disabled={!shares}
+                      onPress={() =&gt; {
+                        setQuantity(&#39;1&#39;);
+                        setTicket(&#39;Sell&#39;);
+                      }}
+                    /&gt;
+                  &lt;/Block&gt;
+                &lt;/Block&gt;
+              )}
+            &lt;/ScrollArea&gt;
+          &lt;/Block&gt;
+        &lt;/Dialog&gt;
+      )}
+    &lt;/SafeArea&gt;
+  );
+}
+export default function App() {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;light&#39; }}&gt;
+        &lt;SproutfolioScreen /&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

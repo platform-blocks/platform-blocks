@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Signal News demo source | plocks</title><meta name="description" content="Browse the source code for the Signal News demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/signal-news/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>signal-news source</h1><nav><a href="/demos/signal-news/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useState } from &#39;react&#39;;
+import type { ReactNode } from &#39;react&#39;;
+import { StatusBar } from &#39;react-native&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+
+import {
+  Block,
+  Button,
+  Card,
+  Column,
+  Input,
+  PlocksProvider,
+  SafeArea,
+  ScrollArea,
+  Text,
+  Title,
+} from &#39;@plocks/ui&#39;;
+
+type Palette = {
+  background: string;
+  surface: string;
+  ink: string;
+  muted: string;
+  accent: string;
+  border: string;
+};
+
+function AppFrame({
+  name,
+  subtitle,
+  palette,
+  children,
+  dark = false,
+  showHeader = true,
+}: {
+  name: string;
+  subtitle: string;
+  palette: Palette;
+  children: ReactNode;
+  dark?: boolean;
+  showHeader?: boolean;
+}) {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: dark ? &#39;dark&#39; : &#39;light&#39; }}&gt;
+        &lt;SafeArea gap={0} flex={1} bg={palette.background}&gt;
+          &lt;StatusBar barStyle={dark ? &#39;light-content&#39; : &#39;dark-content&#39;} /&gt;
+          &lt;ScrollArea
+            contentProps={{ w: &#39;100%&#39;, maw: 720, alignSelf: &#39;center&#39;, p: 20, pb: 64, gap: 18 }}
+          &gt;
+            {showHeader &amp;&amp; (
+              &lt;Column gap=&quot;xs&quot;&gt;
+                &lt;Text c={palette.accent} size={11} fw=&quot;bold&quot; lts={2}&gt;
+                  PLOCKS EXAMPLE
+                &lt;/Text&gt;
+                &lt;Title order={1} c={palette.ink} size={34}&gt;
+                  {name}
+                &lt;/Title&gt;
+                &lt;Text c={palette.muted}&gt;{subtitle}&lt;/Text&gt;
+              &lt;/Column&gt;
+            )}
+            {children}
+          &lt;/ScrollArea&gt;
+        &lt;/SafeArea&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+
+function Panel({
+  children,
+  palette,
+  onPress,
+}: {
+  children: ReactNode;
+  palette: Palette;
+  onPress?: () =&gt; void;
+}) {
+  return (
+    &lt;Card
+      onPress={onPress}
+      bg={palette.surface}
+      borderColor={palette.border}
+      borderWidth={1}
+      radius=&quot;lg&quot;
+      padding=&quot;lg&quot;
+    &gt;
+      &lt;Column gap=&quot;sm&quot;&gt;{children}&lt;/Column&gt;
+    &lt;/Card&gt;
+  );
+}
+
+function Action({
+  title,
+  palette,
+  onPress,
+  outline = false,
+  disabled = false,
+}: {
+  title: string;
+  palette: Palette;
+  onPress: () =&gt; void;
+  outline?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    &lt;Button
+      title={title}
+      onPress={onPress}
+      disabled={disabled}
+      size=&quot;sm&quot;
+      variant={outline ? &#39;outline&#39; : &#39;filled&#39;}
+      color={palette.accent}
+      textColor={outline ? palette.accent : palette.background}
+    /&gt;
+  );
+}
+
+function Actions({ children }: { children: ReactNode }) {
+  return (
+    &lt;Block direction=&quot;row&quot; wrap=&quot;wrap&quot; align=&quot;center&quot; gap={8}&gt;
+      {children}
+    &lt;/Block&gt;
+  );
+}
+
+function Label({ children, palette }: { children: ReactNode; palette: Palette }) {
+  return (
+    &lt;Text c={palette.muted} size={11} fw=&quot;bold&quot; lts={1.2}&gt;
+      {children}
+    &lt;/Text&gt;
+  );
+}
+
+const P: Palette = {
+  background: &#39;#F7F4EE&#39;,
+  surface: &#39;#FFFFFF&#39;,
+  ink: &#39;#17212B&#39;,
+  muted: &#39;#63717B&#39;,
+  accent: &#39;#D54336&#39;,
+  border: &#39;#E8E2D8&#39;,
+};
+const STORIES = [
+  {
+    id: &#39;one&#39;,
+    category: &#39;WORLD&#39;,
+    title: &#39;Communities rethink the shape of their public squares&#39;,
+    summary: &#39;A look at the small changes making shared spaces more welcoming.&#39;,
+    duration: 9,
+  },
+  {
+    id: &#39;two&#39;,
+    category: &#39;SCIENCE&#39;,
+    title: &#39;What a neighborhood garden can teach us about climate&#39;,
+    summary: &#39;Researchers follow an unexpected source of local data.&#39;,
+    duration: 6,
+  },
+  {
+    id: &#39;three&#39;,
+    category: &#39;CULTURE&#39;,
+    title: &#39;The art of finding new music close to home&#39;,
+    summary: &#39;Independent stages are helping fresh voices find an audience.&#39;,
+    duration: 12,
+  },
+];
+export default function App() {
+  const [query, setQuery] = useState(&#39;&#39;);
+  const [selected, setSelected] = useState&lt;string | null&gt;(null);
+  const [playing, setPlaying] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const [saved, setSaved] = useState&lt;string[]&gt;([]);
+  const story = STORIES.find((s) =&gt; s.id === selected);
+  useEffect(() =&gt; {
+    if (!playing || !story) return;
+    const timer = setInterval(() =&gt; setSeconds((n) =&gt; n + 1), 1000);
+    return () =&gt; clearInterval(timer);
+  }, [playing, story]);
+  useEffect(() =&gt; {
+    if (story &amp;&amp; seconds &gt;= story.duration * 60) {
+      setPlaying(false);
+      setSeconds(0);
+    }
+  }, [seconds, story]);
+  const toggleSaved = (id: string) =&gt;
+    setSaved((old) =&gt; (old.includes(id) ? old.filter((x) =&gt; x !== id) : [...old, id]));
+  return (
+    &lt;AppFrame name=&quot;Signal News&quot; subtitle=&quot;Stories for listening and reading.&quot; palette={P}&gt;
+      &lt;Panel palette={P}&gt;
+        &lt;Text c={P.accent} fw=&quot;bold&quot; size={19}&gt;
+          listen · read · discover
+        &lt;/Text&gt;
+        &lt;Input
+          variant=&quot;outline&quot;
+          value={query}
+          onChangeText={setQuery}
+          placeholder=&quot;Search stories&quot;
+          accessibilityLabel=&quot;Search stories&quot;
+          mb={0}
+          radius={8}
+          inputColor={P.ink}
+        /&gt;
+      &lt;/Panel&gt;
+      {story ? (
+        &lt;Panel palette={P}&gt;
+          &lt;Action
+            title=&quot;← All stories&quot;
+            palette={P}
+            outline
+            onPress={() =&gt; {
+              setSelected(null);
+              setPlaying(false);
+            }}
+          /&gt;
+          &lt;Label palette={P}&gt;
+            {story.category} · {story.duration} MIN LISTEN
+          &lt;/Label&gt;
+          &lt;Text c={P.ink} fw=&quot;bold&quot; size={25}&gt;
+            {story.title}
+          &lt;/Text&gt;
+          &lt;Text c={P.muted}&gt;{story.summary}&lt;/Text&gt;
+          &lt;Text c={P.ink}&gt;
+            In this sample report, local voices describe the ideas and choices shaping daily life.
+            Explore the topics, save a story, or try the sample player.
+          &lt;/Text&gt;
+          &lt;Actions&gt;
+            &lt;Action
+              title={playing ? &#39;Pause&#39; : &#39;Play sample&#39;}
+              palette={P}
+              onPress={() =&gt; setPlaying((x) =&gt; !x)}
+            /&gt;
+            &lt;Action
+              title={saved.includes(story.id) ? &#39;Saved ✓&#39; : &#39;Save&#39;}
+              palette={P}
+              outline
+              onPress={() =&gt; toggleSaved(story.id)}
+            /&gt;
+          &lt;/Actions&gt;
+          &lt;Text c={P.muted} size={12}&gt;
+            Sample playback timer · {Math.floor(seconds / 60)}:
+            {String(seconds % 60).padStart(2, &#39;0&#39;)} / {story.duration}:00
+          &lt;/Text&gt;
+        &lt;/Panel&gt;
+      ) : (
+        &lt;&gt;
+          &lt;Label palette={P}&gt;TOP STORIES&lt;/Label&gt;
+          {STORIES.filter((s) =&gt;
+            `${s.title} ${s.category}`.toLowerCase().includes(query.toLowerCase()),
+          ).map((s) =&gt; (
+            &lt;Panel
+              key={s.id}
+              palette={P}
+              onPress={() =&gt; {
+                setSelected(s.id);
+                setSeconds(0);
+              }}
+            &gt;
+              &lt;Label palette={P}&gt;
+                {s.category} · {s.duration} MIN
+              &lt;/Label&gt;
+              &lt;Text c={P.ink} fw=&quot;bold&quot; size={20}&gt;
+                {s.title}
+              &lt;/Text&gt;
+              &lt;Text c={P.muted}&gt;{s.summary}&lt;/Text&gt;
+            &lt;/Panel&gt;
+          ))}
+          &lt;Text c={P.muted} size={12}&gt;
+            Original sample headlines and summaries. No live news or audio feed.
+          &lt;/Text&gt;
+        &lt;/&gt;
+      )}
+    &lt;/AppFrame&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

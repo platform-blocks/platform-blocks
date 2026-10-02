@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Solitaire demo source | plocks</title><meta name="description" content="Browse the source code for the Solitaire demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/solitaire/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>solitaire source</h1><nav><a href="/demos/solitaire/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">game.ts</a><a href="#file-2">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useMemo, useState } from &#39;react&#39;;
+import { StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import { Block, ScrollArea, SafeArea, Button, Card, Column, Flex, PlocksProvider, Text, Title } from &#39;@plocks/ui&#39;;
+
+import {
+  SUITS,
+  SUIT_SYMBOL,
+  canMove,
+  cardLabel,
+  createGame,
+  drawStock,
+  findHint,
+  isRed,
+  isWon,
+  moveCards,
+  rankLabel,
+  sourceCards,
+  type Destination,
+  type GameState,
+  type PlayingCard,
+  type Source,
+  type Suit,
+} from &#39;./game&#39;;
+
+const COLORS = {
+  page: &#39;#0B211C&#39;,
+  felt: &#39;#174638&#39;,
+  feltDeep: &#39;#123A30&#39;,
+  line: &#39;rgba(226, 239, 219, 0.15)&#39;,
+  cream: &#39;#FFFCF4&#39;,
+  gold: &#39;#E9C98C&#39;,
+  muted: &#39;#AEC7B9&#39;,
+  white: &#39;#F6F6E9&#39;,
+  red: &#39;#BB3D44&#39;,
+  black: &#39;#253A39&#39;,
+};
+
+const GAME_THEME = { colorScheme: &#39;dark&#39; as const };
+
+function formatTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, &#39;0&#39;);
+  const remaining = (seconds % 60).toString().padStart(2, &#39;0&#39;);
+  return `${minutes}:${remaining}`;
+}
+
+function sourceEquals(left: Source | null, right: Source): boolean {
+  if (!left || left.pile !== right.pile) return false;
+  if (left.pile === &#39;waste&#39;) return true;
+  if (left.pile === &#39;foundation&#39; &amp;&amp; right.pile === &#39;foundation&#39;) return left.suit === right.suit;
+  return (
+    left.pile === &#39;tableau&#39; &amp;&amp;
+    right.pile === &#39;tableau&#39; &amp;&amp;
+    left.column === right.column &amp;&amp;
+    left.cardIndex === right.cardIndex
+  );
+}
+
+type CardFaceProps = {
+  card: PlayingCard;
+  width: number;
+  height: number;
+  selected?: boolean;
+  highlighted?: boolean;
+  onPress?: () =&gt; void;
+  top?: number;
+  zIndex?: number;
+  accessibilityLabel?: string;
+};
+
+function CardFace({
+  card,
+  width,
+  height,
+  selected,
+  highlighted,
+  onPress,
+  top,
+  zIndex,
+  accessibilityLabel,
+}: CardFaceProps) {
+  const red = isRed(card.suit);
+  const ink = red ? COLORS.red : COLORS.black;
+  const small = width &lt; 60;
+  const rankSize = small ? 14 : 21;
+  const suitSize = small ? 12 : 18;
+  const centerSize = small ? 27 : 43;
+
+  return (
+    &lt;Card
+      onPress={onPress}
+      accessibilityLabel={accessibilityLabel ?? (card.faceUp ? cardLabel(card) : &#39;Face-down card&#39;)}
+      padding={0}
+      radius=&quot;md&quot;
+      bg={card.faceUp ? COLORS.cream : &#39;#20564A&#39;}
+      borderColor={selected || highlighted ? COLORS.gold : card.faceUp ? &#39;#DFD9C8&#39; : &#39;#81A79A&#39;}
+      borderWidth={selected ? 3 : highlighted ? 2 : 1}
+      w={width}
+      h={height}
+      clip
+      shadow=&quot;md&quot;
+      position={top === undefined ? &#39;relative&#39; : &#39;absolute&#39;}
+      top={top}
+      left={top === undefined ? undefined : 0}
+      zIndex={zIndex}
+    &gt;
+      {card.faceUp ? (
+        &lt;&gt;
+          &lt;Block
+            gap={0}
+            direction=&quot;column&quot;
+            position=&quot;absolute&quot;
+            top={small ? 3 : 6}
+            left={small ? 4 : 8}
+            fullWidth={false}
+          &gt;
+            &lt;Text fw=&quot;bold&quot; c={ink} size={rankSize} lh={1}&gt;
+              {rankLabel(card.rank)}
+            &lt;/Text&gt;
+            &lt;Text c={ink} size={suitSize} lh={1}&gt;
+              {SUIT_SYMBOL[card.suit]}
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+          &lt;Block align=&quot;center&quot; justify=&quot;center&quot; direction=&quot;row&quot; flex={1}&gt;
+            &lt;Text c={ink} size={centerSize} lh={1}&gt;
+              {SUIT_SYMBOL[card.suit]}
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+          {!small &amp;&amp; (
+            &lt;Text c={ink} size={16} position=&quot;absolute&quot; bottom={5} right={8}&gt;
+              {SUIT_SYMBOL[card.suit]}
+            &lt;/Text&gt;
+          )}
+        &lt;/&gt;
+      ) : (
+        &lt;Block
+          align=&quot;center&quot;
+          justify=&quot;center&quot;
+          direction=&quot;row&quot;
+          flex={1}
+          m={4}
+          borderWidth={1}
+          borderColor=&quot;#7FA69A&quot;
+          radius={6}
+        &gt;
+          &lt;Text c={COLORS.gold} size={small ? 21 : 36} lh={1}&gt;
+            ✦
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+      )}
+    &lt;/Card&gt;
+  );
+}
+
+function EmptySlot({
+  width,
+  height,
+  symbol,
+  label,
+  onPress,
+  highlighted = false,
+}: {
+  width: number;
+  height: number;
+  symbol: string;
+  label: string;
+  onPress?: () =&gt; void;
+  highlighted?: boolean;
+}) {
+  return (
+    &lt;Card
+      variant=&quot;outline&quot;
+      bg=&quot;rgba(7, 31, 25, 0.22)&quot;
+      padding={0}
+      radius=&quot;md&quot;
+      borderColor={highlighted ? COLORS.gold : &#39;rgba(226, 239, 219, 0.27)&#39;}
+      onPress={onPress}
+      accessibilityLabel={label}
+      borderStyle=&quot;dashed&quot;
+      w={width}
+      h={height}
+    &gt;
+      &lt;Block align=&quot;center&quot; justify=&quot;center&quot; direction=&quot;row&quot; flex={1}&gt;
+        &lt;Text c={highlighted ? COLORS.gold : &#39;rgba(226, 239, 219, 0.34)&#39;} size={width &lt; 60 ? 22 : 38}&gt;
+          {symbol}
+        &lt;/Text&gt;
+      &lt;/Block&gt;
+    &lt;/Card&gt;
+  );
+}
+
+function SolitaireScreen() {
+  const { width: viewportWidth } = useWindowDimensions();
+  const [game, setGame] = useState&lt;GameState&gt;(() =&gt; createGame());
+  const [history, setHistory] = useState&lt;GameState[]&gt;([]);
+  const [selected, setSelected] = useState&lt;Source | null&gt;(null);
+  const [message, setMessage] = useState(&#39;Select a face-up card, then tap where it should go.&#39;);
+  const [seconds, setSeconds] = useState(0);
+  const [showRules, setShowRules] = useState(false);
+
+  const won = isWon(game);
+  useEffect(() =&gt; {
+    if (won) return;
+    const timer = setInterval(() =&gt; setSeconds((value) =&gt; value + 1), 1000);
+    return () =&gt; clearInterval(timer);
+  }, [won]);
+
+  const boardWidth = Math.max(320, Math.min(870, viewportWidth - (viewportWidth &lt; 500 ? 60 : 72)));
+  const gap = Math.max(6, Math.round(boardWidth * 0.014));
+  const cardWidth = (boardWidth - gap * 6) / 7;
+  const cardHeight = Math.round(cardWidth * 1.43);
+  const coveredStep = Math.max(11, Math.round(cardHeight * 0.15));
+  const openStep = Math.max(26, Math.round(cardHeight * 0.28));
+  const foundationCount = SUITS.reduce((total, suit) =&gt; total + game.foundations[suit].length, 0);
+
+  function commit(next: GameState, feedback: string) {
+    setHistory((previous) =&gt; [...previous.slice(-99), game]);
+    setGame(next);
+    setSelected(null);
+    setMessage(feedback);
+  }
+
+  function tryDestination(destination: Destination): boolean {
+    if (!selected) return false;
+    const next = moveCards(game, selected, destination);
+    if (!next) return false;
+    const card = sourceCards(game, selected)?.[0];
+    commit(next, card ? `Moved ${cardLabel(card)}.` : &#39;Nice move.&#39;);
+    return true;
+  }
+
+  function chooseSource(source: Source) {
+    if (sourceEquals(selected, source)) {
+      setSelected(null);
+      setMessage(&#39;Selection cleared.&#39;);
+      return;
+    }
+    const cards = sourceCards(game, source);
+    if (!cards) return;
+    setSelected(source);
+    setMessage(
+      cards.length &gt; 1
+        ? `${cardLabel(cards[0])} and ${cards.length - 1} more selected. Tap a tableau column.`
+        : `${cardLabel(cards[0])} selected. Tap a valid destination.`,
+    );
+  }
+
+  function tapTableau(column: number, cardIndex?: number) {
+    if (selected &amp;&amp; tryDestination({ pile: &#39;tableau&#39;, column })) return;
+    if (cardIndex !== undefined) chooseSource({ pile: &#39;tableau&#39;, column, cardIndex });
+    else if (selected) setMessage(&#39;Only a king can move into an empty column.&#39;);
+  }
+
+  function tapFoundation(suit: Suit) {
+    if (selected &amp;&amp; tryDestination({ pile: &#39;foundation&#39;, suit })) return;
+    if (game.foundations[suit].length) chooseSource({ pile: &#39;foundation&#39;, suit });
+    else if (selected) setMessage(`Only the ace of ${suit} starts this foundation.`);
+  }
+
+  function tapStock() {
+    const next = drawStock(game);
+    if (next) commit(next, game.stock.length ? &#39;Drew a card from the stock.&#39; : &#39;Stock recycled.&#39;);
+  }
+
+  function undo() {
+    const previous = history.at(-1);
+    if (!previous) return;
+    setGame(previous);
+    setHistory((items) =&gt; items.slice(0, -1));
+    setSelected(null);
+    setMessage(&#39;Last move undone.&#39;);
+  }
+
+  function newDeal() {
+    setGame(createGame());
+    setHistory([]);
+    setSelected(null);
+    setSeconds(0);
+    setMessage(&#39;Fresh deck. Good luck!&#39;);
+  }
+
+  function showHint() {
+    const hint = findHint(game);
+    if (hint) {
+      setSelected(hint.source);
+      setMessage(hint.text);
+    } else if (game.stock.length || game.waste.length) {
+      setSelected(null);
+      setMessage(game.stock.length ? &#39;Try drawing from the stock.&#39; : &#39;Recycle the waste pile to keep looking.&#39;);
+    } else {
+      setSelected(null);
+      setMessage(&#39;No available moves. Start a new deal to try again.&#39;);
+    }
+  }
+
+  const tableauLayouts = useMemo(
+    () =&gt;
+      game.tableau.map((pile) =&gt; {
+        let offset = 0;
+        const positions = pile.map((card) =&gt; {
+          const position = offset;
+          offset += card.faceUp ? openStep : coveredStep;
+          return position;
+        });
+        return { positions, height: Math.max(cardHeight, (positions.at(-1) ?? 0) + cardHeight) };
+      }),
+    [game.tableau, cardHeight, coveredStep, openStep],
+  );
+
+  return (
+    &lt;SafeArea gap={0} flex={1} bg={COLORS.page}&gt;
+      &lt;StatusBar barStyle=&quot;light-content&quot; /&gt;
+      &lt;ScrollArea contentProps={{ align: &#39;center&#39;, pb: 44 }}&gt;
+        &lt;Block gap=&quot;lg&quot; direction=&quot;column&quot; w=&quot;100%&quot; maw={1060} px={18} pt={24}&gt;
+          &lt;Flex direction=&quot;row&quot; wrap=&quot;wrap&quot; justify=&quot;space-between&quot; align=&quot;center&quot; gap=&quot;lg&quot;&gt;
+            &lt;Column gap=&quot;xs&quot; fullWidth={false}&gt;
+              &lt;Text c={COLORS.gold} size={11} fw=&quot;bold&quot; lts={3}&gt;
+                PLOCKS / THE CARD TABLE
+              &lt;/Text&gt;
+              &lt;Title order={1} c={COLORS.white} size={viewportWidth &lt; 500 ? 36 : 52} lh={58}&gt;
+                Solitaire
+              &lt;/Title&gt;
+              &lt;Text c={COLORS.muted}&gt;A quiet game of Klondike.&lt;/Text&gt;
+            &lt;/Column&gt;
+            &lt;Flex direction=&quot;row&quot; wrap=&quot;wrap&quot; gap=&quot;sm&quot; align=&quot;center&quot;&gt;
+              &lt;Button
+                title=&quot;New deal&quot;
+                size=&quot;sm&quot;
+                variant=&quot;filled&quot;
+                color={COLORS.gold}
+                textColor={COLORS.page}
+                onPress={newDeal}
+              /&gt;
+              &lt;Button
+                title=&quot;Undo&quot;
+                size=&quot;sm&quot;
+                variant=&quot;outline&quot;
+                color={COLORS.gold}
+                disabled={!history.length}
+                onPress={undo}
+              /&gt;
+              &lt;Button title=&quot;Hint&quot; size=&quot;sm&quot; variant=&quot;outline&quot; color={COLORS.gold} onPress={showHint} /&gt;
+            &lt;/Flex&gt;
+          &lt;/Flex&gt;
+
+          &lt;Flex direction=&quot;row&quot; wrap=&quot;wrap&quot; gap=&quot;sm&quot;&gt;
+            &lt;Stat label=&quot;TIME&quot; value={formatTime(seconds)} /&gt;
+            &lt;Stat label=&quot;MOVES&quot; value={String(game.moves)} /&gt;
+            &lt;Stat label=&quot;FOUNDATIONS&quot; value={`${foundationCount} / 52`} /&gt;
+          &lt;/Flex&gt;
+
+          &lt;Card
+            bg={COLORS.felt}
+            padding={viewportWidth &lt; 500 ? 12 : 24}
+            radius=&quot;xl&quot;
+            borderColor={COLORS.line}
+            clip
+            mih={viewportWidth &lt; 500 ? 310 : 500}
+          &gt;
+            &lt;ScrollArea horizontal showsHorizontalScrollIndicator={false} contentProps={{ grow: 1 }}&gt;
+              &lt;Block gap=&quot;lg&quot; direction=&quot;column&quot; w={boardWidth} mih={viewportWidth &lt; 500 ? 280 : 450}&gt;
+                &lt;Block gap={0} direction=&quot;row&quot; w={boardWidth}&gt;
+                  &lt;Block gap=&quot;xs&quot; fullWidth={false} direction=&quot;column&quot; w={cardWidth} mr={gap}&gt;
+                    &lt;Text c={COLORS.muted} size={10} fw=&quot;bold&quot; lts={1.5}&gt;
+                      STOCK
+                    &lt;/Text&gt;
+                    {game.stock.length ? (
+                      &lt;CardFace
+                        card={game.stock.at(-1)!}
+                        width={cardWidth}
+                        height={cardHeight}
+                        onPress={tapStock}
+                        accessibilityLabel={`Stock, ${game.stock.length} cards. Draw one card.`}
+                      /&gt;
+                    ) : (
+                      &lt;EmptySlot
+                        width={cardWidth}
+                        height={cardHeight}
+                        symbol=&quot;↺&quot;
+                        label=&quot;Recycle waste pile&quot;
+                        onPress={game.waste.length ? tapStock : undefined}
+                      /&gt;
+                    )}
+                  &lt;/Block&gt;
+                  &lt;Block gap=&quot;xs&quot; fullWidth={false} direction=&quot;column&quot; w={cardWidth} mr={gap}&gt;
+                    &lt;Text c={COLORS.muted} size={10} fw=&quot;bold&quot; lts={1.5}&gt;
+                      WASTE
+                    &lt;/Text&gt;
+                    {game.waste.length ? (
+                      &lt;CardFace
+                        card={game.waste.at(-1)!}
+                        width={cardWidth}
+                        height={cardHeight}
+                        selected={selected?.pile === &#39;waste&#39;}
+                        onPress={() =&gt; chooseSource({ pile: &#39;waste&#39; })}
+                        accessibilityLabel={`Waste, ${cardLabel(game.waste.at(-1)!)}. Select card.`}
+                      /&gt;
+                    ) : (
+                      &lt;EmptySlot width={cardWidth} height={cardHeight} symbol=&quot;✧&quot; label=&quot;Empty waste pile&quot; /&gt;
+                    )}
+                  &lt;/Block&gt;
+                  &lt;Block direction=&quot;row&quot; w={cardWidth} mr={gap} /&gt;
+                  {SUITS.map((suit, index) =&gt; {
+                    const pile = game.foundations[suit];
+                    return (
+                      &lt;Block
+                        key={suit}
+                        gap=&quot;xs&quot;
+                        fullWidth={false}
+                        direction=&quot;column&quot;
+                        w={cardWidth}
+                        mr={index &lt; 3 ? gap : 0}
+                      &gt;
+                        &lt;Text c={COLORS.muted} size={10} fw=&quot;bold&quot; lts={1.5}&gt;
+                          {index === 0 ? &#39;FOUNDATIONS&#39; : &#39; &#39;}
+                        &lt;/Text&gt;
+                        {pile.length ? (
+                          &lt;CardFace
+                            card={pile.at(-1)!}
+                            width={cardWidth}
+                            height={cardHeight}
+                            selected={selected?.pile === &#39;foundation&#39; &amp;&amp; selected.suit === suit}
+                            highlighted={selected !== null &amp;&amp; canMove(game, selected, { pile: &#39;foundation&#39;, suit })}
+                            onPress={() =&gt; tapFoundation(suit)}
+                            accessibilityLabel={`${suit} foundation, top card ${cardLabel(pile.at(-1)!)}.`}
+                          /&gt;
+                        ) : (
+                          &lt;EmptySlot
+                            width={cardWidth}
+                            height={cardHeight}
+                            symbol={SUIT_SYMBOL[suit]}
+                            label={`Empty ${suit} foundation. Tap to move a selected ace.`}
+                            onPress={() =&gt; tapFoundation(suit)}
+                            highlighted={
+                              selected !== null &amp;&amp;
+                              sourceCards(game, selected)?.[0]?.suit === suit &amp;&amp;
+                              canMove(game, selected, { pile: &#39;foundation&#39;, suit })
+                            }
+                          /&gt;
+                        )}
+                      &lt;/Block&gt;
+                    );
+                  })}
+                &lt;/Block&gt;
+
+                &lt;Column gap=&quot;sm&quot;&gt;
+                  &lt;Text c={COLORS.muted} size={10} fw=&quot;bold&quot; lts={1.5}&gt;
+                    TABLEAU
+                  &lt;/Text&gt;
+                  &lt;Block gap={0} direction=&quot;row&quot; w={boardWidth} align=&quot;flex-start&quot;&gt;
+                    {game.tableau.map((pile, column) =&gt; {
+                      const layout = tableauLayouts[column];
+                      return (
+                        &lt;Block
+                          key={column}
+                          direction=&quot;row&quot;
+                          w={cardWidth}
+                          h={layout.height}
+                          mr={column &lt; 6 ? gap : 0}
+                          position=&quot;relative&quot;
+                        &gt;
+                          {!pile.length &amp;&amp; (
+                            &lt;EmptySlot
+                              width={cardWidth}
+                              height={cardHeight}
+                              symbol=&quot;K&quot;
+                              label={`Empty tableau column ${column + 1}. Tap to move a selected king.`}
+                              onPress={() =&gt; tapTableau(column)}
+                              highlighted={selected !== null &amp;&amp; canMove(game, selected, { pile: &#39;tableau&#39;, column })}
+                            /&gt;
+                          )}
+                          {pile.map((card, cardIndex) =&gt; {
+                            const inSelection =
+                              selected?.pile === &#39;tableau&#39; &amp;&amp;
+                              selected.column === column &amp;&amp;
+                              cardIndex &gt;= selected.cardIndex;
+                            return (
+                              &lt;CardFace
+                                key={`${card.suit}-${card.rank}`}
+                                card={card}
+                                width={cardWidth}
+                                height={cardHeight}
+                                selected={inSelection}
+                                highlighted={
+                                  selected !== null &amp;&amp;
+                                  cardIndex === pile.length - 1 &amp;&amp;
+                                  canMove(game, selected, { pile: &#39;tableau&#39;, column })
+                                }
+                                onPress={card.faceUp ? () =&gt; tapTableau(column, cardIndex) : undefined}
+                                accessibilityLabel={
+                                  card.faceUp
+                                    ? `Column ${column + 1}, ${cardLabel(card)}${inSelection ? &#39;, selected&#39; : &#39;&#39;}`
+                                    : `Column ${column + 1}, face-down card`
+                                }
+                                top={layout.positions[cardIndex]}
+                                zIndex={cardIndex}
+                              /&gt;
+                            );
+                          })}
+                        &lt;/Block&gt;
+                      );
+                    })}
+                  &lt;/Block&gt;
+                &lt;/Column&gt;
+              &lt;/Block&gt;
+            &lt;/ScrollArea&gt;
+          &lt;/Card&gt;
+
+          {won ? (
+            &lt;Card bg=&quot;#294B3F&quot; borderColor={COLORS.gold} padding=&quot;lg&quot;&gt;
+              &lt;Column gap=&quot;sm&quot;&gt;
+                &lt;Title order={2} c={COLORS.gold}&gt;
+                  You won. Beautifully played.
+                &lt;/Title&gt;
+                &lt;Text c={COLORS.white}&gt;All 52 cards reached their foundations in {game.moves} moves.&lt;/Text&gt;
+                &lt;Button
+                  title=&quot;Play again&quot;
+                  color={COLORS.gold}
+                  textColor={COLORS.page}
+                  variant=&quot;filled&quot;
+                  onPress={newDeal}
+                /&gt;
+              &lt;/Column&gt;
+            &lt;/Card&gt;
+          ) : (
+            &lt;Text c={COLORS.gold} size={14} accessibilityLiveRegion=&quot;polite&quot;&gt;
+              {message}
+            &lt;/Text&gt;
+          )}
+
+          &lt;Card bg={COLORS.feltDeep} borderColor={COLORS.line} padding=&quot;md&quot;&gt;
+            &lt;Column gap=&quot;sm&quot;&gt;
+              &lt;Flex direction=&quot;row&quot; justify=&quot;space-between&quot; align=&quot;center&quot; wrap=&quot;wrap&quot; gap=&quot;sm&quot;&gt;
+                &lt;Text c={COLORS.white} fw=&quot;bold&quot;&gt;
+                  How to play
+                &lt;/Text&gt;
+                &lt;Button
+                  title={showRules ? &#39;Hide rules&#39; : &#39;Show rules&#39;}
+                  size=&quot;sm&quot;
+                  variant=&quot;ghost&quot;
+                  color={COLORS.gold}
+                  onPress={() =&gt; setShowRules(!showRules)}
+                /&gt;
+              &lt;/Flex&gt;
+              {showRules &amp;&amp; (
+                &lt;Text c={COLORS.muted} lh={1.5}&gt;
+                  Tap a face-up card or descending stack, then tap its destination. Build tableau columns downward in
+                  alternating colors. Build foundations upward from aces by suit. Only kings can fill empty columns. Tap
+                  the stock to draw one card; tap its empty slot to recycle the waste. Undo reverses your last move.
+                &lt;/Text&gt;
+              )}
+            &lt;/Column&gt;
+          &lt;/Card&gt;
+        &lt;/Block&gt;
+      &lt;/ScrollArea&gt;
+    &lt;/SafeArea&gt;
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    &lt;Card bg={COLORS.feltDeep} borderColor={COLORS.line} padding=&quot;sm&quot; radius=&quot;md&quot; miw={106}&gt;
+      &lt;Column gap={2}&gt;
+        &lt;Text c={COLORS.muted} size={10} fw=&quot;bold&quot; lts={1.4}&gt;
+          {label}
+        &lt;/Text&gt;
+        &lt;Text c={COLORS.white} size={17} fw=&quot;bold&quot;&gt;
+          {value}
+        &lt;/Text&gt;
+      &lt;/Column&gt;
+    &lt;/Card&gt;
+  );
+}
+
+export default function App() {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={GAME_THEME}&gt;
+        &lt;SolitaireScreen /&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>game.ts</h2><pre><code>export const SUITS = [&#39;spades&#39;, &#39;hearts&#39;, &#39;clubs&#39;, &#39;diamonds&#39;] as const;
+export type Suit = (typeof SUITS)[number];
+
+export type PlayingCard = {
+  suit: Suit;
+  rank: number;
+  faceUp: boolean;
+};
+
+export type GameState = {
+  stock: PlayingCard[];
+  waste: PlayingCard[];
+  foundations: Record&lt;Suit, PlayingCard[]&gt;;
+  tableau: PlayingCard[][];
+  moves: number;
+};
+
+export type Source =
+  | { pile: &#39;waste&#39; }
+  | { pile: &#39;foundation&#39;; suit: Suit }
+  | { pile: &#39;tableau&#39;; column: number; cardIndex: number };
+
+export type Destination =
+  | { pile: &#39;foundation&#39;; suit: Suit }
+  | { pile: &#39;tableau&#39;; column: number };
+
+export type Hint = { source: Source; destination: Destination; text: string };
+
+export const SUIT_SYMBOL: Record&lt;Suit, string&gt; = {
+  spades: &#39;♠&#39;,
+  hearts: &#39;♥&#39;,
+  clubs: &#39;♣&#39;,
+  diamonds: &#39;♦&#39;,
+};
+
+export function rankLabel(rank: number): string {
+  if (rank === 1) return &#39;A&#39;;
+  if (rank === 11) return &#39;J&#39;;
+  if (rank === 12) return &#39;Q&#39;;
+  if (rank === 13) return &#39;K&#39;;
+  return String(rank);
+}
+
+export function cardLabel(card: PlayingCard): string {
+  return `${rankLabel(card.rank)} of ${card.suit}`;
+}
+
+export function isRed(suit: Suit): boolean {
+  return suit === &#39;hearts&#39; || suit === &#39;diamonds&#39;;
+}
+
+export function createGame(random: () =&gt; number = Math.random): GameState {
+  const deck: PlayingCard[] = SUITS.flatMap((suit) =&gt;
+    Array.from({ length: 13 }, (_, index) =&gt; ({ suit, rank: index + 1, faceUp: false })),
+  );
+  for (let index = deck.length - 1; index &gt; 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    [deck[index], deck[swapIndex]] = [deck[swapIndex], deck[index]];
+  }
+
+  const tableau: PlayingCard[][] = Array.from({ length: 7 }, () =&gt; []);
+  for (let column = 0; column &lt; 7; column += 1) {
+    for (let row = 0; row &lt;= column; row += 1) {
+      tableau[column].push({ ...deck.pop()!, faceUp: row === column });
+    }
+  }
+
+  return {
+    stock: deck,
+    waste: [],
+    foundations: { spades: [], hearts: [], clubs: [], diamonds: [] },
+    tableau,
+    moves: 0,
+  };
+}
+
+export function drawStock(game: GameState): GameState | null {
+  if (game.stock.length &gt; 0) {
+    const card = game.stock[game.stock.length - 1];
+    return {
+      ...game,
+      stock: game.stock.slice(0, -1),
+      waste: [...game.waste, { ...card, faceUp: true }],
+      moves: game.moves + 1,
+    };
+  }
+  if (game.waste.length &gt; 0) {
+    return {
+      ...game,
+      stock: game.waste.slice().reverse().map((card) =&gt; ({ ...card, faceUp: false })),
+      waste: [],
+      moves: game.moves + 1,
+    };
+  }
+  return null;
+}
+
+export function sourceCards(game: GameState, source: Source): PlayingCard[] | null {
+  if (source.pile === &#39;waste&#39;) {
+    const card = game.waste.at(-1);
+    return card ? [card] : null;
+  }
+  if (source.pile === &#39;foundation&#39;) {
+    const card = game.foundations[source.suit].at(-1);
+    return card ? [card] : null;
+  }
+  const pile = game.tableau[source.column];
+  if (!pile || source.cardIndex &lt; 0 || source.cardIndex &gt;= pile.length) return null;
+  const cards = pile.slice(source.cardIndex);
+  if (!cards.every((card) =&gt; card.faceUp)) return null;
+  for (let index = 1; index &lt; cards.length; index += 1) {
+    if (cards[index - 1].rank !== cards[index].rank + 1 ||
+        isRed(cards[index - 1].suit) === isRed(cards[index].suit)) return null;
+  }
+  return cards;
+}
+
+export function canMove(game: GameState, source: Source, destination: Destination): boolean {
+  const cards = sourceCards(game, source);
+  if (!cards) return false;
+  if (source.pile === &#39;tableau&#39; &amp;&amp; destination.pile === &#39;tableau&#39; &amp;&amp;
+      source.column === destination.column) return false;
+  if (source.pile === &#39;foundation&#39; &amp;&amp; destination.pile === &#39;foundation&#39; &amp;&amp;
+      source.suit === destination.suit) return false;
+
+  const first = cards[0];
+  if (destination.pile === &#39;foundation&#39;) {
+    if (cards.length !== 1 || first.suit !== destination.suit) return false;
+    const top = game.foundations[destination.suit].at(-1);
+    return top ? first.rank === top.rank + 1 : first.rank === 1;
+  }
+
+  const pile = game.tableau[destination.column];
+  if (!pile) return false;
+  const top = pile.at(-1);
+  return top
+    ? top.faceUp &amp;&amp; first.rank === top.rank - 1 &amp;&amp; isRed(first.suit) !== isRed(top.suit)
+    : first.rank === 13;
+}
+
+export function moveCards(game: GameState, source: Source, destination: Destination): GameState | null {
+  if (!canMove(game, source, destination)) return null;
+  const cards = sourceCards(game, source)!;
+  const tableau = game.tableau.map((pile) =&gt; pile.slice());
+  const foundations = Object.fromEntries(
+    SUITS.map((suit) =&gt; [suit, game.foundations[suit].slice()]),
+  ) as Record&lt;Suit, PlayingCard[]&gt;;
+  let waste = game.waste.slice();
+
+  if (source.pile === &#39;waste&#39;) waste = waste.slice(0, -1);
+  if (source.pile === &#39;foundation&#39;) foundations[source.suit].pop();
+  if (source.pile === &#39;tableau&#39;) {
+    tableau[source.column] = tableau[source.column].slice(0, source.cardIndex);
+    const exposed = tableau[source.column].at(-1);
+    if (exposed &amp;&amp; !exposed.faceUp) {
+      tableau[source.column][tableau[source.column].length - 1] = { ...exposed, faceUp: true };
+    }
+  }
+
+  if (destination.pile === &#39;foundation&#39;) foundations[destination.suit].push(cards[0]);
+  else tableau[destination.column].push(...cards);
+
+  return { ...game, tableau, foundations, waste, moves: game.moves + 1 };
+}
+
+export function isWon(game: GameState): boolean {
+  return SUITS.every((suit) =&gt; game.foundations[suit].length === 13);
+}
+
+export function findHint(game: GameState): Hint | null {
+  const sources: Source[] = [
+    { pile: &#39;waste&#39; },
+    ...game.tableau.flatMap((pile, column) =&gt;
+      pile.flatMap((card, cardIndex) =&gt; card.faceUp
+        ? [{ pile: &#39;tableau&#39;, column, cardIndex } as Source] : []),
+    ),
+  ];
+
+  for (const source of sources) {
+    const card = sourceCards(game, source)?.[0];
+    if (!card) continue;
+    const destination: Destination = { pile: &#39;foundation&#39;, suit: card.suit };
+    if (canMove(game, source, destination)) {
+      return { source, destination, text: `Move ${cardLabel(card)} to its foundation.` };
+    }
+  }
+
+  for (const source of sources) {
+    const card = sourceCards(game, source)?.[0];
+    if (!card) continue;
+    for (let column = 0; column &lt; 7; column += 1) {
+      const destination: Destination = { pile: &#39;tableau&#39;, column };
+      if (canMove(game, source, destination)) {
+        return { source, destination, text: `Move ${cardLabel(card)} to column ${column + 1}.` };
+      }
+    }
+  }
+
+  for (const suit of SUITS) {
+    const source: Source = { pile: &#39;foundation&#39;, suit };
+    const card = sourceCards(game, source)?.[0];
+    if (!card) continue;
+    for (let column = 0; column &lt; 7; column += 1) {
+      const destination: Destination = { pile: &#39;tableau&#39;, column };
+      if (canMove(game, source, destination)) {
+        return { source, destination, text: `Move ${cardLabel(card)} back to column ${column + 1}.` };
+      }
+    }
+  }
+  return null;
+}
+</code></pre></section><section id="file-2"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Nightfall demo source | plocks</title><meta name="description" content="Browse the source code for the Nightfall demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/nightfall/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>nightfall source</h1><nav><a href="/demos/nightfall/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useState } from &#39;react&#39;;
+import { StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import { Asset } from &#39;expo-asset&#39;;
+import AsyncStorage from &#39;@react-native-async-storage/async-storage&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import {
+  Gradient,
+  BackgroundImage,
+  Input,
+  SafeArea,
+  ScrollArea,
+  Block,
+  Avatar,
+  Button,
+  Dialog,
+  Icon,
+  IconButton,
+  Marquee,
+  PlocksProvider,
+  Tabs,
+  Text,
+} from &#39;@plocks/ui&#39;;
+import { Video, type VideoState } from &#39;@plocks/media&#39;;
+
+const C = { black: &#39;#0D0D0D&#39;, panel: &#39;#171717&#39;, white: &#39;#FFF&#39;, muted: &#39;#B8B8B8&#39;, red: &#39;#E50914&#39;, line: &#39;#292929&#39; };
+const ART = [
+  require(&#39;./assets/scene-forest.webp&#39;),
+  require(&#39;./assets/scene-city.webp&#39;),
+  require(&#39;./assets/scene-desert.webp&#39;),
+  require(&#39;./assets/scene-lake.webp&#39;),
+  require(&#39;./assets/scene-ocean.webp&#39;),
+];
+const FILMS = [
+  {
+    id: &#39;evergreen&#39;,
+    title: &#39;Evergreen&#39;,
+    genre: &#39;Adventure&#39;,
+    year: &#39;2026&#39;,
+    rating: &#39;TV-14&#39;,
+    length: &#39;1h 48m&#39;,
+    art: 0,
+    caption: &#39;Some paths lead you back to yourself.&#39;,
+    synopsis: &#39;A field researcher returns to the forest where everything began and finds an unexpected new trail.&#39;,
+  },
+  {
+    id: &#39;afterdark&#39;,
+    title: &#39;After Dark&#39;,
+    genre: &#39;Mystery&#39;,
+    year: &#39;2026&#39;,
+    rating: &#39;TV-MA&#39;,
+    length: &#39;2h 02m&#39;,
+    art: 1,
+    caption: &#39;Every city keeps a secret.&#39;,
+    synopsis: &#39;One night, one city, and a clue hidden in plain sight.&#39;,
+  },
+  {
+    id: &#39;goldenhour&#39;,
+    title: &#39;Golden Hour&#39;,
+    genre: &#39;Drama&#39;,
+    year: &#39;2025&#39;,
+    rating: &#39;TV-14&#39;,
+    length: &#39;1h 39m&#39;,
+    art: 2,
+    caption: &#39;The light changes everything.&#39;,
+    synopsis: &#39;Two old friends cross the desert to make good on a promise.&#39;,
+  },
+  {
+    id: &#39;stillwater&#39;,
+    title: &#39;Stillwater&#39;,
+    genre: &#39;Documentary&#39;,
+    year: &#39;2026&#39;,
+    rating: &#39;TV-G&#39;,
+    length: &#39;52m&#39;,
+    art: 3,
+    caption: &#39;Beneath the surface.&#39;,
+    synopsis: &#39;An intimate look at the wild places where water shapes every life around it.&#39;,
+  },
+  {
+    id: &#39;deepblue&#39;,
+    title: &#39;Deep Blue&#39;,
+    genre: &#39;Adventure&#39;,
+    year: &#39;2025&#39;,
+    rating: &#39;TV-PG&#39;,
+    length: &#39;1h 31m&#39;,
+    art: 4,
+    caption: &#39;The horizon is only the beginning.&#39;,
+    synopsis: &#39;A small crew sets sail toward a distant island and a much larger discovery.&#39;,
+  },
+  {
+    id: &#39;nightshift&#39;,
+    title: &#39;Night Shift&#39;,
+    genre: &#39;Comedy&#39;,
+    year: &#39;2024&#39;,
+    rating: &#39;TV-14&#39;,
+    length: &#39;8 episodes&#39;,
+    art: 1,
+    caption: &#39;The city never sleeps. Neither do they.&#39;,
+    synopsis: &#39;A mismatched team keeps a tiny late-night radio station on the air.&#39;,
+  },
+  {
+    id: &#39;wildwood&#39;,
+    title: &#39;Wildwood&#39;,
+    genre: &#39;Family&#39;,
+    year: &#39;2025&#39;,
+    rating: &#39;TV-PG&#39;,
+    length: &#39;1h 27m&#39;,
+    art: 0,
+    caption: &#39;A summer to remember.&#39;,
+    synopsis: &#39;Four siblings discover their favorite campsite has one last surprise.&#39;,
+  },
+  {
+    id: &#39;mirage&#39;,
+    title: &#39;Mirage&#39;,
+    genre: &#39;Sci-Fi&#39;,
+    year: &#39;2026&#39;,
+    rating: &#39;TV-14&#39;,
+    length: &#39;1h 56m&#39;,
+    art: 2,
+    caption: &#39;What you see is only the start.&#39;,
+    synopsis: &#39;A strange signal brings a research team to the edge of the desert.&#39;,
+  },
+];
+const SAMPLE_CLIP = Asset.fromModule(require(&#39;./assets/demo-clip.mp4&#39;)).uri;
+const CAST: Record&lt;string, string[]&gt; = {
+  evergreen: [&#39;Ava Morgan&#39;, &#39;Elliot Hayes&#39;, &#39;Mina Brooks&#39;, &#39;Leo Carter&#39;],
+  afterdark: [&#39;Nora Vale&#39;, &#39;Julian Cross&#39;, &#39;Iris Chen&#39;, &#39;Marcus Reed&#39;],
+  goldenhour: [&#39;Sofia Reyes&#39;, &#39;Caleb Ward&#39;, &#39;Amara Bell&#39;, &#39;Jonah Wells&#39;],
+  stillwater: [&#39;Elena Park&#39;, &#39;Samir Shah&#39;, &#39;Tessa Cole&#39;, &#39;Micah Ford&#39;],
+  deepblue: [&#39;Kai Bennett&#39;, &#39;Lena Ortiz&#39;, &#39;Owen Blake&#39;, &#39;Dara Quinn&#39;],
+  nightshift: [&#39;Riley James&#39;, &#39;Theo Martin&#39;, &#39;Zoe Patel&#39;, &#39;Miles Grant&#39;],
+  wildwood: [&#39;Piper Lane&#39;, &#39;Finn Walker&#39;, &#39;June Ellis&#39;, &#39;Arlo Stone&#39;],
+  mirage: [&#39;Maya Chen&#39;, &#39;Isaac Holt&#39;, &#39;Nadia Cole&#39;, &#39;Evan Price&#39;],
+};
+const CAST_COLORS = [&#39;#663BA1&#39;, &#39;#AF484E&#39;, &#39;#2C777B&#39;, &#39;#9A6B2C&#39;];
+type Film = (typeof FILMS)[number];
+type Tab = &#39;home&#39; | &#39;search&#39; | &#39;list&#39;;
+const STORAGE = &#39;plocks-nightfall-example:v1&#39;;
+
+function Poster({ film, onPress, width = 160 }: { film: Film; onPress: () =&gt; void; width?: number }) {
+  return (
+    &lt;Block
+      gap={0}
+      onPress={onPress}
+      accessibilityRole=&quot;button&quot;
+      accessibilityLabel={`View ${film.title}`}
+      w={width}
+      mr={11}
+    &gt;
+      &lt;BackgroundImage source={ART[film.art]} w={width} h={width * 1.28} justify=&quot;flex-end&quot; radius={8}&gt;
+        &lt;Gradient colors={[&#39;transparent&#39;, &#39;#000B&#39;]} p={12} pt={60}&gt;
+          &lt;Text c={C.white} fw=&quot;bold&quot; size={16} numberOfLines={2}&gt;
+            {film.title}
+          &lt;/Text&gt;
+          &lt;Text c=&quot;#DDD&quot; size={10}&gt;
+            {film.genre}
+          &lt;/Text&gt;
+        &lt;/Gradient&gt;
+      &lt;/BackgroundImage&gt;
+    &lt;/Block&gt;
+  );
+}
+
+function NightfallScreen() {
+  const { width } = useWindowDimensions();
+  const wide = width &gt;= 850;
+  const [tab, setTab] = useState&lt;Tab&gt;(&#39;home&#39;);
+  const [query, setQuery] = useState(&#39;&#39;);
+  const [myList, setMyList] = useState&lt;string[]&gt;([&#39;stillwater&#39;, &#39;afterdark&#39;]);
+  const [progress, setProgress] = useState&lt;Record&lt;string, number&gt;&gt;({ wildwood: 0.42, nightshift: 0.19 });
+  const [selected, setSelected] = useState&lt;string | null&gt;(null);
+  const [playing, setPlaying] = useState&lt;string | null&gt;(null);
+  const [videoError, setVideoError] = useState&lt;string | null&gt;(null);
+  const [ready, setReady] = useState(false);
+  const film = FILMS.find((item) =&gt; item.id === selected);
+  const current = FILMS.find((item) =&gt; item.id === playing);
+  const hero = FILMS[0];
+
+  useEffect(() =&gt; {
+    AsyncStorage.getItem(STORAGE)
+      .then((raw) =&gt; {
+        if (!raw) return;
+        const data = JSON.parse(raw) as { myList?: string[]; progress?: Record&lt;string, number&gt; };
+        if (Array.isArray(data.myList)) setMyList(data.myList);
+        if (data.progress &amp;&amp; typeof data.progress === &#39;object&#39;) setProgress(data.progress);
+      })
+      .catch(() =&gt; {})
+      .finally(() =&gt; setReady(true));
+  }, []);
+  useEffect(() =&gt; {
+    if (ready) AsyncStorage.setItem(STORAGE, JSON.stringify({ myList, progress })).catch(() =&gt; {});
+  }, [myList, progress, ready]);
+  const openPlayer = (id: string) =&gt; {
+    setSelected(null);
+    setPlaying(id);
+    setVideoError(null);
+  };
+  const toggleList = (id: string) =&gt;
+    setMyList((old) =&gt; (old.includes(id) ? old.filter((item) =&gt; item !== id) : [...old, id]));
+  const nav = (
+    &lt;Tabs
+      navigationOnly
+      variant=&quot;chip&quot;
+      value={tab}
+      onChange={(item) =&gt; setTab(item as Tab)}
+      color={C.red}
+      activeTabTextColor={C.white}
+      textStyle={{ color: C.muted }}
+      labelProps={{ size: wide ? 14 : 12 }}
+      items={[
+        { key: &#39;home&#39;, label: &#39;Home&#39;, content: null },
+        { key: &#39;search&#39;, label: &#39;Search&#39;, content: null },
+        { key: &#39;list&#39;, label: &#39;My List&#39;, content: null },
+      ]}
+    /&gt;
+  );
+  const row = (title: string, items: Film[]) =&gt; (
+    &lt;Block gap={0} mt={25}&gt;
+      &lt;Text c={C.white} fw=&quot;bold&quot; size={wide ? 21 : 18} px={17} mb={11}&gt;
+        {title}
+      &lt;/Text&gt;
+      &lt;ScrollArea horizontal showsHorizontalScrollIndicator={false} contentProps={{ px: 17 }}&gt;
+        {items.map((item) =&gt; (
+          &lt;Poster key={item.id} film={item} width={wide ? 180 : 135} onPress={() =&gt; setSelected(item.id)} /&gt;
+        ))}
+      &lt;/ScrollArea&gt;
+    &lt;/Block&gt;
+  );
+
+  return (
+    &lt;SafeArea gap={0} flex={1} bg={C.black}&gt;
+      &lt;StatusBar barStyle=&quot;light-content&quot; /&gt;
+      &lt;Block gap={0} w=&quot;100%&quot; maw={1300} alignSelf=&quot;center&quot; flex={1}&gt;
+        &lt;Block
+          h={65}
+          px={wide ? 30 : 17}
+          direction=&quot;row&quot;
+          align=&quot;center&quot;
+          gap={wide ? 34 : 16}
+          borderBottomWidth={1}
+          borderBottomColor={C.line}
+        &gt;
+          &lt;Text c={C.red} fw=&quot;bold&quot; size={wide ? 29 : 22}&gt;
+            NIGHTFALL
+          &lt;/Text&gt;
+          &lt;Block gap={0} flex={1}&gt;
+            {nav}
+          &lt;/Block&gt;
+          {wide &amp;&amp; (
+            &lt;IconButton
+              icon=&quot;search&quot;
+              variant=&quot;ghost&quot;
+              iconColor={C.white}
+              accessibilityLabel=&quot;Search titles&quot;
+              onPress={() =&gt; setTab(&#39;search&#39;)}
+            /&gt;
+          )}
+        &lt;/Block&gt;
+        &lt;ScrollArea flex={1} contentProps={{ pb: 35 }}&gt;
+          {tab === &#39;home&#39; &amp;&amp; (
+            &lt;&gt;
+              &lt;Block gap={0}&gt;
+                &lt;BackgroundImage source={ART[hero.art]} w=&quot;full&quot; h={wide ? 460 : 350} justify=&quot;flex-end&quot;&gt;
+                  &lt;Gradient colors={[&#39;#0000&#39;, &#39;#0007&#39;, C.black]} px={wide ? 45 : 21} pb={28} pt={130}&gt;
+                    &lt;Text c={C.red} fw=&quot;bold&quot; size={12}&gt;
+                      N SERIES PREMIERE
+                    &lt;/Text&gt;
+                    &lt;Text c={C.white} fw=&quot;bold&quot; size={wide ? 51 : 39}&gt;
+                      {hero.title}
+                    &lt;/Text&gt;
+                    &lt;Text c={C.white} size={15}&gt;
+                      {hero.caption}
+                    &lt;/Text&gt;
+                    &lt;Block direction=&quot;row&quot; gap={10} mt={18}&gt;
+                      &lt;Block
+                        gap={0}
+                        onPress={() =&gt; openPlayer(hero.id)}
+                        accessibilityRole=&quot;button&quot;
+                        accessibilityLabel=&quot;Play Evergreen preview&quot;
+                        bg={C.white}
+                        radius={7}
+                        px={17}
+                        py={10}
+                      &gt;
+                        &lt;Text c={C.black} fw=&quot;bold&quot; size={14}&gt;
+                          ▶ Play
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                      &lt;Button
+                        title={myList.includes(hero.id) ? &#39;✓  My List&#39; : &#39;+  My List&#39;}
+                        variant=&quot;filled&quot;
+                        color=&quot;#555A&quot;
+                        textColor={C.white}
+                        onPress={() =&gt; toggleList(hero.id)}
+                      /&gt;
+                      &lt;Button
+                        title=&quot;Info&quot;
+                        variant=&quot;filled&quot;
+                        color=&quot;#555A&quot;
+                        textColor={C.white}
+                        onPress={() =&gt; setSelected(hero.id)}
+                      /&gt;
+                    &lt;/Block&gt;
+                  &lt;/Gradient&gt;
+                &lt;/BackgroundImage&gt;
+              &lt;/Block&gt;
+              {row(&#39;Trending Now&#39;, FILMS.slice(1, 6))}
+              {row(
+                &#39;Continue Watching&#39;,
+                FILMS.filter((item) =&gt; (progress[item.id] ?? 0) &gt; 0 &amp;&amp; (progress[item.id] ?? 0) &lt; 1),
+              )}
+              {row(&#39;Only on Nightfall&#39;, [FILMS[0], FILMS[5], FILMS[6], FILMS[7]])}
+            &lt;/&gt;
+          )}
+          {tab === &#39;search&#39; &amp;&amp; (
+            &lt;Block gap={0} p={20}&gt;
+              &lt;Text c={C.white} fw=&quot;bold&quot; size={27}&gt;
+                Find something great
+              &lt;/Text&gt;
+              &lt;Block bg=&quot;#272727&quot; radius={8} my={19} px={12} direction=&quot;row&quot; align=&quot;center&quot; gap={10}&gt;
+                &lt;Icon name=&quot;search&quot; color={C.muted} size={20} /&gt;
+                &lt;Input
+                  variant=&quot;unstyled&quot;
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder=&quot;Titles, genres, and more&quot;
+                  placeholderTextColor=&quot;#A7A7A7&quot;
+                  mb={0}
+                  flex={1}
+                  inputColor={C.white}
+                  inputFontSize={15}
+                /&gt;
+              &lt;/Block&gt;
+              &lt;Text c={C.muted} fw=&quot;bold&quot; size={12}&gt;
+                {query ? &#39;RESULTS&#39; : &#39;POPULAR SEARCHES&#39;}
+              &lt;/Text&gt;
+              &lt;Block direction=&quot;row&quot; wrap=&quot;wrap&quot; gap={12} mt={14}&gt;
+                {FILMS.filter((item) =&gt;
+                  `${item.title} ${item.genre} ${item.synopsis}`.toLowerCase().includes(query.toLowerCase()),
+                ).map((item) =&gt; (
+                  &lt;Poster key={item.id} film={item} width={wide ? 175 : 135} onPress={() =&gt; setSelected(item.id)} /&gt;
+                ))}
+              &lt;/Block&gt;
+            &lt;/Block&gt;
+          )}
+          {tab === &#39;list&#39; &amp;&amp; (
+            &lt;Block gap={0} pt={25}&gt;
+              &lt;Text c={C.white} fw=&quot;bold&quot; size={27} px={18}&gt;
+                My List
+              &lt;/Text&gt;
+              {myList.length ? (
+                row(
+                  &#39;Saved for later&#39;,
+                  FILMS.filter((item) =&gt; myList.includes(item.id)),
+                )
+              ) : (
+                &lt;Text c={C.muted} p={18}&gt;
+                  Add a title to build your list.
+                &lt;/Text&gt;
+              )}
+            &lt;/Block&gt;
+          )}
+        &lt;/ScrollArea&gt;
+      &lt;/Block&gt;
+      {!!film &amp;&amp; (
+        &lt;Dialog opened accessibilityLabel={`${film.title} details`} onClose={() =&gt; setSelected(null)}&gt;
+          &lt;Block gap={0}&gt;
+            &lt;ScrollArea&gt;
+              &lt;BackgroundImage source={ART[film.art]} h={250} justify=&quot;space-between&quot;&gt;
+                &lt;Block gap={0} alignSelf=&quot;flex-end&quot; p={10}&gt;
+                  &lt;IconButton
+                    icon=&quot;x&quot;
+                    variant=&quot;filled&quot;
+                    color=&quot;#000A&quot;
+                    iconColor={C.white}
+                    accessibilityLabel=&quot;Close details&quot;
+                    onPress={() =&gt; setSelected(null)}
+                  /&gt;
+                &lt;/Block&gt;
+                &lt;Gradient colors={[&#39;transparent&#39;, C.panel]} p={18} pt={60}&gt;
+                  &lt;Text c={C.white} fw=&quot;bold&quot; size={33}&gt;
+                    {film.title}
+                  &lt;/Text&gt;
+                &lt;/Gradient&gt;
+              &lt;/BackgroundImage&gt;
+              &lt;Block p={20} gap={13}&gt;
+                &lt;Text c=&quot;#6FD092&quot; fw=&quot;bold&quot; size={13}&gt;
+                  98% match{&#39; &#39;}
+                  &lt;Text c={C.muted} size={12}&gt;
+                    {film.year} · {film.rating} · {film.length}
+                  &lt;/Text&gt;
+                &lt;/Text&gt;
+                &lt;Text c={C.white} size={15} lh={23}&gt;
+                  {film.synopsis}
+                &lt;/Text&gt;
+                &lt;Text c={C.muted} size={12}&gt;
+                  {film.genre} · Nightfall Original
+                &lt;/Text&gt;
+                &lt;Block gap={10} mt={4}&gt;
+                  &lt;Text c={C.white} fw=&quot;bold&quot; size={17}&gt;
+                    Cast
+                  &lt;/Text&gt;
+                  &lt;Marquee duration={23000} gap=&quot;lg&quot; pauseOnHover fadeEdgeColor={C.panel}&gt;
+                    {CAST[film.id].map((actor, index) =&gt; (
+                      &lt;Block key={actor} w={102} align=&quot;center&quot; gap={6}&gt;
+                        &lt;Avatar
+                          size={46}
+                          fallback={actor
+                            .split(&#39; &#39;)
+                            .map((part) =&gt; part[0])
+                            .join(&#39;&#39;)}
+                          bg={CAST_COLORS[index % CAST_COLORS.length]}
+                          textColor={C.white}
+                          showText={false}
+                          accessibilityLabel={actor}
+                        /&gt;
+                        &lt;Text c={C.white} size={11} numberOfLines={1}&gt;
+                          {actor}
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                    ))}
+                  &lt;/Marquee&gt;
+                &lt;/Block&gt;
+                &lt;Block direction=&quot;row&quot; gap={10}&gt;
+                  &lt;Block
+                    gap={0}
+                    onPress={() =&gt; openPlayer(film.id)}
+                    accessibilityRole=&quot;button&quot;
+                    accessibilityLabel={`Play sample clip for ${film.title}`}
+                    flex={1}
+                    bg={C.white}
+                    radius={7}
+                    p={12}
+                    align=&quot;center&quot;
+                  &gt;
+                    &lt;Text c={C.black} fw=&quot;bold&quot;&gt;
+                      ▶ Play sample clip
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;IconButton
+                    icon={myList.includes(film.id) ? &#39;check&#39; : &#39;plus&#39;}
+                    variant=&quot;outline&quot;
+                    iconColor={C.white}
+                    accessibilityLabel={myList.includes(film.id) ? &#39;Remove from My List&#39; : &#39;Add to My List&#39;}
+                    onPress={() =&gt; toggleList(film.id)}
+                  /&gt;
+                &lt;/Block&gt;
+              &lt;/Block&gt;
+            &lt;/ScrollArea&gt;
+          &lt;/Block&gt;
+        &lt;/Dialog&gt;
+      )}
+      {!!current &amp;&amp; (
+        &lt;Dialog opened variant=&quot;fullscreen&quot; accessibilityLabel={`${current.title} player`} onClose={() =&gt; setPlaying(null)}&gt;
+          &lt;Block gap={0} flex={1} bg={C.black}&gt;
+          &lt;Block p={18} direction=&quot;row&quot; align=&quot;center&quot; gap={15}&gt;
+            &lt;IconButton
+              icon=&quot;arrowLeft&quot;
+              variant=&quot;ghost&quot;
+              iconColor={C.white}
+              accessibilityLabel=&quot;Exit player&quot;
+              onPress={() =&gt; setPlaying(null)}
+            /&gt;
+            &lt;Text c={C.white} fw=&quot;bold&quot; size={19}&gt;
+              {current.title}
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+          &lt;Block gap={0} flex={1} w=&quot;100%&quot; maw={1050} alignSelf=&quot;center&quot; justify=&quot;center&quot;&gt;
+            &lt;Video
+              key={current.id}
+              source={{ url: SAMPLE_CLIP }}
+              w=&quot;100%&quot;
+              aspectRatio={16 / 9}
+              autoPlay
+              controls
+              accessibilityLabel={`Sample clip for ${current.title}`}
+              onTimeUpdate={(state: VideoState) =&gt; {
+                if (!state.duration) return;
+                const next = Math.min(1, state.currentTime / state.duration);
+                setProgress((old) =&gt;
+                  Math.abs((old[current.id] ?? 0) - next) &gt;= 0.01 || next === 1 ? { ...old, [current.id]: next } : old,
+                );
+              }}
+              onError={setVideoError}
+            /&gt;
+            &lt;Block p={18} gap={8}&gt;
+              &lt;Text c={C.muted} size={12}&gt;Locally bundled preview footage.&lt;/Text&gt;
+              {videoError &amp;&amp; (
+                &lt;Block gap={8}&gt;
+                  &lt;Text c={C.white} size={12}&gt;
+                    This clip could not play here.
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+              )}
+            &lt;/Block&gt;
+          &lt;/Block&gt;
+          &lt;/Block&gt;
+        &lt;/Dialog&gt;
+      )}
+    &lt;/SafeArea&gt;
+  );
+}
+export default function App() {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;dark&#39; }}&gt;
+        &lt;NightfallScreen /&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

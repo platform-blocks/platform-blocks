@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Chatline demo source | plocks</title><meta name="description" content="Browse the source code for the Chatline demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/chatline/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>chatline source</h1><nav><a href="/demos/chatline/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">data.ts</a><a href="#file-2">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useRef, useState } from &#39;react&#39;;
+import { Platform, StatusBar, useWindowDimensions, type ScrollView } from &#39;react-native&#39;;
+import AsyncStorage from &#39;@react-native-async-storage/async-storage&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import {
+  KeyboardAvoidingArea,
+  SafeArea,
+  ScrollArea,
+  Block,
+  Avatar,
+  Button,
+  Column,
+  Flex,
+  Icon,
+  IconButton,
+  Input,
+  PlocksProvider,
+  Row,
+  SegmentedControl,
+  Tabs,
+  Text,
+  Title,
+} from &#39;@plocks/ui&#39;;
+
+import { RECENT_CALLS, SEED_CHATS, STATUSES, timeNow, type Chat, type Message } from &#39;./data&#39;;
+
+const COLORS = {
+  green: &#39;#00A884&#39;,
+  darkGreen: &#39;#075E54&#39;,
+  brightGreen: &#39;#25D366&#39;,
+  ink: &#39;#111B21&#39;,
+  muted: &#39;#667781&#39;,
+  faint: &#39;#8696A0&#39;,
+  line: &#39;#E9EDEF&#39;,
+  chrome: &#39;#F0F2F5&#39;,
+  white: &#39;#FFFFFF&#39;,
+  chat: &#39;#F1EEE8&#39;,
+  outgoing: &#39;#D9FDD3&#39;,
+};
+const STORAGE_KEY = &#39;plocks-chatline-app:chats&#39;;
+const THEME = { colorScheme: &#39;light&#39; as const };
+
+type Tab = &#39;chats&#39; | &#39;updates&#39; | &#39;calls&#39;;
+type Filter = &#39;all&#39; | &#39;unread&#39; | &#39;groups&#39;;
+type Detail = { kind: &#39;chat&#39; | &#39;status&#39; | &#39;call&#39;; id: string } | null;
+
+function isSavedChats(value: unknown): value is Chat[] {
+  return (
+    Array.isArray(value) &amp;&amp;
+    value.length === SEED_CHATS.length &amp;&amp;
+    value.every(
+      (chat) =&gt;
+        chat &amp;&amp;
+        typeof chat === &#39;object&#39; &amp;&amp;
+        typeof chat.id === &#39;string&#39; &amp;&amp;
+        typeof chat.name === &#39;string&#39; &amp;&amp;
+        typeof chat.initials === &#39;string&#39; &amp;&amp;
+        typeof chat.color === &#39;string&#39; &amp;&amp;
+        typeof chat.unread === &#39;number&#39; &amp;&amp;
+        Array.isArray(chat.messages) &amp;&amp;
+        chat.messages.every(
+          (message: Message) =&gt;
+            message &amp;&amp;
+            typeof message.id === &#39;string&#39; &amp;&amp;
+            typeof message.text === &#39;string&#39; &amp;&amp;
+            typeof message.time === &#39;string&#39; &amp;&amp;
+            typeof message.outgoing === &#39;boolean&#39;,
+        ),
+    )
+  );
+}
+
+function ChatAvatar({ chat, size = &#39;lg&#39; }: { chat: Chat; size?: &#39;md&#39; | &#39;lg&#39; | &#39;xl&#39; | &#39;2xl&#39; | &#39;3xl&#39; }) {
+  return (
+    &lt;Avatar
+      size={size}
+      fallback={chat.initials}
+      bg={chat.color}
+      textColor={COLORS.white}
+      accessibilityLabel={`${chat.name} avatar`}
+    /&gt;
+  );
+}
+
+function ChatRow({ chat, active, onPress }: { chat: Chat; active: boolean; onPress: () =&gt; void }) {
+  const last = chat.messages[chat.messages.length - 1];
+  return (
+    &lt;Block
+      gap={0}
+      onPress={onPress}
+      accessibilityRole=&quot;button&quot;
+      accessibilityLabel={`Open chat with ${chat.name}`}
+      bg={active ? &#39;#F0F4F2&#39; : COLORS.white}
+      px={18}
+      py={13}
+    &gt;
+      &lt;Row align=&quot;center&quot; gap=&quot;md&quot; fullWidth&gt;
+        &lt;ChatAvatar chat={chat} size=&quot;lg&quot; /&gt;
+        &lt;Block gap={4} direction=&quot;column&quot; flex={1} miw={0}&gt;
+          &lt;Row align=&quot;center&quot; justify=&quot;space-between&quot; fullWidth gap=&quot;sm&quot;&gt;
+            &lt;Text c={COLORS.ink} fw=&quot;semibold&quot; size={16} numberOfLines={1} flex={1}&gt;
+              {chat.name}
+            &lt;/Text&gt;
+            &lt;Text c={chat.unread ? COLORS.green : COLORS.faint} size={11}&gt;
+              {last?.time ?? &#39;&#39;}
+            &lt;/Text&gt;
+          &lt;/Row&gt;
+          &lt;Row align=&quot;center&quot; justify=&quot;space-between&quot; fullWidth gap=&quot;sm&quot;&gt;
+            &lt;Text c={COLORS.muted} size={13} numberOfLines={1} flex={1}&gt;
+              {last?.outgoing ? &#39;You: &#39; : &#39;&#39;}
+              {last?.text ?? &#39;Start a conversation&#39;}
+            &lt;/Text&gt;
+            {chat.unread &gt; 0 &amp;&amp; (
+              &lt;Block
+                align=&quot;center&quot;
+                justify=&quot;center&quot;
+                direction=&quot;row&quot;
+                miw={21}
+                h={21}
+                px={5}
+                radius={11}
+                bg={COLORS.brightGreen}
+              &gt;
+                &lt;Text c={COLORS.white} fw=&quot;bold&quot; size={11}&gt;
+                  {chat.unread}
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+            )}
+          &lt;/Row&gt;
+        &lt;/Block&gt;
+      &lt;/Row&gt;
+    &lt;/Block&gt;
+  );
+}
+
+function MessageBubble({ message }: { message: Message }) {
+  return (
+    &lt;Flex fullWidth justify={message.outgoing ? &#39;flex-end&#39; : &#39;flex-start&#39;}&gt;
+      &lt;Block
+        gap={3}
+        direction=&quot;column&quot;
+        maw=&quot;78%&quot;
+        miw={96}
+        px={12}
+        py={8}
+        radius={12}
+        bg={message.outgoing ? COLORS.outgoing : COLORS.white}
+        borderTopRightRadius={message.outgoing ? 3 : 12}
+        borderTopLeftRadius={message.outgoing ? 12 : 3}
+      &gt;
+        &lt;Text c={COLORS.ink} size={14} lh={21}&gt;
+          {message.text}
+        &lt;/Text&gt;
+        &lt;Row align=&quot;center&quot; justify=&quot;flex-end&quot; gap={4} fullWidth&gt;
+          &lt;Text c={COLORS.muted} size={10}&gt;
+            {message.time}
+          &lt;/Text&gt;
+          {message.outgoing &amp;&amp; (
+            &lt;Text c=&quot;#53A8C1&quot; size={11}&gt;
+              ✓✓
+            &lt;/Text&gt;
+          )}
+        &lt;/Row&gt;
+      &lt;/Block&gt;
+    &lt;/Flex&gt;
+  );
+}
+
+function ChatlineScreen() {
+  const { width } = useWindowDimensions();
+  const desktop = width &gt;= 820;
+  const messageScroll = useRef&lt;ScrollView&gt;(null);
+  const [chats, setChats] = useState&lt;Chat[]&gt;(SEED_CHATS);
+  const [ready, setReady] = useState(false);
+  const [tab, setTab] = useState&lt;Tab&gt;(&#39;chats&#39;);
+  const [filter, setFilter] = useState&lt;Filter&gt;(&#39;all&#39;);
+  const [query, setQuery] = useState(&#39;&#39;);
+  const [draft, setDraft] = useState(&#39;&#39;);
+  const [detail, setDetail] = useState&lt;Detail&gt;(null);
+  const [newChat, setNewChat] = useState(false);
+
+  useEffect(() =&gt; {
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((saved) =&gt; {
+        if (!saved) return;
+        const parsed: unknown = JSON.parse(saved);
+        if (isSavedChats(parsed)) setChats(parsed);
+      })
+      .catch(() =&gt; {})
+      .finally(() =&gt; setReady(true));
+  }, []);
+  useEffect(() =&gt; {
+    if (ready) AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(chats)).catch(() =&gt; {});
+  }, [chats, ready]);
+
+  const selected =
+    detail ?? (desktop &amp;&amp; tab === &#39;chats&#39; &amp;&amp; !newChat ? { kind: &#39;chat&#39; as const, id: chats[0].id } : null);
+  const activeChat = selected?.kind === &#39;chat&#39; ? chats.find((chat) =&gt; chat.id === selected.id) : null;
+  const unreadTotal = chats.reduce((total, chat) =&gt; total + chat.unread, 0);
+  const shownChats = chats.filter((chat) =&gt; {
+    const matches = `${chat.name} ${chat.messages[chat.messages.length - 1]?.text ?? &#39;&#39;}`
+      .toLowerCase()
+      .includes(query.trim().toLowerCase());
+    return (
+      matches &amp;&amp; (filter === &#39;all&#39; || (filter === &#39;unread&#39; &amp;&amp; chat.unread &gt; 0) || (filter === &#39;groups&#39; &amp;&amp; chat.isGroup))
+    );
+  });
+
+  function openChat(id: string) {
+    setChats((current) =&gt; current.map((chat) =&gt; (chat.id === id ? { ...chat, unread: 0 } : chat)));
+    setDetail({ kind: &#39;chat&#39;, id });
+    setNewChat(false);
+    setDraft(&#39;&#39;);
+  }
+
+  function sendMessage() {
+    const text = draft.trim();
+    if (!text || !activeChat) return;
+    const message: Message = { id: `local-${Date.now()}`, text, time: timeNow(), outgoing: true };
+    setChats((current) =&gt; {
+      const updated = current.find((chat) =&gt; chat.id === activeChat.id);
+      if (!updated) return current;
+      return [
+        { ...updated, unread: 0, messages: [...updated.messages, message] },
+        ...current.filter((chat) =&gt; chat.id !== updated.id),
+      ];
+    });
+    setDetail({ kind: &#39;chat&#39;, id: activeChat.id });
+    setDraft(&#39;&#39;);
+  }
+
+  function selectTab(next: Tab) {
+    setTab(next);
+    setDetail(null);
+    setNewChat(false);
+    setQuery(&#39;&#39;);
+  }
+
+  function renderSidebarContent() {
+    if (newChat) {
+      return (
+        &lt;&gt;
+          &lt;Block align=&quot;center&quot; gap=&quot;sm&quot; direction=&quot;row&quot; px={18} py={18}&gt;
+            &lt;IconButton
+              icon=&quot;arrow-left&quot;
+              variant=&quot;ghost&quot;
+              iconColor={COLORS.ink}
+              accessibilityLabel=&quot;Back to chats&quot;
+              onPress={() =&gt; setNewChat(false)}
+            /&gt;
+            &lt;Title order={2} c={COLORS.ink} size={22}&gt;
+              New chat
+            &lt;/Title&gt;
+          &lt;/Block&gt;
+          &lt;Text c={COLORS.muted} size={12} fw=&quot;bold&quot; px={20} pb={10}&gt;
+            CONTACTS
+          &lt;/Text&gt;
+          {chats
+            .filter((chat) =&gt; !chat.isGroup)
+            .map((chat) =&gt; (
+              &lt;ChatRow key={chat.id} chat={chat} active={false} onPress={() =&gt; openChat(chat.id)} /&gt;
+            ))}
+        &lt;/&gt;
+      );
+    }
+
+    if (tab === &#39;updates&#39;) {
+      return (
+        &lt;Block gap=&quot;md&quot; direction=&quot;column&quot; p={18}&gt;
+          &lt;Text c={COLORS.ink} fw=&quot;bold&quot; size={18}&gt;
+            Status
+          &lt;/Text&gt;
+          &lt;Block align=&quot;center&quot; gap=&quot;md&quot; direction=&quot;row&quot; py={8}&gt;
+            &lt;Block align=&quot;center&quot; justify=&quot;center&quot; direction=&quot;row&quot; w={48} h={48} radius={24} bg=&quot;#DDECE7&quot;&gt;
+              &lt;Icon name=&quot;plus&quot; color={COLORS.green} size={23} /&gt;
+            &lt;/Block&gt;
+            &lt;Column gap={2}&gt;
+              &lt;Text c={COLORS.ink} fw=&quot;semibold&quot;&gt;
+                My status
+              &lt;/Text&gt;
+              &lt;Text c={COLORS.muted} size={12}&gt;
+                Share a moment with friends
+              &lt;/Text&gt;
+            &lt;/Column&gt;
+          &lt;/Block&gt;
+          &lt;Text c={COLORS.muted} fw=&quot;bold&quot; size={12}&gt;
+            RECENT UPDATES
+          &lt;/Text&gt;
+          {STATUSES.map((status) =&gt; {
+            const chat = chats.find((item) =&gt; item.id === status.chatId)!;
+            return (
+              &lt;Block
+                gap={0}
+                key={status.id}
+                onPress={() =&gt; setDetail({ kind: &#39;status&#39;, id: status.id })}
+                accessibilityRole=&quot;button&quot;
+                accessibilityLabel={`View ${chat.name}&#39;s status`}
+              &gt;
+                &lt;Block align=&quot;center&quot; gap=&quot;md&quot; direction=&quot;row&quot; py={9}&gt;
+                  &lt;Block direction=&quot;row&quot; p={3} borderWidth={2} radius={32} borderColor={COLORS.green}&gt;
+                    &lt;ChatAvatar chat={chat} size=&quot;lg&quot; /&gt;
+                  &lt;/Block&gt;
+                  &lt;Column gap={2}&gt;
+                    &lt;Text c={COLORS.ink} fw=&quot;semibold&quot;&gt;
+                      {chat.name}
+                    &lt;/Text&gt;
+                    &lt;Text c={COLORS.muted} size={12}&gt;
+                      {status.time}
+                    &lt;/Text&gt;
+                  &lt;/Column&gt;
+                &lt;/Block&gt;
+              &lt;/Block&gt;
+            );
+          })}
+        &lt;/Block&gt;
+      );
+    }
+
+    if (tab === &#39;calls&#39;) {
+      return (
+        &lt;Block gap=&quot;sm&quot; direction=&quot;column&quot; p={18}&gt;
+          &lt;Text c={COLORS.ink} fw=&quot;bold&quot; size={18}&gt;
+            Recent calls
+          &lt;/Text&gt;
+          &lt;Text c={COLORS.muted} size={12} mb={8}&gt;
+            Keep the conversation going.
+          &lt;/Text&gt;
+          {RECENT_CALLS.map((call) =&gt; {
+            const chat = chats.find((item) =&gt; item.id === call.chatId)!;
+            return (
+              &lt;Block
+                gap={0}
+                key={call.id}
+                onPress={() =&gt; setDetail({ kind: &#39;call&#39;, id: call.id })}
+                accessibilityRole=&quot;button&quot;
+                accessibilityLabel={`View ${chat.name} call`}
+              &gt;
+                &lt;Block align=&quot;center&quot; gap=&quot;md&quot; direction=&quot;row&quot; py={11}&gt;
+                  &lt;ChatAvatar chat={chat} size=&quot;lg&quot; /&gt;
+                  &lt;Block gap={2} direction=&quot;column&quot; flex={1}&gt;
+                    &lt;Text c={call.missed ? &#39;#C74747&#39; : COLORS.ink} fw=&quot;semibold&quot;&gt;
+                      {chat.name}
+                    &lt;/Text&gt;
+                    &lt;Text c={COLORS.muted} size={12}&gt;
+                      {call.missed ? &#39;Missed&#39; : &#39;Outgoing&#39;} · {call.time}
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;Icon name={call.type === &#39;video&#39; ? &#39;camera&#39; : &#39;phone&#39;} size={19} color={COLORS.green} /&gt;
+                &lt;/Block&gt;
+              &lt;/Block&gt;
+            );
+          })}
+        &lt;/Block&gt;
+      );
+    }
+
+    return (
+      &lt;&gt;
+        &lt;Block direction=&quot;row&quot; px={18} pt={15} pb={10}&gt;
+          &lt;Input
+            value={query}
+            onChangeText={setQuery}
+            placeholder=&quot;Search or start a new chat&quot;
+            startSection={&lt;Icon name=&quot;search&quot; size={18} color={COLORS.muted} /&gt;}
+            variant=&quot;filled&quot;
+            accessibilityLabel=&quot;Search chats&quot;
+          /&gt;
+        &lt;/Block&gt;
+        &lt;SegmentedControl
+          data={[&#39;all&#39;, &#39;unread&#39;, &#39;groups&#39;].map((item) =&gt; ({
+            value: item,
+            label: item[0].toUpperCase() + item.slice(1),
+          }))}
+          value={filter}
+          onChange={(item) =&gt; setFilter(item as Filter)}
+          color={COLORS.green}
+          size=&quot;sm&quot;
+          mx={18}
+          mb={10}
+          accessibilityLabel=&quot;Filter chats&quot;
+        /&gt;
+        {shownChats.length ? (
+          shownChats.map((chat) =&gt; (
+            &lt;ChatRow
+              key={chat.id}
+              chat={chat}
+              active={desktop &amp;&amp; selected?.kind === &#39;chat&#39; &amp;&amp; selected.id === chat.id}
+              onPress={() =&gt; openChat(chat.id)}
+            /&gt;
+          ))
+        ) : (
+          &lt;Block align=&quot;center&quot; gap=&quot;xs&quot; direction=&quot;column&quot; p={30}&gt;
+            &lt;Icon name=&quot;search&quot; size={26} color={COLORS.faint} /&gt;
+            &lt;Text c={COLORS.muted} ta=&quot;center&quot;&gt;
+              No chats found. Try another search or filter.
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+        )}
+      &lt;/&gt;
+    );
+  }
+
+  function renderDetail() {
+    if (selected?.kind === &#39;status&#39;) {
+      const status = STATUSES.find((item) =&gt; item.id === selected.id)!;
+      const chat = chats.find((item) =&gt; item.id === status.chatId)!;
+      return (
+        &lt;Block direction=&quot;column&quot; flex={1} bg={status.color}&gt;
+          &lt;Block align=&quot;center&quot; gap=&quot;sm&quot; direction=&quot;row&quot; p={16}&gt;
+            &lt;IconButton
+              icon=&quot;arrow-left&quot;
+              variant=&quot;ghost&quot;
+              iconColor={COLORS.ink}
+              accessibilityLabel=&quot;Close status&quot;
+              onPress={() =&gt; setDetail(null)}
+            /&gt;
+            &lt;ChatAvatar chat={chat} size=&quot;md&quot; /&gt;
+            &lt;Column gap={0}&gt;
+              &lt;Text c={COLORS.ink} fw=&quot;bold&quot;&gt;
+                {chat.name}
+              &lt;/Text&gt;
+              &lt;Text c={COLORS.ink} size={11}&gt;
+                {status.time}
+              &lt;/Text&gt;
+            &lt;/Column&gt;
+          &lt;/Block&gt;
+          &lt;Block align=&quot;center&quot; justify=&quot;center&quot; direction=&quot;row&quot; flex={1} p={32}&gt;
+            &lt;Text c={COLORS.ink} fw=&quot;bold&quot; size={30} ta=&quot;center&quot; lh={42}&gt;
+              {status.caption}
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+          &lt;Button
+            title={`Message ${chat.name}`}
+            variant=&quot;filled&quot;
+            color={COLORS.darkGreen}
+            m={24}
+            onPress={() =&gt; {
+              setTab(&#39;chats&#39;);
+              openChat(chat.id);
+            }}
+          /&gt;
+        &lt;/Block&gt;
+      );
+    }
+
+    if (selected?.kind === &#39;call&#39;) {
+      const call = RECENT_CALLS.find((item) =&gt; item.id === selected.id);
+      const chat = chats.find((item) =&gt; item.id === (call?.chatId ?? selected.id.replace(&#39;new:&#39;, &#39;&#39;)))!;
+      return (
+        &lt;Block align=&quot;center&quot; justify=&quot;center&quot; gap=&quot;lg&quot; direction=&quot;column&quot; flex={1} bg={COLORS.chrome} p={24}&gt;
+          &lt;ChatAvatar chat={chat} size=&quot;3xl&quot; /&gt;
+          &lt;Title order={2} c={COLORS.ink}&gt;
+            {chat.name}
+          &lt;/Title&gt;
+          &lt;Text c={COLORS.muted}&gt;
+            {call?.type === &#39;video&#39; ? &#39;Video&#39; : &#39;Voice&#39;} call · {call?.time ?? &#39;Now&#39;}
+          &lt;/Text&gt;
+          &lt;Text c={COLORS.muted} size={13} ta=&quot;center&quot;&gt;
+            Calls are a preview in this example app.
+          &lt;/Text&gt;
+          &lt;Row gap=&quot;sm&quot;&gt;
+            &lt;Button title=&quot;Back to calls&quot; variant=&quot;outline&quot; color={COLORS.darkGreen} onPress={() =&gt; setDetail(null)} /&gt;
+            &lt;Button
+              title=&quot;Open chat&quot;
+              variant=&quot;filled&quot;
+              color={COLORS.darkGreen}
+              onPress={() =&gt; {
+                setTab(&#39;chats&#39;);
+                openChat(chat.id);
+              }}
+            /&gt;
+          &lt;/Row&gt;
+        &lt;/Block&gt;
+      );
+    }
+
+    if (!activeChat) {
+      return (
+        &lt;Block align=&quot;center&quot; justify=&quot;center&quot; gap=&quot;md&quot; direction=&quot;column&quot; flex={1} bg={COLORS.chrome} p={36}&gt;
+          &lt;Block align=&quot;center&quot; justify=&quot;center&quot; direction=&quot;row&quot; w={86} h={86} radius={43} bg=&quot;#DDECE7&quot;&gt;
+            &lt;Icon name=&quot;chat&quot; size={40} color={COLORS.green} /&gt;
+          &lt;/Block&gt;
+          &lt;Title order={2} c={COLORS.ink}&gt;
+            A good conversation starts here.
+          &lt;/Title&gt;
+          &lt;Text c={COLORS.muted} ta=&quot;center&quot;&gt;
+            Pick a chat to catch up with someone.
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+      );
+    }
+
+    return (
+      &lt;KeyboardAvoidingArea behavior={Platform.OS === &#39;ios&#39; ? &#39;padding&#39; : undefined} flex={1} bg={COLORS.chat} gap={0}&gt;
+        &lt;Block
+          align=&quot;center&quot;
+          gap=&quot;sm&quot;
+          direction=&quot;row&quot;
+          px={16}
+          py={12}
+          bg={COLORS.chrome}
+          borderBottomWidth={1}
+          borderBottomColor={COLORS.line}
+        &gt;
+          {!desktop &amp;&amp; (
+            &lt;IconButton
+              icon=&quot;arrow-left&quot;
+              variant=&quot;ghost&quot;
+              iconColor={COLORS.ink}
+              accessibilityLabel=&quot;Back to chats&quot;
+              onPress={() =&gt; setDetail(null)}
+            /&gt;
+          )}
+          &lt;ChatAvatar chat={activeChat} size=&quot;md&quot; /&gt;
+          &lt;Block gap={1} direction=&quot;column&quot; flex={1} miw={0}&gt;
+            &lt;Text c={COLORS.ink} fw=&quot;bold&quot; size={16} numberOfLines={1}&gt;
+              {activeChat.name}
+            &lt;/Text&gt;
+            &lt;Text c={COLORS.muted} size={11}&gt;
+              {activeChat.isGroup ? &#39;Group chat&#39; : activeChat.online ? &#39;online&#39; : &#39;tap here for contact info&#39;}
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+          &lt;IconButton
+            icon=&quot;phone&quot;
+            variant=&quot;ghost&quot;
+            iconColor={COLORS.darkGreen}
+            accessibilityLabel={`Voice call ${activeChat.name}`}
+            onPress={() =&gt; setDetail({ kind: &#39;call&#39;, id: `new:${activeChat.id}` })}
+          /&gt;
+        &lt;/Block&gt;
+        &lt;ScrollArea
+          ref={messageScroll}
+          flex={1}
+          contentProps={{ px: 22, py: 24, gap: 11, grow: 1, justify: &#39;flex-end&#39; }}
+          onContentSizeChange={() =&gt; messageScroll.current?.scrollToEnd({ animated: false })}
+        &gt;
+          &lt;Block
+            align=&quot;center&quot;
+            justify=&quot;center&quot;
+            direction=&quot;row&quot;
+            alignSelf=&quot;center&quot;
+            bg=&quot;#E2F3FA&quot;
+            px={12}
+            py={5}
+            radius={8}
+            mb={8}
+          &gt;
+            &lt;Text c={COLORS.muted} size={11}&gt;
+              TODAY
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+          {activeChat.messages.map((message) =&gt; (
+            &lt;MessageBubble key={message.id} message={message} /&gt;
+          ))}
+        &lt;/ScrollArea&gt;
+        &lt;Block
+          align=&quot;center&quot;
+          gap=&quot;sm&quot;
+          direction=&quot;row&quot;
+          px={14}
+          py={12}
+          bg={COLORS.chrome}
+          borderTopWidth={1}
+          borderTopColor={COLORS.line}
+        &gt;
+          &lt;Icon name=&quot;emoji&quot; color={COLORS.muted} size={24} /&gt;
+          &lt;Block direction=&quot;row&quot; flex={1}&gt;
+            &lt;Input
+              value={draft}
+              onChangeText={setDraft}
+              onEnter={sendMessage}
+              placeholder=&quot;Type a message&quot;
+              variant=&quot;filled&quot;
+              radius=&quot;full&quot;
+              accessibilityLabel=&quot;Type a message&quot;
+            /&gt;
+          &lt;/Block&gt;
+          &lt;IconButton
+            icon=&quot;arrow-right&quot;
+            variant=&quot;filled&quot;
+            color={COLORS.green}
+            radius=&quot;full&quot;
+            accessibilityLabel=&quot;Send message&quot;
+            disabled={!draft.trim()}
+            onPress={sendMessage}
+          /&gt;
+        &lt;/Block&gt;
+      &lt;/KeyboardAvoidingArea&gt;
+    );
+  }
+
+  return (
+    &lt;SafeArea gap={0} flex={1} bg={COLORS.chrome}&gt;
+      &lt;StatusBar barStyle=&quot;dark-content&quot; /&gt;
+      &lt;Block
+        align=&quot;stretch&quot;
+        direction=&quot;row&quot;
+        flex={1}
+        w=&quot;100%&quot;
+        maw={1440}
+        alignSelf=&quot;center&quot;
+        bg={COLORS.white}
+        borderLeftWidth={desktop ? 1 : 0}
+        borderRightWidth={desktop ? 1 : 0}
+        borderColor={COLORS.line}
+      &gt;
+        {(desktop || !detail) &amp;&amp; (
+          &lt;Block
+            align=&quot;stretch&quot;
+            gap={0}
+            direction=&quot;column&quot;
+            w={desktop ? 390 : &#39;100%&#39;}
+            shrink={0}
+            bg={COLORS.white}
+            borderRightWidth={desktop ? 1 : 0}
+            borderRightColor={COLORS.line}
+          &gt;
+            &lt;Block align=&quot;center&quot; justify=&quot;space-between&quot; direction=&quot;row&quot; px={18} py={17} bg={COLORS.chrome}&gt;
+              &lt;Row align=&quot;center&quot; gap=&quot;sm&quot;&gt;
+                &lt;Block align=&quot;center&quot; justify=&quot;center&quot; direction=&quot;row&quot; w={31} h={31} radius={11} bg={COLORS.green}&gt;
+                  &lt;Icon name=&quot;chat&quot; variant=&quot;filled&quot; size={19} color={COLORS.white} /&gt;
+                &lt;/Block&gt;
+                &lt;Text c={COLORS.darkGreen} fw=&quot;bold&quot; size={22}&gt;
+                  chatline
+                &lt;/Text&gt;
+              &lt;/Row&gt;
+              &lt;IconButton
+                icon=&quot;edit&quot;
+                variant=&quot;ghost&quot;
+                iconColor={COLORS.ink}
+                accessibilityLabel=&quot;New chat&quot;
+                onPress={() =&gt; {
+                  setTab(&#39;chats&#39;);
+                  setNewChat(true);
+                  setDetail(null);
+                }}
+              /&gt;
+            &lt;/Block&gt;
+            {!newChat &amp;&amp; (
+              &lt;Block align=&quot;center&quot; justify=&quot;space-between&quot; direction=&quot;row&quot; px={18} pt={16} pb={8}&gt;
+                &lt;Text c={COLORS.ink} fw=&quot;bold&quot; size={29} shrink={1}&gt;
+                  {tab === &#39;chats&#39; ? &#39;Chats&#39; : tab === &#39;updates&#39; ? &#39;Updates&#39; : &#39;Calls&#39;}
+                &lt;/Text&gt;
+                {tab === &#39;chats&#39; &amp;&amp; (
+                  &lt;Text c={COLORS.green} fw=&quot;bold&quot; size={12}&gt;
+                    {unreadTotal ? `${unreadTotal} unread` : &#39;All caught up&#39;}
+                  &lt;/Text&gt;
+                )}
+              &lt;/Block&gt;
+            )}
+            &lt;ScrollArea flex={1} keyboardShouldPersistTaps=&quot;handled&quot;&gt;
+              {renderSidebarContent()}
+            &lt;/ScrollArea&gt;
+            &lt;Tabs
+              navigationOnly
+              value={tab}
+              onChange={(item) =&gt; selectTab(item as Tab)}
+              color={COLORS.darkGreen}
+              tabStyle={{ flex: 1 }}
+              items={([
+                [&#39;chats&#39;, &#39;Chats&#39;, &#39;chat&#39;],
+                [&#39;updates&#39;, &#39;Updates&#39;, &#39;circle&#39;],
+                [&#39;calls&#39;, &#39;Calls&#39;, &#39;phone&#39;],
+              ] as const).map(([key, label, icon]) =&gt; ({
+                key,
+                label,
+                subLabel: key === &#39;chats&#39; &amp;&amp; unreadTotal ? String(unreadTotal) : undefined,
+                icon: &lt;Icon name={icon} size={20} color={tab === key ? COLORS.darkGreen : COLORS.muted} /&gt;,
+                content: null,
+              }))}
+            /&gt;
+          &lt;/Block&gt;
+        )}
+        {(desktop || detail) &amp;&amp; (
+          &lt;Block align=&quot;stretch&quot; direction=&quot;row&quot; flex={1} miw={0}&gt;
+            {renderDetail()}
+          &lt;/Block&gt;
+        )}
+      &lt;/Block&gt;
+    &lt;/SafeArea&gt;
+  );
+}
+
+export default function App() {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={THEME}&gt;
+        &lt;ChatlineScreen /&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>data.ts</h2><pre><code>export type Message = {
+  id: string;
+  text: string;
+  time: string;
+  outgoing: boolean;
+};
+
+export type Chat = {
+  id: string;
+  name: string;
+  initials: string;
+  color: string;
+  isGroup?: boolean;
+  online?: boolean;
+  unread: number;
+  messages: Message[];
+};
+
+export const SEED_CHATS: Chat[] = [
+  {
+    id: &#39;maria&#39;, name: &#39;Maria Chen&#39;, initials: &#39;MC&#39;, color: &#39;#D7936C&#39;, online: true, unread: 2,
+    messages: [
+      { id: &#39;m1&#39;, text: &#39;Hey! Are we still on for coffee this afternoon?&#39;, time: &#39;10:31 AM&#39;, outgoing: false },
+      { id: &#39;m2&#39;, text: &#39;Absolutely. I found a little place near the park ☕&#39;, time: &#39;10:34 AM&#39;, outgoing: true },
+      { id: &#39;m3&#39;, text: &#39;Perfect, I can be there around 3.&#39;, time: &#39;10:42 AM&#39;, outgoing: false },
+      { id: &#39;m4&#39;, text: &#39;I will send you the address in a minute!&#39;, time: &#39;10:42 AM&#39;, outgoing: false },
+    ],
+  },
+  {
+    id: &#39;design&#39;, name: &#39;Design Team&#39;, initials: &#39;DT&#39;, color: &#39;#806DB9&#39;, isGroup: true, unread: 3,
+    messages: [
+      { id: &#39;d1&#39;, text: &#39;Morning team! The new concepts are ready to review.&#39;, time: &#39;9:12 AM&#39;, outgoing: false },
+      { id: &#39;d2&#39;, text: &#39;These look great. The colors are really coming together.&#39;, time: &#39;9:18 AM&#39;, outgoing: true },
+      { id: &#39;d3&#39;, text: &#39;I added my notes to the board.&#39;, time: &#39;9:24 AM&#39;, outgoing: false },
+    ],
+  },
+  {
+    id: &#39;dad&#39;, name: &#39;Dad&#39;, initials: &#39;D&#39;, color: &#39;#729A87&#39;, unread: 0,
+    messages: [
+      { id: &#39;f1&#39;, text: &#39;Just checked in. Everything is going well here!&#39;, time: &#39;Yesterday&#39;, outgoing: false },
+      { id: &#39;f2&#39;, text: &#39;Glad to hear it. Talk this weekend?&#39;, time: &#39;Yesterday&#39;, outgoing: true },
+      { id: &#39;f3&#39;, text: &#39;Sounds good ❤️&#39;, time: &#39;Yesterday&#39;, outgoing: false },
+    ],
+  },
+  {
+    id: &#39;alex&#39;, name: &#39;Alex Rivera&#39;, initials: &#39;AR&#39;, color: &#39;#6D9AB2&#39;, online: true, unread: 0,
+    messages: [
+      { id: &#39;a1&#39;, text: &#39;I finished that playlist I told you about.&#39;, time: &#39;Yesterday&#39;, outgoing: false },
+      { id: &#39;a2&#39;, text: &#39;Send it over! I need something new to listen to.&#39;, time: &#39;Yesterday&#39;, outgoing: true },
+      { id: &#39;a3&#39;, text: &#39;You are going to love the last track 🎵&#39;, time: &#39;Yesterday&#39;, outgoing: false },
+    ],
+  },
+  {
+    id: &#39;weekend&#39;, name: &#39;Weekend Plans&#39;, initials: &#39;WP&#39;, color: &#39;#C38A80&#39;, isGroup: true, unread: 0,
+    messages: [
+      { id: &#39;w1&#39;, text: &#39;Should we do a picnic on Saturday?&#39;, time: &#39;Monday&#39;, outgoing: false },
+      { id: &#39;w2&#39;, text: &#39;I can bring snacks and a blanket.&#39;, time: &#39;Monday&#39;, outgoing: true },
+      { id: &#39;w3&#39;, text: &#39;Saturday works for everyone! 🌿&#39;, time: &#39;Monday&#39;, outgoing: false },
+    ],
+  },
+  {
+    id: &#39;priya&#39;, name: &#39;Priya Shah&#39;, initials: &#39;PS&#39;, color: &#39;#B38EAB&#39;, unread: 0,
+    messages: [
+      { id: &#39;p1&#39;, text: &#39;Thank you for the recommendation!&#39;, time: &#39;Monday&#39;, outgoing: false },
+      { id: &#39;p2&#39;, text: &#39;Anytime. Let me know what you think.&#39;, time: &#39;Monday&#39;, outgoing: true },
+    ],
+  },
+];
+
+export type Status = { id: string; chatId: string; caption: string; color: string; time: string };
+export const STATUSES: Status[] = [
+  { id: &#39;s1&#39;, chatId: &#39;maria&#39;, caption: &#39;A little sunshine goes a long way ☀️&#39;, color: &#39;#A6C7A6&#39;, time: &#39;Today, 9:30 AM&#39; },
+  { id: &#39;s2&#39;, chatId: &#39;alex&#39;, caption: &#39;Found a new favorite corner of the city.&#39;, color: &#39;#9FBBD0&#39;, time: &#39;Today, 8:14 AM&#39; },
+  { id: &#39;s3&#39;, chatId: &#39;priya&#39;, caption: &#39;Taking the scenic route home 🌸&#39;, color: &#39;#D7AEC7&#39;, time: &#39;Yesterday, 6:20 PM&#39; },
+];
+
+export type RecentCall = { id: string; chatId: string; time: string; type: &#39;voice&#39; | &#39;video&#39;; missed?: boolean };
+export const RECENT_CALLS: RecentCall[] = [
+  { id: &#39;c1&#39;, chatId: &#39;maria&#39;, time: &#39;Today, 11:02 AM&#39;, type: &#39;voice&#39; },
+  { id: &#39;c2&#39;, chatId: &#39;dad&#39;, time: &#39;Yesterday, 7:45 PM&#39;, type: &#39;video&#39;, missed: true },
+  { id: &#39;c3&#39;, chatId: &#39;alex&#39;, time: &#39;Monday, 4:18 PM&#39;, type: &#39;voice&#39; },
+];
+
+export function timeNow(): string {
+  return new Date().toLocaleTimeString([], { hour: &#39;numeric&#39;, minute: &#39;2-digit&#39; });
+}
+</code></pre></section><section id="file-2"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

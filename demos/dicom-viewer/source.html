@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Medical viewer demo source | plocks</title><meta name="description" content="Browse the source code for the Medical viewer demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/dicom-viewer/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>dicom-viewer source</h1><nav><a href="/demos/dicom-viewer/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">components/ScanViewport.tsx</a><a href="#file-2">dicom.ts</a><a href="#file-3">index.ts</a><a href="#file-4">study.ts</a><a href="#file-5">theme.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useMemo, useState } from &#39;react&#39;;
+import { Platform, useWindowDimensions } from &#39;react-native&#39;;
+import * as DocumentPicker from &#39;expo-document-picker&#39;;
+import { File } from &#39;expo-file-system&#39;;
+import {
+  AppShell,
+  Badge,
+  Block,
+  Button,
+  Card,
+  Column,
+  PlocksProvider,
+  Row,
+  SegmentedControl,
+  Slider,
+  Text,
+} from &#39;@plocks/ui&#39;;
+import { ScanViewport } from &#39;./components/ScanViewport&#39;;
+import { parseDicom } from &#39;./dicom&#39;;
+import { createFileStudy, createSampleStudy, type Study } from &#39;./study&#39;;
+import { C, VIEWER_THEME } from &#39;./theme&#39;;
+
+const PRESETS = {
+  original: { label: &#39;Original&#39; },
+  soft: { label: &#39;Soft tissue&#39;, window: 400, level: 40 },
+  lung: { label: &#39;Lung&#39;, window: 1400, level: -500 },
+  bone: { label: &#39;Bone&#39;, window: 1800, level: 450 },
+} as const;
+type Preset = keyof typeof PRESETS | &#39;custom&#39;;
+
+function SectionLabel({ children, value }: { children: string; value?: string }) {
+  return (
+    &lt;Block align=&quot;center&quot; justify=&quot;space-between&quot; gap=&quot;sm&quot; direction=&quot;row&quot; flex={1}&gt;
+      &lt;Text c={C.muted} size={10} fw=&quot;bold&quot; lts={1.5}&gt;
+        {children.toUpperCase()}
+      &lt;/Text&gt;
+      {!!value &amp;&amp; (
+        &lt;Text c={C.ink} size={12} fw=&quot;bold&quot;&gt;
+          {value}
+        &lt;/Text&gt;
+      )}
+    &lt;/Block&gt;
+  );
+}
+
+function ViewerApp() {
+  const { width: screenWidth } = useWindowDimensions();
+  const compact = screenWidth &lt; 800;
+  const scanSize = Math.max(245, Math.min(compact ? screenWidth - 76 : 500, 500));
+  const [study, setStudy] = useState&lt;Study&gt;(createSampleStudy);
+  const [index, setIndex] = useState(17);
+  const [preset, setPreset] = useState&lt;Preset&gt;(&#39;original&#39;);
+  const [customWindow, setCustomWindow] = useState(400);
+  const [customLevel, setCustomLevel] = useState(40);
+  const [zoom, setZoom] = useState(1);
+  const [invert, setInvert] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(&#39;&#39;);
+
+  const active = study.frames[index];
+  const image = active.image;
+  const total = study.frames.length;
+  const presetSettings = preset === &#39;custom&#39; ? null : PRESETS[preset];
+  const window =
+    preset === &#39;original&#39;
+      ? image.window
+      : presetSettings &amp;&amp; &#39;window&#39; in presetSettings
+        ? presetSettings.window
+        : customWindow;
+  const level =
+    preset === &#39;original&#39;
+      ? image.level
+      : presetSettings &amp;&amp; &#39;level&#39; in presetSettings
+        ? presetSettings.level
+        : customLevel;
+  const modality = image.modality || &#39;DICOM&#39;;
+  const spacing = image.pixelSpacing
+    ?.split(&#39;\\&#39;)
+    .map((value) =&gt; Number(value).toFixed(2))
+    .join(&#39; × &#39;);
+
+  useEffect(() =&gt; {
+    if (!playing || total &lt; 2) return;
+    const timer = setInterval(() =&gt; setIndex((current) =&gt; (current + 1) % total), 140);
+    return () =&gt; clearInterval(timer);
+  }, [playing, total]);
+
+  function loadStudy(next: Study) {
+    setPlaying(false);
+    setStudy(next);
+    setIndex(next.isSample ? Math.floor(next.frames.length / 2) : 0);
+    setPreset(&#39;original&#39;);
+    setCustomWindow(next.frames[0].image.window);
+    setCustomLevel(next.frames[0].image.level);
+    setZoom(1);
+    setInvert(false);
+    setError(&#39;&#39;);
+  }
+
+  async function openFiles() {
+    try {
+      setLoading(true);
+      setPlaying(false);
+      setError(&#39;&#39;);
+      const result = await DocumentPicker.getDocumentAsync({ type: &#39;*/*&#39;, multiple: true, copyToCacheDirectory: true });
+      if (result.canceled) return;
+      if (result.assets.length &gt; 120) throw new Error(&#39;Select 120 or fewer files at a time.&#39;);
+      const files = [];
+      let totalPixels = 0;
+      for (const asset of result.assets) {
+        const buffer =
+          Platform.OS === &#39;web&#39; &amp;&amp; asset.file
+            ? await asset.file.arrayBuffer()
+            : await new File(asset.uri).arrayBuffer();
+        const image = parseDicom(buffer);
+        totalPixels += image.values.length;
+        if (totalPixels &gt; 80000000) throw new Error(&#39;This image stack is too large for the example viewer.&#39;);
+        files.push({ name: asset.name, image });
+      }
+      loadStudy(createFileStudy(files));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : &#39;Unable to open these files.&#39;);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function choosePreset(value: string) {
+    if (value === &#39;original&#39; || value === &#39;soft&#39; || value === &#39;lung&#39; || value === &#39;bone&#39;) setPreset(value);
+  }
+  function changeWindow(value: number) {
+    setCustomWindow(value);
+    setCustomLevel(level);
+    setPreset(&#39;custom&#39;);
+  }
+  function changeLevel(value: number) {
+    setCustomWindow(window);
+    setCustomLevel(value);
+    setPreset(&#39;custom&#39;);
+  }
+  function step(delta: number) {
+    setPlaying(false);
+    setIndex((current) =&gt; Math.max(0, Math.min(total - 1, current + delta)));
+  }
+
+  const presetData = useMemo(() =&gt; Object.entries(PRESETS).map(([value, item]) =&gt; ({ value, label: item.label })), []);
+  return (
+    &lt;AppShell
+      header={{ height: 72 }}
+      autoLayout
+      maxContentWidth={1260}
+      centerContent
+      padding={0}
+      headerContent={
+        &lt;Block align=&quot;center&quot; justify=&quot;space-between&quot; direction=&quot;row&quot; flex={1} px={22}&gt;
+          &lt;Row gap=&quot;sm&quot; align=&quot;center&quot;&gt;
+            &lt;Block
+              w={32}
+              h={32}
+              radius=&quot;md&quot;
+              bg={C.accentSoft}
+              align=&quot;center&quot;
+              justify=&quot;center&quot;
+              borderWidth={1}
+              borderColor={C.accent}
+            &gt;
+              &lt;Text c={C.accent} fw=&quot;bold&quot; size={19}&gt;
+                ✳
+              &lt;/Text&gt;
+            &lt;/Block&gt;
+            &lt;Column gap={0} fullWidth={false}&gt;
+              &lt;Text c={C.accent} size={9} fw=&quot;bold&quot; lts={2}&gt;
+                NORTHSTAR
+              &lt;/Text&gt;
+              &lt;Text c={C.ink} size={17} fw=&quot;bold&quot;&gt;
+                IMAGING STUDIO
+              &lt;/Text&gt;
+            &lt;/Column&gt;
+          &lt;/Row&gt;
+          &lt;Badge color={C.accent} variant=&quot;light&quot;&gt;
+            LOCAL VIEWER
+          &lt;/Badge&gt;
+        &lt;/Block&gt;
+      }
+    &gt;
+      &lt;AppShell.Section grow withScrollArea&gt;
+        &lt;Block gap=&quot;lg&quot; direction=&quot;column&quot; w=&quot;100%&quot; p={compact ? 16 : 24} pb={44}&gt;
+          &lt;Row align=&quot;center&quot; justify=&quot;space-between&quot; wrap=&quot;wrap&quot; gap=&quot;md&quot;&gt;
+            &lt;Block gap={4} fullWidth={false} direction=&quot;column&quot; shrink={1}&gt;
+              &lt;Text c={C.accent} size={10} fw=&quot;bold&quot; lts={2}&gt;
+                STUDY WORKSPACE / 01
+              &lt;/Text&gt;
+              &lt;Text c={C.ink} size={compact ? 25 : 30} fw=&quot;bold&quot;&gt;
+                DICOM Viewer
+              &lt;/Text&gt;
+              &lt;Text c={C.muted} size={13}&gt;
+                Explore an image stack with clinical style viewing controls.
+              &lt;/Text&gt;
+            &lt;/Block&gt;
+            &lt;Row gap=&quot;sm&quot; wrap=&quot;wrap&quot;&gt;
+              &lt;Button
+                title=&quot;Open DICOM files&quot;
+                onPress={openFiles}
+                loading={loading}
+                color={C.accent}
+                variant=&quot;filled&quot;
+              /&gt;
+              &lt;Button
+                title=&quot;Sample study&quot;
+                onPress={() =&gt; loadStudy(createSampleStudy())}
+                color={C.accent}
+                variant=&quot;outline&quot;
+              /&gt;
+            &lt;/Row&gt;
+          &lt;/Row&gt;
+
+          {!!error &amp;&amp; (
+            &lt;Card bg=&quot;#452B30&quot; borderColor={C.error} padding=&quot;md&quot;&gt;
+              &lt;Text c={C.error} size={13}&gt;
+                {error}
+              &lt;/Text&gt;
+            &lt;/Card&gt;
+          )}
+
+          &lt;Block gap=&quot;lg&quot; align=&quot;flex-start&quot; wrap={compact ? &#39;wrap&#39; : &#39;nowrap&#39;} direction=&quot;row&quot; w=&quot;100%&quot;&gt;
+            &lt;Block gap=&quot;md&quot; direction=&quot;column&quot; flex={1} miw={compact ? &#39;100%&#39; : 500}&gt;
+              &lt;Card bg={C.panel} borderColor={C.border} borderWidth={1} radius=&quot;lg&quot; padding=&quot;md&quot; w=&quot;100%&quot;&gt;
+                &lt;Row align=&quot;center&quot; justify=&quot;space-between&quot; wrap=&quot;wrap&quot; gap=&quot;sm&quot;&gt;
+                  &lt;Block gap={3} fullWidth={false} direction=&quot;column&quot; shrink={1}&gt;
+                    &lt;Text c={C.accent} size={10} fw=&quot;bold&quot; lts={1.5}&gt;
+                      CURRENT SERIES
+                    &lt;/Text&gt;
+                    &lt;Text c={C.ink} size={18} fw=&quot;bold&quot; numberOfLines={1}&gt;
+                      {study.name}
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;Row gap=&quot;xs&quot; align=&quot;center&quot;&gt;
+                    &lt;Badge color={C.accent} variant=&quot;light&quot;&gt;
+                      {modality}
+                    &lt;/Badge&gt;
+                    &lt;Badge color={C.warning} variant=&quot;light&quot;&gt;
+                      {total} IMAGES
+                    &lt;/Badge&gt;
+                  &lt;/Row&gt;
+                &lt;/Row&gt;
+              &lt;/Card&gt;
+              &lt;ScanViewport
+                image={image}
+                frame={active.frame}
+                index={index}
+                total={total}
+                window={window}
+                level={level}
+                zoom={zoom}
+                invert={invert}
+                size={scanSize}
+                isSample={study.isSample}
+              /&gt;
+              &lt;Card bg={C.panel} borderColor={C.border} borderWidth={1} radius=&quot;lg&quot; padding=&quot;lg&quot; w=&quot;100%&quot;&gt;
+                &lt;Column gap=&quot;md&quot;&gt;
+                  &lt;SectionLabel value={`${index + 1} / ${total}`}&gt;Slice position&lt;/SectionLabel&gt;
+                  &lt;Slider
+                    min={1}
+                    max={total}
+                    step={1}
+                    value={index + 1}
+                    onChange={(value) =&gt; {
+                      setPlaying(false);
+                      setIndex(value - 1);
+                    }}
+                    color={C.accent}
+                    accessibilityLabel=&quot;Scrub through scan slices&quot;
+                    valueLabel={(value) =&gt; `Slice ${value} of ${total}`}
+                  /&gt;
+                  &lt;Row gap=&quot;sm&quot; align=&quot;center&quot; justify=&quot;space-between&quot; wrap=&quot;wrap&quot;&gt;
+                    &lt;Row gap=&quot;xs&quot;&gt;
+                      &lt;Button
+                        title=&quot;−  Previous&quot;
+                        size=&quot;sm&quot;
+                        variant=&quot;outline&quot;
+                        color={C.accent}
+                        disabled={index === 0}
+                        onPress={() =&gt; step(-1)}
+                      /&gt;
+                      &lt;Button
+                        title=&quot;Next  +&quot;
+                        size=&quot;sm&quot;
+                        variant=&quot;outline&quot;
+                        color={C.accent}
+                        disabled={index === total - 1}
+                        onPress={() =&gt; step(1)}
+                      /&gt;
+                    &lt;/Row&gt;
+                    &lt;Button
+                      title={playing ? &#39;Ⅱ  Pause&#39; : &#39;▶  Cine&#39;}
+                      size=&quot;sm&quot;
+                      variant={playing ? &#39;filled&#39; : &#39;light&#39;}
+                      color={C.accent}
+                      disabled={total &lt; 2}
+                      onPress={() =&gt; setPlaying((current) =&gt; !current)}
+                    /&gt;
+                  &lt;/Row&gt;
+                &lt;/Column&gt;
+              &lt;/Card&gt;
+            &lt;/Block&gt;
+
+            &lt;Block gap=&quot;md&quot; direction=&quot;column&quot; w={compact ? &#39;100%&#39; : 344}&gt;
+              &lt;Card bg={C.panel} borderColor={C.border} borderWidth={1} radius=&quot;lg&quot; padding=&quot;lg&quot; w=&quot;100%&quot;&gt;
+                &lt;Column gap=&quot;lg&quot;&gt;
+                  &lt;Column gap={3}&gt;
+                    &lt;Text c={C.accent} size={10} fw=&quot;bold&quot; lts={1.5}&gt;
+                      DISPLAY CONTROLS
+                    &lt;/Text&gt;
+                    &lt;Text c={C.ink} size={19} fw=&quot;bold&quot;&gt;
+                      Window &amp;amp; level
+                    &lt;/Text&gt;
+                  &lt;/Column&gt;
+                  &lt;SegmentedControl
+                    data={presetData}
+                    value={preset === &#39;custom&#39; ? &#39;&#39; : preset}
+                    onChange={choosePreset}
+                    color={C.accent}
+                    size=&quot;xs&quot;
+                    fullWidth
+                    accessibilityLabel=&quot;Window presets&quot;
+                  /&gt;
+                  {preset === &#39;custom&#39; &amp;&amp; (
+                    &lt;Text c={C.accent} size={11}&gt;
+                      Custom adjustment
+                    &lt;/Text&gt;
+                  )}
+                  &lt;Column gap=&quot;sm&quot;&gt;
+                    &lt;SectionLabel value={`${Math.round(window)} HU`}&gt;Window width&lt;/SectionLabel&gt;
+                    &lt;Slider
+                      min={1}
+                      max={3000}
+                      step={1}
+                      value={window}
+                      onChange={changeWindow}
+                      color={C.accent}
+                      accessibilityLabel=&quot;Window width&quot;
+                      valueLabel={(value) =&gt; `${Math.round(value)} HU`}
+                    /&gt;
+                  &lt;/Column&gt;
+                  &lt;Column gap=&quot;sm&quot;&gt;
+                    &lt;SectionLabel value={`${Math.round(level)} HU`}&gt;Window level&lt;/SectionLabel&gt;
+                    &lt;Slider
+                      min={-1200}
+                      max={1800}
+                      step={1}
+                      value={level}
+                      onChange={changeLevel}
+                      color={C.accent}
+                      accessibilityLabel=&quot;Window level&quot;
+                      valueLabel={(value) =&gt; `${Math.round(value)} HU`}
+                    /&gt;
+                  &lt;/Column&gt;
+                &lt;/Column&gt;
+              &lt;/Card&gt;
+              &lt;Card bg={C.panel} borderColor={C.border} borderWidth={1} radius=&quot;lg&quot; padding=&quot;lg&quot; w=&quot;100%&quot;&gt;
+                &lt;Column gap=&quot;lg&quot;&gt;
+                  &lt;Column gap={3}&gt;
+                    &lt;Text c={C.accent} size={10} fw=&quot;bold&quot; lts={1.5}&gt;
+                      VIEW OPTIONS
+                    &lt;/Text&gt;
+                    &lt;Text c={C.ink} size={19} fw=&quot;bold&quot;&gt;
+                      Image tools
+                    &lt;/Text&gt;
+                  &lt;/Column&gt;
+                  &lt;Column gap=&quot;sm&quot;&gt;
+                    &lt;SectionLabel value={`${Math.round(zoom * 100)}%`}&gt;Zoom&lt;/SectionLabel&gt;
+                    &lt;Slider
+                      min={0.75}
+                      max={2}
+                      step={0.05}
+                      value={zoom}
+                      onChange={setZoom}
+                      color={C.accent}
+                      accessibilityLabel=&quot;Image zoom&quot;
+                      valueLabel={(value) =&gt; `${Math.round(value * 100)}%`}
+                    /&gt;
+                  &lt;/Column&gt;
+                  &lt;Row gap=&quot;sm&quot; wrap=&quot;wrap&quot;&gt;
+                    &lt;Button
+                      title={invert ? &#39;Restore polarity&#39; : &#39;Invert image&#39;}
+                      size=&quot;sm&quot;
+                      variant=&quot;outline&quot;
+                      color={C.accent}
+                      onPress={() =&gt; setInvert((current) =&gt; !current)}
+                    /&gt;
+                    &lt;Button
+                      title=&quot;Reset view&quot;
+                      size=&quot;sm&quot;
+                      variant=&quot;outline&quot;
+                      color={C.accent}
+                      onPress={() =&gt; {
+                        setZoom(1);
+                        setInvert(false);
+                        setPreset(&#39;original&#39;);
+                      }}
+                    /&gt;
+                  &lt;/Row&gt;
+                &lt;/Column&gt;
+              &lt;/Card&gt;
+              &lt;Card bg={C.panel} borderColor={C.border} borderWidth={1} radius=&quot;lg&quot; padding=&quot;lg&quot; w=&quot;100%&quot;&gt;
+                &lt;Column gap=&quot;md&quot;&gt;
+                  &lt;Column gap={3}&gt;
+                    &lt;Text c={C.accent} size={10} fw=&quot;bold&quot; lts={1.5}&gt;
+                      SERIES INFORMATION
+                    &lt;/Text&gt;
+                    &lt;Text c={C.ink} size={19} fw=&quot;bold&quot;&gt;
+                      Acquisition
+                    &lt;/Text&gt;
+                  &lt;/Column&gt;
+                  &lt;Row justify=&quot;space-between&quot;&gt;
+                    &lt;Text c={C.muted} size={12}&gt;
+                      Matrix
+                    &lt;/Text&gt;
+                    &lt;Text c={C.ink} size={12}&gt;
+                      {image.width} × {image.height}
+                    &lt;/Text&gt;
+                  &lt;/Row&gt;
+                  &lt;Row justify=&quot;space-between&quot;&gt;
+                    &lt;Text c={C.muted} size={12}&gt;
+                      Pixel spacing
+                    &lt;/Text&gt;
+                    &lt;Text c={C.ink} size={12}&gt;
+                      {spacing ? `${spacing} mm` : &#39;—&#39;}
+                    &lt;/Text&gt;
+                  &lt;/Row&gt;
+                  &lt;Row justify=&quot;space-between&quot;&gt;
+                    &lt;Text c={C.muted} size={12}&gt;
+                      Slice thickness
+                    &lt;/Text&gt;
+                    &lt;Text c={C.ink} size={12}&gt;
+                      {image.sliceThickness ? `${image.sliceThickness} mm` : &#39;—&#39;}
+                    &lt;/Text&gt;
+                  &lt;/Row&gt;
+                  &lt;Row justify=&quot;space-between&quot;&gt;
+                    &lt;Text c={C.muted} size={12}&gt;
+                      Instances
+                    &lt;/Text&gt;
+                    &lt;Text c={C.ink} size={12}&gt;
+                      {study.images.length}
+                    &lt;/Text&gt;
+                  &lt;/Row&gt;
+                &lt;/Column&gt;
+              &lt;/Card&gt;
+            &lt;/Block&gt;
+          &lt;/Block&gt;
+          &lt;Block bg={C.accentSoft} radius=&quot;md&quot; p={12} w=&quot;full&quot;&gt;
+            &lt;Text c={C.muted} size={11}&gt;
+              Educational viewer. Synthetic sample contains no patient data. Local DICOM files stay on this device.
+              Supports uncompressed 8/16-bit monochrome little-endian images; not for clinical decisions.
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+        &lt;/Block&gt;
+      &lt;/AppShell.Section&gt;
+    &lt;/AppShell&gt;
+  );
+}
+
+export default function App() {
+  return (
+    &lt;PlocksProvider theme={VIEWER_THEME}&gt;
+      &lt;ViewerApp /&gt;
+    &lt;/PlocksProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>components/ScanViewport.tsx</h2><pre><code>import { useMemo } from &#39;react&#39;;
+import Svg, { Path } from &#39;react-native-svg&#39;;
+import { Block, Column, Row, Text } from &#39;@plocks/ui&#39;;
+import { imagePaths, type DicomImage } from &#39;../dicom&#39;;
+import { C } from &#39;../theme&#39;;
+
+type Props = {
+  image: DicomImage; frame: number; index: number; total: number;
+  window: number; level: number; zoom: number; invert: boolean;
+  size: number; isSample: boolean;
+};
+
+export function ScanViewport({ image, frame, index, total, window, level, zoom, invert, size, isSample }: Props) {
+  const paths = useMemo(() =&gt; imagePaths(image, frame, window, level, invert), [image, frame, window, level, invert]);
+  return &lt;Block bg={C.viewer} h={size + 64} radius=&quot;lg&quot; borderWidth={1} borderColor={C.border}
+    position=&quot;relative&quot; align=&quot;center&quot; justify=&quot;center&quot; overflow=&quot;hidden&quot; w=&quot;full&quot;
+    accessibilityLabel={`Axial scan image, slice ${index + 1} of ${total}`}&gt;
+    &lt;Block position=&quot;absolute&quot; top={15} left={16}&gt;
+      &lt;Text c={C.accent} size={10} fw=&quot;bold&quot; lts={1.5}&gt;AXIAL  /  {image.modality || &#39;DICOM&#39;}&lt;/Text&gt;
+    &lt;/Block&gt;
+    &lt;Block position=&quot;absolute&quot; top={15} right={16}&gt;
+      &lt;Text c={C.muted} size={10} fw=&quot;bold&quot; lts={1}&gt;IM {String(index + 1).padStart(3, &#39;0&#39;)} / {String(total).padStart(3, &#39;0&#39;)}&lt;/Text&gt;
+    &lt;/Block&gt;
+    &lt;Block w={size * zoom} h={size * zoom} align=&quot;center&quot; justify=&quot;center&quot;&gt;
+      &lt;Svg width=&quot;100%&quot; height=&quot;100%&quot; viewBox=&quot;0 0 128 128&quot; preserveAspectRatio=&quot;xMidYMid meet&quot; accessibilityLabel=&quot;Rendered DICOM pixels&quot;&gt;
+        {paths.map(({ color, path }) =&gt; &lt;Path key={color} d={path} fill={color} /&gt;)}
+      &lt;/Svg&gt;
+    &lt;/Block&gt;
+    &lt;Block position=&quot;absolute&quot; left={16} top=&quot;50%&quot;&gt;&lt;Text c={C.accent} size={13} fw=&quot;bold&quot;&gt;R&lt;/Text&gt;&lt;/Block&gt;
+    &lt;Block position=&quot;absolute&quot; right={16} top=&quot;50%&quot;&gt;&lt;Text c={C.accent} size={13} fw=&quot;bold&quot;&gt;L&lt;/Text&gt;&lt;/Block&gt;
+    &lt;Block position=&quot;absolute&quot; bottom={14} left={16}&gt;
+      &lt;Column gap={2} fullWidth={false}&gt;
+        &lt;Text c={C.muted} size={10} fw=&quot;bold&quot; lts={1}&gt;W {Math.round(window)}   L {Math.round(level)}&lt;/Text&gt;
+        &lt;Text c={C.dim} size={9}&gt;{isSample ? &#39;SYNTHETIC IMAGE · NO PATIENT DATA&#39; : `${image.width} × ${image.height} PX · LOCAL FILE`}&lt;/Text&gt;
+      &lt;/Column&gt;
+    &lt;/Block&gt;
+    &lt;Block position=&quot;absolute&quot; bottom={14} right={16}&gt;
+      &lt;Row gap={5} align=&quot;center&quot;&gt;&lt;Block w={5} h={5} radius=&quot;full&quot; bg={C.accent} /&gt;&lt;Text c={C.muted} size={10}&gt;{Math.round(zoom * 100)}%&lt;/Text&gt;&lt;/Row&gt;
+    &lt;/Block&gt;
+  &lt;/Block&gt;;
+}
+</code></pre></section><section id="file-2"><h2>dicom.ts</h2><pre><code>/** Minimal local decoder for uncompressed, monochrome, little-endian DICOM images. */
+export type DicomImage = {
+  width: number; height: number; frames: number; values: Float32Array;
+  window: number; level: number; inverted: boolean;
+  modality?: string; seriesDescription?: string; instanceNumber?: number;
+  seriesInstanceUid?: string; pixelSpacing?: string; sliceThickness?: string;
+};
+
+export function parseDicom(buffer: ArrayBuffer): DicomImage {
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+  const ascii = (start: number, length: number) =&gt; String.fromCharCode(...bytes.subarray(start, start + length)).replace(/\0/g, &#39;&#39;).trim();
+  let position = ascii(128, 4) === &#39;DICM&#39; ? 132 : 0;
+  let syntax = &#39;1.2.840.10008.1.2.1&#39;;
+  let explicit = true;
+  let width = 0, height = 0, bits = 0, representation = 0, samples = 1, frames = 1;
+  let slope = 1, intercept = 0, window = 0, level = 0, photo = &#39;MONOCHROME2&#39;;
+  let modality: string | undefined, seriesDescription: string | undefined;
+  let instanceNumber: number | undefined, seriesInstanceUid: string | undefined;
+  let pixelSpacing: string | undefined, sliceThickness: string | undefined;
+  let pixelOffset = -1, pixelLength = 0;
+  const longVR = new Set([&#39;OB&#39;, &#39;OD&#39;, &#39;OF&#39;, &#39;OL&#39;, &#39;OV&#39;, &#39;OW&#39;, &#39;SQ&#39;, &#39;UC&#39;, &#39;UN&#39;, &#39;UR&#39;, &#39;UT&#39;, &#39;UV&#39;, &#39;SV&#39;]);
+  const skipUndefined = (start: number, closingElement: number, depth = 0): number =&gt; {
+    if (depth &gt; 16) throw new Error(&#39;The DICOM sequence nesting is too deep.&#39;);
+    let cursor = start;
+    while (cursor + 8 &lt;= bytes.length) {
+      const group = view.getUint16(cursor, true), element = view.getUint16(cursor + 2, true);
+      if (group === 0xfffe) {
+        const length = view.getUint32(cursor + 4, true);
+        if (element === closingElement) return cursor + 8;
+        if (element === 0xe000) {
+          cursor = length === 0xffffffff ? skipUndefined(cursor + 8, 0xe00d, depth + 1) : cursor + 8 + length;
+          continue;
+        }
+        throw new Error(&#39;The DICOM sequence delimiters are invalid.&#39;);
+      }
+      const vr = explicit ? ascii(cursor + 4, 2) : &#39;&#39;;
+      const long = explicit &amp;&amp; longVR.has(vr);
+      const header = explicit ? long ? 12 : 8 : 8;
+      if (cursor + header &gt; bytes.length) break;
+      const length = explicit ? long ? view.getUint32(cursor + 8, true) : view.getUint16(cursor + 6, true) : view.getUint32(cursor + 4, true);
+      cursor = length === 0xffffffff ? skipUndefined(cursor + header, 0xe0dd, depth + 1) : cursor + header + length;
+    }
+    throw new Error(&#39;The DICOM sequence is incomplete.&#39;);
+  };
+  let steps = 0;
+  while (position + 8 &lt;= bytes.length &amp;&amp; steps++ &lt; 100000) {
+    const group = view.getUint16(position, true), element = view.getUint16(position + 2, true);
+    if (group !== 2) explicit = syntax !== &#39;1.2.840.10008.1.2&#39;;
+    const vr = explicit ? ascii(position + 4, 2) : &#39;&#39;;
+    const long = explicit &amp;&amp; longVR.has(vr);
+    const header = explicit ? long ? 12 : 8 : 8;
+    if (position + header &gt; bytes.length) break;
+    const length = explicit ? long ? view.getUint32(position + 8, true) : view.getUint16(position + 6, true) : view.getUint32(position + 4, true);
+    const start = position + header;
+    const tag = `${group.toString(16).padStart(4, &#39;0&#39;)}${element.toString(16).padStart(4, &#39;0&#39;)}`;
+    if (length === 0xffffffff) {
+      if (tag === &#39;7fe00010&#39;) throw new Error(&#39;Compressed or encapsulated pixel data is not supported.&#39;);
+      position = skipUndefined(start, 0xe0dd);
+      continue;
+    }
+    if (start + length &gt; bytes.length) throw new Error(&#39;The DICOM file is incomplete.&#39;);
+    const text = () =&gt; ascii(start, length);
+    const uint = () =&gt; length &gt;= 2 ? view.getUint16(start, true) : 0;
+    switch (tag) {
+      case &#39;00020010&#39;: syntax = text(); break;
+      case &#39;00080060&#39;: modality = text(); break;
+      case &#39;0008103e&#39;: seriesDescription = text(); break;
+      case &#39;00180050&#39;: sliceThickness = text(); break;
+      case &#39;0020000e&#39;: seriesInstanceUid = text(); break;
+      case &#39;00200013&#39;: instanceNumber = Number(text()) || undefined; break;
+      case &#39;00280002&#39;: samples = uint(); break;
+      case &#39;00280004&#39;: photo = text(); break;
+      case &#39;00280030&#39;: pixelSpacing = text(); break;
+      case &#39;00280008&#39;: frames = Math.max(1, Number(text()) || 1); break;
+      case &#39;00280010&#39;: height = uint(); break;
+      case &#39;00280011&#39;: width = uint(); break;
+      case &#39;00280100&#39;: bits = uint(); break;
+      case &#39;00280103&#39;: representation = uint(); break;
+      case &#39;00281052&#39;: intercept = Number(text()) || 0; break;
+      case &#39;00281053&#39;: slope = Number(text()) || 1; break;
+      case &#39;00281050&#39;: level = Number(text().split(&#39;\\&#39;)[0]) || 0; break;
+      case &#39;00281051&#39;: window = Number(text().split(&#39;\\&#39;)[0]) || 0; break;
+      case &#39;7fe00010&#39;: pixelOffset = start; pixelLength = length; break;
+    }
+    position = start + length;
+    if (pixelOffset &gt;= 0) break;
+  }
+  if (![&#39;1.2.840.10008.1.2&#39;, &#39;1.2.840.10008.1.2.1&#39;].includes(syntax)) throw new Error(&#39;Only uncompressed little-endian DICOM is supported.&#39;);
+  if (!width || !height || pixelOffset &lt; 0 || ![8, 16].includes(bits) || samples !== 1 || ![&#39;MONOCHROME1&#39;, &#39;MONOCHROME2&#39;].includes(photo))
+    throw new Error(&#39;This demo supports only 8- or 16-bit grayscale DICOM images.&#39;);
+  const count = width * height * frames;
+  if (count &gt; 40000000 || count * (bits / 8) &gt; pixelLength) throw new Error(&#39;The image dimensions or pixel data are invalid.&#39;);
+  const values = new Float32Array(count);
+  for (let i = 0; i &lt; count; i++) {
+    const offset = pixelOffset + i * (bits / 8);
+    const raw = bits === 8 ? representation ? view.getInt8(offset) : view.getUint8(offset)
+      : representation ? view.getInt16(offset, true) : view.getUint16(offset, true);
+    values[i] = raw * slope + intercept;
+  }
+  if (!window) {
+    let min = Infinity, max = -Infinity;
+    for (const value of values) { if (value &lt; min) min = value; if (value &gt; max) max = value; }
+    window = Math.max(1, max - min); level = (max + min) / 2;
+  }
+  return { width, height, frames, values, window, level, inverted: photo === &#39;MONOCHROME1&#39;,
+    modality, seriesDescription, instanceNumber, seriesInstanceUid, pixelSpacing, sliceThickness };
+}
+
+/** Quantize a frame into 64 SVG paths rather than thousands of individual rectangles. */
+export function imagePaths(image: DicomImage, frame: number, window: number, level: number, invert = false, side = 128): { color: string; path: string }[] {
+  const paths = Array.from({ length: 64 }, () =&gt; [] as string[]);
+  const offset = frame * image.width * image.height;
+  const low = level - Math.max(1, window) / 2;
+  for (let y = 0; y &lt; side; y++) for (let x = 0; x &lt; side; x++) {
+    const sourceX = Math.min(image.width - 1, Math.floor((x + .5) * image.width / side));
+    const sourceY = Math.min(image.height - 1, Math.floor((y + .5) * image.height / side));
+    const value = image.values[offset + sourceY * image.width + sourceX];
+    const normalized = Math.max(0, Math.min(1, (value - low) / Math.max(1, window)));
+    const shade = Math.round(((image.inverted !== invert) ? 1 - normalized : normalized) * 63);
+    paths[shade].push(`M${x} ${y}h1v1h-1z`);
+  }
+  return paths.map((parts, shade) =&gt; {
+    const grey = Math.round(shade * 255 / 63).toString(16).padStart(2, &#39;0&#39;);
+    return { color: `#${grey}${grey}${grey}`, path: parts.join(&#39;&#39;) };
+  }).filter(item =&gt; item.path.length &gt; 0);
+}
+
+export function imageCells(image: DicomImage, frame: number, window: number, level: number, side = 64): string[] {
+  const cells: string[] = [];
+  const offset = frame * image.width * image.height;
+  for (let y = 0; y &lt; side; y++) for (let x = 0; x &lt; side; x++) {
+    const sourceX = Math.min(image.width - 1, Math.floor((x + .5) * image.width / side));
+    const sourceY = Math.min(image.height - 1, Math.floor((y + .5) * image.height / side));
+    const value = image.values[offset + sourceY * image.width + sourceX];
+    const normalized = Math.max(0, Math.min(1, (value - (level - window / 2)) / window));
+    const grey = Math.round((image.inverted ? 1 - normalized : normalized) * 255);
+    cells.push(`#${grey.toString(16).padStart(2, &#39;0&#39;).repeat(3)}`);
+  }
+  return cells;
+}
+</code></pre></section><section id="file-3"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section><section id="file-4"><h2>study.ts</h2><pre><code>import type { DicomImage } from &#39;./dicom&#39;;
+
+export type Study = {
+  name: string;
+  images: DicomImage[];
+  frames: { image: DicomImage; frame: number }[];
+  isSample: boolean;
+};
+
+const SIZE = 160;
+const SLICES = 36;
+
+const ellipse = (x: number, y: number, cx: number, cy: number, rx: number, ry: number) =&gt;
+  ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2;
+
+const soft = (v: number, edge = 0.035) =&gt; Math.max(0, Math.min(1, (1 - v) / edge));
+
+/** A deterministic, purely synthetic chest CT-style volume for exploring controls. */
+export function createSampleStudy(): Study {
+  const values = new Float32Array(SIZE * SIZE * SLICES);
+  for (let z = 0; z &lt; SLICES; z++) {
+    const phase = (z - (SLICES - 1) / 2) / SLICES;
+    const bodyWidth = 0.8 - Math.abs(phase) * 0.17;
+    const lungSize = 1 - Math.abs(phase) * 0.35;
+    for (let py = 0; py &lt; SIZE; py++) for (let px = 0; px &lt; SIZE; px++) {
+      const x = (px + .5 - SIZE / 2) / (SIZE / 2);
+      const y = (py + .5 - SIZE / 2) / (SIZE / 2);
+      const grain = (Math.sin(px * 47.71 + py * 13.37 + z * 7.13) * Math.sin(py * 31.19 - px * 17.23)) * 13;
+      const body = ellipse(x, y, 0, .035, bodyWidth, .68);
+      let hu = -1000;
+      if (body &lt; 1) {
+        hu = 38 + grain;
+        if (body &gt; .88) hu = -95 + grain * 2; // subcutaneous rim
+        const leftLung = ellipse(x, y, -.32, -.05 + phase * .08, .235 * lungSize, .37 * lungSize);
+        const rightLung = ellipse(x, y, .32, -.05 + phase * .08, .235 * lungSize, .37 * lungSize);
+        if (leftLung &lt; 1 || rightLung &lt; 1) {
+          const parenchyma = Math.sin(px * .48 + z * .19) * Math.cos(py * .51 - z * .11) * 40;
+          hu = -780 + grain * 5 + parenchyma;
+          for (const side of [-1, 1]) {
+            const inside = side &lt; 0 ? leftLung &lt; 1 : rightLung &lt; 1;
+            if (!inside) continue;
+            const hilumX = side * (.17 + .07 * Math.cos(y * 3 + phase));
+            if (Math.abs(x - hilumX) &lt; .018 &amp;&amp; y &gt; -.23 &amp;&amp; y &lt; .2) hu = -140 + grain;
+            for (let branch = 0; branch &lt; 4; branch++) {
+              const originY = -.25 + branch * .135 + phase * .03;
+              const offsetY = y - originY;
+              const branchX = side * (.18 + (branch % 2 ? .32 : .43) * Math.abs(offsetY));
+              if (offsetY &gt; -.03 &amp;&amp; offsetY &lt; .22 &amp;&amp; Math.abs(x - branchX) &lt; .008 + offsetY * .014)
+                hu = -300 + grain * 2;
+            }
+          }
+        }
+        const heart = ellipse(x, y, .075 + phase * .11, .19, .21, .21);
+        if (heart &lt; 1) hu = 65 + grain;
+        const spine = ellipse(x, y, 0, .48, .105, .115);
+        if (spine &lt; 1) hu = 800 * soft(spine, .25) + 90;
+        const canal = ellipse(x, y, 0, .43, .037, .038);
+        if (canal &lt; 1) hu = 45;
+        const aorta = ellipse(x, y, -.105, .31 + phase * .04, .045, .05);
+        if (aorta &lt; 1) hu = 135;
+        for (const side of [-1, 1]) {
+          const ribBand = Math.abs(ellipse(x, y, side * .31, .02, .43, .52) - .96);
+          if (ribBand &lt; .045 &amp;&amp; body &lt; .88 &amp;&amp; ((Math.atan2(y, x * side) + 4) * 5 + z * .13) % 2.5 &lt; 1.65) hu = 650 + grain * 2;
+          const vessel = ellipse(x, y, side * (.30 + phase * .035), -.02, .013, .17);
+          if (vessel &lt; 1 &amp;&amp; (leftLung &lt; 1 || rightLung &lt; 1)) hu = -180;
+        }
+      }
+      values[z * SIZE * SIZE + py * SIZE + px] = hu;
+    }
+  }
+  const image: DicomImage = { width: SIZE, height: SIZE, frames: SLICES, values,
+    window: 400, level: 40, inverted: false, modality: &#39;CT&#39;,
+    seriesDescription: &#39;Synthetic chest · axial&#39;, pixelSpacing: &#39;0.80\\0.80&#39;, sliceThickness: &#39;2.5&#39; };
+  return { name: &#39;CHEST · SYNTHETIC STUDY&#39;, images: [image],
+    frames: Array.from({ length: SLICES }, (_, frame) =&gt; ({ image, frame })), isSample: true };
+}
+
+/** Order individual DICOM instances and flatten any multi-frame images into one stack. */
+export function createFileStudy(files: { name: string; image: DicomImage }[]): Study {
+  if (!files.length) throw new Error(&#39;Choose at least one DICOM file.&#39;);
+  const sorted = [...files].sort((a, b) =&gt;
+    (a.image.instanceNumber ?? Number.MAX_SAFE_INTEGER) - (b.image.instanceNumber ?? Number.MAX_SAFE_INTEGER)
+    || a.name.localeCompare(b.name, undefined, { numeric: true }));
+  const first = sorted[0].image;
+  if (sorted.some(({ image }) =&gt; image.width !== first.width || image.height !== first.height ||
+    (first.seriesInstanceUid &amp;&amp; image.seriesInstanceUid &amp;&amp; image.seriesInstanceUid !== first.seriesInstanceUid)))
+    throw new Error(&#39;Selected files must share the same image dimensions and DICOM series.&#39;);
+  return { name: files.length === 1 ? files[0].name : (first.seriesDescription || `${files.length} DICOM instances`),
+    images: sorted.map(item =&gt; item.image),
+    frames: sorted.flatMap(({ image }) =&gt; Array.from({ length: image.frames }, (_, frame) =&gt; ({ image, frame }))),
+    isSample: false };
+}
+</code></pre></section><section id="file-5"><h2>theme.ts</h2><pre><code>export const C = {
+  page: &#39;#09131B&#39;, panel: &#39;#10222D&#39;, panelRaised: &#39;#162C38&#39;, viewer: &#39;#02070B&#39;,
+  border: &#39;#26414D&#39;, ink: &#39;#ECF5F7&#39;, muted: &#39;#91AAB5&#39;, dim: &#39;#66838F&#39;,
+  accent: &#39;#6EE4DB&#39;, accentSoft: &#39;#183F43&#39;, warning: &#39;#EDBB77&#39;, error: &#39;#FFAA9F&#39;,
+} as const;
+
+export const VIEWER_THEME = {
+  colorScheme: &#39;dark&#39; as const,
+  primaryColor: C.accent,
+  backgrounds: { base: C.page, subtle: C.panel, surface: C.panel,
+    elevated: C.panelRaised, border: C.border, borderStrong: C.dim },
+};
+</code></pre></section></main></body></html>

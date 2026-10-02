@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Dating demo source | plocks</title><meta name="description" content="Browse the source code for the Dating demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/fish-dating/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>fish-dating source</h1><nav><a href="/demos/fish-dating/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useRef, useState } from &#39;react&#39;;
+import { Animated, PanResponder, StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import AsyncStorage from &#39;@react-native-async-storage/async-storage&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import {
+  MotionBlock,
+  Gradient,
+  Input,
+  ScrollArea,
+  SafeArea,
+  Block,
+  Button,
+  Dialog,
+  Icon,
+  IconButton,
+  PlocksProvider,
+  Tabs,
+  Text,
+} from &#39;@plocks/ui&#39;;
+
+const FISH = [
+  {
+    id: &#39;coral&#39;,
+    name: &#39;Coral&#39;,
+    age: 3,
+    emoji: &#39;🐠&#39;,
+    species: &#39;Clownfish&#39;,
+    distance: &#39;2 reefs away&#39;,
+    bio: &#39;Looking for someone to get lost in the anemones with.&#39;,
+    tags: [&#39;Ocean sunsets&#39;, &#39;Plankton brunch&#39;, &#39;Adventure&#39;],
+    colors: [&#39;#FFB369&#39;, &#39;#E86786&#39;] as const,
+    mutual: true,
+  },
+  {
+    id: &#39;bubbles&#39;,
+    name: &#39;Bubbles&#39;,
+    age: 2,
+    emoji: &#39;🐡&#39;,
+    species: &#39;Pufferfish&#39;,
+    distance: &#39;4 reefs away&#39;,
+    bio: &#39;A little shy until you get to know me. Then I really open up.&#39;,
+    tags: [&#39;Cozy caves&#39;, &#39;Sea grass&#39;, &#39;Deep talks&#39;],
+    colors: [&#39;#8BD5D9&#39;, &#39;#4A9EBC&#39;] as const,
+    mutual: true,
+  },
+  {
+    id: &#39;finley&#39;,
+    name: &#39;Finley&#39;,
+    age: 4,
+    emoji: &#39;🦈&#39;,
+    species: &#39;Reef shark&#39;,
+    distance: &#39;6 reefs away&#39;,
+    bio: &#39;Big fins, bigger heart. I promise I am more chill than I look.&#39;,
+    tags: [&#39;Long swims&#39;, &#39;Live music&#39;, &#39;Coral reefs&#39;],
+    colors: [&#39;#9EB7DF&#39;, &#39;#667CB4&#39;] as const,
+    mutual: false,
+  },
+  {
+    id: &#39;pearl&#39;,
+    name: &#39;Pearl&#39;,
+    age: 3,
+    emoji: &#39;🐟&#39;,
+    species: &#39;Angelfish&#39;,
+    distance: &#39;1 reef away&#39;,
+    bio: &#39;Taking the scenic route through every part of the sea.&#39;,
+    tags: [&#39;Art&#39;, &#39;Warm currents&#39;, &#39;Exploring&#39;],
+    colors: [&#39;#D6A9DD&#39;, &#39;#9960AC&#39;] as const,
+    mutual: true,
+  },
+  {
+    id: &#39;sushi&#39;,
+    name: &#39;Sushi&#39;,
+    age: 2,
+    emoji: &#39;🐬&#39;,
+    species: &#39;Dolphin&#39;,
+    distance: &#39;8 reefs away&#39;,
+    bio: &#39;Always up for a good splash and a terrible joke.&#39;,
+    tags: [&#39;Games&#39;, &#39;Waves&#39;, &#39;Making friends&#39;],
+    colors: [&#39;#8FC9EE&#39;, &#39;#4D9BCB&#39;] as const,
+    mutual: false,
+  },
+];
+type Fish = (typeof FISH)[number];
+type Tab = &#39;discover&#39; | &#39;matches&#39; | &#39;chats&#39;;
+type ChatMessages = Record&lt;string, { text: string; mine: boolean }[]&gt;;
+const C = {
+  sea: &#39;#073B4C&#39;,
+  teal: &#39;#0F8F92&#39;,
+  coral: &#39;#FF657D&#39;,
+  muted: &#39;#748491&#39;,
+  line: &#39;#E6EEF0&#39;,
+  white: &#39;#FFF&#39;,
+  bg: &#39;#F6FAFB&#39;,
+};
+const STORAGE = &#39;plocks-fish-dating:v1&#39;;
+
+function FishPortrait({ fish, small = false }: { fish: Fish; small?: boolean }) {
+  return (
+    &lt;Gradient
+      colors={[fish.colors[0], fish.colors[1]]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      w={small ? 58 : &#39;100%&#39;}
+      h={small ? 58 : &#39;100%&#39;}
+      radius={small ? 29 : 22}
+      align=&quot;center&quot;
+      justify=&quot;center&quot;
+      overflow=&quot;hidden&quot;
+    &gt;
+      &lt;Text size={small ? 31 : 140} lh={small ? 48 : 185}&gt;
+        {fish.emoji}
+      &lt;/Text&gt;
+      {!small &amp;&amp; (
+        &lt;Block gap={0} position=&quot;absolute&quot; top={18} left={18} bg=&quot;#FFFFFFDD&quot; radius={30} px={12} py={6}&gt;
+          &lt;Text c={C.sea} fw=&quot;bold&quot; size={11}&gt;
+            ✦ VERIFIED SEA LIFE
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+      )}
+    &lt;/Gradient&gt;
+  );
+}
+
+function FinsterScreen() {
+  const { width } = useWindowDimensions();
+  const [tab, setTab] = useState&lt;Tab&gt;(&#39;discover&#39;);
+  const [index, setIndex] = useState(0);
+  const [liked, setLiked] = useState&lt;string[]&gt;([]);
+  const [matches, setMatches] = useState&lt;string[]&gt;([]);
+  const [chats, setChats] = useState&lt;ChatMessages&gt;({});
+  const [activeChat, setActiveChat] = useState&lt;string | null&gt;(null);
+  const [draft, setDraft] = useState(&#39;&#39;);
+  const [matchPop, setMatchPop] = useState&lt;string | null&gt;(null);
+  const [ready, setReady] = useState(false);
+  const pan = useRef(new Animated.ValueXY()).current;
+  const current = FISH[index % FISH.length];
+  const active = FISH.find((fish) =&gt; fish.id === activeChat);
+  const wide = width &gt;= 780;
+
+  useEffect(() =&gt; {
+    AsyncStorage.getItem(STORAGE)
+      .then((raw) =&gt; {
+        if (!raw) return;
+        const data = JSON.parse(raw) as { index?: number; liked?: string[]; matches?: string[]; chats?: ChatMessages };
+        if (typeof data.index === &#39;number&#39;) setIndex(data.index);
+        if (Array.isArray(data.liked)) setLiked(data.liked);
+        if (Array.isArray(data.matches)) setMatches(data.matches);
+        if (data.chats &amp;&amp; typeof data.chats === &#39;object&#39;) setChats(data.chats);
+      })
+      .catch(() =&gt; {})
+      .finally(() =&gt; setReady(true));
+  }, []);
+  useEffect(() =&gt; {
+    if (ready) AsyncStorage.setItem(STORAGE, JSON.stringify({ index, liked, matches, chats })).catch(() =&gt; {});
+  }, [index, liked, matches, chats, ready]);
+
+  function choose(kind: &#39;pass&#39; | &#39;like&#39; | &#39;super&#39;) {
+    pan.setValue({ x: 0, y: 0 });
+    if (kind !== &#39;pass&#39;) {
+      setLiked((items) =&gt; (items.includes(current.id) ? items : [...items, current.id]));
+      if (current.mutual) {
+        setMatches((items) =&gt; (items.includes(current.id) ? items : [...items, current.id]));
+        setMatchPop(current.id);
+      }
+    }
+    setIndex((value) =&gt; value + 1);
+  }
+  function send() {
+    const value = draft.trim();
+    if (!activeChat || !value) return;
+    setChats((old) =&gt; ({ ...old, [activeChat]: [...(old[activeChat] ?? []), { text: value, mine: true }] }));
+    setDraft(&#39;&#39;);
+  }
+  function openChat(id: string) {
+    setActiveChat(id);
+    setTab(&#39;chats&#39;);
+    setMatchPop(null);
+  }
+  const swipe = PanResponder.create({
+    onStartShouldSetPanResponder: () =&gt; true,
+    onMoveShouldSetPanResponder: (_, gesture) =&gt; Math.abs(gesture.dx) &gt; 12,
+    onPanResponderMove: (_, gesture) =&gt; pan.setValue({ x: gesture.dx, y: gesture.dy }),
+    onPanResponderRelease: (_, gesture) =&gt; {
+      if (gesture.dx &gt; 90) choose(&#39;like&#39;);
+      else if (gesture.dx &lt; -90) choose(&#39;pass&#39;);
+      else Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
+    },
+  });
+
+  const nav = (
+    &lt;Tabs
+      navigationOnly
+      orientation={wide ? &#39;vertical&#39; : &#39;horizontal&#39;}
+      variant=&quot;chip&quot;
+      color={C.teal}
+      value={tab}
+      onChange={(item) =&gt; {
+        setTab(item as Tab);
+        setActiveChat(null);
+      }}
+      items={([&#39;discover&#39;, &#39;matches&#39;, &#39;chats&#39;] as const).map((item) =&gt; ({
+        key: item,
+        label: item[0].toUpperCase() + item.slice(1),
+        subLabel: item === &#39;matches&#39; &amp;&amp; matches.length ? String(matches.length) : undefined,
+        icon: (
+          &lt;Icon
+            name={item === &#39;discover&#39; ? &#39;heart&#39; : item === &#39;matches&#39; ? &#39;bolt&#39; : &#39;message&#39;}
+            color={tab === item ? C.white : C.muted}
+            size={wide ? 23 : 20}
+          /&gt;
+        ),
+        content: null,
+      }))}
+    /&gt;
+  );
+
+  return (
+    &lt;SafeArea gap={0} flex={1} bg={C.bg}&gt;
+      &lt;StatusBar barStyle=&quot;dark-content&quot; /&gt;
+      &lt;Block gap={0} flex={1} direction={wide ? &#39;row&#39; : &#39;column&#39;} maw={1200} alignSelf=&quot;center&quot; w=&quot;100%&quot;&gt;
+        {wide &amp;&amp; (
+          &lt;Block gap={0} w={240} p={18} borderRightWidth={1} borderRightColor={C.line} bg={C.white}&gt;
+            &lt;Text c={C.teal} fw=&quot;bold&quot; size={30} mb={30}&gt;
+              finster 🐠
+            &lt;/Text&gt;
+            {nav}
+            &lt;Block gap={0} flex={1} /&gt;
+            &lt;Text c={C.muted} size={12}&gt;
+              Good things are swimming your way.
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+        )}
+        &lt;Block gap={0} flex={1}&gt;
+          {!wide &amp;&amp; (
+            &lt;Block gap={0} h={60} direction=&quot;row&quot; justify=&quot;space-between&quot; align=&quot;center&quot; px={20}&gt;
+              &lt;Text c={C.teal} fw=&quot;bold&quot; size={27}&gt;
+                finster 🐠
+              &lt;/Text&gt;
+              &lt;Icon name=&quot;settings&quot; color={C.muted} size={23} /&gt;
+            &lt;/Block&gt;
+          )}
+          {tab === &#39;discover&#39; &amp;&amp; (
+            &lt;Block gap={0} flex={1} align=&quot;center&quot; px={18} pb={15}&gt;
+              &lt;MotionBlock
+                {...swipe.panHandlers}
+                accessibilityLabel={`${current.name} profile. Swipe right to like or left to pass.`}
+                w=&quot;full&quot;
+                maw={450}
+                flex={1}
+                bg={C.white}
+                radius={24}
+                overflow=&quot;hidden&quot;
+                shadow=&quot;lg&quot;
+                translateX={pan.x}
+                translateY={pan.y}
+                motionRotate={pan.x.interpolate({
+                  inputRange: [-250, 0, 250],
+                  outputRange: [&#39;-12deg&#39;, &#39;0deg&#39;, &#39;12deg&#39;],
+                })}
+              &gt;
+                &lt;Block gap={0} flex={1} mih={260}&gt;
+                  &lt;FishPortrait fish={current} /&gt;
+                &lt;/Block&gt;
+                &lt;Block p={20} gap={8}&gt;
+                  &lt;Block direction=&quot;row&quot; align=&quot;baseline&quot; gap={8}&gt;
+                    &lt;Text c={C.sea} fw=&quot;bold&quot; size={27}&gt;
+                      {current.name}, {current.age}
+                    &lt;/Text&gt;
+                    &lt;Text c={C.muted} size={13}&gt;
+                      {current.species}
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;Text c={C.muted} size={12}&gt;
+                    ⌖ {current.distance}
+                  &lt;/Text&gt;
+                  &lt;Text c={C.sea} size={14} lh={21}&gt;
+                    {current.bio}
+                  &lt;/Text&gt;
+                  &lt;Block direction=&quot;row&quot; wrap=&quot;wrap&quot; gap={7} mt={4}&gt;
+                    {current.tags.map((tag) =&gt; (
+                      &lt;Block gap={0} key={tag} radius={20} px={10} py={6} bg=&quot;#EAF6F5&quot;&gt;
+                        &lt;Text c={C.teal} fw=&quot;semibold&quot; size={11}&gt;
+                          {tag}
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                    ))}
+                  &lt;/Block&gt;
+                &lt;/Block&gt;
+              &lt;/MotionBlock&gt;
+              &lt;Block direction=&quot;row&quot; gap={23} pt={16}&gt;
+                {(
+                  [
+                    [&#39;x&#39;, &#39;pass&#39;, &#39;#8796A1&#39;, &#39;Pass&#39;],
+                    [&#39;bolt&#39;, &#39;super&#39;, &#39;#57A6D8&#39;, &#39;Super like&#39;],
+                    [&#39;heart&#39;, &#39;like&#39;, C.coral, &#39;Like&#39;],
+                  ] as const
+                ).map(([icon, kind, color, label]) =&gt; (
+                  &lt;Block
+                    gap={0}
+                    key={kind}
+                    onPress={() =&gt; choose(kind)}
+                    accessibilityRole=&quot;button&quot;
+                    accessibilityLabel={label}
+                    w={kind === &#39;like&#39; ? 66 : 58}
+                    h={kind === &#39;like&#39; ? 66 : 58}
+                    radius={36}
+                    bg={C.white}
+                    align=&quot;center&quot;
+                    justify=&quot;center&quot;
+                    alignSelf=&quot;center&quot;
+                    borderWidth={1}
+                    borderColor={C.line}
+                    shadow=&quot;sm&quot;
+                  &gt;
+                    &lt;Icon
+                      name={icon}
+                      variant={kind === &#39;pass&#39; ? &#39;outlined&#39; : &#39;filled&#39;}
+                      color={color}
+                      size={kind === &#39;like&#39; ? 30 : 27}
+                    /&gt;
+                  &lt;/Block&gt;
+                ))}
+              &lt;/Block&gt;
+            &lt;/Block&gt;
+          )}
+          {tab === &#39;matches&#39; &amp;&amp; (
+            &lt;ScrollArea contentProps={{ p: 22, gap: 16 }}&gt;
+              &lt;Text c={C.sea} fw=&quot;bold&quot; size={27}&gt;
+                Your matches
+              &lt;/Text&gt;
+              &lt;Text c={C.muted} size={14}&gt;
+                It&#39;s a whole ocean out there. Say hello!
+              &lt;/Text&gt;
+              {matches.length === 0 ? (
+                &lt;Block align=&quot;center&quot; p={60} gap={10}&gt;
+                  &lt;Text size={70}&gt;🐚&lt;/Text&gt;
+                  &lt;Text c={C.sea} fw=&quot;bold&quot; size={18}&gt;
+                    No matches yet
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} ta=&quot;center&quot;&gt;
+                    Keep exploring to find your perfect school.
+                  &lt;/Text&gt;
+                  &lt;Button title=&quot;Discover fish&quot; color={C.teal} onPress={() =&gt; setTab(&#39;discover&#39;)} /&gt;
+                &lt;/Block&gt;
+              ) : (
+                matches.map((id) =&gt; {
+                  const fish = FISH.find((item) =&gt; item.id === id)!;
+                  return (
+                    &lt;Block
+                      key={id}
+                      onPress={() =&gt; openChat(id)}
+                      direction=&quot;row&quot;
+                      align=&quot;center&quot;
+                      gap={14}
+                      p={14}
+                      radius={16}
+                      bg={C.white}
+                    &gt;
+                      &lt;FishPortrait fish={fish} small /&gt;
+                      &lt;Block gap={0} flex={1}&gt;
+                        &lt;Text c={C.sea} fw=&quot;bold&quot; size={17}&gt;
+                          {fish.name}
+                        &lt;/Text&gt;
+                        &lt;Text c={C.muted} size={12}&gt;
+                          {fish.species} · Tap to chat
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                      &lt;Icon name=&quot;message&quot; color={C.teal} size={20} /&gt;
+                    &lt;/Block&gt;
+                  );
+                })
+              )}
+            &lt;/ScrollArea&gt;
+          )}
+          {tab === &#39;chats&#39; &amp;&amp; (
+            &lt;Block gap={0} flex={1}&gt;
+              {active ? (
+                &lt;&gt;
+                  &lt;Block
+                    direction=&quot;row&quot;
+                    align=&quot;center&quot;
+                    gap={10}
+                    p={12}
+                    borderBottomWidth={1}
+                    borderBottomColor={C.line}
+                  &gt;
+                    &lt;IconButton
+                      icon=&quot;arrowLeft&quot;
+                      variant=&quot;ghost&quot;
+                      iconColor={C.sea}
+                      accessibilityLabel=&quot;Back to chats&quot;
+                      onPress={() =&gt; setActiveChat(null)}
+                    /&gt;
+                    &lt;FishPortrait fish={active} small /&gt;
+                    &lt;Text c={C.sea} fw=&quot;bold&quot; size={18}&gt;
+                      {active.name}
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;ScrollArea flex={1} contentProps={{ p: 18, gap: 12, justify: &#39;flex-end&#39;, grow: 1 }}&gt;
+                    &lt;Block gap={0} alignSelf=&quot;flex-start&quot; p={13} radius={16} bg={C.white} maw=&quot;82%&quot;&gt;
+                      &lt;Text c={C.sea} size={14}&gt;
+                        Hey! Glad we swam into each other. 🐠
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                    {(chats[active.id] ?? []).map((message, i) =&gt; (
+                      &lt;Block
+                        gap={0}
+                        key={i}
+                        alignSelf={message.mine ? &#39;flex-end&#39; : &#39;flex-start&#39;}
+                        p={13}
+                        radius={16}
+                        bg={message.mine ? &#39;#C9F0E9&#39; : C.white}
+                        maw=&quot;82%&quot;
+                      &gt;
+                        &lt;Text c={C.sea} size={14}&gt;
+                          {message.text}
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                    ))}
+                  &lt;/ScrollArea&gt;
+                  &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={10} p={12} bg={C.white}&gt;
+                    &lt;Input
+                      variant=&quot;filled&quot;
+                      value={draft}
+                      onChangeText={setDraft}
+                      onEnter={send}
+                      placeholder=&quot;Send a message&quot;
+                      mb={0}
+                      flex={1}
+                      radius={24}
+                      inputColor={C.sea}
+                    /&gt;
+                    &lt;IconButton
+                      icon=&quot;arrowRight&quot;
+                      variant=&quot;filled&quot;
+                      color={C.teal}
+                      radius=&quot;full&quot;
+                      accessibilityLabel=&quot;Send&quot;
+                      onPress={send}
+                      disabled={!draft.trim()}
+                    /&gt;
+                  &lt;/Block&gt;
+                &lt;/&gt;
+              ) : (
+                &lt;ScrollArea contentProps={{ p: 22, gap: 14 }}&gt;
+                  &lt;Text c={C.sea} fw=&quot;bold&quot; size={27}&gt;
+                    Messages
+                  &lt;/Text&gt;
+                  {matches.length === 0 &amp;&amp; &lt;Text c={C.muted}&gt;Messages with your matches will appear here.&lt;/Text&gt;}
+                  {matches.map((id) =&gt; {
+                    const fish = FISH.find((item) =&gt; item.id === id)!;
+                    return (
+                      &lt;Block
+                        key={id}
+                        onPress={() =&gt; openChat(id)}
+                        direction=&quot;row&quot;
+                        align=&quot;center&quot;
+                        gap={12}
+                        bg={C.white}
+                        radius={16}
+                        p={13}
+                      &gt;
+                        &lt;FishPortrait fish={fish} small /&gt;
+                        &lt;Block gap={0}&gt;
+                          &lt;Text c={C.sea} fw=&quot;bold&quot;&gt;
+                            {fish.name}
+                          &lt;/Text&gt;
+                          &lt;Text c={C.muted} size={12} numberOfLines={1}&gt;
+                            {chats[id]?.at(-1)?.text ?? &#39;Say hello 👋&#39;}
+                          &lt;/Text&gt;
+                        &lt;/Block&gt;
+                      &lt;/Block&gt;
+                    );
+                  })}
+                &lt;/ScrollArea&gt;
+              )}
+            &lt;/Block&gt;
+          )}
+          {!wide &amp;&amp; !active &amp;&amp; (
+            &lt;Block gap={0} bg={C.white} borderTopWidth={1} borderTopColor={C.line}&gt;
+              {nav}
+            &lt;/Block&gt;
+          )}
+        &lt;/Block&gt;
+      &lt;/Block&gt;
+      {matchPop &amp;&amp; (
+        &lt;Dialog opened accessibilityLabel=&quot;It&#39;s a match&quot; onClose={() =&gt; setMatchPop(null)}&gt;
+          &lt;Block gap={0} align=&quot;center&quot;&gt;
+            &lt;Text size={96}&gt;{FISH.find((fish) =&gt; fish.id === matchPop)?.emoji}&lt;/Text&gt;
+            &lt;Text c={C.sea} fw=&quot;bold&quot; size={38} ta=&quot;center&quot;&gt;
+              It&#39;s a match!
+            &lt;/Text&gt;
+            &lt;Text c={C.sea} size={16} ta=&quot;center&quot; my={15}&gt;
+              You and {FISH.find((fish) =&gt; fish.id === matchPop)?.name} both swam right.
+            &lt;/Text&gt;
+            &lt;Button title=&quot;Send a message&quot; color={C.coral} onPress={() =&gt; openChat(matchPop)} /&gt;
+            &lt;Block gap={0} onPress={() =&gt; setMatchPop(null)} p={18}&gt;
+              &lt;Text c={C.sea} fw=&quot;bold&quot;&gt;
+                Keep exploring
+              &lt;/Text&gt;
+            &lt;/Block&gt;
+          &lt;/Block&gt;
+        &lt;/Dialog&gt;
+      )}
+    &lt;/SafeArea&gt;
+  );
+}
+export default function App() {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;light&#39; }}&gt;
+        &lt;FinsterScreen /&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Music player demo source | plocks</title><meta name="description" content="Browse the source code for the Music player demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/music/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>music source</h1><nav><a href="/demos/music/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">catalog.ts</a><a href="#file-2">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useMemo, useState } from &#39;react&#39;;
+import { StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import AsyncStorage from &#39;@react-native-async-storage/async-storage&#39;;
+import { Carousel } from &#39;@plocks/carousel&#39;;
+import { useAudioPlaylist, useAudioPlaylistStatus } from &#39;expo-audio&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import {
+  ScrollArea,
+  SafeArea,
+  Block,
+  Button,
+  Card,
+  Column,
+  Flex,
+  Icon,
+  IconButton,
+  Input,
+  PlocksProvider,
+  Row,
+  Slider,
+  Text,
+  Title,
+} from &#39;@plocks/ui&#39;;
+
+import { COLLECTIONS, TRACKS, formatTime, type ArtworkStyle, type Collection, type Track } from &#39;./catalog&#39;;
+
+const COLORS = {
+  background: &#39;#000000&#39;,
+  sidebar: &#39;#000000&#39;,
+  surface: &#39;#181818&#39;,
+  surfaceHover: &#39;#282828&#39;,
+  line: &#39;#292929&#39;,
+  green: &#39;#1ED760&#39;,
+  white: &#39;#FFFFFF&#39;,
+  muted: &#39;#B3B3B3&#39;,
+};
+const THEME = { colorScheme: &#39;dark&#39; as const };
+const ALL_INDICES = TRACKS.map((_, index) =&gt; index);
+const SOURCES = TRACKS.map((track) =&gt; track.source);
+const LIKES_KEY = &#39;plocks-music-app:likes&#39;;
+
+type Section = &#39;home&#39; | &#39;search&#39; | &#39;library&#39;;
+
+function Artwork({ art, size, label }: { art: ArtworkStyle; size: number; label: string }) {
+  return (
+    &lt;Card
+      padding={0}
+      bg={art.background}
+      radius=&quot;md&quot;
+      accessibilityLabel={`${label} artwork`}
+      w={size}
+      h={size}
+      clip
+      shrink={0}
+    &gt;
+      &lt;Block
+        direction=&quot;row&quot;
+        position=&quot;absolute&quot;
+        w={size * 0.86}
+        h={size * 0.86}
+        radius={size}
+        bg={art.accent}
+        top={-size * 0.28}
+        right={-size * 0.24}
+        opacity={0.86}
+      /&gt;
+      &lt;Block
+        direction=&quot;row&quot;
+        position=&quot;absolute&quot;
+        w={size * 0.7}
+        h={size * 0.7}
+        radius={size}
+        borderWidth={Math.max(2, size * 0.025)}
+        borderColor={art.detail}
+        bottom={-size * 0.18}
+        left={-size * 0.14}
+        opacity={0.75}
+      /&gt;
+      &lt;Text
+        c={art.detail}
+        size={Math.max(24, size * 0.38)}
+        fw=&quot;bold&quot;
+        position=&quot;absolute&quot;
+        bottom={size * 0.1}
+        right={size * 0.13}
+        lh={size * 0.48}
+      &gt;
+        {art.glyph}
+      &lt;/Text&gt;
+    &lt;/Card&gt;
+  );
+}
+
+function NavItem({
+  icon,
+  label,
+  active,
+  onPress,
+  compact = false,
+}: {
+  icon: string;
+  label: string;
+  active: boolean;
+  onPress: () =&gt; void;
+  compact?: boolean;
+}) {
+  return (
+    &lt;Card
+      onPress={onPress}
+      accessibilityLabel={label}
+      padding={compact ? 6 : &#39;sm&#39;}
+      bg={active ? COLORS.surfaceHover : &#39;transparent&#39;}
+      radius=&quot;md&quot;
+      flex={compact ? 1 : undefined}
+    &gt;
+      &lt;Flex
+        direction={compact ? &#39;column&#39; : &#39;row&#39;}
+        align=&quot;center&quot;
+        justify={compact ? &#39;center&#39; : &#39;flex-start&#39;}
+        gap={compact ? 2 : &#39;sm&#39;}
+      &gt;
+        &lt;Icon name={icon} size={compact ? 22 : 20} color={active ? COLORS.green : COLORS.muted} /&gt;
+        &lt;Text c={active ? COLORS.white : COLORS.muted} fw={active ? &#39;bold&#39; : &#39;medium&#39;} size={compact ? 11 : 14}&gt;
+          {label}
+        &lt;/Text&gt;
+      &lt;/Flex&gt;
+    &lt;/Card&gt;
+  );
+}
+
+function TrackRow({
+  track,
+  index,
+  active,
+  liked,
+  onPlay,
+  onLike,
+}: {
+  track: Track;
+  index: number;
+  active: boolean;
+  liked: boolean;
+  onPlay: () =&gt; void;
+  onLike: () =&gt; void;
+}) {
+  return (
+    &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap=&quot;xs&quot; w=&quot;100%&quot;&gt;
+      &lt;Card
+        onPress={onPlay}
+        accessibilityLabel={`Play ${track.title} by ${track.artist}`}
+        padding=&quot;sm&quot;
+        bg={active ? COLORS.surfaceHover : &#39;transparent&#39;}
+        radius=&quot;md&quot;
+        flex={1}
+        miw={0}
+      &gt;
+        &lt;Block align=&quot;center&quot; gap=&quot;sm&quot; direction=&quot;row&quot; w=&quot;100%&quot;&gt;
+          &lt;Text c={active ? COLORS.green : COLORS.muted} size={13} ta=&quot;center&quot; w={18}&gt;
+            {active ? &#39;♪&#39; : String(index + 1)}
+          &lt;/Text&gt;
+          &lt;Artwork art={track.art} size={45} label={track.title} /&gt;
+          &lt;Block gap={0} direction=&quot;column&quot; flex={1} miw={0}&gt;
+            &lt;Text c={active ? COLORS.green : COLORS.white} fw=&quot;semibold&quot; size={14} numberOfLines={1}&gt;
+              {track.title}
+            &lt;/Text&gt;
+            &lt;Text c={COLORS.muted} size={12} numberOfLines={1}&gt;
+              {track.artist} · {track.album}
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+          &lt;Text c={COLORS.muted} size={12}&gt;
+            {formatTime(track.seconds)}
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+      &lt;/Card&gt;
+      &lt;IconButton
+        icon=&quot;heart&quot;
+        iconVariant={liked ? &#39;filled&#39; : &#39;outlined&#39;}
+        iconColor={liked ? COLORS.green : COLORS.muted}
+        variant=&quot;ghost&quot;
+        size=&quot;sm&quot;
+        accessibilityLabel={liked ? `Remove ${track.title} from liked songs` : `Like ${track.title}`}
+        onPress={onLike}
+      /&gt;
+    &lt;/Block&gt;
+  );
+}
+
+function CollectionTile({
+  collection,
+  onPress,
+  artSize,
+}: {
+  collection: Collection;
+  onPress: () =&gt; void;
+  artSize: number;
+}) {
+  return (
+    &lt;Block
+      gap={0}
+      onPress={onPress}
+      accessibilityRole=&quot;button&quot;
+      accessibilityLabel={`Open ${collection.title} playlist`}
+      w={artSize}
+    &gt;
+      &lt;Column gap=&quot;xs&quot;&gt;
+        &lt;Artwork art={collection.art} size={artSize} label={collection.title} /&gt;
+        &lt;Column gap={2}&gt;
+          &lt;Text c={COLORS.white} fw=&quot;bold&quot; size={15} numberOfLines={1}&gt;
+            {collection.title}
+          &lt;/Text&gt;
+          &lt;Text c={COLORS.muted} size={12} numberOfLines={2}&gt;
+            {collection.subtitle}
+          &lt;/Text&gt;
+        &lt;/Column&gt;
+      &lt;/Column&gt;
+    &lt;/Block&gt;
+  );
+}
+
+function MusicScreen() {
+  const { width } = useWindowDimensions();
+  const desktop = width &gt;= 800;
+  const compact = width &lt; 560;
+  const carouselItemsPerPage = width &gt;= 1080 ? 4 : compact ? 2 : 3;
+  const contentWidth = desktop ? Math.min(width - 235 - 68, 1040) : width - (compact ? 36 : 68);
+  const carouselArtSize = Math.min(
+    220,
+    Math.floor((contentWidth - 16 * (carouselItemsPerPage - 1)) / carouselItemsPerPage),
+  );
+  const playlist = useAudioPlaylist({ sources: SOURCES, updateInterval: 350, loop: &#39;all&#39; });
+  const status = useAudioPlaylistStatus(playlist);
+  const [queue, setQueue] = useState&lt;number[]&gt;(ALL_INDICES);
+  const [section, setSection] = useState&lt;Section&gt;(&#39;home&#39;);
+  const [collectionId, setCollectionId] = useState&lt;string | null&gt;(null);
+  const [query, setQuery] = useState(&#39;&#39;);
+  const [liked, setLiked] = useState&lt;Set&lt;string&gt;&gt;(() =&gt; new Set([&#39;golden-hour&#39;, &#39;blue-apartment&#39;]));
+  const [likesReady, setLikesReady] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [seekPreview, setSeekPreview] = useState&lt;number | null&gt;(null);
+
+  useEffect(() =&gt; {
+    AsyncStorage.getItem(LIKES_KEY)
+      .then((saved) =&gt; {
+        if (saved) {
+          const ids: unknown = JSON.parse(saved);
+          if (Array.isArray(ids)) setLiked(new Set(ids.filter((id): id is string =&gt; typeof id === &#39;string&#39;)));
+        }
+      })
+      .catch(() =&gt; {})
+      .finally(() =&gt; setLikesReady(true));
+  }, []);
+  useEffect(() =&gt; {
+    if (likesReady) AsyncStorage.setItem(LIKES_KEY, JSON.stringify([...liked])).catch(() =&gt; {});
+  }, [liked, likesReady]);
+
+  const activeIndex = queue[status.currentIndex] ?? 0;
+  const activeTrack = TRACKS[activeIndex];
+  const collection = COLLECTIONS.find((item) =&gt; item.id === collectionId) ?? null;
+  const duration = status.duration &gt; 0 ? status.duration : activeTrack.seconds;
+  const currentTime = Math.min(status.currentTime, duration);
+  const progress = Math.max(0, Math.min(100, (currentTime / Math.max(duration, 1)) * 100));
+
+  const searchResults = useMemo(() =&gt; {
+    const term = query.trim().toLowerCase();
+    return term
+      ? TRACKS.filter((track) =&gt;
+          [track.title, track.artist, track.album, track.genre].some((value) =&gt; value.toLowerCase().includes(term)),
+        )
+      : TRACKS;
+  }, [query]);
+
+  function selectSection(next: Section) {
+    setSection(next);
+    setCollectionId(null);
+    setExpanded(false);
+  }
+
+  function playTrack(index: number, context: number[] = ALL_INDICES) {
+    const sameQueue = context.length === queue.length &amp;&amp; context.every((item, position) =&gt; item === queue[position]);
+    if (!sameQueue) {
+      playlist.clear();
+      context.forEach((item) =&gt; playlist.add(TRACKS[item].source));
+      setQueue(context);
+    }
+    const nextIndex = context.indexOf(index);
+    if (nextIndex &gt;= 0) {
+      if (sameQueue &amp;&amp; nextIndex === status.currentIndex) void playlist.seekTo(0);
+      else playlist.skipTo(nextIndex);
+      playlist.play();
+      setSeekPreview(null);
+    }
+  }
+
+  function togglePlay() {
+    if (status.playing) playlist.pause();
+    else playlist.play();
+  }
+
+  function nextTrack() {
+    playlist.next();
+    playlist.play();
+    setSeekPreview(null);
+  }
+
+  function previousTrack() {
+    if (status.currentTime &gt; 3) void playlist.seekTo(0);
+    else playlist.previous();
+    playlist.play();
+    setSeekPreview(null);
+  }
+
+  function toggleLike(id: string) {
+    setLiked((current) =&gt; {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function renderTracks(tracks: Track[], context: number[] = ALL_INDICES) {
+    return tracks.map((track, index) =&gt; {
+      const globalIndex = TRACKS.findIndex((item) =&gt; item.id === track.id);
+      return (
+        &lt;TrackRow
+          key={track.id}
+          track={track}
+          index={index}
+          active={activeIndex === globalIndex &amp;&amp; status.playing}
+          liked={liked.has(track.id)}
+          onPlay={() =&gt; playTrack(globalIndex, context)}
+          onLike={() =&gt; toggleLike(track.id)}
+        /&gt;
+      );
+    });
+  }
+
+  function renderContent() {
+    if (collection) {
+      const tracks = collection.trackIds.map((id) =&gt; TRACKS.find((track) =&gt; track.id === id)!);
+      const indices = tracks.map((track) =&gt; TRACKS.indexOf(track));
+      return (
+        &lt;Column gap=&quot;xl&quot;&gt;
+          &lt;Button
+            title=&quot;←  Back&quot;
+            variant=&quot;ghost&quot;
+            color={COLORS.muted}
+            size=&quot;sm&quot;
+            onPress={() =&gt; setCollectionId(null)}
+          /&gt;
+          &lt;Flex direction=&quot;row&quot; wrap=&quot;wrap&quot; align=&quot;flex-end&quot; gap=&quot;xl&quot;&gt;
+            &lt;Artwork art={collection.art} size={compact ? 180 : 222} label={collection.title} /&gt;
+            &lt;Block gap=&quot;sm&quot; direction=&quot;column&quot; flex={1} miw={220}&gt;
+              &lt;Text c={COLORS.green} fw=&quot;bold&quot; size={11} lts={2}&gt;
+                FREQUENCY PLAYLIST
+              &lt;/Text&gt;
+              &lt;Title order={1} c={COLORS.white} size={compact ? 34 : 54}&gt;
+                {collection.title}
+              &lt;/Title&gt;
+              &lt;Text c={COLORS.muted}&gt;{collection.description}&lt;/Text&gt;
+              &lt;Text c={COLORS.muted} size={12}&gt;
+                {tracks.length} songs · original demo loops
+              &lt;/Text&gt;
+              &lt;Button
+                title=&quot;Play playlist&quot;
+                variant=&quot;filled&quot;
+                color={COLORS.green}
+                textColor={COLORS.background}
+                onPress={() =&gt; playTrack(indices[0], indices)}
+              /&gt;
+            &lt;/Block&gt;
+          &lt;/Flex&gt;
+          &lt;Column gap=&quot;xs&quot;&gt;{renderTracks(tracks, indices)}&lt;/Column&gt;
+        &lt;/Column&gt;
+      );
+    }
+
+    if (section === &#39;search&#39;) {
+      return (
+        &lt;Column gap=&quot;xl&quot;&gt;
+          &lt;Column gap=&quot;xs&quot;&gt;
+            &lt;Text c={COLORS.green} fw=&quot;bold&quot; size={11} lts={2}&gt;
+              EXPLORE
+            &lt;/Text&gt;
+            &lt;Title order={1} c={COLORS.white}&gt;
+              Search
+            &lt;/Title&gt;
+            &lt;Text c={COLORS.muted}&gt;Find a song, artist, album, or mood.&lt;/Text&gt;
+          &lt;/Column&gt;
+          &lt;Input
+            value={query}
+            onChangeText={setQuery}
+            placeholder=&quot;What do you want to hear?&quot;
+            startSection={&lt;Icon name=&quot;search&quot; size={18} color={COLORS.muted} /&gt;}
+            variant=&quot;filled&quot;
+            accessibilityLabel=&quot;Search songs and artists&quot;
+          /&gt;
+          {!query.trim() &amp;&amp; (
+            &lt;Column gap=&quot;md&quot;&gt;
+              &lt;Text c={COLORS.white} fw=&quot;bold&quot; size={19}&gt;
+                Browse moods
+              &lt;/Text&gt;
+              &lt;Flex direction=&quot;row&quot; wrap=&quot;wrap&quot; gap=&quot;md&quot;&gt;
+                {COLLECTIONS.map((item) =&gt; (
+                  &lt;CollectionTile
+                    key={item.id}
+                    collection={item}
+                    artSize={carouselArtSize}
+                    onPress={() =&gt; setCollectionId(item.id)}
+                  /&gt;
+                ))}
+              &lt;/Flex&gt;
+            &lt;/Column&gt;
+          )}
+          &lt;Column gap=&quot;sm&quot;&gt;
+            &lt;Text c={COLORS.white} fw=&quot;bold&quot; size={19}&gt;
+              {query.trim() ? &#39;Results&#39; : &#39;All songs&#39;}
+            &lt;/Text&gt;
+            {searchResults.length ? (
+              renderTracks(searchResults)
+            ) : (
+              &lt;Card bg={COLORS.surface} padding=&quot;xl&quot;&gt;
+                &lt;Text c={COLORS.muted}&gt;No matches yet. Try another title or mood.&lt;/Text&gt;
+              &lt;/Card&gt;
+            )}
+          &lt;/Column&gt;
+        &lt;/Column&gt;
+      );
+    }
+
+    if (section === &#39;library&#39;) {
+      const tracks = TRACKS.filter((track) =&gt; liked.has(track.id));
+      const indices = tracks.map((track) =&gt; TRACKS.indexOf(track));
+      return (
+        &lt;Column gap=&quot;xl&quot;&gt;
+          &lt;Column gap=&quot;xs&quot;&gt;
+            &lt;Text c={COLORS.green} fw=&quot;bold&quot; size={11} lts={2}&gt;
+              YOUR COLLECTION
+            &lt;/Text&gt;
+            &lt;Title order={1} c={COLORS.white}&gt;
+              Your Library
+            &lt;/Title&gt;
+            &lt;Text c={COLORS.muted}&gt;The tracks you want to keep close.&lt;/Text&gt;
+          &lt;/Column&gt;
+          &lt;Card bg={COLORS.surfaceHover} padding=&quot;lg&quot; radius=&quot;lg&quot;&gt;
+            &lt;Row align=&quot;center&quot; gap=&quot;lg&quot;&gt;
+              &lt;Artwork
+                art={{ background: &#39;#7767AB&#39;, accent: &#39;#C5B9F4&#39;, detail: &#39;#343057&#39;, glyph: &#39;♥&#39; }}
+                size={compact ? 78 : 110}
+                label=&quot;Liked Songs&quot;
+              /&gt;
+              &lt;Block gap=&quot;xs&quot; direction=&quot;column&quot; flex={1}&gt;
+                &lt;Text c={COLORS.white} fw=&quot;bold&quot; size={compact ? 19 : 26}&gt;
+                  Liked Songs
+                &lt;/Text&gt;
+                &lt;Text c={COLORS.muted} size={13}&gt;
+                  {tracks.length} saved {tracks.length === 1 ? &#39;track&#39; : &#39;tracks&#39;}
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+              {tracks.length &gt; 0 &amp;&amp; (
+                &lt;IconButton
+                  icon=&quot;play&quot;
+                  iconVariant=&quot;filled&quot;
+                  variant=&quot;filled&quot;
+                  color={COLORS.green}
+                  radius=&quot;full&quot;
+                  accessibilityLabel=&quot;Play liked songs&quot;
+                  onPress={() =&gt; playTrack(indices[0], indices)}
+                /&gt;
+              )}
+            &lt;/Row&gt;
+          &lt;/Card&gt;
+          {tracks.length ? (
+            &lt;Column gap=&quot;xs&quot;&gt;{renderTracks(tracks, indices)}&lt;/Column&gt;
+          ) : (
+            &lt;Card bg={COLORS.surface} padding=&quot;xl&quot;&gt;
+              &lt;Column gap=&quot;sm&quot;&gt;
+                &lt;Text c={COLORS.white} fw=&quot;bold&quot;&gt;
+                  Start your collection
+                &lt;/Text&gt;
+                &lt;Text c={COLORS.muted}&gt;Tap a heart beside any song to save it here.&lt;/Text&gt;
+                &lt;Button
+                  title=&quot;Explore music&quot;
+                  variant=&quot;outline&quot;
+                  color={COLORS.green}
+                  onPress={() =&gt; selectSection(&#39;search&#39;)}
+                /&gt;
+              &lt;/Column&gt;
+            &lt;/Card&gt;
+          )}
+        &lt;/Column&gt;
+      );
+    }
+
+    const featured = COLLECTIONS[0];
+    return (
+      &lt;Column gap=&quot;xl&quot;&gt;
+        &lt;Column gap=&quot;xs&quot;&gt;
+          &lt;Text c={COLORS.green} fw=&quot;bold&quot; size={11} lts={2}&gt;
+            GOOD TO HAVE YOU HERE
+          &lt;/Text&gt;
+          &lt;Title order={1} c={COLORS.white} size={compact ? 32 : 43}&gt;
+            Find your frequency.
+          &lt;/Title&gt;
+          &lt;Text c={COLORS.muted}&gt;A little music for wherever you are.&lt;/Text&gt;
+        &lt;/Column&gt;
+        &lt;Card bg={COLORS.surface} padding={compact ? &#39;md&#39; : &#39;xl&#39;} radius=&quot;xl&quot; clip&gt;
+          &lt;Flex direction=&quot;row&quot; wrap=&quot;wrap&quot; align=&quot;center&quot; justify=&quot;space-between&quot; gap=&quot;lg&quot;&gt;
+            &lt;Block gap=&quot;md&quot; direction=&quot;column&quot; flex={1} miw={210}&gt;
+              &lt;Text c={COLORS.green} fw=&quot;bold&quot; size={11} lts={2}&gt;
+                FEATURED PLAYLIST
+              &lt;/Text&gt;
+              &lt;Title order={2} c={COLORS.white} size={compact ? 28 : 38}&gt;
+                Slow Mornings
+              &lt;/Title&gt;
+              &lt;Text c={COLORS.muted} size={14}&gt;
+                Warm chords, open windows, and nowhere else to be.
+              &lt;/Text&gt;
+              &lt;Flex direction=&quot;row&quot; wrap=&quot;wrap&quot; gap=&quot;sm&quot;&gt;
+                &lt;Button
+                  title=&quot;Play now&quot;
+                  variant=&quot;filled&quot;
+                  color={COLORS.green}
+                  textColor={COLORS.background}
+                  onPress={() =&gt;
+                    playTrack(
+                      0,
+                      featured.trackIds.map((id) =&gt; TRACKS.findIndex((track) =&gt; track.id === id)),
+                    )
+                  }
+                /&gt;
+                &lt;Button
+                  title=&quot;View playlist&quot;
+                  variant=&quot;outline&quot;
+                  color={COLORS.green}
+                  onPress={() =&gt; setCollectionId(featured.id)}
+                /&gt;
+              &lt;/Flex&gt;
+            &lt;/Block&gt;
+            &lt;Artwork art={featured.art} size={compact ? 130 : 226} label={featured.title} /&gt;
+          &lt;/Flex&gt;
+        &lt;/Card&gt;
+        &lt;Column gap=&quot;md&quot;&gt;
+          &lt;Text c={COLORS.white} fw=&quot;bold&quot; size={20}&gt;
+            Made for this moment
+          &lt;/Text&gt;
+          &lt;Carousel
+            h={carouselArtSize + 72}
+            itemsPerPage={carouselItemsPerPage}
+            slidesToScroll={1}
+            slideGap={16}
+            loop={false}
+            showArrows={!compact}
+            showDots={compact}
+            accessibilityLabel=&quot;Made for this moment playlists&quot;
+          &gt;
+            {COLLECTIONS.map((item) =&gt; (
+              &lt;CollectionTile
+                key={item.id}
+                collection={item}
+                artSize={carouselArtSize}
+                onPress={() =&gt; setCollectionId(item.id)}
+              /&gt;
+            ))}
+          &lt;/Carousel&gt;
+        &lt;/Column&gt;
+        &lt;Column gap=&quot;sm&quot;&gt;
+          &lt;Text c={COLORS.white} fw=&quot;bold&quot; size={20}&gt;
+            Fresh on rotation
+          &lt;/Text&gt;
+          {renderTracks(TRACKS)}
+        &lt;/Column&gt;
+      &lt;/Column&gt;
+    );
+  }
+
+  if (expanded) {
+    const artSize = Math.min(width - 80, 360);
+    return (
+      &lt;SafeArea gap={0} flex={1} bg={COLORS.background}&gt;
+        &lt;StatusBar barStyle=&quot;light-content&quot; /&gt;
+        &lt;ScrollArea contentProps={{ align: &#39;center&#39;, p: 24, pb: 54 }}&gt;
+          &lt;Block gap=&quot;xl&quot; direction=&quot;column&quot; w=&quot;100%&quot; maw={480}&gt;
+            &lt;Row align=&quot;center&quot; justify=&quot;space-between&quot;&gt;
+              &lt;IconButton
+                icon=&quot;chevron-down&quot;
+                variant=&quot;ghost&quot;
+                iconColor={COLORS.white}
+                accessibilityLabel=&quot;Close now playing&quot;
+                onPress={() =&gt; setExpanded(false)}
+              /&gt;
+              &lt;Text c={COLORS.white} fw=&quot;bold&quot; size={12} lts={2}&gt;
+                NOW PLAYING
+              &lt;/Text&gt;
+              &lt;Block direction=&quot;row&quot; w={40} /&gt;
+            &lt;/Row&gt;
+            &lt;Flex justify=&quot;center&quot;&gt;
+              &lt;Artwork art={activeTrack.art} size={artSize} label={activeTrack.title} /&gt;
+            &lt;/Flex&gt;
+            &lt;Row align=&quot;center&quot; justify=&quot;space-between&quot; gap=&quot;sm&quot;&gt;
+              &lt;Block gap={2} direction=&quot;column&quot; flex={1}&gt;
+                &lt;Text c={COLORS.white} fw=&quot;bold&quot; size={28} numberOfLines={1}&gt;
+                  {activeTrack.title}
+                &lt;/Text&gt;
+                &lt;Text c={COLORS.muted} size={16}&gt;
+                  {activeTrack.artist}
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+              &lt;IconButton
+                icon=&quot;heart&quot;
+                iconVariant={liked.has(activeTrack.id) ? &#39;filled&#39; : &#39;outlined&#39;}
+                iconColor={liked.has(activeTrack.id) ? COLORS.green : COLORS.white}
+                variant=&quot;ghost&quot;
+                accessibilityLabel={liked.has(activeTrack.id) ? &#39;Unlike current song&#39; : &#39;Like current song&#39;}
+                onPress={() =&gt; toggleLike(activeTrack.id)}
+              /&gt;
+            &lt;/Row&gt;
+            &lt;Column gap=&quot;xs&quot;&gt;
+              &lt;Slider
+                min={0}
+                max={duration}
+                step={0.1}
+                value={seekPreview ?? currentTime}
+                onChange={setSeekPreview}
+                onChangeEnd={(value) =&gt; {
+                  void playlist.seekTo(value);
+                  setSeekPreview(null);
+                }}
+                color={COLORS.green}
+                tooltip=&quot;never&quot;
+                valueLabel={null}
+                accessibilityLabel=&quot;Playback position&quot;
+              /&gt;
+              &lt;Row fullWidth justify=&quot;space-between&quot;&gt;
+                &lt;Text c={COLORS.white} size={12}&gt;
+                  {formatTime(seekPreview ?? currentTime)}
+                &lt;/Text&gt;
+                &lt;Text c={COLORS.white} size={12}&gt;
+                  {formatTime(duration)}
+                &lt;/Text&gt;
+              &lt;/Row&gt;
+            &lt;/Column&gt;
+            &lt;Row fullWidth align=&quot;center&quot; justify=&quot;center&quot; gap=&quot;xl&quot;&gt;
+              &lt;IconButton
+                icon=&quot;chevron-left&quot;
+                iconColor={COLORS.white}
+                variant=&quot;ghost&quot;
+                size=&quot;lg&quot;
+                accessibilityLabel=&quot;Previous track&quot;
+                onPress={previousTrack}
+              /&gt;
+              &lt;IconButton
+                icon={status.playing ? &#39;pause&#39; : &#39;play&#39;}
+                iconVariant=&quot;filled&quot;
+                variant=&quot;filled&quot;
+                color={COLORS.green}
+                radius=&quot;full&quot;
+                size={72}
+                iconSize={34}
+                accessibilityLabel={status.playing ? &#39;Pause&#39; : &#39;Play&#39;}
+                onPress={togglePlay}
+              /&gt;
+              &lt;IconButton
+                icon=&quot;chevron-right&quot;
+                iconColor={COLORS.white}
+                variant=&quot;ghost&quot;
+                size=&quot;lg&quot;
+                accessibilityLabel=&quot;Next track&quot;
+                onPress={nextTrack}
+              /&gt;
+            &lt;/Row&gt;
+          &lt;/Block&gt;
+        &lt;/ScrollArea&gt;
+      &lt;/SafeArea&gt;
+    );
+  }
+
+  return (
+    &lt;SafeArea gap={0} flex={1} bg={COLORS.background}&gt;
+      &lt;StatusBar barStyle=&quot;light-content&quot; /&gt;
+      &lt;Block direction=&quot;row&quot; flex={1} mih={0}&gt;
+        {desktop &amp;&amp; (
+          &lt;Block
+            gap=&quot;xl&quot;
+            direction=&quot;column&quot;
+            w={235}
+            p={18}
+            bg={COLORS.sidebar}
+            borderRightWidth={1}
+            borderRightColor={COLORS.line}
+          &gt;
+            &lt;Row align=&quot;center&quot; gap=&quot;sm&quot;&gt;
+              &lt;Card bg={COLORS.green} padding={6} radius=&quot;md&quot;&gt;
+                &lt;Icon name=&quot;music&quot; size={21} color={COLORS.background} /&gt;
+              &lt;/Card&gt;
+              &lt;Text c={COLORS.white} fw=&quot;bold&quot; size={22}&gt;
+                frequency
+              &lt;/Text&gt;
+            &lt;/Row&gt;
+            &lt;Column gap=&quot;xs&quot;&gt;
+              &lt;NavItem icon=&quot;home&quot; label=&quot;Home&quot; active={section === &#39;home&#39;} onPress={() =&gt; selectSection(&#39;home&#39;)} /&gt;
+              &lt;NavItem
+                icon=&quot;search&quot;
+                label=&quot;Search&quot;
+                active={section === &#39;search&#39;}
+                onPress={() =&gt; selectSection(&#39;search&#39;)}
+              /&gt;
+              &lt;NavItem
+                icon=&quot;music&quot;
+                label=&quot;Your Library&quot;
+                active={section === &#39;library&#39;}
+                onPress={() =&gt; selectSection(&#39;library&#39;)}
+              /&gt;
+            &lt;/Column&gt;
+            &lt;Card bg={COLORS.surface} padding=&quot;md&quot; radius=&quot;lg&quot;&gt;
+              &lt;Column gap=&quot;sm&quot;&gt;
+                &lt;Text c={COLORS.white} fw=&quot;bold&quot; size={14}&gt;
+                  Made for listening
+                &lt;/Text&gt;
+                &lt;Text c={COLORS.muted} size={12}&gt;
+                  Six original little loops, ready whenever you are.
+                &lt;/Text&gt;
+                &lt;Text c={COLORS.green} size={12}&gt;
+                  NO ACCOUNT NEEDED ↗
+                &lt;/Text&gt;
+              &lt;/Column&gt;
+            &lt;/Card&gt;
+          &lt;/Block&gt;
+        )}
+        &lt;ScrollArea flex={1} contentProps={{ p: compact ? 18 : 34, pb: 44, align: &#39;center&#39; }}&gt;
+          &lt;Block gap=&quot;xl&quot; direction=&quot;column&quot; w=&quot;100%&quot; maw={1040}&gt;
+            {!desktop &amp;&amp; (
+              &lt;Row align=&quot;center&quot; gap=&quot;sm&quot;&gt;
+                &lt;Card bg={COLORS.green} padding={5} radius=&quot;md&quot;&gt;
+                  &lt;Icon name=&quot;music&quot; size={18} color={COLORS.background} /&gt;
+                &lt;/Card&gt;
+                &lt;Text c={COLORS.white} fw=&quot;bold&quot; size={19}&gt;
+                  frequency
+                &lt;/Text&gt;
+              &lt;/Row&gt;
+            )}
+            {renderContent()}
+          &lt;/Block&gt;
+        &lt;/ScrollArea&gt;
+      &lt;/Block&gt;
+
+      &lt;Card
+        bg={COLORS.surface}
+        padding={compact ? &#39;sm&#39; : &#39;md&#39;}
+        radius=&quot;sm&quot;
+        borderTopWidth={1}
+        borderTopColor={COLORS.line}
+        w=&quot;100%&quot;
+      &gt;
+        &lt;Column gap=&quot;xs&quot;&gt;
+          &lt;Block align=&quot;center&quot; gap=&quot;md&quot; direction=&quot;row&quot; w=&quot;100%&quot;&gt;
+            &lt;Block
+              gap={0}
+              onPress={() =&gt; setExpanded(true)}
+              flex={1}
+              miw={0}
+              accessibilityRole=&quot;button&quot;
+              accessibilityLabel={`Open now playing: ${activeTrack.title} by ${activeTrack.artist}`}
+            &gt;
+              &lt;Row align=&quot;center&quot; gap=&quot;sm&quot;&gt;
+                &lt;Artwork art={activeTrack.art} size={compact ? 43 : 52} label={activeTrack.title} /&gt;
+                &lt;Block gap={0} direction=&quot;column&quot; flex={1} miw={0}&gt;
+                  &lt;Text c={COLORS.white} fw=&quot;bold&quot; size={13} numberOfLines={1}&gt;
+                    {activeTrack.title}
+                  &lt;/Text&gt;
+                  &lt;Text c={COLORS.muted} size={11} numberOfLines={1}&gt;
+                    {activeTrack.artist}
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+              &lt;/Row&gt;
+            &lt;/Block&gt;
+            {!compact &amp;&amp; (
+              &lt;IconButton
+                icon=&quot;chevron-left&quot;
+                variant=&quot;ghost&quot;
+                iconColor={COLORS.white}
+                accessibilityLabel=&quot;Previous track&quot;
+                onPress={previousTrack}
+              /&gt;
+            )}
+            &lt;IconButton
+              icon={status.playing ? &#39;pause&#39; : &#39;play&#39;}
+              iconVariant=&quot;filled&quot;
+              variant=&quot;filled&quot;
+              color={COLORS.green}
+              radius=&quot;full&quot;
+              accessibilityLabel={status.playing ? &#39;Pause&#39; : &#39;Play&#39;}
+              onPress={togglePlay}
+            /&gt;
+            &lt;IconButton
+              icon=&quot;chevron-right&quot;
+              variant=&quot;ghost&quot;
+              iconColor={COLORS.white}
+              accessibilityLabel=&quot;Next track&quot;
+              onPress={nextTrack}
+            /&gt;
+            {!compact &amp;&amp; (
+              &lt;Text c={COLORS.muted} size={12}&gt;
+                {formatTime(currentTime)} / {formatTime(duration)}
+              &lt;/Text&gt;
+            )}
+          &lt;/Block&gt;
+          &lt;Block direction=&quot;row&quot; h={2} w=&quot;100%&quot; bg={COLORS.line} radius={2}&gt;
+            &lt;Block direction=&quot;row&quot; h={2} w={`${progress}%` as `${number}%`} bg={COLORS.green} radius={2} /&gt;
+          &lt;/Block&gt;
+        &lt;/Column&gt;
+      &lt;/Card&gt;
+
+      {!desktop &amp;&amp; (
+        &lt;Block direction=&quot;row&quot; bg={COLORS.sidebar} borderTopWidth={1} borderTopColor={COLORS.line} px={8} py={3}&gt;
+          &lt;NavItem icon=&quot;home&quot; label=&quot;Home&quot; active={section === &#39;home&#39;} compact onPress={() =&gt; selectSection(&#39;home&#39;)} /&gt;
+          &lt;NavItem
+            icon=&quot;search&quot;
+            label=&quot;Search&quot;
+            active={section === &#39;search&#39;}
+            compact
+            onPress={() =&gt; selectSection(&#39;search&#39;)}
+          /&gt;
+          &lt;NavItem
+            icon=&quot;music&quot;
+            label=&quot;Library&quot;
+            active={section === &#39;library&#39;}
+            compact
+            onPress={() =&gt; selectSection(&#39;library&#39;)}
+          /&gt;
+        &lt;/Block&gt;
+      )}
+    &lt;/SafeArea&gt;
+  );
+}
+
+export default function App() {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={THEME}&gt;
+        &lt;MusicScreen /&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>catalog.ts</h2><pre><code>export type ArtworkStyle = {
+  background: string;
+  accent: string;
+  detail: string;
+  glyph: string;
+};
+
+export type Track = {
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  genre: string;
+  seconds: number;
+  source: number;
+  art: ArtworkStyle;
+};
+
+export const TRACKS: Track[] = [
+  {
+    id: &#39;golden-hour&#39;, title: &#39;Golden Hour&#39;, artist: &#39;Mira Sol&#39;, album: &#39;Daylight Studies&#39;,
+    genre: &#39;Chill&#39;, seconds: 20, source: require(&#39;./assets/audio/golden-hour.mp3&#39;),
+    art: { background: &#39;#DD9C59&#39;, accent: &#39;#F9DF9E&#39;, detail: &#39;#864E4B&#39;, glyph: &#39;✳&#39; },
+  },
+  {
+    id: &#39;afterglow&#39;, title: &#39;Afterglow&#39;, artist: &#39;Luna Vale&#39;, album: &#39;Blue Hours&#39;,
+    genre: &#39;Chill&#39;, seconds: 21, source: require(&#39;./assets/audio/afterglow.mp3&#39;),
+    art: { background: &#39;#8A84BA&#39;, accent: &#39;#EBC5CF&#39;, detail: &#39;#413E72&#39;, glyph: &#39;✦&#39; },
+  },
+  {
+    id: &#39;night-drive&#39;, title: &#39;Night Drive&#39;, artist: &#39;Lowlight&#39;, album: &#39;City Lines&#39;,
+    genre: &#39;Electronic&#39;, seconds: 17, source: require(&#39;./assets/audio/night-drive.mp3&#39;),
+    art: { background: &#39;#284B64&#39;, accent: &#39;#80D8CE&#39;, detail: &#39;#ED806E&#39;, glyph: &#39;◒&#39; },
+  },
+  {
+    id: &#39;blue-apartment&#39;, title: &#39;Blue Apartment&#39;, artist: &#39;June Ellis&#39;, album: &#39;Rooms&#39;,
+    genre: &#39;Focus&#39;, seconds: 22, source: require(&#39;./assets/audio/blue-apartment.mp3&#39;),
+    art: { background: &#39;#7799AA&#39;, accent: &#39;#E5D5B6&#39;, detail: &#39;#284E68&#39;, glyph: &#39;▣&#39; },
+  },
+  {
+    id: &#39;soft-focus&#39;, title: &#39;Soft Focus&#39;, artist: &#39;Niko Bloom&#39;, album: &#39;Slow Motion&#39;,
+    genre: &#39;Focus&#39;, seconds: 25, source: require(&#39;./assets/audio/soft-focus.mp3&#39;),
+    art: { background: &#39;#7F9581&#39;, accent: &#39;#D6E2A2&#39;, detail: &#39;#405C53&#39;, glyph: &#39;❋&#39; },
+  },
+  {
+    id: &#39;side-streets&#39;, title: &#39;Side Streets&#39;, artist: &#39;The Nova Club&#39;, album: &#39;After Dark&#39;,
+    genre: &#39;Electronic&#39;, seconds: 16, source: require(&#39;./assets/audio/side-streets.mp3&#39;),
+    art: { background: &#39;#B35A5D&#39;, accent: &#39;#FFD18A&#39;, detail: &#39;#512F52&#39;, glyph: &#39;✺&#39; },
+  },
+];
+
+export type Collection = {
+  id: string;
+  title: string;
+  description: string;
+  subtitle: string;
+  trackIds: string[];
+  art: ArtworkStyle;
+};
+
+export const COLLECTIONS: Collection[] = [
+  {
+    id: &#39;slow-mornings&#39;, title: &#39;Slow Mornings&#39;, subtitle: &#39;Made for the softer hours&#39;,
+    description: &#39;Warm chords, open windows, and nowhere else to be.&#39;,
+    trackIds: [&#39;golden-hour&#39;, &#39;afterglow&#39;, &#39;blue-apartment&#39;, &#39;soft-focus&#39;],
+    art: { background: &#39;#B18A70&#39;, accent: &#39;#F3DFAE&#39;, detail: &#39;#657D6A&#39;, glyph: &#39;☼&#39; },
+  },
+  {
+    id: &#39;night-shift&#39;, title: &#39;Night Shift&#39;, subtitle: &#39;After dark, on repeat&#39;,
+    description: &#39;A little pulse for the way home.&#39;,
+    trackIds: [&#39;night-drive&#39;, &#39;side-streets&#39;, &#39;afterglow&#39;],
+    art: { background: &#39;#364D6A&#39;, accent: &#39;#AFB8E9&#39;, detail: &#39;#E77F82&#39;, glyph: &#39;✦&#39; },
+  },
+  {
+    id: &#39;deep-focus&#39;, title: &#39;Deep Focus&#39;, subtitle: &#39;Stay in your own lane&#39;,
+    description: &#39;Gentle instrumentals for the things that matter.&#39;,
+    trackIds: [&#39;soft-focus&#39;, &#39;blue-apartment&#39;, &#39;golden-hour&#39;],
+    art: { background: &#39;#547868&#39;, accent: &#39;#CDE7B4&#39;, detail: &#39;#AAC9CF&#39;, glyph: &#39;◌&#39; },
+  },
+  {
+    id: &#39;easy-days&#39;, title: &#39;Easy Days&#39;, subtitle: &#39;Keep the good mood going&#39;,
+    description: &#39;Light, unhurried sounds for a day with room to breathe.&#39;,
+    trackIds: [&#39;afterglow&#39;, &#39;golden-hour&#39;, &#39;soft-focus&#39;],
+    art: { background: &#39;#AA8B5A&#39;, accent: &#39;#F5DFA0&#39;, detail: &#39;#5E6951&#39;, glyph: &#39;✳&#39; },
+  },
+  {
+    id: &#39;headphones-on&#39;, title: &#39;Headphones On&#39;, subtitle: &#39;Get lost in the sound&#39;,
+    description: &#39;A little energy for wherever the night takes you.&#39;,
+    trackIds: [&#39;side-streets&#39;, &#39;night-drive&#39;, &#39;blue-apartment&#39;],
+    art: { background: &#39;#69517A&#39;, accent: &#39;#C597CF&#39;, detail: &#39;#F0A89E&#39;, glyph: &#39;✦&#39; },
+  },
+];
+
+export function formatTime(seconds: number): string {
+  const safe = Math.max(0, Math.floor(Number.isFinite(seconds) ? seconds : 0));
+  return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, &#39;0&#39;)}`;
+}
+</code></pre></section><section id="file-2"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

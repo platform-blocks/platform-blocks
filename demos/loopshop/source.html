@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Loopshop demo source | plocks</title><meta name="description" content="Browse the source code for the Loopshop demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/loopshop/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>loopshop source</h1><nav><a href="/demos/loopshop/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useState } from &#39;react&#39;;
+import { Platform, Share, StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import AsyncStorage from &#39;@react-native-async-storage/async-storage&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import { Carousel } from &#39;@plocks/carousel&#39;;
+import {
+  Badge,
+  Dialog,
+  Gradient,
+  Input,
+  ScrollArea,
+  SafeArea,
+  Block,
+  Button,
+  Icon,
+  IconButton,
+  PlocksProvider,
+  Tabs,
+  Text,
+  ToastProvider,
+  useToast,
+} from &#39;@plocks/ui&#39;;
+
+const C = {
+  black: &#39;#090909&#39;,
+  panel: &#39;#181818&#39;,
+  white: &#39;#FFF&#39;,
+  muted: &#39;#B6B6B6&#39;,
+  line: &#39;#303030&#39;,
+  pink: &#39;#FF3B77&#39;,
+  teal: &#39;#20D3C5&#39;,
+};
+const PRODUCTS = [
+  {
+    id: &#39;lamp&#39;,
+    name: &#39;Sunset Glow Lamp&#39;,
+    creator: &#39;@roomforjoy&#39;,
+    price: 29.99,
+    old: 42,
+    emoji: &#39;💡&#39;,
+    category: &#39;Home&#39;,
+    colors: [&#39;#E84986&#39;, &#39;#8F3B97&#39;] as const,
+    caption: &#39;The little light that changed my whole room ✨&#39;,
+    likes: 12400,
+    rating: &#39;4.9&#39;,
+    sold: &#39;2.4k&#39;,
+  },
+  {
+    id: &#39;headphones&#39;,
+    name: &#39;Cloud Wireless Headphones&#39;,
+    creator: &#39;@listenwithlea&#39;,
+    price: 48,
+    old: 65,
+    emoji: &#39;🎧&#39;,
+    category: &#39;Tech&#39;,
+    colors: [&#39;#3657B9&#39;, &#39;#151B4B&#39;] as const,
+    caption: &#39;A whole new soundtrack for your commute 🎶&#39;,
+    likes: 8700,
+    rating: &#39;4.8&#39;,
+    sold: &#39;1.8k&#39;,
+  },
+  {
+    id: &#39;mug&#39;,
+    name: &#39;Everyday Ceramic Mug&#39;,
+    creator: &#39;@slowmornings&#39;,
+    price: 18.5,
+    old: 25,
+    emoji: &#39;☕&#39;,
+    category: &#39;Home&#39;,
+    colors: [&#39;#B88662&#39;, &#39;#523B37&#39;] as const,
+    caption: &#39;A five minute coffee break that feels like a vacation.&#39;,
+    likes: 4200,
+    rating: &#39;4.9&#39;,
+    sold: &#39;980&#39;,
+  },
+  {
+    id: &#39;bag&#39;,
+    name: &#39;Mini Weekend Tote&#39;,
+    creator: &#39;@stylewithsam&#39;,
+    price: 34.95,
+    old: 49,
+    emoji: &#39;👜&#39;,
+    category: &#39;Style&#39;,
+    colors: [&#39;#D76B80&#39;, &#39;#743750&#39;] as const,
+    caption: &#39;The bag that somehow fits everything I need 👜&#39;,
+    likes: 19100,
+    rating: &#39;4.7&#39;,
+    sold: &#39;3.1k&#39;,
+  },
+  {
+    id: &#39;plant&#39;,
+    name: &#39;Desktop Plant Kit&#39;,
+    creator: &#39;@greenlittlethings&#39;,
+    price: 22,
+    old: 30,
+    emoji: &#39;🪴&#39;,
+    category: &#39;Home&#39;,
+    colors: [&#39;#3A9B7A&#39;, &#39;#164B43&#39;] as const,
+    caption: &#39;Your desk deserves a tiny garden 🌿&#39;,
+    likes: 6300,
+    rating: &#39;4.8&#39;,
+    sold: &#39;1.2k&#39;,
+  },
+];
+type Product = (typeof PRODUCTS)[number];
+type Tab = &#39;feed&#39; | &#39;shop&#39; | &#39;cart&#39;;
+type Cart = Record&lt;string, number&gt;;
+const STORAGE = &#39;plocks-loopshop-example:v1&#39;;
+const money = (value: number) =&gt; &#39;$&#39; + value.toFixed(2);
+
+function ProductArt({ product, compact = false }: { product: Product; compact?: boolean }) {
+  return (
+    &lt;Gradient
+      colors={[product.colors[0], product.colors[1]]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      flex={1}
+      w=&quot;full&quot;
+      radius={compact ? 14 : 0}
+      align=&quot;center&quot;
+      justify=&quot;center&quot;
+      overflow=&quot;hidden&quot;
+    &gt;
+      {!compact &amp;&amp; (
+        &lt;Block
+          gap={0}
+          position=&quot;absolute&quot;
+          top=&quot;9%&quot;
+          left=&quot;9%&quot;
+          w={115}
+          h={115}
+          radius={58}
+          borderWidth={1}
+          borderColor=&quot;#FFFFFF40&quot;
+        /&gt;
+      )}
+      {!compact &amp;&amp; (
+        &lt;Block gap={0} position=&quot;absolute&quot; bottom=&quot;17%&quot; right=&quot;-10%&quot; w={220} h={220} radius={110} bg=&quot;#FFFFFF13&quot; /&gt;
+      )}
+      &lt;Text size={compact ? 67 : 150} lh={compact ? 90 : 195}&gt;
+        {product.emoji}
+      &lt;/Text&gt;
+      {!compact &amp;&amp; (
+        &lt;Block gap={0} position=&quot;absolute&quot; top={22} left={20} radius={5} bg=&quot;#0008&quot; px={9} py={6}&gt;
+          &lt;Text c={C.white} fw=&quot;bold&quot; size={11}&gt;
+            SHOP THE VIDEO
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+      )}
+    &lt;/Gradient&gt;
+  );
+}
+
+function FeedSlide({
+  product,
+  liked,
+  commentCount,
+  onLike,
+  onComment,
+  onShare,
+  onCart,
+  onDetail,
+}: {
+  product: Product;
+  liked: boolean;
+  commentCount: number;
+  onLike: () =&gt; void;
+  onComment: () =&gt; void;
+  onShare: () =&gt; void;
+  onCart: () =&gt; void;
+  onDetail: () =&gt; void;
+}) {
+  return (
+    &lt;Block gap={0} w=&quot;100%&quot; h=&quot;100%&quot; position=&quot;relative&quot; overflow=&quot;hidden&quot;&gt;
+      &lt;ProductArt product={product} /&gt;
+      &lt;Block gap={0} pointerEvents=&quot;none&quot; position=&quot;absolute&quot; left={0} right={0} bottom={0} h={230} bg=&quot;#0006&quot; /&gt;
+      &lt;Block position=&quot;absolute&quot; left={17} bottom={22} right={75} gap={8}&gt;
+        &lt;Text c={C.white} fw=&quot;bold&quot; size={16}&gt;{product.creator}&lt;/Text&gt;
+        &lt;Text c={C.white} size={14} lh={20}&gt;{product.caption}&lt;/Text&gt;
+        &lt;Block
+          onPress={onDetail}
+          accessibilityRole=&quot;button&quot;
+          accessibilityLabel={`View ${product.name}`}
+          alignSelf=&quot;flex-start&quot;
+          direction=&quot;row&quot;
+          align=&quot;center&quot;
+          gap={9}
+          p={9}
+          bg={C.white}
+          radius={9}
+          maw=&quot;100%&quot;
+        &gt;
+          &lt;Text size={25}&gt;{product.emoji}&lt;/Text&gt;
+          &lt;Block gap={0} flex={1}&gt;
+            &lt;Text c={C.black} fw=&quot;bold&quot; size={12} numberOfLines={1}&gt;{product.name}&lt;/Text&gt;
+            &lt;Text c={C.pink} fw=&quot;bold&quot; size={12}&gt;
+              {money(product.price)}{&#39; &#39;}
+              &lt;Text c=&quot;#888&quot; size={11} td=&quot;line-through&quot;&gt;{money(product.old)}&lt;/Text&gt;
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+          &lt;Icon name=&quot;chevronRight&quot; size={16} color={C.black} /&gt;
+        &lt;/Block&gt;
+      &lt;/Block&gt;
+      &lt;Block position=&quot;absolute&quot; right={11} bottom={96} align=&quot;center&quot; gap={18}&gt;
+        &lt;Block onPress={onLike} accessibilityRole=&quot;button&quot; accessibilityLabel={liked ? &#39;Unlike product&#39; : &#39;Like product&#39;} align=&quot;center&quot; gap={2}&gt;
+          &lt;Icon name=&quot;heart&quot; variant=&quot;filled&quot; color={liked ? C.pink : C.white} size={31} /&gt;
+          &lt;Text c={C.white} fw=&quot;bold&quot; size={11}&gt;{((product.likes + Number(liked)) / 1000).toFixed(1)}k&lt;/Text&gt;
+        &lt;/Block&gt;
+        &lt;Block onPress={onComment} accessibilityRole=&quot;button&quot; accessibilityLabel=&quot;Comments&quot; align=&quot;center&quot; gap={2}&gt;
+          &lt;Icon name=&quot;message&quot; variant=&quot;filled&quot; color={C.white} size={30} /&gt;
+          &lt;Text c={C.white} fw=&quot;bold&quot; size={11}&gt;{commentCount}&lt;/Text&gt;
+        &lt;/Block&gt;
+        &lt;Block gap={0} onPress={onShare} accessibilityRole=&quot;button&quot; accessibilityLabel=&quot;Share product&quot; align=&quot;center&quot;&gt;
+          &lt;Icon name=&quot;arrowRight&quot; color={C.white} size={30} /&gt;
+          &lt;Text c={C.white} fw=&quot;bold&quot; size={11}&gt;Share&lt;/Text&gt;
+        &lt;/Block&gt;
+        &lt;Block gap={0} onPress={onCart} accessibilityRole=&quot;button&quot; accessibilityLabel=&quot;Add to cart&quot; align=&quot;center&quot;&gt;
+          &lt;Icon name=&quot;cart&quot; color={C.white} size={30} /&gt;
+          &lt;Text c={C.white} fw=&quot;bold&quot; size={11}&gt;Add&lt;/Text&gt;
+        &lt;/Block&gt;
+      &lt;/Block&gt;
+    &lt;/Block&gt;
+  );
+}
+
+function LoopshopScreen() {
+  const toast = useToast();
+  const { width } = useWindowDimensions();
+  const wide = width &gt;= 850;
+  const [tab, setTab] = useState&lt;Tab&gt;(&#39;feed&#39;);
+  const [feedHeight, setFeedHeight] = useState(0);
+  const [liked, setLiked] = useState&lt;string[]&gt;([]);
+  const [cart, setCart] = useState&lt;Cart&gt;({});
+  const [comments, setComments] = useState&lt;Record&lt;string, string[]&gt;&gt;({});
+  const [detail, setDetail] = useState&lt;string | null&gt;(null);
+  const [commentFor, setCommentFor] = useState&lt;string | null&gt;(null);
+  const [draft, setDraft] = useState(&#39;&#39;);
+  const [query, setQuery] = useState(&#39;&#39;);
+  const [category, setCategory] = useState(&#39;All&#39;);
+  const [ready, setReady] = useState(false);
+  const detailProduct = PRODUCTS.find((item) =&gt; item.id === detail);
+  const commentProduct = PRODUCTS.find((item) =&gt; item.id === commentFor);
+  const cartCount = Object.values(cart).reduce((sum, qty) =&gt; sum + qty, 0);
+  const cartTotal = PRODUCTS.reduce((sum, item) =&gt; sum + (cart[item.id] ?? 0) * item.price, 0);
+
+  useEffect(() =&gt; {
+    AsyncStorage.getItem(STORAGE)
+      .then((raw) =&gt; {
+        if (!raw) return;
+        const data = JSON.parse(raw) as { liked?: string[]; cart?: Cart; comments?: Record&lt;string, string[]&gt; };
+        if (Array.isArray(data.liked)) setLiked(data.liked);
+        if (data.cart &amp;&amp; typeof data.cart === &#39;object&#39;) setCart(data.cart);
+        if (data.comments &amp;&amp; typeof data.comments === &#39;object&#39;) setComments(data.comments);
+      })
+      .catch(() =&gt; {})
+      .finally(() =&gt; setReady(true));
+  }, []);
+  useEffect(() =&gt; {
+    if (ready) AsyncStorage.setItem(STORAGE, JSON.stringify({ liked, cart, comments })).catch(() =&gt; {});
+  }, [liked, cart, comments, ready]);
+  function addToCart(id: string) {
+    setCart((old) =&gt; ({ ...old, [id]: (old[id] ?? 0) + 1 }));
+    toast.success({ title: &#39;Added to cart&#39;, message: PRODUCTS.find((item) =&gt; item.id === id)?.name });
+  }
+  function postComment() {
+    if (!commentFor || !draft.trim()) return;
+    setComments((old) =&gt; ({ ...old, [commentFor]: [...(old[commentFor] ?? []), draft.trim()] }));
+    setDraft(&#39;&#39;);
+  }
+  async function shareProduct(item: Product) {
+    const details = `${item.name} — ${money(item.price)}`;
+    try {
+      if (Platform.OS === &#39;web&#39; &amp;&amp; typeof navigator !== &#39;undefined&#39; &amp;&amp; navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(details);
+        toast.success(&#39;Product details copied&#39;);
+      } else {
+        await Share.share({ message: details });
+      }
+    } catch {
+      toast.error(&#39;Unable to share product&#39;);
+    }
+  }
+  const nav = (
+    &lt;Tabs
+      navigationOnly
+      orientation={wide ? &#39;vertical&#39; : &#39;horizontal&#39;}
+      variant=&quot;chip&quot;
+      color={C.pink}
+      value={tab}
+      onChange={(item) =&gt; setTab(item as Tab)}
+      textStyle={{ color: C.muted }}
+      activeTabTextColor={C.white}
+      items={([&#39;feed&#39;, &#39;shop&#39;, &#39;cart&#39;] as const).map((item) =&gt; ({
+        key: item,
+        label: item[0].toUpperCase() + item.slice(1),
+        accessibilityLabel: item === &#39;cart&#39; &amp;&amp; cartCount ? `Cart, ${cartCount} items` : undefined,
+        subLabel: item === &#39;cart&#39; &amp;&amp; cartCount &gt; 0 ? &lt;Badge size=&quot;sm&quot; color={C.pink}&gt;{cartCount}&lt;/Badge&gt; : undefined,
+        icon: (
+          &lt;Icon
+            name={item === &#39;feed&#39; ? &#39;home&#39; : item === &#39;shop&#39; ? &#39;grid&#39; : &#39;cart&#39;}
+            color={tab === item ? C.white : C.muted}
+            size={wide ? 21 : 20}
+          /&gt;
+        ),
+        content: null,
+      }))}
+    /&gt;
+  );
+
+  return (
+    &lt;SafeArea gap={0} flex={1} bg={C.black}&gt;
+      &lt;StatusBar barStyle=&quot;light-content&quot; /&gt;
+      &lt;Block gap={0} flex={1} direction={wide ? &#39;row&#39; : &#39;column&#39;} maw={1250} w=&quot;100%&quot; alignSelf=&quot;center&quot;&gt;
+        {wide &amp;&amp; (
+          &lt;Block w={225} borderRightWidth={1} borderRightColor={C.line} p={18} gap={30}&gt;
+            &lt;Text c={C.white} fw=&quot;bold&quot; size={27}&gt;
+              loop
+              &lt;Text c={C.pink} fw=&quot;bold&quot;&gt;
+                shop
+              &lt;/Text&gt;
+            &lt;/Text&gt;
+            {nav}
+            &lt;Block gap={0} flex={1} /&gt;
+            &lt;Text c={C.muted} size={11}&gt;
+              Demo storefront · no purchases
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+        )}
+        &lt;Block gap={0} flex={1}&gt;
+          {!wide &amp;&amp; (
+            &lt;Block gap={0} h={54} justify=&quot;center&quot; align=&quot;center&quot; borderBottomWidth={1} borderBottomColor={C.line}&gt;
+              &lt;Text c={C.white} fw=&quot;bold&quot; size={20}&gt;
+                loop
+                &lt;Text c={C.pink} fw=&quot;bold&quot;&gt;
+                  shop
+                &lt;/Text&gt;
+              &lt;/Text&gt;
+            &lt;/Block&gt;
+          )}
+          {tab === &#39;feed&#39; &amp;&amp; (
+            &lt;Block gap={0} flex={1} align=&quot;center&quot; justify=&quot;center&quot; bg={C.black}&gt;
+              &lt;Block
+                gap={0}
+                flex={1}
+                w=&quot;100%&quot;
+                maw={wide ? 460 : 560}
+                overflow=&quot;hidden&quot;
+                onLayout={({ nativeEvent: { layout } }) =&gt; setFeedHeight(layout.height)}
+              &gt;
+                {feedHeight &gt; 0 &amp;&amp; (
+                  &lt;Carousel
+                    orientation=&quot;vertical&quot;
+                    h={feedHeight}
+                    w=&quot;100%&quot;
+                    itemGap={0}
+                    loop
+                    showArrows={wide}
+                    showDots={false}
+                    skipSnaps={false}
+                    transitionDuration={350}
+                    accessibilityLabel=&quot;Shop video feed&quot;
+                  &gt;
+                    {PRODUCTS.map((item) =&gt; (
+                      &lt;FeedSlide
+                        key={item.id}
+                        product={item}
+                        liked={liked.includes(item.id)}
+                        commentCount={comments[item.id]?.length ?? 0}
+                        onLike={() =&gt; setLiked((old) =&gt;
+                          old.includes(item.id) ? old.filter((id) =&gt; id !== item.id) : [...old, item.id],
+                        )}
+                        onComment={() =&gt; setCommentFor(item.id)}
+                        onShare={() =&gt; shareProduct(item)}
+                        onCart={() =&gt; addToCart(item.id)}
+                        onDetail={() =&gt; setDetail(item.id)}
+                      /&gt;
+                    ))}
+                  &lt;/Carousel&gt;
+                )}
+              &lt;/Block&gt;
+            &lt;/Block&gt;
+          )}
+          {tab === &#39;shop&#39; &amp;&amp; (
+            &lt;ScrollArea contentProps={{ maw: 960, alignSelf: &#39;center&#39;, w: &#39;100%&#39;, p: 20, pb: 40 }}&gt;
+              &lt;Text c={C.white} fw=&quot;bold&quot; size={28}&gt;
+                Shop finds
+              &lt;/Text&gt;
+              &lt;Text c={C.muted} size={13} mt={5}&gt;
+                Everything you saw in the feed, all in one place.
+              &lt;/Text&gt;
+              &lt;Input
+                variant=&quot;filled&quot;
+                value={query}
+                onChangeText={setQuery}
+                placeholder=&quot;Search products&quot;
+                placeholderTextColor=&quot;#888&quot;
+                mb={0}
+                inputColor={C.white}
+                radius={10}
+                mt={22}
+              /&gt;
+              &lt;ScrollArea horizontal showsHorizontalScrollIndicator={false} contentProps={{ gap: 8, my: 18 }}&gt;
+                {[&#39;All&#39;, &#39;Home&#39;, &#39;Tech&#39;, &#39;Style&#39;].map((item) =&gt; (
+                  &lt;Block
+                    gap={0}
+                    key={item}
+                    onPress={() =&gt; setCategory(item)}
+                    px={15}
+                    py={8}
+                    radius={20}
+                    bg={category === item ? C.white : C.panel}
+                  &gt;
+                    &lt;Text c={category === item ? C.black : C.muted} fw=&quot;bold&quot; size={12}&gt;
+                      {item}
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                ))}
+              &lt;/ScrollArea&gt;
+              &lt;Block direction=&quot;row&quot; wrap=&quot;wrap&quot; gap={12}&gt;
+                {PRODUCTS.filter(
+                  (item) =&gt;
+                    (category === &#39;All&#39; || item.category === category) &amp;&amp;
+                    item.name.toLowerCase().includes(query.toLowerCase()),
+                ).map((item) =&gt; (
+                  &lt;Block
+                    gap={0}
+                    key={item.id}
+                    onPress={() =&gt; setDetail(item.id)}
+                    w={wide ? &#39;31%&#39; : &#39;48%&#39;}
+                    bg={C.panel}
+                    radius={14}
+                    overflow=&quot;hidden&quot;
+                  &gt;
+                    &lt;Block gap={0} w=&quot;100%&quot; aspectRatio={1}&gt;
+                      &lt;ProductArt product={item} compact /&gt;
+                    &lt;/Block&gt;
+                    &lt;Block p={12} gap={4}&gt;
+                      &lt;Text c={C.white} fw=&quot;bold&quot; size={13} numberOfLines={1}&gt;
+                        {item.name}
+                      &lt;/Text&gt;
+                      &lt;Text c={C.muted} size={11}&gt;
+                        ★ {item.rating} · {item.sold} sold
+                      &lt;/Text&gt;
+                      &lt;Text c={C.pink} fw=&quot;bold&quot; size={15}&gt;
+                        {money(item.price)}
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                  &lt;/Block&gt;
+                ))}
+              &lt;/Block&gt;
+            &lt;/ScrollArea&gt;
+          )}
+          {tab === &#39;cart&#39; &amp;&amp; (
+            &lt;ScrollArea contentProps={{ maw: 700, alignSelf: &#39;center&#39;, w: &#39;100%&#39;, p: 20, gap: 14 }}&gt;
+              &lt;Text c={C.white} fw=&quot;bold&quot; size={28}&gt;
+                Your cart
+              &lt;/Text&gt;
+              {cartCount === 0 &amp;&amp; (
+                &lt;Block align=&quot;center&quot; gap={12} p={50}&gt;
+                  &lt;Text size={70}&gt;🛒&lt;/Text&gt;
+                  &lt;Text c={C.white} fw=&quot;bold&quot; size={20}&gt;
+                    Your cart is empty
+                  &lt;/Text&gt;
+                  &lt;Button title=&quot;Explore the shop&quot; color={C.pink} onPress={() =&gt; setTab(&#39;shop&#39;)} /&gt;
+                &lt;/Block&gt;
+              )}
+              {PRODUCTS.filter((item) =&gt; (cart[item.id] ?? 0) &gt; 0).map((item) =&gt; (
+                &lt;Block key={item.id} bg={C.panel} p={12} radius={14} direction=&quot;row&quot; gap={12} align=&quot;center&quot;&gt;
+                  &lt;Block gap={0} w={76} h={76}&gt;
+                    &lt;ProductArt product={item} compact /&gt;
+                  &lt;/Block&gt;
+                  &lt;Block flex={1} gap={5}&gt;
+                    &lt;Text c={C.white} fw=&quot;bold&quot; size={14}&gt;
+                      {item.name}
+                    &lt;/Text&gt;
+                    &lt;Text c={C.pink} fw=&quot;bold&quot;&gt;
+                      {money(item.price)}
+                    &lt;/Text&gt;
+                    &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={13}&gt;
+                      &lt;Block
+                        gap={0}
+                        onPress={() =&gt; setCart((old) =&gt; ({ ...old, [item.id]: Math.max(0, (old[item.id] ?? 0) - 1) }))}
+                        accessibilityLabel={`Remove one ${item.name}`}
+                      &gt;
+                        &lt;Icon name=&quot;minus&quot; color={C.white} size={18} /&gt;
+                      &lt;/Block&gt;
+                      &lt;Text c={C.white}&gt;{cart[item.id]}&lt;/Text&gt;
+                      &lt;Block gap={0} onPress={() =&gt; addToCart(item.id)} accessibilityLabel={`Add one ${item.name}`}&gt;
+                        &lt;Icon name=&quot;plus&quot; color={C.white} size={18} /&gt;
+                      &lt;/Block&gt;
+                    &lt;/Block&gt;
+                  &lt;/Block&gt;
+                &lt;/Block&gt;
+              ))}
+              {cartCount &gt; 0 &amp;&amp; (
+                &lt;Block borderTopWidth={1} borderTopColor={C.line} pt={18} gap={12}&gt;
+                  &lt;Block gap={0} direction=&quot;row&quot; justify=&quot;space-between&quot;&gt;
+                    &lt;Text c={C.white} fw=&quot;bold&quot;&gt;
+                      Subtotal
+                    &lt;/Text&gt;
+                    &lt;Text c={C.white} fw=&quot;bold&quot;&gt;
+                      {money(cartTotal)}
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;Button
+                    title=&quot;Demo checkout&quot;
+                    color={C.pink}
+                    onPress={() =&gt; toast.info(&#39;This example does not process payments.&#39;)}
+                  /&gt;
+                  &lt;Text c={C.muted} size={11}&gt;
+                    Demo cart only. No payment or order is placed.
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+              )}
+            &lt;/ScrollArea&gt;
+          )}
+          {!wide &amp;&amp; (
+            &lt;Block gap={0} bg={C.black} borderTopWidth={1} borderTopColor={C.line}&gt;
+              {nav}
+            &lt;/Block&gt;
+          )}
+        &lt;/Block&gt;
+      &lt;/Block&gt;
+      {(detailProduct || commentProduct) &amp;&amp; (
+        &lt;Dialog
+          opened
+          variant=&quot;bottomsheet&quot;
+          accessibilityLabel={commentProduct ? &#39;Comments&#39; : &#39;Product details&#39;}
+          onClose={() =&gt; {
+            setDetail(null);
+            setCommentFor(null);
+          }}
+          bottomSheetSwipeZone=&quot;handle&quot;
+        &gt;
+          &lt;Block gap={0}&gt;
+            &lt;Block gap={0} direction=&quot;row&quot; justify=&quot;space-between&quot; align=&quot;center&quot; p={14}&gt;
+              &lt;Text c={C.white} fw=&quot;bold&quot; size={17}&gt;
+                {commentProduct ? &#39;Comments&#39; : &#39;Product details&#39;}
+              &lt;/Text&gt;
+              &lt;IconButton
+                icon=&quot;x&quot;
+                variant=&quot;ghost&quot;
+                iconColor={C.white}
+                accessibilityLabel=&quot;Close&quot;
+                onPress={() =&gt; {
+                  setDetail(null);
+                  setCommentFor(null);
+                }}
+              /&gt;
+            &lt;/Block&gt;
+            {detailProduct &amp;&amp; (
+              &lt;ScrollArea contentProps={{ px: 16, pb: 20, gap: 11 }}&gt;
+                &lt;Block gap={0} h={210}&gt;
+                  &lt;ProductArt product={detailProduct} compact /&gt;
+                &lt;/Block&gt;
+                &lt;Text c={C.white} fw=&quot;bold&quot; size={22}&gt;
+                  {detailProduct.name}
+                &lt;/Text&gt;
+                &lt;Text c={C.muted} size={13}&gt;
+                  ★ {detailProduct.rating} · {detailProduct.sold} sold · {detailProduct.category}
+                &lt;/Text&gt;
+                &lt;Text c={C.pink} fw=&quot;bold&quot; size={24}&gt;
+                  {money(detailProduct.price)}{&#39; &#39;}
+                  &lt;Text c={C.muted} size={13} td=&quot;line-through&quot;&gt;
+                    {money(detailProduct.old)}
+                  &lt;/Text&gt;
+                &lt;/Text&gt;
+                &lt;Text c={C.white} size={14}&gt;
+                  {detailProduct.caption}
+                &lt;/Text&gt;
+                &lt;Button
+                  title=&quot;Add to cart&quot;
+                  color={C.pink}
+                  onPress={() =&gt; {
+                    addToCart(detailProduct.id);
+                    setDetail(null);
+                  }}
+                /&gt;
+              &lt;/ScrollArea&gt;
+            )}
+            {commentProduct &amp;&amp; (
+              &lt;&gt;
+                &lt;ScrollArea mih={130} mah={290} contentProps={{ p: 17, gap: 12 }}&gt;
+                  &lt;Text c={C.muted} size={13}&gt;
+                    What do you think of {commentProduct.name}?
+                  &lt;/Text&gt;
+                  {(comments[commentProduct.id] ?? []).map((item, i) =&gt; (
+                    &lt;Text key={i} c={C.white} size={13}&gt;
+                      &lt;Text c={C.teal} fw=&quot;bold&quot;&gt;
+                        you{&#39; &#39;}
+                      &lt;/Text&gt;
+                      {item}
+                    &lt;/Text&gt;
+                  ))}
+                &lt;/ScrollArea&gt;
+                &lt;Block p={13} direction=&quot;row&quot; gap={10} borderTopWidth={1} borderTopColor={C.line}&gt;
+                  &lt;Input
+                    variant=&quot;filled&quot;
+                    value={draft}
+                    onChangeText={setDraft}
+                    onEnter={postComment}
+                    placeholder=&quot;Add a comment&quot;
+                    placeholderTextColor=&quot;#888&quot;
+                    mb={0}
+                    flex={1}
+                    inputColor={C.white}
+                    radius={18}
+                  /&gt;
+                  &lt;Block gap={0} onPress={postComment} justify=&quot;center&quot;&gt;
+                    &lt;Text c={C.pink} fw=&quot;bold&quot;&gt;
+                      Post
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                &lt;/Block&gt;
+              &lt;/&gt;
+            )}
+          &lt;/Block&gt;
+        &lt;/Dialog&gt;
+      )}
+    &lt;/SafeArea&gt;
+  );
+}
+export default function App() {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;dark&#39; }}&gt;
+        &lt;ToastProvider&gt;
+          &lt;LoopshopScreen /&gt;
+        &lt;/ToastProvider&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

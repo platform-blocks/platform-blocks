@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Flutterflight demo source | plocks</title><meta name="description" content="Browse the source code for the Flutterflight demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/flutterflight/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>flutterflight source</h1><nav><a href="/demos/flutterflight/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useState } from &#39;react&#39;;
+import { StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+
+import { Block, Button, PlocksProvider, SafeArea, Text } from &#39;@plocks/ui&#39;;
+
+const COLORS = {
+  sky: &#39;#83D5EF&#39;,
+  ink: &#39;#12334B&#39;,
+  pipe: &#39;#55A947&#39;,
+  pipeBorder: &#39;#327E39&#39;,
+} as const;
+const BIRD_X = 54;
+const BIRD_SIZE = 28;
+const PIPE_WIDTH = 52;
+const GAP_HEIGHT = 120;
+const TICK_MS = 40;
+
+type Size = { width: number; height: number };
+type Game = {
+  bird: number;
+  velocity: number;
+  pipe: number;
+  gap: number;
+  score: number;
+  running: boolean;
+  over: boolean;
+  passed: boolean;
+};
+
+const gapHeight = (height: number) =&gt; Math.min(GAP_HEIGHT, Math.max(80, height * 0.24));
+const randomGap = (height: number) =&gt; 40 + Math.random() * Math.max(0, height - gapHeight(height) - 80);
+const fresh = ({ width, height }: Size): Game =&gt; ({
+  bird: Math.max(0, height / 2 - BIRD_SIZE / 2),
+  velocity: 0,
+  pipe: width,
+  gap: randomGap(height),
+  score: 0,
+  running: false,
+  over: false,
+  passed: false,
+});
+
+export default function App() {
+  const window = useWindowDimensions();
+  const [size, setSize] = useState&lt;Size&gt;(() =&gt; ({ width: window.width, height: window.height }));
+  const [game, setGame] = useState&lt;Game&gt;(() =&gt; fresh({ width: window.width, height: window.height }));
+
+  const flap = () =&gt;
+    setGame((old) =&gt;
+      old.over
+        ? { ...fresh(size), running: true, velocity: -6 }
+        : { ...old, running: true, velocity: -6 },
+    );
+
+  useEffect(() =&gt; {
+    if (!game.running || game.over) return;
+    const timer = setInterval(() =&gt; {
+      setGame((old) =&gt; {
+        if (!old.running || old.over) return old;
+        const velocity = Math.min(8, old.velocity + 0.45);
+        const bird = old.bird + velocity;
+        const movedPipe = old.pipe - Math.max(3, Math.min(8, size.width / 120));
+        const wrapped = movedPipe &lt; -PIPE_WIDTH;
+        const pipe = wrapped ? size.width : movedPipe;
+        const gap = wrapped ? randomGap(size.height) : old.gap;
+        const hitPipe = pipe &lt; BIRD_X + BIRD_SIZE &amp;&amp; pipe + PIPE_WIDTH &gt; BIRD_X;
+        const collision =
+          bird &lt; 0 ||
+          bird &gt; size.height - BIRD_SIZE ||
+          (hitPipe &amp;&amp; (bird &lt; gap || bird + BIRD_SIZE &gt; gap + gapHeight(size.height)));
+        const passed = pipe + PIPE_WIDTH &lt; BIRD_X;
+        return {
+          ...old,
+          bird,
+          velocity,
+          pipe,
+          gap,
+          over: collision,
+          running: !collision,
+          score: old.score + (passed &amp;&amp; !old.passed ? 1 : 0),
+          passed: wrapped ? false : passed,
+        };
+      });
+    }, TICK_MS);
+    return () =&gt; clearInterval(timer);
+  }, [game.running, game.over, size]);
+
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;light&#39; }}&gt;
+        &lt;SafeArea flex={1} gap={0} bg={COLORS.sky}&gt;
+          &lt;StatusBar barStyle=&quot;dark-content&quot; /&gt;
+          &lt;Block
+            flex={1}
+            gap={0}
+            overflow=&quot;hidden&quot;
+            bg={COLORS.sky}
+            onLayout={({ nativeEvent: { layout } }) =&gt; {
+              const next = { width: layout.width, height: layout.height };
+              if (
+                next.width &gt; 0 &amp;&amp;
+                next.height &gt; 0 &amp;&amp;
+                (Math.abs(next.width - size.width) &gt; 1 || Math.abs(next.height - size.height) &gt; 1)
+              ) {
+                setSize(next);
+                setGame(fresh(next));
+              }
+            }}
+          &gt;
+            &lt;Block
+              gap={0}
+              pointerEvents=&quot;none&quot;
+              position=&quot;absolute&quot;
+              left={game.pipe}
+              top={0}
+              w={PIPE_WIDTH}
+              h={game.gap}
+              bg={COLORS.pipe}
+              borderWidth={3}
+              borderColor={COLORS.pipeBorder}
+            /&gt;
+            &lt;Block
+              gap={0}
+              pointerEvents=&quot;none&quot;
+              position=&quot;absolute&quot;
+              left={game.pipe}
+              top={game.gap + gapHeight(size.height)}
+              w={PIPE_WIDTH}
+              h={size.height}
+              bg={COLORS.pipe}
+              borderWidth={3}
+              borderColor={COLORS.pipeBorder}
+            /&gt;
+            &lt;Block
+              gap={0}
+              pointerEvents=&quot;none&quot;
+              position=&quot;absolute&quot;
+              left={BIRD_X}
+              top={game.bird}
+              w={BIRD_SIZE}
+              h={BIRD_SIZE}
+              radius={BIRD_SIZE / 2}
+              bg=&quot;#FFD34F&quot;
+              borderWidth={2}
+              borderColor=&quot;#B87519&quot;
+            /&gt;
+            &lt;Block
+              gap={0}
+              position=&quot;absolute&quot;
+              inset={0}
+              touchAction=&quot;none&quot;
+              onStartShouldSetResponder={() =&gt; true}
+              onResponderRelease={flap}
+              accessibilityRole=&quot;button&quot;
+              accessibilityLabel=&quot;Flap&quot;
+            /&gt;
+            &lt;Block
+              gap={0}
+              pointerEvents=&quot;box-none&quot;
+              position=&quot;absolute&quot;
+              top={16}
+              left={20}
+              right={20}
+              direction=&quot;row&quot;
+              align=&quot;center&quot;
+              justify=&quot;space-between&quot;
+            &gt;
+              &lt;Block gap={0} pointerEvents=&quot;none&quot;&gt;
+                &lt;Text c={COLORS.ink} size={11} fw=&quot;bold&quot; lts={1}&gt;SCORE&lt;/Text&gt;
+                &lt;Text c={COLORS.ink} size={30} fw=&quot;bold&quot;&gt;{game.score}&lt;/Text&gt;
+              &lt;/Block&gt;
+              &lt;Button title=&quot;Restart&quot; color=&quot;#ED8B21&quot; onPress={() =&gt; setGame(fresh(size))} /&gt;
+            &lt;/Block&gt;
+            {(!game.running || game.over) &amp;&amp; (
+              &lt;Block
+                gap={0}
+                pointerEvents=&quot;none&quot;
+                position=&quot;absolute&quot;
+                top=&quot;45%&quot;
+                alignSelf=&quot;center&quot;
+                bg=&quot;#FFFFFFE6&quot;
+                p={14}
+                radius={12}
+              &gt;
+                &lt;Text c={COLORS.ink} fw=&quot;bold&quot;&gt;
+                  {game.over ? &#39;Game over · tap to retry&#39; : &#39;Tap to start&#39;}
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+            )}
+          &lt;/Block&gt;
+        &lt;/SafeArea&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

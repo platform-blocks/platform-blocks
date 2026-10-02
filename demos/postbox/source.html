@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Postbox demo source | plocks</title><meta name="description" content="Browse the source code for the Postbox demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/postbox/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>postbox source</h1><nav><a href="/demos/postbox/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useState, type ReactNode } from &#39;react&#39;;
+import { StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import AsyncStorage from &#39;@react-native-async-storage/async-storage&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import {
+  TextArea,
+  AppShell,
+  Input,
+  ScrollArea,
+  SafeArea,
+  Block,
+  Avatar,
+  Button,
+  Dialog,
+  Icon,
+  IconButton,
+  PlocksProvider,
+  Text,
+  useAppShellApi,
+} from &#39;@plocks/ui&#39;;
+
+function NavbarControls({ children }: { children: (actions: ReturnType&lt;typeof useAppShellApi&gt;) =&gt; ReactNode }) {
+  return &lt;&gt;{children(useAppShellApi())}&lt;/&gt;;
+}
+
+const C = {
+  bg: &#39;#F7F8FC&#39;,
+  white: &#39;#FFF&#39;,
+  ink: &#39;#202124&#39;,
+  muted: &#39;#697279&#39;,
+  line: &#39;#E6E9EF&#39;,
+  blue: &#39;#0B57D0&#39;,
+  pale: &#39;#DDE9FF&#39;,
+  red: &#39;#EA4335&#39;,
+};
+type Folder = &#39;inbox&#39; | &#39;starred&#39; | &#39;sent&#39; | &#39;drafts&#39; | &#39;archive&#39; | &#39;trash&#39;;
+type Mail = {
+  id: string;
+  from: string;
+  to: string;
+  subject: string;
+  body: string;
+  time: string;
+  folder: Folder;
+  starred: boolean;
+  read: boolean;
+};
+const INITIAL: Mail[] = [
+  {
+    id: &#39;m1&#39;,
+    from: &#39;Maya Chen&#39;,
+    to: &#39;you@example.com&#39;,
+    subject: &#39;Coffee this weekend?&#39;,
+    body: &#39;Hey! I found a new little café near the park. Want to catch up on Saturday morning? I can bring that book I was telling you about.&#39;,
+    time: &#39;10:42 AM&#39;,
+    folder: &#39;inbox&#39;,
+    starred: true,
+    read: false,
+  },
+  {
+    id: &#39;m2&#39;,
+    from: &#39;The Weekly Edit&#39;,
+    to: &#39;you@example.com&#39;,
+    subject: &#39;Five things worth your time this week&#39;,
+    body: &#39;Hello! This week we are sharing a thoughtful article, a beautiful photo essay, and a recipe for a very slow Sunday.&#39;,
+    time: &#39;9:18 AM&#39;,
+    folder: &#39;inbox&#39;,
+    starred: false,
+    read: false,
+  },
+  {
+    id: &#39;m3&#39;,
+    from: &#39;Alex Rivera&#39;,
+    to: &#39;you@example.com&#39;,
+    subject: &#39;Re: project notes&#39;,
+    body: &#39;These notes look great. I added a couple of comments to the layout section. Let us review them together tomorrow.&#39;,
+    time: &#39;Yesterday&#39;,
+    folder: &#39;inbox&#39;,
+    starred: false,
+    read: true,
+  },
+  {
+    id: &#39;m4&#39;,
+    from: &#39;Studio North&#39;,
+    to: &#39;you@example.com&#39;,
+    subject: &#39;Your workshop is confirmed&#39;,
+    body: &#39;Thanks for signing up! We look forward to seeing you at the illustration workshop next Tuesday at 6 PM.&#39;,
+    time: &#39;Yesterday&#39;,
+    folder: &#39;inbox&#39;,
+    starred: true,
+    read: true,
+  },
+  {
+    id: &#39;m5&#39;,
+    from: &#39;Jordan Lee&#39;,
+    to: &#39;you@example.com&#39;,
+    subject: &#39;Photos from the coast&#39;,
+    body: &#39;Finally sorted the pictures from our weekend trip. The sunset ones came out especially well. I will send over a folder soon!&#39;,
+    time: &#39;Mon&#39;,
+    folder: &#39;inbox&#39;,
+    starred: false,
+    read: true,
+  },
+  {
+    id: &#39;m6&#39;,
+    from: &#39;you@example.com&#39;,
+    to: &#39;sam@example.com&#39;,
+    subject: &#39;Thanks for your help&#39;,
+    body: &#39;Hi Sam, thank you for walking me through the setup. Everything is working smoothly now.&#39;,
+    time: &#39;Sun&#39;,
+    folder: &#39;sent&#39;,
+    starred: false,
+    read: true,
+  },
+  {
+    id: &#39;m7&#39;,
+    from: &#39;Local Library&#39;,
+    to: &#39;you@example.com&#39;,
+    subject: &#39;A book is ready for pickup&#39;,
+    body: &#39;The title you requested is now available at the front desk. We will hold it for one week.&#39;,
+    time: &#39;Sat&#39;,
+    folder: &#39;archive&#39;,
+    starred: false,
+    read: true,
+  },
+];
+const STORAGE = &#39;plocks-postbox-example:v1&#39;;
+const FOLDERS: { id: Folder; label: string; icon: string }[] = [
+  { id: &#39;inbox&#39;, label: &#39;Inbox&#39;, icon: &#39;mail&#39; },
+  { id: &#39;starred&#39;, label: &#39;Starred&#39;, icon: &#39;star&#39; },
+  { id: &#39;sent&#39;, label: &#39;Sent&#39;, icon: &#39;arrowRight&#39; },
+  { id: &#39;drafts&#39;, label: &#39;Drafts&#39;, icon: &#39;edit&#39; },
+  { id: &#39;archive&#39;, label: &#39;Archive&#39;, icon: &#39;folder&#39; },
+  { id: &#39;trash&#39;, label: &#39;Trash&#39;, icon: &#39;trash&#39; },
+];
+const avatarColor = (name: string) =&gt; [&#39;#9874BD&#39;, &#39;#6C9CA5&#39;, &#39;#CA8C70&#39;, &#39;#7DA371&#39;][name.length % 4];
+
+function PostboxScreen() {
+  const { width } = useWindowDimensions();
+  const wide = width &gt;= 768;
+  const [folder, setFolder] = useState&lt;Folder&gt;(&#39;inbox&#39;);
+  const [messages, setMessages] = useState&lt;Mail[]&gt;(INITIAL);
+  const [query, setQuery] = useState(&#39;&#39;);
+  const [selected, setSelected] = useState&lt;string | null&gt;(null);
+  const [compose, setCompose] = useState(false);
+  const [to, setTo] = useState(&#39;&#39;);
+  const [subject, setSubject] = useState(&#39;&#39;);
+  const [body, setBody] = useState(&#39;&#39;);
+  const [ready, setReady] = useState(false);
+  const active = messages.find((item) =&gt; item.id === selected);
+  const unread = messages.filter((item) =&gt; item.folder === &#39;inbox&#39; &amp;&amp; !item.read).length;
+  const shown = messages.filter(
+    (item) =&gt;
+      (query.trim()
+        ? item.folder !== &#39;trash&#39;
+        : folder === &#39;starred&#39;
+          ? item.starred &amp;&amp; item.folder !== &#39;trash&#39;
+          : item.folder === folder) &amp;&amp;
+      `${item.from} ${item.to} ${item.subject} ${item.body}`.toLowerCase().includes(query.toLowerCase()),
+  );
+
+  useEffect(() =&gt; {
+    AsyncStorage.getItem(STORAGE)
+      .then((raw) =&gt; {
+        if (!raw) return;
+        const data = JSON.parse(raw) as Mail[];
+        if (Array.isArray(data)) setMessages(data);
+      })
+      .catch(() =&gt; {})
+      .finally(() =&gt; setReady(true));
+  }, []);
+  useEffect(() =&gt; {
+    if (ready) AsyncStorage.setItem(STORAGE, JSON.stringify(messages)).catch(() =&gt; {});
+  }, [messages, ready]);
+  const changeFolder = (next: Folder) =&gt; {
+    setFolder(next);
+    setQuery(&#39;&#39;);
+    setSelected(null);
+  };
+  const openMessage = (id: string) =&gt; {
+    setSelected(id);
+    setMessages((old) =&gt; old.map((item) =&gt; (item.id === id ? { ...item, read: true } : item)));
+  };
+  const toggleStar = (id: string) =&gt;
+    setMessages((old) =&gt; old.map((item) =&gt; (item.id === id ? { ...item, starred: !item.starred } : item)));
+  const moveMessage = (id: string, next: Folder) =&gt; {
+    setMessages((old) =&gt; old.map((item) =&gt; (item.id === id ? { ...item, folder: next } : item)));
+    setSelected(null);
+  };
+  function startCompose(reply?: Mail) {
+    setTo(reply?.from ?? &#39;&#39;);
+    setSubject(reply ? `Re: ${reply.subject.replace(/^Re: /, &#39;&#39;)}` : &#39;&#39;);
+    setBody(&#39;&#39;);
+    setCompose(true);
+  }
+  function saveDraft() {
+    if (to.trim() || subject.trim() || body.trim())
+      setMessages((old) =&gt; [
+        {
+          id: `draft-${Date.now()}`,
+          from: &#39;you@example.com&#39;,
+          to: to.trim(),
+          subject: subject.trim() || &#39;(no subject)&#39;,
+          body: body.trim(),
+          time: &#39;Draft&#39;,
+          folder: &#39;drafts&#39;,
+          starred: false,
+          read: true,
+        },
+        ...old,
+      ]);
+    setCompose(false);
+  }
+  function send() {
+    if (!to.trim() || !body.trim()) return;
+    setMessages((old) =&gt; [
+      {
+        id: `sent-${Date.now()}`,
+        from: &#39;you@example.com&#39;,
+        to: to.trim(),
+        subject: subject.trim() || &#39;(no subject)&#39;,
+        body: body.trim(),
+        time: &#39;Just now&#39;,
+        folder: &#39;sent&#39;,
+        starred: false,
+        read: true,
+      },
+      ...old,
+    ]);
+    setCompose(false);
+    setTo(&#39;&#39;);
+    setSubject(&#39;&#39;);
+    setBody(&#39;&#39;);
+    setFolder(&#39;sent&#39;);
+    setSelected(null);
+  }
+  const sidebar = (closeNavbar: () =&gt; void) =&gt; (
+    &lt;Block flex={1} bg={C.bg} p={12} gap={8}&gt;
+      &lt;Button
+        title=&quot;✎  Compose&quot;
+        color={C.pale}
+        textColor={C.ink}
+        radius=&quot;lg&quot;
+        onPress={() =&gt; {
+          closeNavbar();
+          startCompose();
+        }}
+      /&gt;
+      &lt;Block gap={0} h={8} /&gt;
+      {FOLDERS.map((item) =&gt; (
+        &lt;Block
+          key={item.id}
+          onPress={() =&gt; {
+            changeFolder(item.id);
+            closeNavbar();
+          }}
+          accessibilityRole=&quot;button&quot;
+          accessibilityLabel={`Open ${item.label}`}
+          direction=&quot;row&quot;
+          align=&quot;center&quot;
+          gap={15}
+          px={14}
+          py={10}
+          radius={19}
+          bg={folder === item.id ? C.pale : &#39;transparent&#39;}
+        &gt;
+          &lt;Icon
+            name={item.icon}
+            variant={folder === item.id ? &#39;filled&#39; : &#39;outlined&#39;}
+            color={folder === item.id ? C.ink : C.muted}
+            size={19}
+          /&gt;
+          &lt;Text c={C.ink} fw={folder === item.id ? &#39;bold&#39; : &#39;normal&#39;} flex={1}&gt;
+            {item.label}
+          &lt;/Text&gt;
+          {item.id === &#39;inbox&#39; &amp;&amp; unread &gt; 0 &amp;&amp; (
+            &lt;Text c={C.ink} fw=&quot;bold&quot; size={12}&gt;
+              {unread}
+            &lt;/Text&gt;
+          )}
+        &lt;/Block&gt;
+      ))}
+      &lt;Block gap={0} flex={1} /&gt;
+      &lt;Text c={C.muted} size={11} p={12}&gt;
+        Local mail demo · no delivery
+      &lt;/Text&gt;
+    &lt;/Block&gt;
+  );
+
+  return (
+    &lt;SafeArea gap={0} flex={1} bg={C.white}&gt;
+      &lt;StatusBar barStyle=&quot;dark-content&quot; /&gt;
+      &lt;AppShell
+        withSafeArea={false}
+        withBorder={false}
+        header={{ height: 65 }}
+        navbar={{ width: 230, breakpoint: &#39;md&#39;, expandOnHover: false }}
+      &gt;
+        &lt;AppShell.Header withBorder={false}&gt;
+          &lt;Block h={65} direction=&quot;row&quot; align=&quot;center&quot; px={17} gap={14} borderBottomWidth={1} borderBottomColor={C.line}&gt;
+            {!wide &amp;&amp; (
+              &lt;NavbarControls&gt;
+                {({ openNavbar }) =&gt; (
+                  &lt;IconButton icon=&quot;menu&quot; variant=&quot;ghost&quot; iconColor={C.muted} accessibilityLabel=&quot;Show folders&quot; onPress={openNavbar} /&gt;
+                )}
+              &lt;/NavbarControls&gt;
+            )}
+            &lt;Icon name=&quot;mail&quot; variant=&quot;filled&quot; color={C.red} size={27} /&gt;
+            &lt;Text c={C.ink} fw=&quot;bold&quot; size={wide ? 24 : 19}&gt;
+              Postbox
+            &lt;/Text&gt;
+            &lt;Block
+              gap={0}
+              flex={1}
+              maw={650}
+              ml={wide ? 40 : 0}
+              direction=&quot;row&quot;
+              bg=&quot;#F0F4F9&quot;
+              radius={22}
+              align=&quot;center&quot;
+              px={13}
+            &gt;
+              &lt;Icon name=&quot;search&quot; color={C.muted} size={19} /&gt;
+              &lt;Input
+                variant=&quot;unstyled&quot;
+                value={query}
+                onChangeText={setQuery}
+                placeholder=&quot;Search mail&quot;
+                mb={0}
+                flex={1}
+                inputColor={C.ink}
+                inputFontSize={14}
+              /&gt;
+            &lt;/Block&gt;
+          &lt;/Block&gt;
+        &lt;/AppShell.Header&gt;
+        &lt;AppShell.Navbar accessibilityLabel=&quot;Mail folders&quot; withBorder={false}&gt;
+          &lt;NavbarControls&gt;{({ closeNavbar }) =&gt; sidebar(closeNavbar)}&lt;/NavbarControls&gt;
+        &lt;/AppShell.Navbar&gt;
+        &lt;AppShell.Main centerContent={false}&gt;
+          &lt;Block gap={0} flex={1} direction=&quot;row&quot;&gt;
+            {(!selected || wide) &amp;&amp; (
+              &lt;Block
+                gap={0}
+                w={wide ? 390 : &#39;100%&#39;}
+                bg={C.white}
+                borderRightWidth={wide ? 1 : 0}
+                borderRightColor={C.line}
+              &gt;
+                &lt;Block
+                  gap={0}
+                  px={18}
+                  py={15}
+                  borderBottomWidth={1}
+                  borderBottomColor={C.line}
+                  direction=&quot;row&quot;
+                  justify=&quot;space-between&quot;
+                &gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={20}&gt;
+                    {query ? &#39;Search results&#39; : FOLDERS.find((item) =&gt; item.id === folder)?.label}
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={11}&gt;
+                    {shown.length} messages
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+                &lt;ScrollArea flex={1}&gt;
+                  {shown.length === 0 &amp;&amp; (
+                    &lt;Text c={C.muted} p={24}&gt;
+                      No messages here.
+                    &lt;/Text&gt;
+                  )}
+                  {shown.map((item) =&gt; (
+                    &lt;Block
+                      key={item.id}
+                      onPress={() =&gt; openMessage(item.id)}
+                      accessibilityRole=&quot;button&quot;
+                      accessibilityLabel={`Open ${item.subject}`}
+                      direction=&quot;row&quot;
+                      gap={10}
+                      px={14}
+                      py={13}
+                      bg={selected === item.id ? &#39;#EAF1FB&#39; : item.read ? C.white : &#39;#F4F7FC&#39;}
+                      borderBottomWidth={1}
+                      borderBottomColor={C.line}
+                    &gt;
+                      &lt;Avatar
+                        size=&quot;md&quot;
+                        fallback={item.from.slice(0, 2).toUpperCase()}
+                        bg={avatarColor(item.from)}
+                        textColor={C.white}
+                      /&gt;
+                      &lt;Block flex={1} miw={0} gap={3}&gt;
+                        &lt;Block direction=&quot;row&quot; justify=&quot;space-between&quot; gap={5}&gt;
+                          &lt;Text c={C.ink} fw={item.read ? &#39;medium&#39; : &#39;bold&#39;} size={13} numberOfLines={1} flex={1}&gt;
+                            {item.from}
+                          &lt;/Text&gt;
+                          &lt;Text c={C.muted} size={10}&gt;
+                            {item.time}
+                          &lt;/Text&gt;
+                        &lt;/Block&gt;
+                        &lt;Text c={C.ink} fw={item.read ? &#39;normal&#39; : &#39;bold&#39;} size={12} numberOfLines={1}&gt;
+                          {item.subject}
+                        &lt;/Text&gt;
+                        &lt;Text c={C.muted} size={12} numberOfLines={1}&gt;
+                          {item.body}
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                      &lt;Block
+                        gap={0}
+                        onPress={(event) =&gt; {
+                          event.stopPropagation();
+                          toggleStar(item.id);
+                        }}
+                        accessibilityLabel={item.starred ? &#39;Unstar message&#39; : &#39;Star message&#39;}
+                        alignSelf=&quot;center&quot;
+                        p={4}
+                      &gt;
+                        &lt;Icon
+                          name=&quot;star&quot;
+                          variant={item.starred ? &#39;filled&#39; : &#39;outlined&#39;}
+                          color={item.starred ? &#39;#F2B632&#39; : C.muted}
+                          size={19}
+                        /&gt;
+                      &lt;/Block&gt;
+                    &lt;/Block&gt;
+                  ))}
+                &lt;/ScrollArea&gt;
+                {!wide &amp;&amp; (
+                  &lt;Block
+                    gap={0}
+                    onPress={() =&gt; startCompose()}
+                    accessibilityRole=&quot;button&quot;
+                    accessibilityLabel=&quot;Compose message&quot;
+                    position=&quot;absolute&quot;
+                    right={18}
+                    bottom={18}
+                    bg={C.pale}
+                    radius={17}
+                    px={17}
+                    py={13}
+                  &gt;
+                    &lt;Text c={C.ink} fw=&quot;bold&quot;&gt;
+                      ✎ Compose
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                )}
+              &lt;/Block&gt;
+            )}
+            {(wide || selected) &amp;&amp; (
+              &lt;Block gap={0} flex={1} bg={C.white}&gt;
+                {active ? (
+                  &lt;&gt;
+                    &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={4} p={10} borderBottomWidth={1} borderBottomColor={C.line}&gt;
+                      {!wide &amp;&amp; (
+                        &lt;IconButton
+                          icon=&quot;arrowLeft&quot;
+                          variant=&quot;ghost&quot;
+                          iconColor={C.ink}
+                          accessibilityLabel=&quot;Back to messages&quot;
+                          onPress={() =&gt; setSelected(null)}
+                        /&gt;
+                      )}
+                      &lt;IconButton
+                        icon=&quot;folder&quot;
+                        variant=&quot;ghost&quot;
+                        iconColor={C.muted}
+                        accessibilityLabel=&quot;Archive message&quot;
+                        onPress={() =&gt; moveMessage(active.id, &#39;archive&#39;)}
+                      /&gt;
+                      &lt;IconButton
+                        icon=&quot;trash&quot;
+                        variant=&quot;ghost&quot;
+                        iconColor={C.muted}
+                        accessibilityLabel=&quot;Delete message&quot;
+                        onPress={() =&gt; moveMessage(active.id, &#39;trash&#39;)}
+                      /&gt;
+                      &lt;IconButton
+                        icon=&quot;mail&quot;
+                        variant=&quot;ghost&quot;
+                        iconColor={C.muted}
+                        accessibilityLabel=&quot;Mark unread&quot;
+                        onPress={() =&gt; {
+                          setMessages((old) =&gt;
+                            old.map((item) =&gt; (item.id === active.id ? { ...item, read: false } : item)),
+                          );
+                          setSelected(null);
+                        }}
+                      /&gt;
+                    &lt;/Block&gt;
+                    &lt;ScrollArea contentProps={{ p: wide ? 32 : 20, maw: 850, w: &#39;100%&#39; }}&gt;
+                      &lt;Text c={C.ink} fw=&quot;bold&quot; size={27}&gt;
+                        {active.subject}
+                      &lt;/Text&gt;
+                      &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={12} mt={27}&gt;
+                        &lt;Avatar
+                          size=&quot;lg&quot;
+                          fallback={active.from.slice(0, 2).toUpperCase()}
+                          bg={avatarColor(active.from)}
+                          textColor={C.white}
+                        /&gt;
+                        &lt;Block gap={0} flex={1}&gt;
+                          &lt;Text c={C.ink} fw=&quot;bold&quot; size={14}&gt;
+                            {active.from}
+                          &lt;/Text&gt;
+                          &lt;Text c={C.muted} size={11}&gt;
+                            to {active.to} · {active.time}
+                          &lt;/Text&gt;
+                        &lt;/Block&gt;
+                        &lt;IconButton
+                          icon=&quot;star&quot;
+                          variant=&quot;ghost&quot;
+                          iconColor={active.starred ? &#39;#F2B632&#39; : C.muted}
+                          accessibilityLabel=&quot;Toggle star&quot;
+                          onPress={() =&gt; toggleStar(active.id)}
+                        /&gt;
+                      &lt;/Block&gt;
+                      &lt;Text c={C.ink} size={15} lh={25} mt={30} mb={30}&gt;
+                        {active.body}
+                      &lt;/Text&gt;
+                      {active.folder !== &#39;sent&#39; &amp;&amp; (
+                        &lt;Block gap={0} alignSelf=&quot;flex-start&quot;&gt;
+                          &lt;Button
+                            title=&quot;↩  Reply&quot;
+                            variant=&quot;outline&quot;
+                            color={C.muted}
+                            onPress={() =&gt; startCompose(active)}
+                          /&gt;
+                        &lt;/Block&gt;
+                      )}
+                      &lt;Text c={C.muted} size={11} mt={20}&gt;
+                        Demo inbox. Replies stay on this device.
+                      &lt;/Text&gt;
+                    &lt;/ScrollArea&gt;
+                  &lt;/&gt;
+                ) : (
+                  &lt;Block flex={1} align=&quot;center&quot; justify=&quot;center&quot; gap={12}&gt;
+                    &lt;Icon name=&quot;mail&quot; color=&quot;#C8CED7&quot; size={55} /&gt;
+                    &lt;Text c={C.muted}&gt;Select a message to read it.&lt;/Text&gt;
+                  &lt;/Block&gt;
+                )}
+              &lt;/Block&gt;
+            )}
+          &lt;/Block&gt;
+        &lt;/AppShell.Main&gt;
+      &lt;/AppShell&gt;
+      {compose &amp;&amp; (
+        &lt;Dialog opened accessibilityLabel=&quot;New message&quot; onClose={saveDraft}&gt;
+          &lt;Block gap={0}&gt;
+            &lt;Block gap={0} bg=&quot;#EEF2F8&quot; px={17} h={45} direction=&quot;row&quot; align=&quot;center&quot; justify=&quot;space-between&quot;&gt;
+              &lt;Text c={C.ink} fw=&quot;bold&quot;&gt;
+                New message
+              &lt;/Text&gt;
+              &lt;IconButton
+                icon=&quot;x&quot;
+                variant=&quot;ghost&quot;
+                iconColor={C.ink}
+                accessibilityLabel=&quot;Save draft and close&quot;
+                onPress={saveDraft}
+              /&gt;
+            &lt;/Block&gt;
+            &lt;Input
+              variant=&quot;outline&quot;
+              value={to}
+              onChangeText={setTo}
+              placeholder=&quot;To&quot;
+              autoCapitalize=&quot;none&quot;
+              keyboardType=&quot;email-address&quot;
+              mb={0}
+              inputColor={C.ink}
+            /&gt;
+            &lt;Input
+              variant=&quot;outline&quot;
+              value={subject}
+              onChangeText={setSubject}
+              placeholder=&quot;Subject&quot;
+              mb={0}
+              inputColor={C.ink}
+            /&gt;
+            &lt;TextArea variant=&quot;outline&quot; value={body} onChangeText={setBody} placeholder=&quot;Write your message&quot; mb={0} /&gt;
+            &lt;Block gap={0} p={12} alignSelf=&quot;flex-start&quot;&gt;
+              &lt;Button title=&quot;Send demo message&quot; color={C.blue} disabled={!to.trim() || !body.trim()} onPress={send} /&gt;
+            &lt;/Block&gt;
+          &lt;/Block&gt;
+        &lt;/Dialog&gt;
+      )}
+    &lt;/SafeArea&gt;
+  );
+}
+export default function App() {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;light&#39; }}&gt;
+        &lt;PostboxScreen /&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

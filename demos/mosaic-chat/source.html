@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Mosaic Chat demo source | plocks</title><meta name="description" content="Browse the source code for the Mosaic Chat demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/mosaic-chat/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>mosaic-chat source</h1><nav><a href="/demos/mosaic-chat/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useRef, useState, type ReactNode } from &#39;react&#39;;
+import { Platform, ScrollView, StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import AsyncStorage from &#39;@react-native-async-storage/async-storage&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import {
+  KeyboardAvoidingArea,
+  TextArea,
+  Input,
+  SafeArea,
+  ScrollArea,
+  AppShell,
+  Block,
+  Icon,
+  IconButton,
+  PlocksProvider,
+  Text,
+  useAppShellApi,
+} from &#39;@plocks/ui&#39;;
+
+function NavbarControls({ children }: { children: (actions: ReturnType&lt;typeof useAppShellApi&gt;) =&gt; ReactNode }) {
+  return &lt;&gt;{children(useAppShellApi())}&lt;/&gt;;
+}
+
+const C = {
+  bg: &#39;#FFFFFF&#39;,
+  sidebar: &#39;#F8F7F5&#39;,
+  ink: &#39;#262626&#39;,
+  muted: &#39;#777674&#39;,
+  line: &#39;#E7E6E3&#39;,
+  accent: &#39;#2A6B59&#39;,
+  pale: &#39;#EAF3EE&#39;,
+  white: &#39;#FFF&#39;,
+};
+type Message = { id: string; role: &#39;user&#39; | &#39;assistant&#39;; text: string };
+type Chat = { id: string; title: string; messages: Message[] };
+const STORAGE = &#39;plocks-mosaic-chat-example:v1&#39;;
+const SUGGESTIONS = [
+  {
+    title: &#39;Plan a calm weekend&#39;,
+    subtitle: &#39;with room to recharge&#39;,
+    prompt: &#39;Plan a calm weekend with room to recharge&#39;,
+  },
+  {
+    title: &#39;Brainstorm a name&#39;,
+    subtitle: &#39;for a neighborhood café&#39;,
+    prompt: &#39;Brainstorm a name for a neighborhood café&#39;,
+  },
+  {
+    title: &#39;Write a friendly email&#39;,
+    subtitle: &#39;to reschedule a meeting&#39;,
+    prompt: &#39;Write a friendly email to reschedule a meeting&#39;,
+  },
+  { title: &#39;Explain a concept&#39;, subtitle: &#39;like I am new to it&#39;, prompt: &#39;Explain how a rainbow forms&#39; },
+];
+function demoReply(prompt: string) {
+  const input = prompt.toLowerCase();
+  if (input.includes(&#39;weekend&#39;) || input.includes(&#39;plan&#39;))
+    return &#39;Here is a gentle weekend plan:\n\nSaturday morning: take a slow walk and get a favorite drink.\nSaturday afternoon: spend one focused hour on something creative, then leave the rest open.\nSunday: make an easy meal, call someone you miss, and prepare one small thing for Monday.\n\nKeep the plan light enough to change when you feel like it.&#39;;
+  if (input.includes(&#39;name&#39;) || input.includes(&#39;brainstorm&#39;) || input.includes(&#39;idea&#39;))
+    return &#39;A few starting ideas:\n\n• Corner &amp; Co.\n• Little Window\n• Daybreak House\n• Common Ground\n• The Warm Cup\n\nTell me the mood and neighborhood, and I can make the list more specific.&#39;;
+  if (input.includes(&#39;email&#39;) || input.includes(&#39;write&#39;))
+    return &#39;Subject: Could we find another time?\n\nHi there,\n\nI hope you are doing well. Something has come up, and I need to reschedule our meeting. Would you be available later this week? I am happy to work around your schedule.\n\nThanks for understanding,\n[Your name]&#39;;
+  if (input.includes(&#39;rainbow&#39;) || input.includes(&#39;explain&#39;))
+    return &#39;A rainbow appears when sunlight passes through raindrops. The light bends as it enters, reflects inside the drop, then bends again as it leaves. Different colors bend by different amounts, so the white light spreads into a colorful arc.\n\nThe sun is usually behind you and the rain is in front of you when you see one.&#39;;
+  if (input.includes(&#39;hello&#39;) || input.includes(&#39;hi&#39;))
+    return &#39;Hello! I am a scripted local demo of a chat interface. Try asking me for a weekend plan, a café name, a friendly email, or a simple explanation.&#39;;
+  return &#39;I am a local demo, so my replies come from a small set of scripted examples. I can show how this chat UI handles messages and history. Try asking for a weekend plan, a café name, a friendly email, or an explanation of a rainbow.&#39;;
+}
+
+function MosaicChatScreen() {
+  const { width } = useWindowDimensions();
+  const wide = width &gt;= 768;
+  const [chats, setChats] = useState&lt;Chat[]&gt;([]);
+  const [activeId, setActiveId] = useState&lt;string | null&gt;(null);
+  const [draft, setDraft] = useState(&#39;&#39;);
+  const [search, setSearch] = useState(&#39;&#39;);
+  const [loadingChat, setLoadingChat] = useState&lt;string | null&gt;(null);
+  const [ready, setReady] = useState(false);
+  const timer = useRef&lt;ReturnType&lt;typeof setTimeout&gt; | null&gt;(null);
+  const scroll = useRef&lt;ScrollView&gt;(null);
+  const active = chats.find((chat) =&gt; chat.id === activeId);
+
+  useEffect(() =&gt; {
+    AsyncStorage.getItem(STORAGE)
+      .then((raw) =&gt; {
+        if (!raw) return;
+        const data = JSON.parse(raw) as Chat[];
+        if (Array.isArray(data)) setChats(data);
+      })
+      .catch(() =&gt; {})
+      .finally(() =&gt; setReady(true));
+    return () =&gt; {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, []);
+  useEffect(() =&gt; {
+    if (ready) AsyncStorage.setItem(STORAGE, JSON.stringify(chats)).catch(() =&gt; {});
+  }, [chats, ready]);
+  function newChat() {
+    setActiveId(null);
+    setDraft(&#39;&#39;);
+  }
+  function sendPrompt(value = draft) {
+    const text = value.trim();
+    if (!text || loadingChat) return;
+    const id = activeId ?? `chat-${Date.now()}`;
+    const userMessage: Message = { id: `user-${Date.now()}`, role: &#39;user&#39;, text };
+    setChats((old) =&gt; {
+      const existing = old.find((chat) =&gt; chat.id === id);
+      if (existing)
+        return old.map((chat) =&gt; (chat.id === id ? { ...chat, messages: [...chat.messages, userMessage] } : chat));
+      return [{ id, title: text.slice(0, 34) + (text.length &gt; 34 ? &#39;…&#39; : &#39;&#39;), messages: [userMessage] }, ...old];
+    });
+    setActiveId(id);
+    setDraft(&#39;&#39;);
+    setLoadingChat(id);
+    timer.current = setTimeout(() =&gt; {
+      const reply: Message = { id: `assistant-${Date.now()}`, role: &#39;assistant&#39;, text: demoReply(text) };
+      setChats((old) =&gt; old.map((chat) =&gt; (chat.id === id ? { ...chat, messages: [...chat.messages, reply] } : chat)));
+      setLoadingChat(null);
+    }, 650);
+  }
+  const sidebar = (closeNavbar: () =&gt; void) =&gt; (
+    &lt;Block gap={0} flex={1} bg={C.sidebar} p={13}&gt;
+      &lt;Block
+        onPress={() =&gt; {
+          newChat();
+          closeNavbar();
+        }}
+        accessibilityRole=&quot;button&quot;
+        accessibilityLabel=&quot;New chat&quot;
+        direction=&quot;row&quot;
+        align=&quot;center&quot;
+        gap={9}
+        p={11}
+        radius={10}
+        bg={C.white}
+        borderWidth={1}
+        borderColor={C.line}
+      &gt;
+        &lt;Icon name=&quot;edit&quot; color={C.ink} size={18} /&gt;
+        &lt;Text c={C.ink} fw=&quot;semibold&quot; size={13}&gt;
+          New chat
+        &lt;/Text&gt;
+      &lt;/Block&gt;
+      &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={6} px={10} mt={18} mb={10} bg=&quot;#EEEDEB&quot; radius={8}&gt;
+        &lt;Icon name=&quot;search&quot; color={C.muted} size={16} /&gt;
+        &lt;Input
+          variant=&quot;unstyled&quot;
+          value={search}
+          onChangeText={setSearch}
+          placeholder=&quot;Search chats&quot;
+          mb={0}
+          flex={1}
+          inputColor={C.ink}
+          inputFontSize={12}
+        /&gt;
+      &lt;/Block&gt;
+      &lt;Text c={C.muted} fw=&quot;bold&quot; size={11} ml={9} mb={8}&gt;
+        RECENT
+      &lt;/Text&gt;
+      &lt;ScrollArea flex={1}&gt;
+        {chats
+          .filter((chat) =&gt; chat.title.toLowerCase().includes(search.toLowerCase()))
+          .map((chat) =&gt; (
+            &lt;Block
+              key={chat.id}
+              onPress={() =&gt; {
+                setActiveId(chat.id);
+                closeNavbar();
+              }}
+              accessibilityRole=&quot;button&quot;
+              accessibilityLabel={`Open ${chat.title}`}
+              direction=&quot;row&quot;
+              align=&quot;center&quot;
+              gap={8}
+              radius={9}
+              p={10}
+              bg={activeId === chat.id ? &#39;#EAE9E6&#39; : &#39;transparent&#39;}
+            &gt;
+              &lt;Icon name=&quot;message&quot; color={C.muted} size={15} /&gt;
+              &lt;Text c={C.ink} size={12} numberOfLines={1} flex={1}&gt;
+                {chat.title}
+              &lt;/Text&gt;
+              &lt;Block
+                gap={0}
+                onPress={(event) =&gt; {
+                  event.stopPropagation();
+                  setChats((old) =&gt; old.filter((item) =&gt; item.id !== chat.id));
+                  if (activeId === chat.id) setActiveId(null);
+                }}
+                accessibilityLabel={`Delete ${chat.title}`}
+              &gt;
+                &lt;Icon name=&quot;trash&quot; color={C.muted} size={15} /&gt;
+              &lt;/Block&gt;
+            &lt;/Block&gt;
+          ))}
+      &lt;/ScrollArea&gt;
+      &lt;Block borderTopWidth={1} borderTopColor={C.line} p={11} gap={4}&gt;
+        &lt;Text c={C.ink} fw=&quot;semibold&quot; size={12}&gt;
+          Mosaic Chat demo
+        &lt;/Text&gt;
+        &lt;Text c={C.muted} size={10}&gt;
+          Scripted replies · saved on device
+        &lt;/Text&gt;
+      &lt;/Block&gt;
+    &lt;/Block&gt;
+  );
+
+  return (
+    &lt;SafeArea gap={0} flex={1} bg={C.bg}&gt;
+      &lt;StatusBar barStyle=&quot;dark-content&quot; /&gt;
+      &lt;AppShell
+        withSafeArea={false}
+        withBorder={false}
+        navbar={{ width: 255, breakpoint: &#39;md&#39;, expandOnHover: false }}
+      &gt;
+        &lt;AppShell.Navbar accessibilityLabel=&quot;Chats&quot; withBorder={false}&gt;
+          &lt;NavbarControls&gt;{({ closeNavbar }) =&gt; sidebar(closeNavbar)}&lt;/NavbarControls&gt;
+        &lt;/AppShell.Navbar&gt;
+        &lt;AppShell.Main centerContent={false}&gt;
+          &lt;KeyboardAvoidingArea behavior={Platform.OS === &#39;ios&#39; ? &#39;padding&#39; : undefined} flex={1} gap={0}&gt;
+            &lt;Block
+              h={58}
+              borderBottomWidth={1}
+              borderBottomColor={C.line}
+              direction=&quot;row&quot;
+              align=&quot;center&quot;
+              gap={10}
+              px={14}
+            &gt;
+              {!wide &amp;&amp; (
+                &lt;NavbarControls&gt;
+                  {({ openNavbar }) =&gt; (
+                    &lt;IconButton icon=&quot;menu&quot; variant=&quot;ghost&quot; iconColor={C.ink} accessibilityLabel=&quot;Show chats&quot; onPress={openNavbar} /&gt;
+                  )}
+                &lt;/NavbarControls&gt;
+              )}
+              &lt;Block gap={0} w={30} h={30} radius={10} bg={C.accent} align=&quot;center&quot; justify=&quot;center&quot;&gt;
+                &lt;Text c={C.white} fw=&quot;bold&quot; size={18}&gt;
+                  ✦
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+              &lt;Text c={C.ink} fw=&quot;bold&quot; size={17} numberOfLines={1} flex={1}&gt;
+                {active?.title ?? &#39;Mosaic Chat&#39;}
+              &lt;/Text&gt;
+              &lt;Text c={C.muted} size={11}&gt;
+                Demo mode
+              &lt;/Text&gt;
+              {!wide &amp;&amp; (
+                &lt;IconButton
+                  icon=&quot;edit&quot;
+                  variant=&quot;ghost&quot;
+                  iconColor={C.ink}
+                  accessibilityLabel=&quot;New chat&quot;
+                  onPress={newChat}
+                /&gt;
+              )}
+            &lt;/Block&gt;
+            {active ? (
+              &lt;ScrollArea
+                ref={scroll}
+                flex={1}
+                contentProps={{ p: wide ? 26 : 16, pb: 30 }}
+                onContentSizeChange={() =&gt; scroll.current?.scrollToEnd({ animated: false })}
+              &gt;
+                &lt;Block w=&quot;100%&quot; maw={760} alignSelf=&quot;center&quot; gap={22}&gt;
+                  {active.messages.map((message) =&gt; (
+                    &lt;Block
+                      key={message.id}
+                      direction=&quot;row&quot;
+                      gap={12}
+                      alignSelf={message.role === &#39;user&#39; ? &#39;flex-end&#39; : &#39;stretch&#39;}
+                      maw={message.role === &#39;user&#39; ? &#39;84%&#39; : &#39;100%&#39;}
+                    &gt;
+                      {message.role === &#39;assistant&#39; &amp;&amp; (
+                        &lt;Block gap={0} w={28} h={28} radius={10} bg={C.accent} align=&quot;center&quot; justify=&quot;center&quot;&gt;
+                          &lt;Text c={C.white} fw=&quot;bold&quot; size={16}&gt;
+                            ✦
+                          &lt;/Text&gt;
+                        &lt;/Block&gt;
+                      )}
+                      &lt;Block
+                        gap={0}
+                        flex={1}
+                        bg={message.role === &#39;user&#39; ? &#39;#F2F2F0&#39; : C.white}
+                        p={message.role === &#39;user&#39; ? 13 : 0}
+                        radius={18}
+                      &gt;
+                        &lt;Text c={C.ink} size={14} lh={23}&gt;
+                          {message.text}
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                    &lt;/Block&gt;
+                  ))}
+                  {loadingChat === active.id &amp;&amp; (
+                    &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={10}&gt;
+                      &lt;Block gap={0} w={28} h={28} radius={10} bg={C.accent} align=&quot;center&quot; justify=&quot;center&quot;&gt;
+                        &lt;Text c={C.white}&gt;✦&lt;/Text&gt;
+                      &lt;/Block&gt;
+                      &lt;Text c={C.muted} size={13}&gt;
+                        Thinking through a demo reply…
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                  )}
+                &lt;/Block&gt;
+              &lt;/ScrollArea&gt;
+            ) : (
+              &lt;Block gap={0} flex={1} align=&quot;center&quot; justify=&quot;center&quot; p={20}&gt;
+                &lt;Block gap={0} w=&quot;100%&quot; maw={670} align=&quot;center&quot;&gt;
+                  &lt;Block gap={0} w={51} h={51} radius={17} bg={C.accent} align=&quot;center&quot; justify=&quot;center&quot;&gt;
+                    &lt;Text c={C.white} fw=&quot;bold&quot; size={27}&gt;
+                      ✦
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;Text c={C.ink} fw=&quot;bold&quot; size={wide ? 31 : 26} mt={17}&gt;
+                    What can we explore?
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} ta=&quot;center&quot; size={13} mt={8}&gt;
+                    This is a local scripted chat demo. Pick a prompt to try it.
+                  &lt;/Text&gt;
+                  &lt;Block direction=&quot;row&quot; wrap=&quot;wrap&quot; gap={9} mt={35} w=&quot;100%&quot;&gt;
+                    {SUGGESTIONS.map((item) =&gt; (
+                      &lt;Block
+                        key={item.title}
+                        onPress={() =&gt; sendPrompt(item.prompt)}
+                        w=&quot;48%&quot;
+                        mih={80}
+                        borderWidth={1}
+                        borderColor={C.line}
+                        radius={12}
+                        p={12}
+                        justify=&quot;center&quot;
+                        gap={4}
+                      &gt;
+                        &lt;Text c={C.ink} fw=&quot;semibold&quot; size={12}&gt;
+                          {item.title}
+                        &lt;/Text&gt;
+                        &lt;Text c={C.muted} size={11}&gt;
+                          {item.subtitle}
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                    ))}
+                  &lt;/Block&gt;
+                &lt;/Block&gt;
+              &lt;/Block&gt;
+            )}
+            &lt;Block gap={0} px={wide ? 28 : 12} pb={12} pt={9} align=&quot;center&quot;&gt;
+              &lt;Block
+                gap={0}
+                w=&quot;100%&quot;
+                maw={760}
+                borderWidth={1}
+                borderColor={C.line}
+                radius={20}
+                direction=&quot;row&quot;
+                align=&quot;flex-end&quot;
+                p={10}
+                bg={C.white}
+              &gt;
+                &lt;Block gap={0} flex={1} miw={0}&gt;
+                  &lt;TextArea
+                    variant=&quot;outline&quot;
+                    value={draft}
+                    onChangeText={setDraft}
+                    placeholder=&quot;Message Mosaic Chat&quot;
+                    placeholderTextColor={C.muted}
+                    mb={0}
+                    mah={110}
+                    rows={2}
+                  /&gt;
+                &lt;/Block&gt;
+                &lt;IconButton
+                  icon=&quot;arrowUp&quot;
+                  variant=&quot;filled&quot;
+                  color={C.accent}
+                  iconColor={C.white}
+                  radius=&quot;full&quot;
+                  accessibilityLabel=&quot;Send message&quot;
+                  disabled={!draft.trim() || !!loadingChat}
+                  onPress={() =&gt; sendPrompt()}
+                /&gt;
+              &lt;/Block&gt;
+              &lt;Text c={C.muted} size={10} ta=&quot;center&quot; mt={7}&gt;
+                Mosaic Chat uses scripted responses in this example. No request is sent to an AI service.
+              &lt;/Text&gt;
+            &lt;/Block&gt;
+          &lt;/KeyboardAvoidingArea&gt;
+        &lt;/AppShell.Main&gt;
+      &lt;/AppShell&gt;
+    &lt;/SafeArea&gt;
+  );
+}
+export default function App() {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;light&#39; }}&gt;
+        &lt;MosaicChatScreen /&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Idea Grid demo source | plocks</title><meta name="description" content="Browse the source code for the Idea Grid demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/idea-grid/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>idea-grid source</h1><nav><a href="/demos/idea-grid/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useState } from &#39;react&#39;;
+import { StatusBar, useWindowDimensions, type ImageSourcePropType } from &#39;react-native&#39;;
+import AsyncStorage from &#39;@react-native-async-storage/async-storage&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import {
+  Badge, Chip, Input, ScrollArea, SafeArea, Image, Block, Icon, Masonry, PlocksProvider, Tabs, Text, useMediaQuery,
+} from &#39;@plocks/ui&#39;;
+import type { MasonryItem } from &#39;@plocks/ui&#39;;
+
+const C = { red: &#39;#E60023&#39;, ink: &#39;#202124&#39;, muted: &#39;#757575&#39;, line: &#39;#ECECEC&#39;, pale: &#39;#F5F5F5&#39;, white: &#39;#FFFFFF&#39; };
+const STORAGE = &#39;plocks-idea-grid-demo:saved-v1&#39;;
+
+type Pin = {
+  id: number;
+  title: string;
+  category: string;
+  creator: string;
+  description: string;
+  image: ImageSourcePropType;
+  ratio: number;
+};
+
+const PINS: Pin[] = [
+  {
+    id: 1,
+    title: &#39;A warm little reading nook&#39;,
+    category: &#39;Interiors&#39;,
+    creator: &#39;The Prototype&#39;,
+    description: &#39;A cozy corner with vintage color and plenty of character.&#39;,
+    image: require(&#39;./assets/pins/reading-nook.webp&#39;),
+    ratio: 760 / 1140,
+  },
+  {
+    id: 2,
+    title: &#39;Collected ceramic forms&#39;,
+    category: &#39;Art&#39;,
+    creator: &#39;Chloe Bolton&#39;,
+    description: &#39;Sculptural pieces in a soft, earthy palette.&#39;,
+    image: require(&#39;./assets/pins/ceramic-vase.webp&#39;),
+    ratio: 760 / 507,
+  },
+  {
+    id: 3,
+    title: &#39;Greenery above the city&#39;,
+    category: &#39;Garden&#39;,
+    creator: &#39;marisuu&#39;,
+    description: &#39;A little balcony inspiration for plant lovers.&#39;,
+    image: require(&#39;./assets/pins/balcony-garden.webp&#39;),
+    ratio: 760 / 1013,
+  },
+  {
+    id: 4,
+    title: &#39;Weekend flower market mood&#39;,
+    category: &#39;Garden&#39;,
+    creator: &#39;Annie Spratt&#39;,
+    description: &#39;Loose flowers, warm colors, and a handmade vase.&#39;,
+    image: require(&#39;./assets/pins/market-flowers.webp&#39;),
+    ratio: 760 / 1013,
+  },
+  {
+    id: 5,
+    title: &#39;A mid-century living room&#39;,
+    category: &#39;Interiors&#39;,
+    creator: &#39;Hannah Busing&#39;,
+    description: &#39;Warm wood, plants, and the perfect place to unwind.&#39;,
+    image: require(&#39;./assets/pins/living-room.webp&#39;),
+    ratio: 760 / 507,
+  },
+  {
+    id: 6,
+    title: &#39;The creative workday setup&#39;,
+    category: &#39;Interiors&#39;,
+    creator: &#39;Lgnwvr&#39;,
+    description: &#39;A calm desk with just the right tools in reach.&#39;,
+    image: require(&#39;./assets/pins/workspace.webp&#39;),
+    ratio: 760 / 507,
+  },
+  {
+    id: 7,
+    title: &#39;Slow morning coffee&#39;,
+    category: &#39;Food&#39;,
+    creator: &#39;Trent Erwin&#39;,
+    description: &#39;A quiet espresso moment to start the day.&#39;,
+    image: require(&#39;./assets/pins/coffee.webp&#39;),
+    ratio: 1,
+  },
+  {
+    id: 8,
+    title: &#39;Gather around the table&#39;,
+    category: &#39;Food&#39;,
+    creator: &#39;Wasa Crispbread&#39;,
+    description: &#39;Easygoing food and a table made for sharing.&#39;,
+    image: require(&#39;./assets/pins/table.webp&#39;),
+    ratio: 760 / 1108,
+  },
+  {
+    id: 9,
+    title: &#39;Simple pottery and natural light&#39;,
+    category: &#39;Art&#39;,
+    creator: &#39;Toa Heftiba&#39;,
+    description: &#39;An understated still life beside the window.&#39;,
+    image: require(&#39;./assets/pins/pottery.webp&#39;),
+    ratio: 760 / 1166,
+  },
+  {
+    id: 10,
+    title: &#39;Tools for a creative studio&#39;,
+    category: &#39;Art&#39;,
+    creator: &#39;Jakub Żerdzicki&#39;,
+    description: &#39;A practical workspace with room to make things.&#39;,
+    image: require(&#39;./assets/pins/studio.webp&#39;),
+    ratio: 760 / 507,
+  },
+  {
+    id: 11,
+    title: &#39;Flowers in a glass vase&#39;,
+    category: &#39;Garden&#39;,
+    creator: &#39;Sara Erasmo&#39;,
+    description: &#39;Minimal florals in gentle afternoon light.&#39;,
+    image: require(&#39;./assets/pins/minimal-flowers.webp&#39;),
+    ratio: 760 / 1140,
+  },
+  {
+    id: 12,
+    title: &#39;Soft neutral living spaces&#39;,
+    category: &#39;Interiors&#39;,
+    creator: &#39;Francesca Tosolini&#39;,
+    description: &#39;Layered textures and a relaxed modern palette.&#39;,
+    image: require(&#39;./assets/pins/interior.webp&#39;),
+    ratio: 760 / 507,
+  },
+];
+const CATEGORIES = [&#39;For you&#39;, &#39;Interiors&#39;, &#39;Garden&#39;, &#39;Food&#39;, &#39;Art&#39;];
+
+function PinTile({ pin, saved, onOpen, onSave }: { pin: Pin; saved: boolean; onOpen: () =&gt; void; onSave: () =&gt; void }) {
+  const canHover = useMediaQuery(&#39;(hover: hover)&#39;);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const showSave = !canHover || hovered || focused;
+  const handleBlur = (event: unknown) =&gt; {
+    const focusEvent = event as { currentTarget?: { contains?: (target: unknown) =&gt; boolean }; relatedTarget?: unknown };
+    if (!focusEvent.relatedTarget || !focusEvent.currentTarget?.contains?.(focusEvent.relatedTarget)) {
+      setFocused(false);
+    }
+  };
+
+  return (
+    &lt;Block
+      gap={0}
+      onMouseEnter={() =&gt; setHovered(true)}
+      onMouseLeave={() =&gt; setHovered(false)}
+      onFocus={() =&gt; setFocused(true)}
+      onBlur={handleBlur}
+      mb={8}
+    &gt;
+      &lt;Block gap={0} onPress={onOpen} accessibilityRole=&quot;button&quot; accessibilityLabel={`Open ${pin.title}`}&gt;
+        &lt;Block gap={0} radius={19} overflow=&quot;hidden&quot; bg={C.pale}&gt;
+          &lt;Image source={pin.image} resizeMode=&quot;cover&quot; w=&quot;100%&quot; aspectRatio={pin.ratio} accessibilityLabel={pin.title} /&gt;
+        &lt;/Block&gt;
+        &lt;Text c={C.ink} fw=&quot;semibold&quot; size={14} numberOfLines={2} mt={9} px={3}&gt;
+          {pin.title}
+        &lt;/Text&gt;
+        &lt;Text c={C.muted} size={11} numberOfLines={1} mt={3} px={3}&gt;
+          {pin.creator}
+        &lt;/Text&gt;
+      &lt;/Block&gt;
+      {showSave &amp;&amp; (
+        &lt;Block
+          gap={0}
+          onPress={onSave}
+          accessibilityRole=&quot;button&quot;
+          accessibilityLabel={saved ? `Remove ${pin.title} from saved` : `Save ${pin.title}`}
+          position=&quot;absolute&quot;
+          top={10}
+          right={10}
+          px={14}
+          py={9}
+          radius={22}
+          bg={saved ? C.ink : C.red}
+        &gt;
+          &lt;Text c={C.white} fw=&quot;bold&quot; size={12}&gt;
+            {saved ? &#39;Saved&#39; : &#39;Save&#39;}
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+      )}
+    &lt;/Block&gt;
+  );
+}
+
+export default function App() {
+  const { width } = useWindowDimensions();
+  const columns = width &gt;= 1000 ? 4 : width &gt;= 690 ? 3 : 2;
+  const [query, setQuery] = useState(&#39;&#39;);
+  const [category, setCategory] = useState(&#39;For you&#39;);
+  const [tab, setTab] = useState&lt;&#39;Explore&#39; | &#39;Saved&#39;&gt;(&#39;Explore&#39;);
+  const [saved, setSaved] = useState&lt;number[]&gt;([]);
+  const [selected, setSelected] = useState&lt;number | null&gt;(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() =&gt; {
+    AsyncStorage.getItem(STORAGE)
+      .then((raw) =&gt; {
+        if (!raw) return;
+        const ids = JSON.parse(raw) as unknown;
+        if (Array.isArray(ids))
+          setSaved(ids.filter((id) =&gt; typeof id === &#39;number&#39; &amp;&amp; PINS.some((pin) =&gt; pin.id === id)));
+      })
+      .catch(() =&gt; {})
+      .finally(() =&gt; setReady(true));
+  }, []);
+  useEffect(() =&gt; {
+    if (ready) AsyncStorage.setItem(STORAGE, JSON.stringify(saved)).catch(() =&gt; {});
+  }, [saved, ready]);
+
+  const toggle = (id: number) =&gt;
+    setSaved((current) =&gt; (current.includes(id) ? current.filter((value) =&gt; value !== id) : [...current, id]));
+  const pin = PINS.find((item) =&gt; item.id === selected);
+  const shown = PINS.filter(
+    (item) =&gt;
+      (tab === &#39;Explore&#39; || saved.includes(item.id)) &amp;&amp;
+      (category === &#39;For you&#39; || category === item.category) &amp;&amp;
+      `${item.title} ${item.category} ${item.creator}`.toLowerCase().includes(query.trim().toLowerCase()),
+  );
+  const items: MasonryItem[] = shown.map((item) =&gt; ({
+    id: String(item.id),
+    heightRatio: 1 / item.ratio,
+    content: (
+      &lt;PinTile
+        pin={item}
+        saved={saved.includes(item.id)}
+        onOpen={() =&gt; setSelected(item.id)}
+        onSave={() =&gt; toggle(item.id)}
+      /&gt;
+    ),
+  }));
+
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;light&#39; }}&gt;
+        &lt;SafeArea gap={0} flex={1} bg={C.white}&gt;
+          &lt;StatusBar barStyle=&quot;dark-content&quot; /&gt;
+          &lt;Block gap={0} borderBottomWidth={1} borderBottomColor={C.line} bg={C.white}&gt;
+            &lt;Block w=&quot;100%&quot; maw={1200} alignSelf=&quot;center&quot; px={16} pt={14} pb={12} gap={13}&gt;
+              &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={13}&gt;
+                &lt;Block
+                  gap={0}
+                  onPress={() =&gt; {
+                    setTab(&#39;Explore&#39;);
+                    setCategory(&#39;For you&#39;);
+                    setSelected(null);
+                  }}
+                  accessibilityRole=&quot;button&quot;
+                  accessibilityLabel=&quot;Explore ideas&quot;
+                  w={43}
+                  h={43}
+                  radius={22}
+                  bg={C.red}
+                  align=&quot;center&quot;
+                  justify=&quot;center&quot;
+                &gt;
+                  &lt;Text c={C.white} fw=&quot;bold&quot; size={29} fs=&quot;italic&quot; mt={-3}&gt;
+                    P
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+                &lt;Tabs
+                  navigationOnly
+                  variant=&quot;chip&quot;
+                  color={C.ink}
+                  value={tab}
+                  onChange={(item) =&gt; {
+                    setTab(item as &#39;Explore&#39; | &#39;Saved&#39;);
+                    setSelected(null);
+                  }}
+                  items={[
+                    { key: &#39;Explore&#39;, label: &#39;Explore&#39;, content: null },
+                    {
+                      key: &#39;Saved&#39;,
+                      label: &#39;Saved&#39;,
+                      accessibilityLabel: `Saved, ${saved.length} ${saved.length === 1 ? &#39;pin&#39; : &#39;pins&#39;}`,
+                      subLabel: saved.length &gt; 0 ? (
+                        &lt;Badge color={C.red} variant=&quot;filled&quot; size=&quot;sm&quot; radius=&quot;full&quot; labelProps={{ c: C.white }}&gt;
+                          {saved.length}
+                        &lt;/Badge&gt;
+                      ) : undefined,
+                      content: null,
+                    },
+                  ]}
+                /&gt;
+              &lt;/Block&gt;
+              &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={10} radius={25} px={16} h={45} bg={C.pale}&gt;
+                &lt;Icon name=&quot;search&quot; color={C.muted} size={20} /&gt;
+                &lt;Input
+                  variant=&quot;unstyled&quot;
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder=&quot;Search ideas&quot;
+                  placeholderTextColor={C.muted}
+                  accessibilityLabel=&quot;Search ideas&quot;
+                  mb={0}
+                  flex={1}
+                  h=&quot;100%&quot;
+                  inputColor={C.ink}
+                  inputFontSize={15}
+                /&gt;
+                {!!query &amp;&amp; (
+                  &lt;Block
+                    gap={0}
+                    onPress={() =&gt; setQuery(&#39;&#39;)}
+                    accessibilityRole=&quot;button&quot;
+                    accessibilityLabel=&quot;Clear search&quot;
+                  &gt;
+                    &lt;Icon name=&quot;x&quot; color={C.muted} size={17} /&gt;
+                  &lt;/Block&gt;
+                )}
+              &lt;/Block&gt;
+              {!pin &amp;&amp; (
+                &lt;ScrollArea horizontal showsHorizontalScrollIndicator={false} contentProps={{ gap: 8 }}&gt;
+                  {CATEGORIES.map((item) =&gt; (
+                    &lt;Chip
+                      key={item}
+                      onPress={() =&gt; setCategory(item)}
+                      pressed={category === item}
+                      variant={category === item ? &#39;light&#39; : &#39;surface&#39;}
+                      color={C.red}
+                      radius={11}
+                    &gt;
+                      {item}
+                    &lt;/Chip&gt;
+                  ))}
+                &lt;/ScrollArea&gt;
+              )}
+            &lt;/Block&gt;
+          &lt;/Block&gt;
+
+          {pin ? (
+            &lt;ScrollArea contentProps={{ w: &#39;100%&#39;, maw: 860, alignSelf: &#39;center&#39;, p: 20, pb: 50 }}&gt;
+              &lt;Block
+                onPress={() =&gt; setSelected(null)}
+                accessibilityRole=&quot;button&quot;
+                direction=&quot;row&quot;
+                align=&quot;center&quot;
+                gap={6}
+                alignSelf=&quot;flex-start&quot;
+                py={8}
+                mb={13}
+              &gt;
+                &lt;Icon name=&quot;arrow-left&quot; size={19} color={C.ink} /&gt;
+                &lt;Text c={C.ink} fw=&quot;semibold&quot; size={14}&gt;
+                  Back to ideas
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+              &lt;Block
+                gap={0}
+                direction={width &gt;= 690 ? &#39;row&#39; : &#39;column&#39;}
+                radius={24}
+                overflow=&quot;hidden&quot;
+                bg={C.white}
+                borderWidth={1}
+                borderColor={C.line}
+              &gt;
+                &lt;Image
+                  source={pin.image}
+                  resizeMode=&quot;cover&quot;
+                  w={width &gt;= 690 ? &#39;53%&#39; : &#39;100%&#39;}
+                  aspectRatio={pin.ratio}
+                  mah={620}
+                  accessibilityLabel={pin.title}
+                /&gt;
+                &lt;Block gap={0} flex={1} p={25} justify=&quot;center&quot;&gt;
+                  &lt;Text c={C.muted} size={12} fw=&quot;bold&quot; lts={1}&gt;
+                    {pin.category.toUpperCase()}
+                  &lt;/Text&gt;
+                  &lt;Text c={C.ink} size={28} fw=&quot;bold&quot; mt={12} lh={34}&gt;
+                    {pin.title}
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={15} mt={12} lh={22}&gt;
+                    {pin.description}
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={13} mt={20}&gt;
+                    Photo by {pin.creator}
+                  &lt;/Text&gt;
+                  &lt;Block
+                    gap={0}
+                    onPress={() =&gt; toggle(pin.id)}
+                    accessibilityRole=&quot;button&quot;
+                    alignSelf=&quot;flex-start&quot;
+                    mt={22}
+                    px={25}
+                    py={13}
+                    radius={24}
+                    bg={saved.includes(pin.id) ? C.ink : C.red}
+                  &gt;
+                    &lt;Text c={C.white} fw=&quot;bold&quot; size={14}&gt;
+                      {saved.includes(pin.id) ? &#39;Saved ✓&#39; : &#39;Save idea&#39;}
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                &lt;/Block&gt;
+              &lt;/Block&gt;
+            &lt;/ScrollArea&gt;
+          ) : (
+            &lt;Block gap={0} flex={1} w=&quot;100%&quot; maw={1200} alignSelf=&quot;center&quot;&gt;
+              &lt;Masonry
+                data={items}
+                numColumns={columns}
+                gap={12}
+                contentProps={{ px: 10, pt: 12, pb: 40 }}
+                estimatedItemSize={280}
+                emptyContent={
+                  &lt;Block align=&quot;center&quot; p={50} gap={12}&gt;
+                    &lt;Icon name={tab === &#39;Saved&#39; ? &#39;bookmark&#39; : &#39;search&#39;} color={C.muted} size={35} /&gt;
+                    &lt;Text c={C.ink} fw=&quot;bold&quot; size={18}&gt;
+                      {tab === &#39;Saved&#39; &amp;&amp; !saved.length ? &#39;Your saved ideas will appear here&#39; : &#39;No ideas found&#39;}
+                    &lt;/Text&gt;
+                    &lt;Text c={C.muted} size={13} ta=&quot;center&quot;&gt;
+                      {tab === &#39;Saved&#39; &amp;&amp; !saved.length
+                        ? &#39;Save a pin to start your collection.&#39;
+                        : &#39;Try another search or topic.&#39;}
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                }
+              /&gt;
+            &lt;/Block&gt;
+          )}
+        &lt;/SafeArea&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

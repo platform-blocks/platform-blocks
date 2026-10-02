@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Springstep demo source | plocks</title><meta name="description" content="Browse the source code for the Springstep demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/springstep/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>springstep source</h1><nav><a href="/demos/springstep/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useState } from &#39;react&#39;;
+import { StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import { Block, SafeArea, Button, PlocksProvider, Text } from &#39;@plocks/ui&#39;;
+
+const P = { background: &#39;#E9F6DB&#39;, ink: &#39;#273C2B&#39;, muted: &#39;#617364&#39;, accent: &#39;#63A941&#39; };
+const PLAYER_WIDTH = 28;
+const PLAYER_HEIGHT = 30;
+const PLATFORM_WIDTH = 72;
+const PLATFORM_HEIGHT = 10;
+const PLATFORM_GAP = 90;
+const TICK_MS = 35;
+
+type Size = { width: number; height: number };
+type GamePlatform = { x: number; y: number };
+type Game = { x: number; y: number; vy: number; score: number; over: boolean; platforms: GamePlatform[] };
+
+const platformWidth = (width: number) =&gt; Math.min(PLATFORM_WIDTH, width * 0.28);
+const clampX = (x: number, width: number) =&gt; Math.max(0, Math.min(width - PLAYER_WIDTH, x));
+
+function fresh({ width, height }: Size): Game {
+  const maxPlatformX = Math.max(0, width - platformWidth(width));
+  const positions = [0.5, 0.72, 0.24, 0.6, 0.16, 0.78];
+  const platforms: GamePlatform[] = [];
+  for (let y = height - 90, i = 0; y &gt; -PLATFORM_GAP; y -= PLATFORM_GAP, i++) {
+    platforms.push({ x: positions[i % positions.length] * maxPlatformX, y });
+  }
+  return {
+    x: clampX((width - PLAYER_WIDTH) / 2, width),
+    y: height - 125,
+    vy: -9,
+    score: 0,
+    over: false,
+    platforms,
+  };
+}
+
+export default function App() {
+  const window = useWindowDimensions();
+  const [size, setSize] = useState&lt;Size&gt;(() =&gt; ({ width: window.width, height: window.height }));
+  const [game, setGame] = useState&lt;Game&gt;(() =&gt; fresh({ width: window.width, height: window.height }));
+
+  useEffect(() =&gt; {
+    if (game.over) return;
+    const timer = setInterval(
+      () =&gt;
+        setGame((old) =&gt; {
+          if (old.over) return old;
+          let y = old.y + old.vy;
+          let vy = old.vy + 0.38;
+          const width = platformWidth(size.width);
+
+          if (old.vy &gt; 0) {
+            const landing = old.platforms.find(
+              (p) =&gt;
+                old.y + PLAYER_HEIGHT &lt;= p.y + PLATFORM_HEIGHT &amp;&amp;
+                y + PLAYER_HEIGHT &gt;= p.y &amp;&amp;
+                old.x + PLAYER_WIDTH &gt; p.x &amp;&amp;
+                old.x &lt; p.x + width,
+            );
+            if (landing) {
+              y = landing.y - PLAYER_HEIGHT;
+              vy = -9;
+            }
+          }
+
+          let platforms = old.platforms;
+          let score = old.score;
+          const scrollLine = size.height * 0.35;
+          if (y &lt; scrollLine) {
+            const shift = scrollLine - y;
+            y = scrollLine;
+            score += Math.round(shift);
+            platforms = old.platforms
+              .map((p) =&gt; ({ ...p, y: p.y + shift }))
+              .filter((p) =&gt; p.y &lt; size.height + PLATFORM_HEIGHT);
+            let highest = platforms.length ? Math.min(...platforms.map((p) =&gt; p.y)) : scrollLine;
+            while (highest &gt; -PLATFORM_GAP) {
+              highest -= PLATFORM_GAP;
+              platforms.push({ x: Math.random() * Math.max(0, size.width - width), y: highest });
+            }
+          }
+
+          return { ...old, y, vy, score, platforms, over: y &gt; size.height };
+        }),
+      TICK_MS,
+    );
+    return () =&gt; clearInterval(timer);
+  }, [game.over, size]);
+
+  const moveTo = (x: number) =&gt; {
+    setGame((old) =&gt; (old.over ? old : { ...old, x: clampX(x - PLAYER_WIDTH / 2, size.width) }));
+  };
+
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;light&#39; }}&gt;
+        &lt;SafeArea gap={0} flex={1} bg={P.background}&gt;
+          &lt;StatusBar barStyle=&quot;dark-content&quot; /&gt;
+          &lt;Block
+            gap={0}
+            flex={1}
+            overflow=&quot;hidden&quot;
+            bg={P.background}
+            onLayout={({ nativeEvent: { layout } }) =&gt; {
+              const next = { width: layout.width, height: layout.height };
+              if (
+                next.width &gt; 0 &amp;&amp;
+                next.height &gt; 0 &amp;&amp;
+                (Math.abs(next.width - size.width) &gt; 1 || Math.abs(next.height - size.height) &gt; 1)
+              ) {
+                setSize(next);
+                setGame(fresh(next));
+              }
+            }}
+          &gt;
+            {game.platforms.map((p, i) =&gt; (
+              &lt;Block
+                gap={0}
+                key={i}
+                pointerEvents=&quot;none&quot;
+                position=&quot;absolute&quot;
+                left={p.x}
+                top={p.y}
+                w={platformWidth(size.width)}
+                h={PLATFORM_HEIGHT}
+                radius={5}
+                bg=&quot;#5BAC57&quot;
+              /&gt;
+            ))}
+            &lt;Block
+              gap={0}
+              pointerEvents=&quot;none&quot;
+              position=&quot;absolute&quot;
+              left={game.x}
+              top={game.y}
+              w={PLAYER_WIDTH}
+              h={PLAYER_HEIGHT}
+              radius={10}
+              bg=&quot;#F7C448&quot;
+              borderWidth={2}
+              borderColor={P.ink}
+            /&gt;
+            &lt;Block
+              gap={0}
+              position=&quot;absolute&quot;
+              inset={0}
+              touchAction=&quot;none&quot;
+              onStartShouldSetResponder={() =&gt; true}
+              onMoveShouldSetResponder={() =&gt; true}
+              onResponderGrant={(event) =&gt; moveTo(event.nativeEvent.locationX)}
+              onResponderMove={(event) =&gt; moveTo(event.nativeEvent.locationX)}
+            /&gt;
+            &lt;Block
+              gap={0}
+              pointerEvents=&quot;box-none&quot;
+              position=&quot;absolute&quot;
+              top={16}
+              left={20}
+              right={20}
+              direction=&quot;row&quot;
+              align=&quot;center&quot;
+              justify=&quot;space-between&quot;
+            &gt;
+              &lt;Block gap={0} pointerEvents=&quot;none&quot;&gt;
+                &lt;Text c={P.muted} size={11} fw=&quot;bold&quot; lts={1}&gt;
+                  HEIGHT
+                &lt;/Text&gt;
+                &lt;Text c={P.ink} size={28} fw=&quot;bold&quot;&gt;
+                  {game.score}
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+              &lt;Button title=&quot;New game&quot; color={P.accent} variant=&quot;filled&quot; onPress={() =&gt; setGame(fresh(size))} /&gt;
+            &lt;/Block&gt;
+            {game.over &amp;&amp; (
+              &lt;Block
+                gap={0}
+                pointerEvents=&quot;none&quot;
+                position=&quot;absolute&quot;
+                top=&quot;45%&quot;
+                alignSelf=&quot;center&quot;
+                p={16}
+                radius={12}
+                bg=&quot;#FFFFFFEA&quot;
+              &gt;
+                &lt;Text c={P.ink} fw=&quot;bold&quot;&gt;
+                  Fall! Start a new game.
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+            )}
+            {!game.over &amp;&amp; (
+              &lt;Block gap={0} pointerEvents=&quot;none&quot; position=&quot;absolute&quot; bottom={20} alignSelf=&quot;center&quot;&gt;
+                &lt;Text c={P.muted} size={12}&gt;
+                  Press and drag to move
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+            )}
+          &lt;/Block&gt;
+        &lt;/SafeArea&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

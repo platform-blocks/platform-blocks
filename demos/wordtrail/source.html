@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Wordtrail demo source | plocks</title><meta name="description" content="Browse the source code for the Wordtrail demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/wordtrail/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>wordtrail source</h1><nav><a href="/demos/wordtrail/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useRef, useState } from &#39;react&#39;;
+import { Animated, StatusBar } from &#39;react-native&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import Svg, { Circle, Ellipse, Path } from &#39;react-native-svg&#39;;
+import { MotionBlock, ScrollArea, SafeArea, Block, Icon, PlocksProvider, Text } from &#39;@plocks/ui&#39;;
+
+const C = {
+  green: &#39;#58CC02&#39;,
+  greenDark: &#39;#46A302&#39;,
+  greenPale: &#39;#E9F9DC&#39;,
+  blue: &#39;#1CB0F6&#39;,
+  bluePale: &#39;#E8F7FF&#39;,
+  red: &#39;#FF4B4B&#39;,
+  redPale: &#39;#FFE8E7&#39;,
+  ink: &#39;#303735&#39;,
+  muted: &#39;#79817D&#39;,
+  border: &#39;#E5E9E4&#39;,
+  white: &#39;#FFFFFF&#39;,
+  disabled: &#39;#E7E9E7&#39;,
+  disabledText: &#39;#A7ADA9&#39;,
+};
+
+const QUESTIONS = [
+  {
+    language: &#39;ENGLISH&#39;,
+    word: &#39;the apple&#39;,
+    prompt: &#39;Select the Spanish translation&#39;,
+    options: [&#39;manzana&#39;, &#39;perro&#39;, &#39;casa&#39;],
+    answer: 0,
+    note: &#39;Manzana means apple.&#39;,
+  },
+  {
+    language: &#39;SPANISH&#39;,
+    word: &#39;hola&#39;,
+    prompt: &#39;Select the English translation&#39;,
+    options: [&#39;goodbye&#39;, &#39;hello&#39;, &#39;please&#39;],
+    answer: 1,
+    note: &#39;Hola is a friendly hello.&#39;,
+  },
+  {
+    language: &#39;ENGLISH&#39;,
+    word: &#39;water&#39;,
+    prompt: &#39;Select the Spanish translation&#39;,
+    options: [&#39;libro&#39;, &#39;sol&#39;, &#39;agua&#39;],
+    answer: 2,
+    note: &#39;Agua means water.&#39;,
+  },
+  {
+    language: &#39;SPANISH&#39;,
+    word: &#39;gracias&#39;,
+    prompt: &#39;Select the English translation&#39;,
+    options: [&#39;thank you&#39;, &#39;morning&#39;, &#39;friend&#39;],
+    answer: 0,
+    note: &#39;Gracias means thank you.&#39;,
+  },
+];
+
+function Bird() {
+  return (
+    &lt;Svg width={112} height={120} viewBox=&quot;0 0 112 120&quot; accessibilityLabel=&quot;Friendly green bird&quot;&gt;
+      &lt;Ellipse cx=&quot;56&quot; cy=&quot;112&quot; rx=&quot;42&quot; ry=&quot;6&quot; fill=&quot;#D9EFC9&quot; /&gt;
+      &lt;Path d=&quot;M20 69C20 36 34 15 57 15c24 0 39 23 39 54 0 27-16 43-40 43S20 96 20 69Z&quot; fill={C.green} /&gt;
+      &lt;Path d=&quot;M25 65c-11 5-15 15-10 24 3 6 9 8 15 6l4-25Z&quot; fill={C.greenDark} /&gt;
+      &lt;Path d=&quot;M87 65c11 5 15 15 10 24-3 6-9 8-15 6l-4-25Z&quot; fill={C.greenDark} /&gt;
+      &lt;Ellipse cx=&quot;55&quot; cy=&quot;76&quot; rx=&quot;28&quot; ry=&quot;30&quot; fill=&quot;#B9EE8B&quot; /&gt;
+      &lt;Ellipse cx=&quot;42&quot; cy=&quot;52&quot; rx=&quot;16&quot; ry=&quot;20&quot; fill={C.white} /&gt;
+      &lt;Ellipse cx=&quot;70&quot; cy=&quot;52&quot; rx=&quot;16&quot; ry=&quot;20&quot; fill={C.white} /&gt;
+      &lt;Circle cx=&quot;46&quot; cy=&quot;57&quot; r=&quot;5&quot; fill={C.ink} /&gt;
+      &lt;Circle cx=&quot;66&quot; cy=&quot;57&quot; r=&quot;5&quot; fill={C.ink} /&gt;
+      &lt;Path d=&quot;M48 69q8-4 16 0l-8 9Z&quot; fill=&quot;#FFB84D&quot; /&gt;
+      &lt;Path d=&quot;M48 89q8 7 16 0&quot; stroke={C.greenDark} strokeWidth=&quot;3&quot; strokeLinecap=&quot;round&quot; fill=&quot;none&quot; /&gt;
+      &lt;Ellipse cx=&quot;41&quot; cy=&quot;107&quot; rx=&quot;9&quot; ry=&quot;4&quot; fill=&quot;#F6AD36&quot; /&gt;
+      &lt;Ellipse cx=&quot;71&quot; cy=&quot;107&quot; rx=&quot;9&quot; ry=&quot;4&quot; fill=&quot;#F6AD36&quot; /&gt;
+    &lt;/Svg&gt;
+  );
+}
+
+function AnswerCard({
+  label,
+  number,
+  selected,
+  correct,
+  revealed,
+  onPress,
+}: {
+  label: string;
+  number: number;
+  selected: boolean;
+  correct: boolean;
+  revealed: boolean;
+  onPress: () =&gt; void;
+}) {
+  const [pressed, setPressed] = useState(false);
+  const scale = useRef(new Animated.Value(1)).current;
+  useEffect(() =&gt; {
+    if (selected)
+      Animated.sequence([
+        Animated.spring(scale, { toValue: 1.025, friction: 5, useNativeDriver: true }),
+        Animated.spring(scale, { toValue: 1, friction: 6, useNativeDriver: true }),
+      ]).start();
+  }, [selected, scale]);
+
+  const isCorrect = revealed &amp;&amp; correct;
+  const isWrong = revealed &amp;&amp; selected &amp;&amp; !correct;
+  const color = isCorrect ? C.greenDark : isWrong ? C.red : selected ? C.blue : C.border;
+  const background = isCorrect ? C.greenPale : isWrong ? C.redPale : selected ? C.bluePale : C.white;
+  return (
+    &lt;MotionBlock scale={scale}&gt;
+      &lt;Block
+        onPress={onPress}
+        onPressIn={() =&gt; setPressed(true)}
+        onPressOut={() =&gt; setPressed(false)}
+        disabled={revealed}
+        accessibilityRole=&quot;button&quot;
+        accessibilityState={{ selected, disabled: revealed }}
+        mih={68}
+        borderWidth={2}
+        borderBottomWidth={pressed &amp;&amp; !revealed ? 2 : 4}
+        borderColor={color}
+        radius={17}
+        bg={background}
+        px={18}
+        py={13}
+        direction=&quot;row&quot;
+        align=&quot;center&quot;
+        gap={16}
+        translateY={pressed &amp;&amp; !revealed ? 2 : 0}
+      &gt;
+        &lt;Block
+          gap={0}
+          w={29}
+          h={29}
+          radius={8}
+          borderWidth={1.5}
+          borderColor={color}
+          bg={isCorrect || isWrong || selected ? C.white : &#39;#F8FAF7&#39;}
+          align=&quot;center&quot;
+          justify=&quot;center&quot;
+        &gt;
+          &lt;Text c={isCorrect || isWrong || selected ? color : C.muted} size={14} fw=&quot;bold&quot;&gt;
+            {number}
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+        &lt;Text c={C.ink} size={19} fw=&quot;semibold&quot; flex={1}&gt;
+          {label}
+        &lt;/Text&gt;
+        {(isCorrect || isWrong) &amp;&amp; &lt;Icon name={isCorrect ? &#39;check&#39; : &#39;x&#39;} color={color} size={22} /&gt;}
+      &lt;/Block&gt;
+    &lt;/MotionBlock&gt;
+  );
+}
+
+function PrimaryButton({
+  title,
+  onPress,
+  disabled = false,
+  color = C.green,
+  shadow = C.greenDark,
+}: {
+  title: string;
+  onPress: () =&gt; void;
+  disabled?: boolean;
+  color?: string;
+  shadow?: string;
+}) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    &lt;Block
+      onPress={onPress}
+      onPressIn={() =&gt; setPressed(true)}
+      onPressOut={() =&gt; setPressed(false)}
+      disabled={disabled}
+      accessibilityRole=&quot;button&quot;
+      accessibilityState={{ disabled }}
+      h={58}
+      radius={16}
+      bg={disabled ? C.disabled : color}
+      borderBottomWidth={disabled || pressed ? 0 : 4}
+      borderBottomColor={shadow}
+      align=&quot;center&quot;
+      justify=&quot;center&quot;
+      gap={0}
+      translateY={pressed &amp;&amp; !disabled ? 3 : 0}
+    &gt;
+      &lt;Text c={disabled ? C.disabledText : C.white} size={16} fw=&quot;bold&quot; lts={0.7}&gt;
+        {title}
+      &lt;/Text&gt;
+    &lt;/Block&gt;
+  );
+}
+
+export default function App() {
+  const [index, setIndex] = useState(0);
+  const [selected, setSelected] = useState&lt;number | null&gt;(null);
+  const [phase, setPhase] = useState&lt;&#39;selecting&#39; | &#39;feedback&#39;&gt;(&#39;selecting&#39;);
+  const [score, setScore] = useState(0);
+  const [hearts, setHearts] = useState(5);
+  const progress = useRef(new Animated.Value(0)).current;
+  const entrance = useRef(new Animated.Value(0)).current;
+  const rise = useRef(new Animated.Value(20)).current;
+  const birdScale = useRef(new Animated.Value(0.84)).current;
+  const feedbackRise = useRef(new Animated.Value(24)).current;
+  const feedbackOpacity = useRef(new Animated.Value(0)).current;
+  const done = index &gt;= QUESTIONS.length;
+  const question = QUESTIONS[index];
+  const correct = !done &amp;&amp; selected === question.answer;
+
+  useEffect(() =&gt; {
+    Animated.timing(progress, {
+      toValue: Math.min((index + (phase === &#39;feedback&#39; ? 1 : 0)) / QUESTIONS.length, 1),
+      duration: 430,
+      useNativeDriver: false,
+    }).start();
+  }, [index, phase, progress]);
+
+  useEffect(() =&gt; {
+    entrance.setValue(0);
+    rise.setValue(20);
+    birdScale.setValue(0.84);
+    Animated.parallel([
+      Animated.timing(entrance, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.spring(rise, { toValue: 0, friction: 8, useNativeDriver: true }),
+      Animated.spring(birdScale, { toValue: 1, friction: 5, useNativeDriver: true }),
+    ]).start();
+  }, [index, entrance, rise, birdScale]);
+
+  useEffect(() =&gt; {
+    if (phase !== &#39;feedback&#39;) return;
+    feedbackRise.setValue(24);
+    feedbackOpacity.setValue(0);
+    Animated.parallel([
+      Animated.spring(feedbackRise, { toValue: 0, friction: 8, useNativeDriver: true }),
+      Animated.timing(feedbackOpacity, { toValue: 1, duration: 220, useNativeDriver: true }),
+    ]).start();
+  }, [phase, index, feedbackRise, feedbackOpacity]);
+
+  const reset = () =&gt; {
+    setIndex(0);
+    setSelected(null);
+    setPhase(&#39;selecting&#39;);
+    setScore(0);
+    setHearts(5);
+  };
+  const check = () =&gt; {
+    if (selected === null || done) return;
+    if (selected === question.answer) setScore((value) =&gt; value + 1);
+    else setHearts((value) =&gt; Math.max(0, value - 1));
+    setPhase(&#39;feedback&#39;);
+  };
+  const advance = () =&gt; {
+    setIndex((value) =&gt; value + 1);
+    setSelected(null);
+    setPhase(&#39;selecting&#39;);
+  };
+
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;light&#39; }}&gt;
+        &lt;SafeArea gap={0} flex={1} bg={C.white}&gt;
+          &lt;StatusBar barStyle=&quot;dark-content&quot; /&gt;
+          &lt;Block w=&quot;100%&quot; maw={700} alignSelf=&quot;center&quot; px={24} pt={18} pb={14} direction=&quot;row&quot; align=&quot;center&quot; gap={16}&gt;
+            &lt;Block
+              gap={0}
+              onPress={reset}
+              accessibilityRole=&quot;button&quot;
+              accessibilityLabel=&quot;Restart lesson&quot;
+              w={36}
+              h={36}
+              align=&quot;center&quot;
+              justify=&quot;center&quot;
+            &gt;
+              &lt;Icon name=&quot;x&quot; size={24} color={C.muted} /&gt;
+            &lt;/Block&gt;
+            &lt;Block gap={0} flex={1} h={15} radius={20} bg={C.border} overflow=&quot;hidden&quot;&gt;
+              &lt;MotionBlock
+                h=&quot;full&quot;
+                radius={20}
+                bg={C.green}
+                motionWidth={progress.interpolate({ inputRange: [0, 1], outputRange: [&#39;0%&#39;, &#39;100%&#39;] })}
+              /&gt;
+            &lt;/Block&gt;
+            &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={5}&gt;
+              &lt;Icon name=&quot;heart&quot; variant=&quot;filled&quot; size={24} color={C.red} /&gt;
+              &lt;Text c={C.red} size={19} fw=&quot;bold&quot;&gt;
+                {hearts}
+              &lt;/Text&gt;
+            &lt;/Block&gt;
+          &lt;/Block&gt;
+
+          &lt;ScrollArea
+            contentProps={{
+              grow: 1,
+              w: &#39;100%&#39;,
+              maw: 640,
+              alignSelf: &#39;center&#39;,
+              justify: &#39;center&#39;,
+              px: 24,
+              pt: 26,
+              pb: 30,
+            }}
+          &gt;
+            &lt;MotionBlock motionOpacity={entrance} translateY={rise}&gt;
+              {done ? (
+                &lt;Block gap={0} align=&quot;center&quot; py={32}&gt;
+                  &lt;MotionBlock scale={birdScale}&gt;
+                    &lt;Bird /&gt;
+                  &lt;/MotionBlock&gt;
+                  &lt;Block gap={0} mt={25} px={16} py={7} radius={99} bg={C.greenPale}&gt;
+                    &lt;Text c={C.greenDark} size={12} fw=&quot;bold&quot; lts={1.2}&gt;
+                      LESSON COMPLETE
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;Text c={C.ink} size={34} fw=&quot;bold&quot; ta=&quot;center&quot; mt={16}&gt;
+                    Beautiful work!
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={17} ta=&quot;center&quot; mt={9}&gt;
+                    You made it through your first Spanish lesson.
+                  &lt;/Text&gt;
+                  &lt;Block direction=&quot;row&quot; gap={12} mt={35} w=&quot;100%&quot;&gt;
+                    &lt;Block gap={0} flex={1} radius={18} bg=&quot;#FFF7E5&quot; p={20} align=&quot;center&quot;&gt;
+                      &lt;Text c=&quot;#B8821D&quot; size={12} fw=&quot;bold&quot; lts={1}&gt;
+                        CORRECT
+                      &lt;/Text&gt;
+                      &lt;Text c=&quot;#B8821D&quot; size={30} fw=&quot;bold&quot;&gt;
+                        {score}/{QUESTIONS.length}
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                    &lt;Block gap={0} flex={1} radius={18} bg={C.redPale} p={20} align=&quot;center&quot;&gt;
+                      &lt;Text c={C.red} size={12} fw=&quot;bold&quot; lts={1}&gt;
+                        HEARTS LEFT
+                      &lt;/Text&gt;
+                      &lt;Text c={C.red} size={30} fw=&quot;bold&quot;&gt;
+                        {hearts}
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                  &lt;/Block&gt;
+                &lt;/Block&gt;
+              ) : (
+                &lt;&gt;
+                  &lt;Text c={C.greenDark} size={12} fw=&quot;bold&quot; lts={1.5}&gt;
+                    UNIT 1 · FIRST WORDS
+                  &lt;/Text&gt;
+                  &lt;Text c={C.ink} size={29} fw=&quot;bold&quot; mt={12} lh={36}&gt;
+                    {question.prompt}
+                  &lt;/Text&gt;
+                  &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={18} mt={35} mb={36}&gt;
+                    &lt;MotionBlock scale={birdScale}&gt;
+                      &lt;Bird /&gt;
+                    &lt;/MotionBlock&gt;
+                    &lt;Block
+                      gap={0}
+                      flex={1}
+                      borderWidth={2}
+                      borderColor={C.border}
+                      radius={20}
+                      px={20}
+                      py={17}
+                      bg={C.white}
+                    &gt;
+                      &lt;Text c={C.muted} size={11} fw=&quot;bold&quot; lts={1.2}&gt;
+                        {question.language}
+                      &lt;/Text&gt;
+                      &lt;Text c={C.ink} size={25} fw=&quot;bold&quot; mt={4}&gt;
+                        {question.word}
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                  &lt;/Block&gt;
+                  &lt;Block gap={12}&gt;
+                    {question.options.map((option, optionIndex) =&gt; (
+                      &lt;AnswerCard
+                        key={option}
+                        label={option}
+                        number={optionIndex + 1}
+                        selected={selected === optionIndex}
+                        correct={question.answer === optionIndex}
+                        revealed={phase === &#39;feedback&#39;}
+                        onPress={() =&gt; setSelected(optionIndex)}
+                      /&gt;
+                    ))}
+                  &lt;/Block&gt;
+                &lt;/&gt;
+              )}
+            &lt;/MotionBlock&gt;
+          &lt;/ScrollArea&gt;
+
+          &lt;Block
+            gap={0}
+            borderTopWidth={1}
+            borderTopColor={phase === &#39;feedback&#39; &amp;&amp; !done ? &#39;transparent&#39; : C.border}
+            bg={phase === &#39;feedback&#39; &amp;&amp; !done ? (correct ? C.greenPale : C.redPale) : C.white}
+          &gt;
+            &lt;Block gap={0} w=&quot;100%&quot; maw={640} alignSelf=&quot;center&quot; px={24} pt={18} pb={20}&gt;
+              {phase === &#39;feedback&#39; &amp;&amp; !done &amp;&amp; (
+                &lt;MotionBlock
+                  motionOpacity={feedbackOpacity}
+                  translateY={feedbackRise}
+                  mb={18}
+                  direction=&quot;row&quot;
+                  align=&quot;center&quot;
+                  gap={14}
+                &gt;
+                  &lt;Block
+                    gap={0}
+                    w={42}
+                    h={42}
+                    radius={21}
+                    bg={correct ? C.green : C.red}
+                    align=&quot;center&quot;
+                    justify=&quot;center&quot;
+                  &gt;
+                    &lt;Icon name={correct ? &#39;check&#39; : &#39;x&#39;} color={C.white} size={26} /&gt;
+                  &lt;/Block&gt;
+                  &lt;Block gap={0} flex={1}&gt;
+                    &lt;Text c={correct ? C.greenDark : C.red} size={21} fw=&quot;bold&quot;&gt;
+                      {correct ? &#39;Amazing!&#39; : &#39;Not quite&#39;}
+                    &lt;/Text&gt;
+                    &lt;Text c={C.ink} size={14}&gt;
+                      {question.note}
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                &lt;/MotionBlock&gt;
+              )}
+              &lt;PrimaryButton
+                title={done ? &#39;PRACTICE AGAIN&#39; : phase === &#39;feedback&#39; ? &#39;CONTINUE&#39; : &#39;CHECK&#39;}
+                onPress={done ? reset : phase === &#39;feedback&#39; ? advance : check}
+                disabled={!done &amp;&amp; phase === &#39;selecting&#39; &amp;&amp; selected === null}
+                color={phase === &#39;feedback&#39; &amp;&amp; !correct ? C.red : C.green}
+                shadow={phase === &#39;feedback&#39; &amp;&amp; !correct ? &#39;#D93636&#39; : C.greenDark}
+              /&gt;
+            &lt;/Block&gt;
+          &lt;/Block&gt;
+        &lt;/SafeArea&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

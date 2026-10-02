@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Daymark demo source | plocks</title><meta name="description" content="Browse the source code for the Daymark demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/daymark/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>daymark source</h1><nav><a href="/demos/daymark/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useState, type ReactNode } from &#39;react&#39;;
+import { StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import AsyncStorage from &#39;@react-native-async-storage/async-storage&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import { BarChart, LineChart } from &#39;@plocks/charts&#39;;
+import { Gradient, Input, Progress, Ring, ScrollArea, SafeArea, Block, Icon, PlocksProvider, Text, type BlockProps } from &#39;@plocks/ui&#39;;
+
+const C = {
+  background: &#39;#F5F8F8&#39;,
+  surface: &#39;#FFFFFF&#39;,
+  ink: &#39;#17353A&#39;,
+  muted: &#39;#72878A&#39;,
+  teal: &#39;#00A9A6&#39;,
+  tealDark: &#39;#087B83&#39;,
+  tealPale: &#39;#E5F7F5&#39;,
+  line: &#39;#E6EEEE&#39;,
+  purple: &#39;#7566DA&#39;,
+  purplePale: &#39;#F1EEFF&#39;,
+  coral: &#39;#E96972&#39;,
+  coralPale: &#39;#FFF0F1&#39;,
+  blue: &#39;#4296CE&#39;,
+  bluePale: &#39;#EAF5FC&#39;,
+  orange: &#39;#F5A557&#39;,
+  white: &#39;#FFFFFF&#39;,
+};
+const STORAGE = &#39;plocks-daymark-demo:v2&#39;;
+const GOAL = 10000;
+const WEEK = [
+  { steps: 8120, zone: 31, calories: 2185, distance: 3.7, sleep: 438, resting: 63 },
+  { steps: 5305, zone: 18, calories: 1970, distance: 2.4, sleep: 416, resting: 65 },
+  { steps: 10420, zone: 42, calories: 2375, distance: 4.8, sleep: 486, resting: 61 },
+  { steps: 7040, zone: 24, calories: 2108, distance: 3.2, sleep: 462, resting: 62 },
+  { steps: 9340, zone: 35, calories: 2280, distance: 4.3, sleep: 453, resting: 62 },
+  { steps: 6150, zone: 21, calories: 2015, distance: 2.8, sleep: 429, resting: 64 },
+  { steps: 6420, zone: 24, calories: 2140, distance: 2.9, sleep: 462, resting: 62 },
+];
+const HEART = [62, 59, 57, 56, 57, 61, 69, 82, 76, 70, 74, 98, 112, 87, 78, 74, 91, 107, 83, 75, 71, 67, 64, 62];
+const INITIAL_WEIGHTS = [171.2, 170.8, 170.5, 170.6, 170.1, 169.7, 169.8, 169.3, 169.1, 168.9, 168.6, 168.8, 168.4];
+const SLEEP_STAGES = [
+  { label: &#39;Deep&#39;, value: 19, color: &#39;#4B4BA8&#39; },
+  { label: &#39;Light&#39;, value: 28, color: &#39;#A89CF0&#39; },
+  { label: &#39;REM&#39;, value: 21, color: &#39;#7566DA&#39; },
+  { label: &#39;Awake&#39;, value: 6, color: &#39;#E5E5FA&#39; },
+  { label: &#39;Light&#39;, value: 19, color: &#39;#A89CF0&#39; },
+  { label: &#39;REM&#39;, value: 7, color: &#39;#7566DA&#39; },
+];
+
+const minutesLabel = (minutes: number) =&gt; `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, &#39;0&#39;)}m`;
+const shortDate = (date: Date) =&gt; date.toLocaleDateString(&#39;en-US&#39;, { weekday: &#39;long&#39;, month: &#39;long&#39;, day: &#39;numeric&#39; });
+
+function Surface({ children, ...props }: { children: ReactNode } &amp; Omit&lt;BlockProps, &#39;children&#39;&gt;) {
+  return (
+    &lt;Block bg={C.surface} radius={24} borderWidth={1} borderColor={C.line} p={20} gap={0} shadow=&quot;xs&quot; {...props}&gt;
+      {children}
+    &lt;/Block&gt;
+  );
+}
+
+function SectionTitle({
+  icon,
+  color,
+  background,
+  title,
+  action,
+  onAction,
+}: {
+  icon: string;
+  color: string;
+  background: string;
+  title: string;
+  action?: string;
+  onAction?: () =&gt; void;
+}) {
+  return (
+    &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={11} mb={17}&gt;
+      &lt;Block gap={0} w={37} h={37} radius={12} bg={background} align=&quot;center&quot; justify=&quot;center&quot;&gt;
+        &lt;Icon name={icon} color={color} size={21} /&gt;
+      &lt;/Block&gt;
+      &lt;Text c={C.ink} fw=&quot;bold&quot; size={18} flex={1}&gt;
+        {title}
+      &lt;/Text&gt;
+      {action &amp;&amp; onAction &amp;&amp; (
+        &lt;Block gap={0} onPress={onAction} accessibilityRole=&quot;button&quot; py={7} pl={8}&gt;
+          &lt;Text c={color} fw=&quot;bold&quot; size={13}&gt;
+            {action}
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+      )}
+    &lt;/Block&gt;
+  );
+}
+
+function TrendChart({
+  values,
+  color,
+  label,
+  height = 150,
+}: {
+  values: number[];
+  color: string;
+  label: string;
+  height?: number;
+}) {
+  return (
+    &lt;LineChart
+      h={height}
+      series={[{ data: values.map((value, index) =&gt; ({ x: index, y: value })), color }]}
+      lineThickness={3.5}
+      fill
+      fillColor={color}
+      showPoints={false}
+      xAxis={{ show: false }}
+      yAxis={{ show: false }}
+      grid={{ show: true, style: &#39;dashed&#39; }}
+      accessibilityLabel={label}
+    /&gt;
+  );
+}
+
+function MiniStat({
+  icon,
+  value,
+  label,
+  color,
+  background,
+}: {
+  icon: string;
+  value: string;
+  label: string;
+  color: string;
+  background: string;
+}) {
+  return (
+    &lt;Surface flex={1} miw={102} p={15}&gt;
+      &lt;Block gap={0} w={33} h={33} radius={11} bg={background} align=&quot;center&quot; justify=&quot;center&quot; mb={12}&gt;
+        &lt;Icon name={icon} color={color} size={19} /&gt;
+      &lt;/Block&gt;
+      &lt;Text c={C.ink} size={22} fw=&quot;bold&quot; numberOfLines={1}&gt;
+        {value}
+      &lt;/Text&gt;
+      &lt;Text c={C.muted} size={12} mt={3}&gt;
+        {label}
+      &lt;/Text&gt;
+    &lt;/Surface&gt;
+  );
+}
+
+export default function App() {
+  const { width } = useWindowDimensions();
+  const wide = width &gt;= 760;
+  const [dayIndex, setDayIndex] = useState(6);
+  const [stepsAdded, setStepsAdded] = useState(0);
+  const [water, setWater] = useState(5);
+  const [sleepLogged, setSleepLogged] = useState&lt;number | null&gt;(null);
+  const [weights, setWeights] = useState(INITIAL_WEIGHTS);
+  const [weightRange, setWeightRange] = useState&lt;&#39;4W&#39; | &#39;12W&#39;&gt;(&#39;4W&#39;);
+  const [showWeightLog, setShowWeightLog] = useState(false);
+  const [weightDraft, setWeightDraft] = useState(&#39;&#39;);
+  const [showSleepLog, setShowSleepLog] = useState(false);
+  const [sleepDraft, setSleepDraft] = useState(&#39;&#39;);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() =&gt; {
+    AsyncStorage.getItem(STORAGE)
+      .then((raw) =&gt; {
+        if (!raw) return;
+        const saved = JSON.parse(raw) as {
+          stepsAdded?: number;
+          water?: number;
+          sleepLogged?: number;
+          weights?: number[];
+        };
+        if (Number.isFinite(saved.stepsAdded) &amp;&amp; saved.stepsAdded! &gt;= 0) setStepsAdded(saved.stepsAdded!);
+        if (Number.isFinite(saved.water) &amp;&amp; saved.water! &gt;= 0) setWater(saved.water!);
+        if (Number.isFinite(saved.sleepLogged) &amp;&amp; saved.sleepLogged! &gt;= 180 &amp;&amp; saved.sleepLogged! &lt;= 900)
+          setSleepLogged(saved.sleepLogged!);
+        if (Array.isArray(saved.weights)) {
+          const valid = saved.weights.filter((value) =&gt; Number.isFinite(value) &amp;&amp; value &gt;= 60 &amp;&amp; value &lt;= 600);
+          if (valid.length &gt;= 2) setWeights(valid.slice(-30));
+        }
+      })
+      .catch(() =&gt; {})
+      .finally(() =&gt; setReady(true));
+  }, []);
+  useEffect(() =&gt; {
+    if (ready)
+      AsyncStorage.setItem(STORAGE, JSON.stringify({ stepsAdded, water, sleepLogged, weights })).catch(() =&gt; {});
+  }, [ready, stepsAdded, water, sleepLogged, weights]);
+
+  const dates = Array.from({ length: 7 }, (_, i) =&gt; {
+    const date = new Date();
+    date.setHours(12, 0, 0, 0);
+    date.setDate(date.getDate() - (6 - i));
+    return date;
+  });
+  const selectedDate = dates[dayIndex];
+  const data = WEEK[dayIndex];
+  const steps = data.steps + (dayIndex === 6 ? stepsAdded : 0);
+  const sleep = dayIndex === 6 &amp;&amp; sleepLogged !== null ? sleepLogged : data.sleep;
+  const sleepScore = Math.min(98, Math.max(62, Math.round((sleep / 60) * 11.2)));
+  const heartValues = HEART.map((value, index) =&gt; value + (6 - dayIndex) * (index % 3 === 0 ? 1 : -1));
+  const chartWeights = weights.slice(weightRange === &#39;4W&#39; ? -5 : -13);
+  const latestWeight = weights[weights.length - 1];
+  const weightChange = latestWeight - chartWeights[0];
+  const weightValid = Number.isFinite(Number(weightDraft)) &amp;&amp; Number(weightDraft) &gt;= 60 &amp;&amp; Number(weightDraft) &lt;= 600;
+  const sleepHours = Number(sleepDraft);
+  const sleepValid = Number.isFinite(sleepHours) &amp;&amp; sleepHours &gt;= 3 &amp;&amp; sleepHours &lt;= 15;
+
+  const saveWeight = () =&gt; {
+    if (!weightValid) return;
+    setWeights((current) =&gt; [...current, Number(Number(weightDraft).toFixed(1))].slice(-30));
+    setWeightDraft(&#39;&#39;);
+    setShowWeightLog(false);
+  };
+  const saveSleep = () =&gt; {
+    if (!sleepValid) return;
+    setSleepLogged(Math.round(sleepHours * 60));
+    setDayIndex(6);
+    setSleepDraft(&#39;&#39;);
+    setShowSleepLog(false);
+  };
+
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;light&#39; }}&gt;
+        &lt;SafeArea gap={0} flex={1} bg={C.background}&gt;
+          &lt;StatusBar barStyle=&quot;dark-content&quot; /&gt;
+          &lt;ScrollArea contentProps={{ w: &#39;100%&#39;, maw: 880, alignSelf: &#39;center&#39;, px: 18, pt: 22, pb: 48, gap: 18 }}&gt;
+            &lt;Block gap={0} direction=&quot;row&quot; justify=&quot;space-between&quot; align=&quot;center&quot;&gt;
+              &lt;Block gap={0}&gt;
+                &lt;Text c={C.tealDark} fw=&quot;bold&quot; size={18} lts={-0.5}&gt;
+                  daymark
+                &lt;/Text&gt;
+                &lt;Text c={C.ink} fw=&quot;bold&quot; size={31} mt={5}&gt;
+                  {dayIndex === 6 ? &#39;Today&#39; : &#39;Daily overview&#39;}
+                &lt;/Text&gt;
+                &lt;Text c={C.muted} size={14} mt={2}&gt;
+                  {shortDate(selectedDate)}
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+              &lt;Block gap={0} w={44} h={44} radius={22} bg={C.tealPale} align=&quot;center&quot; justify=&quot;center&quot;&gt;
+                &lt;Text c={C.tealDark} fw=&quot;bold&quot; size={15}&gt;
+                  JS
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+            &lt;/Block&gt;
+
+            &lt;Block direction=&quot;row&quot; gap={8} justify=&quot;space-between&quot;&gt;
+              {dates.map((date, i) =&gt; (
+                &lt;Block
+                  gap={0}
+                  key={i}
+                  onPress={() =&gt; setDayIndex(i)}
+                  accessibilityRole=&quot;button&quot;
+                  accessibilityLabel={shortDate(date)}
+                  accessibilityState={{ selected: dayIndex === i }}
+                  flex={1}
+                  miw={0}
+                  py={11}
+                  radius={15}
+                  align=&quot;center&quot;
+                  bg={dayIndex === i ? C.tealDark : C.surface}
+                  borderWidth={1}
+                  borderColor={dayIndex === i ? C.tealDark : C.line}
+                &gt;
+                  &lt;Text c={dayIndex === i ? C.white : C.muted} size={11} fw=&quot;semibold&quot;&gt;
+                    {date.toLocaleDateString(&#39;en-US&#39;, { weekday: &#39;short&#39; }).toUpperCase()}
+                  &lt;/Text&gt;
+                  &lt;Text c={dayIndex === i ? C.white : C.ink} size={17} fw=&quot;bold&quot; mt={3}&gt;
+                    {date.getDate()}
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+              ))}
+            &lt;/Block&gt;
+
+            &lt;Gradient
+              colors={[C.tealDark, &#39;#0DB9B2&#39;]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              radius={28}
+              p={21}
+              overflow=&quot;hidden&quot;
+            &gt;
+              &lt;Block gap={0} direction=&quot;row&quot; align=&quot;center&quot;&gt;
+                &lt;Ring
+                  value={steps}
+                  max={GOAL}
+                  size={142}
+                  thickness={12}
+                  trackColor=&quot;#FFFFFF55&quot;
+                  progressColor={C.white}
+                  labelColor={C.white}
+                  subLabel=&quot;of goal&quot;
+                  subLabelColor=&quot;#D9FBF7&quot;
+                  accessibilityLabel=&quot;Step goal progress&quot;
+                /&gt;
+                &lt;Block gap={0} flex={1} pl={13}&gt;
+                  &lt;Text c=&quot;#D5F7F4&quot; size={12} fw=&quot;bold&quot; lts={1.2}&gt;
+                    STEPS
+                  &lt;/Text&gt;
+                  &lt;Text c={C.white} size={37} fw=&quot;bold&quot; numberOfLines={1} mt={3}&gt;
+                    {steps.toLocaleString()}
+                  &lt;/Text&gt;
+                  &lt;Text c=&quot;#D8F7F5&quot; size={14}&gt;
+                    of {GOAL.toLocaleString()} daily goal
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+              &lt;/Block&gt;
+              &lt;Block gap={0} h={1} bg=&quot;#FFFFFF44&quot; my={15} /&gt;
+              &lt;Block gap={0} direction=&quot;row&quot; align=&quot;center&quot; justify=&quot;space-between&quot;&gt;
+                &lt;Text c={C.white} size={13} fw=&quot;semibold&quot;&gt;
+                  {steps &gt;= GOAL
+                    ? &#39;Goal reached — nice work!&#39;
+                    : `${Math.max(0, GOAL - steps).toLocaleString()} steps to go`}
+                &lt;/Text&gt;
+                {dayIndex === 6 &amp;&amp; (
+                  &lt;Block
+                    gap={0}
+                    onPress={() =&gt; setStepsAdded((value) =&gt; value + 500)}
+                    accessibilityRole=&quot;button&quot;
+                    px={12}
+                    py={8}
+                    bg=&quot;#FFFFFF27&quot;
+                    radius={11}
+                  &gt;
+                    &lt;Text c={C.white} size={12} fw=&quot;bold&quot;&gt;
+                      + 500 steps
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                )}
+              &lt;/Block&gt;
+            &lt;/Gradient&gt;
+
+            &lt;Block direction=&quot;row&quot; gap={10}&gt;
+              &lt;MiniStat
+                icon=&quot;bolt&quot;
+                value={`${data.zone} min`}
+                label=&quot;Zone minutes&quot;
+                color={C.orange}
+                background=&quot;#FFF4E8&quot;
+              /&gt;
+              &lt;MiniStat
+                icon=&quot;chart-line&quot;
+                value={data.distance.toFixed(1)}
+                label=&quot;Miles&quot;
+                color={C.blue}
+                background={C.bluePale}
+              /&gt;
+              &lt;MiniStat
+                icon=&quot;heart&quot;
+                value={data.calories.toLocaleString()}
+                label=&quot;Calories&quot;
+                color={C.coral}
+                background={C.coralPale}
+              /&gt;
+            &lt;/Block&gt;
+
+            &lt;Block direction={wide ? &#39;row&#39; : &#39;column&#39;} gap={16} align=&quot;stretch&quot;&gt;
+              &lt;Surface flex={1}&gt;
+                &lt;SectionTitle
+                  icon=&quot;moon&quot;
+                  color={C.purple}
+                  background={C.purplePale}
+                  title=&quot;Sleep&quot;
+                  action={dayIndex === 6 ? &#39;+ Log&#39; : undefined}
+                  onAction={() =&gt; {
+                    setSleepDraft((sleep / 60).toFixed(1));
+                    setShowSleepLog(true);
+                  }}
+                /&gt;
+                &lt;Block gap={0} direction=&quot;row&quot; align=&quot;flex-end&quot; justify=&quot;space-between&quot;&gt;
+                  &lt;Block gap={0}&gt;
+                    &lt;Text c={C.ink} size={31} fw=&quot;bold&quot;&gt;
+                      {minutesLabel(sleep)}
+                    &lt;/Text&gt;
+                    &lt;Text c={C.muted} size={13}&gt;
+                      Time asleep
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;Block gap={0} align=&quot;flex-end&quot;&gt;
+                    &lt;Text c={C.purple} size={24} fw=&quot;bold&quot;&gt;
+                      {sleepScore}
+                    &lt;/Text&gt;
+                    &lt;Text c={C.muted} size={12}&gt;
+                      Sleep score · Good
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                &lt;/Block&gt;
+                &lt;Text c={C.muted} size={12} fw=&quot;bold&quot; mt={23} mb={9}&gt;
+                  SLEEP STAGES
+                &lt;/Text&gt;
+                &lt;Progress.Root size={18} radius={10} aria-label=&quot;Sleep stages&quot;&gt;
+                  {SLEEP_STAGES.map((stage, index) =&gt; (
+                    &lt;Progress.Section
+                      key={index}
+                      value={stage.value}
+                      color={stage.color}
+                      tooltip={`${stage.label} · ${stage.value}%`}
+                    /&gt;
+                  ))}
+                &lt;/Progress.Root&gt;
+                &lt;Block gap={0} direction=&quot;row&quot; justify=&quot;space-between&quot; mt={11}&gt;
+                  {[
+                    [&#39;Deep&#39;, &#39;#4B4BA8&#39;],
+                    [&#39;Light&#39;, &#39;#A89CF0&#39;],
+                    [&#39;REM&#39;, &#39;#7566DA&#39;],
+                    [&#39;Awake&#39;, &#39;#D9D9F3&#39;],
+                  ].map(([label, color]) =&gt; (
+                    &lt;Block key={label} direction=&quot;row&quot; align=&quot;center&quot; gap={4}&gt;
+                      &lt;Block gap={0} w={7} h={7} radius={4} bg={color} /&gt;
+                      &lt;Text c={C.muted} size={11}&gt;
+                        {label}
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                  ))}
+                &lt;/Block&gt;
+                &lt;Block gap={0} h={1} bg={C.line} my={19} /&gt;
+                &lt;Text c={C.ink} size={13} fw=&quot;semibold&quot;&gt;
+                  Past 7 nights
+                &lt;/Text&gt;
+                &lt;BarChart
+                  h={120}
+                  mt={10}
+                  data={WEEK.map((item, index) =&gt; ({
+                    id: index,
+                    category: dates[index].toLocaleDateString(&#39;en-US&#39;, { weekday: &#39;short&#39; }),
+                    value: index === 6 &amp;&amp; sleepLogged !== null ? sleepLogged : item.sleep,
+                    color: dayIndex === index ? C.purple : &#39;#DCD7F7&#39;,
+                  }))}
+                  barSpacing={0.65}
+                  barBorderRadius={7}
+                  xAxis={{ show: true, labelColor: C.muted, labelFontSize: 10 }}
+                  yAxis={{ show: false }}
+                  grid={{ show: false }}
+                  legend={{ show: false }}
+                  tooltip={{ show: true, formatter: (point) =&gt; `${minutesLabel(point.value)} sleep` }}
+                  onDataPointPress={(point) =&gt; setDayIndex(Number(point.id))}
+                  accessibilityLabel=&quot;Sleep duration over the past seven nights&quot;
+                /&gt;
+                {showSleepLog &amp;&amp; (
+                  &lt;Block gap={0} mt={19} pt={16} borderTopWidth={1} borderTopColor={C.line}&gt;
+                    &lt;Text c={C.ink} fw=&quot;semibold&quot; size={13}&gt;
+                      Hours slept last night
+                    &lt;/Text&gt;
+                    &lt;Block direction=&quot;row&quot; gap={8} mt={9}&gt;
+                      &lt;Input
+                        variant=&quot;outline&quot;
+                        value={sleepDraft}
+                        onChangeText={setSleepDraft}
+                        keyboardType=&quot;decimal-pad&quot;
+                        placeholder=&quot;7.7&quot;
+                        accessibilityLabel=&quot;Hours slept&quot;
+                        mb={0}
+                        flex={1}
+                        miw={0}
+                        h={44}
+                        radius={11}
+                        inputColor={C.ink}
+                      /&gt;
+                      &lt;Block
+                        gap={0}
+                        onPress={saveSleep}
+                        disabled={!sleepValid}
+                        accessibilityRole=&quot;button&quot;
+                        px={17}
+                        justify=&quot;center&quot;
+                        radius={11}
+                        bg={sleepValid ? C.purple : C.line}
+                      &gt;
+                        &lt;Text c={C.white} fw=&quot;bold&quot; size={13}&gt;
+                          Save
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                      &lt;Block
+                        gap={0}
+                        onPress={() =&gt; setShowSleepLog(false)}
+                        accessibilityRole=&quot;button&quot;
+                        justify=&quot;center&quot;
+                        px={6}
+                      &gt;
+                        &lt;Text c={C.muted} size={13}&gt;
+                          Cancel
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                    &lt;/Block&gt;
+                  &lt;/Block&gt;
+                )}
+              &lt;/Surface&gt;
+
+              &lt;Surface flex={1}&gt;
+                &lt;SectionTitle icon=&quot;heart&quot; color={C.coral} background={C.coralPale} title=&quot;Heart rate&quot; /&gt;
+                &lt;Block gap={0} direction=&quot;row&quot; align=&quot;flex-end&quot; justify=&quot;space-between&quot;&gt;
+                  &lt;Block gap={0}&gt;
+                    &lt;Text c={C.ink} size={31} fw=&quot;bold&quot;&gt;
+                      {data.resting}{&#39; &#39;}
+                      &lt;Text c={C.muted} size={16}&gt;
+                        bpm
+                      &lt;/Text&gt;
+                    &lt;/Text&gt;
+                    &lt;Text c={C.muted} size={13}&gt;
+                      Resting heart rate
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;Block gap={0} px={11} py={6} radius={10} bg={C.coralPale}&gt;
+                    &lt;Text c={C.coral} size={12} fw=&quot;bold&quot;&gt;
+                      In your range
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                &lt;/Block&gt;
+                &lt;Block gap={0} mt={20}&gt;
+                  &lt;TrendChart values={heartValues} color={C.coral} label=&quot;Heart rate trend&quot; height={180} /&gt;
+                &lt;/Block&gt;
+                &lt;Block gap={0} direction=&quot;row&quot; justify=&quot;space-between&quot; mt={3}&gt;
+                  &lt;Text c={C.muted} size={11}&gt;
+                    12 AM
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={11}&gt;
+                    6 AM
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={11}&gt;
+                    12 PM
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={11}&gt;
+                    6 PM
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={11}&gt;
+                    NOW
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+                &lt;Block gap={0} h={1} bg={C.line} my={21} /&gt;
+                &lt;Block gap={0} direction=&quot;row&quot; justify=&quot;space-between&quot;&gt;
+                  &lt;Block gap={0}&gt;
+                    &lt;Text c={C.muted} size={12}&gt;
+                      Lowest today
+                    &lt;/Text&gt;
+                    &lt;Text c={C.ink} fw=&quot;bold&quot; size={18}&gt;
+                      {Math.min(...heartValues)} bpm
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;Block gap={0} align=&quot;flex-end&quot;&gt;
+                    &lt;Text c={C.muted} size={12}&gt;
+                      Peak today
+                    &lt;/Text&gt;
+                    &lt;Text c={C.ink} fw=&quot;bold&quot; size={18}&gt;
+                      {Math.max(...heartValues)} bpm
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                &lt;/Block&gt;
+              &lt;/Surface&gt;
+            &lt;/Block&gt;
+
+            &lt;Surface&gt;
+              &lt;SectionTitle
+                icon=&quot;chart-line&quot;
+                color={C.blue}
+                background={C.bluePale}
+                title=&quot;Weight&quot;
+                action=&quot;+ Log weight&quot;
+                onAction={() =&gt; {
+                  setWeightDraft(latestWeight.toFixed(1));
+                  setShowWeightLog(true);
+                }}
+              /&gt;
+              &lt;Block gap={0} direction=&quot;row&quot; justify=&quot;space-between&quot; align=&quot;flex-end&quot;&gt;
+                &lt;Block gap={0}&gt;
+                  &lt;Text c={C.ink} size={31} fw=&quot;bold&quot;&gt;
+                    {latestWeight.toFixed(1)}{&#39; &#39;}
+                    &lt;Text c={C.muted} size={16}&gt;
+                      lb
+                    &lt;/Text&gt;
+                  &lt;/Text&gt;
+                  &lt;Text c={weightChange &lt;= 0 ? C.tealDark : C.coral} size={13} fw=&quot;semibold&quot;&gt;
+                    {weightChange &gt; 0 ? &#39;+&#39; : &#39;&#39;}
+                    {weightChange.toFixed(1)} lb over {weightRange === &#39;4W&#39; ? &#39;4 weeks&#39; : &#39;12 weeks&#39;}
+                  &lt;/Text&gt;
+                &lt;/Block&gt;
+                &lt;Block gap={0} direction=&quot;row&quot; radius={12} bg={C.background} p={3}&gt;
+                  {([&#39;4W&#39;, &#39;12W&#39;] as const).map((range) =&gt; (
+                    &lt;Block
+                      gap={0}
+                      key={range}
+                      onPress={() =&gt; setWeightRange(range)}
+                      accessibilityRole=&quot;button&quot;
+                      accessibilityState={{ selected: weightRange === range }}
+                      px={11}
+                      py={7}
+                      radius={9}
+                      bg={weightRange === range ? C.white : &#39;transparent&#39;}
+                    &gt;
+                      &lt;Text c={weightRange === range ? C.ink : C.muted} fw=&quot;bold&quot; size={12}&gt;
+                        {range}
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                  ))}
+                &lt;/Block&gt;
+              &lt;/Block&gt;
+              &lt;Block gap={0} mt={13}&gt;
+                &lt;TrendChart values={chartWeights} color={C.blue} label=&quot;Weight trend&quot; height={180} /&gt;
+              &lt;/Block&gt;
+              &lt;Block gap={0} direction=&quot;row&quot; justify=&quot;space-between&quot; mt={2}&gt;
+                &lt;Text c={C.muted} size={11}&gt;
+                  {weightRange === &#39;4W&#39; ? &#39;4 weeks ago&#39; : &#39;12 weeks ago&#39;}
+                &lt;/Text&gt;
+                &lt;Text c={C.muted} size={11}&gt;
+                  Latest
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+              {showWeightLog &amp;&amp; (
+                &lt;Block gap={0} mt={19} pt={16} borderTopWidth={1} borderTopColor={C.line}&gt;
+                  &lt;Text c={C.ink} fw=&quot;semibold&quot; size={13}&gt;
+                    Log a new weight (lb)
+                  &lt;/Text&gt;
+                  &lt;Block direction=&quot;row&quot; gap={8} mt={9}&gt;
+                    &lt;Input
+                      variant=&quot;outline&quot;
+                      value={weightDraft}
+                      onChangeText={setWeightDraft}
+                      keyboardType=&quot;decimal-pad&quot;
+                      placeholder=&quot;168.4&quot;
+                      accessibilityLabel=&quot;Weight in pounds&quot;
+                      mb={0}
+                      flex={1}
+                      miw={0}
+                      h={44}
+                      radius={11}
+                      inputColor={C.ink}
+                    /&gt;
+                    &lt;Block
+                      gap={0}
+                      onPress={saveWeight}
+                      disabled={!weightValid}
+                      accessibilityRole=&quot;button&quot;
+                      px={17}
+                      justify=&quot;center&quot;
+                      radius={11}
+                      bg={weightValid ? C.blue : C.line}
+                    &gt;
+                      &lt;Text c={C.white} fw=&quot;bold&quot; size={13}&gt;
+                        Save
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                    &lt;Block
+                      gap={0}
+                      onPress={() =&gt; setShowWeightLog(false)}
+                      accessibilityRole=&quot;button&quot;
+                      justify=&quot;center&quot;
+                      px={6}
+                    &gt;
+                      &lt;Text c={C.muted} size={13}&gt;
+                        Cancel
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                  &lt;/Block&gt;
+                &lt;/Block&gt;
+              )}
+            &lt;/Surface&gt;
+
+            &lt;Surface direction=&quot;row&quot; align=&quot;center&quot; gap={15}&gt;
+              &lt;Block gap={0} w={46} h={46} radius={15} bg={C.bluePale} align=&quot;center&quot; justify=&quot;center&quot;&gt;
+                &lt;Text c={C.blue} size={25}&gt;
+                  💧
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+              &lt;Block gap={0} flex={1}&gt;
+                &lt;Text c={C.ink} size={17} fw=&quot;bold&quot;&gt;
+                  Water
+                &lt;/Text&gt;
+                &lt;Text c={C.muted} size={13}&gt;
+                  {water} of 8 cups today
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+              &lt;Block
+                gap={0}
+                onPress={() =&gt; setWater((value) =&gt; Math.min(value + 1, 20))}
+                accessibilityRole=&quot;button&quot;
+                accessibilityLabel=&quot;Log a cup of water&quot;
+                w={37}
+                h={37}
+                radius={12}
+                bg={C.bluePale}
+                align=&quot;center&quot;
+                justify=&quot;center&quot;
+              &gt;
+                &lt;Icon name=&quot;plus&quot; color={C.blue} size={21} /&gt;
+              &lt;/Block&gt;
+            &lt;/Surface&gt;
+            &lt;Text c={C.muted} size={11} ta=&quot;center&quot;&gt;
+              Illustrative health data for this demo. Logged values stay on this device; no wearable is connected.
+            &lt;/Text&gt;
+          &lt;/ScrollArea&gt;
+        &lt;/SafeArea&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

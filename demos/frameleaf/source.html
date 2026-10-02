@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Frameleaf demo source | plocks</title><meta name="description" content="Browse the source code for the Frameleaf demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/frameleaf/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>frameleaf source</h1><nav><a href="/demos/frameleaf/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useState } from &#39;react&#39;;
+import { StatusBar, useWindowDimensions } from &#39;react-native&#39;;
+import AsyncStorage from &#39;@react-native-async-storage/async-storage&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import {
+  TextArea,
+  Input,
+  ScrollArea,
+  SafeArea,
+  Image,
+  Lightbox,
+  Block,
+  Avatar,
+  Button,
+  Dialog,
+  Icon,
+  IconButton,
+  PlocksProvider,
+  Tabs,
+  Text,
+} from &#39;@plocks/ui&#39;;
+import type { LightboxItem } from &#39;@plocks/ui&#39;;
+import { Carousel } from &#39;@plocks/carousel&#39;;
+
+const C = { ink: &#39;#171717&#39;, muted: &#39;#777&#39;, line: &#39;#E8E8E8&#39;, blue: &#39;#0095F6&#39;, white: &#39;#FFF&#39;, blush: &#39;#FCEDF2&#39; };
+const PHOTOS = [
+  require(&#39;./assets/scene-lake.webp&#39;),
+  require(&#39;./assets/scene-city.webp&#39;),
+  require(&#39;./assets/scene-desert.webp&#39;),
+  require(&#39;./assets/scene-forest.webp&#39;),
+  require(&#39;./assets/scene-ocean.webp&#39;),
+];
+const PEOPLE = [
+  { name: &#39;mila.roams&#39;, initials: &#39;MR&#39;, color: &#39;#D57F6A&#39; },
+  { name: &#39;the.weekend.edit&#39;, initials: &#39;WE&#39;, color: &#39;#8B87B6&#39; },
+  { name: &#39;kai.and.co&#39;, initials: &#39;KC&#39;, color: &#39;#4F9BA0&#39; },
+  { name: &#39;jo.studio&#39;, initials: &#39;JS&#39;, color: &#39;#B88E5B&#39; },
+  { name: &#39;sara.outside&#39;, initials: &#39;SO&#39;, color: &#39;#789C69&#39; },
+];
+const INITIAL_POSTS = [
+  {
+    id: &#39;lake&#39;,
+    person: 0,
+    image: 0,
+    place: &#39;Lake Crescent&#39;,
+    caption: &#39;Some mornings deserve a little pause. 🌿&#39;,
+    likes: 1248,
+    time: &#39;2 HOURS AGO&#39;,
+  },
+  {
+    id: &#39;city&#39;,
+    person: 1,
+    image: 1,
+    place: &#39;New York City&#39;,
+    caption: &#39;A city that never runs out of stories.&#39;,
+    likes: 842,
+    time: &#39;8 HOURS AGO&#39;,
+  },
+  {
+    id: &#39;desert&#39;,
+    person: 2,
+    image: 2,
+    place: &#39;Arizona&#39;,
+    caption: &#39;Golden hour, every hour.&#39;,
+    likes: 2315,
+    time: &#39;YESTERDAY&#39;,
+  },
+  {
+    id: &#39;forest&#39;,
+    person: 3,
+    image: 3,
+    place: &#39;Somewhere green&#39;,
+    caption: &#39;The long way home is the best way home.&#39;,
+    likes: 651,
+    time: &#39;2 DAYS AGO&#39;,
+  },
+  {
+    id: &#39;ocean&#39;,
+    person: 4,
+    image: 4,
+    place: &#39;Pacific Coast&#39;,
+    caption: &#39;Out of office for a moment. 🌊&#39;,
+    likes: 1094,
+    time: &#39;3 DAYS AGO&#39;,
+  },
+];
+type Post = {
+  id: string;
+  person: number;
+  image: number;
+  images?: number[];
+  place: string;
+  caption: string;
+  likes: number;
+  time: string;
+};
+const DEMO_CAROUSELS: Record&lt;string, number[]&gt; = { lake: [0, 3, 4], city: [1, 2] };
+const postPhotos = (post: Post) =&gt; post.images?.length ? post.images : DEMO_CAROUSELS[post.id] ?? [post.image];
+type Tab = &#39;home&#39; | &#39;explore&#39; | &#39;profile&#39;;
+const STORAGE = &#39;plocks-frameleaf-example:v1&#39;;
+
+function Person({ index, size = 36, ring = false }: { index: number; size?: number; ring?: boolean }) {
+  const person = PEOPLE[index];
+  return (
+    &lt;Block gap={0} p={ring ? 3 : 0} radius={size} borderWidth={ring ? 2 : 0} borderColor=&quot;#CF407A&quot;&gt;
+      &lt;Avatar
+        size={size &gt;= 55 ? &#39;lg&#39; : &#39;md&#39;}
+        fallback={person.initials}
+        bg={person.color}
+        textColor=&quot;#fff&quot;
+        accessibilityLabel={person.name}
+      /&gt;
+    &lt;/Block&gt;
+  );
+}
+
+function AppScreen() {
+  const { width } = useWindowDimensions();
+  const wide = width &gt;= 900;
+  const [tab, setTab] = useState&lt;Tab&gt;(&#39;home&#39;);
+  const [posts, setPosts] = useState&lt;Post[]&gt;(INITIAL_POSTS);
+  const [liked, setLiked] = useState&lt;string[]&gt;([]);
+  const [saved, setSaved] = useState&lt;string[]&gt;([]);
+  const [comments, setComments] = useState&lt;Record&lt;string, string[]&gt;&gt;({});
+  const [selected, setSelected] = useState&lt;string | null&gt;(null);
+  const [lightboxPostId, setLightboxPostId] = useState&lt;string | null&gt;(null);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [story, setStory] = useState&lt;number | null&gt;(null);
+  const [query, setQuery] = useState(&#39;&#39;);
+  const [draft, setDraft] = useState(&#39;&#39;);
+  const [newCaption, setNewCaption] = useState(&#39;&#39;);
+  const [creating, setCreating] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() =&gt; {
+    AsyncStorage.getItem(STORAGE)
+      .then((raw) =&gt; {
+        if (!raw) return;
+        const data = JSON.parse(raw) as {
+          liked?: string[];
+          saved?: string[];
+          comments?: Record&lt;string, string[]&gt;;
+          posts?: Post[];
+        };
+        if (Array.isArray(data.liked)) setLiked(data.liked);
+        if (Array.isArray(data.saved)) setSaved(data.saved);
+        if (data.comments &amp;&amp; typeof data.comments === &#39;object&#39;) setComments(data.comments);
+        if (Array.isArray(data.posts)) setPosts(data.posts);
+      })
+      .catch(() =&gt; {})
+      .finally(() =&gt; setReady(true));
+  }, []);
+  useEffect(() =&gt; {
+    if (ready) AsyncStorage.setItem(STORAGE, JSON.stringify({ liked, saved, comments, posts })).catch(() =&gt; {});
+  }, [liked, saved, comments, posts, ready]);
+
+  const toggle = (id: string, values: string[], setValues: (value: string[]) =&gt; void) =&gt;
+    setValues(values.includes(id) ? values.filter((item) =&gt; item !== id) : [...values, id]);
+  const submitComment = () =&gt; {
+    if (!selected || !draft.trim()) return;
+    setComments((current) =&gt; ({ ...current, [selected]: [...(current[selected] ?? []), draft.trim()] }));
+    setDraft(&#39;&#39;);
+  };
+  const createPost = () =&gt; {
+    if (!newCaption.trim()) return;
+    const post: Post = {
+      id: `mine-${Date.now()}`,
+      person: 0,
+      image: 0,
+      place: &#39;From my gallery&#39;,
+      caption: newCaption.trim(),
+      likes: 0,
+      time: &#39;JUST NOW&#39;,
+    };
+    setPosts((current) =&gt; [post, ...current]);
+    setNewCaption(&#39;&#39;);
+    setCreating(false);
+    setTab(&#39;home&#39;);
+  };
+  const openLightbox = (post: Post, index: number) =&gt; {
+    setLightboxPostId(post.id);
+    setLightboxIndex(index);
+  };
+  const renderPostCard = (post: Post) =&gt; {
+    const person = PEOPLE[post.person];
+    const photos = postPhotos(post);
+    return (
+      &lt;Block key={post.id} gap={0} bg={C.white} mb={26} borderBottomWidth={1} borderBottomColor={C.line}&gt;
+        &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={10} p={12}&gt;
+          &lt;Person index={post.person} ring /&gt;
+          &lt;Block gap={0} flex={1}&gt;
+            &lt;Text fw=&quot;bold&quot; c={C.ink} size={13}&gt;
+              {person.name}
+            &lt;/Text&gt;
+            &lt;Text c={C.muted} size={11}&gt;
+              {post.place}
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+          &lt;Icon name=&quot;dots&quot; size={20} color={C.ink} /&gt;
+        &lt;/Block&gt;
+        {photos.length &gt; 1 ? (
+          &lt;Carousel
+            h={Math.min(width, 560)}
+            showArrows
+            showDots
+            arrowSize=&quot;sm&quot;
+            dotSize=&quot;xs&quot;
+            accessibilityLabel={`${person.name} post photos`}
+          &gt;
+            {photos.map((image, index) =&gt; (
+              &lt;Block
+                key={`${post.id}-${index}`}
+                gap={0}
+                onPress={() =&gt; openLightbox(post, index)}
+                accessibilityRole=&quot;button&quot;
+                accessibilityLabel={`Open photo ${index + 1} of ${photos.length} from ${person.name}`}
+                w=&quot;100%&quot;
+                h=&quot;100%&quot;
+              &gt;
+                &lt;Image source={PHOTOS[image]} resizeMode=&quot;cover&quot; w=&quot;100%&quot; h=&quot;100%&quot; alt=&quot;&quot; /&gt;
+              &lt;/Block&gt;
+            ))}
+          &lt;/Carousel&gt;
+        ) : (
+          &lt;Block
+            gap={0}
+            onPress={() =&gt; openLightbox(post, 0)}
+            accessibilityRole=&quot;button&quot;
+            accessibilityLabel={`Open photo from ${person.name}`}
+            w=&quot;100%&quot;
+            aspectRatio={1}
+            overflow=&quot;hidden&quot;
+          &gt;
+            &lt;Image source={PHOTOS[photos[0]]} resizeMode=&quot;cover&quot; w=&quot;100%&quot; h=&quot;100%&quot; alt=&quot;&quot; /&gt;
+          &lt;/Block&gt;
+        )}
+        &lt;Block direction=&quot;row&quot; align=&quot;center&quot; px={12} pt={12} gap={16}&gt;
+          &lt;Block
+            gap={0}
+            accessibilityRole=&quot;button&quot;
+            accessibilityLabel={liked.includes(post.id) ? &#39;Unlike post&#39; : &#39;Like post&#39;}
+            onPress={() =&gt; toggle(post.id, liked, setLiked)}
+          &gt;
+            &lt;Icon
+              name=&quot;heart&quot;
+              variant={liked.includes(post.id) ? &#39;filled&#39; : &#39;outlined&#39;}
+              color={liked.includes(post.id) ? &#39;#E53559&#39; : C.ink}
+              size={27}
+            /&gt;
+          &lt;/Block&gt;
+          &lt;Block
+            gap={0}
+            accessibilityRole=&quot;button&quot;
+            accessibilityLabel=&quot;View comments&quot;
+            onPress={() =&gt; setSelected(post.id)}
+          &gt;
+            &lt;Icon name=&quot;message&quot; color={C.ink} size={27} /&gt;
+          &lt;/Block&gt;
+          &lt;Block gap={0} flex={1} /&gt;
+          &lt;Block
+            gap={0}
+            accessibilityRole=&quot;button&quot;
+            accessibilityLabel={saved.includes(post.id) ? &#39;Remove saved post&#39; : &#39;Save post&#39;}
+            onPress={() =&gt; toggle(post.id, saved, setSaved)}
+          &gt;
+            &lt;Icon name=&quot;bookmark&quot; variant={saved.includes(post.id) ? &#39;filled&#39; : &#39;outlined&#39;} color={C.ink} size={27} /&gt;
+          &lt;/Block&gt;
+        &lt;/Block&gt;
+        &lt;Block px={12} pt={10} pb={17} gap={5}&gt;
+          &lt;Text fw=&quot;bold&quot; c={C.ink} size={13}&gt;
+            {(post.likes + Number(liked.includes(post.id))).toLocaleString()} likes
+          &lt;/Text&gt;
+          &lt;Text c={C.ink} size={13}&gt;
+            &lt;Text fw=&quot;bold&quot; c={C.ink}&gt;
+              {person.name}{&#39; &#39;}
+            &lt;/Text&gt;
+            {post.caption}
+          &lt;/Text&gt;
+          &lt;Block gap={0} onPress={() =&gt; setSelected(post.id)}&gt;
+            &lt;Text c={C.muted} size={13}&gt;
+              View comments{(comments[post.id]?.length ?? 0) &gt; 0 ? ` (${comments[post.id].length})` : &#39;&#39;}
+            &lt;/Text&gt;
+          &lt;/Block&gt;
+          &lt;Text c={C.muted} size={10}&gt;
+            {post.time}
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+      &lt;/Block&gt;
+    );
+  };
+  const activePost = posts.find((post) =&gt; post.id === selected);
+  const lightboxPost = posts.find((post) =&gt; post.id === lightboxPostId);
+  const lightboxImages: LightboxItem[] = lightboxPost
+    ? postPhotos(lightboxPost).map((image, index) =&gt; ({
+        id: `${lightboxPost.id}-${index}`,
+        uri: PHOTOS[image],
+        title: `${PEOPLE[lightboxPost.person].name} · ${lightboxPost.place}`,
+      }))
+    : [];
+
+  return (
+    &lt;SafeArea gap={0} flex={1} bg={C.white}&gt;
+      &lt;StatusBar barStyle=&quot;dark-content&quot; /&gt;
+      &lt;Block gap={0} flex={1} direction={wide ? &#39;row&#39; : &#39;column&#39;} maw={1260} w=&quot;100%&quot; alignSelf=&quot;center&quot;&gt;
+        {wide &amp;&amp; (
+          &lt;Block w={230} borderRightWidth={1} borderRightColor={C.line} p={22} gap={30}&gt;
+            &lt;Text fw=&quot;bold&quot; c={C.ink} size={29} fs=&quot;italic&quot;&gt;
+              frame
+            &lt;/Text&gt;
+            &lt;Tabs
+              navigationOnly
+              orientation=&quot;vertical&quot;
+              variant=&quot;chip&quot;
+              color={C.blue}
+              value={tab}
+              onChange={(item) =&gt; {
+                setTab(item as Tab);
+                setSelected(null);
+              }}
+              items={([&#39;home&#39;, &#39;explore&#39;, &#39;profile&#39;] as const).map((item) =&gt; ({
+                key: item,
+                label: item[0].toUpperCase() + item.slice(1),
+                icon: (
+                  &lt;Icon
+                    name={item === &#39;home&#39; ? &#39;home&#39; : item === &#39;explore&#39; ? &#39;search&#39; : &#39;avatar&#39;}
+                    size={25}
+                    color={tab === item ? C.white : C.ink}
+                  /&gt;
+                ),
+                content: null,
+              }))}
+            /&gt;
+            &lt;Button title=&quot;Create post&quot; color={C.blue} onPress={() =&gt; setCreating(true)} /&gt;
+          &lt;/Block&gt;
+        )}
+        &lt;Block gap={0} flex={1} miw={0}&gt;
+          {!wide &amp;&amp; (
+            &lt;Block
+              gap={0}
+              h={57}
+              borderBottomWidth={1}
+              borderBottomColor={C.line}
+              direction=&quot;row&quot;
+              align=&quot;center&quot;
+              justify=&quot;space-between&quot;
+              px={17}
+            &gt;
+              &lt;Text fw=&quot;bold&quot; c={C.ink} size={27} fs=&quot;italic&quot;&gt;
+                frame
+              &lt;/Text&gt;
+              &lt;IconButton
+                icon=&quot;plus&quot;
+                variant=&quot;ghost&quot;
+                iconColor={C.ink}
+                accessibilityLabel=&quot;Create post&quot;
+                onPress={() =&gt; setCreating(true)}
+              /&gt;
+            &lt;/Block&gt;
+          )}
+          &lt;ScrollArea keyboardShouldPersistTaps=&quot;handled&quot; flex={1} contentProps={{ align: &#39;center&#39;, pb: 30 }}&gt;
+            &lt;Block gap={0} w=&quot;100%&quot; maw={tab === &#39;explore&#39; ? 800 : 560}&gt;
+              {tab === &#39;home&#39; &amp;&amp; (
+                &lt;&gt;
+                  &lt;ScrollArea
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentProps={{ gap: 17, px: 16, py: 18 }}
+                  &gt;
+                    {PEOPLE.map((person, index) =&gt; (
+                      &lt;Block key={person.name} onPress={() =&gt; setStory(index)} align=&quot;center&quot; gap={5} w={70}&gt;
+                        &lt;Person index={index} size={60} ring /&gt;
+                        &lt;Text c={C.ink} size={10} numberOfLines={1}&gt;
+                          {person.name}
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                    ))}
+                  &lt;/ScrollArea&gt;
+                  {posts.map(renderPostCard)}
+                &lt;/&gt;
+              )}
+              {tab === &#39;explore&#39; &amp;&amp; (
+                &lt;Block gap={0} p={12}&gt;
+                  &lt;Block gap={0} bg=&quot;#F3F3F3&quot; radius={10} px={14} h={42} justify=&quot;center&quot;&gt;
+                    &lt;Input
+                      variant=&quot;unstyled&quot;
+                      value={query}
+                      onChangeText={setQuery}
+                      placeholder=&quot;Search people and places&quot;
+                      placeholderTextColor={C.muted}
+                      mb={0}
+                    /&gt;
+                  &lt;/Block&gt;
+                  &lt;Text fw=&quot;bold&quot; c={C.ink} size={20} my={18}&gt;
+                    Explore
+                  &lt;/Text&gt;
+                  &lt;Block direction=&quot;row&quot; wrap=&quot;wrap&quot; gap={3}&gt;
+                    {posts
+                      .filter((post) =&gt;
+                        `${PEOPLE[post.person].name} ${post.place} ${post.caption}`
+                          .toLowerCase()
+                          .includes(query.toLowerCase()),
+                      )
+                      .map((post) =&gt; (
+                        &lt;Block
+                          gap={0}
+                          key={post.id}
+                          onPress={() =&gt; {
+                            setTab(&#39;home&#39;);
+                            setSelected(post.id);
+                          }}
+                          w=&quot;32.8%&quot;
+                          aspectRatio={1}
+                        &gt;
+                          &lt;Image source={PHOTOS[post.image]} w=&quot;100%&quot; h=&quot;100%&quot; /&gt;
+                        &lt;/Block&gt;
+                      ))}
+                  &lt;/Block&gt;
+                &lt;/Block&gt;
+              )}
+              {tab === &#39;profile&#39; &amp;&amp; (
+                &lt;Block gap={0} p={18}&gt;
+                  &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={22} my={16}&gt;
+                    &lt;Person index={0} size={70} /&gt;
+                    &lt;Block gap={0} flex={1}&gt;
+                      &lt;Text fw=&quot;bold&quot; c={C.ink} size={21}&gt;
+                        mila.roams
+                      &lt;/Text&gt;
+                      &lt;Text c={C.muted} size={13}&gt;
+                        Collecting little moments.
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                  &lt;/Block&gt;
+                  &lt;Block
+                    gap={0}
+                    direction=&quot;row&quot;
+                    justify=&quot;space-around&quot;
+                    py={16}
+                    borderTopWidth={1}
+                    borderBottomWidth={1}
+                    borderColor={C.line}
+                  &gt;
+                    {[
+                      [&#39;5&#39;, &#39;posts&#39;],
+                      [&#39;1.2k&#39;, &#39;followers&#39;],
+                      [&#39;389&#39;, &#39;following&#39;],
+                    ].map(([value, label]) =&gt; (
+                      &lt;Block gap={0} key={label} align=&quot;center&quot;&gt;
+                        &lt;Text fw=&quot;bold&quot; c={C.ink}&gt;
+                          {value}
+                        &lt;/Text&gt;
+                        &lt;Text c={C.muted} size={12}&gt;
+                          {label}
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                    ))}
+                  &lt;/Block&gt;
+                  &lt;Text fw=&quot;bold&quot; c={C.ink} size={14} my={17}&gt;
+                    Saved &amp; shared moments
+                  &lt;/Text&gt;
+                  &lt;Block direction=&quot;row&quot; wrap=&quot;wrap&quot; gap={3}&gt;
+                    {posts
+                      .filter((post) =&gt; saved.includes(post.id) || post.person === 0)
+                      .map((post) =&gt; (
+                        &lt;Block
+                          gap={0}
+                          key={post.id}
+                          onPress={() =&gt; {
+                            setTab(&#39;home&#39;);
+                            setSelected(post.id);
+                          }}
+                          w=&quot;32.8%&quot;
+                          aspectRatio={1}
+                        &gt;
+                          &lt;Image source={PHOTOS[post.image]} w=&quot;100%&quot; h=&quot;100%&quot; /&gt;
+                        &lt;/Block&gt;
+                      ))}
+                  &lt;/Block&gt;
+                &lt;/Block&gt;
+              )}
+            &lt;/Block&gt;
+          &lt;/ScrollArea&gt;
+          {!wide &amp;&amp; (
+            &lt;Block
+              gap={0}
+              h={57}
+              borderTopWidth={1}
+              borderTopColor={C.line}
+              direction=&quot;row&quot;
+              justify=&quot;space-around&quot;
+              align=&quot;center&quot;
+            &gt;
+              &lt;Tabs
+                navigationOnly
+                value={tab}
+                onChange={(item) =&gt; setTab(item as Tab)}
+                color={C.ink}
+                tabStyle={{ flex: 1 }}
+                items={([&#39;home&#39;, &#39;explore&#39;, &#39;profile&#39;] as const).map((item) =&gt; ({
+                  key: item,
+                  label: &#39;&#39;,
+                  accessibilityLabel: item,
+                  icon: &lt;Icon name={item === &#39;home&#39; ? &#39;home&#39; : item === &#39;explore&#39; ? &#39;search&#39; : &#39;avatar&#39;} size={26} color={C.ink} /&gt;,
+                  content: null,
+                }))}
+              /&gt;
+            &lt;/Block&gt;
+          )}
+        &lt;/Block&gt;
+      &lt;/Block&gt;
+      {(activePost || story !== null || creating) &amp;&amp; (
+        &lt;Dialog opened accessibilityLabel={creating ? &#39;New post&#39; : story !== null ? `${PEOPLE[story].name} story` : &#39;Comments&#39;} onClose={() =&gt; {
+          setSelected(null);
+          setStory(null);
+          setCreating(false);
+        }}&gt;
+          &lt;Block gap={0}&gt;
+            &lt;Block
+              gap={0}
+              direction=&quot;row&quot;
+              justify=&quot;space-between&quot;
+              align=&quot;center&quot;
+              px={16}
+              py={10}
+              borderBottomWidth={1}
+              borderBottomColor={C.line}
+            &gt;
+              &lt;Text fw=&quot;bold&quot; c={C.ink} size={16}&gt;
+                {creating ? &#39;New post&#39; : story !== null ? PEOPLE[story].name : &#39;Comments&#39;}
+              &lt;/Text&gt;
+              &lt;IconButton
+                icon=&quot;x&quot;
+                variant=&quot;ghost&quot;
+                iconColor={C.ink}
+                accessibilityLabel=&quot;Close&quot;
+                onPress={() =&gt; {
+                  setSelected(null);
+                  setStory(null);
+                  setCreating(false);
+                }}
+              /&gt;
+            &lt;/Block&gt;
+            {creating ? (
+              &lt;Block p={18} gap={14}&gt;
+                &lt;Image source={PHOTOS[0]} w=&quot;100%&quot; h={180} radius={8} /&gt;
+                &lt;Text c={C.muted} size={12}&gt;
+                  Using a demo gallery photo
+                &lt;/Text&gt;
+                &lt;TextArea
+                  variant=&quot;outline&quot;
+                  value={newCaption}
+                  onChangeText={setNewCaption}
+                  placeholder=&quot;Write a caption...&quot;
+                  mb={0}
+                  rows={3}
+                  radius={8}
+                /&gt;
+                &lt;Button title=&quot;Share post&quot; color={C.blue} onPress={createPost} disabled={!newCaption.trim()} /&gt;
+              &lt;/Block&gt;
+            ) : story !== null ? (
+              &lt;Block gap={0} bg={C.blush} p={24} mih={270} justify=&quot;center&quot;&gt;
+                &lt;Text c={C.ink} fw=&quot;bold&quot; size={30} ta=&quot;center&quot;&gt;
+                  A little moment from {PEOPLE[story].name} ✨
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+            ) : (
+              activePost &amp;&amp; (
+                &lt;&gt;
+                  &lt;ScrollArea mah={300} contentProps={{ p: 16, gap: 15 }}&gt;
+                    &lt;Text c={C.ink} size={14}&gt;
+                      &lt;Text fw=&quot;bold&quot; c={C.ink}&gt;
+                        {PEOPLE[activePost.person].name}{&#39; &#39;}
+                      &lt;/Text&gt;
+                      {activePost.caption}
+                    &lt;/Text&gt;
+                    {(comments[activePost.id] ?? []).map((comment, index) =&gt; (
+                      &lt;Text key={index} c={C.ink} size={14}&gt;
+                        &lt;Text fw=&quot;bold&quot; c={C.ink}&gt;
+                          you{&#39; &#39;}
+                        &lt;/Text&gt;
+                        {comment}
+                      &lt;/Text&gt;
+                    ))}
+                  &lt;/ScrollArea&gt;
+                  &lt;Block direction=&quot;row&quot; p={12} borderTopWidth={1} borderTopColor={C.line} align=&quot;center&quot; gap={10}&gt;
+                    &lt;Input
+                      variant=&quot;unstyled&quot;
+                      value={draft}
+                      onChangeText={setDraft}
+                      placeholder=&quot;Add a comment...&quot;
+                      onEnter={submitComment}
+                      mb={0}
+                      flex={1}
+                      inputColor={C.ink}
+                    /&gt;
+                    &lt;Block gap={0} onPress={submitComment}&gt;
+                      &lt;Text fw=&quot;bold&quot; c={C.blue}&gt;
+                        Post
+                      &lt;/Text&gt;
+                    &lt;/Block&gt;
+                  &lt;/Block&gt;
+                &lt;/&gt;
+              )
+            )}
+          &lt;/Block&gt;
+        &lt;/Dialog&gt;
+      )}
+      &lt;Lightbox
+        opened={lightboxPostId !== null}
+        images={lightboxImages}
+        initialIndex={lightboxIndex}
+        onClose={() =&gt; setLightboxPostId(null)}
+        showDownloadButton={false}
+        accessibilityLabel={lightboxPost ? `${PEOPLE[lightboxPost.person].name} post photos` : &#39;Post photos&#39;}
+      /&gt;
+    &lt;/SafeArea&gt;
+  );
+}
+
+export default function App() {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;light&#39; }}&gt;
+        &lt;AppScreen /&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>

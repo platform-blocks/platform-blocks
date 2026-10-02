@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Baseball live demo source | plocks</title><meta name="description" content="Browse the source code for the Baseball live demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/baseball-live/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>baseball-live source</h1><nav><a href="/demos/baseball-live/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">components/CountDisplay.tsx</a><a href="#file-2">components/FieldDiamond.tsx</a><a href="#file-3">components/FixtureCard.tsx</a><a href="#file-4">components/Panel.tsx</a><a href="#file-5">components/Scoreboard.tsx</a><a href="#file-6">components/TeamMark.tsx</a><a href="#file-7">data.ts</a><a href="#file-8">game/engine.ts</a><a href="#file-9">game/types.ts</a><a href="#file-10">index.ts</a><a href="#file-11">screens/GamecastScreen.tsx</a><a href="#file-12">screens/ScoresScreen.tsx</a><a href="#file-13">screens/StandingsScreen.tsx</a><a href="#file-14">theme.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useState } from &#39;react&#39;;
+import { Block, AppShell, Badge, Column, PlocksProvider, SegmentedControl, Text } from &#39;@plocks/ui&#39;;
+import { createGame, nextPitch } from &#39;./game/engine&#39;;
+import { GamecastScreen } from &#39;./screens/GamecastScreen&#39;;
+import { ScoresScreen } from &#39;./screens/ScoresScreen&#39;;
+import { StandingsScreen } from &#39;./screens/StandingsScreen&#39;;
+import { BASEBALL_THEME, C } from &#39;./theme&#39;;
+
+function BaseballApp() {
+  const [view, setView] = useState(&#39;scores&#39;);
+  const [game, setGame] = useState(createGame);
+  return (
+    &lt;AppShell
+      header={{ height: 74 }}
+      autoLayout
+      maxContentWidth={1050}
+      centerContent
+      padding={0}
+      headerContent={
+        &lt;Block align=&quot;center&quot; justify=&quot;space-between&quot; direction=&quot;row&quot; flex={1} px={20}&gt;
+          &lt;Column gap={0} fullWidth={false}&gt;
+            &lt;Text c={C.red} size={10} fw=&quot;bold&quot; lts={2}&gt;
+              DIAMOND
+            &lt;/Text&gt;
+            &lt;Text c={C.ink} size={20} fw=&quot;bold&quot;&gt;
+              GAME DAY
+            &lt;/Text&gt;
+          &lt;/Column&gt;
+          &lt;Badge color={C.gold} variant=&quot;light&quot;&gt;
+            DEMO LEAGUE
+          &lt;/Badge&gt;
+        &lt;/Block&gt;
+      }
+    &gt;
+      &lt;AppShell.Section grow withScrollArea&gt;
+        &lt;Block gap=&quot;lg&quot; direction=&quot;column&quot; w=&quot;100%&quot; p={20} pb={48}&gt;
+          &lt;SegmentedControl
+            data={[
+              { value: &#39;scores&#39;, label: &#39;Scores&#39; },
+              { value: &#39;gamecast&#39;, label: &#39;Gamecast&#39; },
+              { value: &#39;standings&#39;, label: &#39;Standings&#39; },
+            ]}
+            value={view}
+            onChange={setView}
+            color={C.red}
+            fullWidth
+            accessibilityLabel=&quot;App views&quot;
+          /&gt;
+          {view === &#39;scores&#39; &amp;&amp; &lt;ScoresScreen game={game} onOpenGame={() =&gt; setView(&#39;gamecast&#39;)} /&gt;}
+          {view === &#39;gamecast&#39; &amp;&amp; (
+            &lt;GamecastScreen
+              game={game}
+              onPitch={() =&gt; setGame((old) =&gt; nextPitch(old))}
+              onReset={() =&gt; setGame(createGame())}
+            /&gt;
+          )}
+          {view === &#39;standings&#39; &amp;&amp; &lt;StandingsScreen /&gt;}
+        &lt;/Block&gt;
+      &lt;/AppShell.Section&gt;
+    &lt;/AppShell&gt;
+  );
+}
+
+export default function App() {
+  return (
+    &lt;PlocksProvider theme={BASEBALL_THEME}&gt;
+      &lt;BaseballApp /&gt;
+    &lt;/PlocksProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>components/CountDisplay.tsx</h2><pre><code>import { Block, Column, Row, Text } from &#39;@plocks/ui&#39;;
+import { C } from &#39;../theme&#39;;
+
+function Dots({ count, total, color }: { count: number; total: number; color: string }) {
+  return &lt;Row gap={5}&gt;{Array.from({ length: total }, (_, index) =&gt; &lt;Block key={index} w={11} h={11} radius=&quot;full&quot; bg={index &lt; count ? color : C.line} /&gt;)}&lt;/Row&gt;;
+}
+export function CountDisplay({ balls, strikes, outs }: { balls: number; strikes: number; outs: number }) {
+  return &lt;Row gap=&quot;xl&quot; wrap=&quot;wrap&quot; align=&quot;center&quot;&gt;
+    &lt;Column gap={5} fullWidth={false}&gt;&lt;Text c={C.muted} size={10} fw=&quot;bold&quot;&gt;BALLS&lt;/Text&gt;&lt;Dots count={balls} total={3} color={C.grass} /&gt;&lt;/Column&gt;
+    &lt;Column gap={5} fullWidth={false}&gt;&lt;Text c={C.muted} size={10} fw=&quot;bold&quot;&gt;STRIKES&lt;/Text&gt;&lt;Dots count={strikes} total={2} color={C.gold} /&gt;&lt;/Column&gt;
+    &lt;Column gap={5} fullWidth={false}&gt;&lt;Text c={C.muted} size={10} fw=&quot;bold&quot;&gt;OUTS&lt;/Text&gt;&lt;Dots count={outs} total={2} color={C.red} /&gt;&lt;/Column&gt;
+  &lt;/Row&gt;;
+}
+</code></pre></section><section id="file-2"><h2>components/FieldDiamond.tsx</h2><pre><code>import { Block, Column, Row, Text } from &#39;@plocks/ui&#39;;
+import type { Bases } from &#39;../game/types&#39;;
+import { C } from &#39;../theme&#39;;
+
+function Base({ active, x, y, label }: { active: boolean; x: number; y: number; label: string }) {
+  return (
+    &lt;Block
+      position=&quot;absolute&quot;
+      left={x}
+      top={y}
+      w={20}
+      h={20}
+      bg={active ? C.gold : C.base}
+      borderWidth={2}
+      borderColor={active ? C.gold : C.ink}
+      rotate=&quot;45deg&quot;
+      accessibilityLabel={`${label} base ${active ? &#39;occupied&#39; : &#39;empty&#39;}`}
+    /&gt;
+  );
+}
+
+export function FieldDiamond({ bases }: { bases: Bases }) {
+  return (
+    &lt;Column gap=&quot;xs&quot; align=&quot;center&quot; fullWidth={false}&gt;
+      &lt;Block
+        w={260}
+        h={205}
+        bg={C.grassDeep}
+        radius=&quot;lg&quot;
+        borderWidth={1}
+        borderColor={C.line}
+        position=&quot;relative&quot;
+        overflow=&quot;hidden&quot;
+      &gt;
+        &lt;Block
+          position=&quot;absolute&quot;
+          left={71}
+          top={37}
+          w={118}
+          h={118}
+          bg={C.grass}
+          borderWidth={2}
+          borderColor=&quot;#6AB68B&quot;
+          rotate=&quot;45deg&quot;
+        /&gt;
+        &lt;Block position=&quot;absolute&quot; left={107} top={72} w={46} h={46} bg=&quot;#B48A62&quot; radius=&quot;full&quot; /&gt;
+        &lt;Base active={bases[1]} x={120} y={35} label=&quot;Second&quot; /&gt;
+        &lt;Base active={bases[2]} x={42} y={113} label=&quot;Third&quot; /&gt;
+        &lt;Base active={bases[0]} x={198} y={113} label=&quot;First&quot; /&gt;
+        &lt;Base active={false} x={120} y={168} label=&quot;Home&quot; /&gt;
+        &lt;Block position=&quot;absolute&quot; left={117} top={90} w={26} h={26} bg={C.base} radius=&quot;full&quot; /&gt;
+      &lt;/Block&gt;
+      &lt;Row gap=&quot;md&quot; align=&quot;center&quot;&gt;
+        &lt;Text c={C.gold} size={11}&gt;
+          ◆
+        &lt;/Text&gt;
+        &lt;Text c={C.muted} size={11}&gt;
+          Gold bases have runners on.
+        &lt;/Text&gt;
+      &lt;/Row&gt;
+    &lt;/Column&gt;
+  );
+}
+</code></pre></section><section id="file-3"><h2>components/FixtureCard.tsx</h2><pre><code>import { Block, Badge, Card, Column, Text } from &#39;@plocks/ui&#39;;
+import { TEAMS, type Fixture } from &#39;../data&#39;;
+import { C } from &#39;../theme&#39;;
+import { TeamMark } from &#39;./TeamMark&#39;;
+
+export function FixtureCard({ fixture }: { fixture: Fixture }) {
+  const away = TEAMS[fixture.away],
+    home = TEAMS[fixture.home];
+  return (
+    &lt;Card bg={C.panel} borderColor={C.line} borderWidth={1} radius=&quot;lg&quot; padding=&quot;lg&quot; w=&quot;100%&quot;&gt;
+      &lt;Column gap=&quot;md&quot;&gt;
+        &lt;Block justify=&quot;space-between&quot; align=&quot;center&quot; direction=&quot;row&quot; w=&quot;100%&quot;&gt;
+          &lt;Text c={C.muted} size={12}&gt;
+            {fixture.note}
+          &lt;/Text&gt;
+          &lt;Badge color={fixture.status === &#39;final&#39; ? C.muted : C.gold} variant=&quot;light&quot;&gt;
+            {fixture.status === &#39;final&#39; ? &#39;FINAL&#39; : &#39;UPCOMING&#39;}
+          &lt;/Badge&gt;
+        &lt;/Block&gt;
+        &lt;Block align=&quot;center&quot; gap=&quot;sm&quot; direction=&quot;row&quot; w=&quot;100%&quot;&gt;
+          &lt;TeamMark team={away} size={32} /&gt;
+          &lt;Text c={C.ink} fw=&quot;bold&quot; flex={1}&gt;
+            {away.name}
+          &lt;/Text&gt;
+          &lt;Text c={C.ink} size={22} fw=&quot;bold&quot;&gt;
+            {fixture.awayScore ?? &#39;–&#39;}
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+        &lt;Block align=&quot;center&quot; gap=&quot;sm&quot; direction=&quot;row&quot; w=&quot;100%&quot;&gt;
+          &lt;TeamMark team={home} size={32} /&gt;
+          &lt;Text c={C.ink} fw=&quot;bold&quot; flex={1}&gt;
+            {home.name}
+          &lt;/Text&gt;
+          &lt;Text c={C.ink} size={22} fw=&quot;bold&quot;&gt;
+            {fixture.homeScore ?? &#39;–&#39;}
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+      &lt;/Column&gt;
+    &lt;/Card&gt;
+  );
+}
+</code></pre></section><section id="file-4"><h2>components/Panel.tsx</h2><pre><code>import type { ReactNode } from &#39;react&#39;;
+import { Block, Card, Column, Row, Text } from &#39;@plocks/ui&#39;;
+import { C } from &#39;../theme&#39;;
+
+export function Panel({
+  title,
+  eyebrow,
+  action,
+  children,
+}: {
+  title?: string;
+  eyebrow?: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    &lt;Card bg={C.panel} borderColor={C.line} borderWidth={1} radius=&quot;lg&quot; padding=&quot;lg&quot; w=&quot;100%&quot;&gt;
+      &lt;Column gap=&quot;md&quot;&gt;
+        {(title || eyebrow || action) &amp;&amp; (
+          &lt;Row align=&quot;center&quot; justify=&quot;space-between&quot; wrap=&quot;wrap&quot; gap=&quot;sm&quot;&gt;
+            &lt;Column gap={2} fullWidth={false}&gt;
+              {eyebrow &amp;&amp; (
+                &lt;Text c={C.red} size={10} fw=&quot;bold&quot; lts={2}&gt;
+                  {eyebrow.toUpperCase()}
+                &lt;/Text&gt;
+              )}
+              {title &amp;&amp; (
+                &lt;Text c={C.ink} size={20} fw=&quot;bold&quot;&gt;
+                  {title}
+                &lt;/Text&gt;
+              )}
+            &lt;/Column&gt;
+            {action}
+          &lt;/Row&gt;
+        )}
+        {children}
+      &lt;/Column&gt;
+    &lt;/Card&gt;
+  );
+}
+
+export function Stat({ label, value, accent = false }: { label: string; value: string | number; accent?: boolean }) {
+  return (
+    &lt;Block gap={2} fullWidth={false} direction=&quot;column&quot; miw={72}&gt;
+      &lt;Text c={C.muted} size={10} fw=&quot;bold&quot; lts={1.2}&gt;
+        {label.toUpperCase()}
+      &lt;/Text&gt;
+      &lt;Text c={accent ? C.gold : C.ink} size={20} fw=&quot;bold&quot;&gt;
+        {value}
+      &lt;/Text&gt;
+    &lt;/Block&gt;
+  );
+}
+</code></pre></section><section id="file-5"><h2>components/Scoreboard.tsx</h2><pre><code>import { Block, Badge, Column, Divider, Text } from &#39;@plocks/ui&#39;;
+import { AWAY, HOME } from &#39;../data&#39;;
+import { halfLabel } from &#39;../game/engine&#39;;
+import type { GameState } from &#39;../game/types&#39;;
+import { C } from &#39;../theme&#39;;
+import { Panel } from &#39;./Panel&#39;;
+import { TeamMark } from &#39;./TeamMark&#39;;
+
+export function Scoreboard({ game, compact = false }: { game: GameState; compact?: boolean }) {
+  const status = game.status === &#39;final&#39; ? &#39;FINAL&#39; : `${halfLabel(game.half).toUpperCase()} ${game.inning}`;
+  return (
+    &lt;Panel
+      eyebrow=&quot;Demo league · Game 01&quot;
+      action={
+        &lt;Badge color={game.status === &#39;live&#39; ? C.red : C.muted} variant=&quot;light&quot;&gt;
+          {status}
+        &lt;/Badge&gt;
+      }
+    &gt;
+      &lt;Column gap=&quot;sm&quot;&gt;
+        &lt;TeamRow team={AWAY} score={game.away} record={`${AWAY.wins}-${AWAY.losses}`} compact={compact} /&gt;
+        &lt;Divider color={C.line} /&gt;
+        &lt;TeamRow team={HOME} score={game.home} record={`${HOME.wins}-${HOME.losses}`} compact={compact} /&gt;
+      &lt;/Column&gt;
+    &lt;/Panel&gt;
+  );
+}
+
+function TeamRow({
+  team,
+  score,
+  record,
+  compact,
+}: {
+  team: typeof AWAY;
+  score: number;
+  record: string;
+  compact: boolean;
+}) {
+  return (
+    &lt;Block align=&quot;center&quot; gap=&quot;md&quot; direction=&quot;row&quot; w=&quot;100%&quot;&gt;
+      &lt;TeamMark team={team} size={compact ? 36 : 44} /&gt;
+      &lt;Block gap={0} direction=&quot;column&quot; flex={1}&gt;
+        &lt;Text c={C.ink} size={compact ? 15 : 19} fw=&quot;bold&quot;&gt;
+          {team.name}
+        &lt;/Text&gt;
+        &lt;Text c={C.muted} size={11}&gt;
+          {record} · {team.code}
+        &lt;/Text&gt;
+      &lt;/Block&gt;
+      &lt;Text c={C.ink} size={compact ? 27 : 35} fw=&quot;bold&quot;&gt;
+        {score}
+      &lt;/Text&gt;
+    &lt;/Block&gt;
+  );
+}
+</code></pre></section><section id="file-6"><h2>components/TeamMark.tsx</h2><pre><code>import { Block, Text } from &#39;@plocks/ui&#39;;
+import type { Team } from &#39;../data&#39;;
+import { C } from &#39;../theme&#39;;
+
+export function TeamMark({ team, size = 42 }: { team: Team; size?: number }) {
+  return &lt;Block w={size} h={size} radius=&quot;full&quot; bg={C.panelRaised} borderWidth={2} borderColor={team.color}
+    flex align=&quot;center&quot; justify=&quot;center&quot; accessibilityLabel={team.name}&gt;
+    &lt;Text c={team.color} size={size &lt; 36 ? 10 : 13} fw=&quot;bold&quot;&gt;{team.code}&lt;/Text&gt;
+  &lt;/Block&gt;;
+}
+</code></pre></section><section id="file-7"><h2>data.ts</h2><pre><code>export interface Team { code: string; name: string; short: string; color: string; wins: number; losses: number; }
+export const TEAMS: Record&lt;string, Team&gt; = {
+  HBR: { code: &#39;HBR&#39;, name: &#39;Harbor Hawks&#39;, short: &#39;Hawks&#39;, color: &#39;#71C2DC&#39;, wins: 43, losses: 28 },
+  DSR: { code: &#39;DSR&#39;, name: &#39;Desert Solars&#39;, short: &#39;Solars&#39;, color: &#39;#F1BE64&#39;, wins: 39, losses: 32 },
+  MNT: { code: &#39;MNT&#39;, name: &#39;Mountain Bears&#39;, short: &#39;Bears&#39;, color: &#39;#A7B7E2&#39;, wins: 37, losses: 34 },
+  RIV: { code: &#39;RIV&#39;, name: &#39;River Otters&#39;, short: &#39;Otters&#39;, color: &#39;#8DCCA9&#39;, wins: 34, losses: 37 },
+  CTY: { code: &#39;CTY&#39;, name: &#39;City Comets&#39;, short: &#39;Comets&#39;, color: &#39;#E89AB2&#39;, wins: 41, losses: 30 },
+  BAY: { code: &#39;BAY&#39;, name: &#39;Bay Waves&#39;, short: &#39;Waves&#39;, color: &#39;#8DBEDB&#39;, wins: 31, losses: 40 },
+};
+export const AWAY = TEAMS.HBR;
+export const HOME = TEAMS.DSR;
+export const AWAY_LINEUP = [&#39;M. Vega&#39;, &#39;J. Park&#39;, &#39;A. Brooks&#39;, &#39;T. Morgan&#39;, &#39;C. Reed&#39;, &#39;L. Chen&#39;, &#39;N. Cruz&#39;, &#39;E. Price&#39;, &#39;S. Ellis&#39;];
+export const HOME_LINEUP = [&#39;R. Flores&#39;, &#39;D. Hale&#39;, &#39;K. Bennett&#39;, &#39;I. Stone&#39;, &#39;P. Malik&#39;, &#39;W. Torres&#39;, &#39;B. Lane&#39;, &#39;O. Kim&#39;, &#39;F. Walsh&#39;];
+
+export interface Fixture { id: string; away: string; home: string; status: &#39;final&#39; | &#39;scheduled&#39;; awayScore?: number; homeScore?: number; note: string; }
+export const EARLIER: Fixture[] = [
+  { id: &#39;early-1&#39;, away: &#39;CTY&#39;, home: &#39;BAY&#39;, status: &#39;final&#39;, awayScore: 5, homeScore: 2, note: &#39;Final&#39; },
+  { id: &#39;early-2&#39;, away: &#39;RIV&#39;, home: &#39;MNT&#39;, status: &#39;final&#39;, awayScore: 3, homeScore: 4, note: &#39;Final · 10 innings&#39; },
+];
+export const DEMO_SLATE: Fixture[] = [
+  { id: &#39;today-1&#39;, away: &#39;CTY&#39;, home: &#39;BAY&#39;, status: &#39;final&#39;, awayScore: 6, homeScore: 1, note: &#39;Final&#39; },
+  { id: &#39;today-2&#39;, away: &#39;MNT&#39;, home: &#39;RIV&#39;, status: &#39;scheduled&#39;, note: &#39;7:40 PM · Mountain Park&#39; },
+];
+export const NEXT: Fixture[] = [
+  { id: &#39;next-1&#39;, away: &#39;DSR&#39;, home: &#39;MNT&#39;, status: &#39;scheduled&#39;, note: &#39;1:10 PM · Summit Field&#39; },
+  { id: &#39;next-2&#39;, away: &#39;BAY&#39;, home: &#39;HBR&#39;, status: &#39;scheduled&#39;, note: &#39;6:35 PM · Harbor Park&#39; },
+];
+</code></pre></section><section id="file-8"><h2>game/engine.ts</h2><pre><code>import type { Bases, GameState, Half, PlayEvent, Side } from &#39;./types&#39;;
+
+export const battingSide = (game: GameState): Side =&gt; game.half === &#39;top&#39; ? &#39;away&#39; : &#39;home&#39;;
+export const halfLabel = (half: Half) =&gt; half === &#39;top&#39; ? &#39;Top&#39; : &#39;Bottom&#39;;
+
+export function createGame(): GameState {
+  return {
+    inning: 7, half: &#39;top&#39;, status: &#39;live&#39;, away: 3, home: 2,
+    hits: { away: 7, home: 5 }, errors: { away: 0, home: 1 },
+    innings: { away: [1, 0, 0, 2, 0, 0, 0], home: [0, 1, 0, 0, 1, 0] },
+    balls: 1, strikes: 1, outs: 1, bases: [false, true, false],
+    batter: { away: 3, home: 4 }, pitchCount: 95,
+    events: [{ id: 95, inning: 7, half: &#39;top&#39;, title: &#39;Game in progress&#39;, detail: &#39;Hawks have a runner on second with one out.&#39;, away: 3, home: 2 }],
+  };
+}
+
+function log(game: GameState, title: string, detail: string, occurrence?: Pick&lt;GameState, &#39;inning&#39; | &#39;half&#39;&gt;): GameState {
+  const event: PlayEvent = { id: game.pitchCount, inning: occurrence?.inning ?? game.inning, half: occurrence?.half ?? game.half, title, detail, away: game.away, home: game.home };
+  return { ...game, events: [event, ...game.events].slice(0, 80) };
+}
+
+function nextBatter(game: GameState, side: Side): Record&lt;Side, number&gt; {
+  return { ...game.batter, [side]: (game.batter[side] + 1) % 9 };
+}
+
+function withRuns(game: GameState, side: Side, runs: number): GameState {
+  if (!runs) return game;
+  const row = [...game.innings[side]];
+  while (row.length &lt; game.inning) row.push(0);
+  row[game.inning - 1] += runs;
+  const updated: GameState = { ...game, [side]: game[side] + runs, innings: { ...game.innings, [side]: row } };
+  if (game.half === &#39;bottom&#39; &amp;&amp; game.inning &gt;= 9 &amp;&amp; updated.home &gt; updated.away) updated.status = &#39;final&#39;;
+  return updated;
+}
+
+function finishAtBat(game: GameState, bases: Bases, runs: number, title: string, detail: string, hit: boolean): GameState {
+  const side = battingSide(game);
+  const scored = withRuns(game, side, runs);
+  const updated: GameState = { ...scored, bases, balls: 0, strikes: 0, batter: nextBatter(game, side),
+    hits: hit ? { ...scored.hits, [side]: scored.hits[side] + 1 } : scored.hits };
+  return log(updated, title, runs ? `${detail} ${runs} run${runs === 1 ? &#39;&#39; : &#39;s&#39;} score${runs === 1 ? &#39;s&#39; : &#39;&#39;}.` : detail);
+}
+
+function hit(game: GameState, basesTaken: 1 | 2 | 4, title: string): GameState {
+  const next: Bases = [false, false, false];
+  let runs = 0;
+  for (let base = 2; base &gt;= 0; base--) {
+    if (!game.bases[base]) continue;
+    if (base + basesTaken &gt;= 3) runs++;
+    else next[base + basesTaken] = true;
+  }
+  if (basesTaken === 4) runs++;
+  else next[basesTaken - 1] = true;
+  return finishAtBat(game, next, runs, title, basesTaken === 4 ? &#39;The ball clears the fence.&#39; : &#39;The ball is in play.&#39;, true);
+}
+
+function walk(game: GameState): GameState {
+  const [first, second, third] = game.bases;
+  const runs = first &amp;&amp; second &amp;&amp; third ? 1 : 0;
+  return finishAtBat(game, [true, first || second, third || (first &amp;&amp; second)], runs, &#39;Walk&#39;, &#39;Ball four puts the batter on first.&#39;, false);
+}
+
+function out(game: GameState, title: string): GameState {
+  const side = battingSide(game);
+  if (game.outs &lt; 2) return log({ ...game, outs: game.outs + 1, balls: 0, strikes: 0, batter: nextBatter(game, side) }, title, `${game.outs + 1} out${game.outs ? &#39;s&#39; : &#39;&#39;} in the inning.`);
+  const afterTop = game.half === &#39;top&#39;;
+  const final = afterTop ? game.inning &gt;= 9 &amp;&amp; game.home &gt; game.away : game.inning &gt;= 9 &amp;&amp; game.home !== game.away;
+  const nextInning = afterTop || final ? game.inning : game.inning + 1;
+  const nextSide: Side = afterTop ? &#39;home&#39; : &#39;away&#39;;
+  const nextLine = [...game.innings[nextSide]];
+  if (!final) while (nextLine.length &lt; nextInning) nextLine.push(0);
+  return log({ ...game, status: final ? &#39;final&#39; : &#39;live&#39;, inning: afterTop || final ? game.inning : game.inning + 1,
+    half: final ? game.half : afterTop ? &#39;bottom&#39; : &#39;top&#39;, outs: 0, balls: 0, strikes: 0,
+    bases: [false, false, false], batter: nextBatter(game, side),
+    innings: final ? game.innings : { ...game.innings, [nextSide]: nextLine } }, title,
+    final ? &#39;Side retired. The game is final.&#39; : `Side retired. ${afterTop ? &#39;Bottom&#39; : &#39;Top&#39;} of the ${afterTop ? game.inning : game.inning + 1}${ordinal(afterTop ? game.inning : game.inning + 1)} is next.`, game);
+}
+
+function ordinal(n: number): string { return n % 100 &gt;= 11 &amp;&amp; n % 100 &lt;= 13 ? &#39;th&#39; : n % 10 === 1 ? &#39;st&#39; : n % 10 === 2 ? &#39;nd&#39; : n % 10 === 3 ? &#39;rd&#39; : &#39;th&#39;; }
+
+/** A random value can be injected to reproduce a pitch in tests. */
+export function nextPitch(state: GameState, random: () =&gt; number = Math.random): GameState {
+  if (state.status === &#39;final&#39;) return state;
+  const game = { ...state, pitchCount: state.pitchCount + 1 };
+  const roll = random();
+  if (roll &lt; .25) return game.balls === 3 ? walk(game) : log({ ...game, balls: game.balls + 1 }, &#39;Ball&#39;, `Count ${game.balls + 1}–${game.strikes}.`);
+  if (roll &lt; .50) return game.strikes === 2 ? out(game, &#39;Strikeout&#39;) : log({ ...game, strikes: game.strikes + 1 }, &#39;Called strike&#39;, `Count ${game.balls}–${game.strikes + 1}.`);
+  if (roll &lt; .60) return log({ ...game, strikes: Math.min(2, game.strikes + 1) }, &#39;Foul ball&#39;, &#39;The batter stays alive.&#39;);
+  if (roll &lt; .74) return out(game, &#39;Fly out&#39;);
+  if (roll &lt; .88) return hit(game, 1, &#39;Single&#39;);
+  if (roll &lt; .96) return hit(game, 2, &#39;Double&#39;);
+  return hit(game, 4, &#39;Home run&#39;);
+}
+</code></pre></section><section id="file-9"><h2>game/types.ts</h2><pre><code>export type Side = &#39;away&#39; | &#39;home&#39;;
+export type Half = &#39;top&#39; | &#39;bottom&#39;;
+export type Bases = [boolean, boolean, boolean];
+
+export interface PlayEvent {
+  id: number;
+  inning: number;
+  half: Half;
+  title: string;
+  detail: string;
+  away: number;
+  home: number;
+}
+
+export interface GameState {
+  inning: number;
+  half: Half;
+  status: &#39;live&#39; | &#39;final&#39;;
+  away: number;
+  home: number;
+  hits: Record&lt;Side, number&gt;;
+  errors: Record&lt;Side, number&gt;;
+  innings: Record&lt;Side, number[]&gt;;
+  balls: number;
+  strikes: number;
+  outs: number;
+  bases: Bases;
+  batter: Record&lt;Side, number&gt;;
+  pitchCount: number;
+  events: PlayEvent[];
+}
+</code></pre></section><section id="file-10"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section><section id="file-11"><h2>screens/GamecastScreen.tsx</h2><pre><code>import { useState } from &#39;react&#39;;
+import { Badge, Block, Button, Column, Divider, Row, Scroller, SegmentedControl, Text, Title } from &#39;@plocks/ui&#39;;
+import { AWAY, AWAY_LINEUP, HOME, HOME_LINEUP } from &#39;../data&#39;;
+import { CountDisplay } from &#39;../components/CountDisplay&#39;;
+import { FieldDiamond } from &#39;../components/FieldDiamond&#39;;
+import { Panel, Stat } from &#39;../components/Panel&#39;;
+import { Scoreboard } from &#39;../components/Scoreboard&#39;;
+import { battingSide, halfLabel } from &#39;../game/engine&#39;;
+import type { GameState } from &#39;../game/types&#39;;
+import { C } from &#39;../theme&#39;;
+
+export function GamecastScreen({
+  game,
+  onPitch,
+  onReset,
+}: {
+  game: GameState;
+  onPitch: () =&gt; void;
+  onReset: () =&gt; void;
+}) {
+  const [view, setView] = useState(&#39;field&#39;);
+  const side = battingSide(game);
+  const batter = side === &#39;away&#39; ? AWAY_LINEUP[game.batter.away] : HOME_LINEUP[game.batter.home];
+  const last = game.events[0];
+  return (
+    &lt;Column gap=&quot;lg&quot;&gt;
+      &lt;Row align=&quot;center&quot; justify=&quot;space-between&quot; wrap=&quot;wrap&quot; gap=&quot;sm&quot;&gt;
+        &lt;Column gap=&quot;xs&quot; fullWidth={false}&gt;
+          &lt;Text c={C.red} size={11} fw=&quot;bold&quot; lts={2}&gt;
+            GAME CENTER
+          &lt;/Text&gt;
+          &lt;Title order={1} c={C.ink}&gt;
+            Gamecast
+          &lt;/Title&gt;
+        &lt;/Column&gt;
+        &lt;Badge color={C.red} variant=&quot;light&quot;&gt;
+          {game.status === &#39;live&#39; ? &#39;LIVE DEMO&#39; : &#39;FINAL&#39;}
+        &lt;/Badge&gt;
+      &lt;/Row&gt;
+      &lt;Scoreboard game={game} /&gt;
+      &lt;SegmentedControl
+        data={[
+          { value: &#39;field&#39;, label: &#39;Field&#39; },
+          { value: &#39;plays&#39;, label: &#39;Play by play&#39; },
+          { value: &#39;box&#39;, label: &#39;Box score&#39; },
+        ]}
+        value={view}
+        onChange={setView}
+        color={C.red}
+        fullWidth
+      /&gt;
+      {view === &#39;field&#39; &amp;&amp; (
+        &lt;&gt;
+          &lt;Panel
+            eyebrow=&quot;At a glance&quot;
+            title={
+              game.status === &#39;live&#39;
+                ? `${halfLabel(game.half)} ${game.inning} · ${game.outs} out${game.outs === 1 ? &#39;&#39; : &#39;s&#39;}`
+                : &#39;Game complete&#39;
+            }
+          &gt;
+            &lt;Row wrap=&quot;wrap&quot; gap=&quot;xl&quot; align=&quot;center&quot; justify=&quot;space-around&quot;&gt;
+              &lt;FieldDiamond bases={game.bases} /&gt;
+              &lt;Block gap=&quot;lg&quot; fullWidth={false} direction=&quot;column&quot; miw={180}&gt;
+                &lt;CountDisplay balls={game.balls} strikes={game.strikes} outs={game.outs} /&gt;
+                &lt;Column gap={3}&gt;
+                  &lt;Text c={C.muted} size={10} fw=&quot;bold&quot;&gt;
+                    AT BAT
+                  &lt;/Text&gt;
+                  &lt;Text c={C.ink} size={21} fw=&quot;bold&quot;&gt;
+                    {game.status === &#39;final&#39; ? &#39;—&#39; : batter}
+                  &lt;/Text&gt;
+                  &lt;Text c={C.muted} size={12}&gt;
+                    {side === &#39;away&#39; ? AWAY.name : HOME.name}
+                  &lt;/Text&gt;
+                &lt;/Column&gt;
+                &lt;Stat label=&quot;Pitches in game&quot; value={game.pitchCount} /&gt;
+              &lt;/Block&gt;
+            &lt;/Row&gt;
+          &lt;/Panel&gt;
+          &lt;Panel eyebrow=&quot;Latest play&quot; title={last.title}&gt;
+            &lt;Text c={C.muted}&gt;{last.detail}&lt;/Text&gt;
+          &lt;/Panel&gt;
+          &lt;Row wrap=&quot;wrap&quot; gap=&quot;sm&quot;&gt;
+            &lt;Button
+              title=&quot;Next pitch&quot;
+              color={C.red}
+              variant=&quot;filled&quot;
+              onPress={onPitch}
+              disabled={game.status === &#39;final&#39;}
+            /&gt;
+            &lt;Button title=&quot;Reset simulation&quot; color={C.red} variant=&quot;outline&quot; onPress={onReset} /&gt;
+          &lt;/Row&gt;
+        &lt;/&gt;
+      )}
+      {view === &#39;plays&#39; &amp;&amp; &lt;PlayLog game={game} /&gt;}
+      {view === &#39;box&#39; &amp;&amp; &lt;BoxScore game={game} /&gt;}
+      &lt;Text c={C.muted} size={11}&gt;
+        Gamecast advances one simulated pitch per tap. It is not connected to a live sports feed.
+      &lt;/Text&gt;
+    &lt;/Column&gt;
+  );
+}
+
+function PlayLog({ game }: { game: GameState }) {
+  return (
+    &lt;Panel eyebrow={`${game.events.length} recent events`} title=&quot;Play by play&quot;&gt;
+      {game.events.map((event, index) =&gt; (
+        &lt;Block key={`${event.id}-${index}`} gap=&quot;xs&quot; direction=&quot;column&quot; py={10}&gt;
+          &lt;Row justify=&quot;space-between&quot; align=&quot;center&quot; wrap=&quot;wrap&quot;&gt;
+            &lt;Text c={C.red} size={10} fw=&quot;bold&quot;&gt;
+              {halfLabel(event.half).toUpperCase()} {event.inning} · PITCH {event.id}
+            &lt;/Text&gt;
+            &lt;Text c={C.muted} size={11}&gt;
+              {AWAY.code} {event.away} – {HOME.code} {event.home}
+            &lt;/Text&gt;
+          &lt;/Row&gt;
+          &lt;Text c={C.ink} fw=&quot;bold&quot;&gt;
+            {event.title}
+          &lt;/Text&gt;
+          &lt;Text c={C.muted} size={13}&gt;
+            {event.detail}
+          &lt;/Text&gt;
+          {index &lt; game.events.length - 1 &amp;&amp; &lt;Divider color={C.line} /&gt;}
+        &lt;/Block&gt;
+      ))}
+    &lt;/Panel&gt;
+  );
+}
+
+function BoxScore({ game }: { game: GameState }) {
+  const count = Math.max(9, game.inning);
+  const labels = Array.from({ length: count }, (_, i) =&gt; i + 1);
+  return (
+    &lt;Column gap=&quot;lg&quot;&gt;
+      &lt;Panel eyebrow=&quot;Runs by inning&quot; title=&quot;Line score&quot;&gt;
+        &lt;Scroller&gt;
+          &lt;Block w={Math.max(590, 126 + count * 47)}&gt;
+            &lt;Row gap={0}&gt;
+              &lt;Text c={C.muted} size={11} w={115}&gt;
+                TEAM
+              &lt;/Text&gt;
+              {labels.map((n) =&gt; (
+                &lt;Text key={n} c={C.muted} size={11} ta=&quot;center&quot; w={47}&gt;
+                  {n}
+                &lt;/Text&gt;
+              ))}
+            &lt;/Row&gt;
+            &lt;LineRow code={AWAY.code} values={game.innings.away} count={count} /&gt;
+            &lt;LineRow code={HOME.code} values={game.innings.home} count={count} /&gt;
+          &lt;/Block&gt;
+        &lt;/Scroller&gt;
+      &lt;/Panel&gt;
+      &lt;Panel eyebrow=&quot;Team totals&quot; title=&quot;The numbers&quot;&gt;
+        &lt;Block direction=&quot;row&quot; w=&quot;100%&quot;&gt;
+          &lt;Text c={C.muted} flex={1}&gt;
+            CLUB
+          &lt;/Text&gt;
+          &lt;Text c={C.muted} ta=&quot;right&quot; w={42}&gt;
+            R
+          &lt;/Text&gt;
+          &lt;Text c={C.muted} ta=&quot;right&quot; w={42}&gt;
+            H
+          &lt;/Text&gt;
+          &lt;Text c={C.muted} ta=&quot;right&quot; w={42}&gt;
+            E
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+        &lt;Totals code={AWAY.code} runs={game.away} hits={game.hits.away} errors={game.errors.away} /&gt;
+        &lt;Totals code={HOME.code} runs={game.home} hits={game.hits.home} errors={game.errors.home} /&gt;
+      &lt;/Panel&gt;
+      &lt;Panel eyebrow=&quot;Game context&quot; title=&quot;Matchup&quot;&gt;
+        &lt;Row wrap=&quot;wrap&quot; gap=&quot;xl&quot;&gt;
+          &lt;Stat label=&quot;Inning&quot; value={`${halfLabel(game.half)} ${game.inning}`} /&gt;
+          &lt;Stat label=&quot;Total pitches&quot; value={game.pitchCount} /&gt;
+          &lt;Stat label=&quot;Half-inning outs&quot; value={game.outs} /&gt;
+        &lt;/Row&gt;
+      &lt;/Panel&gt;
+    &lt;/Column&gt;
+  );
+}
+
+function LineRow({ code, values, count }: { code: string; values: number[]; count: number }) {
+  return (
+    &lt;Block gap={0} direction=&quot;row&quot; py={9} borderTopWidth={1} borderTopColor={C.line}&gt;
+      &lt;Text c={C.ink} fw=&quot;bold&quot; w={115}&gt;
+        {code}
+      &lt;/Text&gt;
+      {Array.from({ length: count }, (_, i) =&gt; (
+        &lt;Text key={i} c={values[i] === undefined ? C.muted : C.ink} ta=&quot;center&quot; w={47}&gt;
+          {values[i] ?? &#39;–&#39;}
+        &lt;/Text&gt;
+      ))}
+    &lt;/Block&gt;
+  );
+}
+
+function Totals({ code, runs, hits, errors }: { code: string; runs: number; hits: number; errors: number }) {
+  return (
+    &lt;Block direction=&quot;row&quot; w=&quot;100%&quot; py={8} borderTopWidth={1} borderTopColor={C.line}&gt;
+      &lt;Text c={C.ink} fw=&quot;bold&quot; flex={1}&gt;
+        {code}
+      &lt;/Text&gt;
+      &lt;Text c={C.ink} ta=&quot;right&quot; w={42}&gt;
+        {runs}
+      &lt;/Text&gt;
+      &lt;Text c={C.ink} ta=&quot;right&quot; w={42}&gt;
+        {hits}
+      &lt;/Text&gt;
+      &lt;Text c={C.ink} ta=&quot;right&quot; w={42}&gt;
+        {errors}
+      &lt;/Text&gt;
+    &lt;/Block&gt;
+  );
+}
+</code></pre></section><section id="file-12"><h2>screens/ScoresScreen.tsx</h2><pre><code>import { useState } from &#39;react&#39;;
+import { Button, Column, Row, SegmentedControl, Text, Title } from &#39;@plocks/ui&#39;;
+import { DEMO_SLATE, EARLIER, NEXT } from &#39;../data&#39;;
+import type { GameState } from &#39;../game/types&#39;;
+import { C } from &#39;../theme&#39;;
+import { FixtureCard } from &#39;../components/FixtureCard&#39;;
+import { Scoreboard } from &#39;../components/Scoreboard&#39;;
+
+export function ScoresScreen({ game, onOpenGame }: { game: GameState; onOpenGame: () =&gt; void }) {
+  const [slate, setSlate] = useState(&#39;demo&#39;);
+  const fixtures = slate === &#39;earlier&#39; ? EARLIER : slate === &#39;next&#39; ? NEXT : DEMO_SLATE;
+  return (
+    &lt;Column gap=&quot;lg&quot;&gt;
+      &lt;Column gap=&quot;xs&quot;&gt;
+        &lt;Text c={C.red} size={11} fw=&quot;bold&quot; lts={2}&gt;
+          SCOREBOARD
+        &lt;/Text&gt;
+        &lt;Title order={1} c={C.ink}&gt;
+          Games
+        &lt;/Title&gt;
+        &lt;Text c={C.muted}&gt;Follow the demo matchup and browse the fictional league.&lt;/Text&gt;
+      &lt;/Column&gt;
+      &lt;SegmentedControl
+        data={[
+          { value: &#39;earlier&#39;, label: &#39;Earlier&#39; },
+          { value: &#39;demo&#39;, label: &#39;Demo slate&#39; },
+          { value: &#39;next&#39;, label: &#39;Next&#39; },
+        ]}
+        value={slate}
+        onChange={setSlate}
+        color={C.red}
+        fullWidth
+      /&gt;
+      {slate === &#39;demo&#39; &amp;&amp; (
+        &lt;Column gap=&quot;sm&quot;&gt;
+          &lt;Row justify=&quot;space-between&quot; align=&quot;center&quot;&gt;
+            &lt;Text c={C.ink} size={18} fw=&quot;bold&quot;&gt;
+              Featured matchup
+            &lt;/Text&gt;
+            &lt;Text c={C.red} fw=&quot;bold&quot; size={11}&gt;
+              {game.status === &#39;live&#39; ? &#39;● LIVE SIMULATION&#39; : &#39;FINAL&#39;}
+            &lt;/Text&gt;
+          &lt;/Row&gt;
+          &lt;Scoreboard game={game} compact /&gt;
+          &lt;Row wrap=&quot;wrap&quot; align=&quot;center&quot; justify=&quot;space-between&quot;&gt;
+            &lt;Text c={C.muted} size={12}&gt;
+              Harbor Park · fictional teams
+            &lt;/Text&gt;
+            &lt;Button title=&quot;Open Gamecast&quot; size=&quot;sm&quot; color={C.red} variant=&quot;filled&quot; onPress={onOpenGame} /&gt;
+          &lt;/Row&gt;
+        &lt;/Column&gt;
+      )}
+      &lt;Column gap=&quot;md&quot;&gt;
+        &lt;Text c={C.ink} size={18} fw=&quot;bold&quot;&gt;
+          {slate === &#39;demo&#39; ? &#39;Around the league&#39; : slate === &#39;earlier&#39; ? &#39;Earlier results&#39; : &#39;Next games&#39;}
+        &lt;/Text&gt;
+        {fixtures.map((fixture) =&gt; (
+          &lt;FixtureCard key={fixture.id} fixture={fixture} /&gt;
+        ))}
+      &lt;/Column&gt;
+      &lt;Text c={C.muted} size={11}&gt;
+        All teams, results, and schedules shown here are sample data.
+      &lt;/Text&gt;
+    &lt;/Column&gt;
+  );
+}
+</code></pre></section><section id="file-13"><h2>screens/StandingsScreen.tsx</h2><pre><code>import { useState } from &#39;react&#39;;
+import { Block, Column, SegmentedControl, Text, Title } from &#39;@plocks/ui&#39;;
+import { TEAMS, type Team } from &#39;../data&#39;;
+import { C } from &#39;../theme&#39;;
+import { Panel } from &#39;../components/Panel&#39;;
+import { TeamMark } from &#39;../components/TeamMark&#39;;
+
+const DIVISIONS: Record&lt;string, Team[]&gt; = {
+  Coast: [TEAMS.HBR, TEAMS.CTY, TEAMS.BAY],
+  Inland: [TEAMS.DSR, TEAMS.MNT, TEAMS.RIV],
+};
+export function StandingsScreen() {
+  const [division, setDivision] = useState(&#39;Coast&#39;);
+  const teams = [...DIVISIONS[division]].sort((a, b) =&gt; b.wins - a.wins);
+  const leader = teams[0];
+  return (
+    &lt;Column gap=&quot;lg&quot;&gt;
+      &lt;Column gap=&quot;xs&quot;&gt;
+        &lt;Text c={C.red} size={11} fw=&quot;bold&quot; lts={2}&gt;
+          DEMO LEAGUE
+        &lt;/Text&gt;
+        &lt;Title order={1} c={C.ink}&gt;
+          Standings
+        &lt;/Title&gt;
+        &lt;Text c={C.muted}&gt;A sample league table to round out the game day experience.&lt;/Text&gt;
+      &lt;/Column&gt;
+      &lt;SegmentedControl data={[&#39;Coast&#39;, &#39;Inland&#39;]} value={division} onChange={setDivision} color={C.red} fullWidth /&gt;
+      &lt;Panel eyebrow={`${division} division`} title=&quot;League table&quot;&gt;
+        &lt;Block align=&quot;center&quot; gap=&quot;sm&quot; direction=&quot;row&quot; w=&quot;100%&quot;&gt;
+          &lt;Text c={C.muted} size={10} w={32}&gt;
+            #
+          &lt;/Text&gt;
+          &lt;Text c={C.muted} size={10} flex={1}&gt;
+            CLUB
+          &lt;/Text&gt;
+          &lt;Text c={C.muted} size={10} w={37} ta=&quot;right&quot;&gt;
+            W
+          &lt;/Text&gt;
+          &lt;Text c={C.muted} size={10} w={37} ta=&quot;right&quot;&gt;
+            L
+          &lt;/Text&gt;
+          &lt;Text c={C.muted} size={10} w={42} ta=&quot;right&quot;&gt;
+            GB
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+        {teams.map((team, index) =&gt; {
+          const gamesBack = (leader.wins - team.wins + (team.losses - leader.losses)) / 2;
+          return (
+            &lt;Block
+              key={team.code}
+              align=&quot;center&quot;
+              gap=&quot;sm&quot;
+              direction=&quot;row&quot;
+              w=&quot;100%&quot;
+              py={10}
+              borderTopWidth={1}
+              borderTopColor={C.line}
+            &gt;
+              &lt;Text c={C.muted} size={13} w={32}&gt;
+                {index + 1}
+              &lt;/Text&gt;
+              &lt;TeamMark team={team} size={32} /&gt;
+              &lt;Text c={C.ink} fw=&quot;bold&quot; size={13} flex={1}&gt;
+                {team.name}
+              &lt;/Text&gt;
+              &lt;Text c={C.ink} size={13} w={37} ta=&quot;right&quot;&gt;
+                {team.wins}
+              &lt;/Text&gt;
+              &lt;Text c={C.ink} size={13} w={37} ta=&quot;right&quot;&gt;
+                {team.losses}
+              &lt;/Text&gt;
+              &lt;Text c={C.muted} size={13} w={42} ta=&quot;right&quot;&gt;
+                {index === 0 ? &#39;—&#39; : gamesBack.toFixed(1)}
+              &lt;/Text&gt;
+            &lt;/Block&gt;
+          );
+        })}
+      &lt;/Panel&gt;
+      &lt;Text c={C.muted} size={11}&gt;
+        Records are illustrative and do not update with the pitch simulation.
+      &lt;/Text&gt;
+    &lt;/Column&gt;
+  );
+}
+</code></pre></section><section id="file-14"><h2>theme.ts</h2><pre><code>export const C = {
+  page: &#39;#0B1720&#39;,
+  panel: &#39;#14252F&#39;,
+  panelRaised: &#39;#1A303B&#39;,
+  line: &#39;#2B4651&#39;,
+  ink: &#39;#F7F6EE&#39;,
+  muted: &#39;#9CB3BB&#39;,
+  red: &#39;#F36A55&#39;,
+  gold: &#39;#F1BE64&#39;,
+  grass: &#39;#27684D&#39;,
+  grassDeep: &#39;#184936&#39;,
+  base: &#39;#F7F2D8&#39;,
+} as const;
+
+export const BASEBALL_THEME = {
+  colorScheme: &#39;dark&#39; as const,
+  primaryColor: C.red,
+  backgrounds: {
+    base: C.page,
+    subtle: C.panel,
+    surface: C.panel,
+    elevated: C.panelRaised,
+    border: C.line,
+    borderStrong: C.muted,
+  },
+};
+</code></pre></section></main></body></html>

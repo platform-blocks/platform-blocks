@@ -1,0 +1,97 @@
+# useDeviceInfo
+
+Gather a complete snapshot of runtime details, OS metadata, safe area insets, screen metrics, locale, input capabilities, and helper booleans.
+
+All instances share one set of platform listeners, and the hook is hydration-safe: server rendering and the hydration pass see deterministic defaults (`meta.ready` is `false`), then the live values arrive. `appearance.reducedMotion` is the same value `useReducedMotion()` returns.
+
+## Metadata
+
+- Import: `import { useDeviceInfo } from '@plocks/ui';`
+- Status: beta
+- Tags: device, responsive, platform
+- Docs: https://plocks.dev/hooks/useDeviceInfo
+- Source: https://github.com/platform-blocks/plocks/tree/main/packages/ui/src/hooks/useDeviceInfo/useDeviceInfo.ts
+
+## Definition
+
+```ts
+export function useDeviceInfo(options: UseDeviceInfoOptions = {}): DeviceInfo;
+```
+
+## Examples
+
+### Device overview dashboard
+
+Visualize OS, runtime, locale, and accessibility signals returned by useDeviceInfo.
+
+```tsx
+import { Block, DataList, Text, useDeviceInfo } from '@plocks/ui';
+
+export function Demo() {
+  const { runtime, system, screen, appearance, locale, input, safeArea, helpers, network, meta } =
+    useDeviceInfo({ enableExtendedData: true });
+
+  return (
+    <Block gap="lg">
+      <Block gap="xs">
+        <Text size="sm" fw="semibold">Platform & runtime</Text>
+        <DataList labelWidth={150} withDivider>
+          <DataList.Item
+            label="Operating system"
+            value={`${system.os.name ?? 'Unknown'} ${system.os.version ?? ''}`.trim()}
+          />
+          <DataList.Item
+            label="Device"
+            value={[system.device.type, system.device.brand, system.device.model].filter(Boolean).join(' • ')}
+          />
+          <DataList.Item
+            label="Runtime"
+            value={runtime.browserName
+              ? `${runtime.browserName} ${runtime.browserVersion ?? ''}`.trim()
+              : runtime.jsEngine ?? 'Native'}
+          />
+        </DataList>
+      </Block>
+
+      <Block gap="xs">
+        <Text size="sm" fw="semibold">Screen & appearance</Text>
+        <DataList labelWidth={150} withDivider>
+          <DataList.Item
+            label="Resolution"
+            value={`${Math.round(screen.width)} × ${Math.round(screen.height)} @${screen.scale}x`}
+          />
+          <DataList.Item label="Orientation" value={screen.orientation} />
+          <DataList.Item
+            label="Safe area"
+            value={`${safeArea.top} / ${safeArea.right} / ${safeArea.bottom} / ${safeArea.left}`}
+          />
+          <DataList.Item label="Color scheme" value={`${appearance.colorScheme} • contrast ${appearance.contrast}`} />
+          <DataList.Item label="Reduced motion" value={appearance.reducedMotion ? 'Enabled' : 'Disabled'} />
+        </DataList>
+      </Block>
+
+      <Block gap="xs">
+        <Text size="sm" fw="semibold">Locale & input</Text>
+        <DataList labelWidth={150} withDivider>
+          <DataList.Item label="Locale" value={`${locale.language}-${locale.region ?? '??'}`.toUpperCase()} />
+          <DataList.Item
+            label="Time zone"
+            value={`${locale.timeZone} • ${locale.uses24HourClock ? '24h' : '12h'} clock`}
+          />
+          <DataList.Item label="Pointers" value={input.pointerTypes.join(', ') || 'None'} />
+          <DataList.Item
+            label="Form factor"
+            value={helpers.isMobile ? 'Mobile / touch-first' : helpers.isDesktop ? 'Desktop' : 'Unknown'}
+          />
+          <DataList.Item
+            label="Network"
+            value={network?.downlink
+              ? `${network.connectionType} • ${network.downlink.toFixed(1)} Mbps`
+              : network?.connectionType ?? (meta.ready ? 'Unavailable' : 'Loading…')}
+          />
+        </DataList>
+      </Block>
+    </Block>
+  );
+}
+```

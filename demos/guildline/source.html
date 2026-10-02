@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en"><head><!--plocks-demo-seo--><title>Guildline demo source | plocks</title><meta name="description" content="Browse the source code for the Guildline demo built with plocks."/><link rel="canonical" href="https://plocks.dev/demos/guildline/source.html"/><!--/plocks-demo-seo--><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>body{margin:0;background:#111319;color:#eef0f3;font:15px system-ui,sans-serif}header{padding:24px;position:sticky;top:0;background:#1b1e26;border-bottom:1px solid #353a46}h1{font-size:20px;margin:0 0 12px}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#9dbeff}main{max-width:1100px;margin:auto;padding:24px}section{margin-bottom:32px;scroll-margin-top:130px}h2{font-size:18px}pre{overflow:auto;background:#1b1e26;border:1px solid #353a46;border-radius:10px;padding:18px;line-height:1.5}code{font:13px ui-monospace,SFMono-Regular,monospace}</style>
+</head><body><header><h1>guildline source</h1><nav><a href="/demos/guildline/">Open live demo</a><a href="#file-0">App.tsx</a><a href="#file-1">index.ts</a></nav></header><main><section id="file-0"><h2>App.tsx</h2><pre><code>import { useEffect, useRef, useState } from &#39;react&#39;;
+import { StatusBar, useWindowDimensions, type ScrollView } from &#39;react-native&#39;;
+import AsyncStorage from &#39;@react-native-async-storage/async-storage&#39;;
+import { SafeAreaProvider } from &#39;react-native-safe-area-context&#39;;
+import { Input, SafeArea, ScrollArea, Block, Avatar, Icon, IconButton, PlocksProvider, Text } from &#39;@plocks/ui&#39;;
+
+const C = {
+  rail: &#39;#1E1F22&#39;,
+  sidebar: &#39;#2B2D31&#39;,
+  main: &#39;#313338&#39;,
+  top: &#39;#2B2D31&#39;,
+  input: &#39;#383A40&#39;,
+  white: &#39;#F2F3F5&#39;,
+  muted: &#39;#A6ADB6&#39;,
+  dim: &#39;#828891&#39;,
+  line: &#39;#202127&#39;,
+  blurple: &#39;#5865F2&#39;,
+  green: &#39;#3BA55D&#39;,
+};
+const SERVERS = [
+  {
+    id: &#39;design&#39;,
+    icon: &#39;✦&#39;,
+    name: &#39;Design Den&#39;,
+    color: &#39;#5865F2&#39;,
+    categories: [
+      {
+        title: &#39;WELCOME&#39;,
+        channels: [
+          [&#39;welcome&#39;, &#39;welcome&#39;],
+          [&#39;rules&#39;, &#39;guidelines&#39;],
+        ],
+      },
+      {
+        title: &#39;HANGOUT&#39;,
+        channels: [
+          [&#39;general&#39;, &#39;general&#39;],
+          [&#39;inspiration&#39;, &#39;inspiration&#39;],
+          [&#39;feedback&#39;, &#39;feedback&#39;],
+        ],
+      },
+    ],
+  },
+  {
+    id: &#39;garden&#39;,
+    icon: &#39;🌱&#39;,
+    name: &#39;The Garden&#39;,
+    color: &#39;#427D62&#39;,
+    categories: [
+      {
+        title: &#39;LOUNGE&#39;,
+        channels: [
+          [&#39;garden-general&#39;, &#39;general&#39;],
+          [&#39;garden-plants&#39;, &#39;plant-talk&#39;],
+          [&#39;garden-photos&#39;, &#39;photos&#39;],
+        ],
+      },
+    ],
+  },
+  {
+    id: &#39;music&#39;,
+    icon: &#39;♫&#39;,
+    name: &#39;After Hours&#39;,
+    color: &#39;#B7678B&#39;,
+    categories: [
+      {
+        title: &#39;CHANNELS&#39;,
+        channels: [
+          [&#39;music-general&#39;, &#39;general&#39;],
+          [&#39;music-finds&#39;, &#39;new-finds&#39;],
+          [&#39;music-playlists&#39;, &#39;playlists&#39;],
+        ],
+      },
+    ],
+  },
+];
+type Message = {
+  id: string;
+  author: string;
+  initials: string;
+  color: string;
+  text: string;
+  time: string;
+  reactions?: string[];
+};
+type MessageMap = Record&lt;string, Message[]&gt;;
+const SEED: MessageMap = {
+  general: [
+    {
+      id: &#39;1&#39;,
+      author: &#39;Maya&#39;,
+      initials: &#39;MA&#39;,
+      color: &#39;#A871C4&#39;,
+      text: &#39;Good morning everyone! What are you working on today?&#39;,
+      time: &#39;Today at 9:14 AM&#39;,
+      reactions: [&#39;☀️ 3&#39;],
+    },
+    {
+      id: &#39;2&#39;,
+      author: &#39;Leo&#39;,
+      initials: &#39;LE&#39;,
+      color: &#39;#5B95B5&#39;,
+      text: &#39;A tiny icon set for our new project. The details are taking forever but I love it.&#39;,
+      time: &#39;Today at 9:18 AM&#39;,
+      reactions: [&#39;✨ 2&#39;],
+    },
+    {
+      id: &#39;3&#39;,
+      author: &#39;Nina&#39;,
+      initials: &#39;NI&#39;,
+      color: &#39;#D88479&#39;,
+      text: &#39;That sounds lovely! Drop a preview when you can 👀&#39;,
+      time: &#39;Today at 9:21 AM&#39;,
+    },
+    {
+      id: &#39;4&#39;,
+      author: &#39;Owen&#39;,
+      initials: &#39;OW&#39;,
+      color: &#39;#7DA66F&#39;,
+      text: &#39;I just made coffee and opened Figma. That counts as progress, right?&#39;,
+      time: &#39;Today at 9:26 AM&#39;,
+      reactions: [&#39;☕ 5&#39;],
+    },
+  ],
+  inspiration: [
+    {
+      id: &#39;5&#39;,
+      author: &#39;Maya&#39;,
+      initials: &#39;MA&#39;,
+      color: &#39;#A871C4&#39;,
+      text: &#39;This color palette has been living in my head all week: lilac, moss, and warm cream.&#39;,
+      time: &#39;Yesterday at 4:02 PM&#39;,
+      reactions: [&#39;💜 4&#39;],
+    },
+    {
+      id: &#39;6&#39;,
+      author: &#39;Nina&#39;,
+      initials: &#39;NI&#39;,
+      color: &#39;#D88479&#39;,
+      text: &#39;A little reminder that your moodboards are allowed to be messy.&#39;,
+      time: &#39;Today at 8:40 AM&#39;,
+    },
+  ],
+  feedback: [
+    {
+      id: &#39;7&#39;,
+      author: &#39;Leo&#39;,
+      initials: &#39;LE&#39;,
+      color: &#39;#5B95B5&#39;,
+      text: &#39;If anyone has a spare minute, I would love fresh eyes on a navigation idea.&#39;,
+      time: &#39;Today at 10:04 AM&#39;,
+    },
+  ],
+  welcome: [
+    {
+      id: &#39;8&#39;,
+      author: &#39;Maya&#39;,
+      initials: &#39;MA&#39;,
+      color: &#39;#A871C4&#39;,
+      text: &#39;Welcome to Design Den! Introduce yourself and make yourself at home.&#39;,
+      time: &#39;Monday at 12:00 PM&#39;,
+    },
+  ],
+  rules: [
+    {
+      id: &#39;9&#39;,
+      author: &#39;Maya&#39;,
+      initials: &#39;MA&#39;,
+      color: &#39;#A871C4&#39;,
+      text: &#39;Be kind, give useful feedback, and credit the work you share.&#39;,
+      time: &#39;Monday at 12:00 PM&#39;,
+    },
+  ],
+  &#39;garden-general&#39;: [
+    {
+      id: &#39;10&#39;,
+      author: &#39;Ari&#39;,
+      initials: &#39;AR&#39;,
+      color: &#39;#8BAE78&#39;,
+      text: &#39;Morning, garden crew! What is growing on your windowsill?&#39;,
+      time: &#39;Today at 8:06 AM&#39;,
+    },
+  ],
+  &#39;garden-plants&#39;: [
+    {
+      id: &#39;11&#39;,
+      author: &#39;Ari&#39;,
+      initials: &#39;AR&#39;,
+      color: &#39;#8BAE78&#39;,
+      text: &#39;My monstera finally has a new leaf 🌿&#39;,
+      time: &#39;Today at 8:16 AM&#39;,
+    },
+  ],
+  &#39;garden-photos&#39;: [
+    {
+      id: &#39;12&#39;,
+      author: &#39;Sam&#39;,
+      initials: &#39;SA&#39;,
+      color: &#39;#D0A472&#39;,
+      text: &#39;The light in the greenhouse was unreal this morning.&#39;,
+      time: &#39;Today at 9:30 AM&#39;,
+    },
+  ],
+  &#39;music-general&#39;: [
+    {
+      id: &#39;13&#39;,
+      author: &#39;Jules&#39;,
+      initials: &#39;JU&#39;,
+      color: &#39;#BB78A9&#39;,
+      text: &#39;What is everyone listening to tonight?&#39;,
+      time: &#39;Today at 7:22 PM&#39;,
+    },
+  ],
+  &#39;music-finds&#39;: [
+    {
+      id: &#39;14&#39;,
+      author: &#39;Jules&#39;,
+      initials: &#39;JU&#39;,
+      color: &#39;#BB78A9&#39;,
+      text: &#39;Found a little jazz track that feels like driving home in the rain.&#39;,
+      time: &#39;Today at 7:38 PM&#39;,
+    },
+  ],
+  &#39;music-playlists&#39;: [
+    {
+      id: &#39;15&#39;,
+      author: &#39;Rae&#39;,
+      initials: &#39;RA&#39;,
+      color: &#39;#7785B8&#39;,
+      text: &#39;Post your favorite late night playlists here.&#39;,
+      time: &#39;Yesterday at 11:18 PM&#39;,
+    },
+  ],
+};
+const MEMBERS = [
+  { name: &#39;Maya&#39;, initials: &#39;MA&#39;, color: &#39;#A871C4&#39;, role: &#39;Admin&#39; },
+  { name: &#39;Leo&#39;, initials: &#39;LE&#39;, color: &#39;#5B95B5&#39;, role: &#39;Online&#39; },
+  { name: &#39;Nina&#39;, initials: &#39;NI&#39;, color: &#39;#D88479&#39;, role: &#39;Online&#39; },
+  { name: &#39;Owen&#39;, initials: &#39;OW&#39;, color: &#39;#7DA66F&#39;, role: &#39;Online&#39; },
+  { name: &#39;You&#39;, initials: &#39;YO&#39;, color: &#39;#5865F2&#39;, role: &#39;Online&#39; },
+];
+const STORAGE = &#39;plocks-guildline-example:v1&#39;;
+const timestamp = () =&gt; new Date().toLocaleTimeString([], { hour: &#39;numeric&#39;, minute: &#39;2-digit&#39; });
+
+function ChatScreen() {
+  const { width } = useWindowDimensions();
+  const wide = width &gt;= 820;
+  const showMembers = width &gt;= 1180;
+  const [serverId, setServerId] = useState(&#39;design&#39;);
+  const [channelId, setChannelId] = useState(&#39;general&#39;);
+  const [messages, setMessages] = useState&lt;MessageMap&gt;(SEED);
+  const [draft, setDraft] = useState(&#39;&#39;);
+  const [showChannels, setShowChannels] = useState(true);
+  const [search, setSearch] = useState(&#39;&#39;);
+  const [ready, setReady] = useState(false);
+  const scroll = useRef&lt;ScrollView&gt;(null);
+  const server = SERVERS.find((item) =&gt; item.id === serverId)!;
+  const channel =
+    server.categories.flatMap((category) =&gt; category.channels).find(([id]) =&gt; id === channelId)?.[1] ?? &#39;general&#39;;
+  const currentMessages = messages[channelId] ?? [];
+  const filtered = currentMessages.filter((message) =&gt;
+    `${message.author} ${message.text}`.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  useEffect(() =&gt; {
+    AsyncStorage.getItem(STORAGE)
+      .then((raw) =&gt; {
+        if (!raw) return;
+        const saved = JSON.parse(raw) as MessageMap;
+        if (saved &amp;&amp; typeof saved === &#39;object&#39;) setMessages({ ...SEED, ...saved });
+      })
+      .catch(() =&gt; {})
+      .finally(() =&gt; setReady(true));
+  }, []);
+  useEffect(() =&gt; {
+    if (ready) AsyncStorage.setItem(STORAGE, JSON.stringify(messages)).catch(() =&gt; {});
+  }, [messages, ready]);
+
+  function openServer(id: string) {
+    const next = SERVERS.find((item) =&gt; item.id === id)!;
+    setServerId(id);
+    setChannelId(next.categories[0].channels[0][0]);
+    setShowChannels(true);
+    setSearch(&#39;&#39;);
+  }
+  function openChannel(id: string) {
+    setChannelId(id);
+    setShowChannels(false);
+    setSearch(&#39;&#39;);
+  }
+  function send() {
+    if (!draft.trim()) return;
+    const message: Message = {
+      id: `local-${Date.now()}`,
+      author: &#39;You&#39;,
+      initials: &#39;YO&#39;,
+      color: C.blurple,
+      text: draft.trim(),
+      time: `Today at ${timestamp()}`,
+    };
+    setMessages((old) =&gt; ({ ...old, [channelId]: [...(old[channelId] ?? []), message] }));
+    setDraft(&#39;&#39;);
+  }
+  function react(id: string) {
+    setMessages((old) =&gt; ({
+      ...old,
+      [channelId]: (old[channelId] ?? []).map((message) =&gt;
+        message.id === id ? { ...message, reactions: [...(message.reactions ?? []), &#39;💜 1&#39;] } : message,
+      ),
+    }));
+  }
+
+  const serverRail = (
+    &lt;Block w={72} bg={C.rail} align=&quot;center&quot; py={14} gap={12}&gt;
+      &lt;Block
+        gap={0}
+        onPress={() =&gt; openServer(&#39;design&#39;)}
+        accessibilityLabel=&quot;Home&quot;
+        w={48}
+        h={48}
+        radius={16}
+        bg={C.blurple}
+        align=&quot;center&quot;
+        justify=&quot;center&quot;
+      &gt;
+        &lt;Text c=&quot;#fff&quot; fw=&quot;bold&quot; size={27}&gt;
+          ✦
+        &lt;/Text&gt;
+      &lt;/Block&gt;
+      &lt;Block gap={0} w={30} h={2} bg=&quot;#46484F&quot; my={2} /&gt;
+      {SERVERS.map((item) =&gt; (
+        &lt;Block
+          gap={0}
+          key={item.id}
+          onPress={() =&gt; openServer(item.id)}
+          accessibilityRole=&quot;button&quot;
+          accessibilityLabel={item.name}
+          w={48}
+          h={48}
+          radius={serverId === item.id ? 16 : 24}
+          bg={item.color}
+          align=&quot;center&quot;
+          justify=&quot;center&quot;
+        &gt;
+          &lt;Text c=&quot;#fff&quot; fw=&quot;bold&quot; size={25}&gt;
+            {item.icon}
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+      ))}
+    &lt;/Block&gt;
+  );
+  const channelSidebar = (
+    &lt;Block gap={0} flex={wide ? undefined : 1} w={wide ? 245 : undefined} bg={C.sidebar}&gt;
+      &lt;Block
+        gap={0}
+        h={54}
+        px={16}
+        borderBottomWidth={1}
+        borderBottomColor={C.line}
+        direction=&quot;row&quot;
+        align=&quot;center&quot;
+        justify=&quot;space-between&quot;
+      &gt;
+        &lt;Text c={C.white} fw=&quot;bold&quot; size={17}&gt;
+          {server.name}
+        &lt;/Text&gt;
+        &lt;Icon name=&quot;chevronDown&quot; color={C.white} size={18} /&gt;
+      &lt;/Block&gt;
+      &lt;ScrollArea flex={1} contentProps={{ pt: 15, px: 8 }}&gt;
+        {server.categories.map((category) =&gt; (
+          &lt;Block gap={0} key={category.title} mb={23}&gt;
+            &lt;Text c={C.muted} fw=&quot;bold&quot; size={11} ml={10} mb={7}&gt;
+              ⌄ {category.title}
+            &lt;/Text&gt;
+            {category.channels.map(([id, name]) =&gt; (
+              &lt;Block
+                key={id}
+                onPress={() =&gt; openChannel(id)}
+                accessibilityRole=&quot;button&quot;
+                accessibilityLabel={`Open ${name} channel`}
+                direction=&quot;row&quot;
+                align=&quot;center&quot;
+                gap={9}
+                px={10}
+                h={35}
+                radius={5}
+                bg={channelId === id ? &#39;#404249&#39; : &#39;transparent&#39;}
+              &gt;
+                &lt;Icon name=&quot;number&quot; color={channelId === id ? C.white : C.dim} size={21} /&gt;
+                &lt;Text c={channelId === id ? C.white : C.muted} fw={channelId === id ? &#39;semibold&#39; : &#39;normal&#39;} size={15}&gt;
+                  {name}
+                &lt;/Text&gt;
+              &lt;/Block&gt;
+            ))}
+          &lt;/Block&gt;
+        ))}
+      &lt;/ScrollArea&gt;
+      &lt;Block p={10} bg=&quot;#232428&quot; direction=&quot;row&quot; align=&quot;center&quot; gap={9}&gt;
+        &lt;Avatar size=&quot;md&quot; fallback=&quot;YO&quot; bg={C.blurple} textColor=&quot;#fff&quot; /&gt;
+        &lt;Block gap={0} flex={1}&gt;
+          &lt;Text c={C.white} fw=&quot;bold&quot; size={12}&gt;
+            You
+          &lt;/Text&gt;
+          &lt;Text c={C.muted} size={11}&gt;
+            Online
+          &lt;/Text&gt;
+        &lt;/Block&gt;
+        &lt;Icon name=&quot;settings&quot; color={C.muted} size={18} /&gt;
+      &lt;/Block&gt;
+    &lt;/Block&gt;
+  );
+
+  return (
+    &lt;SafeArea gap={0} flex={1} bg={C.main}&gt;
+      &lt;StatusBar barStyle=&quot;light-content&quot; /&gt;
+      &lt;Block gap={0} flex={1} direction=&quot;row&quot;&gt;
+        {serverRail}
+        {(wide || showChannels) &amp;&amp; channelSidebar}
+        {(wide || !showChannels) &amp;&amp; (
+          &lt;Block gap={0} flex={1} miw={0} bg={C.main}&gt;
+            &lt;Block
+              h={54}
+              borderBottomWidth={1}
+              borderBottomColor={C.line}
+              direction=&quot;row&quot;
+              align=&quot;center&quot;
+              gap={9}
+              px={15}
+            &gt;
+              {!wide &amp;&amp; (
+                &lt;IconButton
+                  icon=&quot;menu&quot;
+                  variant=&quot;ghost&quot;
+                  iconColor={C.muted}
+                  accessibilityLabel=&quot;Show channels&quot;
+                  onPress={() =&gt; setShowChannels(true)}
+                /&gt;
+              )}
+              &lt;Icon name=&quot;number&quot; color={C.dim} size={24} /&gt;
+              &lt;Text c={C.white} fw=&quot;bold&quot; size={16}&gt;
+                {channel}
+              &lt;/Text&gt;
+              &lt;Block gap={0} w={1} h={23} bg=&quot;#52545A&quot; mx={5} /&gt;
+              &lt;Text c={C.muted} size={12} numberOfLines={1} flex={1}&gt;
+                A place to connect and share.
+              &lt;/Text&gt;
+              &lt;Icon name=&quot;search&quot; color={C.muted} size={20} /&gt;
+            &lt;/Block&gt;
+            &lt;Block gap={0} flex={1} direction=&quot;row&quot;&gt;
+              &lt;Block gap={0} flex={1} miw={0}&gt;
+                &lt;ScrollArea
+                  ref={scroll}
+                  flex={1}
+                  contentProps={{ py: 20, grow: 1, justify: &#39;flex-end&#39; }}
+                  onContentSizeChange={() =&gt; scroll.current?.scrollToEnd({ animated: false })}
+                &gt;
+                  &lt;Block gap={0} px={20} mb={16}&gt;
+                    &lt;Block gap={0} w={55} h={55} radius={28} bg=&quot;#404249&quot; align=&quot;center&quot; justify=&quot;center&quot; mb={12}&gt;
+                      &lt;Icon name=&quot;number&quot; color={C.white} size={30} /&gt;
+                    &lt;/Block&gt;
+                    &lt;Text c={C.white} fw=&quot;bold&quot; size={26}&gt;
+                      Welcome to #{channel}!
+                    &lt;/Text&gt;
+                    &lt;Text c={C.muted} size={13}&gt;
+                      This is the beginning of the #{channel} channel.
+                    &lt;/Text&gt;
+                  &lt;/Block&gt;
+                  &lt;Block gap={0} h={1} bg=&quot;#53565F&quot; mx={20} mb={14} /&gt;
+                  {filtered.map((message) =&gt; (
+                    &lt;Block key={message.id} direction=&quot;row&quot; gap={13} px={18} py={9}&gt;
+                      &lt;Avatar size=&quot;md&quot; fallback={message.initials} bg={message.color} textColor=&quot;#fff&quot; /&gt;
+                      &lt;Block gap={0} flex={1} miw={0}&gt;
+                        &lt;Block direction=&quot;row&quot; align=&quot;center&quot; gap={8}&gt;
+                          &lt;Text c={C.white} fw=&quot;bold&quot; size={14}&gt;
+                            {message.author}
+                          &lt;/Text&gt;
+                          &lt;Text c={C.dim} size={10}&gt;
+                            {message.time}
+                          &lt;/Text&gt;
+                        &lt;/Block&gt;
+                        &lt;Text c=&quot;#DBDEE1&quot; size={14} lh={22} mt={3}&gt;
+                          {message.text}
+                        &lt;/Text&gt;
+                        {!!message.reactions?.length &amp;&amp; (
+                          &lt;Block direction=&quot;row&quot; gap={5} mt={6}&gt;
+                            {message.reactions.map((reaction, i) =&gt; (
+                              &lt;Block
+                                gap={0}
+                                key={i}
+                                onPress={() =&gt; react(message.id)}
+                                bg=&quot;#404249&quot;
+                                radius={8}
+                                px={7}
+                                py={4}
+                              &gt;
+                                &lt;Text c={C.white} size={12}&gt;
+                                  {reaction}
+                                &lt;/Text&gt;
+                              &lt;/Block&gt;
+                            ))}
+                          &lt;/Block&gt;
+                        )}
+                        {!message.reactions?.length &amp;&amp; (
+                          &lt;Block
+                            gap={0}
+                            onPress={() =&gt; react(message.id)}
+                            accessibilityLabel=&quot;React with heart&quot;
+                            alignSelf=&quot;flex-start&quot;
+                            pt={4}
+                          &gt;
+                            &lt;Text c={C.dim} size={11}&gt;
+                              ♡ React
+                            &lt;/Text&gt;
+                          &lt;/Block&gt;
+                        )}
+                      &lt;/Block&gt;
+                    &lt;/Block&gt;
+                  ))}
+                  {search &amp;&amp; !filtered.length &amp;&amp; (
+                    &lt;Text c={C.muted} ta=&quot;center&quot; p={25}&gt;
+                      No messages found.
+                    &lt;/Text&gt;
+                  )}
+                &lt;/ScrollArea&gt;
+                &lt;Block gap={0} px={16} pb={16} pt={7}&gt;
+                  &lt;Block direction=&quot;row&quot; align=&quot;center&quot; bg={C.input} radius={8} px={12} gap={10}&gt;
+                    &lt;Icon name=&quot;plus&quot; color={C.muted} size={22} /&gt;
+                    &lt;Input
+                      variant=&quot;unstyled&quot;
+                      value={draft}
+                      onChangeText={setDraft}
+                      onEnter={send}
+                      placeholder={`Message #${channel}`}
+                      placeholderTextColor={C.dim}
+                      mb={0}
+                      flex={1}
+                      mih={44}
+                      inputColor={C.white}
+                      inputFontSize={14}
+                    /&gt;
+                    &lt;IconButton
+                      icon=&quot;arrowRight&quot;
+                      variant=&quot;ghost&quot;
+                      iconColor={draft.trim() ? C.white : C.dim}
+                      accessibilityLabel=&quot;Send message&quot;
+                      disabled={!draft.trim()}
+                      onPress={send}
+                    /&gt;
+                  &lt;/Block&gt;
+                &lt;/Block&gt;
+              &lt;/Block&gt;
+              {showMembers &amp;&amp; (
+                &lt;Block gap={0} w={215} bg={C.sidebar} p={15}&gt;
+                  &lt;Text c={C.muted} fw=&quot;bold&quot; size={11} mb={15}&gt;
+                    ONLINE — {MEMBERS.length}
+                  &lt;/Text&gt;
+                  {MEMBERS.map((member) =&gt; (
+                    &lt;Block key={member.name} direction=&quot;row&quot; align=&quot;center&quot; gap={10} mb={17}&gt;
+                      &lt;Avatar size=&quot;md&quot; fallback={member.initials} bg={member.color} textColor=&quot;#fff&quot; /&gt;
+                      &lt;Block gap={0}&gt;
+                        &lt;Text c={C.white} fw=&quot;semibold&quot; size={13}&gt;
+                          {member.name}
+                        &lt;/Text&gt;
+                        &lt;Text c={C.dim} size={11}&gt;
+                          {member.role}
+                        &lt;/Text&gt;
+                      &lt;/Block&gt;
+                    &lt;/Block&gt;
+                  ))}
+                  &lt;Input
+                    variant=&quot;filled&quot;
+                    value={search}
+                    onChangeText={setSearch}
+                    placeholder=&quot;Search this channel&quot;
+                    placeholderTextColor={C.dim}
+                    mb={0}
+                    mt={15}
+                    radius={6}
+                    inputColor={C.white}
+                    inputFontSize={12}
+                  /&gt;
+                &lt;/Block&gt;
+              )}
+            &lt;/Block&gt;
+          &lt;/Block&gt;
+        )}
+      &lt;/Block&gt;
+    &lt;/SafeArea&gt;
+  );
+}
+export default function App() {
+  return (
+    &lt;SafeAreaProvider&gt;
+      &lt;PlocksProvider theme={{ colorScheme: &#39;dark&#39; }}&gt;
+        &lt;ChatScreen /&gt;
+      &lt;/PlocksProvider&gt;
+    &lt;/SafeAreaProvider&gt;
+  );
+}
+</code></pre></section><section id="file-1"><h2>index.ts</h2><pre><code>import { registerRootComponent } from &#39;expo&#39;;
+import App from &#39;./App&#39;;
+
+registerRootComponent(App);
+</code></pre></section></main></body></html>
