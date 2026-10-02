@@ -1,0 +1,62 @@
+{
+  "reviewedAt": "2026-10-01",
+  "scope": "Chromium phone emulation at 320px and 390px in light and dark themes; native device testing deferred.",
+  "chartTypes": 24,
+  "publicDemos": 134,
+  "layoutCoverage": {
+    "320px": "Every public chart demo in both themes",
+    "390px": "First demo of every chart in both themes",
+    "referenceImages": 316
+  },
+  "touchCoverage": {
+    "casesPerViewportAndTheme": 28,
+    "basicChartTypes": 24,
+    "denseDemos": [
+      "BarChart.new-hire-recruiting-cycles",
+      "HeatmapChart.employee-engagement-scores",
+      "ScatterChart.customer-ltv-vs-cac",
+      "ViolinChart.delivery-times"
+    ],
+    "referenceImages": 112,
+    "checks": [
+      "Tooltip visible after finger release",
+      "Retention through 7.5 seconds and dismissal after 8 seconds",
+      "Tooltip stays near chart and inside viewport",
+      "Tooltip content fits its box",
+      "Network and Sankey links expose values",
+      "Heatmap cells fit inside preview bounds"
+    ]
+  },
+  "visualReview": "Reviewed chart contact sheets, selected-value screenshots, dark-theme previews, and dense examples; inspected all seven narrow Heatmap demos after correcting cell layout.",
+  "findingsResolved": [
+    "RadialBarChart omitted inner rings when fixed thickness and gaps exceeded available space; all rings now fit with room for the center readout.",
+    "MarimekkoChart wrapped titles overlapped the plot; default padding now reserves the measured title band.",
+    "Heatmap labels overflowed small cells; labels now require enough space, with full values in tooltips.",
+    "Heatmap cell scaling did not reserve fixed gap widths, clipping columns; the width budget now excludes gaps before scaling.",
+    "Narrow Heatmap rows became too short despite spare vertical room; row height now stays at least 24px when requested height and available space permit.",
+    "Bar value labels clipped or overlapped; labels are omitted when they cannot fit.",
+    "Scatter quadrant captions overlapped on narrow charts; details move to point tooltips, which now honor the supplied formatter.",
+    "Violin statistic labels overlapped between distributions; compact charts retain markers and reveal the configured statistics in tooltips.",
+    "Pie, Funnel and Candlestick touch tooltips did not consistently expire; touch source detection and expiry now follow the shared eight-second duration.",
+    "Bubble, Combo and Pareto tooltip anchors jumped after release; retained selections now keep the last pointer position.",
+    "Unnamed Sparkline tooltips exposed generated series identifiers; they now use the label Value."
+  ],
+  "gallery": "test-results/visual-gallery/charts-mobile/<Chart>/<light|dark>/",
+  "command": "npm run docs:visual:charts-mobile",
+  "validation": {
+    "status": "passed",
+    "mobileTests": 220,
+    "desktopTests": 84,
+    "chartUnitTests": 184,
+    "chartWebTests": 24,
+    "typecheck": "passed",
+    "lint": "passed",
+    "docsBuild": "passed",
+    "desktopBaselineNote": "The 84 desktop reference images were absent from this checkout and were regenerated; a subsequent comparison passed.",
+    "finalBrowserTests": 304,
+    "snapshotUpdateMode": false,
+    "duration": "5.7 minutes",
+    "diffCheck": "passed"
+  },
+  "galleryImages": 432
+}

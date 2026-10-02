@@ -313,7 +313,6 @@ const AutoCompleteInner = (props: AutoCompleteProps, ref: React.ForwardedRef<Aut
     sheetInputRef.current?.blur();
     inputRef.current?.blur();
     dismissKeyboard();
-    if (isNative) suppressFocusOpenRef.current = false;
   }, [close, dismissKeyboard]);
 
   const focusInput = useCallback(() => {

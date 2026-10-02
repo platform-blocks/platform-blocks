@@ -4,7 +4,7 @@
 // absolute-positioned on native).
 
 import React from 'react';
-import { View, Text, Animated } from 'react-native';
+import { View, Text, Animated, Dimensions } from 'react-native';
 import { platformShadow } from '../utils/platformShadow';
 import { useChartTheme } from '../theme/ChartThemeContext';
 import { useOptionalChartInteraction, useChartInteractionVolatile } from './ChartInteractionContext';
@@ -45,6 +45,7 @@ export const ChartActiveTooltip: React.FC<ChartActiveTooltipProps> = ({
   const liveTooltip = store?.config?.liveTooltip ?? true;
   const multiTooltip = !!store?.config?.multiTooltip;
   const resolvedMaxEntries = maxEntries ?? store?.config?.aggregatorMaxSeries ?? 8;
+  const [tooltipSize, setTooltipSize] = React.useState({ width: 240, height: 110 });
 
   const [reactDom, setReactDom] = React.useState<typeof import('react-dom') | null>(null);
   React.useEffect(() => {
@@ -78,10 +79,14 @@ export const ChartActiveTooltip: React.FC<ChartActiveTooltipProps> = ({
       rawLeft = anchor.x + offset.x;
       rawTop = anchor.y + offset.y;
     }
-    if (typeof window !== 'undefined') {
-      rawLeft = Math.min(Math.max(0, rawLeft), (window.innerWidth || rawLeft) - 250);
-      rawTop = Math.min(Math.max(0, rawTop), (window.innerHeight || rawTop) - 110);
-    }
+    const screen = Dimensions.get('window');
+    const screenWidth = typeof window !== 'undefined' ? window.innerWidth || screen.width : screen.width;
+    const screenHeight = typeof window !== 'undefined' ? window.innerHeight || screen.height : screen.height;
+    const rootLeft = usePortal ? 0 : rootOffset?.left ?? 0;
+    const rootTop = usePortal ? 0 : rootOffset?.top ?? 0;
+    const edge = 8;
+    rawLeft = Math.min(Math.max(edge, rawLeft + rootLeft), Math.max(edge, screenWidth - tooltipSize.width - edge)) - rootLeft;
+    rawTop = Math.min(Math.max(edge, rawTop + rootTop), Math.max(edge, screenHeight - tooltipSize.height - edge)) - rootTop;
   }
 
   // Position handling:
@@ -155,7 +160,14 @@ export const ChartActiveTooltip: React.FC<ChartActiveTooltipProps> = ({
 
   const body = (
     <Animated.View
+      testID="chart-active-tooltip"
       pointerEvents="none"
+      onLayout={(event) => {
+        const { width, height } = event.nativeEvent.layout;
+        if (Math.abs(width - tooltipSize.width) > 1 || Math.abs(height - tooltipSize.height) > 1) {
+          setTooltipSize({ width, height });
+        }
+      }}
       style={[
         {
           position: usePortal ? ('fixed' as any) : 'absolute',
@@ -166,7 +178,8 @@ export const ChartActiveTooltip: React.FC<ChartActiveTooltipProps> = ({
           borderRadius: 6,
           borderWidth: 1,
           borderColor: theme.colors.grid,
-          maxWidth: 240,
+          maxWidth: Math.min(240, Math.max(80, Dimensions.get('window').width - 16)),
+          maxHeight: Math.max(80, Dimensions.get('window').height - 16),
           zIndex: 9999,
           ...platformShadow({ color: '#000', opacity: 0.25, offsetY: 2, radius: 4, elevation: 5 }),
         },

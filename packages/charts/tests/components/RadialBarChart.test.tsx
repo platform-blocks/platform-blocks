@@ -69,3 +69,32 @@ describe('RadialBarChart (angular hit-test engine)', () => {
     });
   });
 });
+
+
+describe('RadialBarChart narrow layout', () => {
+  it('renders and exposes all four rings when the requested bands exceed the radius', () => {
+    const data = [...DATA, { id: 'd', label: 'D', value: 94, max: 100, color: '#a855f7' }];
+    let context: ReturnType<typeof useChartInteractionContext> | undefined;
+    const chart = render(
+      <ChartThemeProvider>
+        <ChartInteractionProvider>
+          <InteractionSpy onRender={(ctx) => { context = ctx; }} />
+          <RadialBarChart data={data} w={286} h={400} barThickness={18} gap={12}
+            title="Quarterly KPIs" subtitle="Progress toward goals" centerLabel="88%"
+            centerSubLabel="Avg score" legend={{ show: true, position: 'bottom' }} />
+        </ChartInteractionProvider>
+      </ChartThemeProvider>
+    );
+    for (const datum of data) {
+      expect(chart.UNSAFE_queryAllByProps({ stroke: datum.color, fill: 'none' }).length).toBeGreaterThan(0);
+    }
+    const reachable = new Set();
+    for (let y = 0; y < 400; y += 2) {
+      for (let x = 0; x < 286; x += 2) {
+        const target = context?.hitTest({ px: x, py: y });
+        if (target) reachable.add(target.seriesId);
+      }
+    }
+    expect(reachable).toEqual(new Set(data.map(datum => datum.id)));
+  });
+});

@@ -27,6 +27,7 @@ import type { Scale } from '../../utils/scales';
 import { AnimatedCandle } from './AnimatedCandle';
 import type { CandleDataPoint } from './AnimatedCandle';
 import type { ActiveTarget } from '../../core/hittest/types';
+import { isChartTouchInput } from '../../interaction/touchInput';
 
 const toNumeric = (value: number | string | Date): number => {
   if (value instanceof Date) return value.getTime();
@@ -635,6 +636,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
           style={{ width: plotWidth, height: plotHeight }}
           onStartShouldSetResponder={() => !disabled}
           onResponderGrant={(e) => {
+            interaction?.cancelTouchHold();
             const { locationX, locationY, pageX, pageY } = e.nativeEvent || {};
             handlePointerUpdate(locationX ?? 0, locationY ?? 0, { pageX, pageY });
             handlePress(locationX ?? 0, locationY ?? 0, e);
@@ -643,7 +645,10 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
             const { locationX, locationY, pageX, pageY } = e.nativeEvent || {};
             handlePointerUpdate(locationX ?? 0, locationY ?? 0, { pageX, pageY });
           }}
-          onResponderRelease={handlePointerLeave}
+          onResponderRelease={(e) => {
+            if (isChartTouchInput(e)) interaction?.holdTouchTarget();
+            handlePointerLeave();
+          }}
           onResponderTerminate={handlePointerLeave}
         >
           {/* Animated Candles Layer */}
@@ -682,6 +687,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = (props) => {
             // Basic pointer tracking for web (RN web exposes onMouseMove); native handled via gesture layer above ChartContainer if present
             // @ts-expect-error web only events
             onMouseMove={(e) => {
+              if (isChartTouchInput(e)) return;
               const rect = (e.currentTarget as any).getBoundingClientRect?.();
               if (!rect) return;
               const x = e.clientX - rect.left;

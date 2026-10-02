@@ -25,6 +25,11 @@ export interface WebMouseEvent {
   clientX?: number;
   clientY?: number;
   button?: number;
+  altKey?: boolean;
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+  shiftKey?: boolean;
+  defaultPrevented?: boolean;
   preventDefault(): void;
   stopPropagation(): void;
   nativeEvent?: unknown;

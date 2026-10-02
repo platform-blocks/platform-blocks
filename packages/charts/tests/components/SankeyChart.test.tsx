@@ -54,8 +54,8 @@ describe('SankeyChart (element-hover engine-swap)', () => {
 
     fireEvent(getByTestId('sankey-node-b'), 'pressOut');
     await waitFor(() => {
-      expect(ctxRef?.activeTarget).toBeNull();
-      expect(ctxRef?.activeSlice?.length ?? 0).toBe(0);
+      expect(ctxRef?.activeTarget?.markId).toBe('b');
+      expect(ctxRef?.activeSlice?.length).toBe(1);
     });
   });
 });

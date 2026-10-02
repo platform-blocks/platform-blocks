@@ -12,8 +12,7 @@ export function Demo() {
       cellSize={{ width: 90, height: 44 }}
       gap={6}
       colorScale={{
-        min: 0,
-        max: 100,
+        domain: [0, 100],
         stops: [
           { value: 35, color: '#0EA5E9' },
           { value: 60, color: '#FACC15' },

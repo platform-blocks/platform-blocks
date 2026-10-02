@@ -49,6 +49,18 @@ describe('useListNavigation', () => {
     expect(result.current.activeIndex).toBe(0);
   });
 
+  it('moves and selects through the imperative controls', () => {
+    const { result, onSelect } = setup();
+    act(() => result.current.nav.selectActive(true));
+    expect(onSelect).toHaveBeenCalledWith(0);
+    act(() => result.current.nav.moveNext());
+    expect(result.current.activeIndex).toBe(0);
+    act(() => result.current.nav.movePrevious());
+    expect(result.current.activeIndex).toBe(4);
+    act(() => result.current.nav.selectActive());
+    expect(onSelect).toHaveBeenCalledWith(4);
+  });
+
   it('wraps by default, and not when loop is off', () => {
     const looping = setup({ activeIndex: 4 });
     looping.press('ArrowDown');

@@ -1,6 +1,5 @@
 import React from 'react';
-import { Platform } from 'react-native';
-import { Title, useTheme, type TitleProps } from '@plocks/ui';
+import { useDeviceInfo, Title, useTheme, type TitleProps } from '@plocks/ui';
 
 export interface DemoHeadingProps extends Omit<TitleProps, 'id' | 'children' | 'endIcon' | 'text'> {
   /** Fragment id. The heading element carries it, so `#id` links land on it. */
@@ -25,6 +24,7 @@ export interface DemoHeadingProps extends Omit<TitleProps, 'id' | 'children' | '
  * Native has no address bar to link into, so it renders the plain heading.
  */
 export function DemoHeading({ id, children, order = 2, ...titleProps }: DemoHeadingProps) {
+  const { platform: { isWeb } } = useDeviceInfo();
   const theme = useTheme();
 
   const heading = (
@@ -33,7 +33,7 @@ export function DemoHeading({ id, children, order = 2, ...titleProps }: DemoHead
       id={id}
       {...titleProps}
       endIcon={
-        Platform.OS === 'web'
+        isWeb
           ? React.createElement(
             'span',
             {
@@ -50,7 +50,7 @@ export function DemoHeading({ id, children, order = 2, ...titleProps }: DemoHead
     </Title>
   );
 
-  if (Platform.OS !== 'web') return heading;
+  if (!isWeb) return heading;
 
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     // Let modified clicks (open in new tab, save, …) do their normal thing.

@@ -15,6 +15,7 @@ import { useChartTheme, useNumberFormatter } from '../../theme/ChartThemeContext
 import { useChartInteractionContext } from '../../interaction/ChartInteractionContext';
 import type { ActiveTarget } from '../../core/hittest/types';
 import { getColorFromScheme } from '../../utils';
+import { isChartTouchInput } from '../../interaction/touchInput';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
@@ -72,6 +73,8 @@ interface AnimatedSankeyNodeProps {
   theme: any;
   onHover?: () => void;
   onHoverOut?: () => void;
+  onTouchStart?: () => void;
+  onTouchRelease?: () => void;
   highlightAlpha: number;
 }
 
@@ -85,6 +88,8 @@ const AnimatedSankeyNode: React.FC<AnimatedSankeyNodeProps> = React.memo(({
   theme,
   onHover,
   onHoverOut,
+  onTouchStart,
+  onTouchRelease,
   highlightAlpha,
 }) => {
   const animatedProps = useAnimatedProps(() => {
@@ -139,10 +144,20 @@ const AnimatedSankeyNode: React.FC<AnimatedSankeyNodeProps> = React.memo(({
           ? {
               onPointerEnter: onHover,
               onPointerLeave: onHoverOut,
+              onPointerDown: (event: any) => {
+                if (!isChartTouchInput(event)) return;
+                onTouchStart?.();
+                onHover?.();
+              },
+              onPointerUp: (event: any) => {
+                if (!isChartTouchInput(event)) return;
+                onHover?.();
+                onTouchRelease?.();
+              },
             }
           : {
-              onPressIn: onHover,
-              onPressOut: onHoverOut,
+              onPressIn: () => { onTouchStart?.(); onHover?.(); },
+              onPressOut: () => { onTouchRelease?.(); onHoverOut?.(); },
             })}
       />
       {node.displayLabel !== '' && labelParts.map(part => (
@@ -194,6 +209,8 @@ interface AnimatedSankeyLinkProps {
   disabled: boolean;
   onHover?: () => void;
   onHoverOut?: () => void;
+  onTouchStart?: () => void;
+  onTouchRelease?: () => void;
   highlightAlpha: number;
 }
 
@@ -205,6 +222,8 @@ const AnimatedSankeyLink: React.FC<AnimatedSankeyLinkProps> = React.memo(({
   disabled,
   onHover,
   onHoverOut,
+  onTouchStart,
+  onTouchRelease,
   highlightAlpha,
 }) => {
   const animatedProps = useAnimatedProps(() => {
@@ -226,6 +245,7 @@ const AnimatedSankeyLink: React.FC<AnimatedSankeyLinkProps> = React.memo(({
 
   return (
     <AnimatedPath
+      testID={`sankey-link-${link.key}`}
       animatedProps={animatedProps}
       d={link.path}
       stroke={link.color}
@@ -237,12 +257,22 @@ const AnimatedSankeyLink: React.FC<AnimatedSankeyLinkProps> = React.memo(({
         ? {
             onPointerEnter: onHover,
             onPointerLeave: onHoverOut,
+            onPointerDown: (event: any) => {
+              if (!isChartTouchInput(event)) return;
+              onTouchStart?.();
+              onHover?.();
+            },
+            onPointerUp: (event: any) => {
+              if (!isChartTouchInput(event)) return;
+              onHover?.();
+              onTouchRelease?.();
+            },
             role: 'graphics-symbol',
             'aria-label': accessibilityLabel,
           }
         : {
-            onPressIn: onHover,
-            onPressOut: onHoverOut,
+            onPressIn: () => { onTouchStart?.(); onHover?.(); },
+            onPressOut: () => { onTouchRelease?.(); onHoverOut?.(); },
           })}
     />
   );
@@ -496,7 +526,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
     };
 
     const resolvedPadding = {
-      top: paddingOverrides.top ?? Math.max(12, measureChartTitleBand(title, subtitle)),
+      top: paddingOverrides.top ?? Math.max(12, measureChartTitleBand(title, subtitle, { containerWidth: width })),
       bottom: paddingOverrides.bottom ?? 16,
       left: paddingOverrides.left ?? (placement.first === 'outside' ? outerLeft : insideGutter),
       right: paddingOverrides.right ?? (placement.last === 'outside' ? rightMargin : insideGutter),
@@ -932,6 +962,8 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
               highlightAlpha={resolveLinkAlpha(l.key)}
               onHover={() => handleLinkHover(l.key)}
               onHoverOut={() => handleLinkHover(null)}
+              onTouchStart={() => interaction?.cancelTouchHold()}
+              onTouchRelease={() => interaction?.holdTouchTarget()}
             />
           ))}
           {internalNodes.map((n, i) => (
@@ -946,6 +978,8 @@ export const SankeyChart: React.FC<SankeyChartProps> = (props) => {
               theme={theme}
               onHover={() => handleNodeHover(n.id)}
               onHoverOut={() => handleNodeHover(null)}
+              onTouchStart={() => interaction?.cancelTouchHold()}
+              onTouchRelease={() => interaction?.holdTouchTarget()}
               highlightAlpha={resolveNodeAlpha(n.id)}
             />
           ))}

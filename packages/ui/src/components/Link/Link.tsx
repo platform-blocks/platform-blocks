@@ -10,7 +10,7 @@ import {
 import { a11yProps } from '../../core/accessibility/a11yProps';
 import { getNodeText } from '../../core/accessibility/useA11yId';
 import { factory } from '../../core/factory';
-import { isWeb, webProps, webStyle } from '../../core/platform';
+import { isWeb, webProps, webStyle, type WebMouseEvent } from '../../core/platform';
 import { resolveColorProp } from '../../core/theme/resolveColors';
 import type { SizeValue } from '../../core/theme/sizes';
 import { useTheme } from '../../core/theme/ThemeProvider';
@@ -30,6 +30,8 @@ export interface LinkProps
   href?: string;
   /** Custom press handler (overrides navigating to `href`) */
   onPress?: () => void;
+  /** Client-side navigation on an ordinary click/press. Modified web clicks keep the native anchor behavior. */
+  onNavigate?: () => void;
   /** Size of the link text (default: 'lg' = 16px to match the Text component) */
   size?: SizeValue;
   /** Palette token, `'primary.6'` shade syntax, CSS color, or `'inherit'` */
@@ -70,6 +72,7 @@ export const Link = factory<{ props: LinkProps; ref: RNText }>((props, ref) => {
     children,
     href,
     onPress,
+    onNavigate,
     size = 'lg',
     c: color = 'primary',
     variant = 'default',
@@ -111,6 +114,10 @@ export const Link = factory<{ props: LinkProps; ref: RNText }>((props, ref) => {
 
   const handlePress = (event: GestureResponderEvent) => {
     if (disabled) return;
+    if (onNavigate) {
+      if (!isWeb) onNavigate();
+      return;
+    }
     if (onPress) {
       // On web the anchor would also navigate; the custom handler replaces that.
       if (isWeb && href) event.preventDefault();
@@ -123,6 +130,13 @@ export const Link = factory<{ props: LinkProps; ref: RNText }>((props, ref) => {
         devError('Failed to open URL:', href, err);
       });
     }
+  };
+
+  const handleClick = (event: WebMouseEvent) => {
+    if (!onNavigate || disabled || event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    onNavigate();
   };
 
   const text = getNodeText(children);
@@ -142,6 +156,7 @@ export const Link = factory<{ props: LinkProps; ref: RNText }>((props, ref) => {
         hrefAttrs: opensNewTab ? { target: '_blank', rel: 'noopener noreferrer' } : undefined,
         onMouseEnter: hoverHandlers.onMouseEnter,
         onMouseLeave: hoverHandlers.onMouseLeave,
+        onClick: onNavigate ? handleClick : undefined,
       })}
       style={[
         linkStyle,

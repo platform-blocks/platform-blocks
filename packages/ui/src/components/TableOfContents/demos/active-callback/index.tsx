@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Block, Chip, Row, TableOfContents, Text, Title, TitleRegistryProvider } from '@plocks/ui';
 
 const SECTIONS = [
@@ -9,7 +9,6 @@ const SECTIONS = [
 
 export function Demo() {
   const [activeId, setActiveId] = useState<string | null>(null);
-  const contentRef = useRef<HTMLDivElement | null>(null);
 
   return (
     <TitleRegistryProvider>
@@ -20,14 +19,14 @@ export function Demo() {
 
         <Row gap="xl" align="flex-start">
           <TableOfContents
-            container={contentRef.current ?? undefined}
+            container="#toc-active-callback-content"
             variant="outline"
             size="xs"
             p="sm"
             style={{ width: 240 }}
             onActiveChange={setActiveId}
           />
-          <Block ref={contentRef} component="div" grow={1} style={{ maxWidth: 560 }}>
+          <Block id="toc-active-callback-content" grow={1} style={{ maxWidth: 560 }}>
             {SECTIONS.map((section, index) => (
               <Block key={section.id}>
                 <Title order={index === 0 ? 1 : 2}>{section.title}</Title>

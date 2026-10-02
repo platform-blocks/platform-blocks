@@ -49,6 +49,8 @@ export interface RadarGridConfig {
   axisLabelPlacement?: 'inside' | 'edge' | 'outside';
   /** Offset in pixels applied to axis labels */
   axisLabelOffset?: number;
+  /** Keep full spoke labels on narrow charts even when they would shrink the plot. */
+  showFullLabelsOnNarrow?: boolean;
   /** Custom formatter for axis labels */
   axisLabelFormatter?: (
     axis: string | number,

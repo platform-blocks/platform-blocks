@@ -1,13 +1,13 @@
 import React from 'react';
 import { useRouter } from 'expo-router';
-import { Badge, Block, Button, Card, Flex, Grid, GridItem, Icon, RollingNumber, Text, Title } from '@plocks/ui';
+import { Badge, Block, Button, Card, Flex, Grid, GridItem, Icon, RollingNumber, Text, Title, useDeviceInfo } from '@plocks/ui';
 import { useBrowserTitle } from '../hooks/useBrowserTitle';
 import { HOME_TITLE } from '../config/routeSeo';
 import { DocsPage } from 'components';
 import ChartDemos from '../components/home/ChartDemos';
 import ComponentGallery from '../components/home/ComponentGallery';
 import { HeroMark } from '../components/home/HeroMark';
-import { BrandIcon } from "../../../packages/brands/src/components/BrandIcon";
+import { BrandIcon } from '@plocks/brands';
 import { componentRoute } from '../utils/componentRoute';
 import { CATALOG_COUNTS } from '../config/catalogCounts';
 
@@ -42,6 +42,7 @@ function SectionHeading({ eyebrow, title, description, action }: {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { platform: { isWeb, isNative } } = useDeviceInfo();
   useBrowserTitle(HOME_TITLE);
   const chartCols = { base: 1, md: 2, lg: 3 } as const;
 
@@ -68,9 +69,9 @@ export default function HomeScreen() {
           </Flex>
 
           </Block>
-          <Block direction="row" align="center" justify="center" wrap="wrap" gap="sm">
-            <Button title="Start building" color="secondary" variant="gradient" endSection={<Icon name="arrow-right" />} onPress={() => router.push('/getting-started')} />
-            <Button title={`${CATALOG_COUNTS.components} components`} variant="gradient" onPress={() => router.push('/components')} />
+          <Block direction={isWeb ? 'row' : 'column'} align="center" justify="center" wrap="wrap" gap="sm" fullWidth={isNative}>
+            <Button title="Start building" color="secondary" variant="gradient" fullWidth={isNative} endSection={<Icon name="arrow-right" />} onPress={() => router.push('/getting-started')} />
+            <Button title={`${CATALOG_COUNTS.components} components`} variant="gradient" fullWidth={isNative} onPress={() => router.push('/components')} />
           </Block>
           <Text size="sm" c="secondary">TypeScript ready · Web and native · Designed to be customized</Text>
         </Block>

@@ -53,9 +53,10 @@ describe('FunnelChart (segment engine-swap)', () => {
     });
 
     fireEvent(getByTestId('funnel-segment-pipeline-Signups'), 'pressOut');
+    fireEvent(getByTestId('funnel-segment-pipeline-Signups'), 'press', { nativeEvent: {} });
     await waitFor(() => {
-      expect(ctxRef?.activeTarget).toBeNull();
-      expect(ctxRef?.activeSlice?.length ?? 0).toBe(0);
+      expect(ctxRef?.activeTarget?.value).toBe(400);
+      expect(ctxRef?.activeSlice?.length).toBe(1);
     });
   });
 });

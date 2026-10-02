@@ -29,7 +29,11 @@ try {
     cwd: docsRoot,
     env: { ...process.env, EXPO_PUBLIC_DEMOS_BUNDLED: 'true' },
   });
+  if (!fs.existsSync(path.join(docsRoot, 'dist/index.html'))) {
+    throw new Error('Docs export did not produce dist/index.html.');
+  }
   fs.cpSync(temp, path.join(docsRoot, 'dist/demos'), { recursive: true });
+  run('npx', ['tsx', 'scripts/inject-demo-seo-tags.ts'], { cwd: docsRoot });
   console.log('Built docs with live demos and source pages in dist/demos.');
 } finally {
   fs.rmSync(temp, { recursive: true, force: true });

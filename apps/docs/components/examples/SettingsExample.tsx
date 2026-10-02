@@ -27,7 +27,7 @@ export function SettingsExample() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.backgrounds.base }}
-      contentContainerStyle={{ padding: 20, gap: 16, maxWidth: 640, width: '100%', alignSelf: 'center' }}
+      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 20, gap: 16, maxWidth: 640, width: '100%', alignSelf: 'center' }}
     >
       <Flex direction="row" align="center" gap="md" py="md">
         <Avatar size="lg" fallback="JS" />

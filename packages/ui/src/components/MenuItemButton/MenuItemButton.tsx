@@ -15,7 +15,7 @@ import { resolveTextColor } from '../../core/theme/resolveColors';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { getControlSize } from '../../core/theme/tokens';
 import type { PlocksTheme } from '../../core/theme/types';
-import { resolveVariantRoles } from '../../core/theme/variantRoles';
+import { resolveSubtleHoverFill, resolveVariantRoles } from '../../core/theme/variantRoles';
 import type { BaseProps } from '../../core/types/base';
 import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
 import { extractStyleProps, resolveStyleProps } from '../../core/utils/spacing';
@@ -106,9 +106,9 @@ function getTone(theme: PlocksTheme, tone: MenuItemColor): MenuTone {
     };
   }
   const rest = resolveVariantRoles(theme, { variant: 'outline', color: tone });
-  const hover = resolveVariantRoles(theme, { variant: 'subtle', color: tone });
   const active = resolveVariantRoles(theme, { variant: 'light', color: tone });
-  return { text: rest.text, hoverBg: hover.fill, activeBg: active.fill, activeText: active.text };
+  const hoverBg = resolveSubtleHoverFill(theme, tone);
+  return { text: rest.text, hoverBg, activeBg: active.fill, activeText: active.text };
 }
 
 /**

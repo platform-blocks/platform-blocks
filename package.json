@@ -1,6 +1,6 @@
 {
   "name": "plocks",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "workspaces": [
     "packages/ui",
     "packages/ui-snack",
@@ -25,10 +25,13 @@
     "ui:lint": "npm --prefix packages/ui run lint",
     "ui:typecheck": "npm --prefix packages/ui run typecheck",
     "charts:test": "npm --prefix packages/charts run test",
+    "charts:test:web": "npm --prefix packages/charts run test:web",
     "charts:lint": "npm --prefix packages/charts run lint",
     "i18n:scan": "tsx scripts/scan-i18n-keys.ts",
+    "inventory:components": "node scripts/audit-component-inventory.mjs",
+    "visual:components": "node scripts/capture-component-visuals.mjs",
     "demos:generate": "npx --yes tsx scripts/generate-demos.ts",
-    "demos:validate": "npx --yes tsx scripts/validate-demos.ts",
+    "demos:validate": "npx --yes tsx scripts/validate-demos.ts && node --test scripts/__tests__/generated-component-props.test.mjs",
     "demos:all": "npm run demos:generate && npm run demos:validate",
     "snack:exports": "npx --yes tsx scripts/generate-snack-exports.ts",
     "llms:generate": "npx --yes tsx scripts/generate-llms.ts",
@@ -38,8 +41,13 @@
     "site:build": "npm run ui:build && npm run docs:all && npm --prefix apps/docs run build-web",
     "site:build-with-demos": "npm run ui:build && npm run docs:all && npm --prefix apps/docs run build-web-with-demos",
     "docs:baseline": "npm --prefix apps/docs run build-web && npx playwright test --config=playwright.config.ts",
+    "docs:visual": "npm --prefix apps/docs run build-web && npx playwright test --config=playwright.config.ts --workers=2",
+    "docs:visual:gallery": "npm --prefix apps/docs run build-web && npx playwright test --config=playwright.config.ts apps/docs/tests/visual-gallery.spec.ts --workers=2",
+    "docs:visual:gallery:apps": "npm --prefix apps/docs run build-web-with-demos && npx playwright test --config=playwright.config.ts apps/docs/tests/visual-gallery.spec.ts --workers=2",
+    "docs:visual:charts-mobile": "npm --prefix apps/docs run build-web && npx playwright test --config=playwright.config.ts apps/docs/tests/chart-touch-consistency.spec.ts apps/docs/tests/visual-gallery.spec.ts --grep \"chart values on phone touch|charts in phone-sized columns\" --workers=2",
+    "docs:visual:update": "npm --prefix apps/docs run build-web && npx playwright test --config=playwright.config.ts --workers=2 --update-snapshots",
     "examples:test:overlays": "npx playwright test --config=playwright.examples.config.ts",
-    "verify:packages": "npm run ui:exports:check && npm run icons:check -w packages/ui && npm run skills:check && npm run ui:typecheck && npm run ui:lint && npm run ui:test && npm run ui:test:web && npm run charts:lint && npm run charts:test && npm run packages:typecheck && npm run packages:lint && npm run packages:test && npm run packages:test:web",
+    "verify:packages": "npm run ui:exports:check && npm run icons:check -w packages/ui && npm run skills:check && npm run ui:typecheck && npm run ui:lint && npm run ui:test && npm run ui:test:web && npm run typecheck -w packages/charts && npm run charts:lint && npm run charts:test && npm run charts:test:web && npm run packages:typecheck && npm run packages:lint && npm run packages:test && npm run packages:test:web",
     "verify:packages:build": "npm run packages:build",
     "release:check": "npm run verify:packages && npm run verify:packages:build && tsx scripts/publish-release.ts --dry-run --skip-build",
     "release": "npm run verify:packages && npm run verify:packages:build && tsx scripts/publish-release.ts --skip-build",
@@ -50,7 +58,8 @@
     "packages:test:web": "npm run test:web -w packages/dates -w packages/code -w packages/media -w packages/carousel -w packages/spotlight -w packages/brands -w packages/qrcode -w packages/emoji-picker",
     "brand:build": "node brand/build.mjs",
     "ui:exports": "tsx scripts/generate-ui-exports.ts",
-    "ui:exports:check": "tsx scripts/generate-ui-exports.ts --check"
+    "ui:exports:check": "tsx scripts/generate-ui-exports.ts --check",
+    "docs:typecheck": "npm run typecheck -w apps/docs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",
@@ -65,16 +74,18 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
-    "react-native-reanimated": "4.5.0",
+    "react-native-reanimated": "4.5.1",
     "react-native-reanimated-carousel": "^4.0.0",
     "react-native-svg": "15.15.4",
-    "react-test-renderer": "19.2.3"
+    "react-test-renderer": "19.2.3",
+    "react-native-worklets": "0.10.1"
   },
   "optionalDependencies": {
     "@rollup/rollup-darwin-arm64": "^4.52.3"
   },
   "overrides": {
-    "uuid": "^11.1.1"
+    "uuid": "^11.1.1",
+    "metro@0.84.4": "0.84.6"
   },
   "author": "Josh Stovall",
   "license": "MIT",

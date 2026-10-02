@@ -226,16 +226,17 @@ export const Axis: React.FC<AxisProps> = ({
           }),
         };
         const combinedTickLabelStyle = [baseLabelStyle, tickLabelStyle];
+        const formattedTick = formatTick(t);
         return (
           <View key={key} style={[{ position: 'absolute' }, anchor]}>
             {showTicks && <View style={tickLineStyle} />}
             {showLabels && !hidden && (
               <Text
                 style={combinedTickLabelStyle}
-                numberOfLines={isHorizontal ? hLabelLines : 1}
+                numberOfLines={isHorizontal && /\s/.test(formattedTick) ? hLabelLines : 1}
                 ellipsizeMode="tail"
               >
-                {formatTick(t)}
+                {formattedTick}
               </Text>
             )}
           </View>

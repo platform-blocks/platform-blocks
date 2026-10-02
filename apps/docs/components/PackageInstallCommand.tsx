@@ -1,5 +1,5 @@
-import { CopyButton, Flex } from '@plocks/ui';
-import { CodeBlock } from "../../../packages/code/src/components/CodeBlock";
+import { Flex } from '@plocks/ui';
+import { CodeBlock } from '@plocks/code';
 
 export function PackageInstallCommand({ packageName, compact = false }: {
   packageName: string;

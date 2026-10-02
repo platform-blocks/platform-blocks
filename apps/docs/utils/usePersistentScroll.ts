@@ -1,5 +1,6 @@
+import { useDeviceInfo } from '@plocks/ui';
 import React from 'react';
-import { Platform, ScrollView } from 'react-native';
+import { ScrollView } from 'react-native';
 import { usePathname } from 'expo-router';
 
 // In-memory scroll position store keyed by route pathname
@@ -16,6 +17,7 @@ export function getSavedScroll(path: string): number | undefined {
 
 export function usePersistentScroll(ref: React.RefObject<ScrollView>, opts: Options = {}) {
   const { restoreIfMissing = true, delayFrames = 1 } = opts;
+  const { platform: { isWeb } } = useDeviceInfo();
   const pathname = usePathname();
   const restoredRef = React.useRef(false);
 
@@ -29,7 +31,7 @@ export function usePersistentScroll(ref: React.RefObject<ScrollView>, opts: Opti
     if (!pathname) return;
     if (restoredRef.current) return;
     restoredRef.current = true;
-    if (Platform.OS === 'web') {
+    if (isWeb) {
       const saved = scrollPositions.get(pathname);
       const target = saved !== undefined ? saved : (restoreIfMissing ? 0 : undefined);
       if (target === undefined) return;
@@ -49,7 +51,7 @@ export function usePersistentScroll(ref: React.RefObject<ScrollView>, opts: Opti
       };
       requestAnimationFrame(attempt);
     }
-  }, [pathname, delayFrames, restoreIfMissing, ref]);
+  }, [pathname, delayFrames, restoreIfMissing, ref, isWeb]);
 
   return { onScroll };
 }

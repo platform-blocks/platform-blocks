@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import Animated, { useSharedValue, useAnimatedProps, withTiming, withDelay, Easing } from 'react-native-reanimated';
 import { Rect as SvgRect, Text as SvgText } from 'react-native-svg';
+import { estimateChartTextWidth } from '../../ChartBase';
 import type { HeatmapCell } from '../../types';
 import { useNumberFormatter } from '../../theme/ChartThemeContext';
 
@@ -94,6 +95,9 @@ export const AnimatedHeatmapCell: React.FC<AnimatedHeatmapCellProps> = React.mem
   // Get text color for contrast
   const textColor = React.useMemo(() => getContrastColor(cell.color), [cell.color]);
   const formatValue = useNumberFormatter(formatCellValue);
+  const label = cell.displayValue ?? (typeof cell.value === 'number' ? formatValue(cell.value) : String(cell.value));
+  const labelFits = estimateChartTextWidth(String(label), isHovered ? hoverFontSize : fontSize) <= cell.width - 4
+    && (isHovered ? hoverFontSize : fontSize) * 1.2 <= cell.height - 4;
 
   useEffect(() => {
     if (disabled) {
@@ -176,7 +180,7 @@ export const AnimatedHeatmapCell: React.FC<AnimatedHeatmapCellProps> = React.mem
         rx={cornerRadius}
         ry={cornerRadius}
       />
-      {(showText || isHovered) && fontSize >= 8 && (
+      {(showText || isHovered) && labelFits && fontSize >= 8 && (
         <AnimatedText
           animatedProps={textAnimatedProps}
           x={cell.pixelX + cell.width / 2}
@@ -185,7 +189,7 @@ export const AnimatedHeatmapCell: React.FC<AnimatedHeatmapCellProps> = React.mem
           pointerEvents="none"
           fontWeight={isHovered || fontSize <= 10 ? '600' : '500'} // Bolder text for small sizes
         >
-          {cell.displayValue ?? (typeof cell.value === 'number' ? formatValue(cell.value) : String(cell.value))}
+          {label}
         </AnimatedText>
       )}
     </>

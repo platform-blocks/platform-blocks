@@ -21,7 +21,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npx serve dist --listen 4173 --single',
+    command: 'npx serve dist --listen 4173',
     cwd: path.resolve(__dirname, 'apps/docs'),
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: !process.env.CI,

@@ -6,35 +6,51 @@ import {
   Column,
   Divider,
   Flex,
-  Input,
+  Form,
   PasswordInput,
   Text,
   Title,
   useTheme,
+  useFormContext,
 } from '@plocks/ui';
 import { BrandButton } from '@plocks/brands';
 
-/**
- * Complete sign-in screen. State is plain React state — validation runs on
- * submit and errors render inline on the fields.
- */
+const loginValues = { email: '', password: '', remember: true };
+
+const loginValidation = {
+  email: [{ type: 'pattern' as const, value: /.+@.+\..+/, message: 'Enter a valid email address' }],
+  password: [{ type: 'minLength' as const, value: 8, message: 'Password must be at least 8 characters' }],
+};
+
+function LoginFields() {
+  const form = useFormContext();
+
+  return (
+    <>
+      <Form.Field name="email">
+        <Form.Input label="Email" placeholder="you@example.com" fullWidth />
+      </Form.Field>
+      <PasswordInput
+        label="Password"
+        placeholder="Your password"
+        {...form.getFieldProps('password')}
+        fullWidth
+      />
+      <Flex direction="row" align="center" justify="space-between">
+        <Checkbox
+          label="Remember me"
+          checked={Boolean(form.values.remember)}
+          onChange={(checked) => form.setFieldValue('remember', checked)}
+        />
+        <Button title="Forgot password?" variant="link" size="sm" onPress={() => console.log('reset password')} />
+      </Flex>
+    </>
+  );
+}
+
+/** Sign-in example using plocks form state and validation. */
 export function LoginExample() {
   const theme = useTheme();
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [remember, setRemember] = React.useState(true);
-  const [errors, setErrors] = React.useState<{ email?: string; password?: string }>({});
-
-  const handleSubmit = () => {
-    const next: typeof errors = {};
-    if (!/.+@.+\..+/.test(email)) next.email = 'Enter a valid email address';
-    if (password.length < 8) next.password = 'Password must be at least 8 characters';
-    setErrors(next);
-    if (Object.keys(next).length === 0) {
-      console.log('sign in', { email, remember });
-    }
-  };
-
   return (
     <Column
       style={{ flex: 1, backgroundColor: theme.backgrounds.base }}
@@ -49,35 +65,16 @@ export function LoginExample() {
             <Text c="secondary">Sign in to continue to your account</Text>
           </Column>
 
-          <Column gap="md">
-            <Input
-              label="Email"
-              placeholder="you@example.com"
-              value={email}
-              onChangeText={setEmail}
-              error={errors.email}
-              fullWidth
-            />
-            <PasswordInput
-              label="Password"
-              placeholder="Your password"
-              value={password}
-              onChangeText={setPassword}
-              error={errors.password}
-              fullWidth
-            />
-            <Flex direction="row" align="center" justify="space-between">
-              <Checkbox label="Remember me" checked={remember} onChange={setRemember} />
-              <Button
-                title="Forgot password?"
-                variant="link"
-                size="sm"
-                onPress={() => console.log('reset password')}
-              />
-            </Flex>
-          </Column>
-
-          <Button title="Sign in" variant="filled" fullWidth onPress={handleSubmit} />
+          <Form
+            initialValues={loginValues}
+            validationSchema={loginValidation}
+            onSubmit={({ email, remember }) => console.log('sign in', { email, remember })}
+          >
+            <Column gap="md">
+              <LoginFields />
+              <Form.Submit variant="filled" fullWidth>Sign in</Form.Submit>
+            </Column>
+          </Form>
 
           <Divider label="or continue with" />
 

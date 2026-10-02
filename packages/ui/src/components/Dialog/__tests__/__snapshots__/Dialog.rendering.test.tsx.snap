@@ -10,182 +10,190 @@ exports[`Dialog - rendering matches snapshot for bottom sheet dialog without clo
 >
   <View
     style={
-      [
-        {
-          "alignItems": "stretch",
-          "backgroundColor": "rgba(15, 23, 42, 0.45)",
-          "bottom": 0,
-          "justifyContent": "flex-end",
-          "left": 0,
-          "position": "absolute",
-          "right": 0,
-          "top": 0,
-        },
-        {
-          "opacity": 1,
-        },
-      ]
+      {
+        "flex": 1,
+      }
     }
   >
     <View
-      accessibilityElementsHidden={true}
-      accessibilityState={
-        {
-          "busy": undefined,
-          "checked": undefined,
-          "disabled": undefined,
-          "expanded": undefined,
-          "selected": undefined,
-        }
-      }
-      accessibilityValue={
-        {
-          "max": undefined,
-          "min": undefined,
-          "now": undefined,
-          "text": undefined,
-        }
-      }
-      accessible={true}
-      aria-hidden={true}
-      collapsable={false}
-      focusable={true}
-      importantForAccessibility="no-hide-descendants"
-      onBlur={[Function]}
-      onClick={[Function]}
-      onFocus={[Function]}
-      onResponderGrant={[Function]}
-      onResponderMove={[Function]}
-      onResponderRelease={[Function]}
-      onResponderTerminate={[Function]}
-      onResponderTerminationRequest={[Function]}
-      onStartShouldSetResponder={[Function]}
-      style={
-        {
-          "bottom": 0,
-          "left": 0,
-          "position": "absolute",
-          "right": 0,
-          "top": 0,
-        }
-      }
-      tabIndex={-1}
-      testID="dialog-backdrop"
-    />
-    <View
-      accessibilityViewIsModal={true}
-      aria-labelledby="dialog-title-_r_2_"
-      role="dialog"
       style={
         [
           {
-            "alignSelf": "center",
-            "backgroundColor": "#FFFFFF",
-            "borderBottomEndRadius": 0,
-            "borderBottomStartRadius": 0,
-            "borderRadius": 20,
-            "height": undefined,
-            "maxHeight": 1310,
-            "maxWidth": 720,
-            "minWidth": undefined,
-            "overflow": "hidden",
-            "paddingBottom": 0,
-            "paddingTop": 0,
-            "width": "100%",
+            "alignItems": "stretch",
+            "backgroundColor": "rgba(15, 23, 42, 0.45)",
+            "bottom": 0,
+            "justifyContent": "flex-end",
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
           },
           {
-            "transform": [
-              {
-                "translateY": 0,
-              },
-            ],
+            "opacity": 1,
           },
         ]
       }
     >
       <View
-        aria-hidden={true}
-        hitSlop={
+        accessibilityElementsHidden={true}
+        accessibilityState={
           {
-            "bottom": 16,
-            "left": 0,
-            "right": 0,
-            "top": 8,
+            "busy": undefined,
+            "checked": undefined,
+            "disabled": undefined,
+            "expanded": undefined,
+            "selected": undefined,
           }
         }
-        onMoveShouldSetResponder={[Function]}
-        onMoveShouldSetResponderCapture={[Function]}
-        onResponderEnd={[Function]}
+        accessibilityValue={
+          {
+            "max": undefined,
+            "min": undefined,
+            "now": undefined,
+            "text": undefined,
+          }
+        }
+        accessible={true}
+        aria-hidden={true}
+        collapsable={false}
+        focusable={true}
+        importantForAccessibility="no-hide-descendants"
+        onBlur={[Function]}
+        onClick={[Function]}
+        onFocus={[Function]}
         onResponderGrant={[Function]}
         onResponderMove={[Function]}
-        onResponderReject={[Function]}
         onResponderRelease={[Function]}
-        onResponderStart={[Function]}
         onResponderTerminate={[Function]}
         onResponderTerminationRequest={[Function]}
         onStartShouldSetResponder={[Function]}
-        onStartShouldSetResponderCapture={[Function]}
         style={
           {
-            "alignItems": "center",
-            "justifyContent": "center",
-            "paddingBottom": 4,
-            "paddingHorizontal": 20,
-            "paddingTop": 12,
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
           }
         }
-      >
-        <View
-          style={
-            {
-              "alignSelf": "center",
-              "backgroundColor": undefined,
-              "borderRadius": 2,
-              "height": 4,
-              "opacity": 0.8,
-              "width": 40,
-            }
-          }
-        />
-      </View>
+        tabIndex={-1}
+        testID="dialog-backdrop"
+      />
       <View
-        style={
-          {
-            "alignItems": "center",
-            "backgroundColor": "#FFFFFF",
-            "flexDirection": "row",
-            "justifyContent": "space-between",
-            "padding": 20,
-            "paddingBottom": 0,
-          }
-        }
-      >
-        <Text
-          c="text"
-          nativeID="dialog-title-_r_2_"
-          variant="h3"
-        >
-          Actions
-        </Text>
-      </View>
-      <View
+        accessibilityViewIsModal={true}
+        aria-labelledby="dialog-title-_r_2_"
+        role="dialog"
         style={
           [
             {
-              "alignSelf": "stretch",
+              "alignSelf": "center",
               "backgroundColor": "#FFFFFF",
-              "padding": 20,
-              "paddingTop": 8,
+              "borderBottomEndRadius": 0,
+              "borderBottomStartRadius": 0,
+              "borderRadius": 20,
+              "height": undefined,
+              "maxHeight": 1310,
+              "maxWidth": 720,
+              "minWidth": undefined,
+              "overflow": "hidden",
+              "paddingBottom": 0,
+              "paddingTop": 0,
               "width": "100%",
             },
-            {},
-            undefined,
+            {
+              "transform": [
+                {
+                  "translateY": 0,
+                },
+              ],
+            },
           ]
         }
       >
-        <Text>
-          Choose an action
-        </Text>
+        <View
+          aria-hidden={true}
+          hitSlop={
+            {
+              "bottom": 16,
+              "left": 0,
+              "right": 0,
+              "top": 8,
+            }
+          }
+          onMoveShouldSetResponder={[Function]}
+          onMoveShouldSetResponderCapture={[Function]}
+          onResponderEnd={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderReject={[Function]}
+          onResponderRelease={[Function]}
+          onResponderStart={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          onStartShouldSetResponderCapture={[Function]}
+          style={
+            {
+              "alignItems": "center",
+              "justifyContent": "center",
+              "paddingBottom": 4,
+              "paddingHorizontal": 20,
+              "paddingTop": 12,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "alignSelf": "center",
+                "backgroundColor": undefined,
+                "borderRadius": 2,
+                "height": 4,
+                "opacity": 0.8,
+                "width": 40,
+              }
+            }
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "backgroundColor": "#FFFFFF",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "padding": 20,
+              "paddingBottom": 0,
+            }
+          }
+        >
+          <Text
+            c="primary"
+            nativeID="dialog-title-_r_2_"
+            variant="h3"
+          >
+            Actions
+          </Text>
+        </View>
+        <View
+          style={
+            [
+              {
+                "alignSelf": "stretch",
+                "backgroundColor": "#FFFFFF",
+                "padding": 20,
+                "paddingTop": 8,
+                "width": "100%",
+              },
+              {},
+              undefined,
+            ]
+          }
+        >
+          <Text>
+            Choose an action
+          </Text>
+        </View>
       </View>
     </View>
   </View>
@@ -220,179 +228,187 @@ exports[`Dialog - rendering matches snapshot for modal dialog with title and con
 >
   <View
     style={
-      [
-        {
-          "alignItems": "center",
-          "backgroundColor": "rgba(15, 23, 42, 0.45)",
-          "bottom": 0,
-          "justifyContent": "center",
-          "left": 0,
-          "position": "absolute",
-          "right": 0,
-          "top": 0,
-        },
-        {
-          "opacity": 1,
-        },
-      ]
+      {
+        "flex": 1,
+      }
     }
   >
     <View
-      accessibilityElementsHidden={true}
-      accessibilityState={
-        {
-          "busy": undefined,
-          "checked": undefined,
-          "disabled": undefined,
-          "expanded": undefined,
-          "selected": undefined,
-        }
-      }
-      accessibilityValue={
-        {
-          "max": undefined,
-          "min": undefined,
-          "now": undefined,
-          "text": undefined,
-        }
-      }
-      accessible={true}
-      aria-hidden={true}
-      collapsable={false}
-      focusable={true}
-      importantForAccessibility="no-hide-descendants"
-      onBlur={[Function]}
-      onClick={[Function]}
-      onFocus={[Function]}
-      onResponderGrant={[Function]}
-      onResponderMove={[Function]}
-      onResponderRelease={[Function]}
-      onResponderTerminate={[Function]}
-      onResponderTerminationRequest={[Function]}
-      onStartShouldSetResponder={[Function]}
-      style={
-        {
-          "bottom": 0,
-          "left": 0,
-          "position": "absolute",
-          "right": 0,
-          "top": 0,
-        }
-      }
-      tabIndex={-1}
-      testID="dialog-backdrop"
-    />
-    <View
-      accessibilityViewIsModal={true}
-      aria-labelledby="dialog-title-_r_0_"
-      role="dialog"
       style={
         [
           {
-            "alignSelf": "center",
-            "backgroundColor": "#FFFFFF",
-            "borderRadius": 16,
-            "height": undefined,
-            "maxHeight": "90%",
-            "maxWidth": 500,
-            "minWidth": 300,
-            "overflow": "hidden",
-            "paddingBottom": 0,
-            "paddingTop": 0,
-            "width": 500,
+            "alignItems": "center",
+            "backgroundColor": "rgba(15, 23, 42, 0.45)",
+            "bottom": 0,
+            "justifyContent": "center",
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
           },
           {
-            "transform": [
-              {
-                "scale": 1,
-              },
-            ],
+            "opacity": 1,
           },
         ]
       }
     >
       <View
-        style={
+        accessibilityElementsHidden={true}
+        accessibilityState={
           {
-            "alignItems": "center",
-            "backgroundColor": "#FFFFFF",
-            "flexDirection": "row",
-            "justifyContent": "space-between",
-            "padding": 20,
-            "paddingBottom": 0,
+            "busy": undefined,
+            "checked": undefined,
+            "disabled": undefined,
+            "expanded": undefined,
+            "selected": undefined,
           }
         }
-      >
-        <Text
-          c="text"
-          nativeID="dialog-title-_r_0_"
-          variant="h3"
-        >
-          Modal Title
-        </Text>
-        <View
-          accessibilityLabel="Close dialog"
-          accessibilityState={
-            {
-              "busy": undefined,
-              "checked": undefined,
-              "disabled": undefined,
-              "expanded": undefined,
-              "selected": undefined,
-            }
+        accessibilityValue={
+          {
+            "max": undefined,
+            "min": undefined,
+            "now": undefined,
+            "text": undefined,
           }
-          accessibilityValue={
-            {
-              "max": undefined,
-              "min": undefined,
-              "now": undefined,
-              "text": undefined,
-            }
+        }
+        accessible={true}
+        aria-hidden={true}
+        collapsable={false}
+        focusable={true}
+        importantForAccessibility="no-hide-descendants"
+        onBlur={[Function]}
+        onClick={[Function]}
+        onFocus={[Function]}
+        onResponderGrant={[Function]}
+        onResponderMove={[Function]}
+        onResponderRelease={[Function]}
+        onResponderTerminate={[Function]}
+        onResponderTerminationRequest={[Function]}
+        onStartShouldSetResponder={[Function]}
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
           }
-          accessible={true}
-          collapsable={false}
-          focusable={true}
-          onBlur={[Function]}
-          onClick={[Function]}
-          onFocus={[Function]}
-          onResponderGrant={[Function]}
-          onResponderMove={[Function]}
-          onResponderRelease={[Function]}
-          onResponderTerminate={[Function]}
-          onResponderTerminationRequest={[Function]}
-          onStartShouldSetResponder={[Function]}
-          role="button"
-          style={
-            {
-              "padding": 8,
-            }
-          }
-          testID="dialog-close-btn"
-          variant="ghost"
-        >
-          <View
-            testID="icon-x"
-          />
-        </View>
-      </View>
+        }
+        tabIndex={-1}
+        testID="dialog-backdrop"
+      />
       <View
+        accessibilityViewIsModal={true}
+        aria-labelledby="dialog-title-_r_0_"
+        role="dialog"
         style={
           [
             {
-              "alignSelf": "stretch",
+              "alignSelf": "center",
               "backgroundColor": "#FFFFFF",
-              "padding": 20,
-              "paddingTop": 8,
-              "width": "100%",
+              "borderRadius": 16,
+              "height": undefined,
+              "maxHeight": "90%",
+              "maxWidth": 500,
+              "minWidth": 300,
+              "overflow": "hidden",
+              "paddingBottom": 0,
+              "paddingTop": 0,
+              "width": 500,
             },
-            {},
-            undefined,
+            {
+              "transform": [
+                {
+                  "scale": 1,
+                },
+              ],
+            },
           ]
         }
       >
-        <Text>
-          Modal body copy
-        </Text>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "backgroundColor": "#FFFFFF",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "padding": 20,
+              "paddingBottom": 0,
+            }
+          }
+        >
+          <Text
+            c="primary"
+            nativeID="dialog-title-_r_0_"
+            variant="h3"
+          >
+            Modal Title
+          </Text>
+          <View
+            accessibilityLabel="Close dialog"
+            accessibilityState={
+              {
+                "busy": undefined,
+                "checked": undefined,
+                "disabled": undefined,
+                "expanded": undefined,
+                "selected": undefined,
+              }
+            }
+            accessibilityValue={
+              {
+                "max": undefined,
+                "min": undefined,
+                "now": undefined,
+                "text": undefined,
+              }
+            }
+            accessible={true}
+            collapsable={false}
+            focusable={true}
+            onBlur={[Function]}
+            onClick={[Function]}
+            onFocus={[Function]}
+            onResponderGrant={[Function]}
+            onResponderMove={[Function]}
+            onResponderRelease={[Function]}
+            onResponderTerminate={[Function]}
+            onResponderTerminationRequest={[Function]}
+            onStartShouldSetResponder={[Function]}
+            role="button"
+            style={
+              {
+                "padding": 8,
+              }
+            }
+            testID="dialog-close-btn"
+            variant="ghost"
+          >
+            <View
+              testID="icon-x"
+            />
+          </View>
+        </View>
+        <View
+          style={
+            [
+              {
+                "alignSelf": "stretch",
+                "backgroundColor": "#FFFFFF",
+                "padding": 20,
+                "paddingTop": 8,
+                "width": "100%",
+              },
+              {},
+              undefined,
+            ]
+          }
+        >
+          <Text>
+            Modal body copy
+          </Text>
+        </View>
       </View>
     </View>
   </View>

@@ -1,5 +1,5 @@
+import { hasDOM } from '@plocks/ui';
 import { useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
 
 /**
  * Scrolls to the element named by the URL fragment on a docs page that streams
@@ -21,7 +21,7 @@ export function useFragmentScroll(pageKey: string | undefined, settleKey: unknow
   useEffect(() => { followHashRef.current = true; }, [pageKey]);
 
   useEffect(() => {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    if (!hasDOM) return;
     if (!followHashRef.current) return;
 
     const target = decodeURIComponent(window.location.hash.replace('#', ''));

@@ -114,6 +114,7 @@ export const Button = factory<{ props: ButtonProps; ref: View }>((allProps, ref)
   // Last width the button occupied with its real content, so the loading state
   // can hold that width instead of collapsing around the loader.
   const [measuredWidth, setMeasuredWidth] = useState<number | null>(null);
+  const [hovered, setHovered] = useState(false);
 
   // `tooltip` accepts a string shorthand or a full Tooltip config.
   const tooltipProps = resolveTooltipProps(tooltip);
@@ -196,7 +197,9 @@ export const Button = factory<{ props: ButtonProps; ref: View }>((allProps, ref)
       borderRadius,
       shadowStyle,
       roles,
+      roleColor: resolvedRoleColor,
       isIconButton,
+      hovered,
       reducedMotion,
     });
     // On web, palette colors render as CSS variables so the first paint of a
@@ -206,7 +209,7 @@ export const Button = factory<{ props: ButtonProps; ref: View }>((allProps, ref)
       backgroundColor: themeColorForFirstPaint(theme, resolved.backgroundColor as string | undefined),
       borderColor: themeColorForFirstPaint(theme, resolved.borderColor as string | undefined),
     };
-  }, [theme, effectiveVariant, size, disabled, loading, borderRadius, shadowStyle, roles, isIconButton, reducedMotion]);
+  }, [theme, effectiveVariant, size, disabled, loading, borderRadius, shadowStyle, roles, resolvedRoleColor, isIconButton, hovered, reducedMotion]);
 
   const renderedTextColor = useMemo(
     () =>
@@ -283,10 +286,12 @@ export const Button = factory<{ props: ButtonProps; ref: View }>((allProps, ref)
     onPress?.();
   };
   const handleHoverIn = () => {
+    if (!isInteractionDisabled) setHovered(true);
     hover(1);
     onHoverIn?.();
   };
   const handleHoverOut = () => {
+    setHovered(false);
     hover(0);
     onHoverOut?.();
   };

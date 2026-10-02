@@ -34,7 +34,7 @@ export function splitVisibilityProps<P extends object>(
 }
 
 /**
- * Pure visibility rule (Mantine semantics):
+ * Pure visibility rule:
  * - `lightHidden` / `darkHidden`: hidden in that color scheme;
  * - `hiddenFrom="md"`: hidden when the breakpoint is `md` or wider;
  * - `visibleFrom="md"`: shown only when the breakpoint is `md` or wider.

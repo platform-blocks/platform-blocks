@@ -7,6 +7,9 @@ interface ProviderHandle {
   setPointer: ReturnType<typeof useChartInteractionContext>['setPointer'];
   getPointer: () => ReturnType<typeof useChartInteractionContext>['pointer'];
   setActiveTarget: ReturnType<typeof useChartInteractionContext>['setActiveTarget'];
+  clearActiveTargetIf: ReturnType<typeof useChartInteractionContext>['clearActiveTargetIf'];
+  holdTouchTarget: ReturnType<typeof useChartInteractionContext>['holdTouchTarget'];
+  cancelTouchHold: ReturnType<typeof useChartInteractionContext>['cancelTouchHold'];
   getActiveTarget: () => ReturnType<typeof useChartInteractionContext>['activeTarget'];
 }
 
@@ -23,6 +26,9 @@ const InteractionHarness = React.forwardRef<ProviderHandle>((_, ref) => {
     setPointer: ctx.setPointer,
     getPointer: () => pointerRef.current,
     setActiveTarget: ctx.setActiveTarget,
+    clearActiveTargetIf: ctx.clearActiveTargetIf,
+    holdTouchTarget: ctx.holdTouchTarget,
+    cancelTouchHold: ctx.cancelTouchHold,
     getActiveTarget: () => activeTargetRef.current,
   }), [ctx]);
 
@@ -101,5 +107,66 @@ describe('ChartInteractionProvider', () => {
     await waitFor(() => {
       expect(handle.current?.getActiveTarget()).toBeNull();
     });
+  });
+
+  it('does not let an older touch timeout clear a newer selection', () => {
+    const handle = React.createRef<ProviderHandle>();
+    render(
+      <ChartInteractionProvider config={{ pointerRAF: false }}>
+        <InteractionHarness ref={handle} />
+      </ChartInteractionProvider>
+    );
+    const first: ActiveTarget = {
+      seriesId: 'first', markId: 0, kind: 'point', datum: {},
+      pixel: { x: 10, y: 10 }, value: 1, distance: 0,
+    };
+    const second: ActiveTarget = { ...first, seriesId: 'second', pixel: { x: 20, y: 20 } };
+    act(() => {
+      handle.current?.setActiveTarget(first);
+      handle.current?.setActiveTarget(second);
+      handle.current?.clearActiveTargetIf(first);
+    });
+    expect(handle.current?.getActiveTarget()).toEqual(second);
+    act(() => handle.current?.clearActiveTargetIf(second));
+    expect(handle.current?.getActiveTarget()).toBeNull();
+  });
+
+  it('retains a touched target and slice through release, then clears them after the hold', () => {
+    jest.useFakeTimers();
+    try {
+      const handle = React.createRef<ProviderHandle>();
+      render(
+        <ChartInteractionProvider config={{ pointerRAF: false }}>
+          <InteractionHarness ref={handle} />
+        </ChartInteractionProvider>
+      );
+      const target: ActiveTarget = {
+        seriesId: 'touch', markId: 1, kind: 'point', datum: {},
+        pixel: { x: 10, y: 10 }, value: 1, distance: 0,
+      };
+      act(() => {
+        handle.current?.setActiveTarget(target);
+        handle.current?.setPointer({ x: 10, y: 10, inside: true, pageX: 150, pageY: 400 });
+        handle.current?.holdTouchTarget();
+        handle.current?.setPointer({ x: 0, y: 0, inside: false });
+        handle.current?.setActiveTarget(null);
+      });
+      expect(handle.current?.getActiveTarget()).toEqual(target);
+      expect(handle.current?.getPointer()).toMatchObject({ inside: true, pageX: 150, pageY: 400 });
+      act(() => jest.advanceTimersByTime(8000));
+      expect(handle.current?.getPointer()).toBeNull();
+      expect(handle.current?.getActiveTarget()).toBeNull();
+
+      const newer: ActiveTarget = { ...target, markId: 2, pixel: { x: 20, y: 20 } };
+      act(() => {
+        handle.current?.setActiveTarget(target);
+        handle.current?.holdTouchTarget();
+        handle.current?.setActiveTarget(newer);
+      });
+      act(() => jest.advanceTimersByTime(8000));
+      expect(handle.current?.getActiveTarget()).toEqual(newer);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

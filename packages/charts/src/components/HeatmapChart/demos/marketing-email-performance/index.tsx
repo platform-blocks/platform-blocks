@@ -12,8 +12,7 @@ export function Demo() {
       cellSize={{ width: 80, height: 44 }}
       gap={4}
       colorScale={{
-        min: 10,
-        max: 45,
+        domain: [10, 45],
         colors: ['#F5F3FF', '#C4B5FD', '#7C3AED'],
       }}
       valueFormatter={({ value }) => `${Math.round(value)}% CTR`}

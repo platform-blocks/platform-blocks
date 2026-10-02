@@ -8,7 +8,7 @@ const columns: DataTableColumn<Person>[] = [
   { key: 'name', header: 'Name', accessor: 'name', sortable: true },
   { key: 'email', header: 'Email', accessor: 'email', sortable: true, minWidth: 200 },
   { key: 'title', header: 'Role', accessor: 'title', sortable: true },
-  { key: 'department', header: 'Department', accessor: 'department', sortable: true },
+  { key: 'department', header: 'Department', accessor: 'department', sortable: true, minWidth: 160 },
 ];
 
 export function Demo() {

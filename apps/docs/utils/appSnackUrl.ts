@@ -8,14 +8,27 @@ interface AppSnackEntry {
   dependencies: string[];
 }
 
-/** Enable after a representative app resolves its dependencies and runs in Snack. */
-export const APP_SNACK_READY = false;
+/** Apps verified in Snack's Android preview with the published SDK 54 packages. */
+const READY_APP_SNACKS = new Set(['calculator', 'flutterflight']);
+
+/** Native peers needed when Snack bundles the published plocks packages. */
+const APP_SNACK_NATIVE_DEPS = [
+  '@react-native-async-storage/async-storage',
+  '@react-native-masked-view/masked-view',
+  '@shopify/flash-list',
+  'expo-asset',
+  'react-native-reanimated',
+  'react-native-safe-area-context',
+  'react-native-svg',
+  'react-native-worklets',
+];
 
 /** The example-apps repository hosts Snack-ready copies of the app source. */
 export function buildAppSnackUrl(
   slug: string,
   sourceRoot = 'https://raw.githubusercontent.com/platform-blocks/examples/main/snacks'
 ): string | null {
+  if (!READY_APP_SNACKS.has(slug)) return null;
   const entry = (appSnacks as AppSnackEntry[]).find(app => app.slug === slug);
   if (!entry) return null;
 
@@ -28,6 +41,7 @@ export function buildAppSnackUrl(
     `@plocks/ui@${SNACK_PACKAGE_VERSION}`,
     `@plocks/ui-snack@${SNACK_PACKAGE_VERSION}`,
     ...SNACK_OPTIONAL_MODULE_DEPS,
+    ...APP_SNACK_NATIVE_DEPS,
     ...entry.dependencies,
   ];
   const params = new URLSearchParams({

@@ -62,9 +62,10 @@ describe('MarimekkoChart (segment engine-swap)', () => {
     });
 
     fireEvent(getByTestId('marimekko-segment-inbound-na'), 'pressOut');
+    fireEvent(getByTestId('marimekko-segment-inbound-na'), 'press', { nativeEvent: {} });
     await waitFor(() => {
-      expect(ctxRef?.activeTarget).toBeNull();
-      expect(ctxRef?.activeSlice?.length ?? 0).toBe(0);
+      expect(ctxRef?.activeTarget?.label).toBe('North America');
+      expect(ctxRef?.activeSlice?.length).toBe(1);
     });
   });
 });

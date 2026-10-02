@@ -134,7 +134,7 @@ export type DimensionProp = number | 'auto' | 'full' | `${number}%` | (string & 
 /**
  * Box props — the size, background and opacity of a component's root, set on
  * the same element as the spacing props. Every public component takes them
- * (through `BaseProps`); the short names match Mantine's style props.
+ * (through `BaseProps`).
  */
 export interface BoxProps {
   /** Width */

@@ -72,8 +72,10 @@ describe('ComboChart (mixed-geometry engine-swap)', () => {
     });
 
     fireEvent(getByTestId('combo-bar-sales-1'), 'pressOut');
+    fireEvent(getByTestId('combo-bar-sales-1'), 'press', { nativeEvent: {} });
     await waitFor(() => {
-      expect(ctxRef?.activeSlice?.length ?? 0).toBe(0);
+      expect(ctxRef?.activeSlice?.length).toBe(2);
+      expect(ctxRef?.activeTarget?.kind).toBe('point');
     });
   });
 });

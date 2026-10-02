@@ -28,7 +28,7 @@ import { mergeSlotProps } from '../../core/utils/mergeSlotProps';
 import { useStyleProps } from '../../core/utils/spacing';
 import { useMergedRef } from '../../core/utils/mergeRefs';
 import { warnOnce } from '../../core/utils/logger';
-import { hasDOM, isWeb, webProps } from '../../core/platform';
+import { hasDOM, isNative, isWeb, webProps } from '../../core/platform';
 import type { WebKeyboardEvent, WebMouseEvent } from '../../core/platform';
 import { useFloating } from '../../core/overlay/useFloating';
 import type { UseFloatingReturn } from '../../core/overlay/useFloating';
@@ -291,11 +291,11 @@ export function MenuList({
   );
 
   const body = scrollable ? (
-    <ScrollView style={{ maxHeight }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+    <ScrollView style={{ maxHeight, width: '100%' }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
       <ListGroupBody>{children}</ListGroupBody>
     </ScrollView>
   ) : (
-    <View style={{ maxHeight, overflow: 'hidden' }}>
+    <View style={{ maxHeight, width: '100%', overflow: 'hidden' }}>
       <ListGroupBody>{children}</ListGroupBody>
     </View>
   );
@@ -332,7 +332,7 @@ function MenuBase(props: MenuProps, ref: Ref<View>) {
     defaultOpened = false,
     onChange,
     trigger = 'click',
-    position = 'auto',
+    position = isNative ? 'top' : 'auto',
     offset = 4,
     closeOnClickOutside = true,
     closeOnEscape = true,
@@ -558,6 +558,7 @@ function MenuBase(props: MenuProps, ref: Ref<View>) {
   const resolvedMaxHeight = typeof position_?.maxHeight === 'number' ? Math.min(maxH, position_.maxHeight) : maxH;
   let widthStyle: ViewStyle | null = null;
   if (typeof w === 'number') widthStyle = { width: w };
+  else if (w === 'auto' && isNative) widthStyle = { width: Math.min(Math.max(triggerWidth ?? 0, 220), MENU_MAX_WIDTH) };
   else if (w === 'auto' && triggerWidth && !isContext) widthStyle = { minWidth: Math.min(triggerWidth, MENU_MAX_WIDTH) };
 
   const contextValue = useMemo<MenuContextValue>(() => ({ closeMenu, opened: isOpen }), [closeMenu, isOpen]);

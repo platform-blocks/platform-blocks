@@ -7,7 +7,7 @@ export function Demo() {
   const [fixedText, setFixedText] = useState('');
 
   return (
-    <Block>
+    <Block fullWidth>
       <Input
         label="Auto-expanding"
         placeholder="Start typing — press Enter to add lines"

@@ -103,9 +103,15 @@ export function resolveCartesianPadding(input: CartesianPaddingInput): Cartesian
   // every numeric axis with 30px of empty space under it.
   const approxPlotWidth = Math.max(containerWidth - left - AXIS_EDGE_GUTTER - rightAllowance, 1);
   const slotCount = Math.max(xTickLabels?.length ?? 1, 1);
-  const xTickLabelWidth = Math.max(Math.floor(approxPlotWidth / slotCount), 24);
   const widestX = measureWidestLabel(xTickLabels, tickFontSize);
-  const xTickLabelLines = showXAxis && showXTickLabels && widestX > xTickLabelWidth ? 2 : 1;
+  // Short labels must not inherit a whole category slot. The axis centers this
+  // box on the last tick, so an oversized box can extend beyond the chart.
+  const xTickLabelWidth = Math.min(
+    Math.max(Math.floor(approxPlotWidth / slotCount), 24),
+    Math.max(Math.ceil(widestX) + 8, 24),
+  );
+  const hasWrappableXLabel = xTickLabels?.some((label) => /\s/.test(label)) ?? false;
+  const xTickLabelLines = showXAxis && showXTickLabels && widestX > xTickLabelWidth && hasWrappableXLabel ? 2 : 1;
 
   const xTickBand = showXAxis && showXTickLabels ? lineHeight(tickFontSize) * xTickLabelLines : 0;
   const xTitleBand = showXAxis && xTitle ? lineHeight(titleFontSize) + AXIS_TITLE_GAP : 0;
@@ -115,7 +121,7 @@ export function resolveCartesianPadding(input: CartesianPaddingInput): Cartesian
 
   // Half of the last label hangs past the final tick; without this it clips at
   // the right edge of the chart.
-  const right = Math.max(AXIS_EDGE_GUTTER + rightAllowance, Math.round(Math.min(widestX, xTickLabelWidth) / 2));
+  const right = Math.max(AXIS_EDGE_GUTTER + rightAllowance, Math.ceil(xTickLabelWidth / 2));
   const top = Math.max(AXIS_EDGE_GUTTER, topAllowance);
 
   return {

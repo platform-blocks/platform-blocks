@@ -95,6 +95,8 @@ const sameItems = (a: TocItem[], b: TocItem[]): boolean =>
 export function useScrollSpy(options?: ScrollSpyOptions, initialData: TocItem[] = []): UseScrollSpyReturn {
   const [items, setItems] = useState<TocItem[]>(initialData);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const initialDataRef = useRef(initialData);
+  initialDataRef.current = initialData;
   const visibilityMap = useRef<Map<string, number>>(new Map());
   const titles = useTitleRegistryOptional()?.titles;
 
@@ -117,6 +119,12 @@ export function useScrollSpy(options?: ScrollSpyOptions, initialData: TocItem[] 
         depth: title.order,
         getNode: () => asHTMLElement(title.ref?.current),
       }));
+    }
+
+    // Native screens can supply headings directly when they do not use the
+    // title registry. Recollection must not erase those initial items.
+    if (!hasDOM && collectedItems.length === 0) {
+      collectedItems = initialDataRef.current;
     }
 
     // Web: DOM headings too.

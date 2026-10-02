@@ -43,6 +43,21 @@ describe('Link (react-native-web DOM)', () => {
     expect(click.defaultPrevented).toBe(true);
   });
 
+  it('routes ordinary clicks while leaving modified clicks to the browser', () => {
+    const onNavigate = jest.fn();
+    render(<Link href="/docs" onNavigate={onNavigate}>Docs</Link>);
+    const link = screen.getByRole('link', { name: 'Docs' });
+    const modified = new MouseEvent('click', { bubbles: true, cancelable: true, metaKey: true });
+    fireEvent(link, modified);
+    expect(modified.defaultPrevented).toBe(false);
+    expect(onNavigate).not.toHaveBeenCalled();
+
+    const ordinary = new MouseEvent('click', { bubbles: true, cancelable: true });
+    fireEvent(link, ordinary);
+    expect(ordinary.defaultPrevented).toBe(true);
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+  });
+
   it('disabled links drop href and expose aria-disabled', () => {
     render(
       <Link href="/x" disabled>

@@ -5,7 +5,7 @@ import { resolveAccentColor } from '../../core/theme/resolveColors';
 import type { SizeValue } from '../../core/theme/sizes';
 import { getControlSize } from '../../core/theme/tokens';
 import type { PlocksTheme } from '../../core/theme/types';
-import { CORE_COLORS, resolveVariantRoles, type VariantRole, type VariantRoles } from '../../core/theme/variantRoles';
+import { CORE_COLORS, resolveSubtleHoverFill, resolveVariantRoles, type VariantRole, type VariantRoles } from '../../core/theme/variantRoles';
 import type { ButtonVariant } from './types';
 
 /** Opacity of a disabled / loading button. */
@@ -40,7 +40,10 @@ export interface ButtonStyleParams {
   shadowStyle: ViewStyle;
   /** Resolved fill/border/text for the color-bearing variants; `null` for neutral ones. */
   roles: VariantRoles | null;
+  roleColor: string;
   isIconButton: boolean;
+  /** Whether a pointer is over the button (web/desktop). */
+  hovered: boolean;
   /** Reduced motion: no CSS color transition on web. */
   reducedMotion: boolean;
 }
@@ -64,7 +67,9 @@ export const getButtonStyles = ({
   borderRadius,
   shadowStyle,
   roles,
+  roleColor,
   isIconButton,
+  hovered,
   reducedMotion,
 }: ButtonStyleParams): ViewStyle => {
   const control = getControlSize(theme, size);
@@ -89,10 +94,16 @@ export const getButtonStyles = ({
     }),
   };
 
-  // Color-bearing variants resolve fill + border through the shared variant
-  // model. Buttons are flat unless the consumer opts in via `shadow`.
+  // Mantine-style buttons reserve a visible stroke for outline. Light uses a
+  // tinted fill, subtle is transparent at rest, and filled/gradient have no
+  // contrasting edge. A transparent 1px border preserves the box metrics.
   if (roles) {
-    return { ...base, backgroundColor: roles.fill, borderColor: roles.border, ...shadowStyle };
+    return {
+      ...base,
+      backgroundColor: variant === 'subtle' && hovered ? resolveSubtleHoverFill(theme, roleColor) : roles.fill,
+      borderColor: variant === 'outline' ? roles.border : 'transparent',
+      ...shadowStyle,
+    };
   }
 
   switch (variant) {

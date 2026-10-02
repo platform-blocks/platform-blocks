@@ -2,7 +2,7 @@
   "expo": {
     "name": "plocks -docs",
     "slug": "plocks-docs",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "scheme": "plocks-docs",
     "web": {
       "favicon": "./assets/favicon.png",

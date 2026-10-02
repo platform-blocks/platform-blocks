@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
-import { DataList, Icon, Link, useTheme } from '@plocks/ui';
+import { StyleSheet, View } from 'react-native';
+import { isWeb, DataList, Icon, Link, useTheme } from '@plocks/ui';
 import { BrandIcon } from '@plocks/brands';
 import { GITHUB_REPO } from '../config/urls';
 import { SITE_URL } from '../config/routeSeo';
@@ -19,7 +19,7 @@ const GITHUB_BLOB = `${GITHUB_REPO}/blob/main`;
  * Site-relative on web (so it works on localhost, previews, and prod alike);
  * absolute on native, where there is no origin to resolve against.
  */
-const siteUrl = (path: string) => (Platform.OS === 'web' ? path : `${SITE_URL}${path}`);
+const siteUrl = (path: string) => (isWeb ? path : `${SITE_URL}${path}`);
 
 interface ResourceRow {
   label: string;

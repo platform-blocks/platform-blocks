@@ -43,3 +43,5 @@ generated/
 
 # generated markdown mirror served at /llms/components/*.md
 public/llms/
+
+# Playwright screenshot baselines are committed for visual CI.

@@ -29,6 +29,14 @@ describe('Link', () => {
     expect(Linking.openURL).not.toHaveBeenCalled();
   });
 
+  it('uses onNavigate on native', () => {
+    const onNavigate = jest.fn();
+    const { getByRole } = render(<Link href="/docs" onNavigate={onNavigate}>Docs</Link>);
+    fireEvent.press(getByRole('link', { name: 'Docs' }));
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+    expect(Linking.openURL).not.toHaveBeenCalled();
+  });
+
   it('does nothing when disabled', () => {
     const onPress = jest.fn();
     const { getByText } = render(

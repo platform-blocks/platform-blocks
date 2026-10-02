@@ -33,13 +33,11 @@ const renderChart = (onContext?: (ctx: ReturnType<typeof useChartInteractionCont
   );
 
 describe('NetworkChart (element-hover engine-swap)', () => {
-  // The force simulation + rAF-throttled renderer never advances in jsdom, so the node
-  // <G> testIDs (and hence a fireable hover) aren't available here — same class of
-  // untestable-in-jest interaction as LineChart's PanResponder. We assert the engine-swap
-  // at the store level instead: the chart mounts and registers NO legacy series.
-  it('renders inside an interaction provider', () => {
+  it('renders disabled nodes and links inside an interaction provider', () => {
     const { getByTestId } = renderChart();
     expect(getByTestId('interaction-spy')).toBeTruthy();
+    expect(getByTestId('network-node-product')).toBeTruthy();
+    expect(getByTestId('network-link-0')).toBeTruthy();
   });
 
   it('no longer registers a legacy "network-nodes" series (registerSeries removed)', () => {

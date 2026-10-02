@@ -50,6 +50,11 @@ export interface UseListNavigationResult {
   getOptionProps: (index: number) => ListNavigationOptionProps;
   /** The key handler, for inputs that route keys themselves. Returns true when handled. */
   handleKeyDown: (event: KeyboardEventLike) => boolean;
+  /** Move virtual focus without a keyboard event. */
+  moveNext: () => void;
+  movePrevious: () => void;
+  /** Select the active option, optionally using the first when none is active. */
+  selectActive: (fallbackToFirst?: boolean) => void;
   /** Id of the highlighted option, if any. */
   activeId: string | undefined;
 }
@@ -111,6 +116,21 @@ export function useListNavigation(options: UseListNavigationOptions): UseListNav
 
   const first = useCallback(() => seek(-1, 1, false), [seek]);
   const last = useCallback(() => seek(count, -1, false), [seek, count]);
+
+  const moveNext = useCallback(() => {
+    if (count === 0) return;
+    const next = activeIndex < 0 || !isEnabled(activeIndex) ? first() : seek(activeIndex, 1, loop);
+    if (next !== -1 && next !== activeIndex) onActiveChange(next);
+  }, [count, activeIndex, isEnabled, first, seek, loop, onActiveChange]);
+  const movePrevious = useCallback(() => {
+    if (count === 0) return;
+    const next = activeIndex < 0 || !isEnabled(activeIndex) ? last() : seek(activeIndex, -1, loop);
+    if (next !== -1 && next !== activeIndex) onActiveChange(next);
+  }, [count, activeIndex, isEnabled, last, seek, loop, onActiveChange]);
+  const selectActive = useCallback((fallbackToFirst = false) => {
+    const index = activeIndex < 0 && fallbackToFirst ? first() : activeIndex;
+    if (opened && isEnabled(index)) onSelect(index);
+  }, [activeIndex, first, opened, isEnabled, onSelect]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEventLike): boolean => {
@@ -209,5 +229,5 @@ export function useListNavigation(options: UseListNavigationOptions): UseListNav
     [activeIndex, isDisabled, getId]
   );
 
-  return { inputProps, listProps, getOptionProps, handleKeyDown, activeId };
+  return { inputProps, listProps, getOptionProps, handleKeyDown, moveNext, movePrevious, selectActive, activeId };
 }

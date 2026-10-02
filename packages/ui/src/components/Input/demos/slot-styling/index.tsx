@@ -7,7 +7,7 @@ export function Demo() {
   const [search, setSearch] = useState('');
 
   return (
-    <Block>
+    <Block fullWidth>
       <Input
         label="URL"
         placeholder="my-workspace"

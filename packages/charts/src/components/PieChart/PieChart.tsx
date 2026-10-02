@@ -33,12 +33,14 @@ import {
   estimateChartTextWidth,
   measureChartLegendBand,
   measureChartTitleBand,
+  resolveChartLegendPosition,
 } from '../../ChartBase';
 import { ChartInteractionEvent } from '../../types';
 import type { ChartAnimation } from '../../types/base';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { useChartInteractionContext, usePointer } from '../../interaction/ChartInteractionContext';
 import { useChartPointer } from '../../interaction/useChartPointer';
+import { CHART_TOUCH_HOLD_MS, isChartTouchInput } from '../../interaction/touchInput';
 import { AngularSliceHitTester } from '../../core/hittest/angular';
 import type { HitSeries, Mark } from '../../core/hittest/types';
 import { ChartGradientDef, useChartFillId } from '../../core/ChartFill';
@@ -72,12 +74,18 @@ const BOUNDS_PADDING = 2;
 const PLOT_MARGIN = 8;
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
-const toRadians = (degrees: number) => degrees * DEG_TO_RAD;
+const toRadians = (degrees: number) => {
+  'worklet';
+  return degrees * DEG_TO_RAD;
+};
 
-const polarToCartesian = (cx: number, cy: number, radius: number, angleDeg: number) => ({
-  x: cx + radius * Math.cos(toRadians(angleDeg)),
-  y: cy + radius * Math.sin(toRadians(angleDeg)),
-});
+const polarToCartesian = (cx: number, cy: number, radius: number, angleDeg: number) => {
+  'worklet';
+  return {
+    x: cx + radius * Math.cos(toRadians(angleDeg)),
+    y: cy + radius * Math.sin(toRadians(angleDeg)),
+  };
+};
 
 const mergeSliceStyle = (
   base: PieChartSliceStyle | undefined,
@@ -198,6 +206,7 @@ const createSlicePath = ({
   endAngle,
   cornerRadius = 0,
 }: SlicePathOptions) => {
+  'worklet';
   const angleDelta = endAngle - startAngle;
   if (!(outerRadius > EPSILON) || !(Math.abs(angleDelta) > EPSILON)) {
     return '';
@@ -824,6 +833,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
     endAngle = 360,
     padAngle = 0,
     showLabels = true,
+    showLabelsOnNarrow = false,
     labelPosition = 'outside',
     labelStrategy = 'auto',
     labelAutoSwitchAngle = DEFAULT_LABEL_THRESHOLD,
@@ -871,11 +881,21 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
   const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(new Set());
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [hoveredSlice, setHoveredSlice] = useState<ComputedSlice | null>(null);
+  const [pressedSlice, setPressedSlice] = useState<ComputedSlice | null>(null);
+  const touchHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelTouchHold = useCallback(() => {
+    if (touchHoldTimer.current != null) clearTimeout(touchHoldTimer.current);
+    touchHoldTimer.current = null;
+  }, []);
+  useEffect(() => cancelTouchHold, [cancelTouchHold]);
+  const compactOutsideLabels = width < 400 && (labelStrategy === 'auto' || labelStrategy === 'outside');
+  const renderPersistentLabels = showLabels && (!compactOutsideLabels || showLabelsOnNarrow || tooltip?.show === false);
 
   useEffect(() => {
     if (disabled) {
       setHoveredKey(null);
       setHoveredSlice(null);
+      setPressedSlice(null);
     }
   }, [disabled]);
 
@@ -920,11 +940,11 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
   // ChartTitle and ChartLegend are absolutely positioned overlays on the container,
   // so the pie has to reserve their bands itself or it draws straight underneath them.
   const titleBand = useMemo(
-    () => measureChartTitleBand(props.title, props.subtitle),
-    [props.title, props.subtitle],
+    () => measureChartTitleBand(props.title, props.subtitle, { containerWidth: width }),
+    [props.title, props.subtitle, width],
   );
 
-  const legendPosition = legend?.position ?? 'bottom';
+  const legendPosition = resolveChartLegendPosition(legend?.position, width);
   const legendFontSize = legend?.fontSize ?? 12;
   const legendBand = useMemo(
     () =>
@@ -958,7 +978,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
   // need a gutter between the arc and the edge of the plot box. Leader text runs
   // sideways, so the horizontal gutter carries nearly all of it.
   const outsideLabelsPossible =
-    showLabels && (labelStrategy === 'auto' || labelStrategy === 'outside');
+    renderPersistentLabels && (labelStrategy === 'auto' || labelStrategy === 'outside');
   const labelGutterX = outsideLabelsPossible ? clamp(plotWidth * 0.22, 32, 110) : PLOT_MARGIN;
   const labelGutterY = outsideLabelsPossible ? clamp(plotHeight * 0.08, 12, 32) : PLOT_MARGIN;
   const radiusBudget = Math.max(
@@ -1073,7 +1093,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
   }, [layoutLayers]);
 
   const labelLayouts = useMemo(() => {
-    if (!showLabels || !baseLayer) return [];
+    if (!renderPersistentLabels || !baseLayer) return [];
     return computeLabelLayouts(baseLayer.slices, {
       centerX,
       centerY,
@@ -1097,7 +1117,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
       lineHeight: labelLineHeight,
     });
   }, [
-    showLabels,
+    renderPersistentLabels,
     baseLayer,
     centerX,
     centerY,
@@ -1200,6 +1220,16 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
   const handleSlicePress = useCallback(
     (slice: ComputedSlice, event: any) => {
       if (disabled) return;
+      cancelTouchHold();
+      if (isChartTouchInput(event)) {
+        setPressedSlice(slice);
+        touchHoldTimer.current = setTimeout(() => {
+          setPressedSlice(null);
+          setHoveredSlice(null);
+          setHoveredKey(null);
+          touchHoldTimer.current = null;
+        }, CHART_TOUCH_HOLD_MS);
+      } else if (compactOutsideLabels) setPressedSlice((current) => current?.key === slice.key ? null : slice);
       const nativeEvent = event?.nativeEvent ?? event ?? {};
       const interactionEvent: ChartInteractionEvent<PieChartDataPoint> = {
         nativeEvent,
@@ -1210,7 +1240,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
       onDataPointPress?.(slice.raw, interactionEvent);
       onPress?.(interactionEvent);
     },
-    [disabled, onDataPointPress, onPress, width, height],
+    [disabled, compactOutsideLabels, onDataPointPress, onPress, width, height, cancelTouchHold],
   );
 
   const handleHover = useCallback(
@@ -1243,6 +1273,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
       if (hoveredKey === key) {
         handleHover(null);
       }
+      setPressedSlice(null);
     },
     [legendToggleEnabled, normalisedData, hoveredKey, handleHover],
   );
@@ -1304,6 +1335,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
     tester,
     feedStore: false,
     onPointer: (e, target) => {
+      if (e.phase === 'down' || e.source !== 'touch') cancelTouchHold();
       setPointer?.({ x: e.containerX, y: e.containerY, inside: e.inside, pageX: e.pageX, pageY: e.pageY });
       handleHover(target ? (target.datum as ComputedSlice) : null);
     },
@@ -1311,7 +1343,10 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
       setPointer?.({ x: 0, y: 0, inside: false });
       handleHover(null);
     },
-    onPress: (e, target) => { if (target) handleSlicePress(target.datum as ComputedSlice, (e.raw as any)?.nativeEvent ?? e.raw); },
+    onPress: (e, target) => {
+      if (target) handleSlicePress(target.datum as ComputedSlice, (e.raw as any)?.nativeEvent ?? e.raw);
+      else setPressedSlice(null);
+    },
   });
 
   const focusableKeys = useMemo(
@@ -1373,6 +1408,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
   );
 
   const tooltipEnabled = tooltip?.show !== false;
+  const activeTooltipSlice = hoveredSlice ?? pressedSlice;
   const tooltipBackground = tooltip?.backgroundColor ?? theme.colors.background;
   const tooltipTextColor = tooltip?.textColor ?? theme.colors.textPrimary;
   const tooltipFontSize = tooltip?.fontSize ?? 12;
@@ -1380,32 +1416,33 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
   const tooltipBorderRadius = tooltip?.borderRadius ?? 6;
 
   const tooltipInfo = useMemo(() => {
-    if (!tooltipEnabled || !hoveredSlice) return null;
+    if (!tooltipEnabled || !activeTooltipSlice) return null;
     const pointerCoords = pointer && pointer.inside ? { x: pointer.x, y: pointer.y } : null;
-    const fallbackAnchor = computeSliceAnchor(hoveredSlice, hoveredSlice.outerRadius + 16);
+    const fallbackAnchor = computeSliceAnchor(activeTooltipSlice, activeTooltipSlice.outerRadius + 16);
     const anchor = pointerCoords ?? fallbackAnchor;
     const safeTop = clamp(anchor.y - 32, 8, height - 48);
     const anchorOnRight = anchor.x >= width / 2;
 
     const position: { left?: number; right?: number; top: number } = { top: safeTop };
     if (anchorOnRight) {
-      position.left = clamp(anchor.x + 12, 8, width - 8);
-    } else {
       position.right = clamp(width - anchor.x + 12, 8, width - 8);
+    } else {
+      position.left = clamp(anchor.x + 12, 8, width - 8);
     }
 
-    const percentage = formatPercentage(hoveredSlice.value, totalValue);
-    const formatterResult = tooltip?.formatter?.(hoveredSlice.raw);
-    const defaultLabel = `${hoveredSlice.label}: ${hoveredSlice.raw.value.toLocaleString?.() ?? hoveredSlice.raw.value} (${percentage})`;
+    const percentage = formatPercentage(activeTooltipSlice.value, totalValue);
+    const formatterResult = tooltip?.formatter?.(activeTooltipSlice.raw);
+    const defaultLabel = `${activeTooltipSlice.label}: ${activeTooltipSlice.raw.value.toLocaleString?.() ?? activeTooltipSlice.raw.value} (${percentage})`;
 
     return {
       position,
+      maxWidth: Math.min(220, Math.max(anchorOnRight ? anchor.x - 20 : width - anchor.x - 20, 64)),
       alignment: (anchorOnRight ? 'flex-start' : 'flex-end') as 'flex-start' | 'flex-end',
       content: formatterResult ?? defaultLabel,
     };
   }, [
     tooltipEnabled,
-    hoveredSlice,
+    activeTooltipSlice,
     pointer,
     computeSliceAnchor,
     tooltip,
@@ -1503,7 +1540,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
             )}
           </G>
 
-          {showLabels && labelLayouts.length > 0 && (
+          {renderPersistentLabels && labelLayouts.length > 0 && (
             <G pointerEvents="none">
               {labelLayouts.map((label) => (
                 <React.Fragment key={`label-${label.key}`}>
@@ -1558,13 +1595,14 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
 
       {tooltipEnabled && tooltipInfo && (
         <View
+          testID="pie-chart-tooltip"
           pointerEvents="none"
           style={{
             position: 'absolute',
             backgroundColor: tooltipBackground,
             padding: tooltipPadding,
             borderRadius: tooltipBorderRadius,
-            maxWidth: 220,
+            maxWidth: tooltipInfo.maxWidth,
             alignItems: tooltipInfo.alignment,
             ...platformShadow({ color: '#000', opacity: 0.12, offsetY: 2, radius: 6, elevation: 2 }),
             ...tooltipInfo.position,
@@ -1589,7 +1627,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
       {legend?.show && legendItems.length > 0 && (
         <ChartLegend
           items={legendItems}
-          position={legend.position}
+          position={legendPosition}
           align={legend.align}
           textColor={legend.textColor}
           fontSize={legend.fontSize}
@@ -1608,8 +1646,7 @@ export const PieChart: React.FC<PieChartProps> = (props) => {
         <View
           style={{ position: 'absolute', inset: 0 }}
           focusable
-          // @ts-expect-error RN web exposes key handlers for View but types omit them
-          onKeyDown={handleKeyDown}
+          {...{ onKeyDown: handleKeyDown }}
           pointerEvents="box-none"
           accessible
           accessibilityLabel={props.title ?? 'Pie chart'}

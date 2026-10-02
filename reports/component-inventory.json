@@ -1,0 +1,5295 @@
+{
+  "method": "Source and generated-docs inventory; absence of a colocated test or named demo is a static signal, not proof of runtime failure.",
+  "scope": "155 entries in apps/docs/data/generated/components-meta.json, cross-checked with CORE_COMPONENTS.",
+  "totals": {
+    "components": 155,
+    "demos": 747,
+    "packages": {
+      "@plocks/brands": 2,
+      "@plocks/carousel": 1,
+      "@plocks/charts": 24,
+      "@plocks/code": 2,
+      "@plocks/dates": 10,
+      "@plocks/emoji-picker": 2,
+      "@plocks/media": 3,
+      "@plocks/qrcode": 1,
+      "@plocks/spotlight": 1,
+      "@plocks/ui": 109
+    },
+    "screenshotAssertionFiles": [
+      "apps/docs/tests/chart-baselines.spec.ts",
+      "apps/docs/tests/component-visuals.spec.ts",
+      "apps/docs/tests/visual-gallery.spec.ts"
+    ]
+  },
+  "catalogConsistency": {
+    "missingFromCore": [],
+    "missingFromMetadata": [],
+    "duplicateCoreNames": []
+  },
+  "gaps": [
+    {
+      "id": "noScreenshotRegressionAssertion",
+      "description": "No in-repo screenshot assertion for this docs component",
+      "count": 115,
+      "byPackage": {
+        "@plocks/brands": 2,
+        "@plocks/carousel": 1,
+        "@plocks/code": 2,
+        "@plocks/dates": 10,
+        "@plocks/emoji-picker": 2,
+        "@plocks/media": 2,
+        "@plocks/qrcode": 1,
+        "@plocks/spotlight": 1,
+        "@plocks/ui": 94
+      },
+      "components": [
+        "Accordion",
+        "ActionBar",
+        "Alert",
+        "AppShell",
+        "AudioPlayer",
+        "AutoComplete",
+        "Avatar",
+        "Badge",
+        "Block",
+        "Blockquote",
+        "BrandButton",
+        "BrandIcon",
+        "Breadcrumbs",
+        "Button",
+        "Calendar",
+        "Card",
+        "Carousel",
+        "Cascader",
+        "Checkbox",
+        "Chip",
+        "CodeBlock",
+        "Collapse",
+        "ColorInput",
+        "ColorPicker",
+        "ColorSwatch",
+        "ComboboxPopover",
+        "ContextMenu",
+        "ControlField",
+        "CopyButton",
+        "DataList",
+        "DataTable",
+        "DatePicker",
+        "DatePickerInput",
+        "Dialog",
+        "Divider",
+        "EmojiPicker",
+        "EmojiPickerInput",
+        "EmptyState",
+        "FileInput",
+        "FloatingActions",
+        "FloatingIndicator",
+        "FloatingWindow",
+        "Form",
+        "Gauge",
+        "GradientText",
+        "Grid",
+        "Highlight",
+        "HoverCard",
+        "Icon",
+        "IconButton",
+        "Image",
+        "Indicator",
+        "Input",
+        "Joystick",
+        "KeyCap",
+        "Knob",
+        "Lightbox",
+        "Link",
+        "ListGroup",
+        "Loader",
+        "LoadingOverlay",
+        "Markdown",
+        "Marquee",
+        "Menu",
+        "Menubar",
+        "MenuItemButton",
+        "MiniCalendar",
+        "MonthPicker",
+        "MonthPickerInput",
+        "NavTree",
+        "NumberInput",
+        "OverflowList",
+        "Overlay",
+        "Pagination",
+        "PhoneInput",
+        "PinInput",
+        "Popover",
+        "Progress",
+        "QRCode",
+        "Radio",
+        "Rating",
+        "ReorderableList",
+        "Ring",
+        "RollingNumber",
+        "Scroller",
+        "Search",
+        "SegmentedControl",
+        "Select",
+        "ShimmerText",
+        "Skeleton",
+        "Slider",
+        "Splitter",
+        "Spoiler",
+        "Spotlight",
+        "Stepper",
+        "SwipeableRow",
+        "Switch",
+        "Table",
+        "TableOfContents",
+        "Tabs",
+        "Text",
+        "TextArea",
+        "TimePicker",
+        "TimePickerInput",
+        "Title",
+        "Toast",
+        "Toggle",
+        "Tooltip",
+        "Tree",
+        "TreeSelect",
+        "Video",
+        "Waveform",
+        "Wheel",
+        "YearPicker",
+        "YearPickerInput"
+      ]
+    },
+    {
+      "id": "noDedicatedVariantDemo",
+      "description": "Variant prop documented without a dedicated variant demo",
+      "count": 1,
+      "byPackage": {
+        "@plocks/ui": 1
+      },
+      "components": [
+        "TreeSelect"
+      ]
+    },
+    {
+      "id": "metadataNameMismatch",
+      "description": "Metadata name differs from catalog key",
+      "count": 0,
+      "byPackage": {},
+      "components": []
+    },
+    {
+      "id": "noComponentTest",
+      "description": "No component test in the source folder or chart component test suite",
+      "count": 0,
+      "byPackage": {},
+      "components": []
+    },
+    {
+      "id": "noGeneratedProps",
+      "description": "Generated prop table is empty",
+      "count": 0,
+      "byPackage": {},
+      "components": []
+    },
+    {
+      "id": "noMatchingPublicExport",
+      "description": "Catalog name has no matching named value export from its package",
+      "count": 0,
+      "byPackage": {},
+      "components": []
+    },
+    {
+      "id": "noWebComponentTest",
+      "description": "No colocated web component test",
+      "count": 0,
+      "byPackage": {},
+      "components": []
+    }
+  ],
+  "components": [
+    {
+      "name": "Accordion",
+      "package": "@plocks/ui",
+      "category": "display",
+      "sourcePath": "packages/ui/src/components/Accordion",
+      "docsPath": "packages/ui/src/components/Accordion/meta/component.md",
+      "metadataName": "Accordion",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "multiple",
+        "variants",
+        "colors",
+        "title-customization"
+      ],
+      "propCount": 49,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Accordion/__tests__/Accordion.rendering.test.tsx",
+          "packages/ui/src/components/Accordion/__tests__/Accordion.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Accordion/__web_tests__/Accordion.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "ActionBar",
+      "package": "@plocks/ui",
+      "category": "overlay",
+      "sourcePath": "packages/ui/src/components/ActionBar",
+      "docsPath": "packages/ui/src/components/ActionBar/meta/component.md",
+      "metadataName": "ActionBar",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "placement",
+        "iconButtons",
+        "transitions",
+        "keepMounted"
+      ],
+      "propCount": 42,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/ActionBar/__tests__/ActionBar.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/ActionBar/__web_tests__/ActionBar.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Alert",
+      "package": "@plocks/ui",
+      "category": "feedback",
+      "sourcePath": "packages/ui/src/components/Alert",
+      "docsPath": "packages/ui/src/components/Alert/meta/component.md",
+      "metadataName": "Alert",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "basic",
+        "variants",
+        "interactive"
+      ],
+      "propCount": 41,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Alert/__tests__/Alert.rendering.test.tsx",
+          "packages/ui/src/components/Alert/__tests__/Alert.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Alert/__web_tests__/Alert.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "AppShell",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/AppShell",
+      "docsPath": "packages/ui/src/components/AppShell/meta/component.md",
+      "metadataName": "AppShell",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "enhanced"
+      ],
+      "propCount": 60,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/AppShell/__tests__/AppShell.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/AppShell/__web_tests__/AppShell.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "AreaChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/AreaChart",
+      "docsPath": "packages/charts/src/components/AreaChart/meta/component.md",
+      "metadataName": "AreaChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "inventory-levels-warehouses",
+        "mobile-device-sessions",
+        "renewable-energy-mix",
+        "streaming-minutes-campaign",
+        "support-severity-over-time"
+      ],
+      "propCount": 79,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/AreaChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/AreaChart/__web_tests__/AreaChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "AudioPlayer",
+      "package": "@plocks/media",
+      "category": "media",
+      "sourcePath": "packages/media/src/components/AudioPlayer",
+      "docsPath": "packages/media/src/components/AudioPlayer/meta/component.md",
+      "metadataName": "AudioPlayer",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 82,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/media/src/components/AudioPlayer/__tests__/AudioPlayer.test.tsx"
+        ],
+        "web": [
+          "packages/media/src/components/AudioPlayer/__web_tests__/AudioPlayer.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "AutoComplete",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/AutoComplete",
+      "docsPath": "packages/ui/src/components/AutoComplete/meta/component.md",
+      "metadataName": "AutoComplete",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 10,
+      "demoIds": [
+        "basic",
+        "multi",
+        "variants",
+        "select-like",
+        "async",
+        "freesolo",
+        "freesolo-multi",
+        "grouped",
+        "rich",
+        "highlight-colors"
+      ],
+      "propCount": 98,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/AutoComplete/__tests__/AutoComplete.boxProps.test.tsx",
+          "packages/ui/src/components/AutoComplete/__tests__/AutoComplete.chipHeight.test.tsx",
+          "packages/ui/src/components/AutoComplete/__tests__/AutoComplete.freeSolo.test.tsx",
+          "packages/ui/src/components/AutoComplete/__tests__/AutoComplete.highlightColor.test.tsx",
+          "packages/ui/src/components/AutoComplete/__tests__/AutoComplete.sheet.test.tsx",
+          "packages/ui/src/components/AutoComplete/__tests__/AutoComplete.sizing.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/AutoComplete/__web_tests__/AutoComplete.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Avatar",
+      "package": "@plocks/ui",
+      "category": "display",
+      "sourcePath": "packages/ui/src/components/Avatar",
+      "docsPath": "packages/ui/src/components/Avatar/meta/component.md",
+      "metadataName": "Avatar",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 7,
+      "demoIds": [
+        "basic",
+        "sizes",
+        "icon",
+        "colors",
+        "group",
+        "overflow",
+        "status"
+      ],
+      "propCount": 42,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Avatar/__tests__/Avatar.rendering.test.tsx",
+          "packages/ui/src/components/Avatar/__tests__/Avatar.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Avatar/__web_tests__/Avatar.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "BackgroundImage",
+      "package": "@plocks/ui",
+      "category": "media",
+      "sourcePath": "packages/ui/src/components/BackgroundImage",
+      "docsPath": "packages/ui/src/components/BackgroundImage/meta/component.md",
+      "metadataName": "BackgroundImage",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 82,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/BackgroundImage/__tests__/BackgroundImage.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/BackgroundImage/__web_tests__/BackgroundImage.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Badge",
+      "package": "@plocks/ui",
+      "category": "data",
+      "sourcePath": "packages/ui/src/components/Badge",
+      "docsPath": "packages/ui/src/components/Badge/meta/component.md",
+      "metadataName": "Badge",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "colors",
+        "sizes",
+        "variants",
+        "shadow",
+        "aliases"
+      ],
+      "propCount": 45,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Badge/__tests__/Badge.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Badge/__web_tests__/Badge.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "BarChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/BarChart",
+      "docsPath": "packages/charts/src/components/BarChart/meta/component.md",
+      "metadataName": "BarChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 8,
+      "demoIds": [
+        "basic",
+        "net-cash-flow",
+        "gradient-bars",
+        "quarterly-revenue-variance",
+        "feature-adoption-by-tier",
+        "marketing-spend-multi-touch",
+        "new-hire-recruiting-cycles",
+        "sla-compliance-by-team"
+      ],
+      "propCount": 59,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/BarChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/BarChart/__web_tests__/BarChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Block",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/Block",
+      "docsPath": "packages/ui/src/components/Block/meta/component.md",
+      "metadataName": "Block",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "bg-shorthand"
+      ],
+      "propCount": 79,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Block/__tests__/Block.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Block/__web_tests__/Block.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Blockquote",
+      "package": "@plocks/ui",
+      "category": "typography",
+      "sourcePath": "packages/ui/src/components/Blockquote",
+      "docsPath": "packages/ui/src/components/Blockquote/meta/component.md",
+      "metadataName": "Blockquote",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "testimonial",
+        "social",
+        "attribution",
+        "variants"
+      ],
+      "propCount": 47,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Blockquote/__tests__/Blockquote.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Blockquote/__web_tests__/Blockquote.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "BrandButton",
+      "package": "@plocks/brands",
+      "category": "input",
+      "sourcePath": "packages/brands/src/components/BrandButton",
+      "docsPath": "packages/brands/src/components/BrandButton/meta/component.md",
+      "metadataName": "BrandButton",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "basic",
+        "badge",
+        "variants"
+      ],
+      "propCount": 60,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/brands/src/components/BrandButton/__tests__/BrandButton.test.tsx"
+        ],
+        "web": [
+          "packages/brands/src/components/BrandButton/__web_tests__/BrandButton.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "BrandIcon",
+      "package": "@plocks/brands",
+      "category": "typography",
+      "sourcePath": "packages/brands/src/components/BrandIcon",
+      "docsPath": "packages/brands/src/components/BrandIcon/meta/component.md",
+      "metadataName": "BrandIcon",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "colors",
+        "variants",
+        "sizes",
+        "dark-mode",
+        "all-brands"
+      ],
+      "propCount": 37,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/brands/src/components/BrandIcon/__tests__/BrandIcon.test.tsx"
+        ],
+        "web": [
+          "packages/brands/src/components/BrandIcon/__web_tests__/BrandIcon.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Breadcrumbs",
+      "package": "@plocks/ui",
+      "category": "navigation",
+      "sourcePath": "packages/ui/src/components/Breadcrumbs",
+      "docsPath": "packages/ui/src/components/Breadcrumbs/meta/component.md",
+      "metadataName": "Breadcrumbs",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "separators"
+      ],
+      "propCount": 38,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Breadcrumbs/__tests__/Breadcrumbs.rendering.test.tsx",
+          "packages/ui/src/components/Breadcrumbs/__tests__/Breadcrumbs.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Breadcrumbs/__web_tests__/Breadcrumbs.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "BubbleChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/BubbleChart",
+      "docsPath": "packages/charts/src/components/BubbleChart/meta/component.md",
+      "metadataName": "BubbleChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "cities-talent-footprint",
+        "customer-account-health",
+        "engineering-epic-risk",
+        "product-strategy-portfolio",
+        "vendor-contracts-scoring"
+      ],
+      "propCount": 57,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/BubbleChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/BubbleChart/__web_tests__/BubbleChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Button",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/Button",
+      "docsPath": "packages/ui/src/components/Button/meta/component.md",
+      "metadataName": "Button",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 8,
+      "demoIds": [
+        "basic",
+        "colors",
+        "loading",
+        "variants",
+        "sizes",
+        "localized-basic",
+        "tooltip",
+        "width"
+      ],
+      "propCount": 55,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Button/__tests__/Button.rendering.test.tsx",
+          "packages/ui/src/components/Button/__tests__/Button.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Button/__web_tests__/Button.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Calendar",
+      "package": "@plocks/dates",
+      "category": "dates",
+      "sourcePath": "packages/dates/src/components/Calendar",
+      "docsPath": "packages/dates/src/components/Calendar/meta/component.md",
+      "metadataName": "Calendar",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 4,
+      "demoIds": [
+        "basic",
+        "constrained",
+        "multiple",
+        "range"
+      ],
+      "propCount": 55,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/dates/src/components/Calendar/__tests__/currentPeriod.test.ts"
+        ],
+        "web": [
+          "packages/dates/src/components/Calendar/__web_tests__/Calendar.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "CandlestickChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/CandlestickChart",
+      "docsPath": "packages/charts/src/components/CandlestickChart/meta/component.md",
+      "metadataName": "CandlestickChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "battery-material-pricing",
+        "cloud-infra-cost-swings",
+        "crypto-treasury-balances",
+        "saas-usage-peaks",
+        "subscription-mrr-dynamics"
+      ],
+      "propCount": 64,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/CandlestickChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/CandlestickChart/__web_tests__/CandlestickChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Card",
+      "package": "@plocks/ui",
+      "category": "display",
+      "sourcePath": "packages/ui/src/components/Card",
+      "docsPath": "packages/ui/src/components/Card/meta/component.md",
+      "metadataName": "Card",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "variants"
+      ],
+      "propCount": 50,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Card/__tests__/Card.rendering.test.tsx",
+          "packages/ui/src/components/Card/__tests__/Card.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Card/__web_tests__/Card.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Carousel",
+      "package": "@plocks/carousel",
+      "category": "display",
+      "sourcePath": "packages/carousel/src/components/Carousel",
+      "docsPath": "packages/carousel/src/components/Carousel/meta/component.md",
+      "metadataName": "Carousel",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "vertical",
+        "imageOverlay",
+        "multi",
+        "performance",
+        "motionControls"
+      ],
+      "propCount": 60,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/carousel/src/components/Carousel/__tests__/Carousel.test.tsx"
+        ],
+        "web": [
+          "packages/carousel/src/components/Carousel/__web_tests__/Carousel.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Cascader",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/Cascader",
+      "docsPath": "packages/ui/src/components/Cascader/meta/component.md",
+      "metadataName": "Cascader",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 15,
+      "demoIds": [
+        "basic",
+        "flat",
+        "variants",
+        "changeOnSelect",
+        "hover",
+        "maxLevels",
+        "searchable",
+        "nothingFound",
+        "displayValue",
+        "columnWidth",
+        "clearable",
+        "disabledOptions",
+        "optionRendering",
+        "readOnly",
+        "error"
+      ],
+      "propCount": 88,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Cascader/__tests__/Cascader.test.tsx",
+          "packages/ui/src/components/Cascader/__tests__/cascaderUtils.test.ts",
+          "packages/ui/src/components/Cascader/__tests__/safeAreaPolygon.test.ts"
+        ],
+        "web": [
+          "packages/ui/src/components/Cascader/__web_tests__/Cascader.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Checkbox",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/Checkbox",
+      "docsPath": "packages/ui/src/components/Checkbox/meta/component.md",
+      "metadataName": "Checkbox",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "sizes",
+        "colors",
+        "states",
+        "indeterminate",
+        "withDescription"
+      ],
+      "propCount": 59,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Checkbox/__tests__/Checkbox.rendering.test.tsx",
+          "packages/ui/src/components/Checkbox/__tests__/Checkbox.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Checkbox/__web_tests__/Checkbox.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Chip",
+      "package": "@plocks/ui",
+      "category": "data",
+      "sourcePath": "packages/ui/src/components/Chip",
+      "docsPath": "packages/ui/src/components/Chip/meta/component.md",
+      "metadataName": "Chip",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 9,
+      "demoIds": [
+        "basic",
+        "colors",
+        "sizes",
+        "variants",
+        "dot",
+        "shadow",
+        "interactive",
+        "selectable",
+        "theme-matrix"
+      ],
+      "propCount": 50,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Chip/__tests__/Chip.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Chip/__web_tests__/Chip.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "CodeBlock",
+      "package": "@plocks/code",
+      "category": "typography",
+      "sourcePath": "packages/code/src/components/CodeBlock",
+      "docsPath": "packages/code/src/components/CodeBlock/meta/component.md",
+      "metadataName": "CodeBlock",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 8,
+      "demoIds": [
+        "basic",
+        "interactive",
+        "files",
+        "github",
+        "languages",
+        "features",
+        "variants",
+        "highlighting"
+      ],
+      "propCount": 54,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/code/src/components/CodeBlock/__tests__/CodeBlock.fileTypes.test.ts",
+          "packages/code/src/components/CodeBlock/__tests__/CodeBlock.files.test.tsx",
+          "packages/code/src/components/CodeBlock/__tests__/CodeBlock.githubUrl.test.tsx",
+          "packages/code/src/components/CodeBlock/__tests__/CodeBlock.shellSyntax.test.ts",
+          "packages/code/src/components/CodeBlock/__tests__/prism.test.ts"
+        ],
+        "web": [
+          "packages/code/src/components/CodeBlock/__web_tests__/CodeBlock.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Collapse",
+      "package": "@plocks/ui",
+      "category": "display",
+      "sourcePath": "packages/ui/src/components/Collapse",
+      "docsPath": "packages/ui/src/components/Collapse/meta/component.md",
+      "metadataName": "Collapse",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 40,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Collapse/__tests__/Collapse.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Collapse/__web_tests__/Collapse.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "ColorInput",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/ColorInput",
+      "docsPath": "packages/ui/src/components/ColorInput/meta/component.md",
+      "metadataName": "ColorInput",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "variants",
+        "basic",
+        "swatches"
+      ],
+      "propCount": 75,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/ColorInput/__tests__/ColorInput.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/ColorInput/__web_tests__/ColorInput.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "ColorPicker",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/ColorPicker",
+      "docsPath": "packages/ui/src/components/ColorPicker/meta/component.md",
+      "metadataName": "ColorPicker",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 37,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/ColorPicker/__tests__/ColorPicker.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/ColorPicker/__web_tests__/ColorPicker.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "ColorSwatch",
+      "package": "@plocks/ui",
+      "category": "display",
+      "sourcePath": "packages/ui/src/components/ColorSwatch",
+      "docsPath": "packages/ui/src/components/ColorSwatch/meta/component.md",
+      "metadataName": "ColorSwatch",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "basic",
+        "advanced",
+        "palette"
+      ],
+      "propCount": 46,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/ColorSwatch/__tests__/ColorSwatch.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/ColorSwatch/__web_tests__/ColorSwatch.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "ComboboxPopover",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/ComboboxPopover",
+      "docsPath": "packages/ui/src/components/ComboboxPopover/meta/component.md",
+      "metadataName": "ComboboxPopover",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 15,
+      "demoIds": [
+        "basic",
+        "multiple",
+        "disabled",
+        "groups",
+        "searchable",
+        "sort",
+        "limit",
+        "nothingFound",
+        "checkIcon",
+        "allowDeselect",
+        "renderOption",
+        "position",
+        "width",
+        "largeData",
+        "controlledDropdown"
+      ],
+      "propCount": 61,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/ComboboxPopover/__tests__/ComboboxPopover.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/ComboboxPopover/__web_tests__/ComboboxPopover.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "ComboChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/ComboChart",
+      "docsPath": "packages/charts/src/components/ComboChart/meta/component.md",
+      "metadataName": "ComboChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 49,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/ComboChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/ComboChart/__web_tests__/ComboChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "ContextMenu",
+      "package": "@plocks/ui",
+      "category": "overlay",
+      "sourcePath": "packages/ui/src/components/ContextMenu",
+      "docsPath": "packages/ui/src/components/ContextMenu/meta/component.md",
+      "metadataName": "ContextMenu",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 38,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/ContextMenu/__tests__/ContextMenu.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/ContextMenu/__web_tests__/ContextMenu.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "ControlField",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/ControlField",
+      "docsPath": "packages/ui/src/components/ControlField/meta/component.md",
+      "metadataName": "ControlField",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "checkbox-validation",
+        "variants",
+        "custom-control",
+        "grouped-surface"
+      ],
+      "propCount": 47,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/ControlField/__tests__/ControlField.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/ControlField/__web_tests__/ControlField.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "CopyButton",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/CopyButton",
+      "docsPath": "packages/ui/src/components/CopyButton/meta/component.md",
+      "metadataName": "CopyButton",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "labeled",
+        "long-value",
+        "no-toast",
+        "sizes"
+      ],
+      "propCount": 46,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/CopyButton/__tests__/CopyButton.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/CopyButton/__web_tests__/CopyButton.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "DataList",
+      "package": "@plocks/ui",
+      "category": "data",
+      "sourcePath": "packages/ui/src/components/DataList",
+      "docsPath": "packages/ui/src/components/DataList/meta/component.md",
+      "metadataName": "DataList",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "vertical",
+        "dividers",
+        "sizes",
+        "data"
+      ],
+      "propCount": 38,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/DataList/__tests__/DataList.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/DataList/__web_tests__/DataList.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "DataTable",
+      "package": "@plocks/ui",
+      "category": "data",
+      "sourcePath": "packages/ui/src/components/DataTable",
+      "docsPath": "packages/ui/src/components/DataTable/meta/component.md",
+      "metadataName": "DataTable",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 9,
+      "demoIds": [
+        "basic",
+        "advanced-filtering",
+        "variants",
+        "row-selection",
+        "enhanced-styling",
+        "expandable-rows",
+        "grouping",
+        "fixed-height",
+        "server-side"
+      ],
+      "propCount": 109,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/DataTable/__tests__/dividers.test.tsx",
+          "packages/ui/src/components/DataTable/__tests__/expandableRows.test.tsx",
+          "packages/ui/src/components/DataTable/__tests__/outerBorder.test.tsx",
+          "packages/ui/src/components/DataTable/__tests__/rowRendering.test.tsx",
+          "packages/ui/src/components/DataTable/__tests__/utils.test.ts"
+        ],
+        "web": [
+          "packages/ui/src/components/DataTable/__web_tests__/DataTable.web.test.tsx",
+          "packages/ui/src/components/DataTable/__web_tests__/persistence.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "DatePicker",
+      "package": "@plocks/dates",
+      "category": "dates",
+      "sourcePath": "packages/dates/src/components/DatePicker",
+      "docsPath": "packages/dates/src/components/DatePicker/meta/component.md",
+      "metadataName": "DatePicker",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 4,
+      "demoIds": [
+        "basic",
+        "range",
+        "validation",
+        "multiple"
+      ],
+      "propCount": 35,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/dates/src/components/DatePicker/__tests__/DatePicker.test.tsx"
+        ],
+        "web": [
+          "packages/dates/src/components/DatePicker/__web_tests__/DatePicker.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "DatePickerInput",
+      "package": "@plocks/dates",
+      "category": "dates",
+      "sourcePath": "packages/dates/src/components/DatePickerInput",
+      "docsPath": "packages/dates/src/components/DatePickerInput/meta/component.md",
+      "metadataName": "DatePickerInput",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "variants",
+        "multiple",
+        "range",
+        "validation"
+      ],
+      "propCount": 70,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/dates/src/components/DatePickerInput/__tests__/DatePickerInput.test.tsx"
+        ],
+        "web": [
+          "packages/dates/src/components/DatePickerInput/__web_tests__/DatePickerInput.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Dialog",
+      "package": "@plocks/ui",
+      "category": "overlay",
+      "sourcePath": "packages/ui/src/components/Dialog",
+      "docsPath": "packages/ui/src/components/Dialog/meta/component.md",
+      "metadataName": "Dialog",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "bottomsheet",
+        "variants",
+        "confirmation",
+        "form",
+        "title-customization"
+      ],
+      "propCount": 46,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Dialog/__tests__/Dialog.rendering.test.tsx",
+          "packages/ui/src/components/Dialog/__tests__/Dialog.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Dialog/__web_tests__/Dialog.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Divider",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/Divider",
+      "docsPath": "packages/ui/src/components/Divider/meta/component.md",
+      "metadataName": "Divider",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 7,
+      "demoIds": [
+        "basic",
+        "colors",
+        "gradient-opacity",
+        "labeled",
+        "vertical",
+        "sizes",
+        "variants"
+      ],
+      "propCount": 35,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Divider/__tests__/Divider.rendering.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Divider/__web_tests__/Divider.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "DonutChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/DonutChart",
+      "docsPath": "packages/charts/src/components/DonutChart/meta/component.md",
+      "metadataName": "DonutChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "annual-expense-allocation",
+        "customer-segment-growth",
+        "data-center-power",
+        "employee-geography-workstyle",
+        "marketplace-fulfillment-mix"
+      ],
+      "propCount": 60,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/DonutChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/DonutChart/__web_tests__/DonutChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "EmojiPicker",
+      "package": "@plocks/emoji-picker",
+      "category": "input",
+      "sourcePath": "packages/emoji-picker/src/components/EmojiPicker",
+      "docsPath": "packages/emoji-picker/src/components/EmojiPicker/meta/component.md",
+      "metadataName": "EmojiPicker",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "custom"
+      ],
+      "propCount": 41,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/emoji-picker/src/components/EmojiPicker/__tests__/EmojiPicker.test.tsx",
+          "packages/emoji-picker/src/components/EmojiPicker/__tests__/catalog.test.ts"
+        ],
+        "web": [
+          "packages/emoji-picker/src/components/EmojiPicker/__web_tests__/EmojiPicker.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "EmojiPickerInput",
+      "package": "@plocks/emoji-picker",
+      "category": "input",
+      "sourcePath": "packages/emoji-picker/src/components/EmojiPickerInput",
+      "docsPath": "packages/emoji-picker/src/components/EmojiPickerInput/meta/component.md",
+      "metadataName": "EmojiPickerInput",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "variants"
+      ],
+      "propCount": 69,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/emoji-picker/src/components/EmojiPickerInput/__tests__/EmojiPickerInput.test.tsx"
+        ],
+        "web": [
+          "packages/emoji-picker/src/components/EmojiPickerInput/__web_tests__/EmojiPickerInput.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "EmptyState",
+      "package": "@plocks/ui",
+      "category": "feedback",
+      "sourcePath": "packages/ui/src/components/EmptyState",
+      "docsPath": "packages/ui/src/components/EmptyState/meta/component.md",
+      "metadataName": "EmptyState",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "compound",
+        "variants",
+        "alignment",
+        "indicatorBackground",
+        "sizes"
+      ],
+      "propCount": 37,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/EmptyState/__tests__/EmptyState.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/EmptyState/__web_tests__/EmptyState.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "FileInput",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/FileInput",
+      "docsPath": "packages/ui/src/components/FileInput/meta/component.md",
+      "metadataName": "FileInput",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 7,
+      "demoIds": [
+        "basic",
+        "dropzone",
+        "fileTypes",
+        "imagePreview",
+        "variants",
+        "upload",
+        "validation"
+      ],
+      "propCount": 67,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/FileInput/__tests__/FileInput.test.tsx",
+          "packages/ui/src/components/FileInput/__tests__/upload.test.ts"
+        ],
+        "web": [
+          "packages/ui/src/components/FileInput/__web_tests__/FileInput.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Flex",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/Flex",
+      "docsPath": "packages/ui/src/components/Flex/meta/component.md",
+      "metadataName": "Flex",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 4,
+      "demoIds": [
+        "align",
+        "basic",
+        "direction",
+        "justify"
+      ],
+      "propCount": 41,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Flex/__tests__/Flex.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Flex/__web_tests__/Flex.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "FloatingActions",
+      "package": "@plocks/ui",
+      "category": "overlay",
+      "sourcePath": "packages/ui/src/components/FloatingActions",
+      "docsPath": "packages/ui/src/components/FloatingActions/meta/component.md",
+      "metadataName": "FloatingActions",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "variants"
+      ],
+      "propCount": 47,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/FloatingActions/__tests__/FloatingActions.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/FloatingActions/__web_tests__/FloatingActions.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "FloatingIndicator",
+      "package": "@plocks/ui",
+      "category": "display",
+      "sourcePath": "packages/ui/src/components/FloatingIndicator",
+      "docsPath": "packages/ui/src/components/FloatingIndicator/meta/component.md",
+      "metadataName": "FloatingIndicator",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "basic",
+        "multipleRows",
+        "tabs"
+      ],
+      "propCount": 34,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/FloatingIndicator/__tests__/FloatingIndicator.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/FloatingIndicator/__web_tests__/FloatingIndicator.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "FloatingWindow",
+      "package": "@plocks/ui",
+      "category": "overlay",
+      "sourcePath": "packages/ui/src/components/FloatingWindow",
+      "docsPath": "packages/ui/src/components/FloatingWindow/meta/component.md",
+      "metadataName": "FloatingWindow",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 9,
+      "demoIds": [
+        "basic",
+        "unconstrained",
+        "dragHandle",
+        "disabled",
+        "constrainOffset",
+        "axis",
+        "setPosition",
+        "resize",
+        "resizeCallbacks"
+      ],
+      "propCount": 47,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/FloatingWindow/__tests__/FloatingWindow.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/FloatingWindow/__web_tests__/FloatingWindow.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Form",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/Form",
+      "docsPath": "packages/ui/src/components/Form/meta/component.md",
+      "metadataName": "Form",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 36,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Form/__tests__/Form.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Form/__web_tests__/Form.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "FormLayout",
+      "package": "@plocks/ui",
+      "category": "form",
+      "sourcePath": "packages/ui/src/components/FormLayout",
+      "docsPath": "packages/ui/src/components/FormLayout/meta/component.md",
+      "metadataName": "FormLayout",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "variants"
+      ],
+      "propCount": 31,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/FormLayout/__tests__/FormLayout.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/FormLayout/__web_tests__/FormLayout.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "FunnelChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/FunnelChart",
+      "docsPath": "packages/charts/src/components/FunnelChart/meta/component.md",
+      "metadataName": "FunnelChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "data-pipeline-quality",
+        "ecommerce-checkout-payments",
+        "hiring-funnel-role-family",
+        "incident-response-workflow",
+        "saas-trial-conversion"
+      ],
+      "propCount": 47,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/FunnelChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/FunnelChart/__web_tests__/FunnelChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Gauge",
+      "package": "@plocks/ui",
+      "category": "data",
+      "sourcePath": "packages/ui/src/components/Gauge",
+      "docsPath": "packages/ui/src/components/Gauge/meta/component.md",
+      "metadataName": "Gauge",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "basic",
+        "ranges",
+        "compound"
+      ],
+      "propCount": 47,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Gauge/__tests__/Gauge.a11y.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Gauge/__web_tests__/Gauge.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Gradient",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/Gradient",
+      "docsPath": "packages/ui/src/components/Gradient/meta/component.md",
+      "metadataName": "Gradient",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 80,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Gradient/__tests__/Gradient.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Gradient/__web_tests__/Gradient.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "GradientText",
+      "package": "@plocks/ui",
+      "category": "typography",
+      "sourcePath": "packages/ui/src/components/GradientText",
+      "docsPath": "packages/ui/src/components/GradientText/meta/component.md",
+      "metadataName": "GradientText",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 4,
+      "demoIds": [
+        "basic",
+        "angles",
+        "variants",
+        "controlled"
+      ],
+      "propCount": 64,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/GradientText/__tests__/GradientText.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/GradientText/__web_tests__/GradientText.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Grid",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/Grid",
+      "docsPath": "packages/ui/src/components/Grid/meta/component.md",
+      "metadataName": "Grid",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "gaps",
+        "nesting",
+        "responsive",
+        "spans"
+      ],
+      "propCount": 34,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Grid/__tests__/Grid.rendering.test.tsx",
+          "packages/ui/src/components/Grid/__tests__/Grid.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Grid/__web_tests__/Grid.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "GroupedBarChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/GroupedBarChart",
+      "docsPath": "packages/charts/src/components/GroupedBarChart/meta/component.md",
+      "metadataName": "GroupedBarChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "experiment-variant-by-geo",
+        "feature-usage-by-platform",
+        "sales-pipeline-by-industry",
+        "student-assessment-by-grade",
+        "supplier-on-time-by-partner"
+      ],
+      "propCount": 50,
+      "documentedVariant": false,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/GroupedBarChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/GroupedBarChart/__web_tests__/GroupedBarChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "HeatmapChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/HeatmapChart",
+      "docsPath": "packages/charts/src/components/HeatmapChart/meta/component.md",
+      "metadataName": "HeatmapChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 7,
+      "demoIds": [
+        "basic",
+        "contributions",
+        "employee-engagement-scores",
+        "infrastructure-cpu-utilization",
+        "marketing-email-performance",
+        "quality-assurance-pass-rates",
+        "support-backlog-priority"
+      ],
+      "propCount": 59,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/HeatmapChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/HeatmapChart/__web_tests__/HeatmapChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Highlight",
+      "package": "@plocks/ui",
+      "category": "typography",
+      "sourcePath": "packages/ui/src/components/Highlight",
+      "docsPath": "packages/ui/src/components/Highlight/meta/component.md",
+      "metadataName": "Highlight",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 4,
+      "demoIds": [
+        "basic",
+        "variants",
+        "multiple",
+        "styles"
+      ],
+      "propCount": 65,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Highlight/__tests__/Highlight.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Highlight/__web_tests__/Highlight.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "HistogramChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/HistogramChart",
+      "docsPath": "packages/charts/src/components/HistogramChart/meta/component.md",
+      "metadataName": "HistogramChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 9,
+      "demoIds": [
+        "basic",
+        "page-load-performance",
+        "sensor-battery-upgrade",
+        "employee-tenure-distribution",
+        "gradient-fill",
+        "outlined-bars",
+        "brand-theme",
+        "contract-length-retention",
+        "transaction-amount-fraud"
+      ],
+      "propCount": 65,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/HistogramChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/HistogramChart/__web_tests__/HistogramChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "HoverCard",
+      "package": "@plocks/ui",
+      "category": "overlay",
+      "sourcePath": "packages/ui/src/components/HoverCard",
+      "docsPath": "packages/ui/src/components/HoverCard/meta/component.md",
+      "metadataName": "HoverCard",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "click"
+      ],
+      "propCount": 46,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/HoverCard/__tests__/HoverCard.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/HoverCard/__web_tests__/HoverCard.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Icon",
+      "package": "@plocks/ui",
+      "category": "typography",
+      "sourcePath": "packages/ui/src/components/Icon",
+      "docsPath": "packages/ui/src/components/Icon/meta/component.md",
+      "metadataName": "Icon",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "basic",
+        "stroke",
+        "variants"
+      ],
+      "propCount": 39,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Icon/__tests__/Icon.externalIcon.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Icon/__web_tests__/Icon.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "IconButton",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/IconButton",
+      "docsPath": "packages/ui/src/components/IconButton/meta/component.md",
+      "metadataName": "IconButton",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "variants"
+      ],
+      "propCount": 51,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/IconButton/__tests__/IconButton.color.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/IconButton/__web_tests__/IconButton.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Image",
+      "package": "@plocks/ui",
+      "category": "media",
+      "sourcePath": "packages/ui/src/components/Image",
+      "docsPath": "packages/ui/src/components/Image/meta/component.md",
+      "metadataName": "Image",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "sizes",
+        "shapes",
+        "fallback",
+        "spacing"
+      ],
+      "propCount": 49,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Image/__tests__/Image.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Image/__web_tests__/Image.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Indicator",
+      "package": "@plocks/ui",
+      "category": "data",
+      "sourcePath": "packages/ui/src/components/Indicator",
+      "docsPath": "packages/ui/src/components/Indicator/meta/component.md",
+      "metadataName": "Indicator",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "placements",
+        "sizes",
+        "statuses",
+        "labels"
+      ],
+      "propCount": 39,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Indicator/__tests__/Indicator.rendering.test.tsx",
+          "packages/ui/src/components/Indicator/__tests__/Indicator.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Indicator/__web_tests__/Indicator.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Input",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/Input",
+      "docsPath": "packages/ui/src/components/Input/meta/component.md",
+      "metadataName": "Input",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "variants",
+        "types",
+        "validation",
+        "multiline",
+        "slot-styling"
+      ],
+      "propCount": 96,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Input/__tests__/Input.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Input/__web_tests__/Input.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Joystick",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/Joystick",
+      "docsPath": "packages/ui/src/components/Joystick/meta/component.md",
+      "metadataName": "Joystick",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "variants",
+        "xy-pad",
+        "dead-zone",
+        "axis-lock"
+      ],
+      "propCount": 57,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Joystick/__tests__/Joystick.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Joystick/__web_tests__/Joystick.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "KeyboardAvoidingArea",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/KeyboardAvoidingArea",
+      "docsPath": "packages/ui/src/components/KeyboardAvoidingArea/meta/component.md",
+      "metadataName": "KeyboardAvoidingArea",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 78,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/KeyboardAvoidingArea/__tests__/KeyboardAvoidingArea.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/KeyboardAvoidingArea/__web_tests__/KeyboardAvoidingArea.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "KeyboardAwareLayout",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/KeyboardAwareLayout",
+      "docsPath": "packages/ui/src/components/KeyboardAwareLayout/meta/component.md",
+      "metadataName": "KeyboardAwareLayout",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 49,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/KeyboardAwareLayout/__tests__/KeyboardAwareLayout.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/KeyboardAwareLayout/__web_tests__/KeyboardAwareLayout.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "KeyCap",
+      "package": "@plocks/ui",
+      "category": "typography",
+      "sourcePath": "packages/ui/src/components/KeyCap",
+      "docsPath": "packages/ui/src/components/KeyCap/meta/component.md",
+      "metadataName": "KeyCap",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 4,
+      "demoIds": [
+        "basic",
+        "sizes",
+        "variants",
+        "modifiers"
+      ],
+      "propCount": 41,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/KeyCap/__tests__/KeyCap.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/KeyCap/__web_tests__/KeyCap.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Knob",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/Knob",
+      "docsPath": "packages/ui/src/components/Knob/meta/component.md",
+      "metadataName": "Knob",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 13,
+      "demoIds": [
+        "basic",
+        "events",
+        "variants",
+        "endless",
+        "dual-readout",
+        "status-selector",
+        "segment-progress",
+        "tick-selector",
+        "compound-panning",
+        "pointer-clock",
+        "semicircle-gauge",
+        "tick-layers",
+        "interaction-modes"
+      ],
+      "propCount": 58,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Knob/__tests__/Knob.test.tsx",
+          "packages/ui/src/components/Knob/__tests__/appearance.test.ts",
+          "packages/ui/src/components/Knob/__tests__/arc.test.ts",
+          "packages/ui/src/components/Knob/__tests__/behavior.test.tsx",
+          "packages/ui/src/components/Knob/__tests__/boxProps.test.tsx",
+          "packages/ui/src/components/Knob/__tests__/keyboard.test.tsx",
+          "packages/ui/src/components/Knob/__tests__/scrollMode.test.tsx",
+          "packages/ui/src/components/Knob/__tests__/segments.test.tsx",
+          "packages/ui/src/components/Knob/__tests__/sizes.test.ts",
+          "packages/ui/src/components/Knob/__tests__/tapToSet.test.tsx",
+          "packages/ui/src/components/Knob/__tests__/thumbPress.test.tsx",
+          "packages/ui/src/components/Knob/__tests__/tickActiveMode.test.tsx",
+          "packages/ui/src/components/Knob/__tests__/tickColors.test.tsx",
+          "packages/ui/src/components/Knob/__tests__/tickCount.test.tsx",
+          "packages/ui/src/components/Knob/__tests__/variants.test.ts"
+        ],
+        "web": [
+          "packages/ui/src/components/Knob/__web_tests__/Knob.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Layout",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/Layout",
+      "docsPath": "packages/ui/src/components/Layout/meta/component.md",
+      "metadataName": "Layout",
+      "publicExport": false,
+      "familyPage": true,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 41,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Layout/__tests__/Layout.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Layout/__web_tests__/Layout.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Lightbox",
+      "package": "@plocks/ui",
+      "category": "media",
+      "sourcePath": "packages/ui/src/components/Lightbox",
+      "docsPath": "packages/ui/src/components/Lightbox/meta/component.md",
+      "metadataName": "Lightbox",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "advanced"
+      ],
+      "propCount": 41,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Lightbox/__tests__/Lightbox.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Lightbox/__web_tests__/Lightbox.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "LineChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/LineChart",
+      "docsPath": "packages/charts/src/components/LineChart/meta/component.md",
+      "metadataName": "LineChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 10,
+      "demoIds": [
+        "basic",
+        "smooth-area",
+        "time-series",
+        "gradient-area",
+        "zoom",
+        "arr-progress-forecast",
+        "cohort-retention-curves",
+        "energy-consumption-portfolio",
+        "incident-volume-moving-average",
+        "nps-trend-release-markers"
+      ],
+      "propCount": 76,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/LineChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/LineChart/__web_tests__/LineChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Link",
+      "package": "@plocks/ui",
+      "category": "navigation",
+      "sourcePath": "packages/ui/src/components/Link",
+      "docsPath": "packages/ui/src/components/Link/meta/component.md",
+      "metadataName": "Link",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 4,
+      "demoIds": [
+        "basic",
+        "external",
+        "sizes",
+        "variants"
+      ],
+      "propCount": 42,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Link/__tests__/Link.test.tsx",
+          "packages/ui/src/components/Link/__tests__/LinkBox.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Link/__web_tests__/Link.web.test.tsx",
+          "packages/ui/src/components/Link/__web_tests__/LinkBox.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "ListGroup",
+      "package": "@plocks/ui",
+      "category": "display",
+      "sourcePath": "packages/ui/src/components/ListGroup",
+      "docsPath": "packages/ui/src/components/ListGroup/meta/component.md",
+      "metadataName": "ListGroup",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 4,
+      "demoIds": [
+        "basic",
+        "two-line",
+        "variants",
+        "trailing-value"
+      ],
+      "propCount": 34,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/ListGroup/__tests__/ListGroupItem.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/ListGroup/__web_tests__/ListGroup.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Loader",
+      "package": "@plocks/ui",
+      "category": "feedback",
+      "sourcePath": "packages/ui/src/components/Loader",
+      "docsPath": "packages/ui/src/components/Loader/meta/component.md",
+      "metadataName": "Loader",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "sizes",
+        "variants",
+        "colors",
+        "speed"
+      ],
+      "propCount": 33,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Loader/__tests__/Loader.rendering.test.tsx",
+          "packages/ui/src/components/Loader/__tests__/Loader.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Loader/__web_tests__/Loader.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "LoadingOverlay",
+      "package": "@plocks/ui",
+      "category": "feedback",
+      "sourcePath": "packages/ui/src/components/LoadingOverlay",
+      "docsPath": "packages/ui/src/components/LoadingOverlay/meta/component.md",
+      "metadataName": "LoadingOverlay",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 35,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/LoadingOverlay/__tests__/LoadingOverlay.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/LoadingOverlay/__web_tests__/LoadingOverlay.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "MarimekkoChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/MarimekkoChart",
+      "docsPath": "packages/charts/src/components/MarimekkoChart/meta/component.md",
+      "metadataName": "MarimekkoChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 4,
+      "demoIds": [
+        "basic",
+        "budget-allocation",
+        "product-portfolio",
+        "regional-mix"
+      ],
+      "propCount": 46,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/MarimekkoChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/MarimekkoChart/__web_tests__/MarimekkoChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Markdown",
+      "package": "@plocks/code",
+      "category": "data",
+      "sourcePath": "packages/code/src/components/Markdown",
+      "docsPath": "packages/code/src/components/Markdown/meta/component.md",
+      "metadataName": "Markdown",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "code",
+        "custom",
+        "inline",
+        "media",
+        "table"
+      ],
+      "propCount": 34,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/code/src/components/Markdown/__tests__/Markdown.links.test.tsx"
+        ],
+        "web": [
+          "packages/code/src/components/Markdown/__web_tests__/Markdown.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Marquee",
+      "package": "@plocks/ui",
+      "category": "display",
+      "sourcePath": "packages/ui/src/components/Marquee",
+      "docsPath": "packages/ui/src/components/Marquee/meta/component.md",
+      "metadataName": "Marquee",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "vertical",
+        "pauseOnHover",
+        "multipleRows",
+        "fadeEdges",
+        "customization"
+      ],
+      "propCount": 38,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Marquee/__tests__/Marquee.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Marquee/__web_tests__/Marquee.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Masonry",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/Masonry",
+      "docsPath": "packages/ui/src/components/Masonry/meta/component.md",
+      "metadataName": "Masonry",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "basic",
+        "custom-columns",
+        "variable-heights"
+      ],
+      "propCount": 49,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Masonry/__tests__/Masonry.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Masonry/__web_tests__/Masonry.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Menu",
+      "package": "@plocks/ui",
+      "category": "navigation",
+      "sourcePath": "packages/ui/src/components/Menu",
+      "docsPath": "packages/ui/src/components/Menu/meta/component.md",
+      "metadataName": "Menu",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "context",
+        "positioning",
+        "choiceItems",
+        "submenu"
+      ],
+      "propCount": 45,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Menu/__tests__/Menu.test.tsx",
+          "packages/ui/src/components/Menu/__tests__/MenuChoiceItems.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Menu/__web_tests__/Menu.web.test.tsx",
+          "packages/ui/src/components/Menu/__web_tests__/MenuChoiceItems.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Menubar",
+      "package": "@plocks/ui",
+      "category": "navigation",
+      "sourcePath": "packages/ui/src/components/Menubar",
+      "docsPath": "packages/ui/src/components/Menubar/meta/component.md",
+      "metadataName": "Menubar",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "hover",
+        "choices",
+        "submenus",
+        "position",
+        "controlled"
+      ],
+      "propCount": 35,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Menubar/__tests__/Menubar.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Menubar/__web_tests__/Menubar.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "MenuItemButton",
+      "package": "@plocks/ui",
+      "category": "navigation",
+      "sourcePath": "packages/ui/src/components/MenuItemButton",
+      "docsPath": "packages/ui/src/components/MenuItemButton/meta/component.md",
+      "metadataName": "MenuItemButton",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 48,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/MenuItemButton/__tests__/MenuItemButton.press.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/MenuItemButton/__web_tests__/MenuItemButton.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "MiniCalendar",
+      "package": "@plocks/dates",
+      "category": "dates",
+      "sourcePath": "packages/dates/src/components/MiniCalendar",
+      "docsPath": "packages/dates/src/components/MiniCalendar/meta/component.md",
+      "metadataName": "MiniCalendar",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "basic",
+        "customDays",
+        "constrained"
+      ],
+      "propCount": 41,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/dates/src/components/MiniCalendar/__tests__/MiniCalendar.test.tsx"
+        ],
+        "web": [
+          "packages/dates/src/components/MiniCalendar/__web_tests__/MiniCalendar.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "MonthPicker",
+      "package": "@plocks/dates",
+      "category": "dates",
+      "sourcePath": "packages/dates/src/components/MonthPicker",
+      "docsPath": "packages/dates/src/components/MonthPicker/meta/component.md",
+      "metadataName": "MonthPicker",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 40,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/dates/src/components/MonthPicker/__tests__/MonthPicker.test.tsx"
+        ],
+        "web": [
+          "packages/dates/src/components/MonthPicker/__web_tests__/MonthPicker.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "MonthPickerInput",
+      "package": "@plocks/dates",
+      "category": "dates",
+      "sourcePath": "packages/dates/src/components/MonthPickerInput",
+      "docsPath": "packages/dates/src/components/MonthPickerInput/meta/component.md",
+      "metadataName": "MonthPickerInput",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "variants"
+      ],
+      "propCount": 71,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/dates/src/components/MonthPickerInput/__tests__/MonthPickerInput.test.tsx"
+        ],
+        "web": [
+          "packages/dates/src/components/MonthPickerInput/__web_tests__/MonthPickerInput.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "MotionBlock",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/MotionBlock",
+      "docsPath": "packages/ui/src/components/MotionBlock/meta/component.md",
+      "metadataName": "MotionBlock",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 82,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/MotionBlock/__tests__/MotionBlock.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/MotionBlock/__web_tests__/MotionBlock.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "NavTree",
+      "package": "@plocks/ui",
+      "category": "navigation",
+      "sourcePath": "packages/ui/src/components/NavTree",
+      "docsPath": "packages/ui/src/components/NavTree/meta/component.md",
+      "metadataName": "NavTree",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 4,
+      "demoIds": [
+        "basic",
+        "counts",
+        "search",
+        "collapsed"
+      ],
+      "propCount": 42,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/NavTree/__tests__/NavTree.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/NavTree/__web_tests__/NavTree.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "NetworkChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/NetworkChart",
+      "docsPath": "packages/charts/src/components/NetworkChart/meta/component.md",
+      "metadataName": "NetworkChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "customer-referral-network",
+        "knowledge-sharing-connections",
+        "microservice-latency",
+        "risk-propagation",
+        "supply-chain-relationships"
+      ],
+      "propCount": 59,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/NetworkChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/NetworkChart/__web_tests__/NetworkChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "NumberInput",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/NumberInput",
+      "docsPath": "packages/ui/src/components/NumberInput/meta/component.md",
+      "metadataName": "NumberInput",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "formats",
+        "variants",
+        "side-buttons",
+        "drag-gesture"
+      ],
+      "propCount": 117,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/NumberInput/__tests__/NumberInput.test.tsx",
+          "packages/ui/src/components/NumberInput/__tests__/dragGesture.test.tsx",
+          "packages/ui/src/components/NumberInput/__tests__/numberFormat.test.ts"
+        ],
+        "web": [
+          "packages/ui/src/components/NumberInput/__web_tests__/NumberInput.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "OverflowList",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/OverflowList",
+      "docsPath": "packages/ui/src/components/OverflowList/meta/component.md",
+      "metadataName": "OverflowList",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "maxRows",
+        "collapseStart",
+        "maxVisible",
+        "hoverCard"
+      ],
+      "propCount": 36,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/OverflowList/__tests__/OverflowList.test.tsx",
+          "packages/ui/src/components/OverflowList/__tests__/fit.test.ts"
+        ],
+        "web": [
+          "packages/ui/src/components/OverflowList/__web_tests__/OverflowList.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Overlay",
+      "package": "@plocks/ui",
+      "category": "overlay",
+      "sourcePath": "packages/ui/src/components/Overlay",
+      "docsPath": "packages/ui/src/components/Overlay/meta/component.md",
+      "metadataName": "Overlay",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 37,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Overlay/__tests__/Overlay.rendering.test.tsx",
+          "packages/ui/src/components/Overlay/__tests__/Overlay.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Overlay/__web_tests__/Overlay.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Pagination",
+      "package": "@plocks/ui",
+      "category": "navigation",
+      "sourcePath": "packages/ui/src/components/Pagination",
+      "docsPath": "packages/ui/src/components/Pagination/meta/component.md",
+      "metadataName": "Pagination",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "variants",
+        "sizes",
+        "advanced",
+        "size-changer"
+      ],
+      "propCount": 55,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Pagination/__tests__/Pagination.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Pagination/__web_tests__/Pagination.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "ParetoChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/ParetoChart",
+      "docsPath": "packages/charts/src/components/ParetoChart/meta/component.md",
+      "metadataName": "ParetoChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 4,
+      "demoIds": [
+        "basic",
+        "customer-support-hotspots",
+        "incident-root-causes",
+        "revenue-concentration"
+      ],
+      "propCount": 55,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/ParetoChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/ParetoChart/__web_tests__/ParetoChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "PhoneInput",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/PhoneInput",
+      "docsPath": "packages/ui/src/components/PhoneInput/meta/component.md",
+      "metadataName": "PhoneInput",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 8,
+      "demoIds": [
+        "basic",
+        "international",
+        "variants",
+        "country-select",
+        "formats",
+        "mask-visibility",
+        "validation",
+        "advanced-masking"
+      ],
+      "propCount": 74,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/PhoneInput/__tests__/PhoneInput.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/PhoneInput/__web_tests__/PhoneInput.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "PieChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/PieChart",
+      "docsPath": "packages/charts/src/components/PieChart/meta/component.md",
+      "metadataName": "PieChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "browser-usage-share",
+        "bug-type-distribution",
+        "operating-expense-composition",
+        "support-channel-share",
+        "training-completion-share"
+      ],
+      "propCount": 67,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/PieChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/PieChart/__web_tests__/PieChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "PinInput",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/PinInput",
+      "docsPath": "packages/ui/src/components/PinInput/meta/component.md",
+      "metadataName": "PinInput",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "types",
+        "variants",
+        "sizes",
+        "lengths",
+        "security"
+      ],
+      "propCount": 75,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/PinInput/__tests__/PinInput.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/PinInput/__web_tests__/PinInput.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Popover",
+      "package": "@plocks/ui",
+      "category": "overlay",
+      "sourcePath": "packages/ui/src/components/Popover",
+      "docsPath": "packages/ui/src/components/Popover/meta/component.md",
+      "metadataName": "Popover",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 4,
+      "demoIds": [
+        "basic",
+        "hover",
+        "controlled",
+        "placements"
+      ],
+      "propCount": 62,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Popover/__tests__/Popover.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Popover/__web_tests__/Popover.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Progress",
+      "package": "@plocks/ui",
+      "category": "feedback",
+      "sourcePath": "packages/ui/src/components/Progress",
+      "docsPath": "packages/ui/src/components/Progress/meta/component.md",
+      "metadataName": "Progress",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 7,
+      "demoIds": [
+        "basic",
+        "label",
+        "advanced",
+        "compound",
+        "tooltips",
+        "segments",
+        "vertical"
+      ],
+      "propCount": 50,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Progress/__tests__/Progress.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Progress/__web_tests__/Progress.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "QRCode",
+      "package": "@plocks/qrcode",
+      "category": "data",
+      "sourcePath": "packages/qrcode/src/components/QRCode",
+      "docsPath": "packages/qrcode/src/components/QRCode/meta/component.md",
+      "metadataName": "QRCode",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 9,
+      "demoIds": [
+        "basic",
+        "sizes",
+        "spacing",
+        "colors",
+        "shapes",
+        "gradient",
+        "interactive",
+        "logo",
+        "variants"
+      ],
+      "propCount": 49,
+      "documentedVariant": false,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/qrcode/src/components/QRCode/__tests__/QRCode.test.tsx",
+          "packages/qrcode/src/components/QRCode/__tests__/QRCodeSVG.test.tsx"
+        ],
+        "web": [
+          "packages/qrcode/src/components/QRCode/__web_tests__/QRCode.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "RadarChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/RadarChart",
+      "docsPath": "packages/charts/src/components/RadarChart/meta/component.md",
+      "metadataName": "RadarChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 8,
+      "demoIds": [
+        "skill-comparison",
+        "product-health",
+        "basic",
+        "data-platform-maturity",
+        "engineering-readiness",
+        "market-perception-interviews",
+        "product-capability-benchmark",
+        "skills-gap-role-family"
+      ],
+      "propCount": 45,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/RadarChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/RadarChart/__web_tests__/RadarChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "RadialBarChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/RadialBarChart",
+      "docsPath": "packages/charts/src/components/RadialBarChart/meta/component.md",
+      "metadataName": "RadialBarChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "basic",
+        "goal-progress",
+        "satisfaction-gauge"
+      ],
+      "propCount": 52,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/RadialBarChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/RadialBarChart/__web_tests__/RadialBarChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Radio",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/Radio",
+      "docsPath": "packages/ui/src/components/Radio/meta/component.md",
+      "metadataName": "Radio",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "variants",
+        "theming",
+        "orientations",
+        "forms"
+      ],
+      "propCount": 58,
+      "documentedVariant": false,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Radio/__tests__/Radio.cssVariables.test.tsx",
+          "packages/ui/src/components/Radio/__tests__/Radio.rendering.test.tsx",
+          "packages/ui/src/components/Radio/__tests__/Radio.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Radio/__web_tests__/Radio.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Rating",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/Rating",
+      "docsPath": "packages/ui/src/components/Rating/meta/component.md",
+      "metadataName": "Rating",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 7,
+      "demoIds": [
+        "basic",
+        "sizes",
+        "colors",
+        "fractions",
+        "icons",
+        "variants",
+        "form-field"
+      ],
+      "propCount": 68,
+      "documentedVariant": false,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Rating/__tests__/Rating.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Rating/__web_tests__/Rating.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "ReorderableList",
+      "package": "@plocks/ui",
+      "category": "data",
+      "sourcePath": "packages/ui/src/components/ReorderableList",
+      "docsPath": "packages/ui/src/components/ReorderableList/meta/component.md",
+      "metadataName": "ReorderableList",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 34,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/ReorderableList/__tests__/ReorderableList.test.tsx",
+          "packages/ui/src/components/ReorderableList/__tests__/moveItem.test.ts"
+        ],
+        "web": [
+          "packages/ui/src/components/ReorderableList/__web_tests__/ReorderableList.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "RidgeChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/RidgeChart",
+      "docsPath": "packages/charts/src/components/RidgeChart/meta/component.md",
+      "metadataName": "RidgeChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "api-latency-endpoints",
+        "daily-active-users-cohorts",
+        "employee-satisfaction-survey",
+        "revenue-transaction-density",
+        "shipping-time-carriers"
+      ],
+      "propCount": 44,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/RidgeChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/RidgeChart/__web_tests__/RidgeChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Ring",
+      "package": "@plocks/ui",
+      "category": "feedback",
+      "sourcePath": "packages/ui/src/components/Ring",
+      "docsPath": "packages/ui/src/components/Ring/meta/component.md",
+      "metadataName": "Ring",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "basic",
+        "color-stops",
+        "custom-content"
+      ],
+      "propCount": 53,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Ring/__tests__/Ring.rendering.test.tsx",
+          "packages/ui/src/components/Ring/__tests__/Ring.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Ring/__web_tests__/Ring.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "RollingNumber",
+      "package": "@plocks/ui",
+      "category": "display",
+      "sourcePath": "packages/ui/src/components/RollingNumber",
+      "docsPath": "packages/ui/src/components/RollingNumber/meta/component.md",
+      "metadataName": "RollingNumber",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "currency",
+        "timing",
+        "trend",
+        "live-metric"
+      ],
+      "propCount": 37,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/RollingNumber/__tests__/RollingNumber.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/RollingNumber/__web_tests__/RollingNumber.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "SafeArea",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/SafeArea",
+      "docsPath": "packages/ui/src/components/SafeArea/meta/component.md",
+      "metadataName": "SafeArea",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 78,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/SafeArea/__tests__/SafeArea.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/SafeArea/__web_tests__/SafeArea.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "SankeyChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/SankeyChart",
+      "docsPath": "packages/charts/src/components/SankeyChart/meta/component.md",
+      "metadataName": "SankeyChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "budget-allocation",
+        "cloud-provisioning",
+        "customer-journey",
+        "data-lineage",
+        "talent-pipeline"
+      ],
+      "propCount": 46,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/SankeyChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/SankeyChart/__web_tests__/SankeyChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "ScatterChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/ScatterChart",
+      "docsPath": "packages/charts/src/components/ScatterChart/meta/component.md",
+      "metadataName": "ScatterChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "api-error-rate-volume",
+        "campaign-spend-revenue",
+        "customer-ltv-vs-cac",
+        "feature-usage-vs-satisfaction",
+        "performance-vs-tenure"
+      ],
+      "propCount": 66,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/ScatterChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/ScatterChart/__web_tests__/ScatterChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "ScrollArea",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/ScrollArea",
+      "docsPath": "packages/ui/src/components/ScrollArea/meta/component.md",
+      "metadataName": "ScrollArea",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 80,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/ScrollArea/__tests__/ScrollArea.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/ScrollArea/__web_tests__/ScrollArea.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Scroller",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/Scroller",
+      "docsPath": "packages/ui/src/components/Scroller/meta/component.md",
+      "metadataName": "Scroller",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "custom",
+        "draggable",
+        "customIcons",
+        "tabs"
+      ],
+      "propCount": 39,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Scroller/__tests__/Scroller.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Scroller/__web_tests__/Scroller.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Search",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/Search",
+      "docsPath": "packages/ui/src/components/Search/meta/component.md",
+      "metadataName": "Search",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "button-mode"
+      ],
+      "propCount": 46,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Search/__tests__/Search.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Search/__web_tests__/Search.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "SegmentedControl",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/SegmentedControl",
+      "docsPath": "packages/ui/src/components/SegmentedControl/meta/component.md",
+      "metadataName": "SegmentedControl",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 8,
+      "demoIds": [
+        "basic",
+        "controlled",
+        "sizes",
+        "full-width",
+        "orientation",
+        "colors",
+        "states",
+        "variants"
+      ],
+      "propCount": 51,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/SegmentedControl/__tests__/SegmentedControl.rendering.test.tsx",
+          "packages/ui/src/components/SegmentedControl/__tests__/SegmentedControl.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/SegmentedControl/__web_tests__/SegmentedControl.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Select",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/Select",
+      "docsPath": "packages/ui/src/components/Select/meta/component.md",
+      "metadataName": "Select",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "variants",
+        "custom",
+        "disabled",
+        "noCloseOnSelect"
+      ],
+      "propCount": 71,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Select/__tests__/Select.persistentMenu.test.tsx",
+          "packages/ui/src/components/Select/__tests__/Select.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Select/__web_tests__/Select.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "ShimmerText",
+      "package": "@plocks/ui",
+      "category": "typography",
+      "sourcePath": "packages/ui/src/components/ShimmerText",
+      "docsPath": "packages/ui/src/components/ShimmerText/meta/component.md",
+      "metadataName": "ShimmerText",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 4,
+      "demoIds": [
+        "basic",
+        "controls",
+        "variants",
+        "customization"
+      ],
+      "propCount": 72,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/ShimmerText/__tests__/ShimmerText.rendering.test.tsx",
+          "packages/ui/src/components/ShimmerText/__tests__/ShimmerText.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/ShimmerText/__web_tests__/ShimmerText.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Skeleton",
+      "package": "@plocks/ui",
+      "category": "feedback",
+      "sourcePath": "packages/ui/src/components/Skeleton",
+      "docsPath": "packages/ui/src/components/Skeleton/meta/component.md",
+      "metadataName": "Skeleton",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "basic",
+        "shapes",
+        "card"
+      ],
+      "propCount": 35,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Skeleton/__tests__/Skeleton.rendering.test.tsx",
+          "packages/ui/src/components/Skeleton/__tests__/Skeleton.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Skeleton/__web_tests__/Skeleton.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Slider",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/Slider",
+      "docsPath": "packages/ui/src/components/Slider/meta/component.md",
+      "metadataName": "Slider",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 9,
+      "demoIds": [
+        "basic",
+        "variants",
+        "ticks",
+        "range",
+        "valueLabel",
+        "precision",
+        "slotStyling",
+        "vertical",
+        "customStyles"
+      ],
+      "propCount": 87,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Slider/__tests__/Slider.rendering.test.tsx",
+          "packages/ui/src/components/Slider/__tests__/Slider.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Slider/__web_tests__/Slider.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "SoundButton",
+      "package": "@plocks/media",
+      "category": "media",
+      "sourcePath": "packages/media/src/components/SoundButton",
+      "docsPath": "packages/media/src/components/SoundButton/meta/component.md",
+      "metadataName": "SoundButton",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "variants"
+      ],
+      "propCount": 61,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/media/src/components/SoundButton/__tests__/SoundButton.test.tsx"
+        ],
+        "web": [
+          "packages/media/src/components/SoundButton/__web_tests__/SoundButton.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Space",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/Space",
+      "docsPath": "packages/ui/src/components/Space/meta/component.md",
+      "metadataName": "Space",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "horizontal"
+      ],
+      "propCount": 30,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Space/__tests__/Space.rendering.test.tsx",
+          "packages/ui/src/components/Space/__tests__/Space.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Space/__web_tests__/Space.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "SparklineChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/SparklineChart",
+      "docsPath": "packages/charts/src/components/SparklineChart/meta/component.md",
+      "metadataName": "SparklineChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "dashboard-daily-active-users",
+        "release-train-bug-count",
+        "storefront-weekly-revenue",
+        "support-queue-monitor",
+        "team-deploy-velocity"
+      ],
+      "propCount": 54,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/SparklineChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/SparklineChart/__web_tests__/SparklineChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Splitter",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/Splitter",
+      "docsPath": "packages/ui/src/components/Splitter/meta/component.md",
+      "metadataName": "Splitter",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 11,
+      "demoIds": [
+        "basic",
+        "fixedUnits",
+        "vertical",
+        "collapsible",
+        "multiple",
+        "withoutHandle",
+        "controlled",
+        "nested",
+        "redistribute",
+        "lineSize",
+        "imperative"
+      ],
+      "propCount": 44,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Splitter/__tests__/Splitter.test.tsx",
+          "packages/ui/src/components/Splitter/__tests__/useSplitter.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Splitter/__web_tests__/Splitter.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Spoiler",
+      "package": "@plocks/ui",
+      "category": "display",
+      "sourcePath": "packages/ui/src/components/Spoiler",
+      "docsPath": "packages/ui/src/components/Spoiler/meta/component.md",
+      "metadataName": "Spoiler",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "defaultExpanded",
+        "sizes",
+        "customControl",
+        "control-customization",
+        "newspaper"
+      ],
+      "propCount": 42,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Spoiler/__tests__/Spoiler.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Spoiler/__web_tests__/Spoiler.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Spotlight",
+      "package": "@plocks/spotlight",
+      "category": "navigation",
+      "sourcePath": "packages/spotlight/src/components/Spotlight",
+      "docsPath": "packages/spotlight/src/components/Spotlight/meta/component.md",
+      "metadataName": "Spotlight",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 8,
+      "demoIds": [
+        "basic",
+        "custom-icons",
+        "variants",
+        "groups",
+        "highlight-query",
+        "limit-results",
+        "fullscreen-mobile",
+        "programmatic"
+      ],
+      "propCount": 40,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/spotlight/src/components/Spotlight/__tests__/Spotlight.rendering.test.tsx",
+          "packages/spotlight/src/components/Spotlight/__tests__/Spotlight.test.tsx"
+        ],
+        "web": [
+          "packages/spotlight/src/components/Spotlight/__web_tests__/Spotlight.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "StackedAreaChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/StackedAreaChart",
+      "docsPath": "packages/charts/src/components/StackedAreaChart/meta/component.md",
+      "metadataName": "StackedAreaChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 77,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/StackedAreaChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/StackedAreaChart/__web_tests__/StackedAreaChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "StackedBarChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/StackedBarChart",
+      "docsPath": "packages/charts/src/components/StackedBarChart/meta/component.md",
+      "metadataName": "StackedBarChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 44,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/StackedBarChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/StackedBarChart/__web_tests__/StackedBarChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Stepper",
+      "package": "@plocks/ui",
+      "category": "navigation",
+      "sourcePath": "packages/ui/src/components/Stepper",
+      "docsPath": "packages/ui/src/components/Stepper/meta/component.md",
+      "metadataName": "Stepper",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 7,
+      "demoIds": [
+        "basic",
+        "allowSelect",
+        "customIcons",
+        "colors",
+        "vertical",
+        "loading",
+        "sizes"
+      ],
+      "propCount": 39,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Stepper/__tests__/Stepper.rendering.test.tsx",
+          "packages/ui/src/components/Stepper/__tests__/Stepper.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Stepper/__web_tests__/Stepper.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "StickyNote",
+      "package": "@plocks/ui",
+      "category": "display",
+      "sourcePath": "packages/ui/src/components/StickyNote",
+      "docsPath": "packages/ui/src/components/StickyNote/meta/component.md",
+      "metadataName": "StickyNote",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "interactive"
+      ],
+      "propCount": 36,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/StickyNote/__tests__/StickyNote.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/StickyNote/__web_tests__/StickyNote.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Surface",
+      "package": "@plocks/ui",
+      "category": "layout",
+      "sourcePath": "packages/ui/src/components/Surface",
+      "docsPath": "packages/ui/src/components/Surface/meta/component.md",
+      "metadataName": "Surface",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 4,
+      "demoIds": [
+        "basic",
+        "levels",
+        "nesting",
+        "as-card"
+      ],
+      "propCount": 38,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Surface/__tests__/Surface.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Surface/__web_tests__/Surface.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "SwipeableRow",
+      "package": "@plocks/ui",
+      "category": "data",
+      "sourcePath": "packages/ui/src/components/SwipeableRow",
+      "docsPath": "packages/ui/src/components/SwipeableRow/meta/component.md",
+      "metadataName": "SwipeableRow",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 35,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/SwipeableRow/__tests__/SwipeableRow.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/SwipeableRow/__web_tests__/SwipeableRow.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Switch",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/Switch",
+      "docsPath": "packages/ui/src/components/Switch/meta/component.md",
+      "metadataName": "Switch",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 7,
+      "demoIds": [
+        "basic",
+        "sizes",
+        "variants",
+        "thumb-label",
+        "colors",
+        "states",
+        "sync"
+      ],
+      "propCount": 61,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Switch/__tests__/Switch.rendering.test.tsx",
+          "packages/ui/src/components/Switch/__tests__/Switch.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Switch/__web_tests__/Switch.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Table",
+      "package": "@plocks/ui",
+      "category": "data",
+      "sourcePath": "packages/ui/src/components/Table",
+      "docsPath": "packages/ui/src/components/Table/meta/component.md",
+      "metadataName": "Table",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "variants",
+        "borders",
+        "custom",
+        "scroll",
+        "sizing"
+      ],
+      "propCount": 49,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Table/__tests__/Table.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Table/__web_tests__/Table.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "TableOfContents",
+      "package": "@plocks/ui",
+      "category": "navigation",
+      "sourcePath": "packages/ui/src/components/TableOfContents",
+      "docsPath": "packages/ui/src/components/TableOfContents/meta/component.md",
+      "metadataName": "TableOfContents",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "variants",
+        "custom-initial",
+        "depth-offset",
+        "active-callback"
+      ],
+      "propCount": 42,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/TableOfContents/__tests__/TableOfContents.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/TableOfContents/__web_tests__/TableOfContents.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Tabs",
+      "package": "@plocks/ui",
+      "category": "navigation",
+      "sourcePath": "packages/ui/src/components/Tabs",
+      "docsPath": "packages/ui/src/components/Tabs/meta/component.md",
+      "metadataName": "Tabs",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 8,
+      "demoIds": [
+        "basic",
+        "animated",
+        "disabled",
+        "interactive",
+        "location",
+        "navigation-only",
+        "orientation",
+        "variants"
+      ],
+      "propCount": 60,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Tabs/__tests__/Tabs.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Tabs/__web_tests__/Tabs.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Text",
+      "package": "@plocks/ui",
+      "category": "typography",
+      "sourcePath": "packages/ui/src/components/Text",
+      "docsPath": "packages/ui/src/components/Text/meta/component.md",
+      "metadataName": "Text",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 10,
+      "demoIds": [
+        "basic",
+        "colors",
+        "variants",
+        "weights",
+        "ff",
+        "sizes",
+        "heights",
+        "tracking",
+        "tt",
+        "decoration"
+      ],
+      "propCount": 59,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Text/__tests__/Text.rendering.test.tsx",
+          "packages/ui/src/components/Text/__tests__/Text.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Text/__web_tests__/Text.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "TextArea",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/TextArea",
+      "docsPath": "packages/ui/src/components/TextArea/meta/component.md",
+      "metadataName": "TextArea",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "features",
+        "variants",
+        "sizes",
+        "validation"
+      ],
+      "propCount": 86,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/TextArea/__tests__/TextArea.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/TextArea/__web_tests__/TextArea.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Timeline",
+      "package": "@plocks/ui",
+      "category": "data",
+      "sourcePath": "packages/ui/src/components/Timeline",
+      "docsPath": "packages/ui/src/components/Timeline/meta/component.md",
+      "metadataName": "Timeline",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "alignment",
+        "bullets",
+        "lineProps",
+        "lineVariants"
+      ],
+      "propCount": 40,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Timeline/__tests__/Timeline.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Timeline/__web_tests__/Timeline.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "TimePicker",
+      "package": "@plocks/dates",
+      "category": "dates",
+      "sourcePath": "packages/dates/src/components/TimePicker",
+      "docsPath": "packages/dates/src/components/TimePicker/meta/component.md",
+      "metadataName": "TimePicker",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "basic",
+        "format-12h",
+        "with-seconds"
+      ],
+      "propCount": 40,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/dates/src/components/TimePicker/__tests__/TimePicker.test.tsx"
+        ],
+        "web": [
+          "packages/dates/src/components/TimePicker/__web_tests__/TimePicker.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "TimePickerInput",
+      "package": "@plocks/dates",
+      "category": "dates",
+      "sourcePath": "packages/dates/src/components/TimePickerInput",
+      "docsPath": "packages/dates/src/components/TimePickerInput/meta/component.md",
+      "metadataName": "TimePickerInput",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "basic",
+        "variants",
+        "validation"
+      ],
+      "propCount": 74,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/dates/src/components/TimePickerInput/__tests__/TimePickerInput.test.tsx"
+        ],
+        "web": [
+          "packages/dates/src/components/TimePickerInput/__web_tests__/TimePickerInput.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Title",
+      "package": "@plocks/ui",
+      "category": "typography",
+      "sourcePath": "packages/ui/src/components/Title",
+      "docsPath": "packages/ui/src/components/Title/meta/component.md",
+      "metadataName": "Title",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 7,
+      "demoIds": [
+        "basic",
+        "levels",
+        "variants",
+        "prefix",
+        "underline",
+        "action",
+        "combined"
+      ],
+      "propCount": 81,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Title/__tests__/Title.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Title/__web_tests__/Title.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Toast",
+      "package": "@plocks/ui",
+      "category": "feedback",
+      "sourcePath": "packages/ui/src/components/Toast",
+      "docsPath": "packages/ui/src/components/Toast/meta/component.md",
+      "metadataName": "Toast",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 9,
+      "demoIds": [
+        "basic",
+        "positions",
+        "visual-variants",
+        "sizes",
+        "variants",
+        "interactive",
+        "stacking",
+        "enhanced",
+        "text-customization"
+      ],
+      "propCount": 57,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Toast/__tests__/Toast.rendering.test.tsx",
+          "packages/ui/src/components/Toast/__tests__/Toast.test.tsx",
+          "packages/ui/src/components/Toast/__tests__/ToastProvider.test.tsx",
+          "packages/ui/src/components/Toast/__tests__/ToastStack.layout.test.ts"
+        ],
+        "web": [
+          "packages/ui/src/components/Toast/__web_tests__/Toast.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Toggle",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/Toggle",
+      "docsPath": "packages/ui/src/components/Toggle/meta/component.md",
+      "metadataName": "Toggle",
+      "publicExport": false,
+      "familyPage": true,
+      "demoCount": 7,
+      "demoIds": [
+        "basic",
+        "exclusive",
+        "variants",
+        "multiple",
+        "orientation",
+        "sizes",
+        "standalone"
+      ],
+      "propCount": 39,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Toggle/__tests__/Toggle.rendering.test.tsx",
+          "packages/ui/src/components/Toggle/__tests__/Toggle.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Toggle/__web_tests__/Toggle.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Tooltip",
+      "package": "@plocks/ui",
+      "category": "overlay",
+      "sourcePath": "packages/ui/src/components/Tooltip",
+      "docsPath": "packages/ui/src/components/Tooltip/meta/component.md",
+      "metadataName": "Tooltip",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 5,
+      "demoIds": [
+        "basic",
+        "simple",
+        "positions",
+        "advanced",
+        "debug"
+      ],
+      "propCount": 45,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Tooltip/__tests__/Tooltip.test.tsx",
+          "packages/ui/src/components/Tooltip/__tests__/resolveTooltipProps.test.ts"
+        ],
+        "web": [
+          "packages/ui/src/components/Tooltip/__web_tests__/Tooltip.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Tree",
+      "package": "@plocks/ui",
+      "category": "navigation",
+      "sourcePath": "packages/ui/src/components/Tree",
+      "docsPath": "packages/ui/src/components/Tree/meta/component.md",
+      "metadataName": "Tree",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 7,
+      "demoIds": [
+        "basic",
+        "checkboxes",
+        "selection",
+        "filtering",
+        "lazy",
+        "custom",
+        "virtualized"
+      ],
+      "propCount": 73,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Tree/__tests__/Tree.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Tree/__web_tests__/Tree.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "TreeSelect",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/TreeSelect",
+      "docsPath": "packages/ui/src/components/TreeSelect/meta/component.md",
+      "metadataName": "TreeSelect",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 15,
+      "demoIds": [
+        "basic",
+        "multiple",
+        "checkbox",
+        "clearable",
+        "expanded",
+        "connectingLines",
+        "checkStrictly",
+        "maxValues",
+        "renderNode",
+        "nothingFound",
+        "position",
+        "searchable",
+        "controlled",
+        "offset",
+        "fieldStates"
+      ],
+      "propCount": 87,
+      "documentedVariant": true,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/TreeSelect/__tests__/TreeSelect.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/TreeSelect/__web_tests__/TreeSelect.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion",
+        "noDedicatedVariantDemo"
+      ]
+    },
+    {
+      "name": "Video",
+      "package": "@plocks/media",
+      "category": "media",
+      "sourcePath": "packages/media/src/components/Video",
+      "docsPath": "packages/media/src/components/Video/meta/component.md",
+      "metadataName": "Video",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "basic",
+        "timeline",
+        "youtube"
+      ],
+      "propCount": 57,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/media/src/components/Video/__tests__/Video.test.tsx"
+        ],
+        "web": [
+          "packages/media/src/components/Video/__web_tests__/Video.web.test.tsx",
+          "packages/media/src/components/Video/__web_tests__/YouTubePlayer.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "ViolinChart",
+      "package": "@plocks/charts",
+      "category": "charts",
+      "sourcePath": "packages/charts/src/components/ViolinChart",
+      "docsPath": "packages/charts/src/components/ViolinChart/meta/component.md",
+      "metadataName": "ViolinChart",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 6,
+      "demoIds": [
+        "basic",
+        "delivery-times",
+        "experiment-metric-deltas",
+        "model-prediction-errors",
+        "salary-distribution",
+        "session-duration-by-platform"
+      ],
+      "propCount": 50,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/charts/tests/components/ViolinChart.test.tsx"
+        ],
+        "web": [
+          "packages/charts/src/components/ViolinChart/__web_tests__/ViolinChart.web.test.tsx"
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "name": "Waveform",
+      "package": "@plocks/ui",
+      "category": "media",
+      "sourcePath": "packages/ui/src/components/Waveform",
+      "docsPath": "packages/ui/src/components/Waveform/meta/component.md",
+      "metadataName": "Waveform",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 7,
+      "demoIds": [
+        "basic",
+        "fullWidth",
+        "variants",
+        "synchronized",
+        "audioPlayback",
+        "videoSync",
+        "interactive"
+      ],
+      "propCount": 64,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Waveform/__tests__/Waveform.a11y.test.tsx",
+          "packages/ui/src/components/Waveform/__tests__/Waveform.size.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Waveform/__web_tests__/Waveform.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "Wheel",
+      "package": "@plocks/ui",
+      "category": "input",
+      "sourcePath": "packages/ui/src/components/Wheel",
+      "docsPath": "packages/ui/src/components/Wheel/meta/component.md",
+      "metadataName": "Wheel",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 3,
+      "demoIds": [
+        "basic",
+        "time",
+        "disabled"
+      ],
+      "propCount": 37,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": false,
+      "tests": {
+        "component": [
+          "packages/ui/src/components/Wheel/__tests__/Wheel.test.tsx"
+        ],
+        "web": [
+          "packages/ui/src/components/Wheel/__web_tests__/Wheel.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "YearPicker",
+      "package": "@plocks/dates",
+      "category": "dates",
+      "sourcePath": "packages/dates/src/components/YearPicker",
+      "docsPath": "packages/dates/src/components/YearPicker/meta/component.md",
+      "metadataName": "YearPicker",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 1,
+      "demoIds": [
+        "basic"
+      ],
+      "propCount": 39,
+      "documentedVariant": false,
+      "variantDemo": false,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/dates/src/components/YearPicker/__tests__/YearPicker.test.tsx"
+        ],
+        "web": [
+          "packages/dates/src/components/YearPicker/__web_tests__/YearPicker.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    },
+    {
+      "name": "YearPickerInput",
+      "package": "@plocks/dates",
+      "category": "dates",
+      "sourcePath": "packages/dates/src/components/YearPickerInput",
+      "docsPath": "packages/dates/src/components/YearPickerInput/meta/component.md",
+      "metadataName": "YearPickerInput",
+      "publicExport": true,
+      "familyPage": false,
+      "demoCount": 2,
+      "demoIds": [
+        "basic",
+        "variants"
+      ],
+      "propCount": 69,
+      "documentedVariant": true,
+      "variantDemo": true,
+      "playground": true,
+      "tests": {
+        "component": [
+          "packages/dates/src/components/YearPickerInput/__tests__/YearPickerInput.test.tsx"
+        ],
+        "web": [
+          "packages/dates/src/components/YearPickerInput/__web_tests__/YearPickerInput.web.test.tsx"
+        ]
+      },
+      "gaps": [
+        "noScreenshotRegressionAssertion"
+      ]
+    }
+  ]
+}

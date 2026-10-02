@@ -25,7 +25,7 @@ export interface MenuProps extends BaseProps {
   trigger?: 'click' | 'hover' | 'contextmenu';
   /**
    * Placement relative to the trigger, written for LTR (mirrored in RTL).
-   * @default 'auto'
+   * @default 'auto' on web, 'top' on native (flips below when needed)
    */
   position?: MenuPosition;
   /** Gap between trigger and menu, px. @default 4 */

@@ -1,8 +1,6 @@
 import { test, expect } from '@playwright/test';
-import path from 'node:path';
-import fs from 'node:fs/promises';
 
-// run `npm run docs:baselines` to capture updated baselines
+// Run `npm run docs:visual:update` to review and update snapshots.
 
 interface ChartBaseline {
   slug: string;
@@ -165,36 +163,26 @@ const chartBaselines: ChartBaseline[] = chartBaselinePlans.flatMap((plan) =>
   })
 );
 
-const baselineDir = path.resolve(process.cwd(), 'docs/assets/chart-baselines');
-
-test.beforeAll(async () => {
-  await fs.mkdir(baselineDir, { recursive: true });
-});
-
 test.describe('Chart baselines', () => {
+  test.use({ contextOptions: { reducedMotion: 'reduce' } });
   for (const baseline of chartBaselines) {
     test(`captures ${baseline.fullId}`, async ({ page }) => {
       await page.goto(`/charts/${baseline.slug}`);
+      await page.addStyleTag({ content: '[aria-label="Open actions"] { visibility: hidden !important; }' });
 
-      // Wait for the page to load and navigate to the Examples tab if needed
+      // Examples are the first tab on every component detail page.
       await page.waitForLoadState('networkidle');
-
-      // Look for the Examples tab and click it if it exists and isn't already active
-      const examplesTab = page.locator('text=Examples').first();
-      if (await examplesTab.isVisible()) {
-        await examplesTab.click();
-        await page.waitForTimeout(100);
-      }
-
-      const demoLocator = page.locator(`[data-testid="chart-demo-${baseline.fullId}"]`).first();
+      const demoLocator = page.getByTestId(`demo-preview-${baseline.fullId}`).first();
       await demoLocator.waitFor({ state: 'visible' });
       await expect(demoLocator).toBeVisible();
       await demoLocator.scrollIntoViewIfNeeded();
       const settleDuration = baseline.settleMs ?? 600;
       await page.waitForTimeout(settleDuration);
 
-      const filePath = path.join(baselineDir, baseline.filename);
-      await demoLocator.screenshot({ path: filePath });
+      await expect(demoLocator).toHaveScreenshot(baseline.filename, {
+        animations: 'disabled',
+        maxDiffPixelRatio: 0.005,
+      });
     });
   }
 });

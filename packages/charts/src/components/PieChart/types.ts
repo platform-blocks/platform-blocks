@@ -107,6 +107,8 @@ export interface PieChartProps
   padAngle?: number;
   /** Show labels */
   showLabels?: boolean;
+  /** Keep outside labels visible below 400 px instead of showing details on selection. */
+  showLabelsOnNarrow?: boolean;
   /** Label position */
   labelPosition?: 'inside' | 'outside' | 'center';
   /** Automatically choose label placement */

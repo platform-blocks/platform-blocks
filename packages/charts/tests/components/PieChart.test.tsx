@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { ChartThemeProvider } from '../../src/theme/ChartThemeContext';
 import { ChartInteractionProvider, useChartInteractionContext, useChartInteractionVolatile } from '../../src/interaction/ChartInteractionContext';
@@ -136,5 +136,27 @@ describe('PieChart slice gradients', () => {
   it('honors an angle through the shared gradient def', () => {
     const { UNSAFE_queryAllByProps } = renderGradient({ angle: 0 });
     expect(gradientPoints(UNSAFE_queryAllByProps)).toEqual(['0', '0.5', '1', '0.5']);
+  });
+});
+
+
+describe('PieChart touch retention', () => {
+  it('keeps a tapped slice readable for eight seconds and then dismisses it', () => {
+    jest.useFakeTimers();
+    try {
+      const { getByTestId, queryByTestId, unmount } = renderChart();
+      const surface = getByTestId('pie-gesture-surface');
+      const event = { nativeEvent: { locationX: 222, locationY: 160, pageX: 222, pageY: 160, touches: [], changedTouches: [{ identifier: 1 }] } };
+      fireEvent(surface, 'responderGrant', event);
+      fireEvent(surface, 'responderRelease', event);
+      expect(getByTestId('pie-chart-tooltip')).toBeTruthy();
+      act(() => { jest.advanceTimersByTime(7999); });
+      expect(getByTestId('pie-chart-tooltip')).toBeTruthy();
+      act(() => { jest.advanceTimersByTime(1); });
+      expect(queryByTestId('pie-chart-tooltip')).toBeNull();
+      unmount();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

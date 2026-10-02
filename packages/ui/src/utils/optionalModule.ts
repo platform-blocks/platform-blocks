@@ -42,6 +42,7 @@ const optionalModuleLoaders: Record<string, OptionalModuleLoader> = {
   'expo-linear-gradient': () => { try { return require('expo-linear-gradient'); } catch { return null; } },
   'expo-document-picker': () => { try { return require('expo-document-picker'); } catch { return null; } },
   'react-native-gesture-handler': () => { try { return require('react-native-gesture-handler'); } catch { return null; } },
+  'react-native-gesture-handler/ReanimatedSwipeable': () => { try { return require('react-native-gesture-handler/ReanimatedSwipeable'); } catch { return null; } },
   'expo-status-bar': () => { try { return require('expo-status-bar'); } catch { return null; } },
   'expo-navigation-bar': () => { try { return require('expo-navigation-bar'); } catch { return null; } },
   '@shopify/flash-list': () => { try { return require('@shopify/flash-list'); } catch { return null; } },

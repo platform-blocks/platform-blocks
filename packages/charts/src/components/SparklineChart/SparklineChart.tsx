@@ -296,7 +296,7 @@ export const SparklineChart: React.FC<SparklineChartProps> = (props) => {
   // geometry's scales), so no padding offset is needed here.
   const hitSeries: HitSeries[] = useMemo(() => [{
     id: seriesId,
-    name,
+    name: name ?? 'Value',
     color: strokeColor,
     visible: isSeriesVisible,
     marks: chartPoints.map((p, i): Mark => ({

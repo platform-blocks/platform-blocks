@@ -11,7 +11,7 @@ export function Demo() {
       data={{ rows: WEEKDAY_LABELS, cols: COLUMNS, values: CONTRIBUTION_MATRIX }}
       cellSize={{ width: 12, height: 12 }}
       gap={2}
-      colorScale={{ min: 0, max: 4, colors: PALETTE }}
+      colorScale={{ domain: [0, 4], colors: PALETTE }}
       xAxis={{ show: false }}
       yAxis={{
         show: true,

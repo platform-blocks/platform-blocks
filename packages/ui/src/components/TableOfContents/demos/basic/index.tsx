@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import { Block, Row, TableOfContents, Text, Title, TitleRegistryProvider } from '@plocks/ui';
 
 const SECTIONS = [
@@ -9,19 +8,18 @@ const SECTIONS = [
 ];
 
 export function Demo() {
-  const contentRef = useRef<HTMLDivElement | null>(null);
 
   return (
     <TitleRegistryProvider>
       <Row gap="xl" align="flex-start">
         <TableOfContents
-          container={contentRef.current ?? undefined}
+          container="#toc-basic-content"
           variant="outline"
           size="sm"
           p="sm"
           style={{ width: 240 }}
         />
-        <Block ref={contentRef} component="div" grow={1} style={{ maxWidth: 560 }}>
+        <Block id="toc-basic-content" grow={1} style={{ maxWidth: 560 }}>
           {SECTIONS.map((section, index) => (
             <Block key={section.id}>
               <Title order={index === 0 ? 1 : 2}>{section.title}</Title>

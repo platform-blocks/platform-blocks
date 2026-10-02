@@ -16,6 +16,7 @@ import { linearScale, generateNiceTicks, type Scale } from '../../utils/scales';
 import { createSmoothPath, createTickFormatter } from '../../utils';
 import { roundedBarPath, barCornerMask } from '../../utils/barPath';
 import { createColorAssigner } from '../../colors';
+import { isChartTouchInput } from '../../interaction/touchInput';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -63,6 +64,7 @@ const toNativePointerEvent = (event: any) => {
       locationY: rect ? event.clientY - rect.top : 0,
       pageX: event?.pageX ?? event?.clientX,
       pageY: event?.pageY ?? event?.clientY,
+      pointerType: event?.pointerType,
     },
   };
 };
@@ -149,14 +151,12 @@ const ComboBarSeries: React.FC<{
   scaleX: Scale<number>;
   scaleY: Scale<number>;
   plotWidth: number;
-  plotHeight: number;
-  padding: { left: number; top: number };
   animationProgress: SharedValue<number>;
   disabled: boolean;
   onBarHover: (bar: ComputedBarRect) => void;
   onBarHoverEnd: (bar: ComputedBarRect) => void;
   onBarPress: (bar: ComputedBarRect, nativeEvent: any) => void;
-}> = React.memo(({ layer, scaleX, scaleY, plotWidth, plotHeight, padding, animationProgress, disabled, onBarHover, onBarHoverEnd, onBarPress }) => {
+}> = React.memo(({ layer, scaleX, scaleY, plotWidth, animationProgress, disabled, onBarHover, onBarHoverEnd, onBarPress }) => {
   const bandwidthFromScale = scaleX.bandwidth?.() ?? 0;
   const layerOpacity = (layer.raw as Extract<ComboChartLayer, { type: 'bar' | 'histogram' }>).opacity ?? 1;
   const bars = useMemo(() => {
@@ -173,11 +173,11 @@ const ComboBarSeries: React.FC<{
         }
       }
       const center = scaleX(point.x);
-      const x = padding.left + center - width / 2;
+      const x = Math.min(Math.max(center - width / 2, 0), Math.max(plotWidth - width, 0));
       const yPixel = scaleY(point.y);
       const baselinePixel = scaleY(0);
       const isPositive = point.y >= 0;
-      const rectY = padding.top + (isPositive ? yPixel : baselinePixel);
+      const rectY = isPositive ? yPixel : baselinePixel;
       const height = Math.max(0, Math.abs(baselinePixel - yPixel));
       return {
         id: `${layer.id}-${index}`,
@@ -193,7 +193,7 @@ const ComboBarSeries: React.FC<{
         visible: layer.visible,
       } as ComputedBarRect;
     });
-  }, [layer, scaleX, scaleY, padding.left, padding.top, bandwidthFromScale, plotWidth]);
+  }, [layer, scaleX, scaleY, bandwidthFromScale, plotWidth]);
 
   return (
     <>
@@ -439,6 +439,9 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
   [normalizedLayers, seriesVisibility]);
 
   const hasRightAxis = resolvedLayers.some((layer) => layer.targetAxis === 'right') || !!yAxisRight;
+  // On narrow charts the right-axis title occupies the same column as the plot.
+  // Its series name remains available in the legend and tooltip.
+  const showRightAxisTitle = width >= 480;
 
   // Grown so the plot clears the title and legend overlays. The topmost tick label sits
   // just below the title band, so it gets an allowance rather than competing for it.
@@ -506,12 +509,12 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
         ? Math.ceil(measureWidestLabel(
             domainTickLabels(yDomainRight, yAxisRight?.labelFormatter, theme.numberFormat, String),
             11,
-          )) + 12
+          )) + 12 + (showRightAxisTitle && yAxisRight?.title ? 24 : 0)
         : 0,
     }),
     [yDomainLeft, yDomainRight, xDomain, yAxis?.labelFormatter, xAxis?.labelFormatter, yAxisRight?.labelFormatter,
      yAxis?.title, xAxis?.title, yAxis?.show, xAxis?.show, yAxis?.showLabels, xAxis?.showLabels, hasRightAxis, width, height,
-     theme.numberFormat]
+     theme.numberFormat, showRightAxisTitle, yAxisRight?.title]
   );
   const padding = useMemo(() => withChartBandPadding(
     axisPadding,
@@ -646,11 +649,19 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
     if (!hasContinuousPointerTracking) return {};
     return {
       onPointerMove: handleWebPointerMove,
-      onPointerDown: handleWebPointerMove,
+      onPointerDown: (event: any) => {
+        interaction?.cancelTouchHold();
+        handleWebPointerMove(event);
+      },
+      onPointerUp: (event: any) => {
+        if (!isChartTouchInput(event)) return;
+        handleWebPointerMove(event);
+        interaction?.holdTouchTarget();
+      },
       onPointerLeave: handlePointerLeave,
       onPointerCancel: handlePointerLeave,
     } as const;
-  }, [hasContinuousPointerTracking, handleWebPointerMove, handlePointerLeave]) as Record<string, any>;
+  }, [hasContinuousPointerTracking, handleWebPointerMove, handlePointerLeave, interaction]) as Record<string, any>;
 
   const barLayers = resolvedLayers.filter((layer): layer is NormalizedBarLayer => layer.type === 'bar' || layer.type === 'histogram');
   const lineLayers = resolvedLayers.filter((layer): layer is NormalizedLineLikeLayer => layer.type === 'line' || layer.type === 'area' || layer.type === 'density');
@@ -663,10 +674,10 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
   const animationProgress = useComboAnimation(disabled, 800, layerSignature);
 
   const handleBarHover = useCallback((bar: ComputedBarRect) => {
-    const centerPlotX = bar.x + bar.width / 2 - padding.left;
-    const pointerPlotY = bar.y - padding.top;
+    const centerPlotX = bar.x + bar.width / 2;
+    const pointerPlotY = bar.y;
     updatePointerFromPlotCoords(centerPlotX, pointerPlotY);
-  }, [padding.left, padding.top, updatePointerFromPlotCoords]);
+  }, [updatePointerFromPlotCoords]);
 
   const handleBarHoverEnd = useCallback((_bar: ComputedBarRect) => {
     if (hasContinuousPointerTracking) return;
@@ -674,10 +685,14 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
   }, [hasContinuousPointerTracking, clearPointerState]);
 
   const handleBarPress = useCallback((bar: ComputedBarRect, nativeEvent: any) => {
+    if (isChartTouchInput(nativeEvent)) {
+      handleBarHover(bar);
+      interaction?.holdTouchTarget();
+    }
     const chartEvent: ChartInteractionEvent = {
       nativeEvent,
-      chartX: (bar.x + bar.width / 2) / width,
-      chartY: (bar.y + bar.height / 2) / height,
+      chartX: (padding.left + bar.x + bar.width / 2) / width,
+      chartY: (padding.top + bar.y + bar.height / 2) / height,
       dataX: bar.dataX,
       dataY: bar.dataY,
       dataPoint: {
@@ -690,7 +705,7 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
     if (chartEvent.dataPoint) {
       onDataPointPress?.(chartEvent.dataPoint, chartEvent);
     }
-  }, [height, onDataPointPress, onPress, width]);
+  }, [height, onDataPointPress, onPress, width, handleBarHover, interaction, padding.left, padding.top]);
 
   const xTicks = useMemo(() => xAxis?.ticks ?? generateNiceTicks(xDomain[0], xDomain[1], 6), [xAxis?.ticks, xDomain]);
   const yTicksLeft = useMemo(() => yAxis?.ticks ?? generateNiceTicks(yDomainLeft[0], yDomainLeft[1], 5), [yAxis?.ticks, yDomainLeft]);
@@ -779,8 +794,6 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
                 scaleX={scaleX}
                 scaleY={layer.targetAxis === 'right' ? scaleYRight : scaleYLeft}
                 plotWidth={plotWidth}
-                plotHeight={plotHeight}
-                padding={padding}
                 animationProgress={animationProgress}
                 disabled={disabled}
                 onBarHover={handleBarHover}
@@ -881,7 +894,7 @@ export const ComboChart: React.FC<ComboChartProps> = (props) => {
           tickSize={yAxisRight?.tickLength ?? 4}
           tickPadding={6}
           tickFormat={(value: number) => (yAxisRight?.labelFormatter ? yAxisRight.labelFormatter(value) : yTickFormatRight(value))}
-          label={yAxisRight?.title}
+          label={showRightAxisTitle ? yAxisRight?.title : undefined}
           stroke={yAxisRight?.color || theme.colors.grid}
           strokeWidth={yAxisRight?.thickness ?? 1}
           showLine={yAxisRight?.show ?? true}

@@ -26,6 +26,7 @@ import { useChartInteractionContext, usePointer } from '../../interaction/ChartI
 import type { ActiveTarget } from '../../core/hittest/types';
 import { useChartTheme } from '../../theme/ChartThemeContext';
 import { getColorFromScheme, formatNumber, resolveNumberFormatter } from '../../utils';
+import { isChartTouchInput } from '../../interaction/touchInput';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const LABEL_LINE_GAP = 18;
@@ -381,10 +382,12 @@ const AnimatedFunnelSegment: React.FC<{
     <G
       testID={`funnel-segment-${segment.id}`}
       {...((isWeb ? {
-        onMouseEnter: onHover,
-        onMouseMove: onHover,
+        onMouseEnter: (event: any) => { if (!isChartTouchInput(event)) onHover?.(event); },
+        onMouseMove: (event: any) => { if (!isChartTouchInput(event)) onHover?.(event); },
         onMouseLeave: onHoverOut,
-        onClick: onPress,
+        onPointerDown: (event: any) => { if (isChartTouchInput(event)) onHover?.(event); },
+        onPointerUp: (event: any) => { if (isChartTouchInput(event)) onPress?.(event); },
+        onClick: (event: any) => { if (!isChartTouchInput(event)) onPress?.(event); },
       } : {
         onPressIn: onHover,
         onPressOut: onHoverOut,
@@ -629,6 +632,7 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
 
   const handleSegmentHover = useCallback(
     (segment: ComputedSegment | null, event?: any) => {
+      if (segment && event && isChartTouchInput(event)) interaction?.cancelTouchHold();
       if (!segment) {
         if (pointer && setPointer) {
           setPointer({ ...pointer, inside: false });
@@ -676,13 +680,17 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
       setActiveTarget?.(target);
       setActiveSlice?.([target]);
     },
-    [pointer, setPointer, setActiveTarget, setActiveSlice, seriesArr.length, tooltip]
+    [pointer, setPointer, setActiveTarget, setActiveSlice, seriesArr.length, tooltip, interaction]
   );
 
   const handleSegmentHoverOut = useCallback(() => handleSegmentHover(null), [handleSegmentHover]);
 
   const handleSegmentPress = useCallback(
     (segment: ComputedSegment, nativeEvent?: any) => {
+      if (isChartTouchInput(nativeEvent)) {
+        handleSegmentHover(segment, nativeEvent);
+        interaction?.holdTouchTarget();
+      }
       if (!onPress && !onDataPointPress) return;
       // Normalized 0-1 center of the segment (container-origin geometry / chart size).
       const chartX = width > 0 ? segment.center.x / width : 0;
@@ -699,7 +707,7 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
       onDataPointPress?.(segment.step, event);
       onPress?.(event);
     },
-    [onPress, onDataPointPress, width, height]
+    [onPress, onDataPointPress, width, height, handleSegmentHover, interaction]
   );
 
   const connectorVisibility = useMemo(() => {
@@ -771,6 +779,7 @@ export const FunnelChart: React.FC<FunnelChartProps> = (props) => {
         style={{ position: 'absolute' }}
         // @ts-expect-error web events
         onMouseMove={(e) => {
+          if (isChartTouchInput(e)) return;
           const rect = (e.currentTarget as any).getBoundingClientRect();
           const x = e.clientX - rect.left;
           const y = e.clientY - rect.top;

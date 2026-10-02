@@ -56,6 +56,10 @@ const STATIC_ROUTES: Record<string, RouteMeta> = {
     description:
       'A responsive KPI dashboard built with plocks — stat tiles with trend sparklines from @plocks/charts.',
   },
+  '/visual-checks': {
+    title: 'Visual Checks',
+    description: 'Side-by-side comparisons of plocks controls and their visual variants.',
+  },
   '/components': {
     title: 'Components',
     description:

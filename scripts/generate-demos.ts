@@ -11,6 +11,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import ts from 'typescript';
 
 import { GITHUB_REPO, SITE_URL } from '../apps/docs/config/urls';
 import { LLMS_SHARED_PROPS_URL } from '../apps/docs/config/llmsDocs';
@@ -28,6 +29,8 @@ const CHARTS_COMPONENTS_DIR = CHARTS?.components;
  * they default to the `charts` category and keep their own route.
  */
 const COMPONENT_PACKAGES = PACKAGES.filter(pkg => pkg !== CHARTS);
+// Catalog pages that document multiple public components rather than one export.
+const COMPONENT_FAMILIES: Record<string, string[]> = { Layout: ['Row', 'Column'] };
 const OUTPUT_DIR = path.join(ROOT, 'apps', 'docs', 'data', 'generated');
 // Per-component markdown consumed by the docs app (CopyPageMenu) and by
 // scripts/generate-llms.ts, which publishes it under public/llms/.
@@ -577,7 +580,19 @@ function collectDemos() {
   function parseBody(body: string): any[] {
     const collected: any[] = [];
     const dedupe = new Set<string>();
-    const lines = body.split(/\n/);
+    // Split at TypeScript member boundaries, including compact declarations
+    // such as `value?: string; onChange?: (value: string) => void`.
+    const prefix = 'interface Props {';
+    const source = ts.createSourceFile('props.ts', `${prefix}${body}\n}`, ts.ScriptTarget.Latest, true);
+    const declaration = source.statements[0] as ts.InterfaceDeclaration;
+    let normalizedBody = body;
+    for (const member of [...declaration.members].reverse()) {
+      const start = member.getStart(source) - prefix.length;
+      if (body.slice(body.lastIndexOf('\n', start - 1) + 1, start).trim()) {
+        normalizedBody = `${normalizedBody.slice(0, start)}\n${normalizedBody.slice(start)}`;
+      }
+    }
+    const lines = normalizedBody.split(/\n/);
     let inJsDoc = false;
     let jsDocLines: string[] = [];
     let pendingLineComment: string | undefined;
@@ -623,9 +638,9 @@ function collectDemos() {
       // The type may start on the next line — a wide union is usually written as
       // `type?:` followed by one `| 'value'` per line. Requiring a non-empty
       // remainder here dropped those props from the table entirely.
-      const sigMatch = line.match(/^(readonly\s+)?([A-Za-z0-9_]+)\??:\s*(.*)$/);
+      const sigMatch = line.match(/^(readonly\s+)?([A-Za-z0-9_]+|'[^']+'|"[^"]+")\??:\s*(.*)$/);
       if (!sigMatch) continue;
-      const name = sigMatch[2];
+      const name = sigMatch[2].replace(/^['"]|['"]$/g, '');
       if (dedupe.has(name)) { pendingLineComment = undefined; jsDocLines = []; continue; }
       let typePortion = sigMatch[3];
       // Consume continuation lines while inside unbalanced brackets so inline
@@ -640,7 +655,7 @@ function collectDemos() {
       let defaultValue: string | undefined;
       const eqIdx = typePortion.indexOf('=');
       if (eqIdx !== -1) { const two = typePortion.substring(eqIdx, eqIdx + 2); if (two !== '=>') { defaultValue = typePortion.slice(eqIdx + 1).trim(); typePortion = typePortion.slice(0, eqIdx).trim(); } }
-      const optional = sigMatch[0].includes(name + '?:');
+      const optional = sigMatch[0].includes(sigMatch[2] + '?:');
       const { description: jsDesc, tags } = flushJsDoc();
       const description = jsDesc || pendingLineComment || trailingComment;
       let internal: boolean | undefined; let jsDefault: string | undefined;
@@ -660,7 +675,7 @@ function collectDemos() {
   // Global index of every named interface (name -> { body, extends clause }),
   // built lazily from shared type files so base interfaces such as
   // `BaseChartProps`, `SpacingProps`, `LineChartProps` can be resolved.
-  const ifaceIndex = new Map<string, { body: string; ext: string; alias?: boolean }>();
+  const ifaceIndex = new Map<string, { body: string; ext: string; alias?: boolean; union?: string[] }>();
   // Literal unions by alias name (`ButtonVariant` → `'default' | 'filled' | …`).
   const unionIndex = new Map<string, string[]>();
   // Declaration source by name, for the Types section of a component's page.
@@ -717,9 +732,18 @@ function collectDemos() {
       if (end === -1) continue;
       recordDeclaration(name, src.slice(m.index, end + 1), file);
       if (union) {
-        // A union is a value type, not a props shape — but a union of literals
-        // (`type ButtonVariant = 'default' | 'filled' | …`) is exactly what a
-        // prop's type needs spelled out, so it is kept for expansion.
+        // Props unions describe alternative object shapes. Keep each branch so
+        // shared props and mode-dependent values/callbacks can all be documented.
+        const declaration = ts.createSourceFile('alias.ts', src.slice(m.index, end + 1), ts.ScriptTarget.Latest, true).statements[0];
+        if (ts.isTypeAliasDeclaration(declaration) && ts.isUnionTypeNode(declaration.type)
+          && declaration.type.types.every(type => ts.isTypeReferenceNode(type) && ts.isIdentifier(type.typeName))) {
+          ifaceIndex.set(name, {
+            body: '', ext: '', alias: true,
+            union: declaration.type.types.map(type => (type as ts.TypeReferenceNode).typeName.getText()),
+          });
+        }
+        // Literal value unions (`type ButtonVariant = 'default' | 'filled' | …`)
+        // are kept separately for expansion in individual prop types.
         const members: string[] = [];
         let level = 0, member = '';
         for (const ch of src.slice(start, end).replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')) {
@@ -811,6 +835,22 @@ function collectDemos() {
     if (base.partial) out = out.map(p => ({ ...p, required: false }));
     return out;
   };
+  const mergePropAlternatives = (branches: any[][]): any[] => {
+    const names = [...new Set(branches.flatMap(props => props.map(prop => prop.name)))];
+    return names.map(name => {
+      const alternatives = branches.map(props => props.find(prop => prop.name === name)).filter(Boolean);
+      const types = [...new Set<string>(alternatives.map(prop => prop.type))];
+      const descriptions = [...new Set(alternatives.map(prop => prop.description).filter(Boolean))];
+      const first = alternatives[0];
+      return {
+        ...first,
+        type: types.length === 1 ? types[0] : types.map(type => type.includes('=>') ? `(${type})` : type).join(' | '),
+        required: alternatives.length === branches.length && alternatives.every(prop => prop.required),
+        description: descriptions.join(' ') || undefined,
+        from: alternatives.every(prop => prop.from === first.from) ? first.from : undefined,
+      };
+    });
+  };
   // Recursively resolve all props inherited through an interface's `extends`
   // chain. Own props win over inherited; earlier bases win over later ones.
   // Each inherited prop records the interface that declares it (`from`), which
@@ -821,6 +861,9 @@ function collectDemos() {
     seen.add(name);
     const entry = ifaceIndex.get(name);
     if (!entry) return [];
+    if (entry.union) {
+      return mergePropAlternatives(entry.union.map(branch => resolveBaseProps(branch, new Set(seen))));
+    }
     const own = parseBody(entry.body).map(prop => ({ ...prop, from: name }));
     const names = new Set(own.map(p => p.name));
     const result = [...own];
@@ -859,11 +902,10 @@ function collectDemos() {
       // re-exports a base via `extends` (e.g. `interface FooProps extends BarProps {}`).
       if (parsed.length || extracted.ext) { collected = parsed; ownExt = extracted.ext; break; }
     }
-    // A props type declared as an intersection alias (`type FooProps = BaseProps
-    // & { … }`) never matches the object-literal pattern above; resolve it from
-    // the index instead, own members first.
+    // Resolve union/intersection aliases and interfaces declared outside the
+    // component's candidate files from the shared index, own members first.
     const indexed = ifaceIndex.get(`${comp}Props`);
-    if (indexed?.alias && !ownExt) {
+    if (indexed && !ownExt && (indexed.alias || !collected.length)) {
       collected = resolveBaseProps(`${comp}Props`, new Set<string>())
         .map(({ from, ...prop }) => (from === `${comp}Props` ? prop : { ...prop, from }));
     }
@@ -875,6 +917,11 @@ function collectDemos() {
         baseProps = narrowBase(base, baseProps);
         for (const p of baseProps) { if (!dedupe.has(p.name)) { dedupe.add(p.name); collected.push(p); } }
       }
+    }
+    // Layout is a family page for Row and Column; the core LayoutProps type
+    // only describes sizing and is not the API of these components.
+    if (COMPONENT_FAMILIES[comp]) {
+      collected = mergePropAlternatives(COMPONENT_FAMILIES[comp].map(name => resolveBaseProps(`${name}Props`, new Set<string>())));
     }
     if (collected.length) {
       // Attempt to augment with default values from implementation destructuring
@@ -1619,13 +1666,14 @@ function buildComponentMarkdown(name: string, context: ComponentMarkdownContext,
 
   const packageName = componentMeta.packageName
     || (componentMeta.category === 'charts' ? CHARTS_PACKAGE : UI_PACKAGE);
+  const importNames = (COMPONENT_FAMILIES[name] ?? [name]).join(', ');
   if (compact) {
     // One line in place of the Metadata section.
     const status = componentMeta.status && componentMeta.status !== 'stable' ? ` · Status: ${componentMeta.status}` : '';
-    lines.push('', `\`import { ${name} } from '${packageName}';\`${status} · Full page: ${SITE_URL}/llms/components/${name}.md`);
+    lines.push('', `\`import { ${importNames} } from '${packageName}';\`${status} · Full page: ${SITE_URL}/llms/components/${name}.md`);
   }
   const metaList: string[] = [];
-  metaList.push(`- Import: \`import { ${name} } from '${packageName}';\``);
+  metaList.push(`- Import: \`import { ${importNames} } from '${packageName}';\``);
   if (packageName !== UI_PACKAGE) {
     metaList.push(`- Install: \`npm install ${packageName}\` — a separate package from \`${UI_PACKAGE}\``);
   }

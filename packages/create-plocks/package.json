@@ -1,6 +1,6 @@
 {
   "name": "create-plocks",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Start a new plocks app from a template: npm create plocks@latest",
   "type": "module",
   "bin": {

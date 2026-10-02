@@ -1,5 +1,5 @@
 import React from 'react';
-import { Title, type TitleProps } from '@plocks/ui';
+import { Title, useDeviceInfo, type TitleProps } from '@plocks/ui';
 
 /**
  * Shared heading used across docs pages to keep hero titles consistent.
@@ -15,6 +15,7 @@ export const DocsPageHeader: React.FC<TitleProps> = ({
   style,
   ...rest
 }) => {
+  const { platform: { isNative } } = useDeviceInfo();
   const mergedSubtitleProps = {
     variant: 'body',
     c: 'secondary',
@@ -24,7 +25,7 @@ export const DocsPageHeader: React.FC<TitleProps> = ({
   return (
     <Title
       order={order}
-      size={size}
+      size={isNative && size === 48 ? 40 : size}
       fw={weight}
       afterline={afterline}
       subtitleProps={mergedSubtitleProps}

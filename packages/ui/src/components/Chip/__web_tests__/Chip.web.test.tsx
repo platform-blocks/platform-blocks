@@ -13,6 +13,23 @@ describe('Chip (react-native-web DOM)', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 
+  it('uses the shared light, subtle, and outline surfaces', () => {
+    render(
+      <>
+        <Chip testID="light-chip" variant="light">Light</Chip>
+        <Chip testID="subtle-chip" variant="subtle">Subtle</Chip>
+        <Chip testID="outline-chip" variant="outline">Outline</Chip>
+      </>
+    );
+    const light = screen.getByTestId('light-chip');
+    const subtle = screen.getByTestId('subtle-chip');
+    const outline = screen.getByTestId('outline-chip');
+    expect(light.style.backgroundColor).toMatch(/^rgba\(/);
+    expect(light.style.borderTopColor).toBe('rgba(0, 0, 0, 0)');
+    expect(subtle.style.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(outline.style.borderTopColor).not.toBe('rgba(0, 0, 0, 0)');
+  });
+
   it('a selectable chip is a checkbox that toggles on click and Space', () => {
     const onChange = jest.fn();
     render(

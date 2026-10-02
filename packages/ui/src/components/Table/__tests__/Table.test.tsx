@@ -36,6 +36,21 @@ describe('Table', () => {
     expect(table.props['aria-label']).toBe('Accounts');
   });
 
+  it('transposes data and marks the first column as row headers in the vertical variant', () => {
+    wrap(<Table variant="vertical" data={{ head: ['Name', 'Plan'], body: [['Ada', 'Pro'], ['Grace', 'Free']] }} />);
+    const ancestorWithRole = (label: string, role: string) => {
+      let node = screen.getByText(label).parent;
+      while (node && node.props.role !== role) node = node.parent;
+      return node;
+    };
+    expect(ancestorWithRole('Name', 'rowheader')).toBeTruthy();
+    expect(ancestorWithRole('Plan', 'rowheader')).toBeTruthy();
+    expect(ancestorWithRole('Name', 'row')).toBe(ancestorWithRole('Ada', 'row'));
+    expect(ancestorWithRole('Name', 'row')).toBe(ancestorWithRole('Grace', 'row'));
+    expect(ancestorWithRole('Plan', 'row')).toBe(ancestorWithRole('Pro', 'row'));
+    expect(ancestorWithRole('Name', 'row')).not.toBe(ancestorWithRole('Plan', 'row'));
+  });
+
   it('gives each part its table role', () => {
     wrap(
       <Table>

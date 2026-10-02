@@ -1,17 +1,9 @@
-import { Platform } from 'react-native';
+import { useDeviceInfo } from '@plocks/ui';
 import { Stack } from 'expo-router';
 
-const shouldDisableAnimation = (() => {
-  if (Platform.OS !== 'web') {
-    return true;
-  }
-  if (typeof navigator === 'undefined') {
-    return false;
-  }
-  return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-})();
-
 export default function ComponentsLayout() {
+  const { platform: { isNative, isMobile } } = useDeviceInfo();
+  const shouldDisableAnimation = isNative || isMobile;
   const animationOptions = shouldDisableAnimation ? { animation: 'none' as const } : {};
 
   return (

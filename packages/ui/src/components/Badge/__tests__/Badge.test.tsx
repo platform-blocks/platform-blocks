@@ -12,6 +12,8 @@ describe('Badge', () => {
     const { getByTestId, getByText } = render(<Badge testID="badge">New</Badge>);
     expect(getByText('New')).toBeTruthy();
     expect(styleOf(getByTestId('badge')).height).toBe(20);
+    const { getByTestId: getFilled } = render(<Badge testID="filled-badge" variant="filled">New</Badge>);
+    expect(styleOf(getByTestId('badge')).backgroundColor).toBe(styleOf(getFilled('filled-badge')).backgroundColor);
   });
 
   it('scales height and label typography across size tokens', () => {

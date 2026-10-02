@@ -2,6 +2,7 @@ import React, { createContext, useContext, useRef, useState, useCallback, useEff
 import type { ActiveTarget, HitTester, HitQuery } from '../core/hittest/types';
 import type { ChartRegistration } from '../core/hittest/registration';
 import { createHitTester } from '../core/hittest/registration';
+import { CHART_TOUCH_HOLD_MS } from './touchInput';
 
 /**
  * Pair of numeric domains for x and y axes
@@ -145,6 +146,12 @@ interface InteractionContextValue extends StableState {
   setPointer: (p: ChartVolatileState['pointer']) => void;
   /** Update the normalized active target (new hit-test engine). */
   setActiveTarget: (t: ActiveTarget | null) => void;
+  /** Clear a held touch target only if it is still the active selection. */
+  clearActiveTargetIf: (t: ActiveTarget) => void;
+  /** Keep the current target and slice readable after an explicit touch release. */
+  holdTouchTarget: () => void;
+  /** End a held selection before a new gesture begins. */
+  cancelTouchHold: () => void;
   /** Update the multi-series slice (new hit-test engine). */
   setActiveSlice: (s: ActiveTarget[]) => void;
   /**
@@ -266,12 +273,36 @@ export const ChartInteractionProvider: React.FC<{ config?: InteractionConfig; ch
     });
     return best;
   }, []);
-  const setActiveTarget = useCallback((t: ActiveTarget | null) => {
-    setTarget(prev => (sameTarget(prev.activeTarget, t) ? prev : { ...prev, activeTarget: t }));
+  const activeTargetRef = useRef<ActiveTarget | null>(null);
+  const touchHoldRef = useRef<{ target: ActiveTarget; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const cancelTouchHold = useCallback(() => {
+    if (touchHoldRef.current) clearTimeout(touchHoldRef.current.timer);
+    touchHoldRef.current = null;
   }, []);
+  const setActiveTarget = useCallback((t: ActiveTarget | null) => {
+    if (t == null && touchHoldRef.current) return;
+    if (t && touchHoldRef.current && !sameTarget(touchHoldRef.current.target, t)) cancelTouchHold();
+    activeTargetRef.current = t;
+    setTarget(prev => (sameTarget(prev.activeTarget, t) ? prev : { ...prev, activeTarget: t }));
+  }, [cancelTouchHold]);
+  const clearActiveTargetIf = useCallback((expected: ActiveTarget) => {
+    if (!sameTarget(activeTargetRef.current, expected)) return;
+    cancelTouchHold();
+    activeTargetRef.current = null;
+    setTarget({ activeTarget: null, activeSlice: [] });
+    setPointerState(null);
+  }, [cancelTouchHold]);
   const setActiveSlice = useCallback((s: ActiveTarget[]) => {
+    if (s.length === 0 && touchHoldRef.current) return;
     setTarget(prev => (sameSlice(prev.activeSlice, s) ? prev : { ...prev, activeSlice: s }));
   }, []);
+  const holdTouchTarget = useCallback(() => {
+    const current = activeTargetRef.current;
+    if (!current) return;
+    cancelTouchHold();
+    const timer = setTimeout(() => clearActiveTargetIf(current), CHART_TOUCH_HOLD_MS);
+    touchHoldRef.current = { target: current, timer };
+  }, [cancelTouchHold, clearActiveTargetIf]);
 
   const updateSeriesVisibility = useCallback((id: string | number, visible: boolean) => {
     setStable(prev => {
@@ -301,6 +332,8 @@ export const ChartInteractionProvider: React.FC<{ config?: InteractionConfig; ch
     }
   };
   const setPointer = useCallback((p: ChartVolatileState['pointer']) => {
+    // A retained tooltip needs its last screen anchor after pointer leave too.
+    if (touchHoldRef.current && !p?.inside) return;
     if (!config.pointerRAF && pointerThreshold === 0) {
       setPointerState(p);
       return;
@@ -337,12 +370,13 @@ export const ChartInteractionProvider: React.FC<{ config?: InteractionConfig; ch
   // Cancel any pending rAFs on unmount to prevent setState on unmounted component
   useEffect(() => {
     return () => {
+      cancelTouchHold();
       if (rafRef.current != null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
     };
-  }, []);
+  }, [cancelTouchHold]);
 
   // Memoized so its identity only changes when `stable`/`config` change — NOT on volatile
   // updates. This is what keeps chart bodies from re-rendering on every pointer move.
@@ -353,13 +387,16 @@ export const ChartInteractionProvider: React.FC<{ config?: InteractionConfig; ch
     setPointer,
     setRootOffset,
     setActiveTarget,
+    clearActiveTargetIf,
+    holdTouchTarget,
+    cancelTouchHold,
     setActiveSlice,
     register,
     hitTest,
     initializeDomains,
     setDomains,
     resetZoom,
-  }), [stable, config, updateSeriesVisibility, setPointer, setRootOffset, setActiveTarget, setActiveSlice, register, hitTest, initializeDomains, setDomains, resetZoom]);
+  }), [stable, config, updateSeriesVisibility, setPointer, setRootOffset, setActiveTarget, clearActiveTargetIf, holdTouchTarget, cancelTouchHold, setActiveSlice, register, hitTest, initializeDomains, setDomains, resetZoom]);
 
   return (
     <StableContext.Provider value={stableValue}>

@@ -1,8 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { IconButton } from '@plocks/ui';
+import { IconButton, useDeviceInfo } from '@plocks/ui';
 
 import { EXAMPLE_REGISTRY } from './exampleRegistry';
 import { EXAMPLES } from '../../config/examples';
@@ -14,7 +13,7 @@ import { useBrowserTitle, formatPageTitle } from 'hooks/useBrowserTitle';
  * bottom-left corner returns to the gallery.
  */
 export function ExampleScreen({ slug }: { slug: string }) {
-  const insets = useSafeAreaInsets();
+  const { safeArea: insets } = useDeviceInfo();
   const entry = EXAMPLES.find(example => example.slug === slug);
   const Example = EXAMPLE_REGISTRY[slug];
 
